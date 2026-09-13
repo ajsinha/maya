@@ -236,7 +236,7 @@ def del_022(ctx: Ctx) -> Result:
         **TIER}), status=201)
 
 
-@case("QA-DEL-023", "A deleted URN resolves to what happened to it")
+@case("QA-DEL-200", "A deleted URN resolves to what happened to it")
 def del_023(ctx: Ctx) -> Result:
     urn = _register(ctx, "del023")
     _delete(ctx, urn, reason="qa resolve probe")
@@ -278,7 +278,7 @@ def del_026(ctx: Ctx) -> Result:
     return PASS, "absent from the listing"
 
 
-@case("QA-DEL-027", "A tombstoned URN cannot be transitioned")
+@case("QA-DEL-201", "A tombstoned URN cannot be transitioned")
 def del_027(ctx: Ctx) -> Result:
     urn = _register(ctx, "del027")
     name = urn.rsplit("/", 1)[-1]
@@ -391,7 +391,7 @@ def del_075(ctx: Ctx) -> Result:
     return PASS, f"plan is repeatable: {first.json().get('would_sweep')} ready"
 
 
-@case("QA-DEL-076", "A dry-run sweep reports and reclaims nothing")
+@case("QA-DEL-202", "A dry-run sweep reports and reclaims nothing")
 def del_076(ctx: Ctx) -> Result:
     dry = ctx.api.post("/api/v1/compaction/sweep", params={"dry_run": True})
     if dry.status_code >= 400:
@@ -401,7 +401,7 @@ def del_076(ctx: Ctx) -> Result:
     return PASS, f"dry run: {dry.json()}"
 
 
-@case("QA-DEL-077", "Delta is reported as out of reach, not skipped")
+@case("QA-DEL-203", "Delta is reported as out of reach, not skipped")
 def del_077(ctx: Ctx) -> Result:
     plan = ctx.api.get("/api/v1/compaction/plan")
     out = (plan.json() or {}).get("not_reclaimable") or {}
@@ -411,7 +411,7 @@ def del_077(ctx: Ctx) -> Result:
     return PASS, f"reported: {out['why'][:80]}"
 
 
-@case("QA-DEL-078", "Vacuum answers and reports what it reclaimed")
+@case("QA-DEL-204", "Vacuum answers and reports what it reclaimed")
 def del_078(ctx: Ctx) -> Result:
     done = ctx.api.post("/api/v1/compaction/vacuum")
     if done.status_code >= 400:

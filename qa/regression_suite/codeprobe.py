@@ -30,7 +30,7 @@ import pkgutil
 import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SEEN = ROOT / "docs" / "QA" / "results" / ".codes-seen.txt"
+SEEN = ROOT / "qa" / "results" / ".codes-seen.txt"
 CODE_SHAPE = re.compile(r"[a-z][a-z0-9_]{2,}")
 
 _seen: set = set()

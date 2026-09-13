@@ -27,7 +27,7 @@ from qa.regression_suite import verify
 from qa.regression_suite.enumerate import build, screens
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-ASSEMBLED = ROOT / "docs" / "QA" / "QA-CASES.md"
+ASSEMBLED = ROOT / "qa" / "QA-CASES.md"
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +47,7 @@ class TestTheListCoversTheSystemAsItIsNow:
         """The committed document must match what the tools produce. A stale
         one is a plan for a system that has moved."""
         assert verify.assemble() == document, (
-            "docs/QA/QA-CASES.md is out of date; run "
+            "qa/QA-CASES.md is out of date; run "
             "`python -m qa.regression_suite.verify`")
 
 

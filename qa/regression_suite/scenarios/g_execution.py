@@ -85,7 +85,7 @@ def _issue(ctx: Ctx, urn: str, **over):
 
 
 # ------------------------------------------------------------------ warrants
-@case("QA-FX-300", "A warrant over an attested model with an alias")
+@case("QA-FX-606", "A warrant over an attested model with an alias")
 def fx_300(ctx: Ctx) -> Result:
     return expect_accepted(_issue(ctx, governed(ctx)["urn"]))
 
@@ -115,7 +115,7 @@ def fx_301(ctx: Ctx) -> Result:
         "not_found", "no_alias", "not_in_force")
 
 
-@case("QA-FX-302", "A warrant over a model that does not exist")
+@case("QA-FX-607", "A warrant over a model that does not exist")
 def fx_302(ctx: Ctx) -> Result:
     return expect_refused(_issue(ctx, "maya://model/qa.never"),
                           "registry_refused", "not_found")
@@ -144,7 +144,7 @@ def fx_304(ctx: Ctx) -> Result:
         "not_found", "no_alias", "not_in_force")
 
 
-@case("QA-FX-305", "Resolve a warrant after it is revoked")
+@case("QA-FX-608", "Resolve a warrant after it is revoked")
 def fx_305(ctx: Ctx) -> Result:
     made = governed(ctx)
     issued = _issue(ctx, made["urn"])
@@ -162,7 +162,7 @@ def fx_305(ctx: Ctx) -> Result:
         "revoked", "revoked_epoch", "no_warrant", "not_found")
 
 
-@case("QA-FX-306", "Revoking a warrant that was never issued")
+@case("QA-FX-609", "Revoking a warrant that was never issued")
 def fx_306(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/warrants/revoke",
@@ -170,7 +170,7 @@ def fx_306(ctx: Ctx) -> Result:
         "registry_refused", "not_found", "no_warrant")
 
 
-@case("QA-FX-307", "Revoking with an empty reason")
+@case("QA-FX-610", "Revoking with an empty reason")
 def fx_307(ctx: Ctx) -> Result:
     made = governed(ctx)
     _issue(ctx, made["urn"])
@@ -216,7 +216,7 @@ def fx_311(ctx: Ctx) -> Result:
         "registry_refused")
 
 
-@case("QA-FX-312", "An alias on a model that is not in force")
+@case("QA-FX-611", "An alias on a model that is not in force")
 def fx_312(ctx: Ctx) -> Result:
     name = ctx.unique("gx")
     ctx.api.post("/api/v1/models", json={"urn": f"maya://model/{name}",
@@ -232,7 +232,7 @@ def fx_312(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------- the execution boundary
-@case("QA-FX-320", "The published cascade of what a warrant carries")
+@case("QA-FX-612", "The published cascade of what a warrant carries")
 def fx_320(ctx: Ctx) -> Result:
     made = governed(ctx)
     issued = _issue(ctx, made["urn"])
@@ -257,7 +257,7 @@ def fx_320(ctx: Ctx) -> Result:
     return PASS, "the descriptor is signed and time-bounded"
 
 
-@case("QA-FX-321", "A warrant states what it does NOT prove")
+@case("QA-FX-613", "A warrant states what it does NOT prove")
 def fx_321(ctx: Ctx) -> Result:
     """`attested, not observed`. A descriptor that reads as proof of a
     governed run is the claim this platform refuses to make."""
@@ -269,7 +269,7 @@ def fx_321(ctx: Ctx) -> Result:
     return PASS, posture.json()["does_not_prove"][:110]
 
 
-@case("QA-FX-322", "Unreported execution is visible")
+@case("QA-FX-614", "Unreported execution is visible")
 def fx_322(ctx: Ctx) -> Result:
     got = ctx.api.get("/api/v1/execution-posture/unreported")
     if got.status_code >= 400:

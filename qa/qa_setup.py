@@ -3,8 +3,8 @@ MAYA — build the estate the QA cheatsheet walks through. Windows, macOS, Linux
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-    python docs/QA/qa_setup.py
-    python docs/QA/qa_setup.py --url http://host:5006 --user admin --password ...
+    python qa/qa_setup.py
+    python qa/qa_setup.py --url http://host:5006 --user admin --password ...
 
 The same estate `qa-setup.sh` builds, in Python — because that shell script
 needs bash and curl, and a Windows tester has neither by default. This is the
@@ -322,7 +322,7 @@ def main() -> int:
 
     print("\ndone")
     print(f"Sign in at {args.url}  —  {args.user} / {args.password}")
-    print("Then follow docs/QA/README.md from section 1.")
+    print("Then follow qa/cheatsheet.md from section 1.")
     return 0
 
 

@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 276,
-  "pass": 261,
-  "fail": 14,
+  "total": 291,
+  "pass": 271,
+  "fail": 19,
   "blocked": 1
  },
- "seconds": 28.3,
+ "seconds": 21.7,
  "results": [
   {
    "id": "QA-AM-067",
@@ -26,40 +26,10 @@
    "evidence": "refused 'validation_refused' (409)"
   },
   {
-   "id": "QA-AM-072",
-   "title": "Raise against a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
    "id": "QA-AM-073",
    "title": "Raise with no owner",
    "verdict": "PASS",
    "evidence": "refused 'validation_refused' (409)"
-  },
-  {
-   "id": "QA-AM-074",
-   "title": "Raise with an empty title",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_refused'"
-  },
-  {
-   "id": "QA-AM-080",
-   "title": "Acknowledge as somebody who does not own it",
-   "verdict": "PASS",
-   "evidence": "refused 'not_the_owner' (403)"
-  },
-  {
-   "id": "QA-AM-081",
-   "title": "Acknowledge with no plan and none on record",
-   "verdict": "PASS",
-   "evidence": "refused 'plan_required' (422)"
-  },
-  {
-   "id": "QA-AM-082",
-   "title": "Acknowledge with a plan",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
   },
   {
    "id": "QA-AM-083",
@@ -68,52 +38,16 @@
    "evidence": "refused 'date_in_the_past' (422)"
   },
   {
-   "id": "QA-AM-084",
-   "title": "Acknowledging moves the finding out of open",
-   "verdict": "PASS",
-   "evidence": "status is now 'in_remediation'"
-  },
-  {
-   "id": "QA-AM-085",
-   "title": "Close with no evidence",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_error' (422)"
-  },
-  {
-   "id": "QA-AM-086",
-   "title": "Close verified by the person who owns it",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_error'"
-  },
-  {
    "id": "QA-AM-087",
    "title": "Extend with no reason",
    "verdict": "PASS",
    "evidence": "refused 'reason_required' (422)"
   },
   {
-   "id": "QA-AM-088",
-   "title": "Assign to nobody",
-   "verdict": "PASS",
-   "evidence": "refused 'owner_required' (422)"
-  },
-  {
    "id": "QA-AM-090",
    "title": "Act on a finding that does not exist",
    "verdict": "PASS",
    "evidence": "refused 'no_finding' (404)"
-  },
-  {
-   "id": "QA-AM-130",
-   "title": "A root with no findings attached",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
-   "id": "QA-AM-131",
-   "title": "A root with an empty detail",
-   "verdict": "PASS",
-   "evidence": "refused 'root_detail_required' (422)"
   },
   {
    "id": "QA-AM-132",
@@ -140,28 +74,10 @@
    "evidence": "refused 'validation_error' (422)"
   },
   {
-   "id": "QA-AM-210",
-   "title": "Define with a negative threshold",
-   "verdict": "PASS",
-   "evidence": "answered 201 (accepted)"
-  },
-  {
    "id": "QA-AM-211",
    "title": "Define a monitor of an unknown kind",
    "verdict": "PASS",
    "evidence": "refused 'unknown_kind' (422)"
-  },
-  {
-   "id": "QA-AM-212",
-   "title": "Define against a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-AM-213",
-   "title": "Define with no owner",
-   "verdict": "PASS",
-   "evidence": "refused 'owner_required' (422)"
   },
   {
    "id": "QA-AM-214",
@@ -170,46 +86,10 @@
    "evidence": "accepted (201)"
   },
   {
-   "id": "QA-AM-215",
-   "title": "Ingest an observation with no computed_by",
-   "verdict": "PASS",
-   "evidence": "refused 'computed_by_required' (422)"
-  },
-  {
-   "id": "QA-AM-216",
-   "title": "Ingest a window that ends before it starts",
-   "verdict": "PASS",
-   "evidence": "refused 'window_inverted'"
-  },
-  {
    "id": "QA-AM-217",
    "title": "Ingest against a monitor that does not exist",
    "verdict": "PASS",
    "evidence": "refused 'no_monitor' (404)"
-  },
-  {
-   "id": "QA-AM-218",
-   "title": "An observation inside the threshold does not breach",
-   "verdict": "PASS",
-   "evidence": "no breach, as expected"
-  },
-  {
-   "id": "QA-AM-219",
-   "title": "An observation past the threshold breaches",
-   "verdict": "PASS",
-   "evidence": "breached"
-  },
-  {
-   "id": "QA-AM-220",
-   "title": "Two identical observations are not two breaches",
-   "verdict": "PASS",
-   "evidence": "0 breach for the same window twice"
-  },
-  {
-   "id": "QA-AM-300",
-   "title": "Open a validation with no validators",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_refused' (409)"
   },
   {
    "id": "QA-AM-301",
@@ -218,100 +98,310 @@
    "evidence": "refused 'validation_refused' (409)"
   },
   {
-   "id": "QA-AM-302",
-   "title": "Open a validation against a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-AM-303",
-   "title": "A well-formed validation opens",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
-   "id": "QA-AM-304",
-   "title": "Conclude a validation with an outcome that is not one",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_refused' (409)"
-  },
-  {
-   "id": "QA-AM-305",
-   "title": "Conclude a validation twice",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_refused'"
-  },
-  {
-   "id": "QA-AM-306",
-   "title": "Conclude a validation you are not a validator on",
-   "verdict": "PASS",
-   "evidence": "refused 'forbidden'"
-  },
-  {
    "id": "QA-AM-307",
    "title": "Record a result with no test key",
    "verdict": "PASS",
    "evidence": "refused 'validation_refused' (409)"
   },
   {
-   "id": "QA-AM-320",
+   "id": "QA-AM-400",
+   "title": "Telemetry for a version that does not exist",
+   "verdict": "FAIL",
+   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-5a957b19 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
+  },
+  {
+   "id": "QA-AM-402",
+   "title": "Telemetry with no rows",
+   "verdict": "PASS",
+   "evidence": "answered 422 (empty_batch)"
+  },
+  {
+   "id": "QA-AM-404",
+   "title": "A sample rate above one",
+   "verdict": "PASS",
+   "evidence": "refused 'bad_sample_rate'"
+  },
+  {
+   "id": "QA-AM-600",
+   "title": "Raise against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-601",
+   "title": "Raise with an empty title",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-602",
+   "title": "Acknowledge as somebody who does not own it",
+   "verdict": "PASS",
+   "evidence": "refused 'not_the_owner' (403)"
+  },
+  {
+   "id": "QA-AM-603",
+   "title": "Acknowledge with no plan and none on record",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required' (422)"
+  },
+  {
+   "id": "QA-AM-604",
+   "title": "Acknowledge with a plan",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-AM-605",
+   "title": "Acknowledging moves the finding out of open",
+   "verdict": "PASS",
+   "evidence": "status is now 'in_remediation'"
+  },
+  {
+   "id": "QA-AM-606",
+   "title": "Close with no evidence",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-607",
+   "title": "Close verified by the person who owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-AM-608",
+   "title": "Assign to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-609",
+   "title": "A root with no findings attached",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-610",
+   "title": "A root with an empty detail",
+   "verdict": "PASS",
+   "evidence": "refused 'root_detail_required' (422)"
+  },
+  {
+   "id": "QA-AM-611",
+   "title": "Define with a negative threshold",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-612",
+   "title": "Define against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-613",
+   "title": "Define with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-614",
+   "title": "Ingest an observation with no computed_by",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' (422)"
+  },
+  {
+   "id": "QA-AM-615",
+   "title": "Ingest a window that ends before it starts",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-616",
+   "title": "An observation inside the threshold does not breach",
+   "verdict": "PASS",
+   "evidence": "no breach, as expected"
+  },
+  {
+   "id": "QA-AM-617",
+   "title": "An observation past the threshold breaches",
+   "verdict": "PASS",
+   "evidence": "breached"
+  },
+  {
+   "id": "QA-AM-618",
+   "title": "Two identical observations are not two breaches",
+   "verdict": "PASS",
+   "evidence": "0 breach for the same window twice"
+  },
+  {
+   "id": "QA-AM-619",
+   "title": "Open a validation with no validators",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-620",
+   "title": "Open a validation against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-621",
+   "title": "A well-formed validation opens",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-622",
+   "title": "Conclude a validation with an outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-623",
+   "title": "Conclude a validation twice",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-624",
+   "title": "Conclude a validation you are not a validator on",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-AM-625",
    "title": "An overlay with no rationale",
    "verdict": "PASS",
    "evidence": "refused 'rationale_required' (422)"
   },
   {
-   "id": "QA-AM-321",
+   "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09af9a248e54bfdfc90e9b556\",\"model_id\":\"01a09af9a23fca9b5d708b78e0d4\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-81967bc5\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b0057a7323cabab89f90375\",\"model_id\":\"01a09b0057a1cef910746a4a3f19\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-187941a8\",\"kind\":\"judgem"
   },
   {
-   "id": "QA-AM-322",
+   "id": "QA-AM-627",
    "title": "An overlay of a kind that is not one",
    "verdict": "PASS",
    "evidence": "refused 'unknown_kind' (422)"
   },
   {
-   "id": "QA-AM-323",
+   "id": "QA-AM-628",
    "title": "An overlay with no expiry",
    "verdict": "PASS",
    "evidence": "answered 201 (accepted)"
   },
   {
-   "id": "QA-AM-324",
+   "id": "QA-AM-629",
    "title": "Close an overlay with no reason",
    "verdict": "PASS",
    "evidence": "refused 'reason_required' (422)"
   },
   {
-   "id": "QA-AM-325",
+   "id": "QA-AM-630",
    "title": "Measure an overlay that does not exist",
    "verdict": "PASS",
    "evidence": "refused 'no_overlay'"
   },
   {
-   "id": "QA-AM-340",
+   "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09af9a283bccaf3d63d46d9d8\",\"reference\":\"SUP-755e5d2a\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b0057c6f6b9b5946624a685\",\"reference\":\"SUP-679f1097\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
-   "id": "QA-AM-341",
+   "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09af9a290fc77423767f46950\",\"reference\":\"SUP-4ff097f0\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b0057ceee962497eb516dce\",\"reference\":\"SUP-b15a0a7e\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
-   "id": "QA-AM-342",
+   "id": "QA-AM-633",
    "title": "Two matters with the same reference",
    "verdict": "PASS",
    "evidence": "refused 'validation_refused'"
   },
   {
-   "id": "QA-AM-343",
+   "id": "QA-AM-634",
    "title": "Close a supervisory matter with no note",
    "verdict": "PASS",
    "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-635",
+   "title": "Telemetry for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-636",
+   "title": "A well-formed batch is accepted",
+   "verdict": "FAIL",
+   "evidence": "expected acceptance, got 422 {\"error\":\"malformed_row\",\"detail\":\"row 0 is missing score\",\"remediation\":\"a 'scores' row carries entity_id, scored_at, score; the timestamp is the row's own and"
+  },
+  {
+   "id": "QA-AM-637",
+   "title": "A negative sample rate",
+   "verdict": "PASS",
+   "evidence": "refused 'bad_sample_rate'"
+  },
+  {
+   "id": "QA-AM-638",
+   "title": "The same batch sent twice is not counted twice",
+   "verdict": "BLOCKED",
+   "evidence": "{\"error\":\"malformed_row\",\"detail\":\"row 0 is missing score\",\"remediation\":\"a 'scores' row carries entity_id, scored_at, score; the timestamp is the row"
+  },
+  {
+   "id": "QA-AM-639",
+   "title": "A parallel run with no stated purpose",
+   "verdict": "FAIL",
+   "evidence": "expected validation_error/purpose_required/parallel_refused/monitor_refused, got 'same_version' (422): {\"error\":\"same_version\",\"detail\":\"1.0.0 cannot run in parallel with itself\",\"remediation\":\"name the version being challenged and the one challenging it\"}"
+  },
+  {
+   "id": "QA-AM-640",
+   "title": "A challenger that is the same version as the champion",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-AM-641",
+   "title": "Conclude a parallel run with no note",
+   "verdict": "FAIL",
+   "evidence": "expected not_found/validation_error/note_required/parallel_refused/monitor_refused, got 'no_run' (404): {\"error\":\"no_run\",\"detail\":\"no parallel run 'qa-never'\",\"remediation\":\"references look like PAR-0001\"}"
+  },
+  {
+   "id": "QA-AM-642",
+   "title": "A regulatory approval with no regulator",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_approval_kind'"
+  },
+  {
+   "id": "QA-AM-643",
+   "title": "A regulatory approval with no scope",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_approval_kind'"
+  },
+  {
+   "id": "QA-AM-644",
+   "title": "Withdraw a regulatory approval with no reason",
+   "verdict": "FAIL",
+   "evidence": "expected not_found/validation_error/reason_required/registry_refused, got 'no_approval' (404): {\"error\":\"no_approval\",\"detail\":\"no regulatory approval 'qa-never'\",\"remediation\":\"references look like REG-0001\"}"
+  },
+  {
+   "id": "QA-AM-645",
+   "title": "A board pack preview does not create a pack",
+   "verdict": "PASS",
+   "evidence": "preview creates nothing"
+  },
+  {
+   "id": "QA-AM-646",
+   "title": "A board pack with no period",
+   "verdict": "FAIL",
+   "evidence": "a board pack was cut with no period; the figures in it describe no stated span of time"
   },
   {
    "id": "QA-DEL-001",
@@ -371,7 +461,7 @@
    "id": "QA-DEL-011",
    "title": "The evidence node is appended before the rows go",
    "verdict": "PASS",
-   "evidence": "the chain grew 147 -> 148 and the screen shows it"
+   "evidence": "the chain grew 168 -> 169 and the screen shows it"
   },
   {
    "id": "QA-DEL-012",
@@ -410,12 +500,6 @@
    "evidence": "accepted (201)"
   },
   {
-   "id": "QA-DEL-023",
-   "title": "A deleted URN resolves to what happened to it",
-   "verdict": "PASS",
-   "evidence": "resolves: deleted from draft"
-  },
-  {
    "id": "QA-DEL-024",
    "title": "A URN nobody ever used does not resolve",
    "verdict": "PASS",
@@ -432,12 +516,6 @@
    "title": "A deleted model is absent from listings",
    "verdict": "PASS",
    "evidence": "absent from the listing"
-  },
-  {
-   "id": "QA-DEL-027",
-   "title": "A tombstoned URN cannot be transitioned",
-   "verdict": "PASS",
-   "evidence": "refused (409 registry_refused)"
   },
   {
    "id": "QA-DEL-028",
@@ -488,24 +566,6 @@
    "evidence": "plan is repeatable: 0 ready"
   },
   {
-   "id": "QA-DEL-076",
-   "title": "A dry-run sweep reports and reclaims nothing",
-   "verdict": "PASS",
-   "evidence": "dry run: {'dry_run': True, 'marked': 0, 'cleared': 0, 'swept': 0, 'reclaimed_bytes': 0, 'by_store': {'artifact': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}, 'attachment': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}}}"
-  },
-  {
-   "id": "QA-DEL-077",
-   "title": "Delta is reported as out of reach, not skipped",
-   "verdict": "PASS",
-   "evidence": "reported: Delta keeps its own transaction log; removing part files from outside it produce"
-  },
-  {
-   "id": "QA-DEL-078",
-   "title": "Vacuum answers and reports what it reclaimed",
-   "verdict": "PASS",
-   "evidence": "{'before_bytes': 1466368, 'after_bytes': 1466368, 'reclaimed_bytes': 0, 'measured': True}"
-  },
-  {
    "id": "QA-DEL-079",
    "title": "Compacting a model that was never deleted",
    "verdict": "PASS",
@@ -522,6 +582,36 @@
    "title": "Every content address is refcounted",
    "verdict": "PASS",
    "evidence": "2 address column(s) refcounted"
+  },
+  {
+   "id": "QA-DEL-200",
+   "title": "A deleted URN resolves to what happened to it",
+   "verdict": "PASS",
+   "evidence": "resolves: deleted from draft"
+  },
+  {
+   "id": "QA-DEL-201",
+   "title": "A tombstoned URN cannot be transitioned",
+   "verdict": "PASS",
+   "evidence": "refused (409 registry_refused)"
+  },
+  {
+   "id": "QA-DEL-202",
+   "title": "A dry-run sweep reports and reclaims nothing",
+   "verdict": "PASS",
+   "evidence": "dry run: {'dry_run': True, 'marked': 0, 'cleared': 0, 'swept': 0, 'reclaimed_bytes': 0, 'by_store': {'artifact': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}, 'attachment': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}}}"
+  },
+  {
+   "id": "QA-DEL-203",
+   "title": "Delta is reported as out of reach, not skipped",
+   "verdict": "PASS",
+   "evidence": "reported: Delta keeps its own transaction log; removing part files from outside it produce"
+  },
+  {
+   "id": "QA-DEL-204",
+   "title": "Vacuum answers and reports what it reclaimed",
+   "verdict": "PASS",
+   "evidence": "{'before_bytes': 1466368, 'after_bytes': 1519616, 'reclaimed_bytes': 0, 'measured': True}"
   },
   {
    "id": "QA-FX-001",
@@ -593,31 +683,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09af9a69b27b7fcee70185b3e\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
-  },
-  {
-   "id": "QA-FX-015",
-   "title": "An as_of before the view existed",
-   "verdict": "PASS",
-   "evidence": "no admissible row, and the column is null"
-  },
-  {
-   "id": "QA-FX-016",
-   "title": "A negative as_of",
-   "verdict": "PASS",
-   "evidence": "answered 200"
-  },
-  {
-   "id": "QA-FX-017",
-   "title": "An entity that has no rows",
-   "verdict": "PASS",
-   "evidence": "no admissible facts for an unknown entity"
-  },
-  {
-   "id": "QA-FX-018",
-   "title": "An assembly on a view version that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused (409)"
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b005a763b95079061cd5c05\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-104",
@@ -680,40 +746,16 @@
    "evidence": "owner is now 'risk', created_by unchanged"
   },
   {
-   "id": "QA-FX-116",
-   "title": "Seal a feature that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'feature_refused'"
-  },
-  {
-   "id": "QA-FX-117",
-   "title": "Break a seal on a feature that was never sealed",
-   "verdict": "PASS",
-   "evidence": "refused 'feature_refused'"
-  },
-  {
    "id": "QA-FX-118",
    "title": "An unsealed feature can still be amended",
    "verdict": "PASS",
    "evidence": "accepted (200)"
   },
   {
-   "id": "QA-FX-300",
-   "title": "A warrant over an attested model with an alias",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
    "id": "QA-FX-301",
    "title": "Resolving over a model that was never attested",
    "verdict": "PASS",
    "evidence": "refused 'not_found' (404)"
-  },
-  {
-   "id": "QA-FX-302",
-   "title": "A warrant over a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
   },
   {
    "id": "QA-FX-303",
@@ -728,24 +770,6 @@
    "evidence": "refused 'not_found' (404)"
   },
   {
-   "id": "QA-FX-305",
-   "title": "Resolve a warrant after it is revoked",
-   "verdict": "PASS",
-   "evidence": "refused 'revoked' (410)"
-  },
-  {
-   "id": "QA-FX-306",
-   "title": "Revoking a warrant that was never issued",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-FX-307",
-   "title": "Revoking with an empty reason",
-   "verdict": "PASS",
-   "evidence": "refused 'reason_required' (422)"
-  },
-  {
    "id": "QA-FX-310",
    "title": "Move an alias to a version that does not exist",
    "verdict": "PASS",
@@ -758,124 +782,16 @@
    "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-FX-312",
-   "title": "An alias on a model that is not in force",
-   "verdict": "PASS",
-   "evidence": "answered 403 (refused)"
-  },
-  {
-   "id": "QA-FX-320",
-   "title": "The published cascade of what a warrant carries",
-   "verdict": "PASS",
-   "evidence": "the descriptor is signed and time-bounded"
-  },
-  {
-   "id": "QA-FX-321",
-   "title": "A warrant states what it does NOT prove",
-   "verdict": "PASS",
-   "evidence": "that any engine behaved. MAYA does not run models, so nothing here observes an engine honouring or ignoring th"
-  },
-  {
-   "id": "QA-FX-322",
-   "title": "Unreported execution is visible",
-   "verdict": "PASS",
-   "evidence": "5 live and silent"
-  },
-  {
-   "id": "QA-FX-400",
-   "title": "Define a feature with no name",
-   "verdict": "FAIL",
-   "evidence": "a feature with no name was accepted, and a feature nobody can name is one nobody can cite"
-  },
-  {
-   "id": "QA-FX-401",
-   "title": "Define a feature with no owner",
-   "verdict": "FAIL",
-   "evidence": "a feature with no owner was accepted, and an unowned feature is one nobody maintains"
-  },
-  {
-   "id": "QA-FX-402",
-   "title": "Define a feature of an unknown dtype",
-   "verdict": "FAIL",
-   "evidence": "a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves"
-  },
-  {
-   "id": "QA-FX-403",
-   "title": "Define a feature with no entity",
-   "verdict": "FAIL",
-   "evidence": "a feature with no entity was accepted, and the entity is what a row is keyed on"
-  },
-  {
-   "id": "QA-FX-404",
-   "title": "Define a feature with no description",
-   "verdict": "FAIL",
-   "evidence": "a feature with no description was accepted, and a business definition is what stops two teams meaning different things by one name"
-  },
-  {
-   "id": "QA-FX-405",
-   "title": "Define a negative ttl",
-   "verdict": "FAIL",
-   "evidence": "a negative ttl was accepted, and a negative lifetime is a row that expired before it arrived"
-  },
-  {
-   "id": "QA-FX-406",
-   "title": "Define a shape that is not a shape",
-   "verdict": "PASS",
-   "evidence": "refused 'feature_refused'"
-  },
-  {
-   "id": "QA-FX-410",
-   "title": "A well-formed feature is accepted",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
-   "id": "QA-FX-411",
-   "title": "The same feature name twice",
-   "verdict": "PASS",
-   "evidence": "refused 'feature_refused'"
-  },
-  {
-   "id": "QA-FX-412",
-   "title": "A feature declared as personal data",
-   "verdict": "PASS",
-   "evidence": "accepted and flagged"
-  },
-  {
-   "id": "QA-FX-413",
-   "title": "A feature naming a protected basis",
-   "verdict": "PASS",
-   "evidence": "answered 422 (validation_error)"
-  },
-  {
-   "id": "QA-FX-414",
-   "title": "A featureset over a feature that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_error'"
-  },
-  {
    "id": "QA-FX-415",
    "title": "A featureset with no features at all",
    "verdict": "PASS",
    "evidence": "answered 422 (validation_error)"
   },
   {
-   "id": "QA-FX-416",
-   "title": "Retire a feature that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'no_such_subject'"
-  },
-  {
    "id": "QA-FX-417",
    "title": "Read a feature that does not exist",
    "verdict": "PASS",
    "evidence": "refused (405)"
-  },
-  {
-   "id": "QA-FX-418",
-   "title": "A feature expression that references itself",
-   "verdict": "PASS",
-   "evidence": "answered 422 (validation_error)"
   },
   {
    "id": "QA-FX-419",
@@ -890,6 +806,180 @@
    "evidence": "refused 'feature_refused'"
   },
   {
+   "id": "QA-FX-600",
+   "title": "An as_of before the view existed",
+   "verdict": "PASS",
+   "evidence": "no admissible row, and the column is null"
+  },
+  {
+   "id": "QA-FX-601",
+   "title": "A negative as_of",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-FX-602",
+   "title": "An entity that has no rows",
+   "verdict": "PASS",
+   "evidence": "no admissible facts for an unknown entity"
+  },
+  {
+   "id": "QA-FX-603",
+   "title": "An assembly on a view version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (409)"
+  },
+  {
+   "id": "QA-FX-604",
+   "title": "Seal a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-605",
+   "title": "Break a seal on a feature that was never sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-606",
+   "title": "A warrant over an attested model with an alias",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-607",
+   "title": "A warrant over a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-608",
+   "title": "Resolve a warrant after it is revoked",
+   "verdict": "PASS",
+   "evidence": "refused 'revoked' (410)"
+  },
+  {
+   "id": "QA-FX-609",
+   "title": "Revoking a warrant that was never issued",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-610",
+   "title": "Revoking with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-FX-611",
+   "title": "An alias on a model that is not in force",
+   "verdict": "PASS",
+   "evidence": "answered 403 (refused)"
+  },
+  {
+   "id": "QA-FX-612",
+   "title": "The published cascade of what a warrant carries",
+   "verdict": "PASS",
+   "evidence": "the descriptor is signed and time-bounded"
+  },
+  {
+   "id": "QA-FX-613",
+   "title": "A warrant states what it does NOT prove",
+   "verdict": "PASS",
+   "evidence": "that any engine behaved. MAYA does not run models, so nothing here observes an engine honouring or ignoring th"
+  },
+  {
+   "id": "QA-FX-614",
+   "title": "Unreported execution is visible",
+   "verdict": "PASS",
+   "evidence": "5 live and silent"
+  },
+  {
+   "id": "QA-FX-622",
+   "title": "A well-formed feature is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-623",
+   "title": "The same feature name twice",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-624",
+   "title": "A feature declared as personal data",
+   "verdict": "PASS",
+   "evidence": "accepted and flagged"
+  },
+  {
+   "id": "QA-FX-625",
+   "title": "A feature naming a protected basis",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-626",
+   "title": "A featureset over a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-627",
+   "title": "Retire a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_subject'"
+  },
+  {
+   "id": "QA-FX-628",
+   "title": "A feature expression that references itself",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-700",
+   "title": "Define a feature with no name",
+   "verdict": "FAIL",
+   "evidence": "a feature with no name was accepted, and a feature nobody can name is one nobody can cite"
+  },
+  {
+   "id": "QA-FX-701",
+   "title": "Define a feature with no owner",
+   "verdict": "FAIL",
+   "evidence": "a feature with no owner was accepted, and an unowned feature is one nobody maintains"
+  },
+  {
+   "id": "QA-FX-702",
+   "title": "Define a feature of an unknown dtype",
+   "verdict": "FAIL",
+   "evidence": "a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves"
+  },
+  {
+   "id": "QA-FX-703",
+   "title": "Define a feature with no entity",
+   "verdict": "FAIL",
+   "evidence": "a feature with no entity was accepted, and the entity is what a row is keyed on"
+  },
+  {
+   "id": "QA-FX-704",
+   "title": "Define a feature with no description",
+   "verdict": "FAIL",
+   "evidence": "a feature with no description was accepted, and a business definition is what stops two teams meaning different things by one name"
+  },
+  {
+   "id": "QA-FX-705",
+   "title": "Define a negative ttl",
+   "verdict": "FAIL",
+   "evidence": "a negative ttl was accepted, and a negative lifetime is a row that expired before it arrived"
+  },
+  {
+   "id": "QA-FX-706",
+   "title": "Define a shape that is not a shape",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
    "id": "QA-GOV-001",
    "title": "Register the same URN twice",
    "verdict": "PASS",
@@ -899,7 +989,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-645e3921\",\"name\":\"gov-645e3921-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-e19763e7\",\"name\":\"gov-e19763e7-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -1046,94 +1136,10 @@
    "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-GOV-061",
-   "title": "Retire a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-062",
-   "title": "Assess a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-063",
-   "title": "Approve a submitted record",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-100",
-   "title": "POST /api/v1/models with a blank `owner`",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_failed'"
-  },
-  {
-   "id": "QA-GOV-101",
-   "title": "POST /api/v1/models with a blank `urn`",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_failed'"
-  },
-  {
    "id": "QA-GOV-102",
    "title": "POST /api/v1/models with a blank `name`",
    "verdict": "PASS",
    "evidence": "refused 'validation_failed'"
-  },
-  {
-   "id": "QA-GOV-103",
-   "title": "POST /api/v1/models with a blank `legal_entity`",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_failed'"
-  },
-  {
-   "id": "QA-GOV-104",
-   "title": "POST /api/v1/models with a blank `purpose`",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_failed'"
-  },
-  {
-   "id": "QA-GOV-105",
-   "title": "POST /api/v1/legal-holds with a blank `matter`",
-   "verdict": "PASS",
-   "evidence": "refused 'matter_required'"
-  },
-  {
-   "id": "QA-GOV-106",
-   "title": "POST /api/v1/legal-holds with a blank `owner`",
-   "verdict": "PASS",
-   "evidence": "refused 'owner_required'"
-  },
-  {
-   "id": "QA-GOV-107",
-   "title": "POST /api/v1/intake with a blank `title`",
-   "verdict": "PASS",
-   "evidence": "refused 'description_required'"
-  },
-  {
-   "id": "QA-GOV-108",
-   "title": "POST /api/v1/finding-roots with a blank `title`",
-   "verdict": "PASS",
-   "evidence": "refused 'unknown_root_kind'"
-  },
-  {
-   "id": "QA-GOV-109",
-   "title": "POST /api/v1/finding-roots with a blank `detail`",
-   "verdict": "PASS",
-   "evidence": "refused 'unknown_root_kind'"
-  },
-  {
-   "id": "QA-GOV-130",
-   "title": "Every stated-ground field this pass has fixed stays fixed",
-   "verdict": "PASS",
-   "evidence": "all four still strip before checking"
-  },
-  {
-   "id": "QA-GOV-200",
-   "title": "A band with no stages",
-   "verdict": "PASS",
-   "evidence": "refused 'stages_required' (422)"
   },
   {
    "id": "QA-GOV-201",
@@ -1142,76 +1148,10 @@
    "evidence": "refused 'band_name_required' (422)"
   },
   {
-   "id": "QA-GOV-202",
-   "title": "A band naming a role that does not exist",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09af9ae49f19f4a333d4aead9\",\"name\":\"band-fd162650\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
-  },
-  {
-   "id": "QA-GOV-203",
-   "title": "A well-formed band is accepted",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
-   "id": "QA-GOV-204",
-   "title": "Two bands with the same name",
-   "verdict": "PASS",
-   "evidence": "refused 'band_exists' (409)"
-  },
-  {
-   "id": "QA-GOV-210",
-   "title": "A delegation with no ceiling",
-   "verdict": "PASS",
-   "evidence": "answered 422 (ceiling_required)"
-  },
-  {
-   "id": "QA-GOV-211",
-   "title": "A delegation with a negative ceiling",
-   "verdict": "PASS",
-   "evidence": "refused 'ceiling_required'"
-  },
-  {
-   "id": "QA-GOV-212",
-   "title": "A delegation with no instrument",
-   "verdict": "PASS",
-   "evidence": "refused 'instrument_required' (422)"
-  },
-  {
-   "id": "QA-GOV-213",
-   "title": "A delegation with a blank currency",
-   "verdict": "FAIL",
-   "evidence": "a ceiling was accepted with no currency; the comparison it governs is then between a number and an amount"
-  },
-  {
-   "id": "QA-GOV-214",
-   "title": "A delegation to a principal that does not exist",
-   "verdict": "PASS",
-   "evidence": "answered 201 (accepted)"
-  },
-  {
-   "id": "QA-GOV-220",
-   "title": "Break-glass with no reason",
-   "verdict": "PASS",
-   "evidence": "refused 'reason_required' (422)"
-  },
-  {
-   "id": "QA-GOV-221",
-   "title": "Break-glass is opened, and it is reviewable",
-   "verdict": "PASS",
-   "evidence": "opened as BG-0001"
-  },
-  {
    "id": "QA-GOV-222",
    "title": "Review a break-glass with no note",
    "verdict": "PASS",
    "evidence": "refused 'note_required' (422)"
-  },
-  {
-   "id": "QA-GOV-223",
-   "title": "Review a break-glass with an outcome that is not one",
-   "verdict": "PASS",
-   "evidence": "refused 'unknown_outcome' (422)"
   },
   {
    "id": "QA-GOV-230",
@@ -1220,46 +1160,196 @@
    "evidence": "refused 'no_such_principal' (404)"
   },
   {
-   "id": "QA-GOV-231",
-   "title": "A campaign over an empty population",
-   "verdict": "FAIL",
-   "evidence": "a campaign opened over nobody; it completes immediately and reads as a clean recertification"
-  },
-  {
    "id": "QA-GOV-232",
    "title": "Two campaigns with the same reference",
    "verdict": "PASS",
    "evidence": "refused 'campaign_exists' (409)"
   },
   {
-   "id": "QA-GOV-240",
+   "id": "QA-GOV-500",
+   "title": "Retire a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-501",
+   "title": "Assess a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-502",
+   "title": "Approve a submitted record",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-512",
+   "title": "Every stated-ground field this pass has fixed stays fixed",
+   "verdict": "PASS",
+   "evidence": "all four still strip before checking"
+  },
+  {
+   "id": "QA-GOV-513",
+   "title": "A band with no stages",
+   "verdict": "PASS",
+   "evidence": "refused 'stages_required' (422)"
+  },
+  {
+   "id": "QA-GOV-514",
+   "title": "A band naming a role that does not exist",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b0060d250cd09337648ad36\",\"name\":\"band-5af0dbbf\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+  },
+  {
+   "id": "QA-GOV-515",
+   "title": "A well-formed band is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-GOV-516",
+   "title": "Two bands with the same name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-517",
+   "title": "A delegation with no ceiling",
+   "verdict": "PASS",
+   "evidence": "answered 422 (ceiling_required)"
+  },
+  {
+   "id": "QA-GOV-518",
+   "title": "A delegation with a negative ceiling",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_required'"
+  },
+  {
+   "id": "QA-GOV-519",
+   "title": "A delegation with no instrument",
+   "verdict": "PASS",
+   "evidence": "refused 'instrument_required' (422)"
+  },
+  {
+   "id": "QA-GOV-520",
+   "title": "A delegation with a blank currency",
+   "verdict": "FAIL",
+   "evidence": "a ceiling was accepted with no currency; the comparison it governs is then between a number and an amount"
+  },
+  {
+   "id": "QA-GOV-521",
+   "title": "A delegation to a principal that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-GOV-522",
+   "title": "Break-glass with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-523",
+   "title": "Break-glass is opened, and it is reviewable",
+   "verdict": "PASS",
+   "evidence": "opened as BG-0001"
+  },
+  {
+   "id": "QA-GOV-524",
+   "title": "Review a break-glass with an outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_outcome' (422)"
+  },
+  {
+   "id": "QA-GOV-525",
+   "title": "A campaign over an empty population",
+   "verdict": "FAIL",
+   "evidence": "a campaign opened over nobody; it completes immediately and reads as a clean recertification"
+  },
+  {
+   "id": "QA-GOV-526",
    "title": "An approval condition with no rationale",
    "verdict": "PASS",
    "evidence": "refused 'rationale_required' (422)"
   },
   {
-   "id": "QA-GOV-241",
+   "id": "QA-GOV-527",
    "title": "A condition with a negative window",
    "verdict": "PASS",
    "evidence": "refused 'window_out_of_range'"
   },
   {
-   "id": "QA-GOV-242",
+   "id": "QA-GOV-528",
    "title": "Discharge a condition with no reason",
    "verdict": "PASS",
    "evidence": "refused 'no_condition' (404)"
   },
   {
+   "id": "QA-GOV-700",
+   "title": "POST /api/v1/models with a blank `owner`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-701",
+   "title": "POST /api/v1/models with a blank `urn`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-702",
+   "title": "POST /api/v1/models with a blank `legal_entity`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-703",
+   "title": "POST /api/v1/models with a blank `purpose`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-704",
+   "title": "POST /api/v1/legal-holds with a blank `matter`",
+   "verdict": "PASS",
+   "evidence": "refused 'matter_required'"
+  },
+  {
+   "id": "QA-GOV-705",
+   "title": "POST /api/v1/legal-holds with a blank `owner`",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-GOV-706",
+   "title": "POST /api/v1/intake with a blank `title`",
+   "verdict": "PASS",
+   "evidence": "refused 'description_required'"
+  },
+  {
+   "id": "QA-GOV-707",
+   "title": "POST /api/v1/finding-roots with a blank `title`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind'"
+  },
+  {
+   "id": "QA-GOV-708",
+   "title": "POST /api/v1/finding-roots with a blank `detail`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind'"
+  },
+  {
    "id": "QA-PLT-001",
    "title": "Verify, do nothing, verify again",
    "verdict": "PASS",
-   "evidence": "length 377, head stable"
+   "evidence": "length 398, head stable"
   },
   {
    "id": "QA-PLT-002",
    "title": "One append, then verify \u2014 the new head links to the old",
    "verdict": "PASS",
-   "evidence": "379 -> 380, still valid"
+   "evidence": "400 -> 401, still valid"
   },
   {
    "id": "QA-PLT-003",
@@ -1301,13 +1391,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:2fd6aef4982da"
-  },
-  {
-   "id": "QA-PLT-010",
-   "title": "A self-consistent rewrite is caught only by the anchor",
-   "verdict": "PASS",
-   "evidence": "the walk agrees, as it must: no anchor is written on this instance, so nothing contradicts a self-consistent rewrite"
+   "evidence": "a fresh chain of 8 verifies, head sha256:4e69fbe52fb6c"
   },
   {
    "id": "QA-PLT-011",
@@ -1376,40 +1460,16 @@
    "evidence": "refused (428 precondition_unevaluable)"
   },
   {
-   "id": "QA-PLT-058",
-   "title": "A fresh If-Match succeeds",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-PLT-070",
-   "title": "An immutable column on an attested version",
-   "verdict": "PASS",
-   "evidence": "the trigger refused: (sqlite3.IntegrityError) model_version.semver is immutable: it describes what the version IS, and changing it would leave the regi"
-  },
-  {
    "id": "QA-PLT-071",
    "title": "A mutable column on the same row still moves",
    "verdict": "PASS",
    "evidence": "status moves, as the lifecycle requires"
   },
   {
-   "id": "QA-PLT-072",
-   "title": "The evidence chain refuses a DELETE",
-   "verdict": "PASS",
-   "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
-  },
-  {
-   "id": "QA-PLT-073",
-   "title": "The evidence chain refuses an UPDATE",
-   "verdict": "PASS",
-   "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
-  },
-  {
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:36bff8e82ecff70bc342c51"
+   "evidence": "identical: sha256:bc3fb30b1278a01586cc825"
   },
   {
    "id": "QA-PLT-124",
@@ -1427,7 +1487,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:178edbfcdc6cb84ee1ffd6f"
+   "evidence": "stable: sha256:527ef49f00f07f63515b3da"
   },
   {
    "id": "QA-PLT-127",
@@ -1440,18 +1500,6 @@
    "title": "A bare model, compiled anyway",
    "verdict": "PASS",
    "evidence": "coverage.complete is false, 10 section(s) marked unfillable"
-  },
-  {
-   "id": "QA-PLT-130",
-   "title": "Compile against a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-PLT-131",
-   "title": "Read a document that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused (404)"
   },
   {
    "id": "QA-PLT-132",
@@ -1496,40 +1544,10 @@
    "evidence": "both refused"
   },
   {
-   "id": "QA-PLT-187",
-   "title": "A Tier B capability registers with an oracle it does not need",
-   "verdict": "PASS",
-   "evidence": "answered 422 (unknown_oracle)"
-  },
-  {
-   "id": "QA-PLT-188",
-   "title": "A valid Tier B capability",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
    "id": "QA-PLT-189",
    "title": "Draft against a subject with no evidence at all",
    "verdict": "PASS",
    "evidence": "refused 'nothing_to_ground' (422)"
-  },
-  {
-   "id": "QA-PLT-190",
-   "title": "A generation whose claims cite nothing",
-   "verdict": "PASS",
-   "evidence": "refused 'nothing_grounded' (422)"
-  },
-  {
-   "id": "QA-PLT-191",
-   "title": "Use a suspended capability",
-   "verdict": "PASS",
-   "evidence": "refused 'nothing_to_ground' (422)"
-  },
-  {
-   "id": "QA-PLT-192",
-   "title": "The two tiers are the whole vocabulary",
-   "verdict": "PASS",
-   "evidence": "A and B; C is a refusal, not a tier"
   },
   {
    "id": "QA-PLT-218",
@@ -1562,106 +1580,178 @@
    "evidence": "exited 1"
   },
   {
-   "id": "QA-PLT-300",
-   "title": "Every refusal carries a code, a detail and a remediation",
-   "verdict": "PASS",
-   "evidence": "schema-level refusal, which names the field and why"
-  },
-  {
-   "id": "QA-PLT-301",
-   "title": "An unauthenticated request is refused, not served",
-   "verdict": "PASS",
-   "evidence": "401"
-  },
-  {
-   "id": "QA-PLT-302",
-   "title": "An unknown route answers 404 and not 500",
-   "verdict": "PASS",
-   "evidence": "404"
-  },
-  {
-   "id": "QA-PLT-303",
-   "title": "A method that does not apply answers 405",
-   "verdict": "PASS",
-   "evidence": "405"
-  },
-  {
-   "id": "QA-PLT-304",
-   "title": "A malformed JSON body is refused, not crashed",
-   "verdict": "PASS",
-   "evidence": "refused (422)"
-  },
-  {
-   "id": "QA-PLT-305",
-   "title": "A listing pages rather than returning everything",
-   "verdict": "PASS",
-   "evidence": "2 row(s) for limit=2"
-  },
-  {
-   "id": "QA-PLT-306",
-   "title": "A negative limit is refused",
-   "verdict": "FAIL",
-   "evidence": "a negative page size was accepted"
-  },
-  {
-   "id": "QA-PLT-307",
-   "title": "A request id travels with the answer",
-   "verdict": "PASS",
-   "evidence": "x-request-id: 6e622ad0b48abe59"
-  },
-  {
    "id": "QA-PLT-310",
    "title": "Readiness answers and says what it checked",
    "verdict": "PASS",
    "evidence": "200, and it names what it checked"
   },
   {
-   "id": "QA-PLT-311",
+   "id": "QA-PLT-500",
+   "title": "A self-consistent rewrite is caught only by the anchor",
+   "verdict": "PASS",
+   "evidence": "the walk agrees, as it must: no anchor is written on this instance, so nothing contradicts a self-consistent rewrite"
+  },
+  {
+   "id": "QA-PLT-501",
+   "title": "A fresh If-Match succeeds",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-PLT-502",
+   "title": "An immutable column on an attested version",
+   "verdict": "PASS",
+   "evidence": "the trigger refused: (sqlite3.IntegrityError) model_version.semver is immutable: it describes what the version IS, and changing it would leave the regi"
+  },
+  {
+   "id": "QA-PLT-503",
+   "title": "The evidence chain refuses a DELETE",
+   "verdict": "PASS",
+   "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
+  },
+  {
+   "id": "QA-PLT-504",
+   "title": "The evidence chain refuses an UPDATE",
+   "verdict": "PASS",
+   "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
+  },
+  {
+   "id": "QA-PLT-505",
+   "title": "Compile against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-506",
+   "title": "Read a document that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-507",
+   "title": "A Tier B capability registers with an oracle it does not need",
+   "verdict": "PASS",
+   "evidence": "answered 422 (unknown_oracle)"
+  },
+  {
+   "id": "QA-PLT-508",
+   "title": "A valid Tier B capability",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-PLT-509",
+   "title": "A generation whose claims cite nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' (422)"
+  },
+  {
+   "id": "QA-PLT-510",
+   "title": "Use a suspended capability",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-511",
+   "title": "The two tiers are the whole vocabulary",
+   "verdict": "PASS",
+   "evidence": "A and B; C is a refusal, not a tier"
+  },
+  {
+   "id": "QA-PLT-512",
+   "title": "Every refusal carries a code, a detail and a remediation",
+   "verdict": "PASS",
+   "evidence": "schema-level refusal, which names the field and why"
+  },
+  {
+   "id": "QA-PLT-513",
+   "title": "An unauthenticated request is refused, not served",
+   "verdict": "PASS",
+   "evidence": "401"
+  },
+  {
+   "id": "QA-PLT-514",
+   "title": "An unknown route answers 404 and not 500",
+   "verdict": "PASS",
+   "evidence": "404"
+  },
+  {
+   "id": "QA-PLT-515",
+   "title": "A method that does not apply answers 405",
+   "verdict": "PASS",
+   "evidence": "405"
+  },
+  {
+   "id": "QA-PLT-516",
+   "title": "A malformed JSON body is refused, not crashed",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-PLT-517",
+   "title": "A listing pages rather than returning everything",
+   "verdict": "PASS",
+   "evidence": "2 row(s) for limit=2"
+  },
+  {
+   "id": "QA-PLT-518",
+   "title": "A negative limit is refused",
+   "verdict": "FAIL",
+   "evidence": "a negative page size was accepted"
+  },
+  {
+   "id": "QA-PLT-519",
+   "title": "A request id travels with the answer",
+   "verdict": "PASS",
+   "evidence": "x-request-id: 55b54ba3a4754837"
+  },
+  {
+   "id": "QA-PLT-520",
    "title": "Liveness does not require authentication",
    "verdict": "PASS",
    "evidence": "200 without credentials"
   },
   {
-   "id": "QA-PLT-320",
+   "id": "QA-PLT-521",
    "title": "A configuration change is planned before it is applied",
    "verdict": "PASS",
    "evidence": "plan answers 422"
   },
   {
-   "id": "QA-PLT-321",
+   "id": "QA-PLT-522",
    "title": "The configuration boundary says what it does not control",
    "verdict": "PASS",
    "evidence": "published, 1945 bytes"
   },
   {
-   "id": "QA-PLT-322",
+   "id": "QA-PLT-523",
    "title": "Configuration does not leak a secret",
    "verdict": "PASS",
    "evidence": "no configured secret appears in the answer"
   },
   {
-   "id": "QA-PLT-330",
-   "title": "A discovery candidate is a candidate, not a registration",
-   "verdict": "FAIL",
-   "evidence": "the discovery endpoint does not call them candidates; what a scanner found is not a model until somebody says so"
+   "id": "QA-PLT-524",
+   "title": "Discovery produces candidates, and registers nothing",
+   "verdict": "PASS",
+   "evidence": "discovery answered 422 and registered nothing"
   },
   {
-   "id": "QA-PLT-331",
+   "id": "QA-PLT-525",
    "title": "Triage a discovery reference that does not exist",
    "verdict": "PASS",
    "evidence": "refused 'no_candidate'"
   },
   {
-   "id": "QA-PLT-332",
+   "id": "QA-PLT-526",
    "title": "The scanner contract is published",
    "verdict": "PASS",
    "evidence": "published (200)"
   },
   {
-   "id": "QA-PLT-333",
-   "title": "A scanner contract check with a blank scanner",
-   "verdict": "BLOCKED",
-   "evidence": "the endpoint has no `scanner` field"
+   "id": "QA-PLT-527",
+   "title": "A scanner contract check answers without a scanner named",
+   "verdict": "PASS",
+   "evidence": "answered 200"
   }
  ]
 }

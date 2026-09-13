@@ -78,7 +78,7 @@ def am_071(ctx: Ctx) -> Result:
                           "unknown_severity")
 
 
-@case("QA-AM-072", "Raise against a model that does not exist")
+@case("QA-AM-600", "Raise against a model that does not exist")
 def am_072(ctx: Ctx) -> Result:
     return expect_refused(_raise(ctx, "maya://model/qa.never"),
                           "registry_refused", "not_found")
@@ -91,7 +91,7 @@ def am_073(ctx: Ctx) -> Result:
                           "validation_refused")
 
 
-@case("QA-AM-074", "Raise with an empty title")
+@case("QA-AM-601", "Raise with an empty title")
 def am_074(ctx: Ctx) -> Result:
     got = _raise(ctx, _model(ctx), title="   ")
     if got.status_code >= 400:
@@ -101,7 +101,7 @@ def am_074(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------------------ the acts
-@case("QA-AM-080", "Acknowledge as somebody who does not own it")
+@case("QA-AM-602", "Acknowledge as somebody who does not own it")
 def am_080(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"/api/v1/findings/{_raised(ctx)}/acknowledge",
@@ -110,7 +110,7 @@ def am_080(ctx: Ctx) -> Result:
         "not_the_owner", "forbidden")
 
 
-@case("QA-AM-081", "Acknowledge with no plan and none on record")
+@case("QA-AM-603", "Acknowledge with no plan and none on record")
 def am_081(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"/api/v1/findings/{_raised(ctx)}/acknowledge",
@@ -118,7 +118,7 @@ def am_081(ctx: Ctx) -> Result:
         "plan_required")
 
 
-@case("QA-AM-082", "Acknowledge with a plan")
+@case("QA-AM-604", "Acknowledge with a plan")
 def am_082(ctx: Ctx) -> Result:
     return expect_accepted(
         ctx.api.post(f"/api/v1/findings/{_raised(ctx)}/acknowledge",
@@ -137,7 +137,7 @@ def am_083(ctx: Ctx) -> Result:
         "past_due")
 
 
-@case("QA-AM-084", "Acknowledging moves the finding out of open")
+@case("QA-AM-605", "Acknowledging moves the finding out of open")
 def am_084(ctx: Ctx) -> Result:
     fid = _raised(ctx)
     ctx.api.post(f"/api/v1/findings/{fid}/acknowledge",
@@ -148,7 +148,7 @@ def am_084(ctx: Ctx) -> Result:
     return PASS, f"status is now {status!r}"
 
 
-@case("QA-AM-085", "Close with no evidence")
+@case("QA-AM-606", "Close with no evidence")
 def am_085(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"/api/v1/findings/{_raised(ctx)}/close",
@@ -156,7 +156,7 @@ def am_085(ctx: Ctx) -> Result:
         "evidence_required", "validation_error", "validation_refused")
 
 
-@case("QA-AM-086", "Close verified by the person who owns it")
+@case("QA-AM-607", "Close verified by the person who owns it")
 def am_086(ctx: Ctx) -> Result:
     """Somebody marking their own work as verified is the finding closing
     itself with extra steps."""
@@ -182,7 +182,7 @@ def am_087(ctx: Ctx) -> Result:
         "reason_required", "validation_error", "not_the_owner")
 
 
-@case("QA-AM-088", "Assign to nobody")
+@case("QA-AM-608", "Assign to nobody")
 def am_088(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"/api/v1/findings/{_raised(ctx)}/assign",
@@ -200,7 +200,7 @@ def am_090(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------------------- roots
-@case("QA-AM-130", "A root with no findings attached")
+@case("QA-AM-609", "A root with no findings attached")
 def am_130(ctx: Ctx) -> Result:
     return expect_accepted(
         ctx.api.post("/api/v1/finding-roots",
@@ -208,7 +208,7 @@ def am_130(ctx: Ctx) -> Result:
                            "detail": "the feed stopped"}), status=201)
 
 
-@case("QA-AM-131", "A root with an empty detail")
+@case("QA-AM-610", "A root with an empty detail")
 def am_131(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/finding-roots",

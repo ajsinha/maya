@@ -24,7 +24,7 @@ the domain. Those are written by hand into the same file, in the sections this
 generator leaves alone. The generator's job is that **nothing is missing**; a
 person's job is that what is there is worth running.
 
-    python -m qa.regression_suite.enumerate --out docs/QA/QA-CASES.md
+    python -m qa.regression_suite.enumerate --out qa/QA-CASES.md
 """
 from __future__ import annotations
 
@@ -217,7 +217,7 @@ ones.
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="qa.regression_suite.enumerate")
-    parser.add_argument("--out", default="docs/QA/QA-CASES.md")
+    parser.add_argument("--out", default="qa/QA-CASES.md")
     parser.add_argument("--count", action="store_true",
                         help="print the counts and write nothing")
     args = parser.parse_args(argv)

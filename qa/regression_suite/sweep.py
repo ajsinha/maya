@@ -5,7 +5,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 Properties, swept across every endpoint that has them.
 
-    python -m qa.regression_suite.sweep --out docs/QA/results/sweep.json
+    python -m qa.regression_suite.sweep --out qa/results/sweep.json
 
 ## Why this exists
 
@@ -146,7 +146,7 @@ def run(client, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default="docs/QA/results/sweep.json")
+    ap.add_argument("--out", default="qa/results/sweep.json")
     args = ap.parse_args(argv)
     from qa.regression_suite.harness import live_client
     from qa.regression_suite.shapes import document

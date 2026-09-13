@@ -35,7 +35,7 @@ import re
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CASES = ROOT / "docs" / "QA" / "QA-CASES.md"
+CASES = ROOT / "qa" / "QA-CASES.md"
 
 #: Below this, something has been dropped rather than added. Raise it when
 #: a batch lands; never lower it to make a failure go away.
@@ -85,8 +85,50 @@ class TestTheIdentifiersAreReportable:
         only the runner uses."""
         stray = sorted(set(registered) - published)
         assert not stray, (
-            f"these scenarios answer ids that are not in docs/QA/QA-CASES.md: "
+            f"these scenarios answer ids that are not in qa/QA-CASES.md: "
             f"{stray[:10]}")
+
+    def test_every_scenario_tests_what_its_case_says(self, registered,
+                                                     published):
+        """The id must mean the same thing in both places.
+
+        Existence was checked and MEANING was not, and 138 of 291 scenarios
+        were answering a published id about something else: a telemetry
+        scenario registered as `QA-AM-400`, which the list publishes as a
+        cold-start baseline case. The results file then reported those
+        published cases as passed, and what had run was a different test
+        entirely.
+
+        That is precisely the defect this whole pass keeps finding — a check
+        that passes for a reason other than its name — arriving in the tool
+        built to find it. Existence is the cheap half of the question.
+        """
+        import difflib
+        import pathlib
+        import re as regex
+
+        text = (pathlib.Path(__file__).resolve().parents[1] / "qa" /
+                "QA-CASES.md").read_text(encoding="utf-8")
+        subject = {}
+        for match in regex.finditer(
+                r"^\|\s*(QA-[A-Z0-9-]+)\s*\|([^|]*)\|([^|]*)\|", text,
+                regex.M):
+            subject[match.group(1)] = (f"{match.group(2).strip()} "
+                                       f"{match.group(3).strip()}")
+        adrift = []
+        for case_id, (title, _fn) in sorted(registered.items()):
+            said = subject.get(case_id, "")
+            ratio = difflib.SequenceMatcher(
+                None, title.lower(), said.lower()).ratio()
+            mine = set(regex.findall(r"[a-z]{4,}", title.lower()))
+            theirs = set(regex.findall(r"[a-z]{4,}", said.lower()))
+            if ratio < 0.35 and len(mine & theirs) < 2:
+                adrift.append(f"{case_id}: scenario says {title!r}, the list "
+                              f"says {said[:60]!r}")
+        assert not adrift, (
+            "these scenarios answer a published id whose subject is "
+            "different, so a result would be credited to a case about "
+            "something else:\n    " + "\n    ".join(adrift[:10]))
 
     def test_no_case_is_registered_twice(self):
         """`REGISTRY[id] = ...` — the second registration wins and the first

@@ -3,11 +3,11 @@ MAYA — the QA pass, as 314 runnable cases.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-    python docs/QA/qa_cases.py --enumerate            # the case table, no calls
-    python docs/QA/qa_cases.py --run                  # run all of them
-    python docs/QA/qa_cases.py --run QA-1             # run one prefix
-    python docs/QA/qa_cases.py --run holds            # or one area
-    python docs/QA/qa_cases.py --run --markdown       # results as a table
+    python qa/qa_cases.py --enumerate            # the case table, no calls
+    python qa/qa_cases.py --run                  # run all of them
+    python qa/qa_cases.py --run QA-1             # run one prefix
+    python qa/qa_cases.py --run holds            # or one area
+    python qa/qa_cases.py --run --markdown       # results as a table
 
 **The IDs are stable and are never renumbered.** `QA-001` means the same case
 in every pass, so two passes can be compared rather than re-read. New cases are
@@ -29,8 +29,8 @@ decommission and delete; several depend on the estate `qa_setup.py` builds, and
 they mutate it. Never point this at anything whose register matters.
 
     python run_maya_web.py --config /tmp/qa/application.yaml   # a temp data dir
-    python docs/QA/qa_setup.py --url http://127.0.0.1:5399
-    python docs/QA/qa_cases.py --url http://127.0.0.1:5399 --run
+    python qa/qa_setup.py --url http://127.0.0.1:5399
+    python qa/qa_cases.py --url http://127.0.0.1:5399 --run
 
 Ordering matters: the cases walk one estate forward through its lifecycle, so
 they are written to run in ID order, once, against a freshly built estate.

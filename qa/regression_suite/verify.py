@@ -35,8 +35,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CASES = ROOT / "docs" / "QA" / "cases"
-ASSEMBLED = ROOT / "docs" / "QA" / "QA-CASES.md"
+CASES = ROOT / "qa" / "cases"
+ASSEMBLED = ROOT / "qa" / "QA-CASES.md"
 
 
 def _generated() -> str:

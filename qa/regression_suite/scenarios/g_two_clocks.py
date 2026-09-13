@@ -209,12 +209,12 @@ def fx_014(ctx: Ctx) -> Result:
     return PASS, (f"NaN answered {got.status_code}: {got.text[:130]}")
 
 
-@case("QA-FX-015", "An as_of before the view existed")
+@case("QA-FX-600", "An as_of before the view existed")
 def fx_015(ctx: Ctx) -> Result:
     return _expect_value(ctx, as_of=1.0, label_ts=1.0, want=None)
 
 
-@case("QA-FX-016", "A negative as_of")
+@case("QA-FX-601", "A negative as_of")
 def fx_016(ctx: Ctx) -> Result:
     _fixture(ctx)
     got = _assemble(ctx, -1.0, 500.0)
@@ -223,7 +223,7 @@ def fx_016(ctx: Ctx) -> Result:
     return PASS, f"answered {got.status_code}"
 
 
-@case("QA-FX-017", "An entity that has no rows")
+@case("QA-FX-602", "An entity that has no rows")
 def fx_017(ctx: Ctx) -> Result:
     _fixture(ctx)
     got = ctx.api.post("/api/v1/feature-views/cov/versions/1/as-of",
@@ -240,7 +240,7 @@ def fx_017(ctx: Ctx) -> Result:
     return PASS, "no admissible facts for an unknown entity"
 
 
-@case("QA-FX-018", "An assembly on a view version that does not exist")
+@case("QA-FX-603", "An assembly on a view version that does not exist")
 def fx_018(ctx: Ctx) -> Result:
     _fixture(ctx)
     got = ctx.api.post("/api/v1/feature-views/cov/versions/99/as-of",

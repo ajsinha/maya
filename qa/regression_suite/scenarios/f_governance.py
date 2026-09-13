@@ -169,7 +169,7 @@ sequence("QA-GOV-006", "The full ordered path: register, version, assess, submit
           ("POST", M + "/{name}/submit", {"note": "qa"})],
          ("accepted",), setup=fresh)
 
-sequence("QA-GOV-063", "Approve a submitted record",
+sequence("QA-GOV-502", "Approve a submitted record",
          [("POST", M + "/{name}/approve", {"note": "qa"})],
          ("accepted",), setup=submitted)
 
@@ -199,11 +199,11 @@ sequence("QA-GOV-060", "Submit a model that does not exist",
          [("POST", M + "/{name}/submit", {})],
          ("refused", "registry_refused", "not_found"), setup=unregistered)
 
-sequence("QA-GOV-061", "Retire a model that does not exist",
+sequence("QA-GOV-500", "Retire a model that does not exist",
          [("POST", M + "/{name}/retire", {"reason": "qa"})],
          ("refused", "registry_refused", "not_found"), setup=unregistered)
 
-sequence("QA-GOV-062", "Assess a model that does not exist",
+sequence("QA-GOV-501", "Assess a model that does not exist",
          [("POST", M + "/{name}/assess", ASSESSMENT)],
          ("refused", "registry_refused", "not_found", "validation_error"),
          setup=unregistered)

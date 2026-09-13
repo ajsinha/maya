@@ -5,8 +5,8 @@
 # nobody has to type forty of them before reaching the interesting part.
 # It is idempotent enough to re-run against a fresh database.
 #
-#   ./docs/QA/qa-setup.sh                       # against localhost:5006
-#   MAYA_URL=http://host:5006 ./docs/QA/qa-setup.sh
+#   ./qa/qa-setup.sh                       # against localhost:5006
+#   MAYA_URL=http://host:5006 ./qa/qa-setup.sh
 set -euo pipefail
 
 BASE="${MAYA_URL:-http://127.0.0.1:5006}"

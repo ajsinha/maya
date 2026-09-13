@@ -133,7 +133,7 @@ def main(argv=None) -> int:
                "fail": sum(1 for r in results if r["verdict"] == FAIL),
                "blocked": sum(1 for r in results if r["verdict"] == BLOCKED)}
     stem = (args.only or "all").replace("-", "_").lower()
-    out = pathlib.Path(args.out or f"docs/QA/results/scenarios-{stem}.json")
+    out = pathlib.Path(args.out or f"qa/results/scenarios-{stem}.json")
     # A full run supersedes every partial one. Leaving those behind means the
     # summary and the findings register keep reading results from before the
     # last fix — which is how four already-repaired cases stayed on the open

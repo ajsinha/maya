@@ -176,7 +176,7 @@ def fx_114(ctx: Ctx) -> Result:
     return PASS, f"owner is now {after.get('owner')!r}, created_by unchanged"
 
 
-@case("QA-FX-116", "Seal a feature that does not exist")
+@case("QA-FX-604", "Seal a feature that does not exist")
 def fx_116(ctx: Ctx) -> Result:
     got = _seal(ctx, "qa-no-such-feature")
     if got.status_code >= 500:
@@ -186,7 +186,7 @@ def fx_116(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-FX-117", "Break a seal on a feature that was never sealed")
+@case("QA-FX-605", "Break a seal on a feature that was never sealed")
 def fx_117(ctx: Ctx) -> Result:
     name = _feature(ctx)
     got = ctx.api.post(f"{FEATURE}/{name}/break-seal", json={"reason": "QA"})

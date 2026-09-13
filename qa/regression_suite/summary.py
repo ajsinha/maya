@@ -11,7 +11,7 @@ Reads the result files each runner writes and reports coverage against the
 **published** case list, so the denominator is the same list a reader can
 open rather than a count of whatever happened to be run.
 
-Any case id in a result file that is not in `docs/QA/QA-CASES.md` is reported
+Any case id in a result file that is not in `qa/QA-CASES.md` is reported
 separately. A pass over cases nobody published is not coverage of the case
 list, and quietly folding the two together is how a run comes to claim a
 percentage of something it is not measuring.
@@ -24,8 +24,8 @@ import re
 from typing import Dict, List
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CASES = ROOT / "docs" / "QA" / "QA-CASES.md"
-RESULTS = ROOT / "docs" / "QA" / "results"
+CASES = ROOT / "qa" / "QA-CASES.md"
+RESULTS = ROOT / "qa" / "results"
 
 #: Which published section each id prefix belongs to.
 SECTIONS = [

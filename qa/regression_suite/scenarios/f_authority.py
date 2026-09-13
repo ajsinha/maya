@@ -58,7 +58,7 @@ def _delegation(ctx: Ctx, **over):
 
 
 # ------------------------------------------------------------------ bands
-@case("QA-GOV-200", "A band with no stages")
+@case("QA-GOV-513", "A band with no stages")
 def gov_200(ctx: Ctx) -> Result:
     """A band is a sequence of who signs. With no stages it approves
     everything at that amount by approving nothing."""
@@ -72,19 +72,19 @@ def gov_201(ctx: Ctx) -> Result:
     return expect_refused(_band(ctx, name="   "), "band_name_required")
 
 
-@case("QA-GOV-202", "A band naming a role that does not exist")
+@case("QA-GOV-514", "A band naming a role that does not exist")
 def gov_202(ctx: Ctx) -> Result:
     return expect_refused(_band(ctx, stages=[["chief_vibes_officer"]]),
                           "unknown_role", "validation_error",
                           "authority_refused", "lifecycle_refused")
 
 
-@case("QA-GOV-203", "A well-formed band is accepted")
+@case("QA-GOV-515", "A well-formed band is accepted")
 def gov_203(ctx: Ctx) -> Result:
     return expect_accepted(_band(ctx))
 
 
-@case("QA-GOV-204", "Two bands with the same name")
+@case("QA-GOV-516", "Two bands with the same name")
 def gov_204(ctx: Ctx) -> Result:
     name = ctx.unique("band")
     _band(ctx, name=name)
@@ -94,7 +94,7 @@ def gov_204(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------------ delegations
-@case("QA-GOV-210", "A delegation with no ceiling")
+@case("QA-GOV-517", "A delegation with no ceiling")
 def gov_210(ctx: Ctx) -> Result:
     """A delegation without a ceiling is not a delegation, it is a transfer
     of the whole authority."""
@@ -104,7 +104,7 @@ def gov_210(ctx: Ctx) -> Result:
     return PASS, f"answered {got.status_code} ({code_of(got) or 'accepted'})"
 
 
-@case("QA-GOV-211", "A delegation with a negative ceiling")
+@case("QA-GOV-518", "A delegation with a negative ceiling")
 def gov_211(ctx: Ctx) -> Result:
     got = _delegation(ctx, ceiling=-1.0)
     if got.status_code >= 500:
@@ -116,7 +116,7 @@ def gov_211(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-GOV-212", "A delegation with no instrument")
+@case("QA-GOV-519", "A delegation with no instrument")
 def gov_212(ctx: Ctx) -> Result:
     """The instrument is the document the authority actually rests on. A
     delegation with none is somebody's recollection."""
@@ -125,7 +125,7 @@ def gov_212(ctx: Ctx) -> Result:
                           "authority_refused", "lifecycle_refused")
 
 
-@case("QA-GOV-213", "A delegation with a blank currency")
+@case("QA-GOV-520", "A delegation with a blank currency")
 def gov_213(ctx: Ctx) -> Result:
     """A ceiling with no currency is a number. The platform reports in USD,
     so an unlabelled ceiling is compared against amounts it may not match."""
@@ -139,7 +139,7 @@ def gov_213(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-GOV-214", "A delegation to a principal that does not exist")
+@case("QA-GOV-521", "A delegation to a principal that does not exist")
 def gov_214(ctx: Ctx) -> Result:
     got = _delegation(ctx, principal="qa-nobody")
     if got.status_code >= 500:
@@ -148,7 +148,7 @@ def gov_214(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------------- break-glass
-@case("QA-GOV-220", "Break-glass with no reason")
+@case("QA-GOV-522", "Break-glass with no reason")
 def gov_220(ctx: Ctx) -> Result:
     """Emergency access with no stated reason is the one record anybody will
     ask for afterwards."""
@@ -157,7 +157,7 @@ def gov_220(ctx: Ctx) -> Result:
         "validation_error", "reason_required", "break_glass_refused")
 
 
-@case("QA-GOV-221", "Break-glass is opened, and it is reviewable", isolated=True)
+@case("QA-GOV-523", "Break-glass is opened, and it is reviewable", isolated=True)
 def gov_221(ctx: Ctx) -> Result:
     opened = ctx.api.post(GLASS, json={"reason": "QA emergency",
                                        "principal": "owner"})
@@ -197,7 +197,7 @@ def gov_222(ctx: Ctx) -> Result:
         "review_note_required")
 
 
-@case("QA-GOV-223", "Review a break-glass with an outcome that is not one", isolated=True)
+@case("QA-GOV-524", "Review a break-glass with an outcome that is not one", isolated=True)
 def gov_223(ctx: Ctx) -> Result:
     reference = _closed_glass(ctx)
     return expect_refused(
@@ -215,7 +215,7 @@ def gov_230(ctx: Ctx) -> Result:
         "no_such_principal", "reviewer_required", "validation_error")
 
 
-@case("QA-GOV-231", "A campaign over an empty population")
+@case("QA-GOV-525", "A campaign over an empty population")
 def gov_231(ctx: Ctx) -> Result:
     """A campaign nobody is in completes the moment it opens, and reports as
     a clean recertification of nothing."""
@@ -242,7 +242,7 @@ def gov_232(ctx: Ctx) -> Result:
 
 
 # --------------------------------------------------------------- conditions
-@case("QA-GOV-240", "An approval condition with no rationale")
+@case("QA-GOV-526", "An approval condition with no rationale")
 def gov_240(ctx: Ctx) -> Result:
     urn = _model(ctx)
     return expect_refused(
@@ -251,7 +251,7 @@ def gov_240(ctx: Ctx) -> Result:
         "rationale_required", "validation_error", "lifecycle_refused")
 
 
-@case("QA-GOV-241", "A condition with a negative window")
+@case("QA-GOV-527", "A condition with a negative window")
 def gov_241(ctx: Ctx) -> Result:
     urn = _model(ctx)
     got = ctx.api.post(CONDITIONS, json={"urn": urn, "kind": CONDITION_KIND,
@@ -264,7 +264,7 @@ def gov_241(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-GOV-242", "Discharge a condition with no reason")
+@case("QA-GOV-528", "Discharge a condition with no reason")
 def gov_242(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"{CONDITIONS}/qa-never/discharge", json={"reason": "  "}),
