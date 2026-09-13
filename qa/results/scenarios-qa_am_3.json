@@ -1,0 +1,257 @@
+{
+ "summary": {
+  "total": 41,
+  "pass": 38,
+  "fail": 2,
+  "blocked": 1
+ },
+ "seconds": 10.3,
+ "results": [
+  {
+   "id": "QA-AM-301",
+   "title": "Open a validation against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-307",
+   "title": "Record a result with no test key",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-320",
+   "title": "Cut the register by an unknown dimension",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_dimension', naming 7 dimensions"
+  },
+  {
+   "id": "QA-AM-3200",
+   "title": "A stream that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_stream', naming 2 streams"
+  },
+  {
+   "id": "QA-AM-321",
+   "title": "Heatmap of a dimension against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_dimension'"
+  },
+  {
+   "id": "QA-AM-322",
+   "title": "Heatmap where a row value and a column value never co-occur",
+   "verdict": "BLOCKED",
+   "evidence": "every row and column value co-occurs in this estate, so there is no absent cell to read"
+  },
+  {
+   "id": "QA-AM-323",
+   "title": "A heatmap over an empty estate",
+   "verdict": "PASS",
+   "evidence": "3 model(s) across 1 domain and 1 legal_entity. Shaded by what is OWED and not by count: a "
+  },
+  {
+   "id": "QA-AM-327",
+   "title": "Aggregate exposure where no model records one",
+   "verdict": "PASS",
+   "evidence": "exposure reported with its coverage: 0 of 3 model(s) have something outstanding. No model on this estate records an e"
+  },
+  {
+   "id": "QA-AM-328",
+   "title": "Aggregate exposure where one of forty models records one",
+   "verdict": "FAIL",
+   "evidence": "the figure covers 0% of the estate and the detail does not say so: 0 of 3 model(s) have something outstanding. No model on this estate records an exposure, so the aggregate question SR 26"
+  },
+  {
+   "id": "QA-AM-329",
+   "title": "Trend on an instance with no as-at projection",
+   "verdict": "PASS",
+   "evidence": "available false: no as-at projection is wired into this instance, so the trend cannot be computed. That is "
+  },
+  {
+   "id": "QA-AM-330",
+   "title": "Trend with `points: 1`",
+   "verdict": "PASS",
+   "evidence": "one point, and no division by zero"
+  },
+  {
+   "id": "QA-AM-331",
+   "title": "Trend where each point carries a chain hash",
+   "verdict": "FAIL",
+   "evidence": "3 of 4 trend point(s) carry no chain position, so they are asserted rather than verifiable"
+  },
+  {
+   "id": "QA-AM-333",
+   "title": "Concentration with a `MINIMUM` of one dependent",
+   "verdict": "PASS",
+   "evidence": "the floor is 2 and nothing below it is reported"
+  },
+  {
+   "id": "QA-AM-334",
+   "title": "Concentration on an estate with nothing recorded",
+   "verdict": "PASS",
+   "evidence": "nothing shared, and the detail warns why: nothing is shared by two or more of 0 model(s). Worth checking against"
+  },
+  {
+   "id": "QA-AM-335",
+   "title": "Any concentration answer",
+   "verdict": "PASS",
+   "evidence": "aggregate_score present and null on every answer"
+  },
+  {
+   "id": "QA-AM-341",
+   "title": "Declare a limit on a metric the platform does not compute",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_metric'"
+  },
+  {
+   "id": "QA-AM-342",
+   "title": "Declare a limit with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-343",
+   "title": "Declare a rationale of exactly 2,000 characters, then 2,001",
+   "verdict": "PASS",
+   "evidence": "2000 in, 2001 refused"
+  },
+  {
+   "id": "QA-AM-344",
+   "title": "Amber equal to the limit on a lower-is-better metric",
+   "verdict": "PASS",
+   "evidence": "amber at the limit refused, amber inside it accepted"
+  },
+  {
+   "id": "QA-AM-345",
+   "title": "Amber above the limit on a higher-is-better metric",
+   "verdict": "PASS",
+   "evidence": "amber above the floor accepted, below it refused"
+  },
+  {
+   "id": "QA-AM-346",
+   "title": "Declare a limit scoped to `region`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope', naming all 3"
+  },
+  {
+   "id": "QA-AM-347",
+   "title": "Raise a limit that was previously tighter",
+   "verdict": "PASS",
+   "evidence": "raised, and 1 node(s) say relaxed"
+  },
+  {
+   "id": "QA-AM-348",
+   "title": "Tighten a limit",
+   "verdict": "PASS",
+   "evidence": "tightened, not flagged relaxed, 2 versions"
+  },
+  {
+   "id": "QA-AM-349",
+   "title": "Retire a limit and then declare it again",
+   "verdict": "PASS",
+   "evidence": "version 1 -> 2 across the retirement"
+  },
+  {
+   "id": "QA-AM-350",
+   "title": "Retire a limit that was never declared",
+   "verdict": "PASS",
+   "evidence": "refused 'no_appetite'"
+  },
+  {
+   "id": "QA-AM-351",
+   "title": "An estate-wide limit and a Tier 1 limit on one metric",
+   "verdict": "PASS",
+   "evidence": "2 limits live on 'models_untiered', each versioned apart"
+  },
+  {
+   "id": "QA-AM-352",
+   "title": "Preview a pack and then cut one",
+   "verdict": "PASS",
+   "evidence": "0 packs, preview changed nothing, cut added one"
+  },
+  {
+   "id": "QA-AM-357",
+   "title": "An indicator the register could not compute",
+   "verdict": "PASS",
+   "evidence": "12 indicators; every unmeasured one states why"
+  },
+  {
+   "id": "QA-AM-361",
+   "title": "Movement against a pack that did not measure it",
+   "verdict": "PASS",
+   "evidence": "not comparable: one of the two packs did not measure it"
+  },
+  {
+   "id": "QA-AM-362",
+   "title": "Movement with no previous pack over this scope",
+   "verdict": "PASS",
+   "evidence": "no previous pack over this scope to move from"
+  },
+  {
+   "id": "QA-AM-363",
+   "title": "Utilisation against a limit of zero",
+   "verdict": "PASS",
+   "evidence": "a zero limit gives no utilisation, in both directions"
+  },
+  {
+   "id": "QA-AM-364",
+   "title": "Standing at exactly the limit",
+   "verdict": "PASS",
+   "evidence": "exactly on the limit is 'within' in both directions"
+  },
+  {
+   "id": "QA-AM-366",
+   "title": "One pack under the slack threshold",
+   "verdict": "PASS",
+   "evidence": "no slack until 2 quiet pack(s)"
+  },
+  {
+   "id": "QA-AM-367",
+   "title": "A pack carries no composite score",
+   "verdict": "PASS",
+   "evidence": "This pack reports indicators and refuses to average them. A single model-risk figure requires the pa"
+  },
+  {
+   "id": "QA-AM-378",
+   "title": "Open a campaign whose derivation selects nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population'"
+  },
+  {
+   "id": "QA-AM-379",
+   "title": "Open a second campaign under one reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_already_open'"
+  },
+  {
+   "id": "QA-AM-382",
+   "title": "Respond for a model not in the frozen population",
+   "verdict": "PASS",
+   "evidence": "refused 'not_in_this_campaign'"
+  },
+  {
+   "id": "QA-AM-384",
+   "title": "Respond declined with no reason",
+   "verdict": "PASS",
+   "evidence": "'declined' and 'not_applicable' both need a reason"
+  },
+  {
+   "id": "QA-AM-385",
+   "title": "Respond outstanding",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_response', naming 3 states"
+  },
+  {
+   "id": "QA-AM-386",
+   "title": "Respond after the campaign closed",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-AM-387",
+   "title": "Close a round with items outstanding",
+   "verdict": "PASS",
+   "evidence": "closed, and the unanswered items are named"
+  }
+ ]
+}
