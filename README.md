@@ -269,7 +269,7 @@ Full protocol: [06 — Warrants & Execution](docs/06-warrants-and-execution.md).
 
 ---
 
-## Documentation
+## Compiled documentation
 
 Documentation arrives at **five moments about five objects**, and it is filed against what it is
 *about*: a methodology paper about the **model**, a specification about the **version**, a training
@@ -315,11 +315,12 @@ current there:
 
 | | |
 |---|---|
-| Tests | **over 4,800 passing** — about 5,500 including parametrised cases — plus a scale suite excluded by default, a real PostgreSQL and a container build behind opt-in variables. Both of those **skip loudly**, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to |
+| Tests | **over 5,300 passing**, and more again once parametrised cases are counted one by one — plus a scale suite excluded by default, a real PostgreSQL and a container build behind opt-in variables. Both of those **skip loudly**, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to. The number is recounted from the source by `test_documentation_counts`, which now refuses a bound that is true and stale as well as one that is false |
 | Foundational laws executable | **18 of 21** — the three that are not are named with the reason, and each is a refusal rather than a gap |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
 | Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **93 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
 | Row-level security | Built, and a **backstop** rather than the control. It needs three deployment facts to be true, and `GET /api/v1/row-level-security` reports all three rather than assuming them — including whether the connecting role is a superuser, which bypasses every policy |
+| QA | **4,108 published cases** in [`qa/QA-CASES.md`](qa/QA-CASES.md), half of them generated from `openapi.lock.json`, the refusal map and the navbar so the list cannot quietly stop covering the system. The judgement cases are hand-written in `qa/cases/`, and a growing number are **runnable**: `python -m qa.regression_suite.scenario_run`. A scenario answering an id whose published subject is different fails the build |
 | The CLI | `maya`, installed with the SDK. **Three** exit codes: 0 answered yes, 1 MAYA refused, 2 MAYA was not reached — separated because a pipeline that collapses them goes green whenever the governance platform is down, which is worse than no gate at all. No flag suppresses a refusal |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped. The Java SDK holds the same line: `java.net.http` and two hundred lines of JSON |
 
@@ -404,7 +405,7 @@ registered properly.
 | **00** | [Mathematical Foundations](docs/00-mathematical-foundations.md) ★ | The definitions, the theorems, and the law table with what runs |
 | **01** | [Industry Research](docs/01-industry-research.md) | The estate as it is, and what the incumbent tools do |
 | **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | Families, fibres, and what each needs as evidence |
-| **03** | [Requirements](docs/03-requirements.md) | ~200 numbered requirements with regulatory traceability |
+| **03** | [Requirements](docs/03-requirements.md) | ~300 numbered requirements with regulatory traceability |
 | **04** | [Architecture](docs/04-architecture.md) | Containers, bounded contexts, extension points, failure modes |
 | **05** | [Data Model](docs/05-data-model.md) | One typed schema rendered to both dialects, the evidence graph, the data-plane layout |
 | **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, the grammar, resolution, revocation, composites |
@@ -483,24 +484,49 @@ maya/
 │   ├── assist/  baseline/           machine assistance; cold-start import
 │   ├── scheduler/  notify/          idempotent jobs; digests, not a message per item
 │   ├── estate/                      the worklist and the summary, derived not assigned
+│   ├── retention/                   legal holds, deletion, tombstones, compaction: what a
+│   │                                register may destroy, and what it must refuse to
+│   ├── security/                    the row-level-security backstop, and what it does NOT reach
+│   ├── waivers/  limitations/       a control waived on the record; a model's stated limits
+│   │   assumptions/  references/    and assumptions; and what still refers to it
+│   ├── events/  plugins/            subscriptions and delivery; discovery that imports nothing
+│   │   discovery/
+│   ├── apikeys/  http/              service credentials; ETags, preconditions and the locks
+│   │   concurrency/
+│   ├── classification/  fibres/     purpose and personal data; the taxonomy's fibres
+│   ├── scanning/  platform/         secret scanning; the platform's own posture; properties
+│   │   config/
 │   └── evidence/  risk/  content/   the chain and its semirings; tiering; rendered help
 ├── db/                              the only package that knows about storage
-│   └── schema/                      tables.py — 51 typed tables; the .sql files are generated from it
+│   └── schema/                      tables.py — 93 typed tables; the .sql files are generated from it
 ├── maya_deltalake/                  the Delta subset MAYA uses, in pure Python — used where
 │                                    binary wheels are forbidden and `deltalake` cannot install
 │                                    (Iceberg is the other table format, by configuration)
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── sdk/                             clients, one folder per language
 │   ├── python/                      maya_sdk — standard library only, no dependencies
-│   └── java/                        not built; the contract it must honour, written down
+│   └── java/                        java.net.http and about two hundred lines of JSON; no
+│                                    dependencies either, and the same three exit codes
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
-├── case_studies/                    thirteen models across seven industries,
-│                                    registered end to end, with scripts that
-│                                    fit OUTSIDE MAYA and READMEs written to
-│                                    be talked through
-├── docs/                            18 specification documents + ADRs
-├── tools/deck/                      the decks, generated from source rather than edited
+├── case_studies/                    fifteen models registered end to end, with scripts
+│                                    that fit OUTSIDE MAYA and READMEs written to be
+│                                    talked through. Thirteen were designed to exercise
+│                                    the platform; TWO were not — they are failures from
+│                                    the public record, and their closing sections list
+│                                    what MAYA does not reach
+├── qa/                              the test plan and the suite that runs it
+│   ├── QA-CASES.md                  4,108 cases; half generated from source, so the
+│   │                                list cannot quietly stop covering the system
+│   ├── cases/                       sections F–J: the judgement cases a generator
+│   │                                cannot see — sequences and cross-object state
+│   └── regression_suite/            the runnable ones, and the results they produce
+├── docs/                            20 specification documents + 16 ADRs
+├── config/  deploy/                 the shipped configuration; the image, the compose
+│                                    file with its two database roles, and the chart
+├── tools/                           deck/ the decks generated from source, ci/ the five
+│                                    preflight gates, demo/ the estate seeder, ops/,
+│                                    scanner/, soak/
 └── tests/                           the law suite and the discipline walkers
 ```
 
@@ -514,6 +540,9 @@ Several tests do not test a feature. They walk the source and hold a rule that w
 | `test_refusal_discipline` | Every coded refusal maps to a status that says who must act, and no code is mapped twice |
 | `test_schema_discipline` | One typed declaration renders identically to both dialects; the checked-in `.sql` is not stale; a truth value is a `Boolean` and a count is not |
 | `test_size_discipline` | No source file over 1,500 lines |
+| `test_atomicity_discipline` | A governed act and the record of it commit together, or neither does |
+| `test_import_discipline` | The layering rule, made mechanical — a rule stated in prose is enforced by nobody |
+| `test_scope_discipline` | Every model-scoped permission is checked **against a model**, including on a route no test has walked yet |
 | `test_documentation_counts` | Every number claimed in prose is recounted from the code |
 | `test_deck_geometry` | No slide has overlapping or escaping content |
 | `test_ui_tables` | Every HTML table has a header, and pagination where it needs one |
