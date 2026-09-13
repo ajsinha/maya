@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 77,
-  "pass": 69,
-  "fail": 8,
+  "total": 104,
+  "pass": 93,
+  "fail": 11,
   "blocked": 0
  },
- "seconds": 1.4,
+ "seconds": 1.7,
  "results": [
   {
    "id": "QA-AM-100",
@@ -108,6 +108,48 @@
    "title": "The owner is reassigned to the intended verifier, who then closes",
    "verdict": "PASS",
    "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-123",
+   "title": "Ageing over a model with one finding open four years and nine opened last week",
+   "verdict": "PASS",
+   "evidence": "{'0-30 days': 9, 'over 180 days': 1}, mean 150.5 days shown beside it rather than instead of it"
+  },
+  {
+   "id": "QA-AM-124",
+   "title": "Ageing where every finding is closed",
+   "verdict": "PASS",
+   "evidence": "open 0, closed 3, no worst severity, 'nothing is open'"
+  },
+  {
+   "id": "QA-AM-125",
+   "title": "Age of a closed finding stops at its closure",
+   "verdict": "PASS",
+   "evidence": "frozen at 60.0 days \u2014 closed_at minus raised_at"
+  },
+  {
+   "id": "QA-AM-126",
+   "title": "`days_overdue` for a finding that is not overdue",
+   "verdict": "PASS",
+   "evidence": "0.0, not -30.0"
+  },
+  {
+   "id": "QA-AM-127",
+   "title": "Escalation at exactly seven days past the date",
+   "verdict": "PASS",
+   "evidence": "not at 7 days, escalated at 7 days and an hour, to the model risk manager"
+  },
+  {
+   "id": "QA-AM-128",
+   "title": "A blocking finding one hour past its date",
+   "verdict": "PASS",
+   "evidence": "escalated: it is blocking, so the model cannot be served while it is op"
+  },
+  {
+   "id": "QA-AM-129",
+   "title": "A finding unaccepted at exactly five days",
+   "verdict": "PASS",
+   "evidence": "not at 5 days, escalated at 5 days and an hour, silent once accepted"
   },
   {
    "id": "QA-AM-1300",
@@ -216,6 +258,72 @@
    "title": "A root counts an acknowledged child as still owed",
    "verdict": "PASS",
    "evidence": "the acknowledged child is still counted"
+  },
+  {
+   "id": "QA-AM-136",
+   "title": "Attach a list containing one unknown finding id",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_finding', and nothing was attached"
+  },
+  {
+   "id": "QA-AM-137",
+   "title": "Attach the same finding to the same root twice",
+   "verdict": "PASS",
+   "evidence": "reported under already_attached, attached nothing"
+  },
+  {
+   "id": "QA-AM-138",
+   "title": "Attach a finding that is already attached to a *different* root",
+   "verdict": "FAIL",
+   "evidence": "a finding under root 01a09c9a5cbe610db80174ba5067 was moved to root 01a09c9a5cc01f60ccb5a8995814 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+  },
+  {
+   "id": "QA-AM-139",
+   "title": "Attach a finding that is already closed",
+   "verdict": "PASS",
+   "evidence": "a closed finding can be attached to a cause named later"
+  },
+  {
+   "id": "QA-AM-140",
+   "title": "Address a root while its children are open",
+   "verdict": "PASS",
+   "evidence": "addressed, 0 closed, 2 named as still open"
+  },
+  {
+   "id": "QA-AM-141",
+   "title": "Address the same root twice",
+   "verdict": "PASS",
+   "evidence": "refused 'root_already_addressed'"
+  },
+  {
+   "id": "QA-AM-142",
+   "title": "Address with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'root_note_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-143",
+   "title": "Open a root with an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind', naming all 5"
+  },
+  {
+   "id": "QA-AM-144",
+   "title": "Candidates where twelve findings share a source and category on one model",
+   "verdict": "PASS",
+   "evidence": "one model, twelve findings, and no suggestion"
+  },
+  {
+   "id": "QA-AM-145",
+   "title": "Candidates where the findings were acknowledged first",
+   "verdict": "PASS",
+   "evidence": "suggested across 2 models"
+  },
+  {
+   "id": "QA-AM-146",
+   "title": "Candidates with `window_hours=0`",
+   "verdict": "PASS",
+   "evidence": "zero hours, no suggestions, and the window is echoed"
   },
   {
    "id": "QA-AM-147",
@@ -458,6 +566,12 @@
    "evidence": "refused 'already_closed'"
   },
   {
+   "id": "QA-AM-190",
+   "title": "Pair `input_drift` with `discrimination.gini`",
+   "verdict": "PASS",
+   "evidence": "refused 'test_not_admissible', naming what does answer it"
+  },
+  {
    "id": "QA-AM-1900",
    "title": "Replay with data that is not the data",
    "verdict": "PASS",
@@ -468,6 +582,54 @@
    "title": "Replay data for a test the episode never recorded",
    "verdict": "PASS",
    "evidence": "extra data supplied, and only the recorded test counted"
+  },
+  {
+   "id": "QA-AM-191",
+   "title": "Define a `performance` monitor with no `label_delay_days`",
+   "verdict": "PASS",
+   "evidence": "refused 'label_delay_required'"
+  },
+  {
+   "id": "QA-AM-192",
+   "title": "Define a `performance` monitor with `label_delay_days: 0`",
+   "verdict": "PASS",
+   "evidence": "refused 'label_delay_required' on an explicit zero"
+  },
+  {
+   "id": "QA-AM-193",
+   "title": "Define a `calibration` monitor with a delay of 0.5 days",
+   "verdict": "PASS",
+   "evidence": "half a day accepted and kept as half a day"
+  },
+  {
+   "id": "QA-AM-194",
+   "title": "Define with no threshold",
+   "verdict": "PASS",
+   "evidence": "refused 'threshold_required'"
+  },
+  {
+   "id": "QA-AM-195",
+   "title": "Define with `threshold: {\"floor\": 0.4}`",
+   "verdict": "FAIL",
+   "evidence": "accepted at definition and refused at evaluation ('validation_refused'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as active until somebody runs it \u2014 and the refusal lands on whoever is reading the monitor rather than whoever wrote it"
+  },
+  {
+   "id": "QA-AM-196",
+   "title": "Define two monitors with the same name on one model",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_monitor'"
+  },
+  {
+   "id": "QA-AM-197",
+   "title": "Define with `escalate_after: 0`",
+   "verdict": "PASS",
+   "evidence": "0 accepted and kept"
+  },
+  {
+   "id": "QA-AM-198",
+   "title": "Define with `escalate_after: -1`",
+   "verdict": "FAIL",
+   "evidence": "`escalate_after: -1` was accepted and stored: nothing validates the field, and 0 already means *never escalate*, so a negative is a number with no reading that goes into the escalation arithmetic"
   }
  ]
 }
