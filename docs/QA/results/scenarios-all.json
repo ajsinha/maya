@@ -5,7 +5,7 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 29.6,
+ "seconds": 16.6,
  "results": [
   {
    "id": "QA-AM-067",
@@ -485,7 +485,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ac3499c698a90ea192ac180\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ac4e0dac019da8178ffdf67\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -605,7 +605,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-915ae20f\",\"name\":\"gov-915ae20f-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-c0485f43\",\"name\":\"gov-c0485f43-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -887,7 +887,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:87fd16f8aa80d"
+   "evidence": "a fresh chain of 8 verifies, head sha256:7c59aa709e8a4"
   },
   {
    "id": "QA-PLT-010",
@@ -995,7 +995,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:af052d668405f67e72d85b1"
+   "evidence": "identical: sha256:d3b2d7ed3566b4f558333b0"
   },
   {
    "id": "QA-PLT-124",
@@ -1013,7 +1013,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:bfd890b9d2e8e5e21515317"
+   "evidence": "stable: sha256:c3b82f5dc3b253431cdc941"
   },
   {
    "id": "QA-PLT-127",

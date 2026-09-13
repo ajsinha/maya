@@ -1,0 +1,1737 @@
+{
+ "summary": {
+  "NEEDS-CASE": 185,
+  "PASS": 31
+ },
+ "seconds": 1.8,
+ "results": [
+  {
+   "id": "QA-GOV-001",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models",
+   "expected": "registry_refused",
+   "got": "validation_failed",
+   "evidence": "POST /api/v1/models -> 422 {\"error\":\"validation_failed\",\"detail\":\"'qa' is not a model urn, and a register row whose identifier no route can address"
+  },
+  {
+   "id": "QA-GOV-002",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models",
+   "expected": "?",
+   "got": "validation_failed",
+   "evidence": "POST /api/v1/models -> 422 {\"error\":\"validation_failed\",\"detail\":\"'qa' is not a model urn, and a register row whose identifier no route can address"
+  },
+  {
+   "id": "QA-GOV-004",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/submit",
+   "expected": "nothing_to_approve",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/submit -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-005",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/submit",
+   "expected": "not_tiered",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/submit -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-006",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/submit",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/submit -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-007",
+   "verdict": "NEEDS-CASE",
+   "reached": "PATCH /api/v1/models/qa-replay",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "PATCH /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-008",
+   "verdict": "PASS",
+   "reached": "PATCH /api/v1/models/qa-replay",
+   "expected": "registry_refused",
+   "got": "registry_refused",
+   "evidence": "PATCH /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-009",
+   "verdict": "PASS",
+   "reached": "PATCH /api/v1/models/qa-replay",
+   "expected": "registry_refused",
+   "got": "registry_refused",
+   "evidence": "PATCH /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-010",
+   "verdict": "PASS",
+   "reached": "PATCH /api/v1/models/qa-replay",
+   "expected": "registry_refused",
+   "got": "registry_refused",
+   "evidence": "PATCH /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-011",
+   "verdict": "NEEDS-CASE",
+   "reached": "PATCH /api/v1/models/qa-replay",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "PATCH /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-013",
+   "verdict": "NEEDS-CASE",
+   "reached": "PUT /api/v1/models/qa-replay/designations",
+   "expected": "record_frozen",
+   "got": "registry_refused",
+   "evidence": "PUT /api/v1/models/qa-replay/designations -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-018",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/intake/qa-replay/register",
+   "expected": "not_triaged",
+   "got": "unknown_proposal",
+   "evidence": "POST /api/v1/intake/qa-replay/register -> 404 {\"error\":\"unknown_proposal\",\"detail\":\"no proposal 'qa-replay'\",\"remediation\":\"list proposals\"}"
+  },
+  {
+   "id": "QA-GOV-019",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/intake/qa-replay/register",
+   "expected": "proposal_declined",
+   "got": "unknown_proposal",
+   "evidence": "POST /api/v1/intake/qa-replay/register -> 404 {\"error\":\"unknown_proposal\",\"detail\":\"no proposal 'qa-replay'\",\"remediation\":\"list proposals\"}"
+  },
+  {
+   "id": "QA-GOV-023",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/intake/qa-replay/triage",
+   "expected": "rationale_required",
+   "got": "unknown_proposal",
+   "evidence": "POST /api/v1/intake/qa-replay/triage -> 404 {\"error\":\"unknown_proposal\",\"detail\":\"no proposal 'qa-replay'\",\"remediation\":\"list proposals\"}"
+  },
+  {
+   "id": "QA-GOV-024",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/amend",
+   "expected": "illegal_transition",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/amend -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-025",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/retire",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/retire -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-030",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/approve",
+   "expected": "illegal_transition",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/approve -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-031",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/attest",
+   "expected": "illegal_transition",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/attest -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-032",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/return",
+   "expected": "illegal_transition",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/return -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-033",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/return",
+   "expected": "reason_required",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/return -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-034",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/retire",
+   "expected": "illegal_transition",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/retire -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-037",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/models/qa-replay/versions",
+   "expected": "registry_refused",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/versions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-038",
+   "verdict": "PASS",
+   "reached": "PATCH /api/v1/models/qa-replay",
+   "expected": "registry_refused",
+   "got": "registry_refused",
+   "evidence": "PATCH /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-041",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/attest",
+   "expected": "no_attestation_open",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/attest -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-045",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/lifecycle",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/lifecycle -> 200 {\"transitions\":[{\"name\":\"submit\",\"from\":[\"draft\",\"baselined\",\"amending\"],\"to\":\"submitted\",\"permission\":\"model:submit\",\"n"
+  },
+  {
+   "id": "QA-GOV-046",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/attest",
+   "expected": "no_attestation_open",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/attest -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-052",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/amend",
+   "expected": "reason_required",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/amend -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-071",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/models/qa-replay/versions",
+   "expected": "registry_refused",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/versions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-081",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/versions/qa-replay/approve",
+   "expected": "quorum_required",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/versions/qa-replay/approve -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-099",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/version-approvals",
+   "expected": "no_quorum_required",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/version-approvals -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-100",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/version-approvals",
+   "expected": "approval_open",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/version-approvals -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-101",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/version-approvals",
+   "expected": "already_approved",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/version-approvals -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-102",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/version-approvals",
+   "expected": "no_tier",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/version-approvals -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-109",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/version-approvals",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/version-approvals -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-110",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/version-approvals",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/version-approvals -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-117",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/bands",
+   "expected": "stages_required",
+   "got": 201,
+   "evidence": "POST /api/v1/authority/bands -> 201 {\"id\":\"01a09ad4d7e6abdf6e3fefbc0040\",\"name\":\"qa\",\"tier\":null,\"at_or_above\":0.0,\"legal_entity\":null,\"stages\":[[\"qa\"]],\"no"
+  },
+  {
+   "id": "QA-GOV-118",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/bands",
+   "expected": "stages_required",
+   "got": "band_exists",
+   "evidence": "POST /api/v1/authority/bands -> 409 {\"error\":\"band_exists\",\"detail\":\"a band called 'qa' is already published\",\"remediation\":\"withdraw it before publishing a"
+  },
+  {
+   "id": "QA-GOV-119",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/bands",
+   "expected": "unknown_tier",
+   "got": "band_exists",
+   "evidence": "POST /api/v1/authority/bands -> 409 {\"error\":\"band_exists\",\"detail\":\"a band called 'qa' is already published\",\"remediation\":\"withdraw it before publishing a"
+  },
+  {
+   "id": "QA-GOV-120",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/bands",
+   "expected": "unknown_tier",
+   "got": "band_exists",
+   "evidence": "POST /api/v1/authority/bands -> 409 {\"error\":\"band_exists\",\"detail\":\"a band called 'qa' is already published\",\"remediation\":\"withdraw it before publishing a"
+  },
+  {
+   "id": "QA-GOV-121",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/bands",
+   "expected": "negative_floor",
+   "got": "band_exists",
+   "evidence": "POST /api/v1/authority/bands -> 409 {\"error\":\"band_exists\",\"detail\":\"a band called 'qa' is already published\",\"remediation\":\"withdraw it before publishing a"
+  },
+  {
+   "id": "QA-GOV-122",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/authority/bands",
+   "expected": "band_exists",
+   "got": "band_exists",
+   "evidence": "POST /api/v1/authority/bands -> 409 {\"error\":\"band_exists\",\"detail\":\"a band called 'qa' is already published\",\"remediation\":\"withdraw it before publishing a"
+  },
+  {
+   "id": "QA-GOV-126",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/authority/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/authority/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-127",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/authority/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/authority/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-130",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/authority/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/authority/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-131",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/authority/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/authority/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-132",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/authority/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/authority/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-133",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/authority/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/authority/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-137",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/delegations",
+   "expected": "ceiling_required",
+   "got": 201,
+   "evidence": "POST /api/v1/authority/delegations -> 201 {\"principal\":\"qa\",\"ceiling\":1.0,\"currency\":\"USD\",\"legal_entity\":null,\"instrument\":\"qa\",\"granted_by\":\"admin\",\"granted_at\""
+  },
+  {
+   "id": "QA-GOV-138",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/delegations",
+   "expected": "ceiling_required",
+   "got": 201,
+   "evidence": "POST /api/v1/authority/delegations -> 201 {\"principal\":\"qa\",\"ceiling\":1.0,\"currency\":\"USD\",\"legal_entity\":null,\"instrument\":\"qa\",\"granted_by\":\"admin\",\"granted_at\""
+  },
+  {
+   "id": "QA-GOV-139",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/authority/delegations",
+   "expected": "instrument_required",
+   "got": 201,
+   "evidence": "POST /api/v1/authority/delegations -> 201 {\"principal\":\"qa\",\"ceiling\":1.0,\"currency\":\"USD\",\"legal_entity\":null,\"instrument\":\"qa\",\"granted_by\":\"admin\",\"granted_at\""
+  },
+  {
+   "id": "QA-GOV-152",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions",
+   "expected": "window_out_of_range",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/approval-conditions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-153",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/approval-conditions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-154",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions",
+   "expected": "window_out_of_range",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/approval-conditions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-155",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions",
+   "expected": "condition_incomplete",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/approval-conditions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-158",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions",
+   "expected": "no_version",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/approval-conditions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-159",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/approval-conditions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-GOV-160",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions/qa-replay/confirm",
+   "expected": "not_attested",
+   "got": "no_condition",
+   "evidence": "POST /api/v1/approval-conditions/qa-replay/confirm -> 404 {\"error\":\"no_condition\",\"detail\":\"no approval condition 'qa-replay'\",\"remediation\":\"references look like COND-0001\"}"
+  },
+  {
+   "id": "QA-GOV-164",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/approval-conditions/qa-replay/discharge",
+   "expected": "reason_required",
+   "got": "no_condition",
+   "evidence": "POST /api/v1/approval-conditions/qa-replay/discharge -> 404 {\"error\":\"no_condition\",\"detail\":\"no approval condition 'qa-replay'\",\"remediation\":\"references look like COND-0001\"}"
+  },
+  {
+   "id": "QA-GOV-168",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/assess",
+   "expected": "fact_not_supplied",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/assess -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-187",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/assess",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/assess -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-190",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/retier-triggers/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/retier-triggers/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-191",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/retier-triggers/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/retier-triggers/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-192",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/retier-triggers/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/retier-triggers/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-198",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/retier-triggers/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/retier-triggers/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-200",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/retier-triggers/sweep",
+   "expected": "?",
+   "got": 200,
+   "evidence": "POST /api/v1/retier-triggers/sweep -> 200 {\"models\":0,\"stale\":0,\"never_assessed\":[],\"by_trigger\":{},\"cannot_check\":{},\"rows\":[],\"re_tiers_anything\":false,\"detail\""
+  },
+  {
+   "id": "QA-GOV-204",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/fact-sourcing/model",
+   "expected": "not_a_sourceable_fact",
+   "got": 422,
+   "evidence": "POST /api/v1/fact-sourcing/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-205",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/fact-sourcing/model",
+   "expected": "reference_required",
+   "got": 422,
+   "evidence": "POST /api/v1/fact-sourcing/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-207",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/fact-sourcing/model",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/fact-sourcing/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-209",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/fact-sourcing/model",
+   "expected": "accepted",
+   "got": 422,
+   "evidence": "POST /api/v1/fact-sourcing/model -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-216",
+   "verdict": "NEEDS-CASE",
+   "reached": "PUT /api/v1/principals/qa-replay/roles",
+   "expected": "incompatible_roles",
+   "got": "no_such_principal",
+   "evidence": "PUT /api/v1/principals/qa-replay/roles -> 404 {\"error\":\"no_such_principal\",\"detail\":\"no principal 'qa-replay'\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-GOV-220",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/roles",
+   "expected": "incompatible_permissions",
+   "got": "unknown_permission",
+   "evidence": "POST /api/v1/roles -> 422 {\"error\":\"unknown_permission\",\"detail\":\"'qa' is not a recognised permission\",\"remediation\":\"check the spelling against c"
+  },
+  {
+   "id": "QA-GOV-223",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/roles",
+   "expected": "role_in_use",
+   "got": "unknown_permission",
+   "evidence": "POST /api/v1/roles -> 422 {\"error\":\"unknown_permission\",\"detail\":\"'qa' is not a recognised permission\",\"remediation\":\"check the spelling against c"
+  },
+  {
+   "id": "QA-GOV-228",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/roles",
+   "expected": "role_grants_nothing",
+   "got": "unknown_permission",
+   "evidence": "POST /api/v1/roles -> 422 {\"error\":\"unknown_permission\",\"detail\":\"'qa' is not a recognised permission\",\"remediation\":\"check the spelling against c"
+  },
+  {
+   "id": "QA-GOV-229",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/roles",
+   "expected": "unknown_permission",
+   "got": "unknown_permission",
+   "evidence": "POST /api/v1/roles -> 422 {\"error\":\"unknown_permission\",\"detail\":\"'qa' is not a recognised permission\",\"remediation\":\"check the spelling against c"
+  },
+  {
+   "id": "QA-GOV-230",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/models",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/models -> 200 {\"models\":[],\"total\":0,\"returned\":0,\"limit\":50,\"offset\":0,\"has_more\":false,\"detail\":\"nothing matched\"}"
+  },
+  {
+   "id": "QA-GOV-231",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/models/qa-replay",
+   "expected": "out_of_scope",
+   "got": "not_found",
+   "evidence": "GET /api/v1/models/qa-replay -> 404 {\"error\":\"not_found\",\"detail\":\"no model qa-replay\"}"
+  },
+  {
+   "id": "QA-GOV-232",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/models",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/models -> 200 {\"models\":[],\"total\":0,\"returned\":0,\"limit\":50,\"offset\":0,\"has_more\":false,\"detail\":\"nothing matched\"}"
+  },
+  {
+   "id": "QA-GOV-233",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/models",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/models -> 200 {\"models\":[],\"total\":0,\"returned\":0,\"limit\":50,\"offset\":0,\"has_more\":false,\"detail\":\"nothing matched\"}"
+  },
+  {
+   "id": "QA-GOV-236",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /break-glass",
+   "expected": "same_person",
+   "got": 405,
+   "evidence": "POST /break-glass -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-GOV-249",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /break-glass",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /break-glass -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-GOV-250",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /break-glass",
+   "expected": "no_such_principal",
+   "got": 405,
+   "evidence": "POST /break-glass -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-GOV-251",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /break-glass",
+   "expected": "reason_required",
+   "got": 405,
+   "evidence": "POST /break-glass -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-GOV-252",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/recertification",
+   "expected": "empty_population",
+   "got": "no_such_principal",
+   "evidence": "POST /api/v1/recertification -> 404 {\"error\":\"no_such_principal\",\"detail\":\"no principal 'qa'\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-GOV-275",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/decommission",
+   "expected": "illegal_transition",
+   "got": 422,
+   "evidence": "POST /api/v1/decommission -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-291",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/decommission",
+   "expected": "accepted",
+   "got": 422,
+   "evidence": "POST /api/v1/decommission -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-GOV-292",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/decommission/estate",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/decommission/estate -> 200 {\"retired\":0,\"decommissioned\":0,\"without_a_record\":[],\"detail\":\"0 of 0 retired model(s) carry a decommissioning record. "
+  },
+  {
+   "id": "QA-GOV-293",
+   "verdict": "NEEDS-CASE",
+   "reached": "DELETE /api/v1/models/qa-replay",
+   "expected": "deletion_refused",
+   "got": "registry_refused",
+   "evidence": "DELETE /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-294",
+   "verdict": "NEEDS-CASE",
+   "reached": "DELETE /api/v1/models/qa-replay",
+   "expected": "reason_required",
+   "got": "registry_refused",
+   "evidence": "DELETE /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-GOV-301",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/evidence/chain",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":13,\"head\":\"sha256:2ff4f4598c2be06a41f8157518b226d3496d1ca91018e3bcc8ccda14a1441bab\",\"scope\":\"full"
+  },
+  {
+   "id": "QA-GOV-302",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/evidence/chain",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":13,\"head\":\"sha256:2ff4f4598c2be06a41f8157518b226d3496d1ca91018e3bcc8ccda14a1441bab\",\"scope\":\"full"
+  },
+  {
+   "id": "QA-GOV-306",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/legal-holds",
+   "expected": "matter_required",
+   "got": 201,
+   "evidence": "POST /api/v1/legal-holds -> 201 {\"reference\":\"HOLD-0001\",\"matter\":\"qa\",\"scope_kind\":\"estate\",\"scope_id\":null,\"classes\":[],\"owner\":\"qa\",\"placed_by\":\"admi"
+  },
+  {
+   "id": "QA-GOV-307",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/legal-holds",
+   "expected": "owner_required",
+   "got": 201,
+   "evidence": "POST /api/v1/legal-holds -> 201 {\"reference\":\"HOLD-0002\",\"matter\":\"qa\",\"scope_kind\":\"estate\",\"scope_id\":null,\"classes\":[],\"owner\":\"qa\",\"placed_by\":\"admi"
+  },
+  {
+   "id": "QA-GOV-308",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/legal-holds",
+   "expected": "scope_required",
+   "got": 201,
+   "evidence": "POST /api/v1/legal-holds -> 201 {\"reference\":\"HOLD-0003\",\"matter\":\"qa\",\"scope_kind\":\"estate\",\"scope_id\":null,\"classes\":[],\"owner\":\"qa\",\"placed_by\":\"admi"
+  },
+  {
+   "id": "QA-GOV-309",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/legal-holds",
+   "expected": "unknown_scope",
+   "got": 201,
+   "evidence": "POST /api/v1/legal-holds -> 201 {\"reference\":\"HOLD-0004\",\"matter\":\"qa\",\"scope_kind\":\"estate\",\"scope_id\":null,\"classes\":[],\"owner\":\"qa\",\"placed_by\":\"admi"
+  },
+  {
+   "id": "QA-GOV-313",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/legal-holds/qa-replay/lift",
+   "expected": "reason_required",
+   "got": "no_hold",
+   "evidence": "POST /api/v1/legal-holds/qa-replay/lift -> 404 {\"error\":\"no_hold\",\"detail\":\"no legal hold 'qa-replay'\",\"remediation\":\"references look like HOLD-0001\"}"
+  },
+  {
+   "id": "QA-GOV-316",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/legal-holds",
+   "expected": "accepted",
+   "got": 201,
+   "evidence": "POST /api/v1/legal-holds -> 201 {\"reference\":\"HOLD-0005\",\"matter\":\"qa\",\"scope_kind\":\"estate\",\"scope_id\":null,\"classes\":[],\"owner\":\"qa\",\"placed_by\":\"admi"
+  },
+  {
+   "id": "QA-GOV-317",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/retention",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/retention -> 200 {\"classes\":[{\"artifact_class\":\"evidence_chain\",\"years\":10.0,\"because\":\"AI Act Art. 19 asks for logs over the system's li"
+  },
+  {
+   "id": "QA-GOV-318",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/retention",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/retention -> 200 {\"classes\":[{\"artifact_class\":\"evidence_chain\",\"years\":10.0,\"because\":\"AI Act Art. 19 asks for logs over the system's li"
+  },
+  {
+   "id": "QA-GOV-320",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/regulatory-approvals/qa-replay/withdraw",
+   "expected": "not_in_force",
+   "got": "no_approval",
+   "evidence": "POST /api/v1/regulatory-approvals/qa-replay/withdraw -> 404 {\"error\":\"no_approval\",\"detail\":\"no regulatory approval 'qa-replay'\",\"remediation\":\"references look like REG-0001\"}"
+  },
+  {
+   "id": "QA-GOV-322",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/regulatory-approvals",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/regulatory-approvals -> 200 {\"approvals\":[],\"count\":0,\"in_force\":0,\"lapsed\":0,\"expiring\":0,\"kinds\":{\"irb\":{\"granted_over\":\"named portfolios or expos"
+  },
+  {
+   "id": "QA-GOV-327",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/regulatory-approvals",
+   "expected": "scope_required",
+   "got": "unknown_approval_kind",
+   "evidence": "POST /api/v1/regulatory-approvals -> 422 {\"error\":\"unknown_approval_kind\",\"detail\":\"'qa' is not a regulatory approval this register knows\",\"remediation\":\"one of "
+  },
+  {
+   "id": "QA-FX-068",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/featuresets/qa-replay/roll-forward",
+   "expected": "accepted",
+   "got": "feature_refused",
+   "evidence": "POST /api/v1/featuresets/qa-replay/roll-forward -> 409 {\"error\":\"feature_refused\",\"detail\":\"no featureset 'qa-replay'\",\"remediation\":\"correct the feature definition or the vie"
+  },
+  {
+   "id": "QA-FX-083",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/featuresets/qa-replay/roll-forward",
+   "expected": "accepted",
+   "got": "feature_refused",
+   "evidence": "POST /api/v1/featuresets/qa-replay/roll-forward -> 409 {\"error\":\"feature_refused\",\"detail\":\"no featureset 'qa-replay'\",\"remediation\":\"correct the feature definition or the vie"
+  },
+  {
+   "id": "QA-FX-192",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/retrieval",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/retrieval -> 200 {\"preparation\":{\"fill\":[{\"strategy\":\"keep\",\"means\":\"leave the gaps; the consumer will handle them, and says so explicitl"
+  },
+  {
+   "id": "QA-AM-001",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/validations",
+   "expected": "validation_refused",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/validations -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-003",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/validations",
+   "expected": "validation_refused",
+   "got": 405,
+   "evidence": "GET /api/v1/validations -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-004",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/validations",
+   "expected": "validation_refused",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/validations -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-011",
+   "verdict": "PASS",
+   "reached": "GET /findings",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /findings -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-024",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/validations",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/validations -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-025",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/validations",
+   "expected": "validation_refused",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/validations -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-026",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/validation-capacity",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/validation-capacity -> 200 {\"validators\":[],\"count\":0,\"overloaded\":[],\"capacity_not_declared\":[],\"detail\":\"no validation episode is open and no cap"
+  },
+  {
+   "id": "QA-AM-067",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /findings",
+   "expected": "accepted",
+   "got": 405,
+   "evidence": "POST /findings -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-068",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /findings",
+   "expected": "accepted",
+   "got": 405,
+   "evidence": "POST /findings -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-071",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /findings",
+   "expected": "validation_refused",
+   "got": 405,
+   "evidence": "POST /findings -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-072",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /findings",
+   "expected": "validation_refused",
+   "got": 405,
+   "evidence": "POST /findings -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-073",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /findings",
+   "expected": "validation_refused",
+   "got": 405,
+   "evidence": "POST /findings -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-078",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /findings",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /findings -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-079",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/open-findings",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/open-findings -> 200 {\"open\":0,\"models\":0,\"findings\":[]}"
+  },
+  {
+   "id": "QA-AM-080",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/findings/qa-replay",
+   "expected": "code",
+   "got": "no_finding",
+   "evidence": "GET /api/v1/findings/qa-replay -> 404 {\"error\":\"no_finding\",\"detail\":\"no finding qa-replay\",\"remediation\":\"check the identifier against the register for this "
+  },
+  {
+   "id": "QA-AM-088",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/findings/qa-replay",
+   "expected": "beyond_the_due_date",
+   "got": "no_finding",
+   "evidence": "GET /api/v1/findings/qa-replay -> 404 {\"error\":\"no_finding\",\"detail\":\"no finding qa-replay\",\"remediation\":\"check the identifier against the register for this "
+  },
+  {
+   "id": "QA-AM-093",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/findings/qa-replay",
+   "expected": "accepted",
+   "got": "no_finding",
+   "evidence": "GET /api/v1/findings/qa-replay -> 404 {\"error\":\"no_finding\",\"detail\":\"no finding qa-replay\",\"remediation\":\"check the identifier against the register for this "
+  },
+  {
+   "id": "QA-AM-123",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/findings/ageing",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/findings/ageing -> 200 {\"model\":null,\"scope\":0,\"models\":0,\"open\":0,\"closed\":0,\"blocking\":0,\"overdue\":0,\"unacknowledged\":0,\"unplanned\":0,\"escala"
+  },
+  {
+   "id": "QA-AM-124",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/findings/ageing",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/findings/ageing -> 200 {\"model\":null,\"scope\":0,\"models\":0,\"open\":0,\"closed\":0,\"blocking\":0,\"overdue\":0,\"unacknowledged\":0,\"unplanned\":0,\"escala"
+  },
+  {
+   "id": "QA-AM-132",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/findings/ageing",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/findings/ageing -> 200 {\"model\":null,\"scope\":0,\"models\":0,\"open\":0,\"closed\":0,\"blocking\":0,\"overdue\":0,\"unacknowledged\":0,\"unplanned\":0,\"escala"
+  },
+  {
+   "id": "QA-AM-134",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/finding-roots",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/finding-roots -> 200 {\"roots\":[],\"count\":0,\"by_kind\":{},\"findings_correlated\":0,\"detail\":\"0 named cause(s) account for 0 finding(s). Counting"
+  },
+  {
+   "id": "QA-AM-135",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/finding-roots",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/finding-roots -> 200 {\"roots\":[],\"count\":0,\"by_kind\":{},\"findings_correlated\":0,\"detail\":\"0 named cause(s) account for 0 finding(s). Counting"
+  },
+  {
+   "id": "QA-AM-140",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/finding-roots/qa-replay/address",
+   "expected": "accepted",
+   "got": 422,
+   "evidence": "POST /api/v1/finding-roots/qa-replay/address -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"note\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-AM-143",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/finding-roots",
+   "expected": "unknown_root_kind",
+   "got": "unknown_root_kind",
+   "evidence": "POST /api/v1/finding-roots -> 422 {\"error\":\"unknown_root_kind\",\"detail\":\"'qa' is not a kind of cause this counts\",\"remediation\":\"the kinds are control_gap"
+  },
+  {
+   "id": "QA-AM-144",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/finding-roots/candidates",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/finding-roots/candidates -> 200 {\"window_hours\":24.0,\"suggestions\":[],\"groups_anything\":false,\"detail\":\"no group of open findings shares a source and a "
+  },
+  {
+   "id": "QA-AM-147",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/supervisory-matters",
+   "expected": "accepted",
+   "got": "validation_refused",
+   "evidence": "POST /api/v1/supervisory-matters -> 409 {\"error\":\"validation_refused\",\"detail\":\"'qa' is not a kind of supervisory matter; the five are mria, mra, s166, recommen"
+  },
+  {
+   "id": "QA-AM-159",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /findings",
+   "expected": "accepted",
+   "got": 405,
+   "evidence": "POST /findings -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-161",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/supervisory-matters",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/supervisory-matters -> 200 {\"matters\":[],\"count\":0,\"open\":0,\"at_risk\":0,\"by_kind\":{},\"no_committed_date\":[],\"models_in_scope\":[],\"detail\":\"no super"
+  },
+  {
+   "id": "QA-AM-163",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/validation-capacity",
+   "expected": "validation_refused",
+   "got": 201,
+   "evidence": "POST /api/v1/validation-capacity -> 201 {\"id\":\"01a09ad4d87347743f557e436518\",\"validator\":\"qa\",\"episodes_per_quarter\":1.0,\"note\":\"\",\"declared_by\":\"admin\",\"declar"
+  },
+  {
+   "id": "QA-AM-166",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/validation-capacity",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/validation-capacity -> 200 {\"validators\":[{\"validator\":\"qa\",\"open_episodes\":0,\"weighted_effort\":0,\"capacity_per_quarter\":1.0,\"capacity_declared\":tr"
+  },
+  {
+   "id": "QA-AM-167",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/validation-backlog",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/validation-backlog -> 200 {\"horizon_days\":365.0,\"due\":0,\"effort_due\":0,\"capacity_per_quarter\":1.0,\"effort_available\":4.01,\"shortfall\":0.0,\"validat"
+  },
+  {
+   "id": "QA-AM-169",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/validation-queue",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/validation-queue -> 200 {\"models\":[],\"count\":0,\"already_due\":0,\"inverted\":{\"inverted\":false,\"cases\":[],\"count\":0},\"detail\":\"nothing falls due wi"
+  },
+  {
+   "id": "QA-AM-184",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /waivers",
+   "expected": "no_compensating_control",
+   "got": 405,
+   "evidence": "POST /waivers -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-186",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/scheduler/run",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.4510674,\"results\":[{\"id\":\"01a09ad4d87bd72c163d40952ef1\",\"job\":\"immaterial.condition"
+  },
+  {
+   "id": "QA-AM-190",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitors",
+   "expected": "test_not_admissible",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/monitors -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-191",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitors",
+   "expected": "label_delay_required",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/monitors -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-195",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitors",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/monitors -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-203",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitors/qa-replay/status",
+   "expected": "?",
+   "got": 422,
+   "evidence": "POST /api/v1/monitors/qa-replay/status -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"status\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-AM-204",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /model-health",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /model-health -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-205",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitors/qa-replay/status",
+   "expected": "unknown_status",
+   "got": 422,
+   "evidence": "POST /api/v1/monitors/qa-replay/status -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"status\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-AM-230",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /telemetry",
+   "expected": "?",
+   "got": 405,
+   "evidence": "POST /telemetry -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-231",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /telemetry",
+   "expected": "accepted",
+   "got": 405,
+   "evidence": "POST /telemetry -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-233",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /telemetry",
+   "expected": "accepted",
+   "got": 405,
+   "evidence": "POST /telemetry -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-234",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /telemetry",
+   "expected": "malformed_row",
+   "got": 405,
+   "evidence": "POST /telemetry -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-236",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /telemetry",
+   "expected": "empty_batch",
+   "got": 405,
+   "evidence": "POST /telemetry -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-238",
+   "verdict": "PASS",
+   "reached": "GET /telemetry",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /telemetry -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-239",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/telemetry/cohort",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/telemetry/cohort -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"query\""
+  },
+  {
+   "id": "QA-AM-241",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /telemetry",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /telemetry -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-242",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/telemetry/cohort",
+   "expected": "?",
+   "got": 422,
+   "evidence": "GET /api/v1/telemetry/cohort -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"query\""
+  },
+  {
+   "id": "QA-AM-245",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitors/qa-replay/ingest",
+   "expected": "?",
+   "got": "no_monitor",
+   "evidence": "POST /api/v1/monitors/qa-replay/ingest -> 404 {\"error\":\"no_monitor\",\"detail\":\"no monitor qa-replay\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-AM-255",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/monitoring-provenance",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/monitoring-provenance -> 200 {\"monitors\":[],\"count\":0,\"observations\":0,\"external\":0,\"replayable\":0,\"systems\":[],\"detail\":\"no monitor anywhere in the "
+  },
+  {
+   "id": "QA-AM-256",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/monitoring-provenance",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/monitoring-provenance -> 200 {\"monitors\":[],\"count\":0,\"observations\":0,\"external\":0,\"replayable\":0,\"systems\":[],\"detail\":\"no monitor anywhere in the "
+  },
+  {
+   "id": "QA-AM-257",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /model-health",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /model-health -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-258",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/monitors/qa-replay/distributed-plan",
+   "expected": "test_does_not_decompose",
+   "got": "no_monitor",
+   "evidence": "GET /api/v1/monitors/qa-replay/distributed-plan -> 404 {\"error\":\"no_monitor\",\"detail\":\"no monitor qa-replay\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-AM-273",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/champion-challenger",
+   "expected": "same_version",
+   "got": 200,
+   "evidence": "GET /api/v1/champion-challenger -> 200 {\"comparisons\":[],\"count\":0,\"challengers_ahead\":0,\"detail\":\"no two versions of any model are being asked the same monito"
+  },
+  {
+   "id": "QA-AM-285",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/champion-challenger",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/champion-challenger -> 200 {\"comparisons\":[],\"count\":0,\"challengers_ahead\":0,\"detail\":\"no two versions of any model are being asked the same monito"
+  },
+  {
+   "id": "QA-AM-299",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /model-health",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /model-health -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-300",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitoring-plans/inherit",
+   "expected": "duplicate_monitor",
+   "got": 422,
+   "evidence": "POST /api/v1/monitoring-plans/inherit -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"query\""
+  },
+  {
+   "id": "QA-AM-303",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/monitoring-plans",
+   "expected": "plan_exists",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/monitoring-plans -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn qa\",\"remediation\":\"the refusal names the clause that "
+  },
+  {
+   "id": "QA-AM-306",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/monitoring-plans",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/monitoring-plans -> 200 {\"plans\":[],\"count\":0,\"detail\":\"every authored monitoring plan has been inherited\"}"
+  },
+  {
+   "id": "QA-AM-320",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /portfolio",
+   "expected": "unknown_dimension",
+   "got": 200,
+   "evidence": "GET /portfolio -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-321",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/portfolio/heatmap",
+   "expected": "same_dimension",
+   "got": 200,
+   "evidence": "GET /api/v1/portfolio/heatmap -> 200 {\"rows\":\"domain\",\"columns\":\"tier\",\"row_values\":[],\"column_values\":[],\"grid\":{},\"worst_cell\":0,\"models\":0,\"detail\":\"0 mod"
+  },
+  {
+   "id": "QA-AM-324",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /portfolio",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /portfolio -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-AM-325",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/concentration",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/concentration -> 200 {\"models\":0,\"shared\":[],\"count\":0,\"by_kind\":{},\"reaching_tier_1\":[],\"broad\":[],\"kinds\":[{\"kind\":\"upstream_model\",\"means\""
+  },
+  {
+   "id": "QA-AM-330",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/portfolio/trend",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/portfolio/trend -> 200 {\"points\":[{\"at\":1757768035.5077348,\"models\":0,\"by_status\":{},\"by_tier\":{},\"chain_seq\":null,\"chain_hash\":null},{\"at\":176"
+  },
+  {
+   "id": "QA-AM-336",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/cost",
+   "expected": "cost_currency_required",
+   "got": "cost_period_inverted",
+   "evidence": "POST /api/v1/cost -> 422 {\"error\":\"cost_period_inverted\",\"detail\":\"the period ends before it begins\",\"remediation\":\"check the extract. A period t"
+  },
+  {
+   "id": "QA-AM-341",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/risk-appetite",
+   "expected": "unknown_metric",
+   "got": "unknown_metric",
+   "evidence": "POST /api/v1/risk-appetite -> 422 {\"error\":\"unknown_metric\",\"detail\":\"'qa' is not a metric this platform computes\",\"remediation\":\"hold a limit against som"
+  },
+  {
+   "id": "QA-AM-352",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/board-packs",
+   "expected": "accepted",
+   "got": 201,
+   "evidence": "POST /api/v1/board-packs -> 201 {\"period\":\"2026-Q09\",\"scope\":{},\"as_at\":1789304035.518287,\"models\":0,\"indicators\":[{\"metric\":\"models_untiered\",\"means\":\""
+  },
+  {
+   "id": "QA-AM-353",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/board-packs/qa-replay",
+   "expected": "?",
+   "got": "no_board_pack",
+   "evidence": "GET /api/v1/board-packs/qa-replay -> 404 {\"error\":\"no_board_pack\",\"detail\":\"no board pack qa-replay\",\"remediation\":\"list the packs for this scope; a pack a minut"
+  },
+  {
+   "id": "QA-AM-354",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/board-packs",
+   "expected": "accepted",
+   "got": 201,
+   "evidence": "POST /api/v1/board-packs -> 201 {\"period\":\"2026-Q09\",\"scope\":{},\"as_at\":1789304035.5229824,\"models\":0,\"indicators\":[{\"metric\":\"models_untiered\",\"means\":"
+  },
+  {
+   "id": "QA-AM-368",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/regulatory-returns",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/regulatory-returns -> 200 {\"returns\":[{\"return\":\"ai_act_registration\",\"title\":\"EU AI Act \u2014 high-risk system registration\",\"reference\":\"Regulation "
+  },
+  {
+   "id": "QA-AM-378",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /campaigns",
+   "expected": "empty_population",
+   "got": 405,
+   "evidence": "POST /campaigns -> 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-AM-392",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/baseline/imports",
+   "expected": "accepted",
+   "got": "nothing_to_import",
+   "evidence": "POST /api/v1/baseline/imports -> 422 {\"error\":\"nothing_to_import\",\"detail\":\"the batch contains no models\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-AM-397",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/baseline/reconcile",
+   "expected": "accepted",
+   "got": 422,
+   "evidence": "POST /api/v1/baseline/reconcile -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-AM-404",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/baseline",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/baseline -> 200 {\"batches\":[],\"models_baselined\":0,\"debt_raised\":0,\"debt_open\":0,\"debt_closed\":0,\"debt_breached\":0,\"burn_down\":0.0,\"deta"
+  },
+  {
+   "id": "QA-AM-406",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/scheduler/run",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.5335045,\"results\":[{\"id\":\"01a09ad4d8cdf620eedb1b31ba76\",\"job\":\"immaterial.condition"
+  },
+  {
+   "id": "QA-PLT-011",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /health/ready",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+  },
+  {
+   "id": "QA-PLT-013",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /health/ready",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+  },
+  {
+   "id": "QA-PLT-014",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /health/ready",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+  },
+  {
+   "id": "QA-PLT-019",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /health/ready",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+  },
+  {
+   "id": "QA-PLT-026",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /health/ready",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+  },
+  {
+   "id": "QA-PLT-038",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/artifacts/qa-replay/verify",
+   "expected": "artifact_missing",
+   "got": "malformed_digest",
+   "evidence": "GET /api/v1/artifacts/qa-replay/verify -> 422 {\"error\":\"malformed_digest\",\"detail\":\"'qa-replay' is not a sha256 content address\",\"remediation\":\"an address looks like "
+  },
+  {
+   "id": "QA-PLT-072",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/models/qa-replay",
+   "expected": "?",
+   "got": "not_found",
+   "evidence": "GET /api/v1/models/qa-replay -> 404 {\"error\":\"not_found\",\"detail\":\"no model qa-replay\"}"
+  },
+  {
+   "id": "QA-PLT-104",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/evidence/chain",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":75,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a52630361500c6a84b7110ba\",\"scope\":\"full"
+  },
+  {
+   "id": "QA-PLT-111",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/evidence/timestamps",
+   "expected": "no_timestamp_authority",
+   "got": "no_timestamp_authority",
+   "evidence": "POST /api/v1/evidence/timestamps -> 501 {\"error\":\"no_timestamp_authority\",\"detail\":\"no time stamp authority is wired, so nothing here can attest to when this ch"
+  },
+  {
+   "id": "QA-PLT-114",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/evidence/timestamps",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/evidence/timestamps -> 200 {\"anchors\":2,\"timestamps\":[{\"seq\":35,\"state\":\"absent\",\"token\":null,\"detail\":\"no token covers this head. Reported as abse"
+  },
+  {
+   "id": "QA-PLT-115",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models/qa-replay/versions",
+   "expected": "accepted",
+   "got": "registry_refused",
+   "evidence": "POST /api/v1/models/qa-replay/versions -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-PLT-121",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/row-level-security",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/row-level-security -> 200 {\"available\":false,\"tables\":[],\"forced\":0,\"enabled\":0,\"detail\":\"row-level security is a PostgreSQL feature and this depl"
+  },
+  {
+   "id": "QA-PLT-123",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/documents",
+   "expected": "accepted",
+   "got": 422,
+   "evidence": "POST /api/v1/documents -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"query\""
+  },
+  {
+   "id": "QA-PLT-127",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/documents",
+   "expected": "unknown_document_kind",
+   "got": 422,
+   "evidence": "POST /api/v1/documents -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"urn\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"query\""
+  },
+  {
+   "id": "QA-PLT-167",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/document-search",
+   "expected": "empty_query",
+   "got": 422,
+   "evidence": "GET /api/v1/document-search -> 422 {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"q\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-PLT-169",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/document-search/coverage",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/document-search/coverage -> 200 {\"documents\":0,\"readable\":0,\"unread\":0,\"unread_by_media_type\":{},\"coverage\":0.0,\"semantic_search\":{\"available\":false,\"wh"
+  },
+  {
+   "id": "QA-PLT-180",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/assist/capabilities",
+   "expected": "advisory_not_registrable",
+   "got": "unknown_tier",
+   "evidence": "POST /api/v1/assist/capabilities -> 422 {\"error\":\"unknown_tier\",\"detail\":\"unknown assistance tier 'QA'\",\"remediation\":\"expected A or B: A \u2014 a formal property ch"
+  },
+  {
+   "id": "QA-PLT-191",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/assist/generations",
+   "expected": "code",
+   "got": "no_capability",
+   "evidence": "POST /api/v1/assist/generations -> 404 {\"error\":\"no_capability\",\"detail\":\"no capability 'qa'\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-PLT-197",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/assist/generations/qa-replay",
+   "expected": "?",
+   "got": "no_generation",
+   "evidence": "GET /api/v1/assist/generations/qa-replay -> 404 {\"error\":\"no_generation\",\"detail\":\"no generation qa-replay\",\"remediation\":\"\"}"
+  },
+  {
+   "id": "QA-PLT-205",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/assist/canaries",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/assist/canaries -> 200 {\"capabilities\":[],\"count\":0,\"changed\":0,\"checked\":0,\"unfingerprintable\":0,\"without_a_baseline\":0,\"detail\":\"0 of 0 capab"
+  },
+  {
+   "id": "QA-PLT-236",
+   "verdict": "PASS",
+   "reached": "GET /health/ready",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+  },
+  {
+   "id": "QA-PLT-237",
+   "verdict": "PASS",
+   "reached": "POST /api/v1/scheduler/run",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.5932007,\"results\":[{\"id\":\"01a09ad4d909197a4f0623eebde6\",\"job\":\"immaterial.condition"
+  },
+  {
+   "id": "QA-PLT-241",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/scheduler/run",
+   "expected": "unknown_job",
+   "got": 200,
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.6083744,\"results\":[{\"id\":\"01a09ad4d918dda71bfa664b1407\",\"job\":\"immaterial.condition"
+  },
+  {
+   "id": "QA-PLT-244",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/scheduler",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/scheduler -> 200 {\"jobs\":[{\"job\":\"adaptive.change\",\"what\":\"raises a finding for a self-changing model that has drifted from the parameter"
+  },
+  {
+   "id": "QA-PLT-247",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/subscriptions",
+   "expected": "wildcard_refused",
+   "got": "kinds_required",
+   "evidence": "POST /api/v1/subscriptions -> 422 {\"error\":\"kinds_required\",\"detail\":\"a subscription must say which event kinds it receives. A chain node's payload carrie"
+  },
+  {
+   "id": "QA-PLT-255",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/notifications/run",
+   "expected": "?",
+   "got": 200,
+   "evidence": "POST /api/v1/notifications/run -> 200 {\"channel\":\"log\",\"dry_run\":false,\"considered\":0,\"sent\":0,\"suppressed\":0,\"failed\":0,\"deliveries\":[],\"detail\":\"nobody has "
+  },
+  {
+   "id": "QA-PLT-257",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/extension-points",
+   "expected": "?",
+   "got": 200,
+   "evidence": "GET /api/v1/extension-points -> 200 {\"extensions\":[],\"count\":0,\"axes\":[{\"axis\":\"test_types\",\"state\":\"open\",\"is\":\"a measurement over two series, producing a "
+  },
+  {
+   "id": "QA-PLT-320",
+   "verdict": "PASS",
+   "reached": "GET /admin",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /admin -> 200 <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initia"
+  },
+  {
+   "id": "QA-PLT-335",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/me",
+   "expected": "outside_key_scope",
+   "got": 200,
+   "evidence": "GET /api/v1/me -> 200 {\"username\":\"admin\",\"roles\":[\"admin\"],\"permissions\":[\"alias:move\",\"assist:attest\",\"assist:generate\",\"assist:read\",\"assis"
+  },
+  {
+   "id": "QA-PLT-372",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/models",
+   "expected": "exit",
+   "got": "validation_failed",
+   "evidence": "POST /api/v1/models -> 422 {\"error\":\"validation_failed\",\"detail\":\"'qa' is not a model urn, and a register row whose identifier no route can address"
+  },
+  {
+   "id": "QA-DEL-001",
+   "verdict": "NEEDS-CASE",
+   "reached": "DELETE /api/v1/models/qa-replay",
+   "expected": "deletion_refused",
+   "got": "registry_refused",
+   "evidence": "DELETE /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-DEL-002",
+   "verdict": "NEEDS-CASE",
+   "reached": "DELETE /api/v1/models/qa-replay",
+   "expected": "reason_required",
+   "got": "registry_refused",
+   "evidence": "DELETE /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-DEL-008",
+   "verdict": "NEEDS-CASE",
+   "reached": "DELETE /api/v1/models/qa-replay",
+   "expected": "?",
+   "got": "registry_refused",
+   "evidence": "DELETE /api/v1/models/qa-replay -> 409 {\"error\":\"registry_refused\",\"detail\":\"no model registered with urn maya://model/qa-replay\",\"remediation\":\"the refusal na"
+  },
+  {
+   "id": "QA-DEL-023",
+   "verdict": "NEEDS-CASE",
+   "reached": "GET /api/v1/tombstones/qa-replay",
+   "expected": "accepted",
+   "got": "no_such_urn",
+   "evidence": "GET /api/v1/tombstones/qa-replay -> 404 {\"error\":\"no_such_urn\",\"detail\":\"no model has been registered or deleted at qa-replay\",\"remediation\":\"check the identifi"
+  },
+  {
+   "id": "QA-DEL-026",
+   "verdict": "PASS",
+   "reached": "GET /api/v1/models",
+   "expected": "accepted",
+   "got": 200,
+   "evidence": "GET /api/v1/models -> 200 {\"models\":[],\"total\":0,\"returned\":0,\"limit\":50,\"offset\":0,\"has_more\":false,\"detail\":\"nothing matched\"}"
+  },
+  {
+   "id": "QA-DEL-070",
+   "verdict": "NEEDS-CASE",
+   "reached": "POST /api/v1/compaction/sweep",
+   "expected": "accepted",
+   "got": "under_legal_hold",
+   "evidence": "POST /api/v1/compaction/sweep -> 423 {\"error\":\"under_legal_hold\",\"detail\":\"5 estate-wide legal hold(s) are active: HOLD-0001, HOLD-0002, HOLD-0003, HOLD-0004"
+  }
+ ]
+}
