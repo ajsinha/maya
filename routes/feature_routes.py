@@ -234,6 +234,10 @@ class FeatureRoutes(Routes):
         def read_source(request: Request, name: str):
             """Where this view reads from, and what its last pull did."""
             self.authorise(request, "feature:read")
+            # `{"source": null}` meant two different things: this view has no
+            # source configured, and there is no such view. The first is a
+            # normal state somebody acts on; the second is a typo.
+            self.guard(lambda: self.ctx["features"].views.require(name))
             return self.guard(lambda: {"source": _sources().get(name)})
 
         @self.app.put(f"{self.api}/feature-views/{{name}}/source",

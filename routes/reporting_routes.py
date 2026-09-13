@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import Response
 from pydantic import Field
 
@@ -205,6 +205,22 @@ class ReportingRoutes(Routes):
         def history(request: Request, metric: str):
             """Every version of one limit, so a relaxation is findable."""
             self.principal(request)
+            # "So a relaxation is findable" — and an unknown metric answered
+            # with an empty history, which is exactly what a limit that has
+            # never been relaxed looks like. The docstring states the purpose
+            # this defeated.
+            from core.reporting.common import METRICS
+            from routes.base import STATUS
+            known = {getattr(m, "key", getattr(m, "name", str(m)))
+                     for m in METRICS}
+            if metric not in known:
+                # `STATUS`, not a literal: the code is already mapped and a
+                # second opinion here is how one refusal comes to answer two
+                # different statuses depending on which route raised it.
+                raise HTTPException(STATUS["unknown_metric"], {
+                    "error": "unknown_metric",
+                    "detail": f"'{metric}' is not a risk appetite metric",
+                    "remediation": "one of " + ", ".join(sorted(known))})
             return {"metric": metric, "versions": appetite.history(metric)}
 
         # ------------------------------------------------------ board pack

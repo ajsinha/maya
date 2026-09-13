@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 
 from core.platform.configuration import FORMAT, Configuration
 from core.policy import GATES, describe_facts, vocabulary
@@ -105,6 +105,17 @@ class PolicyRoutes(Routes):
         def history(request: Request, gate: str):
             """Every version, superseded ones included. Somebody will ask."""
             self.authorise(request, "policy:read")
+            # A gate that does not exist answered `{"versions": []}` — the same
+            # answer as a real gate nobody has ever changed. Somebody auditing
+            # whether a gate had been relaxed could mistype it and be told,
+            # convincingly, that it never had been.
+            from core.policy.common import GATES
+            from routes.base import STATUS
+            if gate not in GATES:
+                raise HTTPException(STATUS["unknown_gate"], {
+                    "error": "unknown_gate",
+                    "detail": f"'{gate}' is not a policy gate",
+                    "remediation": "one of " + ", ".join(GATES)})
             return {"gate": gate, "versions": policies.history(gate)}
 
         @self.app.post(f"{api}/policies", status_code=201, tags=["policy"])

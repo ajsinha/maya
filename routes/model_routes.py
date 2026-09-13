@@ -379,7 +379,19 @@ class ModelRoutes(Routes):
             Only propagating relations are followed, so a challenger is not
             downstream of the model it argues with.
             """
-            model = self.guard(lambda: reg.require(body["urn"]))
+            # `body["urn"]` — a KeyError, and therefore a bare 500 with no
+            # body, when the field is absent. Every other route on this class
+            # either takes a typed model or uses `.get`; this one asked the
+            # dictionary directly and a caller who forgot the field was told
+            # nothing at all about what they had forgotten.
+            urn = (body or {}).get("urn")
+            if not urn:
+                raise HTTPException(422, {
+                    "error": "urn_required",
+                    "detail": "blast radius is computed FROM a model, and no "
+                              "urn was given",
+                    "remediation": 'post {"urn": "maya://model/..."}'})
+            model = self.guard(lambda: reg.require(urn))
             self.authorise(request, "model:read", model=model)
             return self.guard(lambda: composition.blast_radius(model["urn"]))
 
