@@ -2137,6 +2137,7 @@ look for instead.
 | QA-GOV-2300 | `regression` | tau is monotone in both arguments | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-2300` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-GOV-2301 | `regression` | Materiality dominates: a critical model is never below tier 2 | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-2301` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-GOV-2302 | `regression` | The adjoint reads tier controls and only tier controls | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-2302` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-GOV-3400 | `regression` | Somebody else may move the alias | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-3400` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- G-features-execution.md -->

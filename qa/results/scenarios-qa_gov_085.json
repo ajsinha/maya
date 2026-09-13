@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-085",
+   "title": "The version's creator approves it",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  }
+ ]
+}

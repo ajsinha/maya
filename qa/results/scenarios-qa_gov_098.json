@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-098",
+   "title": "Move an alias as a principal scoped to another entity",
+   "verdict": "PASS",
+   "evidence": "refused 'out_of_scope'"
+  }
+ ]
+}
