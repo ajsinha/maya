@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-187",
+   "title": "A Tier A generation whose grounding rejects **every** claim",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' rather than returning empty prose"
+  }
+ ]
+}

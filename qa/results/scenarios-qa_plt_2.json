@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 46,
-  "pass": 41,
+  "total": 57,
+  "pass": 51,
   "fail": 5,
-  "blocked": 0
+  "blocked": 1
  },
- "seconds": 7.7,
+ "seconds": 7.8,
  "results": [
   {
    "id": "QA-PLT-200",
@@ -18,6 +18,18 @@
    "title": "Set a budget of zero",
    "verdict": "PASS",
    "evidence": "zero refused on tokens, cost and steps"
+  },
+  {
+   "id": "QA-PLT-202",
+   "title": "Spend exactly the budget, then call once more",
+   "verdict": "PASS",
+   "evidence": "the gate runs before the call; headroom []"
+  },
+  {
+   "id": "QA-PLT-203",
+   "title": "A refused generation still charges the budget",
+   "verdict": "PASS",
+   "evidence": "charged with outcome 'nothing_grounded' and no generation id"
   },
   {
    "id": "QA-PLT-2100",
@@ -42,6 +54,36 @@
    "title": "A staging file is not listed as an object",
    "verdict": "PASS",
    "evidence": "staging files are not objects"
+  },
+  {
+   "id": "QA-PLT-213",
+   "title": "A capability whose oracle was removed from the code in a release",
+   "verdict": "BLOCKED",
+   "evidence": "the capability register takes a different signature"
+  },
+  {
+   "id": "QA-PLT-214",
+   "title": "A remote provider on an instance where none is configured",
+   "verdict": "PASS",
+   "evidence": "refused 'provider_unavailable' rather than falling back"
+  },
+  {
+   "id": "QA-PLT-215",
+   "title": "`citation_accuracy` reported as 1.0",
+   "verdict": "PASS",
+   "evidence": "metrics are computed over a stated 30-day window"
+  },
+  {
+   "id": "QA-PLT-216",
+   "title": "A capability with fewer than ten reviews in `never_overridden`",
+   "verdict": "PASS",
+   "evidence": "rates floored at 10 samples and labelled thin below it"
+  },
+  {
+   "id": "QA-PLT-217",
+   "title": "`toxicity` and `personal_data_leakage` on the metric list",
+   "verdict": "PASS",
+   "evidence": "2 of 10 named as not measured, present on the list, each with a reason"
   },
   {
    "id": "QA-PLT-218",
@@ -150,6 +192,30 @@
    "title": "The same key with the same body, keys reordered",
    "verdict": "PASS",
    "evidence": "reordered keys are the same request"
+  },
+  {
+   "id": "QA-PLT-252",
+   "title": "A notification channel that is configured and unreachable",
+   "verdict": "PASS",
+   "evidence": "refused 'channel_unavailable', naming the log channel"
+  },
+  {
+   "id": "QA-PLT-253",
+   "title": "The same outstanding work notified twice inside the quiet window",
+   "verdict": "PASS",
+   "evidence": "unchanged is suppressed, changed is not, and the window expires"
+  },
+  {
+   "id": "QA-PLT-255",
+   "title": "Two concurrent notifier runs",
+   "verdict": "PASS",
+   "evidence": "3 sent, 3 suppressed across two runs"
+  },
+  {
+   "id": "QA-PLT-256",
+   "title": "A notification to a principal with no email address",
+   "verdict": "PASS",
+   "evidence": "the username is the fallback, and a failure is on the chain"
   },
   {
    "id": "QA-PLT-2600",

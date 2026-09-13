@@ -4243,6 +4243,7 @@ repository's own `data/`.
 | QA-PLT-4934 | `regression` | A document is not made stale by its own compilation | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4934` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4935 | `regression` | A required section nothing can fill | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4935` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4936 | `regression` | Compiling records the act and the chain head it saw | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4936` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4940 | `regression` | A capability nobody set a budget for | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4940` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->
