@@ -56,6 +56,13 @@ def _run(fn, ctx):
         return fn(ctx)
     except AssertionError as setup:
         return BLOCKED, f"setup: {setup}"
+    except SystemExit as exited:
+        # A CLI tool refusing calls `sys.exit`, and `SystemExit` is a
+        # BaseException — so it walked straight past the handler below and
+        # ended the whole pass at the first tool that behaved correctly.
+        return FAIL, (f"the case let a SystemExit({exited.code}) escape; a "
+                      f"case that runs a CLI must read its exit code rather "
+                      f"than let it terminate the run")
     except Exception as exc:
         return FAIL, (f"the case itself raised {type(exc).__name__}: {exc} | "
                       + traceback.format_exc(limit=2).replace("\n", " ")[:220])
