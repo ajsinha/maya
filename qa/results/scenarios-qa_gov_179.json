@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-179",
+   "title": "Assess with a negative exposure",
+   "verdict": "PASS",
+   "evidence": "accepted at tier 3, no weaker than zero's 3"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-175",
+   "title": "Feature count at the complexity boundary",
+   "verdict": "PASS",
+   "evidence": "50 -> simple, 51 -> moderate"
+  }
+ ]
+}

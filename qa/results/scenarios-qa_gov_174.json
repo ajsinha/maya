@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-174",
+   "title": "Assess with a purpose class outside the vocabulary",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_purpose_class', naming the vocabulary"
+  }
+ ]
+}

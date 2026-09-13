@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-178",
+   "title": "Assess with an exposure of zero",
+   "verdict": "PASS",
+   "evidence": "tier 3 from the purpose alone"
+  }
+ ]
+}

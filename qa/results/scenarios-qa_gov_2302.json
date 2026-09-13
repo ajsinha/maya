@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-GOV-2302",
+   "title": "The adjoint reads tier controls and only tier controls",
+   "verdict": "PASS",
+   "evidence": "controls outside the tier lattice do not move the answer"
+  }
+ ]
+}
