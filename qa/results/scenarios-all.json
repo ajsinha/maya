@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 304,
-  "pass": 289,
-  "fail": 15,
+  "total": 319,
+  "pass": 302,
+  "fail": 17,
   "blocked": 0
  },
- "seconds": 16.9,
+ "seconds": 21.7,
  "results": [
   {
    "id": "QA-AM-067",
@@ -107,7 +107,7 @@
    "id": "QA-AM-400",
    "title": "Telemetry for a version that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-d7fe5752 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
+   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-8149c072 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
   },
   {
    "id": "QA-AM-402",
@@ -281,7 +281,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b12277ad8cc142de9b48c38\",\"model_id\":\"01a09b1227768556ccae2c185426\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-5f1242c3\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b1cf208e9d288e5936d48d8\",\"model_id\":\"01a09b1cf201d6222f6c264d7ac5\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-e64ee494\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -311,13 +311,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b1227903241c6cfb52549ab\",\"reference\":\"SUP-60ad173c\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b1cf22fca9c405dc2b4c032\",\"reference\":\"SUP-03d6d912\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b122796c3569b1fb788409b\",\"reference\":\"SUP-40a25c71\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b1cf239a61d2ff9138c10c4\",\"reference\":\"SUP-533d16cf\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",
@@ -353,7 +353,7 @@
    "id": "QA-AM-638",
    "title": "The same batch sent twice is not counted twice",
    "verdict": "PASS",
-   "evidence": "read back: {\"model\":\"maya://model/tl-8561c9e4\",\"semver\":\"1.0.0\",\"scores\":1,\"outcomes\":0,\"labelled_fraction\":0.0,\"latest_s"
+   "evidence": "read back: {\"model\":\"maya://model/tl-941866d0\",\"semver\":\"1.0.0\",\"scores\":1,\"outcomes\":0,\"labelled_fraction\":0.0,\"latest_s"
   },
   {
    "id": "QA-AM-639",
@@ -683,7 +683,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b1229aaadd75107a8073859\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b1cf4c3769c5dfa945a749f\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-104",
@@ -980,6 +980,96 @@
    "evidence": "refused 'feature_refused'"
   },
   {
+   "id": "QA-FX-800",
+   "title": "A parameter set with no name",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a09b1cf7625a2a2d559397fe9d\",\"model_id\":\"01a09b1cf75ab5f9d03a76476db5\",\"model_version_id\":\"01a09b1cf75d95c62e20db7580b3\",\"name\":\"   \",\"version\":1,\"kind\""
+  },
+  {
+   "id": "QA-FX-801",
+   "title": "A parameter set whose provenance is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_provenance' (422)"
+  },
+  {
+   "id": "QA-FX-802",
+   "title": "A parameter set against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_version' (404)"
+  },
+  {
+   "id": "QA-FX-803",
+   "title": "A parameter set with neither values nor a uri",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-804",
+   "title": "A well-formed parameter set is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-805",
+   "title": "A fitted set naming no warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'warrant_required'"
+  },
+  {
+   "id": "QA-FX-806",
+   "title": "A fitted set naming a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_warrant'"
+  },
+  {
+   "id": "QA-FX-807",
+   "title": "Review a parameter set that does not exist",
+   "verdict": "FAIL",
+   "evidence": "500 \u2014 an unknown id crashed the review"
+  },
+  {
+   "id": "QA-FX-808",
+   "title": "The person who proposed a set reviews it themselves",
+   "verdict": "PASS",
+   "evidence": "refused 'self_approval'"
+  },
+  {
+   "id": "QA-FX-820",
+   "title": "A rule set with an empty document",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-821",
+   "title": "A rule set that does not parse",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-822",
+   "title": "Check a rule set without recording it",
+   "verdict": "PASS",
+   "evidence": "check answered 422 and recorded nothing"
+  },
+  {
+   "id": "QA-FX-823",
+   "title": "Trial a rule set against rows",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-FX-840",
+   "title": "A retraining policy with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-841",
+   "title": "A retraining policy that never expires",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
    "id": "QA-GOV-001",
    "title": "Register the same URN twice",
    "verdict": "PASS",
@@ -989,7 +1079,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-1ffbf722\",\"name\":\"gov-1ffbf722-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-c0f0979e\",\"name\":\"gov-c0f0979e-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -1199,7 +1289,7 @@
    "id": "QA-GOV-514",
    "title": "A band naming a role that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b122eb2fcfdb405a4f1b86d\",\"name\":\"band-45d3e3c9\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b1cfad24da37475dd49b4c8\",\"name\":\"band-eb3e5eb8\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
   },
   {
    "id": "QA-GOV-515",
@@ -1421,13 +1511,13 @@
    "id": "QA-PLT-001",
    "title": "Verify, do nothing, verify again",
    "verdict": "PASS",
-   "evidence": "length 487, head stable"
+   "evidence": "length 514, head stable"
   },
   {
    "id": "QA-PLT-002",
    "title": "One append, then verify \u2014 the new head links to the old",
    "verdict": "PASS",
-   "evidence": "489 -> 490, still valid"
+   "evidence": "516 -> 517, still valid"
   },
   {
    "id": "QA-PLT-003",
@@ -1469,7 +1559,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:b61e17f4b557d"
+   "evidence": "a fresh chain of 8 verifies, head sha256:c6ba11611e9a8"
   },
   {
    "id": "QA-PLT-011",
@@ -1547,7 +1637,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:bbf10340b3c759b73b7bb68"
+   "evidence": "identical: sha256:cbeb019a8ebcbc70d0ecf14"
   },
   {
    "id": "QA-PLT-124",
@@ -1565,7 +1655,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:a35cfa5cf37b469262a300e"
+   "evidence": "stable: sha256:688402488f8e570d54c8395"
   },
   {
    "id": "QA-PLT-127",
@@ -1781,7 +1871,7 @@
    "id": "QA-PLT-519",
    "title": "A request id travels with the answer",
    "verdict": "PASS",
-   "evidence": "x-request-id: 16ea72e7bdb2bad9"
+   "evidence": "x-request-id: 7508ddfe234fefc6"
   },
   {
    "id": "QA-PLT-520",
