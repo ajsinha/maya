@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-5403",
+   "title": "A share window outside the permitted range",
+   "verdict": "PASS",
+   "evidence": "0, -1, 91.0 and 3650 refused; 90.0 accepted"
+  }
+ ]
+}

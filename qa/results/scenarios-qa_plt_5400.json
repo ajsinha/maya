@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-5400",
+   "title": "A share names a digest and never a path",
+   "verdict": "PASS",
+   "evidence": "digest required, no location field among ['content_digest', 'days', 'filename', 'max_reads', 'pack_digest', 'purpose', 'recipient', 'urn']"
+  }
+ ]
+}
