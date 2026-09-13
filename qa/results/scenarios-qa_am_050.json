@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-050",
+   "title": "Replay an episode with zero recorded results",
+   "verdict": "PASS",
+   "evidence": "not reproducible, and the reason is that there is nothing"
+  }
+ ]
+}

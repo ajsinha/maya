@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-051",
+   "title": "Replay twice with identical data",
+   "verdict": "PASS",
+   "evidence": "identical both times: all 1 result(s) reproduced exactly"
+  }
+ ]
+}
