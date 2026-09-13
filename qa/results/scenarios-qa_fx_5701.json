@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5701",
+   "title": "A trigger that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_trigger', naming 5 triggers"
+  }
+ ]
+}
