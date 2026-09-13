@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-215",
+   "title": "The third consecutive breach with escalate_after 3",
+   "verdict": "PASS",
+   "evidence": "third consecutive breach escalated Medium -> High"
+  }
+ ]
+}

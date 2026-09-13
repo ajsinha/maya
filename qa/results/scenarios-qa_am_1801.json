@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-1801",
+   "title": "Escalation stops at Critical",
+   "verdict": "PASS",
+   "evidence": "a run of 300 stops at Critical"
+  }
+ ]
+}

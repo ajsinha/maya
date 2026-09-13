@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-AM-213",
+   "title": "Evaluate a paused monitor",
+   "verdict": "PASS",
+   "evidence": "refused 'monitor_inactive'"
+  }
+ ]
+}
