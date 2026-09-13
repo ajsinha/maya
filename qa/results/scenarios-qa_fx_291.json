@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-291",
+   "title": "Two rules with the same condition and different outcomes",
+   "verdict": "PASS",
+   "evidence": "refused 'rules_contradict'"
+  }
+ ]
+}
