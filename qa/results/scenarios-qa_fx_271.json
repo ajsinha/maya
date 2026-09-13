@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-271",
+   "title": "Diagnostics travel with the coefficients",
+   "verdict": "PASS",
+   "evidence": "2 coefficient(s), diagnostics ['adjusted_r_squared', 'condition_number', 'degrees_of_freedom', 'intercept', 'k']"
+  }
+ ]
+}

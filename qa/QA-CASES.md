@@ -2865,6 +2865,9 @@ Every case is **re-runnable**. The second run is where the state bugs live, and 
 | QA-FX-3903 | `regression` | Layer 2 reports comparisons, not rows | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-3903` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-3904 | `regression` | What layer 2 proves is stated, not implied | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-3904` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-3905 | `regression` | The sample size and the strata are stated | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-3905` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4900 | `regression` | A boolean is not a number | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4900` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4901 | `regression` | A column the rows do not have | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4901` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4902 | `regression` | A fit with no target or no regressors | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4902` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- H-assurance-monitoring.md -->
