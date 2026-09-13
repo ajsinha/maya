@@ -137,9 +137,23 @@ class TestTheSweepThatFoundThem:
     }
 
     def test_no_gate_shaped_method_is_uncalled(self):
+        # Two shapes, not one.
+        #
+        # The first is a GATE — something that answers whether an act is
+        # permitted. The second is a WITHDRAWAL: suspend, revoke, quarantine,
+        # disable. `AssistCapabilities.suspend` was built, appended
+        # `ai_capability_suspended` to the chain, and had no caller, so
+        # `capability_inactive` was unreachable and a misbehaving AI
+        # capability could not be stopped at all. This sweep did not see it,
+        # because `suspend` is not gate-shaped.
+        #
+        # Withdrawals are the likeliest of all controls to go unwired: they
+        # are written for a day nobody has had yet, so nothing exercises them
+        # and nobody notices the button is missing.
         gate = re.compile(
             r"^\s{4}def ((?:refuse|require|check|assert|may|applies|held|"
-            r"enforced_by|permits)\w*)\(", re.M)
+            r"enforced_by|permits|suspend|quarantine|disable|deactivate)"
+            r"\w*)\(", re.M)
         product = "\n".join(
             p.read_text(encoding="utf-8")
             for p in list((ROOT / "core").rglob("*.py"))

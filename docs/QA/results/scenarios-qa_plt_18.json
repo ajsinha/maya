@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-180",
+   "title": "Register a Tier C capability",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-181",
+   "title": "Register with tier 'c', lower case",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-182",
+   "title": "Tier A registered without an oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required' (422)"
+  },
+  {
+   "id": "QA-PLT-183",
+   "title": "Tier C and a bogus oracle together",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-184",
+   "title": "A capability naming an oracle that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_oracle' (422)"
+  },
+  {
+   "id": "QA-PLT-186",
+   "title": "review_sample outside 0..1",
+   "verdict": "PASS",
+   "evidence": "both refused"
+  },
+  {
+   "id": "QA-PLT-187",
+   "title": "A Tier B capability registers with an oracle it does not need",
+   "verdict": "PASS",
+   "evidence": "answered 422 (unknown_oracle)"
+  },
+  {
+   "id": "QA-PLT-188",
+   "title": "A valid Tier B capability",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-PLT-189",
+   "title": "Draft against a subject with no evidence at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  }
+ ]
+}
