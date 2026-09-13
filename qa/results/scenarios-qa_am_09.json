@@ -5,7 +5,7 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 0.8,
  "results": [
   {
    "id": "QA-AM-090",
@@ -45,7 +45,7 @@
   },
   {
    "id": "QA-AM-099",
-   "title": "The owner extends their own deadline",
+   "title": "Extend as the owner",
    "verdict": "PASS",
    "evidence": "refused 'forbidden' at the gate and 'self_extension' in the register"
   }
