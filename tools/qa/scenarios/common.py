@@ -104,3 +104,72 @@ def case(case_id: str, title: str):
 
 def sections() -> List[str]:
     return sorted({cid.rsplit("-", 1)[0] for cid in REGISTRY})
+
+
+# --------------------------------------------------------------- sequences
+#
+# Most hand-written cases are the same shape: perform a short sequence of
+# requests and assert what the LAST one does. Writing each as its own function
+# means several hundred near-identical functions, and the differences — which
+# is the case — get lost in the boilerplate.
+#
+# So a sequence is data. `{model}` in a path is substituted with the name of
+# the model the case registered, so a step can refer to its own subject
+# without the table needing to know the generated name.
+
+def _substitute(value, bindings: Dict[str, str]):
+    if isinstance(value, str):
+        for key, replacement in bindings.items():
+            value = value.replace("{" + key + "}", replacement)
+        return value
+    if isinstance(value, dict):
+        return {k: _substitute(v, bindings) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_substitute(v, bindings) for v in value]
+    return value
+
+
+def sequence(case_id: str, title: str, steps: List[tuple],
+             expect: tuple, *, setup: Optional[Callable[[Ctx], Dict]] = None,
+             client: str = "api"):
+    """Register a case that runs `steps` and asserts on the last answer.
+
+    `expect` is `("refused", code, ...)`, `("accepted",)` or
+    `("explore",)` — the last for a case whose author could not state the
+    expectation in advance and said so. An exploratory case never fails; it
+    records what happened, which is the only honest verdict for a question
+    nobody has answered yet.
+    """
+    def run(ctx: Ctx) -> Result:
+        bindings = setup(ctx) if setup else {}
+        caller = getattr(ctx, client)
+        response = None
+        for index, step in enumerate(steps):
+            method, path = step[0], _substitute(step[1], bindings)
+            body = _substitute(step[2], bindings) if len(step) > 2 else None
+            params = _substitute(step[3], bindings) if len(step) > 3 else None
+            kwargs: Dict[str, Any] = {}
+            if body is not None and method in ("POST", "PUT", "PATCH"):
+                kwargs["json"] = body
+            if params:
+                kwargs["params"] = params
+            response = caller.request(method, path, **kwargs)
+            # Every step but the last is setup. A setup step that fails means
+            # the case never reached what it was asking about, and reporting
+            # that as a failure of the LAST step would be a lie about which
+            # control was exercised.
+            if index < len(steps) - 1 and response.status_code >= 500:
+                return BLOCKED, (f"setup step {index + 1} ({method} {path}) "
+                                 f"answered {response.status_code}")
+        if response is None:
+            return BLOCKED, "no steps"
+        kind = expect[0]
+        if kind == "refused":
+            return expect_refused(response, *expect[1:])
+        if kind == "accepted":
+            return expect_accepted(response)
+        return PASS, (f"EXPLORATORY — {response.status_code} "
+                      f"{response.text[:150]}")
+
+    REGISTRY[case_id] = (title, run)
+    return run

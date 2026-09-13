@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 35,
-  "pass": 35,
+  "total": 64,
+  "pass": 64,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 1.6,
+ "seconds": 2.7,
  "results": [
   {
    "id": "QA-DEL-001",
@@ -216,6 +216,180 @@
    "title": "Every content address is refcounted",
    "verdict": "PASS",
    "evidence": "2 address column(s) refcounted"
+  },
+  {
+   "id": "QA-GOV-001",
+   "title": "Register the same URN twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-002",
+   "title": "Two URNs differing only in letter case",
+   "verdict": "PASS",
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-e28ac24d\",\"name\":\"gov-e28ac24d-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+  },
+  {
+   "id": "QA-GOV-003",
+   "title": "A URN that is a strict prefix of an existing one",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-GOV-004",
+   "title": "Submit with no version and no tier",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_approve' (409)"
+  },
+  {
+   "id": "QA-GOV-005",
+   "title": "Submit with a version but no assessment",
+   "verdict": "PASS",
+   "evidence": "refused 'not_tiered' (409)"
+  },
+  {
+   "id": "QA-GOV-006",
+   "title": "The full ordered path: register, version, assess, submit",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-007",
+   "title": "PATCH an editable field on a draft",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-008",
+   "title": "PATCH the urn on a draft",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-009",
+   "title": "PATCH status directly, bypassing the state machine",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-010",
+   "title": "PATCH tier directly",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-011",
+   "title": "PATCH with an empty body",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-012",
+   "title": "PATCH the same field to the same value twice",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-015",
+   "title": "Designations back to empty after being populated",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-016",
+   "title": "Designations containing the same value twice",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-023",
+   "title": "Triage with an empty rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-GOV-029",
+   "title": "Submit twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-030",
+   "title": "Approve a draft record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-031",
+   "title": "Attest a submitted record",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open' (409)"
+  },
+  {
+   "id": "QA-GOV-032",
+   "title": "Return a draft record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-033",
+   "title": "Return with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-034",
+   "title": "Retire a submitted record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-036",
+   "title": "Retire twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-037",
+   "title": "Add a version to a retired record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-038",
+   "title": "PATCH a retired record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-041",
+   "title": "Sign an attestation before approval",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open' (409)"
+  },
+  {
+   "id": "QA-GOV-060",
+   "title": "Submit a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-061",
+   "title": "Retire a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-062",
+   "title": "Assess a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-063",
+   "title": "Approve a submitted record",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
   }
  ]
 }
