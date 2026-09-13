@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-369",
+   "title": "A non-verdict command reporting bad news",
+   "verdict": "PASS",
+   "evidence": "a report exits 0 whatever it says"
+  }
+ ]
+}

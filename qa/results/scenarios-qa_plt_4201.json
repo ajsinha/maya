@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-4201",
+   "title": "Every command declares whether it decides",
+   "verdict": "PASS",
+   "evidence": "8 commands, 1 of them deciding: ready"
+  }
+ ]
+}

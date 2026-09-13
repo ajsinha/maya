@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-374",
+   "title": "A password on the command line",
+   "verdict": "PASS",
+   "evidence": "no credential is accepted on the command line"
+  }
+ ]
+}

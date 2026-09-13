@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-376",
+   "title": "Answers on stdout, refusals on stderr",
+   "verdict": "PASS",
+   "evidence": "answers to stdout, both failure paths to stderr"
+  }
+ ]
+}

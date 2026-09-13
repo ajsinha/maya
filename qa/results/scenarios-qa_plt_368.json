@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-368",
+   "title": "A non-verdict command against a refusing platform",
+   "verdict": "PASS",
+   "evidence": "a refusal exits 1 on stderr, verdict or not"
+  }
+ ]
+}
