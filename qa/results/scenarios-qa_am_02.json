@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 3,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-022",
+   "title": "Record a result after the episode concluded",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-023",
+   "title": "Conclude an already concluded episode",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-025",
+   "title": "Open an episode with no validators",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-026",
+   "title": "Open with the same validator listed twice",
+   "verdict": "FAIL",
+   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 2 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+  }
+ ]
+}
