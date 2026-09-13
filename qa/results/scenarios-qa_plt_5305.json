@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-5305",
+   "title": "Personal data is not re-materialised into the pack",
+   "verdict": "PASS",
+   "evidence": "flagged nodes hold no payload at the schema level, and the pack carries the pointer"
+  }
+ ]
+}
