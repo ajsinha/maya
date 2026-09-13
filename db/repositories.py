@@ -740,6 +740,15 @@ class LegalHoldRepository(Repository):
     JSON = ("classes",)
 
 
+class BlobOrphanRepository(Repository):
+    TABLE, ORDER = "blob_orphan", "first_seen_at"
+
+
+class ModelTombstoneRepository(Repository):
+    TABLE, ORDER = "model_tombstone", "deleted_at"
+    JSON = ("destroyed", "reclaimed")
+
+
 class VendorAssessmentRepository(Repository):
     TABLE, ORDER = "vendor_assessment", "reference"
 

@@ -102,12 +102,93 @@ once happened grows without bound, so historical references are shown rather
 than enforced.
 
 Deleting a model was previously checked for two things — that the caller was an
-administrator and had given a reason — and **nineteen tables carry a
+administrator and had given a reason — and **thirty-eight tables carry a
 `model_id`**. Refusals now name what refers to the thing, because somebody told
 *why* can go and deal with it and somebody told *no* finds another way.
 
 **Retiring is almost always the right act instead.** It withdraws a model from
 use and keeps every reference readable.
+
+### The identifier does not come back
+
+Deleting a model leaves a **tombstone** — the row that stays, holding what the
+model was, the lifecycle state it was deleted *from*, who destroyed it, when,
+why, and a count of what went with it. You can see them at the foot of
+**Classification and retention**.
+
+The tombstone does one thing that is easy to miss and hard to recover from if
+it is absent: **it stops the name being used again.** A model's identifier is
+derived from its name. Without the marker, deleting `pd-retail` and registering
+a new model called `pd-retail` would give the new model the old one's
+identifier — and every piece of evidence, every closed finding and every
+amendment naming it would read as though it were about the new model. Nothing
+would flag it. The evidence chain would verify perfectly, because the chain
+would be intact; it would simply be describing the wrong model.
+
+So registering over a deleted name is refused, and there is no override. If you
+need the name back, the answer is that you cannot have it.
+
+A deleted model is **not hidden, and not recoverable**. The record is really
+gone: it does not appear in listings and cannot be attested, approved or moved
+through the lifecycle. There is no undelete, because restoring one would
+produce an empty model wearing a destroyed one's identity, which is the exact
+confusion the tombstone exists to prevent.
+
+**What the deletion state records matters.** Deleting a draft nobody ever used
+is housekeeping. Deleting a retired model that made decisions for six years is
+an act somebody may have to explain, and the tombstone's `status` is the only
+thing that survives to say which one happened.
+
+### What goes, and what stays
+
+Every table holding a reference to the model has a **declared disposition**,
+published at `GET /deletion-cascade` so you can read it before you act rather
+than discover it afterwards:
+
+| | What it means | Examples |
+|---|---|---|
+| **Blocks** | A live commitment that would be left broken. The deletion is refused and the refusal names it | an unfinished validation, an unanswered campaign item, a live control waiver, an export share somebody outside can still read |
+| **Goes** | Meaningless without the model, so it is destroyed with it | limitations, assumptions, the tiering facts, attached files |
+| **Stays** | The record that something happened, which still reads correctly because the tombstone keeps the identifier resolving | inferences, invocations, compiled documents |
+
+The **stays** row is the one worth pausing on. An inference is a decision the
+model actually made and somebody relied on, and no deletion should be able to
+erase it. That is only honest because the tombstone is there — without it, those
+records would point at nothing.
+
+### Reclaiming storage
+
+Deleting a model frees almost no disk. A model cannot be deleted while any
+version of it exists, so its artifacts were already unreferenced before the
+deletion. What accumulates is **whatever nothing points at**, over the life of
+the install.
+
+**Classification and retention** shows how much, and *Compaction* reclaims it.
+Two things about how it behaves:
+
+- **Nothing is reclaimed the first time it is seen.** An upload writes the file
+  and then the record pointing at it, and a sweep passing between the two would
+  see something that looks exactly like an orphan. A file has to be unreferenced
+  across two separate sweeps before it goes, and one that gains a reference in
+  between is left alone.
+- **Two models can share one file.** Files are stored by their content, so an
+  identical checkpoint used by two models exists once. Reclaiming asks the
+  register whether *anything* still points at it, never whether a particular
+  model did.
+
+Compaction is refused entirely while an estate-wide legal hold is in force.
+Whether bytes are still needed and whether anyone is allowed to destroy them are
+different questions, and the first is not an answer to the second.
+
+**Vacuum** is separate and is the part that genuinely follows a deletion: it
+rewrites the database so removed rows stop occupying the file. It locks the
+database while it runs and needs free space equal to the database's size, so
+run it at a quiet moment.
+
+Delta storage is **not** touched by either. The size is reported so you can see
+it, but Delta keeps its own transaction log and deleting files underneath it
+produces a table that refers to parts that are not there. Compacting a Delta
+table is Delta's own operation.
 
 ## People and roles
 

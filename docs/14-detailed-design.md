@@ -3480,8 +3480,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 333 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 394 modules in one
+the 336 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 397 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3965,6 +3965,114 @@ would leave a firm that never wrote the rule exactly where it started. So
 says whether any rule in force refuses on it** — *nineteen approved models bind
 a protected characteristic, and no rule refuses one* is a sentence a second line
 can act on, and it does not exist in a platform that only offers a vocabulary.
+
+## 26a. Deletion: what stays, what goes, and what is still on disk
+
+Deleting a model is the only act in this platform with no workflow, no
+reversal and no second signature. The design of everything around it follows
+from one observation: **the dangerous failure is not a deletion that fails, it
+is one that succeeds and leaves a hole shaped exactly like a model that never
+existed.**
+
+### 26a.1 The identity must not fall free
+
+A URN is derived from the name. Delete `pd-retail` and register a new model
+called `pd-retail`, and every evidence node, closed finding and amendment
+naming that URN now reads as though it described the new model. `verify_chain`
+re-derives every hash and reports the chain intact, because the chain *is*
+intact — it is simply describing the wrong model, and no integrity check that
+operates over hashes can ever detect that.
+
+`core/retention/tombstones.py` writes the row that stays: identity, the
+lifecycle state the model was in when it went, who destroyed it, when, why, and
+a count per table of what went with it. `ModelCatalogue.register` consults it,
+and re-registering a destroyed URN is refused as `urn_was_deleted` with no
+override. An identifier a register can hand out twice is not an identifier.
+
+It is deliberately **not a soft delete**: the model row is really removed, does
+not appear in listings, and cannot be transitioned, attested or approved. A
+soft delete leaves a thing some queries see and others do not, and the failure
+mode of that pattern is a record alive in one screen and dead in another. It is
+also **not reversible** — restoring would recreate an empty model wearing a
+dead one's identity, which is the confusion the module exists to prevent
+arriving through the front door.
+
+The state matters as much as the identity. Deleting a draft nobody used is
+housekeeping; deleting a retired model that made decisions for six years is an
+act with a regulatory character, and `status` is the only thing that survives to
+say which one happened.
+
+### 26a.2 The cascade is declared, because a missed table approves
+
+`ReferenceIndex._to_model` decides whether a model may be deleted. Thirty-eight
+tables carry a `model_id`; it queried thirty-three, and the five it missed made
+no noise, because **a reference check that misses a table does not fail — it
+approves.** A model with an unfinished validation or a version approval still
+being collected reported `deletable: true` with zero references.
+
+The guard test could not see it. It asserted the table's name appeared
+*somewhere in `index.py`*, and every missing name appears — in prose, in a `why`
+clause, as a `Reference` kind. That is [§3.3](11-adversarial-review.md#33-a-test-that-passes-for-a-reason-other-than-its-name)
+of the review's own taxonomy, and it is the more expensive half of the defect:
+it converted an absent control into a reported one.
+
+Adding five queries would have fixed the instance and left the mechanism. So
+`core/retention/cascade.py` gives **every** table a declared disposition —
+`BLOCKS`, `GOES` or `STAYS` — and `tests/test_tombstones.py` fails the build if
+a table carrying a `model_id` has none. Adding a table now forces the decision
+rather than defaulting to *silently unchecked*, which is the only default that
+is never right. `GET /deletion-cascade` publishes the declaration, so an
+operator does not discover it by performing it.
+
+Two details are load-bearing. Live-ness is read from `closed_at`,
+`completed_at` and `withdrawn_at` rather than status strings wherever possible,
+because a wrong column name raises and a wrong status *value* matches nothing
+and fails **open**. And the state names that are unavoidable are **imported**
+from the module that owns them — `export_share.status` was written as
+`'active'` in the first draft against a vocabulary of open/expired/revoked/
+exhausted, so the predicate matched nothing: this module's own failure mode,
+inside the module built to end it.
+
+Where both the hand-written query and the declaration cover a table, the
+hand-written one wins. Several block more strictly than the declaration would —
+`attestation` blocks on any row, not only an unfinished one — and a repair that
+loosens a control while claiming to widen one is worse than the gap it closes.
+
+### 26a.3 Compaction reclaims what nothing references, not what was deleted
+
+Deleting a model frees almost nothing. `model_version` blocks the deletion, so
+by the time the deleter runs there are no versions and the artifacts they named
+were orphaned earlier. What accumulates is whatever nothing references, over the
+life of the install, and nothing had ever reclaimed it.
+
+Both stores address by digest, so two models sharing a checkpoint share one
+file and a per-model delete would take the survivor's bytes. Reclamation
+therefore asks the register: *does any surviving row name this digest?* But
+"no row names it" is a fact about one moment, and the moment is racy in the
+worst direction — an upload writes the bytes and then the row, and a sweeper
+walking past in between sees exactly what a real orphan looks like.
+
+So a sweep **marks** and a later sweep reclaims what stayed unreferenced
+(`SIGHTINGS_BEFORE_SWEEP = 2`). A blob that acquires a reference between passes
+has its mark cleared rather than left to expire, because a two-pass-old mark on
+a live blob would reclaim a live artifact. The quarantine is the gap between
+passes, which makes it an interval something has to survive rather than a
+timestamp somebody trusts.
+
+Delta is **not** touched, and is reported rather than silently skipped:
+`plan()` returns the Delta root's size under `not_reclaimable` with the reason,
+because silently not touching it and reporting nothing look identical to an
+operator staring at disk usage. Delta keeps its own transaction log; removing
+part files from outside it produces a manifest naming a file that is not there.
+
+`VACUUM` is the half that genuinely is about the deletion — a cascade removes
+rows from up to eight tables and SQLite keeps the pages. It takes a write lock
+and needs free space equal to the database, so it is asked for rather than done
+on a deletion's way out.
+
+A sweep is refused entirely under an estate-wide legal hold. A refcount answers
+*are these bytes needed by the register*; a hold answers *is anyone permitted to
+destroy them*, and the first is not an answer to the second.
 
 ## 27. Infrastructure the design assumes and the build does not have
 

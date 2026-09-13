@@ -403,22 +403,25 @@ def test_both_dialects_declare_the_same_indexes():
 
 
 def test_the_reference_index_reads_every_table_that_carries_a_model_id():
-    """Nineteen tables carry a `model_id`; the index read twelve.
+    """Every table with a `model_id` is either QUERIED or has a disposition.
 
-    The dependency screen's own docstring calls a blank result "the most
-    dangerous wrong answer this screen can give", and for seven tables that is
-    what it gave. Two were reachable with no version at all, which is exactly
-    the state in which a model CAN be deleted:
+    This test used to assert that the table's name appeared *somewhere in
+    `index.py`*, and it passed while four tables went unread: `validation`,
+    `version_approval`, `model_assumption` and `model_limitation`. All four
+    names are in the file — in prose, in a `why` clause, as a `Reference`
+    kind — so the substring match found them and reported the control present.
 
-    `risk_assessment` holds the tier, which decides every control requirement
-    and every quorum size on the model. `compliance_debt` is raised per gap by
-    a baseline import and `DebtRegister.reconcile` is per-model, so debt
-    orphaned by a deleted model can never close — the programme's burn-down
-    stays below 100% forever, pointing at a model nobody can look up.
+    What that cost: a model with an unfinished validation, or a version
+    approval still being collected, reported `deletable: true` with zero
+    references, and deleting it went through. The failure mode of a reference
+    check is not an error. It is approval.
 
-    Driven from the schema rather than from a list, so a twentieth table cannot
-    be added without a decision about it.
+    So the assertion is now about **reaching** the table, and there are two
+    ways to reach one — a real `FROM`, or a declared disposition in
+    `core/retention/cascade.py`. A name in a sentence is not a third way.
     """
+    from core.retention.cascade import CASCADE
+
     index = (ROOT / "core" / "references" / "index.py").read_text(encoding="utf-8")
     carrying = set()
     for match in re.finditer(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);",
@@ -426,10 +429,18 @@ def test_the_reference_index_reads_every_table_that_carries_a_model_id():
         if re.search(r"^\s+model_id\s+\w", match.group(2), re.M):
             carrying.add(match.group(1))
 
-    unread = sorted(t for t in carrying if f'"{t}"' not in index)
-    assert not unread, (
-        f"these tables carry a model_id and the reference index never reads "
-        f"them, so deleting a model orphans their rows while the dependency "
-        f"screen reports that nothing refers to it: {unread}")
-    assert len(carrying) >= 19, \
+    # A literal FROM, or the f-string loop's `FROM {table}` with the name
+    # leading one of its tuples. Both are real queries; prose is not.
+    queried = set(re.findall(r"FROM ([a-z_]+)", index))
+    queried |= {t for t in carrying
+                if re.search(rf'\(\s*"{t}", "[^"]*",', index)}
+    declared = {d.table for d in CASCADE}
+
+    unreached = sorted(carrying - queried - declared)
+    assert not unreached, (
+        f"these tables carry a model_id and nothing reaches them — not a "
+        f"query in the reference index, not a disposition in the cascade — so "
+        f"deleting a model orphans their rows while the dependency screen "
+        f"reports that nothing refers to it: {unreached}")
+    assert len(carrying) >= 38, \
         "the scan found fewer tables than expected; check the pattern"
