@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-2803",
+   "title": "No refusal code is raised under two spellings",
+   "verdict": "PASS",
+   "evidence": "codes raised from many modules, each a place the condition must genuinely be the same: reason_required (16), rationale_required (7), note_required (5), owner_required (5)"
+  }
+ ]
+}
