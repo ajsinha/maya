@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 3,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-4880",
+   "title": "Every excluded model carries a reason",
+   "verdict": "PASS",
+   "evidence": "every exclusion across every return names a model and a reason"
+  },
+  {
+   "id": "QA-AM-4881",
+   "title": "An unknown return",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_return', naming what it does extract"
+  },
+  {
+   "id": "QA-AM-4882",
+   "title": "Each field declares where its value comes from",
+   "verdict": "PASS",
+   "evidence": "36 fields across 3 returns, each declaring held, derived or not_held"
+  }
+ ]
+}

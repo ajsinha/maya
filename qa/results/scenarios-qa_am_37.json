@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-370",
+   "title": "A model with no purpose class at all",
+   "verdict": "PASS",
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-44327a1a', 'why': 'neither designated consumer_impactin"
+  },
+  {
+   "id": "QA-AM-372",
+   "title": "Every `not_held` field in the output",
+   "verdict": "PASS",
+   "evidence": "5 not-held field(s), present as columns, empty in every row, and the return says incomplete"
+  },
+  {
+   "id": "QA-AM-373",
+   "title": "A field the register could hold and every row leaves blank",
+   "verdict": "PASS",
+   "evidence": "0 blank, 5 not held, no overlap"
+  },
+  {
+   "id": "QA-AM-374",
+   "title": "An extract over zero rows",
+   "verdict": "PASS",
+   "evidence": "0 rows, not complete, and the detail says so"
+  },
+  {
+   "id": "QA-AM-376",
+   "title": "An extract under a scoped reader",
+   "verdict": "PASS",
+   "evidence": "scoped before the population is derived"
+  },
+  {
+   "id": "QA-AM-378",
+   "title": "Open a campaign whose derivation selects nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population'"
+  },
+  {
+   "id": "QA-AM-379",
+   "title": "Open a second campaign under one reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_already_open'"
+  }
+ ]
+}
