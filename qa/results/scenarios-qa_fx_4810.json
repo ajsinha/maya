@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-4810",
+   "title": "`fitted` is refused for every kind that nothing fits",
+   "verdict": "PASS",
+   "evidence": "3 kinds refused `fitted`: ['elicited_weights', 'llm_configuration', 'rule_set']"
+  }
+ ]
+}

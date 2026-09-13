@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-237",
+   "title": "A `fitted` set naming a snapshot that is not PIT verified",
+   "verdict": "PASS",
+   "evidence": "refused 'snapshot_not_pit_verified', naming the column"
+  }
+ ]
+}
