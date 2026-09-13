@@ -1,95 +1,131 @@
 {
  "summary": {
-  "total": 14,
-  "pass": 14,
+  "total": 20,
+  "pass": 20,
   "fail": 0,
   "blocked": 0
  },
  "seconds": 1.3,
  "results": [
   {
-   "id": "QA-FX-300",
-   "title": "A warrant over an attested model with an alias",
+   "id": "QA-AM-067",
+   "title": "A Critical finding blocks without anybody deciding",
    "verdict": "PASS",
-   "evidence": "accepted (201)"
+   "evidence": "blocking by default"
   },
   {
-   "id": "QA-FX-301",
-   "title": "Resolving over a model that was never attested",
+   "id": "QA-AM-068",
+   "title": "A Critical finding explicitly marked non-blocking",
    "verdict": "PASS",
-   "evidence": "refused 'not_found' (404)"
+   "evidence": "accepted, and not blocking"
   },
   {
-   "id": "QA-FX-302",
-   "title": "A warrant over a model that does not exist",
+   "id": "QA-AM-071",
+   "title": "Raise with an unknown severity",
    "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
+   "evidence": "refused 'validation_refused' (409)"
   },
   {
-   "id": "QA-FX-303",
-   "title": "A warrant with an undeclared use",
-   "verdict": "PASS",
-   "evidence": "refused 'declared_use_required' (422)"
-  },
-  {
-   "id": "QA-FX-304",
-   "title": "Resolving in an environment with no alias",
-   "verdict": "PASS",
-   "evidence": "refused 'not_found' (404)"
-  },
-  {
-   "id": "QA-FX-305",
-   "title": "Resolve a warrant after it is revoked",
-   "verdict": "PASS",
-   "evidence": "refused 'revoked' (410)"
-  },
-  {
-   "id": "QA-FX-306",
-   "title": "Revoking a warrant that was never issued",
+   "id": "QA-AM-072",
+   "title": "Raise against a model that does not exist",
    "verdict": "PASS",
    "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-FX-307",
-   "title": "Revoking with an empty reason",
+   "id": "QA-AM-073",
+   "title": "Raise with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-074",
+   "title": "Raise with an empty title",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-080",
+   "title": "Acknowledge as somebody who does not own it",
+   "verdict": "PASS",
+   "evidence": "refused 'not_the_owner' (403)"
+  },
+  {
+   "id": "QA-AM-081",
+   "title": "Acknowledge with no plan and none on record",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required' (422)"
+  },
+  {
+   "id": "QA-AM-082",
+   "title": "Acknowledge with a plan",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-AM-083",
+   "title": "Acknowledge with a date already in the past",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past' (422)"
+  },
+  {
+   "id": "QA-AM-084",
+   "title": "Acknowledging moves the finding out of open",
+   "verdict": "PASS",
+   "evidence": "status is now 'in_remediation'"
+  },
+  {
+   "id": "QA-AM-085",
+   "title": "Close with no evidence",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-086",
+   "title": "Close verified by the person who owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-AM-087",
+   "title": "Extend with no reason",
    "verdict": "PASS",
    "evidence": "refused 'reason_required' (422)"
   },
   {
-   "id": "QA-FX-310",
-   "title": "Move an alias to a version that does not exist",
+   "id": "QA-AM-088",
+   "title": "Assign to nobody",
    "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
+   "evidence": "refused 'owner_required' (422)"
   },
   {
-   "id": "QA-FX-311",
-   "title": "A second alias move where neither version declares a schema",
+   "id": "QA-AM-090",
+   "title": "Act on a finding that does not exist",
    "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
+   "evidence": "refused 'no_finding' (404)"
   },
   {
-   "id": "QA-FX-312",
-   "title": "An alias on a model that is not in force",
+   "id": "QA-AM-130",
+   "title": "A root with no findings attached",
    "verdict": "PASS",
-   "evidence": "answered 403 (refused)"
+   "evidence": "accepted (201)"
   },
   {
-   "id": "QA-FX-320",
-   "title": "The published cascade of what a warrant carries",
+   "id": "QA-AM-131",
+   "title": "A root with an empty detail",
    "verdict": "PASS",
-   "evidence": "the descriptor is signed and time-bounded"
+   "evidence": "refused 'root_detail_required' (422)"
   },
   {
-   "id": "QA-FX-321",
-   "title": "A warrant states what it does NOT prove",
+   "id": "QA-AM-132",
+   "title": "A root of an unknown kind",
    "verdict": "PASS",
-   "evidence": "that any engine behaved. MAYA does not run models, so nothing here observes an engine honouring or ignoring th"
+   "evidence": "refused 'unknown_root_kind' (422)"
   },
   {
-   "id": "QA-FX-322",
-   "title": "Unreported execution is visible",
+   "id": "QA-AM-135",
+   "title": "A root counts an acknowledged child as still owed",
    "verdict": "PASS",
-   "evidence": "5 live and silent"
+   "evidence": "the acknowledged child is still counted"
   }
  ]
 }
