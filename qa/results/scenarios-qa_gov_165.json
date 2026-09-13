@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-GOV-165",
+   "title": "Two `expires` conditions with different windows on one model",
+   "verdict": "FAIL",
+   "evidence": "`conditions` reads 2, an integer. `for_model` builds `{\"conditions\": rows, ...}` and then spreads `**self.evaluate(urn)` over it, and `evaluate` answers `conditions: len(rows)` \u2014 so the spread overwrites the rows with a count, and the rationale, the imposer and the discharge reason never reach a caller of GET /approval-conditions?urn="
+  }
+ ]
+}

@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 2,
-  "pass": 2,
+  "total": 9,
+  "pass": 9,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 1.9,
+ "seconds": 3.8,
  "results": [
   {
    "id": "QA-GOV-150",
@@ -18,6 +18,48 @@
    "title": "Delegation with no entity, model in any entity",
    "verdict": "PASS",
    "evidence": "an unscoped delegation reaches the entity"
+  },
+  {
+   "id": "QA-GOV-152",
+   "title": "Impose a condition running 0 days",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range'"
+  },
+  {
+   "id": "QA-GOV-153",
+   "title": "Impose a condition running exactly 183 days",
+   "verdict": "PASS",
+   "evidence": "183 days accepted"
+  },
+  {
+   "id": "QA-GOV-154",
+   "title": "Impose a condition running 183.5 days",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range' at half a day over"
+  },
+  {
+   "id": "QA-GOV-155",
+   "title": "Impose an `exposure_cap` with an amount and no currency",
+   "verdict": "PASS",
+   "evidence": "refused 'condition_incomplete', naming currency"
+  },
+  {
+   "id": "QA-GOV-156",
+   "title": "Impose a `usage_cap` before any warrant exists",
+   "verdict": "PASS",
+   "evidence": "no quota register is wired, so the cap is recorded and not enforced \u2014 which is QA-GOV-157"
+  },
+  {
+   "id": "QA-GOV-158",
+   "title": "Impose a condition naming a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_version'"
+  },
+  {
+   "id": "QA-GOV-159",
+   "title": "Impose a condition with no `semver`",
+   "verdict": "PASS",
+   "evidence": "accepted with model_version_id null"
   }
  ]
 }
