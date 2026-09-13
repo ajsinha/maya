@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-4860",
+   "title": "A panel with the same person listed twice",
+   "verdict": "PASS",
+   "evidence": "three entries naming two people is refused as a panel of two, so a name cannot be repeated to meet the floor"
+  }
+ ]
+}

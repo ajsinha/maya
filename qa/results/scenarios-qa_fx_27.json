@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-270",
+   "title": "The person who ran the fit approving it",
+   "verdict": "PASS",
+   "evidence": "refused 'self_approval', compared as identities"
+  },
+  {
+   "id": "QA-FX-271",
+   "title": "Diagnostics travel with the coefficients",
+   "verdict": "PASS",
+   "evidence": "2 coefficient(s), diagnostics ['adjusted_r_squared', 'condition_number', 'degrees_of_freedom', 'intercept', 'k']"
+  },
+  {
+   "id": "QA-FX-273",
+   "title": "A panel below the minimum",
+   "verdict": "PASS",
+   "evidence": "below 3 refused, exactly 3 accepted"
+  },
+  {
+   "id": "QA-FX-274",
+   "title": "The facilitator on their own panel",
+   "verdict": "PASS",
+   "evidence": "refused 'facilitator_is_a_panellist'"
+  },
+  {
+   "id": "QA-FX-275",
+   "title": "An elicitation with no question",
+   "verdict": "PASS",
+   "evidence": "refused 'question_required' on whitespace"
+  },
+  {
+   "id": "QA-FX-276",
+   "title": "A second response in one round",
+   "verdict": "PASS",
+   "evidence": "refused 'already_answered'"
+  },
+  {
+   "id": "QA-FX-277",
+   "title": "A response from somebody not on the panel",
+   "verdict": "PASS",
+   "evidence": "refused 'not_on_the_panel'"
+  },
+  {
+   "id": "QA-FX-278",
+   "title": "A response after the conclusion",
+   "verdict": "PASS",
+   "evidence": "refused 'elicitation_closed'"
+  },
+  {
+   "id": "QA-FX-279",
+   "title": "Advancing an empty round",
+   "verdict": "PASS",
+   "evidence": "refused 'round_is_empty'"
+  }
+ ]
+}
