@@ -1,0 +1,125 @@
+{
+ "summary": {
+  "total": 19,
+  "pass": 19,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-PLT-1200",
+   "title": "Discovery reads packaging metadata and imports nothing",
+   "verdict": "PASS",
+   "evidence": "discover reads, enable imports, and only enable calls load()"
+  },
+  {
+   "id": "QA-PLT-1201",
+   "title": "Enabling something configuration does not name",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-1202",
+   "title": "Enabling against a closed axis",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' for closed axis connectors"
+  },
+  {
+   "id": "QA-PLT-1203",
+   "title": "The contract says which axes are closed and what each protects",
+   "verdict": "PASS",
+   "evidence": "4 closed axes, each naming what it protects"
+  },
+  {
+   "id": "QA-PLT-1204",
+   "title": "A fibre may add obligations and never remove one",
+   "verdict": "PASS",
+   "evidence": "a narrowing is refused by name at load time"
+  },
+  {
+   "id": "QA-PLT-1205",
+   "title": "Discovery is listable without enabling anything",
+   "verdict": "PASS",
+   "evidence": "listed, nothing enabled"
+  },
+  {
+   "id": "QA-PLT-1206",
+   "title": "An import format that is refused by name",
+   "verdict": "PASS",
+   "evidence": "refused 'drools' by name, with what to do instead"
+  },
+  {
+   "id": "QA-PLT-1207",
+   "title": "An import format nobody has heard of",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_import_format'"
+  },
+  {
+   "id": "QA-PLT-1208",
+   "title": "A row a parser cannot read refuses the whole document",
+   "verdict": "PASS",
+   "evidence": "1 untranslated row(s) named, no importable document"
+  },
+  {
+   "id": "QA-PLT-1209",
+   "title": "A hit policy that does not map is refused, not approximated",
+   "verdict": "PASS",
+   "evidence": "refused 'no_outcome_columns' for hit policy C"
+  },
+  {
+   "id": "QA-PLT-1210",
+   "title": "An import produces a candidate, never a parameter set",
+   "verdict": "PASS",
+   "evidence": "a candidate of 2 rule(s), and nothing written"
+  },
+  {
+   "id": "QA-PLT-1211",
+   "title": "The catch-all is not invented from the last row",
+   "verdict": "PASS",
+   "evidence": "no catch-all invented, and the gap is reported"
+  },
+  {
+   "id": "QA-PLT-1212",
+   "title": "The published formats are the ones actually read",
+   "verdict": "PASS",
+   "evidence": "2 read, 3 refused by name"
+  },
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile twice with nothing changed \u2014 digests identical",
+   "verdict": "PASS",
+   "evidence": "identical: sha256:a816b0492a1e2f472371d87"
+  },
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "stable at 1 citation(s) across five compiles"
+  },
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile with open review comments",
+   "verdict": "PASS",
+   "evidence": "1 comment(s) still on this document"
+  },
+  {
+   "id": "QA-PLT-126",
+   "title": "Two export packs of unchanged state agree",
+   "verdict": "PASS",
+   "evidence": "stable: sha256:7a6f520b2264d1904356fd5"
+  },
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-128",
+   "title": "A bare model, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "coverage.complete is false, 10 section(s) marked unfillable"
+  }
+ ]
+}
