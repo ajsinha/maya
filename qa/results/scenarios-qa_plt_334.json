@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-334",
+   "title": "Security headers on every response class",
+   "verdict": "PASS",
+   "evidence": "3 headers present on 200, 404 and 403"
+  }
+ ]
+}

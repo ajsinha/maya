@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-326",
+   "title": "The same route under HTTP Basic with no CSRF token",
+   "verdict": "PASS",
+   "evidence": "accepted; CSRF is a browser control only"
+  }
+ ]
+}

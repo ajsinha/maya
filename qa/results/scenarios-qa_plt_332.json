@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-332",
+   "title": "A principal suspended mid-session",
+   "verdict": "PASS",
+   "evidence": "refused (401) on the next request"
+  }
+ ]
+}
