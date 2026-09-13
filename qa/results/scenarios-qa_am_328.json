@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-328",
+   "title": "Aggregate exposure where one of forty models records one",
+   "verdict": "PASS",
+   "evidence": "coverage 75% stated beside the figure: 0 of 4 model(s) have something outstanding, carrying 0% of the exposure the regi"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-4740",
+   "title": "A heatmap of one dimension against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_dimension', and an unknown dimension too"
+  }
+ ]
+}

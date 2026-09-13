@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-AM-331",
+   "title": "Trend where each point carries a chain hash",
+   "verdict": "PASS",
+   "evidence": "all 1 covered point(s) carry a chain seq and hash; 3 predate the chain and claim none"
+  }
+ ]
+}

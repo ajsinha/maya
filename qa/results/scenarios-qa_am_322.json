@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-322",
+   "title": "Heatmap where a row value and a column value never co-occur",
+   "verdict": "PASS",
+   "evidence": "2 combination(s) never co-occur and none is materialised as a zero cell"
+  }
+ ]
+}
