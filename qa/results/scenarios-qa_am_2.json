@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 52,
-  "pass": 51,
-  "fail": 1,
-  "blocked": 0
+  "total": 71,
+  "pass": 68,
+  "fail": 2,
+  "blocked": 1
  },
- "seconds": 3.6,
+ "seconds": 4.1,
  "results": [
   {
    "id": "QA-AM-200",
@@ -124,8 +124,8 @@
   {
    "id": "QA-AM-223",
    "title": "Evaluate from telemetry with no rows in the window",
-   "verdict": "PASS",
-   "evidence": "refused 'monitor_has_no_version'"
+   "verdict": "BLOCKED",
+   "evidence": "the monitor names no version, so the read never reaches the window at all \u2014 nothing binds one through the API, see QA-AM-4720"
   },
   {
    "id": "QA-AM-227",
@@ -260,6 +260,72 @@
    "evidence": "6 external, and the share is stated"
   },
   {
+   "id": "QA-AM-261",
+   "title": "Submit with a `reference_digest` from a different monitor",
+   "verdict": "PASS",
+   "evidence": "refused, naming the reference digest"
+  },
+  {
+   "id": "QA-AM-262",
+   "title": "Submit for AUC without `ranked_globally`",
+   "verdict": "PASS",
+   "evidence": "refused, naming ranked_globally"
+  },
+  {
+   "id": "QA-AM-263",
+   "title": "Submit with `ranked_globally: true` but per-partition ranks",
+   "verdict": "PASS",
+   "evidence": "accepted at 0.16583333333333333, attested not observed, scanned by spark-3.5"
+  },
+  {
+   "id": "QA-AM-264",
+   "title": "Submit with no `predicate`",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing predicate"
+  },
+  {
+   "id": "QA-AM-265",
+   "title": "Submit with three partitions, one of them missing `rows`",
+   "verdict": "PASS",
+   "evidence": "refused, naming partitions[1].rows"
+  },
+  {
+   "id": "QA-AM-266",
+   "title": "Submit with a partition returning the wrong number of bins",
+   "verdict": "PASS",
+   "evidence": "refused 'bin_count_mismatch', 9 against 10"
+  },
+  {
+   "id": "QA-AM-267",
+   "title": "Submit where every partition returns zero rows",
+   "verdict": "PASS",
+   "evidence": "refused 'no_rows_in_submission'"
+  },
+  {
+   "id": "QA-AM-268",
+   "title": "Submit an AUC where every row is one class",
+   "verdict": "PASS",
+   "evidence": "refused 'one_class_absent'"
+  },
+  {
+   "id": "QA-AM-269",
+   "title": "Submit a KS where `negative_quantiles` is longer than `positive_quantiles`",
+   "verdict": "PASS",
+   "evidence": "refused 'quantiles_ragged', not a 500"
+  },
+  {
+   "id": "QA-AM-270",
+   "title": "Compare the `plan_digest` in a submission against the plan that was issued",
+   "verdict": "FAIL",
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:0cb28c90401f466743ff658f600b310f2c5149e4421e872b12f81dbbfef998a3 against the issued sha256:cc1ceb2d39c39506be10d37afd200d3b2a9d7cd46c6b0a7d0176918be4b37512. The digest exists to tie a submiss"
+  },
+  {
+   "id": "QA-AM-272",
+   "title": "Submit the same statistics twice",
+   "verdict": "PASS",
+   "evidence": "identical value and digest; 0 observation(s) recorded \u2014 see QA-AM-1313 for why that is zero"
+  },
+  {
    "id": "QA-AM-273",
    "title": "Compare a version against itself",
    "verdict": "PASS",
@@ -278,22 +344,46 @@
    "evidence": "5 pairs minimum, reported as insufficient_evidence"
   },
   {
+   "id": "QA-AM-277",
+   "title": "Five paired windows, exactly",
+   "verdict": "PASS",
+   "evidence": "five pairs, exact enumeration, p=0.0625"
+  },
+  {
+   "id": "QA-AM-278",
+   "title": "Fifteen paired windows",
+   "verdict": "PASS",
+   "evidence": "exact up to 14 inclusive, approximate above, and the method is named"
+  },
+  {
+   "id": "QA-AM-281",
+   "title": "Every paired difference identical and non-zero, over twenty windows",
+   "verdict": "PASS",
+   "evidence": "identical non-zero gives 0.0, identical zero gives 1.0"
+  },
+  {
    "id": "QA-AM-282",
    "title": "Significant and immaterial",
    "verdict": "PASS",
    "evidence": "significance and materiality both required; threshold 0.01 declared"
   },
   {
-   "id": "QA-AM-286",
-   "title": "A model with no monitors, no validation and no findings",
+   "id": "QA-AM-283",
+   "title": "A challenger ahead on one test and behind on another",
    "verdict": "PASS",
-   "evidence": "score 100.0 at coverage 0.25, and the detail says what that means"
+   "evidence": "trade-off -> no_material_difference with 'open a validation of the challenger'; clean win -> challenger_ahead"
   },
   {
-   "id": "QA-AM-287",
-   "title": "A model where nothing at all is measurable",
+   "id": "QA-AM-284",
+   "title": "Any comparison at all",
    "verdict": "PASS",
-   "evidence": "nothing about this model is measurable yet: no monitor has been evaluated, no feed judged, no validation concl"
+   "evidence": "the reachable verdicts are ['challenger_ahead', 'champion_ahead', 'no_material_difference'], none a promotion"
+  },
+  {
+   "id": "QA-AM-290",
+   "title": "A model with no overlays at all",
+   "verdict": "PASS",
+   "evidence": "measured at 1.0: nothing adjusted, nothing relied on"
   },
   {
    "id": "QA-AM-2900",
@@ -318,6 +408,30 @@
    "title": "A limit at or above the threshold is never slack",
    "verdict": "PASS",
    "evidence": "slack only below 0.25, and never on null"
+  },
+  {
+   "id": "QA-AM-291",
+   "title": "A model with one Critical finding past its date",
+   "verdict": "PASS",
+   "evidence": "arithmetic poor, band poor, and the findings cap says: 1 Critical or High finding(s) are past their remediation date"
+  },
+  {
+   "id": "QA-AM-292",
+   "title": "A model with twenty open Observation findings",
+   "verdict": "PASS",
+   "evidence": "twenty Observations score 1.0 against 0.0 for one Critical, and nothing is capped"
+  },
+  {
+   "id": "QA-AM-293",
+   "title": "A model that has never been validated",
+   "verdict": "PASS",
+   "evidence": "measured 0.0, capped poor, 'never been validated'"
+  },
+  {
+   "id": "QA-AM-299",
+   "title": "Estate health over an empty estate",
+   "verdict": "PASS",
+   "evidence": "no models, and the detail reads: 0 model(s): "
   }
  ]
 }
