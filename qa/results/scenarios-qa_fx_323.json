@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-323",
+   "title": "A clean shape with three admissibility failures",
+   "verdict": "PASS",
+   "evidence": "5 problems under 5 laws: ['L-W1', 'L-W3', 'L-W4', 'L-W5', 'L-W8']"
+  }
+ ]
+}

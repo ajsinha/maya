@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-326",
+   "title": "L-W2 \u2014 `generate` on `onnx`",
+   "verdict": "PASS",
+   "evidence": "refused on onnx, admissible on ['llm.agent', 'llm.prompt']"
+  }
+ ]
+}
