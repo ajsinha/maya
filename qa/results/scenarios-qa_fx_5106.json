@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5106",
+   "title": "Composition does not discharge a weaker guarantee",
+   "verdict": "PASS",
+   "evidence": "the stricter assumption survives as the caller's"
+  }
+ ]
+}

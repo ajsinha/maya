@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5105",
+   "title": "Composition discharges what the upstream guarantees",
+   "verdict": "PASS",
+   "evidence": "assumptions {'raw'}, guarantees {'decision', 'score'}"
+  }
+ ]
+}

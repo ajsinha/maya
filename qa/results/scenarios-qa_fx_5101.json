@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5101",
+   "title": "A refinement that weakens an assumption holds",
+   "verdict": "PASS",
+   "evidence": "wider assumptions and stronger guarantees refine"
+  }
+ ]
+}
