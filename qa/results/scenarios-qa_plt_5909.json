@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-5909",
+   "title": "An export carries the query that produced it",
+   "verdict": "PASS",
+   "evidence": "named by its entity: attachment; filename=\"model.csv\""
+  }
+ ]
+}

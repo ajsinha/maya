@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-5903",
+   "title": "An operator that is not one",
+   "verdict": "FAIL",
+   "evidence": "an operator outside the closed set was accepted and behaved as `eq` \u2014 so a caller asking for `like` gets exact match semantics, and a filter that means something different from what was written reads as one that was applied"
+  }
+ ]
+}
