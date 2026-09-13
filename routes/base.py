@@ -103,6 +103,9 @@ STATUS: Dict[str, int] = {
     # A legal hold is a refusal to destroy, not an authorisation problem:
     # 423 Locked, the same status the platform already uses for a record
     # held open by something other than who is asking.
+    # A hold naming something that does not resolve protects nothing and
+    # looks, from every screen, exactly like one that does.
+    "unknown_scope_id": 422,
     "under_legal_hold": 423,
     "revoked": 410, "revoked_epoch": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
     # authorisation
