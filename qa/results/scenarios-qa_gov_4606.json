@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-4606",
+   "title": "Notified and acknowledged are different facts",
+   "verdict": "PASS",
+   "evidence": "both proceed and the record distinguishes them; note the consumer list is empty either way, so this shows the fields are recorded rather than that the gate was passed"
+  }
+ ]
+}

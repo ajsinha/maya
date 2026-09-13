@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-4603",
+   "title": "A retention class that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_retention_class', naming 7 classes"
+  }
+ ]
+}
