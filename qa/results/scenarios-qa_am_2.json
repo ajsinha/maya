@@ -1,0 +1,269 @@
+{
+ "summary": {
+  "total": 43,
+  "pass": 40,
+  "fail": 2,
+  "blocked": 1
+ },
+ "seconds": 4.3,
+ "results": [
+  {
+   "id": "QA-AM-200",
+   "title": "Define with cadence_days: 0",
+   "verdict": "PASS",
+   "evidence": "accepted; cadence_days=0.0"
+  },
+  {
+   "id": "QA-AM-201",
+   "title": "Define a `performance` monitor against a class whose fibre cannot answer it",
+   "verdict": "PASS",
+   "evidence": "refused 'kind_not_answerable', naming the class"
+  },
+  {
+   "id": "QA-AM-202",
+   "title": "Define a monitor on a model with no version yet",
+   "verdict": "PASS",
+   "evidence": "accepted: no version, so the fibre has no opinion to give"
+  },
+  {
+   "id": "QA-AM-205",
+   "title": "Set a monitor's status to something that is not a status",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-211",
+   "title": "Define a monitor of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-212",
+   "title": "Evaluate a drift monitor with no reference anywhere",
+   "verdict": "PASS",
+   "evidence": "refused 'no_reference'"
+  },
+  {
+   "id": "QA-AM-213",
+   "title": "Evaluate a paused monitor",
+   "verdict": "PASS",
+   "evidence": "refused 'monitor_inactive'"
+  },
+  {
+   "id": "QA-AM-214",
+   "title": "A valid monitor is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-215",
+   "title": "The third consecutive breach with escalate_after 3",
+   "verdict": "PASS",
+   "evidence": "third consecutive breach escalated Medium -> High"
+  },
+  {
+   "id": "QA-AM-216",
+   "title": "The sixth consecutive breach",
+   "verdict": "PASS",
+   "evidence": "sixth consecutive breach at Critical"
+  },
+  {
+   "id": "QA-AM-217",
+   "title": "Ingest against a monitor that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_monitor' (404)"
+  },
+  {
+   "id": "QA-AM-218",
+   "title": "A passing evaluation restarts the consecutive count",
+   "verdict": "PASS",
+   "evidence": "the run restarted; the next breach is Medium"
+  },
+  {
+   "id": "QA-AM-219",
+   "title": "Recovery resolves the breach and leaves the finding open",
+   "verdict": "PASS",
+   "evidence": "the breach resolves; the finding stands"
+  },
+  {
+   "id": "QA-AM-221",
+   "title": "Resolve breaches for a monitor with none open",
+   "verdict": "PASS",
+   "evidence": "nothing resolved, nothing raised"
+  },
+  {
+   "id": "QA-AM-231",
+   "title": "Deliver the identical batch twice",
+   "verdict": "PASS",
+   "evidence": "first delivery clean, redelivery reported as duplicate"
+  },
+  {
+   "id": "QA-AM-232",
+   "title": "The same rows plus one more",
+   "verdict": "PASS",
+   "evidence": "a superset is a different batch"
+  },
+  {
+   "id": "QA-AM-234",
+   "title": "A scores row with no scored_at",
+   "verdict": "PASS",
+   "evidence": "all 6 required fields refused by name when absent"
+  },
+  {
+   "id": "QA-AM-235",
+   "title": "Deliver row 400 of 500 malformed",
+   "verdict": "PASS",
+   "evidence": "refused 'malformed_row' whole"
+  },
+  {
+   "id": "QA-AM-236",
+   "title": "Deliver an empty batch",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_batch'"
+  },
+  {
+   "id": "QA-AM-237",
+   "title": "A sample rate of zero",
+   "verdict": "PASS",
+   "evidence": "0, -1, 1.5 and 100 all refused"
+  },
+  {
+   "id": "QA-AM-239",
+   "title": "A scored row whose outcome never arrives",
+   "verdict": "PASS",
+   "evidence": "4 row(s) in the cohort, 0 labelled"
+  },
+  {
+   "id": "QA-AM-241",
+   "title": "More outcomes than scores",
+   "verdict": "PASS",
+   "evidence": "2 labelled of 2 scored, bounded by the scores"
+  },
+  {
+   "id": "QA-AM-242",
+   "title": "Read the cohort before anything was delivered",
+   "verdict": "PASS",
+   "evidence": "an empty cohort is an answer"
+  },
+  {
+   "id": "QA-AM-243",
+   "title": "A batch of exactly the maximum size, and one row more",
+   "verdict": "PASS",
+   "evidence": "refused 'batch_too_large', naming the 100,000 limit"
+  },
+  {
+   "id": "QA-AM-245",
+   "title": "Ingest a result carrying a `passed` field",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' \u2014 an unknown field is not quietly dropped"
+  },
+  {
+   "id": "QA-AM-246",
+   "title": "Ingest with no `computed_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-247",
+   "title": "Ingest with no window",
+   "verdict": "FAIL",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-AM-248",
+   "title": "Ingest with `window_end` before `window_start`",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-250",
+   "title": "Ingest a null value",
+   "verdict": "PASS",
+   "evidence": "recorded, not passed, and said to be not computable"
+  },
+  {
+   "id": "QA-AM-251",
+   "title": "Ingest with `sample_size: 0`",
+   "verdict": "FAIL",
+   "evidence": "an AUC over a stated sample of 0 was accepted and the observation says nothing about it: `sample_size` defaults to 0, so *the job did not say* and *it computed this over nothing* are the same row"
+  },
+  {
+   "id": "QA-AM-252",
+   "title": "Ingest to a paused monitor",
+   "verdict": "BLOCKED",
+   "evidence": "the monitor could not be paused: {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"status\"],\"msg\":\"Field required\",\"input\":null}]}"
+  },
+  {
+   "id": "QA-AM-255",
+   "title": "Provenance for a monitor that has never been evaluated by anybody",
+   "verdict": "PASS",
+   "evidence": "'this monitor has never been evaluated by anybody'"
+  },
+  {
+   "id": "QA-AM-256",
+   "title": "Estate provenance where 80% of observations are external",
+   "verdict": "PASS",
+   "evidence": "6 external, and the share is stated"
+  },
+  {
+   "id": "QA-AM-273",
+   "title": "Compare a version against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-AM-274",
+   "title": "Two versions that share no monitor definition",
+   "verdict": "PASS",
+   "evidence": "refused 'no_shared_monitor'"
+  },
+  {
+   "id": "QA-AM-276",
+   "title": "Fewer paired windows than the minimum",
+   "verdict": "PASS",
+   "evidence": "5 pairs minimum, reported as insufficient_evidence"
+  },
+  {
+   "id": "QA-AM-282",
+   "title": "Significant and immaterial",
+   "verdict": "PASS",
+   "evidence": "significance and materiality both required; threshold 0.01 declared"
+  },
+  {
+   "id": "QA-AM-286",
+   "title": "A model with no monitors, no validation and no findings",
+   "verdict": "PASS",
+   "evidence": "score 100.0 at coverage 0.25, and the detail says what that means"
+  },
+  {
+   "id": "QA-AM-287",
+   "title": "A model where nothing at all is measurable",
+   "verdict": "PASS",
+   "evidence": "nothing about this model is measurable yet: no monitor has been evaluated, no feed judged, no validation concl"
+  },
+  {
+   "id": "QA-AM-2900",
+   "title": "A campaign kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_campaign_kind', naming the 6 kinds"
+  },
+  {
+   "id": "QA-AM-2901",
+   "title": "Close a campaign twice",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-AM-2902",
+   "title": "The derivation is kept, not the list",
+   "verdict": "PASS",
+   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'op': 'eq', 'value': 'credit'}"
+  },
+  {
+   "id": "QA-AM-2903",
+   "title": "A limit at or above the threshold is never slack",
+   "verdict": "PASS",
+   "evidence": "slack only below 0.25, and never on null"
+  }
+ ]
+}

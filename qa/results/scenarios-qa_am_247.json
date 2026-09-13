@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-247",
+   "title": "Ingest with no window",
+   "verdict": "PASS",
+   "evidence": "the body schema refuses first ('validation_error') and the service's own 'window_required' still stands behind it"
+  }
+ ]
+}
