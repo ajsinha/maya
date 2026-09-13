@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 65,
-  "pass": 60,
-  "fail": 5,
-  "blocked": 0
+  "total": 113,
+  "pass": 102,
+  "fail": 10,
+  "blocked": 1
  },
- "seconds": 7.2,
+ "seconds": 20.4,
  "results": [
   {
    "id": "QA-GOV-100",
@@ -221,7 +221,7 @@
    "id": "QA-GOV-127",
    "title": "Publish a matrix that reaches no tier 1 model",
    "verdict": "FAIL",
-   "evidence": "band null and the approval requires nobody: a matrix that does not reach a model must fall back to the tier quorum, not to an empty list"
+   "evidence": "a tier 1 version was approved by ONE person. `banded()` returns `required_for(urn)` whenever ANY matrix is published, and that answer carries `required_roles: []` for a model no band reaches \u2014 so `roles_for` reports no quorum and `refuse_without_quorum` returns silently. Publishing one tier 3 band therefore removes the quorum from every tier 1 and tier 2 model in the estate, and QA-GOV-126 is why "
   },
   {
    "id": "QA-GOV-128",
@@ -233,31 +233,31 @@
    "id": "QA-GOV-129",
    "title": "Amount one unit below the floor",
    "verdict": "PASS",
-   "evidence": "999,999 -> 'bd-48e1bac3', the band below the floor"
+   "evidence": "999,999 -> 'bd-0ebb9395', the band below the floor"
   },
   {
    "id": "QA-GOV-130",
    "title": "No sourced exposure at all",
    "verdict": "PASS",
-   "evidence": "deepest band 'bd-06e2f801', reached_by 'deepest_band_because_the_amount_is_unknown'"
+   "evidence": "deepest band 'bd-ea525011', reached_by 'deepest_band_because_the_amount_is_unknown'"
   },
   {
    "id": "QA-GOV-131",
    "title": "Sourced exposure recorded as a non-numeric string",
    "verdict": "PASS",
-   "evidence": "unparseable, so the deepest band 'bd-0bc2b517' \u2014 and the attested row is still on the record to be corrected"
+   "evidence": "unparseable, so the deepest band 'bd-906a374e' \u2014 and the attested row is still on the record to be corrected"
   },
   {
    "id": "QA-GOV-132",
    "title": "Two exposure facts, the later one dated in the future",
    "verdict": "FAIL",
-   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-ece84a7d'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
+   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-3f307677'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
   },
   {
    "id": "QA-GOV-133",
    "title": "Sourced exposure of exactly 0",
    "verdict": "PASS",
-   "evidence": "0 -> 'bd-507da12e', matched rather than reached by absence"
+   "evidence": "0 -> 'bd-d29e0ed7', matched rather than reached by absence"
   },
   {
    "id": "QA-GOV-134",
@@ -296,6 +296,12 @@
    "evidence": "refused 'instrument_required'"
   },
   {
+   "id": "QA-GOV-140",
+   "title": "Record delegations but publish no band",
+   "verdict": "FAIL",
+   "evidence": "a 1 USD ceiling signed off a 250,000,000 exposure because no band is published: `refuse_beyond_delegation` runs only inside `if approval.get('band')`, and nothing in the estate view says the recorded ceilings are deciding nothing"
+  },
+  {
    "id": "QA-GOV-1400",
    "title": "The sourcing vocabulary is closed",
    "verdict": "PASS",
@@ -330,6 +336,174 @@
    "title": "Every baselined model carries its debt",
    "verdict": "PASS",
    "evidence": "10 debt item(s) against 13 named gaps"
+  },
+  {
+   "id": "QA-GOV-141",
+   "title": "Sign a tier 3 version while holding no delegation",
+   "verdict": "PASS",
+   "evidence": "a tier 3 version is approved without a delegation: the check lives in the quorum signing path and a tier 3 version never enters it. Pinned as a known edge"
+  },
+  {
+   "id": "QA-GOV-142",
+   "title": "Signer holds no live delegation while others do",
+   "verdict": "PASS",
+   "evidence": "refused 'no_delegated_authority'"
+  },
+  {
+   "id": "QA-GOV-143",
+   "title": "Signer's delegation expired yesterday",
+   "verdict": "PASS",
+   "evidence": "refused 'no_delegated_authority' on an expired delegation"
+  },
+  {
+   "id": "QA-GOV-144",
+   "title": "Delegation expiring in one second",
+   "verdict": "PASS",
+   "evidence": "live with a second left, not live five seconds later"
+  },
+  {
+   "id": "QA-GOV-145",
+   "title": "Delegation recorded for `person/j.okafor`, signer authenticates as `j.okafor`",
+   "verdict": "FAIL",
+   "evidence": "a delegation recorded for 'person/risk' grants nothing to the principal who authenticates as 'risk': `held_by` matches the principal column as a STRING, so the two spellings of one human are two people. The register writes owners in the prefixed form, so this is the spelling a firm will use"
+  },
+  {
+   "id": "QA-GOV-146",
+   "title": "Delegation in JPY against a USD-read exposure",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_not_comparable'"
+  },
+  {
+   "id": "QA-GOV-147",
+   "title": "Two delegations, one JPY one USD",
+   "verdict": "PASS",
+   "evidence": "the comparable ceiling decides and the JPY row is ignored"
+  },
+  {
+   "id": "QA-GOV-148",
+   "title": "Two USD delegations of different sizes",
+   "verdict": "PASS",
+   "evidence": "the larger of two live ceilings decides"
+  },
+  {
+   "id": "QA-GOV-149",
+   "title": "Exposure exactly equal to the ceiling",
+   "verdict": "PASS",
+   "evidence": "an exposure of exactly 250,000,000 is within the ceiling"
+  },
+  {
+   "id": "QA-GOV-150",
+   "title": "Delegation scoped to LE-UK, model in LE-US",
+   "verdict": "PASS",
+   "evidence": "refused 'entity_out_of_delegation'"
+  },
+  {
+   "id": "QA-GOV-151",
+   "title": "Delegation with no entity, model in any entity",
+   "verdict": "PASS",
+   "evidence": "an unscoped delegation reaches the entity"
+  },
+  {
+   "id": "QA-GOV-152",
+   "title": "Impose a condition running 0 days",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range'"
+  },
+  {
+   "id": "QA-GOV-153",
+   "title": "Impose a condition running exactly 183 days",
+   "verdict": "PASS",
+   "evidence": "183 days accepted"
+  },
+  {
+   "id": "QA-GOV-154",
+   "title": "Impose a condition running 183.5 days",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range' at half a day over"
+  },
+  {
+   "id": "QA-GOV-155",
+   "title": "Impose an `exposure_cap` with an amount and no currency",
+   "verdict": "PASS",
+   "evidence": "refused 'condition_incomplete', naming currency"
+  },
+  {
+   "id": "QA-GOV-156",
+   "title": "Impose a `usage_cap` before any warrant exists",
+   "verdict": "PASS",
+   "evidence": "no quota register is wired, so the cap is recorded and not enforced \u2014 which is QA-GOV-157"
+  },
+  {
+   "id": "QA-GOV-158",
+   "title": "Impose a condition naming a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_version'"
+  },
+  {
+   "id": "QA-GOV-159",
+   "title": "Impose a condition with no `semver`",
+   "verdict": "PASS",
+   "evidence": "accepted with model_version_id null"
+  },
+  {
+   "id": "QA-GOV-160",
+   "title": "Confirm an *enforced* condition",
+   "verdict": "PASS",
+   "evidence": "refused 'not_attested'"
+  },
+  {
+   "id": "QA-GOV-161",
+   "title": "Confirm an attested condition twice",
+   "verdict": "PASS",
+   "evidence": "confirmed twice, and the clock moved both times"
+  },
+  {
+   "id": "QA-GOV-162",
+   "title": "Confirm a discharged condition",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active'"
+  },
+  {
+   "id": "QA-GOV-163",
+   "title": "Discharge twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active', first reason intact"
+  },
+  {
+   "id": "QA-GOV-164",
+   "title": "Discharge with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-165",
+   "title": "Two `expires` conditions with different windows on one model",
+   "verdict": "FAIL",
+   "evidence": "`conditions` reads 2, an integer. `for_model` builds `{\"conditions\": rows, ...}` and then spreads `**self.evaluate(urn)` over it, and `evaluate` answers `conditions: len(rows)` \u2014 so the spread overwrites the rows with a count, and the rationale, the imposer and the discharge reason never reach a caller of GET /approval-conditions?urn="
+  },
+  {
+   "id": "QA-GOV-166",
+   "title": "Resolve after the condition's expiry",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_condition_broken', naming COND-0001"
+  },
+  {
+   "id": "QA-GOV-167",
+   "title": "Resolve in an environment the condition excludes",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_condition_broken', naming uat"
+  },
+  {
+   "id": "QA-GOV-168",
+   "title": "Assess with only exposure and purpose supplied",
+   "verdict": "PASS",
+   "evidence": "refused 'fact_not_supplied'"
+  },
+  {
+   "id": "QA-GOV-169",
+   "title": "Assess before any version exists",
+   "verdict": "PASS",
+   "evidence": "refused 'fact_not_supplied', naming the version"
   },
   {
    "id": "QA-GOV-170",
@@ -368,6 +542,18 @@
    "evidence": "50 -> simple, 51 -> moderate"
   },
   {
+   "id": "QA-GOV-176",
+   "title": "Assess with `feature_count: 51`",
+   "verdict": "PASS",
+   "evidence": "50 -> 'simple', 51 -> 'moderate'"
+  },
+  {
+   "id": "QA-GOV-177",
+   "title": "Assess with `exposure` exactly at a configured band floor",
+   "verdict": "BLOCKED",
+   "evidence": "the exposure bands are not readable from the engine"
+  },
+  {
    "id": "QA-GOV-178",
    "title": "Assess with an exposure of zero",
    "verdict": "PASS",
@@ -378,6 +564,30 @@
    "title": "Assess with a negative exposure",
    "verdict": "PASS",
    "evidence": "accepted at tier 3, no weaker than zero's 3"
+  },
+  {
+   "id": "QA-GOV-180",
+   "title": "Assess a model whose materiality is `critical` and complexity `simple`",
+   "verdict": "PASS",
+   "evidence": "critical materiality is tier 1 at every complexity"
+  },
+  {
+   "id": "QA-GOV-181",
+   "title": "Assess at the tau score boundary 5",
+   "verdict": "PASS",
+   "evidence": "tau(low,advanced)=2 and score 4 is tier 3"
+  },
+  {
+   "id": "QA-GOV-182",
+   "title": "Assess at the tau score boundary 2",
+   "verdict": "PASS",
+   "evidence": "tau(negligible,complex)=3 and score 1 is tier 4"
+  },
+  {
+   "id": "QA-GOV-183",
+   "title": "Assess at the tau score boundary 1",
+   "verdict": "PASS",
+   "evidence": "tau(negligible,moderate)=4, owing identification, condition_monitoring"
   },
   {
    "id": "QA-GOV-184",
@@ -392,10 +602,88 @@
    "evidence": "all 6 tier 1 controls are necessary"
   },
   {
+   "id": "QA-GOV-186",
+   "title": "Required controls at tier 1 with a `sox_relevant` designation",
+   "verdict": "PASS",
+   "evidence": "tier 1 controls plus ['access_review', 'change_control_evidence'], and the adjoint still says 1"
+  },
+  {
    "id": "QA-GOV-187",
    "title": "Assess an attested model",
    "verdict": "PASS",
    "evidence": "accepted on an attested record: the tier is a fact about the record rather than part of what it says (now tier 2)"
+  },
+  {
+   "id": "QA-GOV-188",
+   "title": "Assess a `retired` model",
+   "verdict": "PASS",
+   "evidence": "accepted and re-tiered to 1: a retired model's tier can be re-read, which is how an estate answers what it was running"
+  },
+  {
+   "id": "QA-GOV-189",
+   "title": "Assess on an estate with no models at all",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-190",
+   "title": "Regulatory-change trigger against a regime activated *before* the assessment",
+   "verdict": "PASS",
+   "evidence": "1 regime(s) active, all activated before this assessment, and the trigger does not fire"
+  },
+  {
+   "id": "QA-GOV-191",
+   "title": "Exposure trigger with no fact-sourcing wired",
+   "verdict": "PASS",
+   "evidence": "reported 'cannot_check' with no sourced exposure"
+  },
+  {
+   "id": "QA-GOV-192",
+   "title": "New-use trigger with no use register wired",
+   "verdict": "FAIL",
+   "evidence": "with no use register wired the trigger answers None, which the reading renders as *did not fire* \u2014 indistinguishable from a model nobody added a use to. `_cannot_check` exists for exactly this and is not used"
+  },
+  {
+   "id": "QA-GOV-193",
+   "title": "Monitoring-breach trigger with no breach register wired",
+   "verdict": "FAIL",
+   "evidence": "with no breach register wired the trigger answers None, which reads as *no breach since the assessment* \u2014 the one answer a monitoring-off estate must not be given"
+  },
+  {
+   "id": "QA-GOV-194",
+   "title": "Exposure moved exactly 25%",
+   "verdict": "PASS",
+   "evidence": "fired at exactly 25%"
+  },
+  {
+   "id": "QA-GOV-195",
+   "title": "Exposure moved 24.9%",
+   "verdict": "PASS",
+   "evidence": "24.9% does not fire"
+  },
+  {
+   "id": "QA-GOV-196",
+   "title": "Exposure moved downward by 40%",
+   "verdict": "PASS",
+   "evidence": "a 40% fall fires"
+  },
+  {
+   "id": "QA-GOV-197",
+   "title": "Assessment exposure of 0, current exposure of 5,000,000",
+   "verdict": "PASS",
+   "evidence": "a move from zero does not fire"
+  },
+  {
+   "id": "QA-GOV-198",
+   "title": "A Medium-severity breach after the assessment",
+   "verdict": "PASS",
+   "evidence": "fires on High, Critical and nothing below"
+  },
+  {
+   "id": "QA-GOV-199",
+   "title": "Elapsed-time trigger exactly at `next_review_due`",
+   "verdict": "PASS",
+   "evidence": "not at the date, fired a day after it"
   }
  ]
 }

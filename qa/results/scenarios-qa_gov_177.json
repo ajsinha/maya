@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-177",
+   "title": "Assess with `exposure` exactly at a configured band floor",
+   "verdict": "PASS",
+   "evidence": "1,000,000 -> 'low', one less -> 'negligible'"
+  }
+ ]
+}
