@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 5,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 7.5,
+ "results": [
+  {
+   "id": "QA-PLT-218",
+   "title": "A backup round-trips and the chain arrives intact",
+   "verdict": "PASS",
+   "evidence": "backed up and restored, exit 0"
+  },
+  {
+   "id": "QA-PLT-220",
+   "title": "Back up into a directory that already holds something",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-224",
+   "title": "Restore over an instance that holds evidence",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-228",
+   "title": "A store's digest differs from the manifest",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-230",
+   "title": "A manifest missing a required section",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  }
+ ]
+}
