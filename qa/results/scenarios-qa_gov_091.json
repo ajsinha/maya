@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-091",
+   "title": "Roll an alias back to the previous version",
+   "verdict": "PASS",
+   "evidence": "a rollback is refused 'registry_refused' \u2014 an amendment is the route back"
+  }
+ ]
+}

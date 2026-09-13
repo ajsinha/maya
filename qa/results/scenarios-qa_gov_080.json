@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-080",
+   "title": "A semver that is not three numeric parts",
+   "verdict": "FAIL",
+   "evidence": "these are not semvers and were accepted: ['1.0', 'v1.0.0', '1.0.0.0', 'one.two.three', '', '1.0.x']"
+  }
+ ]
+}

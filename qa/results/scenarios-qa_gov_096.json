@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-096",
+   "title": "Move an alias in an environment nobody configured",
+   "verdict": "PASS",
+   "evidence": "accepted: environments are not a closed list, so a firm may add one without a code change"
+  }
+ ]
+}

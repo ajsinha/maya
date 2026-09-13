@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-076",
+   "title": "A version with no digest at all",
+   "verdict": "PASS",
+   "evidence": "a version may have no artifact"
+  }
+ ]
+}
