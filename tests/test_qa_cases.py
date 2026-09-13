@@ -23,8 +23,8 @@ import re
 
 import pytest
 
-from tools.qa import verify
-from tools.qa.enumerate import build, screens
+from qa.regression_suite import verify
+from qa.regression_suite.enumerate import build, screens
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ASSEMBLED = ROOT / "docs" / "QA" / "QA-CASES.md"
@@ -32,7 +32,7 @@ ASSEMBLED = ROOT / "docs" / "QA" / "QA-CASES.md"
 
 @pytest.fixture(scope="module")
 def document() -> str:
-    assert ASSEMBLED.is_file(), "run: python -m tools.qa.verify"
+    assert ASSEMBLED.is_file(), "run: python -m qa.regression_suite.verify"
     return ASSEMBLED.read_text(encoding="utf-8")
 
 
@@ -48,7 +48,7 @@ class TestTheListCoversTheSystemAsItIsNow:
         one is a plan for a system that has moved."""
         assert verify.assemble() == document, (
             "docs/QA/QA-CASES.md is out of date; run "
-            "`python -m tools.qa.verify`")
+            "`python -m qa.regression_suite.verify`")
 
 
 class TestTheIdentifiersAreUsable:
