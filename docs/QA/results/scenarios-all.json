@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 149,
-  "pass": 149,
+  "total": 166,
+  "pass": 166,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 11.4,
+ "seconds": 15.7,
  "results": [
   {
    "id": "QA-AM-067",
@@ -407,7 +407,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09aa65e3cb8888fd90781d93b\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ab94db467969d6314239f32\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -527,7 +527,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-05271bf3\",\"name\":\"gov-05271bf3-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-915c59b7\",\"name\":\"gov-915c59b7-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -743,7 +743,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:4768c126ca6dc"
+   "evidence": "a fresh chain of 8 verifies, head sha256:b40d798217e4b"
   },
   {
    "id": "QA-PLT-010",
@@ -851,7 +851,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:20f92a6eec3186fe5712662"
+   "evidence": "identical: sha256:a9d04b65bcfe3641a305e62"
   },
   {
    "id": "QA-PLT-124",
@@ -869,7 +869,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:14867540568213163d677c1"
+   "evidence": "stable: sha256:ed28e0bd75395caed469edb"
   },
   {
    "id": "QA-PLT-127",
@@ -900,6 +900,108 @@
    "title": "The published list of document kinds is closed",
    "verdict": "PASS",
    "evidence": "4 kinds published"
+  },
+  {
+   "id": "QA-PLT-180",
+   "title": "Register a Tier C capability",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-181",
+   "title": "Register with tier 'c', lower case",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-182",
+   "title": "Tier A registered without an oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required' (422)"
+  },
+  {
+   "id": "QA-PLT-183",
+   "title": "Tier C and a bogus oracle together",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-184",
+   "title": "A capability naming an oracle that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_oracle' (422)"
+  },
+  {
+   "id": "QA-PLT-186",
+   "title": "review_sample outside 0..1",
+   "verdict": "PASS",
+   "evidence": "both refused"
+  },
+  {
+   "id": "QA-PLT-187",
+   "title": "A Tier B capability registers with an oracle it does not need",
+   "verdict": "PASS",
+   "evidence": "answered 422 (unknown_oracle)"
+  },
+  {
+   "id": "QA-PLT-188",
+   "title": "A valid Tier B capability",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-PLT-189",
+   "title": "Draft against a subject with no evidence at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-190",
+   "title": "A generation whose claims cite nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' (422)"
+  },
+  {
+   "id": "QA-PLT-191",
+   "title": "Use a suspended capability",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-192",
+   "title": "The two tiers are the whole vocabulary",
+   "verdict": "PASS",
+   "evidence": "A and B; C is a refusal, not a tier"
+  },
+  {
+   "id": "QA-PLT-218",
+   "title": "A backup round-trips and the chain arrives intact",
+   "verdict": "PASS",
+   "evidence": "backed up and restored, exit 0"
+  },
+  {
+   "id": "QA-PLT-220",
+   "title": "Back up into a directory that already holds something",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-224",
+   "title": "Restore over an instance that holds evidence",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-228",
+   "title": "A store's digest differs from the manifest",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-230",
+   "title": "A manifest missing a required section",
+   "verdict": "PASS",
+   "evidence": "exited 1"
   }
  ]
 }

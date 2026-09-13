@@ -185,7 +185,34 @@ def read_manifest(source: pathlib.Path) -> Dict[str, Any]:
             f"is one taken by copying files, which is the case these tools "
             f"exist to distinguish. Without the manifest there is no recorded "
             f"chain head to verify the restore against.")
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as unreadable:
+        raise SystemExit(
+            f"{path} is not readable JSON ({unreadable}). A manifest that "
+            f"cannot be parsed is a backup that cannot be verified, and a "
+            f"restore that proceeded would be copying bytes with nothing to "
+            f"check them against.") from unreadable
+
+    # Every section the restore reads, checked HERE rather than found missing
+    # halfway through.
+    #
+    # A truncated manifest raised a bare `KeyError('chain')` from the middle of
+    # the restore — after the stores had already been copied over the target.
+    # An operator in the middle of a recovery was handed a dictionary key and
+    # nothing else: not which file was wrong, not what to do, and not the fact
+    # that the target had already been partly overwritten.
+    missing = [section for section in
+               ("manifest_version", "chain", "database", "stores")
+               if section not in manifest]
+    if missing:
+        raise SystemExit(
+            f"{path} is missing {', '.join(missing)}, so it cannot describe "
+            f"the backup it sits in. Nothing has been restored. Use the "
+            f"manifest written with this backup, or take a fresh one — a "
+            f"manifest assembled by hand cannot record the chain head the "
+            f"restore is verified against.")
+    return manifest
 
 
 def paths_from(cfg) -> Dict[str, pathlib.Path]:

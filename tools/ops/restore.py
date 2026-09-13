@@ -206,7 +206,28 @@ def main(argv=None) -> int:
         print(json.dumps(out, indent=2, sort_keys=True))
     # A restore whose chain is wrong must not exit 0: this runs in a recovery
     # script, and the script's next step is usually "start serving".
-    return 0 if out["chain"]["verifies"] and out["chain"]["head_agrees"] else 1
+    #
+    # **Four conditions, not two.** The exit code checked `verifies` and
+    # `head_agrees` only, so two states printed a warning to a human and
+    # returned success to the script:
+    #
+    # - a store's digest differing from the manifest — `DIGEST DIFFERS` on
+    #   stdout, exit 0, and the script serves artifacts that are not the ones
+    #   backed up;
+    # - the chain disagreeing with the WORM anchors — and the detail this tool
+    #   prints for that case says "the anchors are the one check a database
+    #   cannot forge, so this disagreement is the one to act on", immediately
+    #   before returning 0.
+    #
+    # A tool that says *act on this* and exits 0 has told a person something
+    # and told the automation nothing, and the automation is what runs next.
+    chain, anchors = out["chain"], (out.get("anchors") or {})
+    stores_agree = out["database_digest_matches"] and all(
+        s.get("matches") for s in out["stores"].values() if s.get("present"))
+    anchors_agree = not (anchors.get("anchored") and not anchors.get("agrees"))
+    healthy = (chain["verifies"] and chain["head_agrees"]
+               and stores_agree and anchors_agree)
+    return 0 if healthy else 1
 
 
 if __name__ == "__main__":                       # pragma: no cover
