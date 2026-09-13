@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-263",
+   "title": "The target appearing as a regressor",
+   "verdict": "PASS",
+   "evidence": "refused 'target_is_a_regressor'"
+  }
+ ]
+}
