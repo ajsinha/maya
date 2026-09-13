@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-5801",
+   "title": "Every term a signature declares has a translation",
+   "verdict": "PASS",
+   "evidence": "29 terms across 3 regimes, all translated"
+  }
+ ]
+}

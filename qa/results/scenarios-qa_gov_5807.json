@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-5807",
+   "title": "Two regimes do not share one term's meaning by accident",
+   "verdict": "PASS",
+   "evidence": "0 term(s) shared across regimes, each with one meaning: []"
+  }
+ ]
+}
