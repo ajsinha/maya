@@ -5,13 +5,13 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 0.9,
  "results": [
   {
    "id": "QA-PLT-338",
-   "title": "A revoked key stops working",
+   "title": "A revoked key, an expired key, and a key whose principal was suspended",
    "verdict": "PASS",
-   "evidence": "refused 'key_revoked' once revoked"
+   "evidence": "three reasons, three codes: {'revoked': 'key_revoked', 'expired': 'key_expired', 'suspended': 'key_principal_not_active'}"
   }
  ]
 }
