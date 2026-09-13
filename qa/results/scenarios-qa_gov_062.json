@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-062",
+   "title": "Two different people sign the same role",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed'"
+  }
+ ]
+}

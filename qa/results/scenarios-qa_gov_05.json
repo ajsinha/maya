@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 5,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-GOV-051",
+   "title": "Open two amendments against one model",
+   "verdict": "PASS",
+   "evidence": "refused 'amendment_open'"
+  },
+  {
+   "id": "QA-GOV-052",
+   "title": "Open an amendment with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-053",
+   "title": "Amendment references after two full cycles",
+   "verdict": "PASS",
+   "evidence": "AMD-001 then AMD-002"
+  },
+  {
+   "id": "QA-GOV-055",
+   "title": "What an amendment's scope records",
+   "verdict": "PASS",
+   "evidence": "scope recorded as given; a change outside it was ACCEPTED \u2014 the scope is a statement on the record, not a constraint"
+  },
+  {
+   "id": "QA-GOV-056",
+   "title": "Amend, add a version, then attest again",
+   "verdict": "PASS",
+   "evidence": "amended, versioned, attested again"
+  }
+ ]
+}
