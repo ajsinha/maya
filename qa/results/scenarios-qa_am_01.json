@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 7,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-010",
+   "title": "Conclude should_be_higher with a blank note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-011",
+   "title": "should_be_higher raises a finding",
+   "verdict": "PASS",
+   "evidence": "1 tiering finding(s) raised"
+  },
+  {
+   "id": "QA-AM-012",
+   "title": "should_be_lower raises nothing",
+   "verdict": "PASS",
+   "evidence": "no finding; reducing control needs a re-assessment"
+  },
+  {
+   "id": "QA-AM-013",
+   "title": "The tier moves between open and conclude",
+   "verdict": "PASS",
+   "evidence": "tier_at_open stays None while the model moved to 1"
+  },
+  {
+   "id": "QA-AM-014",
+   "title": "Conclude approved with no test result at all",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-017",
+   "title": "Conclude rejected over a failed test",
+   "verdict": "PASS",
+   "evidence": "rejected over a failed test"
+  },
+  {
+   "id": "QA-AM-018",
+   "title": "Conclude deferred while a blocking finding is open",
+   "verdict": "PASS",
+   "evidence": "deferred"
+  },
+  {
+   "id": "QA-AM-019",
+   "title": "Conclude approved_with_conditions with no conditions",
+   "verdict": "FAIL",
+   "evidence": "an episode with a failed test concluded 'approved_with_conditions' and NO conditions. `_check_approvable` runs only for 'approved', so the route the failure refusal points a validator towards accepts everything 'approved' refuses \u2014 a model with a failed test is approved under a longer name and the conditions the outcome is named for are absent"
+  }
+ ]
+}

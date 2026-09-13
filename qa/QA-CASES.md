@@ -3362,6 +3362,10 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-1600 | `regression` | A validation kind that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1600` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-1601 | `regression` | Open against a version that does not exist | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1601` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-1602 | `regression` | The independence verdict names who built it | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1602` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1700 | `regression` | Conclude approved over a failed test | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1700` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1701 | `regression` | Conclude approved_with_conditions with no results either | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1701` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1702 | `regression` | An outcome that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1702` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1703 | `regression` | A tier verdict that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1703` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->
