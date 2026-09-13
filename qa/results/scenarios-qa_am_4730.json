@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-4730",
+   "title": "The score is absent rather than zero when nothing is measurable",
+   "verdict": "PASS",
+   "evidence": "scored over 25% of the weight, and the detail says so"
+  }
+ ]
+}

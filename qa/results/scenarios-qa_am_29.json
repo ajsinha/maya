@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 7,
+  "fail": 1,
+  "blocked": 1
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-290",
+   "title": "A model with no overlays at all",
+   "verdict": "PASS",
+   "evidence": "measured at 1.0: nothing adjusted, nothing relied on"
+  },
+  {
+   "id": "QA-AM-2900",
+   "title": "A campaign kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_campaign_kind', naming the 6 kinds"
+  },
+  {
+   "id": "QA-AM-2901",
+   "title": "Close a campaign twice",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-AM-2902",
+   "title": "The derivation is kept, not the list",
+   "verdict": "PASS",
+   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'op': 'eq', 'value': 'credit'}"
+  },
+  {
+   "id": "QA-AM-2903",
+   "title": "A limit at or above the threshold is never slack",
+   "verdict": "PASS",
+   "evidence": "slack only below 0.25, and never on null"
+  },
+  {
+   "id": "QA-AM-291",
+   "title": "A model with one Critical finding past its date",
+   "verdict": "BLOCKED",
+   "evidence": "the arithmetic band is poor too, so this run does not show the cap outranking good news elsewhere"
+  },
+  {
+   "id": "QA-AM-292",
+   "title": "A model with twenty open Observation findings",
+   "verdict": "FAIL",
+   "evidence": "twenty Observations score 1.0 and one Critical scores 0.0: the weighting reads severity backwards"
+  },
+  {
+   "id": "QA-AM-293",
+   "title": "A model that has never been validated",
+   "verdict": "PASS",
+   "evidence": "measured 0.0, capped poor, 'never been validated'"
+  },
+  {
+   "id": "QA-AM-299",
+   "title": "Estate health over an empty estate",
+   "verdict": "PASS",
+   "evidence": "no models, and the detail reads: 0 model(s): "
+  }
+ ]
+}

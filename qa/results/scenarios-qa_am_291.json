@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-291",
+   "title": "A model with one Critical finding past its date",
+   "verdict": "PASS",
+   "evidence": "arithmetic poor, band poor, and the findings cap says: 1 Critical or High finding(s) are past their remediation date"
+  }
+ ]
+}
