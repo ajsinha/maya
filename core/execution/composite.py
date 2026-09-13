@@ -35,6 +35,16 @@ account for rather than a black box the register vouched for.
 **Cycles are refused rather than truncated.** A cyclic feeder graph is a model
 that reads its own output, and answering with a truncated order would give a
 caller a chain that runs and is wrong.
+
+**A composite that spanned a revocation is refused as one.** Members resolve one
+at a time — there is no transaction across several services to take — so a grant
+revoked between the first node and the last would leave a composite whose earlier
+descriptors were minted under an authorisation that no longer holds. Every node's
+own check passed; the *set* was never consistent. The revocation epoch is pinned
+before the first node and compared after the last, and a move refuses the whole
+thing rather than guessing which descriptor went stale. This is M-4, and the
+disposition that said composite warrants "are not built" was two milestones out
+of date.
 """
 from __future__ import annotations
 
@@ -152,6 +162,20 @@ class CompositeWarrants:
         """
         shape = self.chain(terminal_urn)
         moment = now if now is not None else time.time()
+        # The revocation epoch BEFORE any node resolves.
+        #
+        # M-4: a composite resolves its members one at a time, and a grant
+        # revoked between the first node and the last leaves a composite whose
+        # earlier descriptors were minted against an authorisation that no
+        # longer holds. Every node's own check passed; the set was never
+        # consistent, and the caller is handed a chain that looks whole.
+        #
+        # There is no transaction to take here — resolution is a read across
+        # several services — so this is optimistic: pin the epoch, resolve, and
+        # refuse the whole composite if it moved. That converts a silent
+        # inconsistency into a refusal the caller retries, which is the trade
+        # a chain "as governed as its least governed link" already implies.
+        opened_at_epoch = self.warrants.epoch
         descriptors, refusals = [], []
         for urn in shape["order"]:
             try:
@@ -179,12 +203,33 @@ class CompositeWarrants:
                 "composite refuses as one unit. Every refusing node is named "
                 "here rather than one at a time, because a caller told only "
                 "about the first fixes it, retries and discovers the second")
+        closed_at_epoch = self.warrants.epoch
+        if closed_at_epoch != opened_at_epoch:
+            # Something was revoked while this was resolving. WHICH node is not
+            # knowable from here without re-resolving, and re-resolving would
+            # race the same way, so the whole composite is refused rather than
+            # the platform guessing which descriptor is now stale.
+            logger.warning(
+                "composite over %s spanned a revocation (epoch %s -> %s), "
+                "refused", terminal_urn, opened_at_epoch, closed_at_epoch)
+            raise WarrantError(
+                "composite_spanned_a_revocation",
+                f"a grant was revoked while this chain of {shape['nodes']} "
+                f"node(s) was resolving (revocation epoch moved from "
+                f"{opened_at_epoch} to {closed_at_epoch}), so the descriptors "
+                f"already minted were authorised under a state that no longer "
+                f"holds",
+                "retry. The nodes resolved individually and the set was never "
+                "consistent, which is a different failure from any one node "
+                "refusing — and handing back a chain that looks whole would "
+                "be the worse answer")
         logger.info("composite over %s resolved %d node(s) for %s",
                     terminal_urn, len(descriptors), principal)
         return {
             "terminal": terminal_urn, "environment": environment,
             "principal": principal, "declared_use": declared_use,
             "resolved_at": moment,
+            "revocation_epoch": closed_at_epoch,
             "order": shape["order"], "nodes": descriptors,
             "tier": shape["tier"],
             "composite_descriptor": None,
