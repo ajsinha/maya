@@ -2027,6 +2027,24 @@
         ]
       }
     },
+    "/api/v1/execution-posture": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/execution-posture/unreported": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/experiments": {
       "get": {
         "body": [],

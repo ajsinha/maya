@@ -424,6 +424,28 @@ consumes it, so a principal that resolves warrants and has never reported anythi
 The reference `CaptiveEngine` is the only engine that has ever run a MAYA warrant. Everything the platform
 says about governed execution outside it is a statement about a document, not about an observation.
 
+**Two of the four are now built, and the important thing is which two.** The attack above is unchanged and
+unfixable: MAYA does not run models, so nothing detects an engine ignoring the boundary it was given. What
+was fixable was that **MAYA could not see the gap between what it authorised and what came back**, which is
+a fact about its own records and was sitting in two columns nothing read.
+
+`warrant.flavour` now has a reader — `core/execution/observability.py` reports what share of live
+authorisation is `descriptor_only`, and singles out Tier 1 and 2. The quantity was not low before; it was
+*absent*, and an estate could be governed entirely through documents with no screen able to say so.
+
+`TelemetryCollector.estate()` now has a consumer — the `execution.unreported` job raises a finding for a
+live warrant whose model reports nothing. It is raised **advisory rather than blocking**, against the grain
+of every other job here, because silence is equally consistent with an unused warrant and MAYA cannot tell
+those apart; blocking on a condition the platform admits it cannot diagnose trains people to override it,
+and a weekly override is not a control. The answer carries `does_not_prove`.
+
+**Certification as an input to tiering is refused rather than left open.** Tiering is exposure × purpose;
+who runs a model is a property of the arrangement, not of the model's risk, and folding it in would make the
+same model tier differently on two engines — which would make the tier unusable as the thing controls hang
+off. **Signed telemetry stays unbuilt** for the reason in [10 §2.1](10-roadmap.md): a per-engine
+HMAC key already confines a compromised engine to forging its own reports, and signing buys non-repudiation
+to a third party nobody has asked for.
+
 ### 4.8 The laws are the acceptance criteria, and there is now a build
 
 **The attack.** The strongest claim this design makes is that its laws are executable and that a failing
@@ -622,7 +644,11 @@ everywhere.
 
 ### C-6 · `descriptor_only` warrants make governance dependent on client honesty
 
-**Accepted, and four of its five mitigations are unbuilt.** See
+**Accepted. Two of its five mitigations were built, two are refused with reasons, and the limitation
+itself is permanent.** The attack is not repairable by any module — a register that does not run models
+cannot observe an engine — but the *gap between what MAYA authorised and what came back* was visible from
+inside its own records and nothing looked. `warrant.flavour` now has a reader and the telemetry liveness
+report now has a consumer. See
 [§4.7](#47-everything-claimed-about-an-engine-maya-does-not-run-is-unobserved).
 
 ### 5.2 The high findings
@@ -646,7 +672,7 @@ everywhere.
 | **M-1** · `Para(Stoch)` handles adaptive (T4) models awkwardly | **Closed as a documentation fix, and the code says the same thing.** `T4` requires `fit=train` **and** `adaptive`; `adaptive` with any other fit derives the fit's own class, because *continuously updating* without a training procedure is a description rather than a class |
 | **M-2** · Provenance polynomials blow up exponentially | **Closed.** `MAX_TERMS = 4096`, canonical form with absorption in `_why_plus`, memoised evaluation, and an explicit truncation marker rather than a silently partial answer |
 | **M-3** · Outbox writes are not idempotent | **Moot.** There is no outbox and no message bus. Idempotence is obtained differently and in two places that do work: scheduler jobs re-derive their condition and check whether the finding was already raised, and telemetry ingestion is idempotent on `telemetry_batch.digest`, which is `UNIQUE`. Notification delivery is *not* transactional — a crash between the send and the record loses or repeats a digest |
-| **M-4** · Composite warrants may re-resolve members mid-execution | **Not built, and neither are composite warrants.** What exists is typed model-to-model composition: `input_to` edges type-checked under `L-21`, blast radius, shared dependencies, and a derived composite schema. `WarrantBuilder.build` takes one model and one version |
+| **M-4** · Composite warrants may re-resolve members mid-execution | **Closed, and the disposition was two milestones stale.** It said composite warrants were not built; `core/execution/composite.py` has existed for two, and the finding underneath was live the whole time. Members resolve one at a time — there is no transaction across several services to take — so a grant revoked between the first node and the last left a composite whose earlier descriptors were minted under an authorisation that no longer held. **Every node's own check passed; the set was never consistent**, and the caller received a chain that looked whole. The revocation epoch is now pinned before the first node and compared after the last, and a move refuses the whole composite as `composite_spanned_a_revocation` rather than guessing which descriptor went stale. The test proves it on a *single-node* chain, which is the harder case: with one node there is no second resolution to catch the change and only the pinned epoch can. Also built: typed model-to-model composition, `input_to` edges type-checked under `L-21`, blast radius, shared dependencies, and a derived composite schema. `WarrantBuilder.build` takes one model and one version |
 | **M-5** · `L-6` only checks machine-parseable claims | **Superseded by the honest answer.** `L-6` is not executable at all and [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) says so: the replay that would check a summary exists for validation episodes and not for documents, so there is no `γ` |
 | **M-6** · No FinOps model | **Built, in the only shape this platform can honestly take** — `core/estate/cost.py`. MAYA does not run models, so it **does not observe cost**: a figure it computed would be a price somebody typed multiplied by a call count it also did not observe, printed as a measurement. Cost arrives attested, over a stated period, from a named source. What MAYA adds is the half nobody else can — **attribution from the register's own ownership**, copied at record time so a report for last quarter says who owned it last quarter rather than who holds it today. The headline is not the total (a bill has that) but the **share nobody attributed**: a bill is complete by construction, so an unattributed cost looks exactly like an attributed one until somebody asks who owns it. Budgets **enforce nothing** — MAYA is not on the serving path and cannot decline the next invocation — and a breach raises a finding with an owner. Currencies are reported and never summed across |
 | **M-7** · Deletion of a model is undefined | **Mostly built, and re-checking it found the live half.** `LifecycleService.delete` is administrators-only, requires a reason, appends evidence *before* the rows go, and leaves the chain intact. The *"there is no legal hold, no retention state machine"* this row carried was stale — `core/retention/holds.py` and `core/retention/schedule.py` have both existed for a milestone. What was true, and worse, is that **the deleter did not consult the hold**: `LegalHolds.held` has documented itself as *"the question a deleter asks"* since it was written, holds were checked by the inference log and the retention schedule, and the one act with no workflow, no reversal and no second signature never asked. A model under an active hold could be destroyed while the module that would have refused it sat in the same process. Now refused as `under_legal_hold`, before the evidence node, with no override — a hold a deletion could step over would not be a hold. **The tombstone and the cascade are now built, and building them found a live defect underneath.** `core/retention/tombstones.py` keeps the URN resolving and refuses re-registration over it as `urn_was_deleted` — without which a second model of the same name silently inherits the destroyed one's evidence, and every hash still verifies. `core/retention/cascade.py` declares a disposition for **every** one of the thirty-eight tables carrying a `model_id`; the reference index queried thirty-three, and `validation` and `version_approval` were never read, so a model with an unfinished validation reported `deletable: true`. Worse, [the guard test passed by matching the table name in prose](#33-a-test-that-passes-for-a-reason-other-than-its-name). `core/retention/compaction.py` reclaims blobs nothing references, marking before sweeping because an upload writes bytes before the row that names them. [14 §26a](14-detailed-design.md) |
@@ -894,9 +920,9 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 
 | | Closed, with the control in the source | Moot | Open |
 |---|---|---|---|
-| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built); **C-4 disposition 3** (the checkpoint is corroborated against the anchors, and the attack is in the suite) | — | **C-4 disposition 4** — role separation, unbuilt and now *reported* as unbuilt rather than reading as met (a topology change, [ADR-016](adr/ADR-016-one-process-one-database.md)); C-6, four of five mitigations |
+| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built); **C-4 disposition 3** (the checkpoint is corroborated against the anchors, and the attack is in the suite) | — | **C-4 disposition 4** — role separation, unbuilt and now *reported* as unbuilt rather than reading as met (a topology change, [ADR-016](adr/ADR-016-one-process-one-database.md)); **C-6** — the limitation is permanent and two of its four unbuilt mitigations are now built, two refused with reasons ([§4.7](#47-everything-claimed-about-an-engine-maya-does-not-run-is-unobserved)) |
 | **High** | H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2 and H-9 — open **under a recorded decision**, [ADR-016](adr/ADR-016-one-process-one-database.md); H-3 (satisfied in the law, not the mechanism) |
-| **Medium / low** | M-1, M-2, **M-6**, **M-7** — the deleter asks the hold, the tombstone keeps the identity from falling free, the cascade is declared for all thirty-eight tables and compaction reclaims the bytes — **M-8**, F-1 … F-4 | M-3, M-5 | M-4 (composite warrants are not built either) |
+| **Medium / low** | M-1, M-2, **M-4** (the revocation-epoch guard — and the row calling composite warrants unbuilt was describing an earlier codebase), **M-6**, **M-7** — the deleter asks the hold, the tombstone keeps the identity from falling free, the cascade is declared for all thirty-eight tables and compaction reclaims the bytes — **M-8**, F-1 … F-4 | M-3, M-5 | — |
 | **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start), **§3.5** and **§3.6** — the checkpoint is no longer self-certified, and the dashboard and the document compiler stopped walking the whole chain *because* it stopped being self-certified | — | **§4.9**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md), answered by ADR-011 — and now one of the three consequences recorded in [ADR-016](adr/ADR-016-one-process-one-database.md) |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
@@ -937,7 +963,7 @@ exists to find.
 **It cannot see a control that is inert for a reason outside the repository.** Every check here is a grep,
 a read and a test. A control that is correct in the source and disabled by configuration, unreachable
 behind a load balancer, or never invoked because the deployment does not run the scheduler is invisible to
-all three. The scheduler is the concrete case: 26 idempotent jobs turn computed conditions into recorded
+all three. The scheduler is the concrete case: 27 idempotent jobs turn computed conditions into recorded
 consequences, the in-process loop is **off by default**, and an instance whose operator never wired a cron
 entry has a governance platform in which no attestation ever lapses, no monitor is ever recorded as
 stalled, no overlay expires, no debt reconciles, and the evidence chain is never fully verified. Nothing in

@@ -245,6 +245,37 @@ class WarrantRoutes(Routes):
                 warrant_id, rate=body.rate, quota=body.quota, cost=body.cost,
                 window_hours=body.window_hours, actor=self.actor(who)))
 
+        @self.app.get(f"{self.api}/execution-posture", tags=["warrants"])
+        def execution_posture(request: Request):
+            """How much of the estate runs on engines MAYA cannot see into.
+
+            `warrant.flavour` is written at every issue and was read by
+            nothing, so the platform could be governing its whole estate
+            through documents rather than observations and had no way to say
+            so. The quantity was not low — it was absent.
+
+            The answer carries `does_not_prove`, because it does not: nothing
+            here observes an engine honouring the operating boundary it was
+            given, and no register that does not run models ever could.
+            """
+            self.authorise(request, "warrant:read")
+            return self.ctx["execution_observability"].posture()
+
+        @self.app.get(f"{self.api}/execution-posture/unreported",
+                      tags=["warrants"])
+        def unreported_execution(request: Request):
+            """Live warrants whose models have sent nothing back.
+
+            The one symptom of the descriptor-only attack that is visible from
+            inside MAYA's own records: it issued the warrant and received no
+            telemetry. Reported with what it cannot distinguish, because an
+            authorisation nobody exercises and one whose exercise nobody can
+            see look identical from here.
+            """
+            self.authorise(request, "warrant:read")
+            return {"unreported": self.ctx[
+                "execution_observability"].authorised_and_silent()}
+
         @self.app.get(f"{self.api}/engine", tags=["warrants"])
         def engine_boundary(request: Request):
             """What the captive engine is, and what its isolation does not cover.
