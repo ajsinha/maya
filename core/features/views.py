@@ -125,12 +125,46 @@ class ViewManager:
 
     @staticmethod
     def _check_clocks(rows: List[Dict[str, Any]]) -> None:
-        for r in rows:
+        """Both clocks present, and both COMPARABLE.
+
+        Presence was checked and type was not, and the two clocks are the
+        thing point-in-time assembly compares:
+
+            r[VALID_TIME] <= label_ts and r[INGEST_TIME] <= knowable_by
+
+        So an `event_ts` of `"2026-01-01T00:00:00Z"` was accepted at
+        materialise — 201, a recorded version, a pinned Delta table — and then
+        **every assembly over that view answered 500** with `'<=' not
+        supported between instances of 'str' and 'float'`. Not one row: the
+        whole view, for every entity, because the comparison walks all
+        candidates before choosing.
+
+        One malformed row from one loader, and the point-in-time story for
+        that view is over until somebody finds it. It is refused here instead,
+        where the row can still be corrected and the message can name which
+        row and which clock.
+
+        `bool` is excluded deliberately. `True <= 100.0` is perfectly legal in
+        Python and completely meaningless as a timestamp, so it would pass a
+        comparability check and silently sort as 1.
+        """
+        for index, r in enumerate(rows):
             for required in (ENTITY, VALID_TIME, INGEST_TIME):
                 if required not in r:
                     raise FeatureError(
                         f"row is missing '{required}'; feature rows carry two clocks — "
                         f"{VALID_TIME} (when it was true) and {INGEST_TIME} (when we learned it)")
+            for clock in (VALID_TIME, INGEST_TIME):
+                value = r[clock]
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise FeatureError(
+                        f"row {index} has {clock}={value!r}, which is a "
+                        f"{type(value).__name__} and not a number. The two "
+                        f"clocks are compared with <= against the assembly "
+                        f"bounds, so a non-numeric one is not a clock that "
+                        f"reads late — it is a clock that stops every "
+                        f"point-in-time read of this view with a type error. "
+                        f"Send epoch seconds")
 
     def _assertions_for(self, names: List[str]) -> Dict[str, List[Dict[str, Any]]]:
         """Each named feature's declared assertions, if it has any.

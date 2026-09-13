@@ -1,395 +1,107 @@
 {
  "summary": {
-  "total": 64,
-  "pass": 64,
+  "total": 16,
+  "pass": 16,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 2.7,
+ "seconds": 2.5,
  "results": [
   {
-   "id": "QA-DEL-001",
-   "title": "Delete as a non-administrator holding model:delete",
+   "id": "QA-FX-001",
+   "title": "A restatement landing after the label cannot reach the row",
    "verdict": "PASS",
-   "evidence": "refused 'forbidden' (403)"
+   "evidence": "assembled 1.2"
   },
   {
-   "id": "QA-DEL-002",
-   "title": "Delete with an empty reason",
+   "id": "QA-FX-002",
+   "title": "Saturation \u2014 moving as_of past the label does not move it",
    "verdict": "PASS",
-   "evidence": "refused 'reason_required' (422)"
+   "evidence": "assembled 1.2"
   },
   {
-   "id": "QA-DEL-003",
-   "title": "Delete with a whitespace-only reason",
+   "id": "QA-FX-003",
+   "title": "A later label reaches the restatement",
    "verdict": "PASS",
-   "evidence": "refused 'reason_required' (422)"
+   "evidence": "assembled 0.4"
   },
   {
-   "id": "QA-DEL-004",
-   "title": "Delete a model under a model-scoped hold",
+   "id": "QA-FX-004",
+   "title": "A label before any fact was true",
    "verdict": "PASS",
-   "evidence": "refused 'under_legal_hold' (423)"
+   "evidence": "no admissible row, and the column is null"
   },
   {
-   "id": "QA-DEL-006",
-   "title": "A hold placed by URN still reaches the deleter",
+   "id": "QA-FX-005",
+   "title": "as_of strictly before the label bounds the assembly",
    "verdict": "PASS",
-   "evidence": "refused 'under_legal_hold' (423)"
+   "evidence": "assembled 0.4"
   },
   {
-   "id": "QA-DEL-007",
-   "title": "Delete after the covering hold is lifted",
+   "id": "QA-FX-006",
+   "title": "Monotone in as_of \u2014 a later cut only ever widens",
    "verdict": "PASS",
-   "evidence": "accepted (200)"
+   "evidence": "admissible sets nest: [1, 1, 2]"
   },
   {
-   "id": "QA-DEL-008",
-   "title": "There is no force or override on delete",
+   "id": "QA-FX-007",
+   "title": "Idempotence over the same request",
    "verdict": "PASS",
-   "evidence": "no override parameter; accepts ['name', 'reason']"
+   "evidence": "identical"
   },
   {
-   "id": "QA-DEL-009",
-   "title": "Delete a model that does not exist",
+   "id": "QA-FX-008",
+   "title": "event_ts exactly equal to label_ts is included",
    "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
+   "evidence": "assembled 1.2"
   },
   {
-   "id": "QA-DEL-010",
-   "title": "Delete the same model twice",
+   "id": "QA-FX-009",
+   "title": "ingest_ts exactly equal to the knowable bound is included",
    "verdict": "PASS",
-   "evidence": "second deletion refused (409)"
+   "evidence": "assembled 0.4"
   },
   {
-   "id": "QA-DEL-011",
-   "title": "The evidence node is appended before the rows go",
+   "id": "QA-FX-010",
+   "title": "ingest_ts one tick past the label, as_of far ahead",
    "verdict": "PASS",
-   "evidence": "the chain grew 17 -> 18 and the screen shows it"
+   "evidence": "assembled 1.2"
   },
   {
-   "id": "QA-DEL-012",
-   "title": "The chain still verifies after a deletion",
+   "id": "QA-FX-013",
+   "title": "event_ts supplied as an ISO string rather than epoch",
    "verdict": "PASS",
-   "evidence": "valid"
+   "evidence": "refused (409)"
   },
   {
-   "id": "QA-DEL-014",
-   "title": "The deletion response carries what was destroyed",
+   "id": "QA-FX-014",
+   "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "destroyed={}"
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09a6cacf5cb59fc6b795b1437\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
-   "id": "QA-DEL-015",
-   "title": "The deletion says storage was NOT reclaimed",
+   "id": "QA-FX-015",
+   "title": "An as_of before the view existed",
    "verdict": "PASS",
-   "evidence": "storage_reclaimed is false"
+   "evidence": "no admissible row, and the column is null"
   },
   {
-   "id": "QA-DEL-020",
-   "title": "Register at a URN that belonged to a deleted model",
+   "id": "QA-FX-016",
+   "title": "A negative as_of",
    "verdict": "PASS",
-   "evidence": "refused 'urn_was_deleted' (409)"
+   "evidence": "answered 200"
   },
   {
-   "id": "QA-DEL-021",
-   "title": "The refusal names when and by whom",
+   "id": "QA-FX-017",
+   "title": "An entity that has no rows",
    "verdict": "PASS",
-   "evidence": "the refusal names the actor and the reason"
+   "evidence": "no admissible facts for an unknown entity"
   },
   {
-   "id": "QA-DEL-022",
-   "title": "Register at a URN nobody ever used",
+   "id": "QA-FX-018",
+   "title": "An assembly on a view version that does not exist",
    "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
-   "id": "QA-DEL-023",
-   "title": "A deleted URN resolves to what happened to it",
-   "verdict": "PASS",
-   "evidence": "resolves: deleted from draft"
-  },
-  {
-   "id": "QA-DEL-024",
-   "title": "A URN nobody ever used does not resolve",
-   "verdict": "PASS",
-   "evidence": "refused 'no_such_urn' (404)"
-  },
-  {
-   "id": "QA-DEL-025",
-   "title": "The tombstone records the state deleted FROM",
-   "verdict": "PASS",
-   "evidence": "records draft"
-  },
-  {
-   "id": "QA-DEL-026",
-   "title": "A deleted model is absent from listings",
-   "verdict": "PASS",
-   "evidence": "absent from the listing"
-  },
-  {
-   "id": "QA-DEL-027",
-   "title": "A tombstoned URN cannot be transitioned",
-   "verdict": "PASS",
-   "evidence": "refused (409 registry_refused)"
-  },
-  {
-   "id": "QA-DEL-028",
-   "title": "There is no route that reverses a tombstone",
-   "verdict": "PASS",
-   "evidence": "no reversal route"
-  },
-  {
-   "id": "QA-DEL-029",
-   "title": "Tombstones need evidence:read",
-   "verdict": "PASS",
-   "evidence": "refused 'forbidden' (403)"
-  },
-  {
-   "id": "QA-DEL-053",
-   "title": "A blocking reference names itself in the refusal",
-   "verdict": "PASS",
-   "evidence": "refused and named the version"
-  },
-  {
-   "id": "QA-DEL-055",
-   "title": "Inference records survive a deletion",
-   "verdict": "PASS",
-   "evidence": "declared STAYS"
-  },
-  {
-   "id": "QA-DEL-057",
-   "title": "The cascade declaration covers every table",
-   "verdict": "PASS",
-   "evidence": "38 tables declared, all 38 covered"
-  },
-  {
-   "id": "QA-DEL-058",
-   "title": "A table with no disposition fails the build",
-   "verdict": "PASS",
-   "evidence": "every table carrying a model_id has a disposition and tests/test_tombstones.py enforces it"
-  },
-  {
-   "id": "QA-DEL-074",
-   "title": "A sweep is refused under an estate-wide hold",
-   "verdict": "PASS",
-   "evidence": "refused 'under_legal_hold' (423)"
-  },
-  {
-   "id": "QA-DEL-075",
-   "title": "A compaction plan reclaims nothing",
-   "verdict": "PASS",
-   "evidence": "plan is repeatable: 0 ready"
-  },
-  {
-   "id": "QA-DEL-076",
-   "title": "A dry-run sweep reports and reclaims nothing",
-   "verdict": "PASS",
-   "evidence": "dry run: {'dry_run': True, 'marked': 0, 'cleared': 0, 'swept': 0, 'reclaimed_bytes': 0, 'by_store': {'artifact': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}, 'attachment': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}}}"
-  },
-  {
-   "id": "QA-DEL-077",
-   "title": "Delta is reported as out of reach, not skipped",
-   "verdict": "PASS",
-   "evidence": "reported: Delta keeps its own transaction log; removing part files from outside it produce"
-  },
-  {
-   "id": "QA-DEL-078",
-   "title": "Vacuum answers and reports what it reclaimed",
-   "verdict": "PASS",
-   "evidence": "{'before_bytes': 1384448, 'after_bytes': 1384448, 'reclaimed_bytes': 0, 'measured': True}"
-  },
-  {
-   "id": "QA-DEL-079",
-   "title": "Compacting a model that was never deleted",
-   "verdict": "PASS",
-   "evidence": "refused no_tombstone"
-  },
-  {
-   "id": "QA-DEL-081",
-   "title": "A sweep needs storage:compact",
-   "verdict": "PASS",
-   "evidence": "refused 'forbidden' (403)"
-  },
-  {
-   "id": "QA-DEL-082",
-   "title": "Every content address is refcounted",
-   "verdict": "PASS",
-   "evidence": "2 address column(s) refcounted"
-  },
-  {
-   "id": "QA-GOV-001",
-   "title": "Register the same URN twice",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-002",
-   "title": "Two URNs differing only in letter case",
-   "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-e28ac24d\",\"name\":\"gov-e28ac24d-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
-  },
-  {
-   "id": "QA-GOV-003",
-   "title": "A URN that is a strict prefix of an existing one",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
-   "id": "QA-GOV-004",
-   "title": "Submit with no version and no tier",
-   "verdict": "PASS",
-   "evidence": "refused 'nothing_to_approve' (409)"
-  },
-  {
-   "id": "QA-GOV-005",
-   "title": "Submit with a version but no assessment",
-   "verdict": "PASS",
-   "evidence": "refused 'not_tiered' (409)"
-  },
-  {
-   "id": "QA-GOV-006",
-   "title": "The full ordered path: register, version, assess, submit",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-007",
-   "title": "PATCH an editable field on a draft",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-008",
-   "title": "PATCH the urn on a draft",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-009",
-   "title": "PATCH status directly, bypassing the state machine",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-010",
-   "title": "PATCH tier directly",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-011",
-   "title": "PATCH with an empty body",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-012",
-   "title": "PATCH the same field to the same value twice",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-015",
-   "title": "Designations back to empty after being populated",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-016",
-   "title": "Designations containing the same value twice",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
-  },
-  {
-   "id": "QA-GOV-023",
-   "title": "Triage with an empty rationale",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_error' (422)"
-  },
-  {
-   "id": "QA-GOV-029",
-   "title": "Submit twice",
-   "verdict": "PASS",
-   "evidence": "refused 'illegal_transition' (409)"
-  },
-  {
-   "id": "QA-GOV-030",
-   "title": "Approve a draft record",
-   "verdict": "PASS",
-   "evidence": "refused 'illegal_transition' (409)"
-  },
-  {
-   "id": "QA-GOV-031",
-   "title": "Attest a submitted record",
-   "verdict": "PASS",
-   "evidence": "refused 'no_attestation_open' (409)"
-  },
-  {
-   "id": "QA-GOV-032",
-   "title": "Return a draft record",
-   "verdict": "PASS",
-   "evidence": "refused 'illegal_transition' (409)"
-  },
-  {
-   "id": "QA-GOV-033",
-   "title": "Return with a whitespace-only reason",
-   "verdict": "PASS",
-   "evidence": "refused 'reason_required' (422)"
-  },
-  {
-   "id": "QA-GOV-034",
-   "title": "Retire a submitted record",
-   "verdict": "PASS",
-   "evidence": "refused 'illegal_transition' (409)"
-  },
-  {
-   "id": "QA-GOV-036",
-   "title": "Retire twice",
-   "verdict": "PASS",
-   "evidence": "refused 'illegal_transition' (409)"
-  },
-  {
-   "id": "QA-GOV-037",
-   "title": "Add a version to a retired record",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-038",
-   "title": "PATCH a retired record",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-041",
-   "title": "Sign an attestation before approval",
-   "verdict": "PASS",
-   "evidence": "refused 'no_attestation_open' (409)"
-  },
-  {
-   "id": "QA-GOV-060",
-   "title": "Submit a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-061",
-   "title": "Retire a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-062",
-   "title": "Assess a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-GOV-063",
-   "title": "Approve a submitted record",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
+   "evidence": "refused (409)"
   }
  ]
 }
