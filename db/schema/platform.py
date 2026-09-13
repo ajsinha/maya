@@ -1001,3 +1001,80 @@ ARTIFACT_PROVENANCE = Table(
     Column("recorded_at", Double, nullable=False),
     Index("uq_artifact_provenance", "artifact_digest", unique=True),
 )
+
+
+# --------------------------------------------------------------------------
+# Tombstones
+#
+# A deleted model leaves a hole shaped exactly like a model that never existed,
+# and those two things must never look the same.
+#
+# Nineteen tables carry a `model_id` and the evidence chain survives the
+# deletion by design, so the moment the row goes there are records naming an
+# identifier that resolves to nothing. Worse, the URN is derived from the name:
+# register a second model called the same thing and every historical node about
+# the destroyed one silently re-attaches to the new one. The chain still
+# verifies. It is simply describing the wrong model.
+#
+# A tombstone is the row that stays. It answers "what was this?" for anything
+# holding a reference, and it is what makes re-registering the URN refusable
+# rather than merely unwise.
+#
+# `destroyed` is a count per table, taken at deletion. It is the only record of
+# scale that survives — after the cleanup there is nothing left to count — and
+# an examiner asking what a deletion actually removed has no other source.
+MODEL_TOMBSTONE = Table(
+    "model_tombstone", METADATA,
+    Column("id", Text, primary_key=True),
+    # Not a foreign key to a row that no longer exists. This IS the row now.
+    Column("model_id", Text, nullable=False),
+    Column("urn", Text, nullable=False),
+    Column("name", Text, nullable=False),
+    Column("model_class", Text, nullable=False, server_default=text("''")),
+    Column("domain", Text, nullable=False, server_default=text("''")),
+    Column("owner", Text, nullable=False, server_default=text("''")),
+    Column("legal_entity", Text, nullable=False, server_default=text("''")),
+    # The lifecycle state it was in when it went. A model deleted from `draft`
+    # and one deleted from `retired` are different acts, and only this says so.
+    Column("status", Text, nullable=False),
+    Column("tier", Integer),
+    Column("registered_at", Double),
+    Column("deleted_at", Double, nullable=False),
+    Column("deleted_by", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("destroyed", Text, nullable=False, server_default=text("'{}'")),
+    # Reclamation is a second act, and until it happens the bytes are still
+    # there. Null means the storage has not been reclaimed.
+    Column("compacted_at", Double),
+    Column("compacted_by", Text),
+    Column("reclaimed", Text, nullable=False, server_default=text("'{}'")),
+    Index("uq_model_tombstone_urn", "urn", unique=True),
+    Index("ix_model_tombstone_deleted", "deleted_at"),
+)
+
+
+# --------------------------------------------------------------------------
+# Orphaned blobs, marked before they are swept
+#
+# Both content stores address by digest, so a blob is reclaimable only when no
+# surviving row names it — and "no surviving row" is a fact about one moment.
+# A sweep that deleted on first sight would race every in-flight upload: the
+# bytes land, the row that will reference them is one statement away, and the
+# sweeper walking past in between sees an orphan.
+#
+# So a sweep MARKS, and a later sweep reclaims what is still unreferenced. The
+# quarantine is the gap between the two, which makes it a real interval rather
+# than a timestamp somebody trusts. A blob that acquires a reference between
+# the two passes has its mark cleared and is never touched.
+BLOB_ORPHAN = Table(
+    "blob_orphan", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("store", Text, nullable=False),       #: artifact | attachment
+    Column("digest", Text, nullable=False),
+    Column("bytes", Integer, nullable=False, server_default=text("0")),
+    Column("first_seen_at", Double, nullable=False),
+    Column("last_seen_at", Double, nullable=False),
+    #: How many sweeps in a row have found it unreferenced.
+    Column("sightings", Integer, nullable=False, server_default=text("1")),
+    Index("uq_blob_orphan", "store", "digest", unique=True),
+)

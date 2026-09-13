@@ -1219,6 +1219,85 @@ class ModelRoutes(Routes):
             return self.guard(lambda: self.ctx["legal_holds"].lift(
                 reference, body.reason, actor=self.actor(who)))
 
+        # --------------------------------------------------------- tombstones
+        @self.app.get(f"{self.api}/tombstones", tags=["registry"])
+        def tombstones(request: Request, compacted: Optional[bool] = None):
+            """Models somebody destroyed, and what each deletion removed.
+
+            The only remaining record of an act with no workflow, no reversal
+            and no second signature. `destroyed` is a count per table taken at
+            deletion — afterwards there is nothing left to count.
+            """
+            self.authorise(request, "evidence:read")
+            return {"tombstones": self.ctx["tombstones"].list(
+                compacted=compacted)}
+
+        @self.app.get(f"{self.api}/tombstones/{{urn:path}}", tags=["registry"])
+        def tombstone(request: Request, urn: str):
+            """What a reference to a deleted model resolves to.
+
+            Not 404. A URN nobody has ever used and a URN whose model somebody
+            destroyed are different answers, and returning the same one for
+            both is how a historical reference becomes a puzzle.
+            """
+            self.authorise(request, "evidence:read")
+            found = self.ctx["tombstones"].resolve(urn)
+            if found is None:
+                raise HTTPException(status_code=404, detail={
+                    "error": "no_such_urn",
+                    "detail": f"no model has been registered or deleted at {urn}",
+                    "remediation": "check the identifier; this is not the same "
+                                   "answer as 'it was deleted'"})
+            return found
+
+        @self.app.get(f"{self.api}/deletion-cascade", tags=["registry"])
+        def deletion_cascade(request: Request):
+            """What happens to every other table when a model is deleted.
+
+            Published because the alternative is an operator discovering the
+            disposition by performing it. Each of the thirty-eight tables
+            carrying a `model_id` either blocks the deletion, goes with the
+            model, or stays as the record that something happened.
+            """
+            self.authorise(request, "model:read")
+            from core.retention import Cascade
+            return {"cascade": Cascade.describe()}
+
+        # --------------------------------------------------------- compaction
+        @self.app.get(f"{self.api}/compaction/plan", tags=["registry"])
+        def compaction_plan(request: Request):
+            """What a sweep would reclaim, without reclaiming anything.
+
+            The default answer to "should I compact?", because the destructive
+            version is not reversible and the plan is cheap.
+            """
+            self.authorise(request, "admin")
+            return self.guard(lambda: self.ctx["compaction"].plan())
+
+        @self.app.post(f"{self.api}/compaction/sweep", tags=["registry"])
+        def compaction_sweep(request: Request, dry_run: bool = False):
+            """Mark blobs nothing references; reclaim ones that stayed that way.
+
+            Never reclaims on first sight. An upload writes the bytes and then
+            the row that references them, and a sweeper walking past in between
+            sees exactly what a real orphan looks like.
+            """
+            who = self.authorise(request, "admin")
+            return self.guard(lambda: self.ctx["compaction"].sweep(
+                actor=self.actor(who), dry_run=dry_run))
+
+        @self.app.post(f"{self.api}/compaction/vacuum", tags=["registry"])
+        def compaction_vacuum(request: Request):
+            """Rewrite the database so removed rows stop occupying the file.
+
+            Takes a write lock for its duration and needs free space equal to
+            the database, which is why it is asked for rather than done on the
+            way out of a deletion.
+            """
+            who = self.authorise(request, "admin")
+            return self.guard(
+                lambda: self.ctx["compaction"].vacuum(actor=self.actor(who)))
+
         @self.app.get(f"{self.api}/classification-levels", tags=["risk"])
         def classification_levels(request: Request):
             """The lattice, and what each class means.
