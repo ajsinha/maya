@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-5509",
+   "title": "Convergence is readable before concluding",
+   "verdict": "PASS",
+   "evidence": "one round, so there is nothing to converge from. A single round is a snapshot of the panel's priors "
+  }
+ ]
+}

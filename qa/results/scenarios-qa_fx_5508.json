@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-5508",
+   "title": "Independence is recorded, not required",
+   "verdict": "PASS",
+   "evidence": "accepted and flagged as not independent"
+  }
+ ]
+}
