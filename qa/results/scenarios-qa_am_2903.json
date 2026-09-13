@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-2903",
+   "title": "A limit at or above the threshold is never slack",
+   "verdict": "PASS",
+   "evidence": "slack only below 0.25, and never on null"
+  }
+ ]
+}

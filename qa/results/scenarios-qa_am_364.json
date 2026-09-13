@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-364",
+   "title": "Standing at exactly the limit",
+   "verdict": "PASS",
+   "evidence": "exactly on the limit is 'within' in both directions"
+  }
+ ]
+}

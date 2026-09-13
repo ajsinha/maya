@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-367",
+   "title": "A pack carries no composite score",
+   "verdict": "PASS",
+   "evidence": "This pack reports indicators and refuses to average them. A single model-risk figure requires the pa"
+  }
+ ]
+}
