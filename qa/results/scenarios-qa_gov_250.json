@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-250",
+   "title": "Request for a principal who does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal'"
+  }
+ ]
+}

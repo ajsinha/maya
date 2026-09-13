@@ -2140,6 +2140,7 @@ look for instead.
 | QA-GOV-3400 | `regression` | Somebody else may move the alias | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-3400` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-GOV-3500 | `regression` | A reviewer answering their own row, spelled differently | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-3500` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-GOV-3501 | `regression` | Revoking removes roles here and says so | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-3501` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-GOV-4400 | `regression` | Every review outcome means something specific | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-4400` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- G-features-execution.md -->

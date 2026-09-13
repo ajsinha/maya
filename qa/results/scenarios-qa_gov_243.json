@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-243",
+   "title": "Review a grant that is still open",
+   "verdict": "PASS",
+   "evidence": "refused 'still_open' while the grant is live"
+  }
+ ]
+}

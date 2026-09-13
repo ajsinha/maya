@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-236",
+   "title": "Authorise your own request",
+   "verdict": "PASS",
+   "evidence": "the requester cannot authorise their own elevation"
+  }
+ ]
+}

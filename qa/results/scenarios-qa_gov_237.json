@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-237",
+   "title": "Authorise your own request unilaterally",
+   "verdict": "PASS",
+   "evidence": "a unilateral self-authorisation is permitted and flagged: the shorter window and the flag are the whole difference"
+  }
+ ]
+}
