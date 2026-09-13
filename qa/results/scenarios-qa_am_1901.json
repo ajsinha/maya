@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-1901",
+   "title": "Replay data for a test the episode never recorded",
+   "verdict": "PASS",
+   "evidence": "extra data supplied, and only the recorded test counted"
+  }
+ ]
+}

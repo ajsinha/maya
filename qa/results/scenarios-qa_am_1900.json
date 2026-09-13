@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-1900",
+   "title": "Replay with data that is not the data",
+   "verdict": "PASS",
+   "evidence": "mismatched: stored 0.00729286227175818, replayed 2.301270110990763"
+  }
+ ]
+}

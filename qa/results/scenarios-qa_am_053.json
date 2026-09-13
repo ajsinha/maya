@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-053",
+   "title": "Replay-from-storage on an episode pinning no snapshot",
+   "verdict": "PASS",
+   "evidence": "unreadable, and the missing snapshot is the stated reason"
+  }
+ ]
+}

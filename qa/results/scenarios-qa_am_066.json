@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-066",
+   "title": "Replay, conclude the episode, replay again",
+   "verdict": "PASS",
+   "evidence": "the same report before and after concluding"
+  }
+ ]
+}

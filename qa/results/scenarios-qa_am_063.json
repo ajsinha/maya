@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-063",
+   "title": "Replayability over a model with no episodes",
+   "verdict": "PASS",
+   "evidence": "this episode pins no dataset snapshot, so it cannot be replayed without the data being sup"
+  }
+ ]
+}
