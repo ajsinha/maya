@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-3102",
+   "title": "What was applied is reported, not what was intended",
+   "verdict": "PASS",
+   "evidence": "the applied limits are returned for the parent to record"
+  }
+ ]
+}

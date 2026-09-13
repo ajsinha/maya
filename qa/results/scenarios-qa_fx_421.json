@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-421",
+   "title": "A memory limit stated in the warrant",
+   "verdict": "PASS",
+   "evidence": "a default and a signed-for figure are held apart in `declared_by_the_warrant`"
+  }
+ ]
+}

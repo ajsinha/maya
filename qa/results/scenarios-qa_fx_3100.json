@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-3100",
+   "title": "A warrant stating nothing has nothing unenforceable",
+   "verdict": "PASS",
+   "evidence": "no statement, no gap"
+  }
+ ]
+}

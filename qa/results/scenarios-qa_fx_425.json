@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-425",
+   "title": "`GET /api/v1/engine` with the captive engine disabled",
+   "verdict": "PASS",
+   "evidence": "reports its state: {'captive_engine': 'enabled', 'sandbox': 'subprocess', 'isolates': True, 'resource_limits'"
+  }
+ ]
+}
