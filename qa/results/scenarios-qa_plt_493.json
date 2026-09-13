@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 6,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-4930",
+   "title": "Rendering writes nothing and records nothing",
+   "verdict": "PASS",
+   "evidence": "15 sections, nothing written"
+  },
+  {
+   "id": "QA-PLT-4931",
+   "title": "Two renderings of unchanged state are identical",
+   "verdict": "PASS",
+   "evidence": "identical, digest sha256:c878b3c45e904"
+  },
+  {
+   "id": "QA-PLT-4932",
+   "title": "A citation to an evidence node that does not exist",
+   "verdict": "PASS",
+   "evidence": "not sound, and the dangling citation is named"
+  },
+  {
+   "id": "QA-PLT-4933",
+   "title": "Staleness is measured across the model and its versions",
+   "verdict": "FAIL",
+   "evidence": "a new version left the document reporting that nothing has been recorded since it was compiled, so the worklist's stale-document item never appears"
+  },
+  {
+   "id": "QA-PLT-4934",
+   "title": "A document is not made stale by its own compilation",
+   "verdict": "PASS",
+   "evidence": "a compilation does not stale a document, its own or another's"
+  },
+  {
+   "id": "QA-PLT-4935",
+   "title": "A required section nothing can fill",
+   "verdict": "PASS",
+   "evidence": "10 unfilled of 15, each present with a gap note, complete=False"
+  },
+  {
+   "id": "QA-PLT-4936",
+   "title": "Compiling records the act and the chain head it saw",
+   "verdict": "PASS",
+   "evidence": "authored by risk against head 26"
+  }
+ ]
+}
