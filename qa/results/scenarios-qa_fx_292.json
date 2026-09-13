@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-292",
+   "title": "A rule shadowed by one earlier rule",
+   "verdict": "PASS",
+   "evidence": "refused 'rule_unreachable'"
+  }
+ ]
+}

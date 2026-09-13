@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-288",
+   "title": "Exactly the rule limit, then one more",
+   "verdict": "PASS",
+   "evidence": "512 accepted, 513 refused"
+  }
+ ]
+}

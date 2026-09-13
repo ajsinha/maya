@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-295",
+   "title": "A between with the bounds the wrong way round",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_range'"
+  }
+ ]
+}

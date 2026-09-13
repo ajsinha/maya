@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-312",
+   "title": "A trial row that matches no rule",
+   "verdict": "PASS",
+   "evidence": "matched_rule is null and the otherwise answered"
+  }
+ ]
+}
