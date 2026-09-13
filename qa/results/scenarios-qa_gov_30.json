@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-GOV-301",
+   "title": "Delete, then check the evidence chain",
+   "verdict": "PASS",
+   "evidence": "1 model_deleted node(s), chain verifies, the urn is not reusable"
+  },
+  {
+   "id": "QA-GOV-302",
+   "title": "Refused deletion leaves no `model_deleted` node",
+   "verdict": "PASS",
+   "evidence": "no model_deleted node; the chain moved 0 node(s) and the model is still there"
+  },
+  {
+   "id": "QA-GOV-303",
+   "title": "Delete the same model twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', one tombstone"
+  },
+  {
+   "id": "QA-GOV-304",
+   "title": "Delete a model with an alias pointing into production",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced' \u2014 a model serving from prod/champion cannot simply stop existing"
+  },
+  {
+   "id": "QA-GOV-305",
+   "title": "Read `GET /as-at` over a window containing a deleted model",
+   "verdict": "PASS",
+   "evidence": "the deleted model is still in the history that contained it"
+  },
+  {
+   "id": "QA-GOV-306",
+   "title": "Place a hold with an empty matter",
+   "verdict": "PASS",
+   "evidence": "refused 'matter_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-307",
+   "title": "Place a hold with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-GOV-308",
+   "title": "Place a model-scoped hold with no `scope_id`",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_required'"
+  },
+  {
+   "id": "QA-GOV-309",
+   "title": "Place a hold with an unrecognised scope kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope', naming all 3"
+  }
+ ]
+}
