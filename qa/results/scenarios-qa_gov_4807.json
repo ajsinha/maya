@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-4807",
+   "title": "An approved overlay that is never measured",
+   "verdict": "PASS",
+   "evidence": "an unmeasured overlay is reported as unmeasured"
+  }
+ ]
+}

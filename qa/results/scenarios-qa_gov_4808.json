@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-4808",
+   "title": "Close an overlay with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  }
+ ]
+}

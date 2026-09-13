@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-4809",
+   "title": "Close an overlay into a status that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_closure'"
+  }
+ ]
+}
