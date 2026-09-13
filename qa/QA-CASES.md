@@ -4197,6 +4197,9 @@ repository's own `data/`.
 | QA-PLT-4771 | `regression` | A key released by a failure is usable again | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4771` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4780 | `regression` | A fresh `If-Match` is accepted | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4780` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4781 | `regression` | The ETag is served on a GET and is stable | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4781` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4790 | `regression` | The default limit when none is asked for | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4790` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4791 | `regression` | The detail line tells a caller how to ask for more | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4791` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4792 | `regression` | A page is a slice of what was already filtered | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4792` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->

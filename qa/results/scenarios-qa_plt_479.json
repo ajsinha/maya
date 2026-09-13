@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 3,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-4790",
+   "title": "The default limit when none is asked for",
+   "verdict": "PASS",
+   "evidence": "defaulted to 50, 3 of 3"
+  },
+  {
+   "id": "QA-PLT-4791",
+   "title": "The detail line tells a caller how to ask for more",
+   "verdict": "PASS",
+   "evidence": "'1\u201350 of 120; ask for the next page with \u2026', final page offers nothing, empty says 'nothing matched'"
+  },
+  {
+   "id": "QA-PLT-4792",
+   "title": "A page is a slice of what was already filtered",
+   "verdict": "PASS",
+   "evidence": "total counts the filtered list, slices are contiguous, limit clamps and a negative offset floors at zero"
+  }
+ ]
+}
