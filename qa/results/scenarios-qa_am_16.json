@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-1600",
+   "title": "A validation kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1601",
+   "title": "Open against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1602",
+   "title": "The independence verdict names who built it",
+   "verdict": "PASS",
+   "evidence": "independent of 'developer': no validator built this version"
+  },
+  {
+   "id": "QA-AM-161",
+   "title": "The estate view with no matters recorded",
+   "verdict": "PASS",
+   "evidence": "0 at risk, and the view says so"
+  }
+ ]
+}

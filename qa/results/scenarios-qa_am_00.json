@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 6,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-AM-001",
+   "title": "The builder's name spelled with a person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-002",
+   "title": "The builder's name with the case flipped",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-003",
+   "title": "Two validators, one of whom built the version",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', and no episode was recorded"
+  },
+  {
+   "id": "QA-AM-004",
+   "title": "A validator who resolves to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-005",
+   "title": "A validator who exists but is not active",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-007",
+   "title": "A version with no recorded builder",
+   "verdict": "PASS",
+   "evidence": "the builder cannot be blanked \u2014 the column is immutable in the database \u2014 and no version in the estate carries an empty one, so independence is never evaluated against nothing"
+  }
+ ]
+}
