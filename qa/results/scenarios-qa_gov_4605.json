@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-4605",
+   "title": "A model something else reads",
+   "verdict": "FAIL",
+   "evidence": "a model another one reads was decommissioned with its consumers neither notified nor acknowledged \u2014 `blast_radius` answers `reaches` and `consumers()` reads `reached`, so the list is always empty and the `consumers_not_notified` refusal can never fire"
+  }
+ ]
+}
