@@ -1,0 +1,89 @@
+{
+ "summary": {
+  "total": 13,
+  "pass": 13,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-AM-200",
+   "title": "Define with cadence_days: 0",
+   "verdict": "PASS",
+   "evidence": "accepted; cadence_days=0.0"
+  },
+  {
+   "id": "QA-AM-205",
+   "title": "Set a monitor's status to something that is not a status",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-210",
+   "title": "Define with a negative threshold",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-211",
+   "title": "Define a monitor of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-212",
+   "title": "Define against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-213",
+   "title": "Define with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-214",
+   "title": "A valid monitor is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-215",
+   "title": "Ingest an observation with no computed_by",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' (422)"
+  },
+  {
+   "id": "QA-AM-216",
+   "title": "Ingest a window that ends before it starts",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-217",
+   "title": "Ingest against a monitor that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_monitor' (404)"
+  },
+  {
+   "id": "QA-AM-218",
+   "title": "An observation inside the threshold does not breach",
+   "verdict": "PASS",
+   "evidence": "no breach, as expected"
+  },
+  {
+   "id": "QA-AM-219",
+   "title": "An observation past the threshold breaches",
+   "verdict": "PASS",
+   "evidence": "breached"
+  },
+  {
+   "id": "QA-AM-220",
+   "title": "Two identical observations are not two breaches",
+   "verdict": "PASS",
+   "evidence": "0 breach for the same window twice"
+  }
+ ]
+}
