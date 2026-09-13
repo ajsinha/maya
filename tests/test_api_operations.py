@@ -174,7 +174,15 @@ class TestSchedulerApi:
                 # assessment and read by nothing at all — no job, no screen, no
                 # endpoint — so a Tier 1 model could go four years unreviewed
                 # with every other control green.
-                "review.overdue"} == keys
+                "review.overdue",
+                # `TelemetryCollector.estate()` classified every version as
+                # silent, never or sending since it was written, and no job
+                # consumed it — so a principal resolving warrants weekly that
+                # had never reported a score raised nothing. The one symptom of
+                # C-6's descriptor-only attack that is visible from inside
+                # MAYA's own records, because it issued the warrant and it
+                # received no telemetry.
+                "execution.unreported"} == keys
         assert all(j["what"] and j["why"] for j in body["jobs"])
         assert body["health"]["ever_run"] == 0
 
