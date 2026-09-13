@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-352",
+   "title": "`?limit=100000` on the models listing",
+   "verdict": "PASS",
+   "evidence": "clamped to 500, 3 of 3 returned"
+  },
+  {
+   "id": "QA-PLT-353",
+   "title": "`?limit=0` and `?limit=-5`",
+   "verdict": "PASS",
+   "evidence": "0 and -5 both clamp to a limit of 1"
+  },
+  {
+   "id": "QA-PLT-354",
+   "title": "`?offset=9999` on a listing of 120 rows",
+   "verdict": "PASS",
+   "evidence": "empty page, total still 9, has_more false"
+  },
+  {
+   "id": "QA-PLT-355",
+   "title": "`?limit=abc` versus `?limit=100000`",
+   "verdict": "PASS",
+   "evidence": "'abc' refused 422, 100000 clamped to 500"
+  }
+ ]
+}
