@@ -138,14 +138,33 @@ class TestTheAttack:
 class TestWhatItDoesNotClaim:
     def test_no_anchor_below_the_mark_is_not_a_contradiction(self, anchored):
         """*Nothing vouches for this* and *something contradicts this* are
-        different answers, and collapsing them would make every deployment
-        without anchors look compromised."""
+        different answers, and collapsing them makes every deployment without
+        anchors look compromised.
+
+        **This test passed while the code did exactly that**, and how is worth
+        keeping. It asserted that the FIRST verification carried no
+        `checkpoint_repudiated` — and the first verification has no checkpoint,
+        so it takes the `mark is None` branch and never reaches the
+        corroboration at all. Its other assertion was that the second call was
+        `valid`, which the full-walk fallback also is. Both held while every
+        call silently took the expensive path and logged an error.
+
+        It now asserts the thing that separates the two paths: the **scope**. A
+        checkpoint that was believed gives `incremental`; one that was
+        discarded gives `full`. The defect was found by reading a log during a
+        QA run; this is what would have caught it.
+        """
         engine, _anchors = anchored
         _fill(engine, 3)
-        first = engine.verify_since_checkpoint()
-        assert "checkpoint_repudiated" not in first
+        engine.verify_since_checkpoint()           # sets the mark
         _fill(engine, 2)
-        assert engine.verify_since_checkpoint()["valid"]
+        second = engine.verify_since_checkpoint()  # the mark now exists
+        assert "checkpoint_repudiated" not in second
+        assert second["scope"] == "incremental", (
+            "with no anchors written the checkpoint must still be believed — "
+            "otherwise every probe, dashboard load and compiled document pays "
+            "the full chain walk that §3.6 removed")
+        assert second["checked"] == 2
 
     def test_an_engine_with_no_anchor_store_still_works(self, db, repos):
         """A deployment with no anchors is self-certified. This cannot improve

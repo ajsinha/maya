@@ -472,7 +472,25 @@ def _ks_from_quantiles(parts: Sequence[Dict[str, Any]]) -> float:
     threshold anybody sets, and it is the honest description rather than a
     claim of exactness.
     """
-    buckets = max(len(p["positive_quantiles"]) for p in parts)
+    # Sized from BOTH curves, not just the positive one.
+    #
+    # `max(len(positive))` meant a part whose `negative_quantiles` was longer
+    # walked off the end of `neg` and raised an IndexError — an unhandled
+    # crash, from a submitter's malformed payload, in the merge step of a
+    # distributed evaluation. A partition that disagrees with its siblings
+    # about bucket count is a real thing to get wrong when several teams
+    # compute their own partials.
+    buckets = max(max(len(p["positive_quantiles"]),
+                      len(p["negative_quantiles"])) for p in parts)
+    ragged = {i for i, p in enumerate(parts)
+              if len(p["positive_quantiles"]) != len(p["negative_quantiles"])}
+    if ragged:
+        raise MonitorError(
+            "quantiles_ragged",
+            f"{len(ragged)} partition(s) submitted a different number of "
+            f"positive and negative quantiles; the two curves are read at the "
+            f"same bucket boundaries, so they cannot have different lengths",
+            "recompute the partial with the same bucket count on both curves")
     pos = [0.0] * buckets
     neg = [0.0] * buckets
     for part in parts:

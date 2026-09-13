@@ -97,7 +97,11 @@ class UIRoutes(Routes):
                 # against the anchors before it is trusted, so a rewritten
                 # chain with a moved mark falls back to the full walk here
                 # rather than being reported healthy.
-                chain=self.ctx["evidence"].verify_since_checkpoint(),
+                # `advance=False`: loading a page is not a verification
+                # run. Only the scheduled job and the explicit endpoint
+                # move the mark, so a GET never writes.
+                chain=self.ctx["evidence"].verify_since_checkpoint(
+                    advance=False),
                 estate=self.ctx["estate"].of(models),
                 work=self.ctx["worklist"].mine(who, self.ctx["authz"], models))
 
@@ -345,15 +349,28 @@ class UIRoutes(Routes):
                 return r
             if not self.may_view(request, "model:read"):
                 return self.refused_page(request, "reading a model needs model:read")
+            from core.parameters.common import ParameterError
             from core.rules.common import RuleError
+            # Both lookups, and both refusals.
+            #
+            # Only `RuleError` was caught, and `explain` does not raise for an
+            # unknown id — it answers with an empty explanation. The refusal
+            # came from `parameters.require` on the line below, as a
+            # `ParameterError` nothing caught, so a mistyped rule set answered
+            # 500 while the handler right above it existed to answer 404.
+            #
+            # The shape to notice: a `try` that names one exception type
+            # around one of two calls reads as though it covers the operation.
             try:
                 explained = self.ctx["rules"].explain(parameter_set_id)
-            except RuleError as exc:
-                logger.info("rule set page refused: %s", exc.detail)
+                row = self.ctx["parameters"].require(parameter_set_id)
+            except (RuleError, ParameterError) as exc:
+                logger.info("rule set page refused: %s",
+                            getattr(exc, "detail", exc))
                 return self.page(request, "not_found.html", http_status=404,
                                  name=parameter_set_id)
             return self.page(request, "ruleset.html", ruleset=explained,
-                             row=self.ctx["parameters"].require(parameter_set_id))
+                             row=row)
 
         # ---------------------------------------------------------- policy
         @self.app.get("/policies", response_class=HTMLResponse, tags=["ui"])
