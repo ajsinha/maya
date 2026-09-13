@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 7.7,
+ "results": [
+  {
+   "id": "QA-AM-341",
+   "title": "Declare a limit on a metric the platform does not compute",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_metric'"
+  },
+  {
+   "id": "QA-AM-342",
+   "title": "Declare a limit with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-343",
+   "title": "Declare a rationale of exactly 2,000 characters, then 2,001",
+   "verdict": "PASS",
+   "evidence": "2000 in, 2001 refused"
+  },
+  {
+   "id": "QA-AM-344",
+   "title": "Amber equal to the limit on a lower-is-better metric",
+   "verdict": "PASS",
+   "evidence": "amber at the limit refused, amber inside it accepted"
+  },
+  {
+   "id": "QA-AM-345",
+   "title": "Amber above the limit on a higher-is-better metric",
+   "verdict": "PASS",
+   "evidence": "amber above the floor accepted, below it refused"
+  },
+  {
+   "id": "QA-AM-346",
+   "title": "Declare a limit scoped to `region`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope', naming all 3"
+  },
+  {
+   "id": "QA-AM-347",
+   "title": "Raise a limit that was previously tighter",
+   "verdict": "PASS",
+   "evidence": "raised, and 1 node(s) say relaxed"
+  },
+  {
+   "id": "QA-AM-348",
+   "title": "Tighten a limit",
+   "verdict": "PASS",
+   "evidence": "tightened, not flagged relaxed, 2 versions"
+  },
+  {
+   "id": "QA-AM-349",
+   "title": "Retire a limit and then declare it again",
+   "verdict": "PASS",
+   "evidence": "version 1 -> 2 across the retirement"
+  }
+ ]
+}

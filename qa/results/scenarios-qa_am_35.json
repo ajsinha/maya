@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.4,
+ "results": [
+  {
+   "id": "QA-AM-350",
+   "title": "Retire a limit that was never declared",
+   "verdict": "PASS",
+   "evidence": "refused 'no_appetite'"
+  },
+  {
+   "id": "QA-AM-351",
+   "title": "An estate-wide limit and a Tier 1 limit on one metric",
+   "verdict": "PASS",
+   "evidence": "2 limits live on 'models_untiered', each versioned apart"
+  },
+  {
+   "id": "QA-AM-352",
+   "title": "Preview a pack and then cut one",
+   "verdict": "PASS",
+   "evidence": "0 packs, preview changed nothing, cut added one"
+  },
+  {
+   "id": "QA-AM-357",
+   "title": "An indicator the register could not compute",
+   "verdict": "PASS",
+   "evidence": "12 indicators; every unmeasured one states why"
+  }
+ ]
+}
