@@ -1,0 +1,281 @@
+{
+ "summary": {
+  "total": 45,
+  "pass": 40,
+  "fail": 3,
+  "blocked": 2
+ },
+ "seconds": 2.9,
+ "results": [
+  {
+   "id": "QA-GOV-201",
+   "title": "A band with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_name_required' (422)"
+  },
+  {
+   "id": "QA-GOV-2200",
+   "title": "A delegation names a currency",
+   "verdict": "FAIL",
+   "evidence": "a ceiling was recorded with no currency, so the number means whatever the reader assumes"
+  },
+  {
+   "id": "QA-GOV-222",
+   "title": "Review a break-glass with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required' (422)"
+  },
+  {
+   "id": "QA-GOV-230",
+   "title": "A recertification campaign with no reviewer",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal' (404)"
+  },
+  {
+   "id": "QA-GOV-2300",
+   "title": "tau is monotone in both arguments",
+   "verdict": "PASS",
+   "evidence": "monotone over all 5x4 cells"
+  },
+  {
+   "id": "QA-GOV-2301",
+   "title": "Materiality dominates: a critical model is never below tier 2",
+   "verdict": "PASS",
+   "evidence": "every critical model is tier 1 or 2"
+  },
+  {
+   "id": "QA-GOV-2302",
+   "title": "The adjoint reads tier controls and only tier controls",
+   "verdict": "PASS",
+   "evidence": "controls outside the tier lattice do not move the answer"
+  },
+  {
+   "id": "QA-GOV-232",
+   "title": "Two campaigns with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-236",
+   "title": "Authorise your own request",
+   "verdict": "PASS",
+   "evidence": "the requester cannot authorise their own elevation"
+  },
+  {
+   "id": "QA-GOV-237",
+   "title": "Authorise your own request unilaterally",
+   "verdict": "PASS",
+   "evidence": "a unilateral self-authorisation is permitted and flagged: the shorter window and the flag are the whole difference"
+  },
+  {
+   "id": "QA-GOV-240",
+   "title": "Authorise twice",
+   "verdict": "PASS",
+   "evidence": "a grant is authorised once"
+  },
+  {
+   "id": "QA-GOV-243",
+   "title": "Review a grant that is still open",
+   "verdict": "PASS",
+   "evidence": "refused 'still_open' while the grant is live"
+  },
+  {
+   "id": "QA-GOV-244",
+   "title": "The elevated principal reviews their own grant",
+   "verdict": "PASS",
+   "evidence": "the elevated principal cannot review their own grant"
+  },
+  {
+   "id": "QA-GOV-245",
+   "title": "Review twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_reviewed'"
+  },
+  {
+   "id": "QA-GOV-246",
+   "title": "Review with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required'"
+  },
+  {
+   "id": "QA-GOV-247",
+   "title": "Review with an outcome outside the closed set",
+   "verdict": "PASS",
+   "evidence": "refused, naming appropriate, excessive, unwarranted"
+  },
+  {
+   "id": "QA-GOV-248",
+   "title": "Run the expiry sweep twice",
+   "verdict": "PASS",
+   "evidence": "first sweep [], second []"
+  },
+  {
+   "id": "QA-GOV-250",
+   "title": "Request for a principal who does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal'"
+  },
+  {
+   "id": "QA-GOV-251",
+   "title": "Request with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-252",
+   "title": "Open a campaign over an explicitly empty population",
+   "verdict": "PASS",
+   "evidence": "a blank population means everybody active: 29 subject(s)"
+  },
+  {
+   "id": "QA-GOV-256",
+   "title": "A reviewer spelled person/r against a campaign naming r",
+   "verdict": "PASS",
+   "evidence": "a prefixed name is refused at the door, so the `==` reviewer check never sees two spellings"
+  },
+  {
+   "id": "QA-GOV-257",
+   "title": "A reviewer answering their own row",
+   "verdict": "PASS",
+   "evidence": "refused 'self_recertification'"
+  },
+  {
+   "id": "QA-GOV-259",
+   "title": "Answer somebody who is not in the campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'not_in_population'"
+  },
+  {
+   "id": "QA-GOV-260",
+   "title": "Answer with a third state",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_answer', naming confirmed and revoked"
+  },
+  {
+   "id": "QA-GOV-261",
+   "title": "Revoke with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-265",
+   "title": "Answer after the campaign is closed",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-266",
+   "title": "Close a campaign twice",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-267",
+   "title": "Reuse the reference of a closed campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists'"
+  },
+  {
+   "id": "QA-GOV-268",
+   "title": "Reassign with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-269",
+   "title": "Reassign to a principal who does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal'"
+  },
+  {
+   "id": "QA-GOV-270",
+   "title": "Reassign a closed campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-275",
+   "title": "Decommission a `submitted` model",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition', and nothing was written"
+  },
+  {
+   "id": "QA-GOV-277",
+   "title": "Decommission twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_decommissioned', first rationale intact"
+  },
+  {
+   "id": "QA-GOV-278",
+   "title": "Rationale of exactly ten characters",
+   "verdict": "PASS",
+   "evidence": "ten characters accepted"
+  },
+  {
+   "id": "QA-GOV-279",
+   "title": "Rationale of nine characters",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' at nine"
+  },
+  {
+   "id": "QA-GOV-280",
+   "title": "Replacement naming the model's own URN",
+   "verdict": "FAIL",
+   "evidence": "a model was recorded as its own replacement: the replacement check asks only whether the URN is registered, and the model being retired always is, so the record names a retired model as the thing doing the job now"
+  },
+  {
+   "id": "QA-GOV-281",
+   "title": "Replacement naming an unregistered URN",
+   "verdict": "PASS",
+   "evidence": "refused 'replacement_not_registered'"
+  },
+  {
+   "id": "QA-GOV-282",
+   "title": "Replacement naming a model that is itself retired",
+   "verdict": "FAIL",
+   "evidence": "'maya://model/dc-31856c13' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
+  },
+  {
+   "id": "QA-GOV-283",
+   "title": "Replacement recorded as the literal `none`",
+   "verdict": "PASS",
+   "evidence": "accepted, detail says: maya://model/dc-e11b6d8c is decommissioned, kept under the 'artifact' class, wit"
+  },
+  {
+   "id": "QA-GOV-284",
+   "title": "Replacement recorded as `None` with a capital N",
+   "verdict": "PASS",
+   "evidence": "refused 'replacement_not_registered' \u2014 the sentinel is exact, so 'None' is read as a URN"
+  },
+  {
+   "id": "QA-GOV-285",
+   "title": "Unknown retention class",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 7 classes"
+  },
+  {
+   "id": "QA-GOV-287",
+   "title": "Live consumers, all listed in `notified`",
+   "verdict": "BLOCKED",
+   "evidence": "the consumer reading does not see the edge, so passing through the gate proves nothing about it \u2014 see QA-GOV-4605"
+  },
+  {
+   "id": "QA-GOV-289",
+   "title": "Only *retired* models downstream",
+   "verdict": "BLOCKED",
+   "evidence": "the consumer reading does not see the edge while the downstream model is still live, so retiring it changes nothing observable \u2014 see QA-GOV-4605"
+  },
+  {
+   "id": "QA-GOV-291",
+   "title": "Decommission a model that was already retired the old way",
+   "verdict": "PASS",
+   "evidence": "a bare retirement acquired its record"
+  },
+  {
+   "id": "QA-GOV-292",
+   "title": "Estate view after one proper and one bare retirement",
+   "verdict": "PASS",
+   "evidence": "the bare retirement is named and the proper one is not"
+  }
+ ]
+}
