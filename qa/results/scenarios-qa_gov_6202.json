@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-6202",
+   "title": "Two runs open on one model",
+   "verdict": "PASS",
+   "evidence": "refused 'run_already_open'"
+  }
+ ]
+}
