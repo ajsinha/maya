@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 5.1,
+ "results": [
+  {
+   "id": "QA-PLT-080",
+   "title": "The estate fold on an estate of exactly zero models",
+   "verdict": "PASS",
+   "evidence": "zeroes and a detail: 'the register is empty'"
+  },
+  {
+   "id": "QA-PLT-081",
+   "title": "The estate fold on an estate of exactly one model",
+   "verdict": "PASS",
+   "evidence": "one model: one cell in each of three dimensions, coverage 0.0, and a detail"
+  }
+ ]
+}
