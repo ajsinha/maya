@@ -47,7 +47,7 @@ the whole point.
 | **Configuration** | a copy of `config/application.yaml` in a temp directory, `data.dir` pointed at it. **The repository's own `data/` was never touched.** |
 | **Database** | SQLite, 91 tables, 16 integrity triggers applied at start-up |
 | **Feature store** | Delta (`deltalake`), the shipped default |
-| **Estate** | `docs/QA/qa_setup.py`, plus `r.hale` (auditor) and `o.perez` (operator), which the cheatsheet does not create |
+| **Estate** | `qa/qa_setup.py`, plus `r.hale` (auditor) and `o.perez` (operator), which the cheatsheet does not create |
 
 ### Reproducing this
 
@@ -64,7 +64,7 @@ sed -e 's#  dir: ./data#  dir: /tmp/qa/data#' -e 's/PORT:5006/PORT:5399/' \
 .venv/bin/python run_maya_web.py --config /tmp/qa/application.yaml
 
 # 2. the estate, and the two accounts the cases need beyond it
-.venv/bin/python docs/QA/qa_setup.py --url http://127.0.0.1:5399
+.venv/bin/python qa/qa_setup.py --url http://127.0.0.1:5399
 curl -su admin:maya-admin-dev -X POST http://127.0.0.1:5399/api/v1/principals \
   -H 'content-type: application/json' \
   -d '{"username":"r.hale","display_name":"R Hale","roles":["auditor"],"password":"aud-password-long"}'
@@ -73,8 +73,8 @@ curl -su admin:maya-admin-dev -X POST http://127.0.0.1:5399/api/v1/principals \
   -d '{"username":"o.perez","display_name":"O Perez","roles":["operator"],"password":"ops-password-long"}'
 
 # 3. the cases
-.venv/bin/python docs/QA/qa_cases.py --url http://127.0.0.1:5399 --enumerate
-.venv/bin/python docs/QA/qa_cases.py --url http://127.0.0.1:5399 --run --out /tmp/qa/results.jsonl
+.venv/bin/python qa/qa_cases.py --url http://127.0.0.1:5399 --enumerate
+.venv/bin/python qa/qa_cases.py --url http://127.0.0.1:5399 --run --out /tmp/qa/results.jsonl
 ```
 
 **Run them once, in ID order, against a freshly built estate.** They walk one
@@ -418,7 +418,7 @@ callers check `model:read` first. The dashboard does not — it requires only a
 session — and it is the first screen after sign-in. So a principal holding no
 `model:read` at all was shown every model in the estate, each rendered as a link
 to a page that then answered 403. That is exactly the thing
-`docs/QA/README.md` asks a tester to report: *a screen that offers a control and
+`qa/cheatsheet.md` asks a tester to report: *a screen that offers a control and
 then refuses it.*
 
 **Fixed** in `core/authz/policy.py`: `visible()` returns `[]` when the principal
@@ -518,7 +518,7 @@ that will not import.
 
 The pack is handed to testers outside the organisation. It had four defects,
 and all four were invisible to anybody who had ever run it against a database
-that already had the estate in it. **`docs/QA/qa_setup.py` did not complete on
+that already had the estate in it. **`qa/qa_setup.py` did not complete on
 an empty instance.**
 
 #### D-9 · The setup script asked for the tier before the version existed
@@ -526,7 +526,7 @@ an empty instance.**
 | | |
 |---|---|
 | **Cases** | QA-B1 |
-| **Ran** | `python docs/QA/qa_setup.py` against an empty instance |
+| **Ran** | `python qa/qa_setup.py` against an empty instance |
 | **Expected** | `accepted` — the script's own docstring promises idempotence and completion |
 | **Actual** | `SystemExit(2)` at step 5 |
 
@@ -543,7 +543,7 @@ its most favourable reading. The script had the order backwards, so no version
 and no kernel were ever created and the cheatsheet described a model that did
 not exist.
 
-**Fixed** in `docs/QA/qa_setup.py` and `docs/QA/qa-setup.sh`: the version is
+**Fixed** in `qa/qa_setup.py` and `qa/qa-setup.sh`: the version is
 created first.
 
 #### D-10 · The accounts the cheatsheet signs in as were never created
@@ -603,7 +603,7 @@ the fit warrant now issues.
 | | |
 |---|---|
 | **Cases** | QA-B3 |
-| **Ran** | `python docs/QA/qa_setup.py` twice |
+| **Ran** | `python qa/qa_setup.py` twice |
 | **Expected** | `accepted` — "run it twice and it says what already exists" |
 | **Actual** | `SystemExit(2)` on the second run |
 
@@ -619,7 +619,7 @@ the fit warrant now issues.
 The refusal is right, and it is a control worth keeping: a periodic review
 discharged by re-POSTing last year's numbers is the failure it exists to stop.
 
-**Fixed** in `docs/QA/qa_setup.py`: `tier_once()` asks whether the model is
+**Fixed** in `qa/qa_setup.py`: `tier_once()` asks whether the model is
 already tiered and does nothing if it is, the same shape as the existing
 `load_once()`. **It does not route around the refusal with a canned
 `review_note`** — a setup script asserting that a review happened is the failure
@@ -656,10 +656,10 @@ problem to fix rather than the script's to route around". Recorded as **N-11**.
 | `db/repositories.py` | D-7 | `FeatureViewRepository` decodes `features` |
 | `core/features/views.py` | D-7 | `create()` stores the declaration on the row |
 | `tools/ops/backup.py`, `tools/ops/restore.py` | D-8 | the remediation names something that exists |
-| `docs/QA/qa_setup.py`, `docs/QA/qa-setup.sh` | D-9…D-12 | order, people, kernel, idempotence |
-| `docs/QA/README.md` | D-10, D-11 | the account table and both kernel blocks |
-| `docs/QA/qa_cases.py` | — | new: the 314 cases, re-runnable |
-| `pyproject.toml` | — | `S310` allowed under `docs/QA/`, for the same reason `tools/soak/` has it |
+| `qa/qa_setup.py`, `qa/qa-setup.sh` | D-9…D-12 | order, people, kernel, idempotence |
+| `qa/cheatsheet.md` | D-10, D-11 | the account table and both kernel blocks |
+| `qa/qa_cases.py` | — | new: the 314 cases, re-runnable |
+| `pyproject.toml` | — | `S310` allowed under `qa/`, for the same reason `tools/soak/` has it |
 | `tests/…` (7 files) | all | 39 regression tests |
 
 ---
@@ -789,7 +789,7 @@ appears on every compiled document. Not promised anywhere; recorded.
 
 ### N-8 · An alias may be moved with an empty justification
 
-QA-104, `200`. `docs/QA/README.md` says "Every alias move is recorded with who
+QA-104, `200`. `qa/cheatsheet.md` says "Every alias move is recorded with who
 moved it and why", and the *why* may be blank. *Why not fixed:* the suite's own
 `registered` fixture in `tests/conftest.py` moves an alias with no
 justification, which says the platform currently treats it as optional. Making
@@ -850,7 +850,7 @@ QA-065 and QA-100 both refused it.
 
 The highest-value target in this pass: a promised refusal that does not happen.
 Every code below is promised in `content/help/`, `docs/11-adversarial-review.md`
-or `docs/QA/README.md`, and every one was provoked deliberately.
+or `qa/cheatsheet.md`, and every one was provoked deliberately.
 
 | Code | Status | Case | Fired? |
 |---|---|---|---|
@@ -1268,7 +1268,7 @@ surface is not HTTP.
 
 | ID | Area | Action | Expectation | Pass 1 @ `9baa0c5` | Answer, verbatim | Re-run @ `wt-679bbf5b` | Pass 2 |
 |---|---|---|---|---|---|---|---|
-| **QA-B1** | qa pack | `python docs/QA/qa_setup.py` against an empty instance | `accepted` | **FAIL** | `REFUSED  its risk tier — this assessment lands on a different tier depending on trainability_class, and the request did not say` | PASS — completes, tier 3 | |
+| **QA-B1** | qa pack | `python qa/qa_setup.py` against an empty instance | `accepted` | **FAIL** | `REFUSED  its risk tier — this assessment lands on a different tier depending on trainability_class, and the request did not say` | PASS — completes, tier 3 | |
 | **QA-B2** | qa pack | the accounts the cheatsheet's table publishes exist afterwards | `reported` | **FAIL** | only `admin`, `q.tester`, `svc/qa-runner` | PASS — six accounts | |
 | **QA-B3** | qa pack | run it a second time | `accepted` | **FAIL** | `REFUSED  its risk tier — these are the same facts as the last assessment, so re-running the formula moves the review date without anything having been reviewed` | PASS — "already tiered, Tier 3 — not re-assessing, because re-running the formula is not a review" | |
 | **QA-B4** | rbac | suspend `svc/qa-runner`, both spellings of the slash | `accepted` | **FAIL** | `{"detail":"Not Found"}` | FAIL — unchanged, see N-1 | |
@@ -1457,9 +1457,9 @@ back first.** See §10.
 
 | File | Prompting case | What changed |
 |---|---|---|
-| `docs/QA/qa_setup.py` | QA-B1, QA-B2, QA-B3, QA-133/QA-134 | version before tier; creates the six accounts the cheatsheet publishes; coefficients moved to `parameter_schema`; `tier_once()` for idempotence |
-| `docs/QA/qa-setup.sh` | same | the same four changes in the bash twin |
-| `docs/QA/README.md` | QA-B2, QA-134 | the account table gains `a.mehta` and `d.raman`; both kernel blocks gain `parameter_schema`; the section 4 note now names the refusal the mistake produces |
+| `qa/qa_setup.py` | QA-B1, QA-B2, QA-B3, QA-133/QA-134 | version before tier; creates the six accounts the cheatsheet publishes; coefficients moved to `parameter_schema`; `tier_once()` for idempotence |
+| `qa/qa-setup.sh` | same | the same four changes in the bash twin |
+| `qa/cheatsheet.md` | QA-B2, QA-134 | the account table gains `a.mehta` and `d.raman`; both kernel blocks gain `parameter_schema`; the section 4 note now names the refusal the mistake produces |
 | `tools/ops/backup.py`, `tools/ops/restore.py` | QA-B7 | two refusals stop naming `python -m tools.ops.verify`, which has never existed, and name `GET /api/v1/evidence/chain` instead |
 
 ### Test and tooling files
@@ -1474,8 +1474,8 @@ back first.** See §10.
 | `tests/test_backup_restore.py` | +2 tests (D-8) |
 | `tests/test_qa_pack.py` | +10 tests (D-9…D-12) |
 | `openapi.lock.json` | `spec_lock.py --update` — one path added, `/api/v1/worklist`; goes with D-5 |
-| `pyproject.toml` | `S310` added to the `docs/QA/*.py` ignore list, for the reason `tools/soak/*.py` already has it: `qa_cases.py` drives a running instance over HTTP on purpose. Goes with `qa_cases.py` |
-| `docs/QA/qa_cases.py` | **new.** The 314 cases, runnable, with stable IDs |
+| `pyproject.toml` | `S310` added to the `qa/*.py` ignore list, for the reason `tools/soak/*.py` already has it: `qa_cases.py` drives a running instance over HTTP on purpose. Goes with `qa_cases.py` |
+| `qa/qa_cases.py` | **new.** The 314 cases, runnable, with stable IDs |
 
 ### Nothing else was touched
 
@@ -1548,7 +1548,7 @@ refusal, a permission set or a status code.
 
 ### Keep: the QA pack and the documentation
 
-`docs/QA/*`, `tools/ops/*.py`, `pyproject.toml`.
+`qa/*`, `tools/ops/*.py`, `pyproject.toml`.
 
 No product code. The pack did not complete against an empty instance and its
 cheatsheet's sections 8 to 11 could not be followed; those are defects in a
@@ -1560,5 +1560,5 @@ kind that should not wait for a baseline.
 The log stands on its own. §6 is 326 enumerated cases with expectations stated
 in advance and answers recorded verbatim; §3 and §4 are 12 fixed and 13
 unfixed findings with diagnoses; §5 is every promised refusal and whether it
-fired. `docs/QA/qa_cases.py` re-runs the lot against any instance. That is the
+fired. `qa/qa_cases.py` re-runs the lot against any instance. That is the
 case list for the real pass, and none of it depends on the remediation staying.

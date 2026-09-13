@@ -83,7 +83,7 @@ def plt_186(ctx: Ctx) -> Result:
     return PASS, "both refused"
 
 
-@case("QA-PLT-187", "A Tier B capability registers with an oracle it does not need")
+@case("QA-PLT-507", "A Tier B capability registers with an oracle it does not need")
 def plt_187(ctx: Ctx) -> Result:
     """Not a refusal: a Tier B capability may name an oracle as extra
     assurance. What must not happen is a 500."""
@@ -93,7 +93,7 @@ def plt_187(ctx: Ctx) -> Result:
     return PASS, f"answered {got.status_code} ({code_of(got) or 'accepted'})"
 
 
-@case("QA-PLT-188", "A valid Tier B capability")
+@case("QA-PLT-508", "A valid Tier B capability")
 def plt_188(ctx: Ctx) -> Result:
     return expect_accepted(_register(ctx), status=201)
 
@@ -112,7 +112,7 @@ def plt_189(ctx: Ctx) -> Result:
         "nothing_to_ground", "not_found", "registry_refused")
 
 
-@case("QA-PLT-190", "A generation whose claims cite nothing")
+@case("QA-PLT-509", "A generation whose claims cite nothing")
 def plt_190(ctx: Ctx) -> Result:
     made = _register(ctx)
     if made.status_code >= 400:
@@ -129,7 +129,7 @@ def plt_190(ctx: Ctx) -> Result:
         "registry_refused")
 
 
-@case("QA-PLT-191", "Use a suspended capability")
+@case("QA-PLT-510", "Use a suspended capability")
 def plt_191(ctx: Ctx) -> Result:
     made = _register(ctx)
     if made.status_code >= 400:
@@ -146,7 +146,7 @@ def plt_191(ctx: Ctx) -> Result:
         "capability_inactive", "nothing_to_ground", "not_found")
 
 
-@case("QA-PLT-192", "The two tiers are the whole vocabulary")
+@case("QA-PLT-511", "The two tiers are the whole vocabulary")
 def plt_192(ctx: Ctx) -> Result:
     """Published, so a reader can see that C is absent by design rather than
     by omission."""

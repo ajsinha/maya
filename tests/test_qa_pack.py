@@ -29,7 +29,7 @@ import sys
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-README = ROOT / "docs" / "QA" / "README.md"
+README = ROOT / "qa" / "cheatsheet.md"
 sys.path.insert(0, str(ROOT / "sdk" / "python"))
 
 from maya_sdk import Maya
@@ -220,7 +220,7 @@ class TestTheSetupScriptIsCrossPlatform:
     """`qa-setup.sh` needs bash and curl. A Windows tester has neither, and the
     QA pack is given to people outside the organisation."""
 
-    SCRIPT = ROOT / "docs" / "QA" / "qa_setup.py"
+    SCRIPT = ROOT / "qa" / "qa_setup.py"
 
     def test_it_exists_and_is_python(self):
         assert self.SCRIPT.is_file()
@@ -244,7 +244,7 @@ class TestTheSetupScriptIsCrossPlatform:
 
     def test_the_readme_offers_it_first(self):
         text = README.read_text(encoding="utf-8")
-        assert "python docs/QA/qa_setup.py" in text
+        assert "python qa/qa_setup.py" in text
         assert text.index("qa_setup.py") < text.index("qa-setup.sh"), \
             "the cross-platform one should be the one a reader meets first"
 
@@ -268,8 +268,8 @@ class TestTheSetupScriptBuildsTheEstateTheCheatsheetDescribes:
     already had the model in it.
     """
 
-    PY = ROOT / "docs" / "QA" / "qa_setup.py"
-    SH = ROOT / "docs" / "QA" / "qa-setup.sh"
+    PY = ROOT / "qa" / "qa_setup.py"
+    SH = ROOT / "qa" / "qa-setup.sh"
 
     def test_the_version_is_created_before_the_tier_is_assessed(self):
         """`assess` reads the trainability class off the latest version, and

@@ -166,7 +166,7 @@ def plt_128(ctx: Ctx) -> Result:
                   f"marked unfillable")
 
 
-@case("QA-PLT-130", "Compile against a model that does not exist")
+@case("QA-PLT-505", "Compile against a model that does not exist")
 def plt_130(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/documents",
@@ -174,7 +174,7 @@ def plt_130(ctx: Ctx) -> Result:
         "registry_refused", "not_found")
 
 
-@case("QA-PLT-131", "Read a document that does not exist")
+@case("QA-PLT-506", "Read a document that does not exist")
 def plt_131(ctx: Ctx) -> Result:
     got = ctx.api.get("/api/v1/documents/qa-never")
     if got.status_code >= 500:

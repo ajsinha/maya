@@ -70,7 +70,7 @@ def am_205(ctx: Ctx) -> Result:
         "unknown_status", "validation_error", "not_found")
 
 
-@case("QA-AM-210", "Define with a negative threshold")
+@case("QA-AM-611", "Define with a negative threshold")
 def am_210(ctx: Ctx) -> Result:
     got = _define(ctx, _model(ctx), threshold={"max": -1.0})
     if got.status_code >= 500:
@@ -86,13 +86,13 @@ def am_211(ctx: Ctx) -> Result:
                           "validation_refused", "kind_not_answerable")
 
 
-@case("QA-AM-212", "Define against a model that does not exist")
+@case("QA-AM-612", "Define against a model that does not exist")
 def am_212(ctx: Ctx) -> Result:
     return expect_refused(_define(ctx, "maya://model/qa.never"),
                           "registry_refused", "not_found")
 
 
-@case("QA-AM-213", "Define with no owner")
+@case("QA-AM-613", "Define with no owner")
 def am_213(ctx: Ctx) -> Result:
     return expect_refused(_define(ctx, _model(ctx), owner="  "),
                           "validation_error", "owner_required",
@@ -104,7 +104,7 @@ def am_214(ctx: Ctx) -> Result:
     return expect_accepted(_define(ctx, _model(ctx)), status=201)
 
 
-@case("QA-AM-215", "Ingest an observation with no computed_by")
+@case("QA-AM-614", "Ingest an observation with no computed_by")
 def am_215(ctx: Ctx) -> Result:
     """Who computed a number is the difference between a measurement and an
     assertion."""
@@ -117,7 +117,7 @@ def am_215(ctx: Ctx) -> Result:
         "validation_refused")
 
 
-@case("QA-AM-216", "Ingest a window that ends before it starts")
+@case("QA-AM-615", "Ingest a window that ends before it starts")
 def am_216(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx)
     got = ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest",
@@ -141,7 +141,7 @@ def am_217(ctx: Ctx) -> Result:
         "no_monitor", "not_found", "unknown_monitor")
 
 
-@case("QA-AM-218", "An observation inside the threshold does not breach")
+@case("QA-AM-616", "An observation inside the threshold does not breach")
 def am_218(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx, threshold=DRIFT)
     got = ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest",
@@ -154,7 +154,7 @@ def am_218(ctx: Ctx) -> Result:
     return PASS, "no breach, as expected"
 
 
-@case("QA-AM-219", "An observation past the threshold breaches")
+@case("QA-AM-617", "An observation past the threshold breaches")
 def am_219(ctx: Ctx) -> Result:
     """The other half. A monitor that never breaches is indistinguishable
     from a model that never misbehaves, and only one of those is common."""
@@ -170,7 +170,7 @@ def am_219(ctx: Ctx) -> Result:
     return PASS, "breached"
 
 
-@case("QA-AM-220", "Two identical observations are not two breaches")
+@case("QA-AM-618", "Two identical observations are not two breaches")
 def am_220(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx, threshold=DRIFT)
     body = {"value": 0.9, "window_start": 0.0, "window_end": 1.0,

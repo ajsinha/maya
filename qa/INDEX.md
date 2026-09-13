@@ -17,7 +17,7 @@ Everything a tester needs, in the order they will want it.
 .venv\Scripts\python run_maya_web.py       # Windows
 
 # terminal 2 — the example estate
-python docs/QA/qa_setup.py
+python qa/qa_setup.py
 ```
 
 Every command in the cheatsheet is given twice: once as `curl`, once as

@@ -56,7 +56,7 @@ def _open(ctx: Ctx, **over):
 
 
 # ----------------------------------------------------------- validations
-@case("QA-AM-300", "Open a validation with no validators")
+@case("QA-AM-619", "Open a validation with no validators")
 def am_300(ctx: Ctx) -> Result:
     """A validation nobody is performing is a row saying somebody will."""
     return expect_refused(_open(ctx, validators=[]),
@@ -71,7 +71,7 @@ def am_301(ctx: Ctx) -> Result:
                           "validation_refused")
 
 
-@case("QA-AM-302", "Open a validation against a model that does not exist")
+@case("QA-AM-620", "Open a validation against a model that does not exist")
 def am_302(ctx: Ctx) -> Result:
     body = valid_body(ctx, "POST", VALIDATIONS, urn="maya://model/qa.never",
                       semver="1.0.0", validators=["validator"])
@@ -80,12 +80,12 @@ def am_302(ctx: Ctx) -> Result:
                           "validation_refused")
 
 
-@case("QA-AM-303", "A well-formed validation opens")
+@case("QA-AM-621", "A well-formed validation opens")
 def am_303(ctx: Ctx) -> Result:
     return expect_accepted(_open(ctx))
 
 
-@case("QA-AM-304", "Conclude a validation with an outcome that is not one")
+@case("QA-AM-622", "Conclude a validation with an outcome that is not one")
 def am_304(ctx: Ctx) -> Result:
     opened = _open(ctx)
     if opened.status_code >= 400:
@@ -97,7 +97,7 @@ def am_304(ctx: Ctx) -> Result:
         "unknown_outcome", "validation_refused", "validation_error")
 
 
-@case("QA-AM-305", "Conclude a validation twice")
+@case("QA-AM-623", "Conclude a validation twice")
 def am_305(ctx: Ctx) -> Result:
     opened = _open(ctx)
     if opened.status_code >= 400:
@@ -130,7 +130,7 @@ def am_305(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(second)}'"
 
 
-@case("QA-AM-306", "Conclude a validation you are not a validator on")
+@case("QA-AM-624", "Conclude a validation you are not a validator on")
 def am_306(ctx: Ctx) -> Result:
     opened = _open(ctx)
     if opened.status_code >= 400:
@@ -169,7 +169,7 @@ def _overlay(ctx: Ctx, **over):
     return ctx.api.post(OVERLAYS, json=body)
 
 
-@case("QA-AM-320", "An overlay with no rationale")
+@case("QA-AM-625", "An overlay with no rationale")
 def am_320(ctx: Ctx) -> Result:
     """An overlay is somebody adjusting a model's output by hand. Without a
     stated reason it is an undeclared model."""
@@ -178,21 +178,21 @@ def am_320(ctx: Ctx) -> Result:
                           "validation_error")
 
 
-@case("QA-AM-321", "An overlay with no owner")
+@case("QA-AM-626", "An overlay with no owner")
 def am_321(ctx: Ctx) -> Result:
     return expect_refused(_overlay(ctx, owner="   "),
                           "overlay_refused", "owner_required",
                           "validation_error")
 
 
-@case("QA-AM-322", "An overlay of a kind that is not one")
+@case("QA-AM-627", "An overlay of a kind that is not one")
 def am_322(ctx: Ctx) -> Result:
     return expect_refused(_overlay(ctx, kind="vibes"),
                           "unknown_kind", "overlay_refused",
                           "validation_error")
 
 
-@case("QA-AM-323", "An overlay with no expiry")
+@case("QA-AM-628", "An overlay with no expiry")
 def am_323(ctx: Ctx) -> Result:
     """An overlay that never expires is the model, and nobody approved it as
     one."""
@@ -202,7 +202,7 @@ def am_323(ctx: Ctx) -> Result:
     return PASS, f"answered {got.status_code} ({code_of(got) or 'accepted'})"
 
 
-@case("QA-AM-324", "Close an overlay with no reason")
+@case("QA-AM-629", "Close an overlay with no reason")
 def am_324(ctx: Ctx) -> Result:
     made = _overlay(ctx)
     if made.status_code >= 400:
@@ -213,7 +213,7 @@ def am_324(ctx: Ctx) -> Result:
         "overlay_refused", "reason_required", "validation_error")
 
 
-@case("QA-AM-325", "Measure an overlay that does not exist")
+@case("QA-AM-630", "Measure an overlay that does not exist")
 def am_325(ctx: Ctx) -> Result:
     got = ctx.api.post(f"{OVERLAYS}/qa-never/measure",
                        json={"base_value": 1.0, "adjusted_value": 2.0,
@@ -238,7 +238,7 @@ def _matter(ctx: Ctx, **over):
     return ctx.api.post(MATTERS, json=body)
 
 
-@case("QA-AM-340", "A supervisory matter with no supervisor")
+@case("QA-AM-631", "A supervisory matter with no supervisor")
 def am_340(ctx: Ctx) -> Result:
     """Which regulator asked is the first thing anybody will want to know."""
     return expect_refused(_matter(ctx, supervisor="   "),
@@ -246,14 +246,14 @@ def am_340(ctx: Ctx) -> Result:
                           "matter_refused", "regime_refused")
 
 
-@case("QA-AM-341", "A supervisory matter with no owner")
+@case("QA-AM-632", "A supervisory matter with no owner")
 def am_341(ctx: Ctx) -> Result:
     return expect_refused(_matter(ctx, owner="   "),
                           "validation_error", "owner_required",
                           "matter_refused", "regime_refused")
 
 
-@case("QA-AM-342", "Two matters with the same reference")
+@case("QA-AM-633", "Two matters with the same reference")
 def am_342(ctx: Ctx) -> Result:
     reference = ctx.unique("SUP")
     _matter(ctx, reference=reference)
@@ -264,7 +264,7 @@ def am_342(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-AM-343", "Close a supervisory matter with no note")
+@case("QA-AM-634", "Close a supervisory matter with no note")
 def am_343(ctx: Ctx) -> Result:
     made = _matter(ctx)
     if made.status_code >= 400:

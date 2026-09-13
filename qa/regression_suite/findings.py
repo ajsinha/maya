@@ -28,7 +28,7 @@ import re
 from typing import Dict, List
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-RESULTS = ROOT / "docs" / "QA" / "results"
+RESULTS = ROOT / "qa" / "results"
 
 #: How a failure is grouped. First match wins, so the specific patterns come
 #: before the general ones.

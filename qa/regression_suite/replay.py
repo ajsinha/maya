@@ -5,7 +5,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 Published cases whose own steps can be executed.
 
-    python -m qa.regression_suite.replay --out docs/QA/results/replayed.json
+    python -m qa.regression_suite.replay --out qa/results/replayed.json
 
 Of the 1,715 hand-written case rows, **294 name a method and a path** in their
 Steps column. That number was measured before this was built, because the
@@ -43,7 +43,7 @@ from typing import Any, Dict, List, Optional, Tuple
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-CASES = ROOT / "docs" / "QA" / "QA-CASES.md"
+CASES = ROOT / "qa" / "QA-CASES.md"
 CALL = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\s+(/[A-Za-z0-9{}/_.:-]+)")
 REFUSAL = re.compile(r"refused\s*\(`?([a-z_]+)", re.I)
 ACCEPTED = re.compile(r"\*\*accepted", re.I)
@@ -83,7 +83,7 @@ def normalise(path: str, known: set) -> Optional[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default="docs/QA/results/replayed.json")
+    ap.add_argument("--out", default="qa/results/replayed.json")
     args = ap.parse_args(argv)
 
     from qa.regression_suite.harness import live_client

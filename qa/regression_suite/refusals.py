@@ -5,7 +5,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 Section D: every mapped refusal code, and whether anything can actually emit it.
 
-    python -m qa.regression_suite.refusals --out docs/QA/results/D.json
+    python -m qa.regression_suite.refusals --out qa/results/D.json
 
 ## Why this is not part of the runner
 
@@ -52,7 +52,7 @@ sys.path.insert(0, str(ROOT))
 CODE_SHAPE = re.compile(r"[a-z][a-z0-9_]{2,}")
 
 #: Where the instrumented run writes the codes it saw.
-SEEN = ROOT / "docs" / "QA" / "results" / ".codes-seen.txt"
+SEEN = ROOT / "qa" / "results" / ".codes-seen.txt"
 
 
 def mapped() -> Dict[str, int]:
@@ -176,7 +176,7 @@ def assess(rerun: bool = False) -> Tuple[List[dict], dict]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default="docs/QA/results/D.json")
+    ap.add_argument("--out", default="qa/results/D.json")
     ap.add_argument("--rerun", action="store_true",
                     help="re-run the instrumented suite rather than reusing "
                          "the codes recorded last time")

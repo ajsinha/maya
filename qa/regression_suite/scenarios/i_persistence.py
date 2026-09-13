@@ -160,7 +160,7 @@ def plt_053(ctx: Ctx) -> Result:
     return PASS, f"refused ({got.status_code} {code_of(got) or 'no code'})"
 
 
-@case("QA-PLT-058", "A fresh If-Match succeeds")
+@case("QA-PLT-501", "A fresh If-Match succeeds")
 def plt_058(ctx: Ctx) -> Result:
     """The other half. A precondition that always refuses is not a
     precondition, and this is what would catch an ETag that never matches."""
@@ -177,7 +177,7 @@ def plt_058(ctx: Ctx) -> Result:
 
 
 # --------------------------------------------------------------- immutability
-@case("QA-PLT-070", "An immutable column on an attested version")
+@case("QA-PLT-502", "An immutable column on an attested version")
 def plt_070(ctx: Ctx) -> Result:
     """Enforced by a trigger at the storage layer, not by a service that
     somebody could route around."""
@@ -219,7 +219,7 @@ def plt_071(ctx: Ctx) -> Result:
     return PASS, "status moves, as the lifecycle requires"
 
 
-@case("QA-PLT-072", "The evidence chain refuses a DELETE")
+@case("QA-PLT-503", "The evidence chain refuses a DELETE")
 def plt_072(ctx: Ctx) -> Result:
     db = ctx.made["db"]
     try:
@@ -229,7 +229,7 @@ def plt_072(ctx: Ctx) -> Result:
     return FAIL, "a row was deleted from the evidence chain"
 
 
-@case("QA-PLT-073", "The evidence chain refuses an UPDATE")
+@case("QA-PLT-504", "The evidence chain refuses an UPDATE")
 def plt_073(ctx: Ctx) -> Result:
     db = ctx.made["db"]
     try:

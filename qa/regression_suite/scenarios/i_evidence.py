@@ -211,7 +211,7 @@ def plt_009(ctx: Ctx) -> Result:
                   f"head {str(got.get('head'))[:20]}")
 
 
-@case("QA-PLT-010", "A self-consistent rewrite is caught only by the anchor", isolated=True)
+@case("QA-PLT-500", "A self-consistent rewrite is caught only by the anchor", isolated=True)
 def plt_010(ctx: Ctx) -> Result:
     """The capable attack: edit, then recompute every hash forward.
 

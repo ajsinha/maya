@@ -7,7 +7,7 @@ Executing the generated half of the case list, one case at a time.
 
     python -m qa.regression_suite.run --section A          # one section
     python -m qa.regression_suite.run                      # A, B, C, E
-    python -m qa.regression_suite.run --out docs/QA/results/pass1.json
+    python -m qa.regression_suite.run --out qa/results/pass1.json
 
 ## What this runs and what it cannot
 
@@ -320,9 +320,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--section", action="append",
                     choices=["A", "B", "C", "E"], default=None)
-    ap.add_argument("--out", default="docs/QA/results/generated.json")
+    ap.add_argument("--out", default="qa/results/generated.json")
     ap.add_argument("--verbose", action="store_true")
-    ap.add_argument("--trace", default="docs/QA/results/.trace.log",
+    ap.add_argument("--trace", default="qa/results/.trace.log",
                     help="where to write progress as it happens, so a run "
                          "that blocks says what it blocked on")
     args = ap.parse_args(argv)

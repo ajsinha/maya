@@ -44,8 +44,8 @@ It listens on **http://localhost:5006**. Leave it running in its own terminal.
 Open a second terminal and run **one** of these:
 
 ```bash
-python docs/QA/qa_setup.py                # any platform — this is the one to use
-./docs/QA/qa-setup.sh                     # macOS / Linux, needs bash and curl
+python qa/qa_setup.py                # any platform — this is the one to use
+./qa/qa-setup.sh                     # macOS / Linux, needs bash and curl
 ```
 
 Both create the same people, features, data, featureset and model this document

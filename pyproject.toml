@@ -103,7 +103,7 @@ ignore = [
 # middleware and the session cookie, and the screens are exactly what a QA pass
 # has to reach. The URL is a command-line argument defaulting to a literal
 # `http://127.0.0.1`.
-"docs/QA/*.py" = ["S105", "S106", "S310"]
+"qa/*.py" = ["S105", "S106", "S310"]
 # The soak harness drives the platform over HTTP from outside the process, on
 # purpose: a test client would skip uvicorn, the assembled middleware and every
 # question about the process's own resource use, which is most of what a soak
