@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-138",
+   "title": "Evaluating an external derived feature",
+   "verdict": "PASS",
+   "evidence": "refused: 'df_7906b206' is declared external, so MAYA does not compute it; materialise its values li"
+  }
+ ]
+}

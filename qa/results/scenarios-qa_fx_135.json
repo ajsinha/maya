@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-135",
+   "title": "Lineage exactly at the depth limit, then one deeper",
+   "verdict": "FAIL",
+   "evidence": "a lineage 14 deep was defined, past the stated 12 limit. The limit is enforced only inside `provenance`, the recursive walk \u2014 which does refuse it, so the chain exists and the question the limit was written to keep answerable cannot be answered about it. The leakage check walks `lineage`, which has no depth guard at all"
+  }
+ ]
+}

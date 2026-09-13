@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-143",
+   "title": "The expression language will not evaluate a program",
+   "verdict": "PASS",
+   "evidence": "all 7 escapes refused"
+  }
+ ]
+}
