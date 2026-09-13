@@ -1,0 +1,125 @@
+{
+ "summary": {
+  "total": 19,
+  "pass": 19,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-GOV-100",
+   "title": "Open two quorums for one version",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_open'"
+  },
+  {
+   "id": "QA-GOV-1000",
+   "title": "A proposal with no title",
+   "verdict": "PASS",
+   "evidence": "refused 'description_required'"
+  },
+  {
+   "id": "QA-GOV-1001",
+   "title": "Register a proposal before it has been triaged",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1002",
+   "title": "Triage with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1003",
+   "title": "Register a proposal triaged out of scope",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1004",
+   "title": "Triage a proposal that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1005",
+   "title": "Re-triage a proposal already triaged",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-GOV-101",
+   "title": "Open a quorum for a version already approved",
+   "verdict": "PASS",
+   "evidence": "refused 'already_approved'"
+  },
+  {
+   "id": "QA-GOV-1010",
+   "title": "The baseline burn-down is computed, not declared",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-GOV-1011",
+   "title": "Debt and breach are reported separately",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-GOV-1012",
+   "title": "Reconcile debt against a register with nothing in it",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-GOV-102",
+   "title": "POST /api/v1/models with a blank `name`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-103",
+   "title": "Complete a two-role quorum with two distinct people",
+   "verdict": "PASS",
+   "evidence": "two people, two roles, and the version is approved"
+  },
+  {
+   "id": "QA-GOV-104",
+   "title": "One person holding both quorum roles signs twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed_personally'"
+  },
+  {
+   "id": "QA-GOV-105",
+   "title": "Race two signatures from one dual-hatted principal",
+   "verdict": "PASS",
+   "evidence": "one signature stood, the other refused 'already_signed_personally'"
+  },
+  {
+   "id": "QA-GOV-106",
+   "title": "The version's creator signs the quorum",
+   "verdict": "PASS",
+   "evidence": "the pairing is refused at the role store ('incompatible_roles'), before any version exists to sign"
+  },
+  {
+   "id": "QA-GOV-107",
+   "title": "Decline one signature of a two-role quorum",
+   "verdict": "PASS",
+   "evidence": "declined, and the version is not approved"
+  },
+  {
+   "id": "QA-GOV-108",
+   "title": "Sign after a decline closed the approval",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_closed'"
+  },
+  {
+   "id": "QA-GOV-109",
+   "title": "Open a new quorum after one was declined",
+   "verdict": "PASS",
+   "evidence": "a second approval, distinct from the declined one"
+  }
+ ]
+}
