@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-4820",
+   "title": "Independent edits commute",
+   "verdict": "PASS",
+   "evidence": "independent edits commute to {'a': 10, 'b': 20}; dependent ones do not"
+  },
+  {
+   "id": "QA-FX-4821",
+   "title": "merge is not mutation",
+   "verdict": "PASS",
+   "evidence": "merge, apply and fold all leave their inputs alone"
+  }
+ ]
+}
