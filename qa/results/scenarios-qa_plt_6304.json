@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-6304",
+   "title": "An empty chain verifies",
+   "verdict": "PASS",
+   "evidence": "an empty chain verifies"
+  }
+ ]
+}

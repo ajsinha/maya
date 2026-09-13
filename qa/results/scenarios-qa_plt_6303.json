@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-6303",
+   "title": "A verification says who performed it",
+   "verdict": "PASS",
+   "evidence": "verified_by=auditor, self_certified=0"
+  }
+ ]
+}
