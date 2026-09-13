@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-195",
+   "title": "Define with `threshold: {\"floor\": 0.4}`",
+   "verdict": "FAIL",
+   "evidence": "accepted at definition and refused at evaluation ('validation_refused'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as active until somebody runs it \u2014 and the refusal lands on whoever is reading the monitor rather than whoever wrote it"
+  }
+ ]
+}

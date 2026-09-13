@@ -1,0 +1,77 @@
+{
+ "summary": {
+  "total": 11,
+  "pass": 9,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-190",
+   "title": "Pair `input_drift` with `discrimination.gini`",
+   "verdict": "PASS",
+   "evidence": "refused 'test_not_admissible', naming what does answer it"
+  },
+  {
+   "id": "QA-AM-1900",
+   "title": "Replay with data that is not the data",
+   "verdict": "PASS",
+   "evidence": "mismatched: stored 0.00729286227175818, replayed 2.301270110990763"
+  },
+  {
+   "id": "QA-AM-1901",
+   "title": "Replay data for a test the episode never recorded",
+   "verdict": "PASS",
+   "evidence": "extra data supplied, and only the recorded test counted"
+  },
+  {
+   "id": "QA-AM-191",
+   "title": "Define a `performance` monitor with no `label_delay_days`",
+   "verdict": "PASS",
+   "evidence": "refused 'label_delay_required'"
+  },
+  {
+   "id": "QA-AM-192",
+   "title": "Define a `performance` monitor with `label_delay_days: 0`",
+   "verdict": "PASS",
+   "evidence": "refused 'label_delay_required' on an explicit zero"
+  },
+  {
+   "id": "QA-AM-193",
+   "title": "Define a `calibration` monitor with a delay of 0.5 days",
+   "verdict": "PASS",
+   "evidence": "half a day accepted and kept as half a day"
+  },
+  {
+   "id": "QA-AM-194",
+   "title": "Define with no threshold",
+   "verdict": "PASS",
+   "evidence": "refused 'threshold_required'"
+  },
+  {
+   "id": "QA-AM-195",
+   "title": "Define with `threshold: {\"floor\": 0.4}`",
+   "verdict": "FAIL",
+   "evidence": "accepted at definition and refused at evaluation ('no_reference'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as active until somebody runs it \u2014 and the refusal lands on whoever is reading the monitor rather than whoever wrote it"
+  },
+  {
+   "id": "QA-AM-196",
+   "title": "Define two monitors with the same name on one model",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_monitor'"
+  },
+  {
+   "id": "QA-AM-197",
+   "title": "Define with `escalate_after: 0`",
+   "verdict": "PASS",
+   "evidence": "0 accepted and kept"
+  },
+  {
+   "id": "QA-AM-198",
+   "title": "Define with `escalate_after: -1`",
+   "verdict": "FAIL",
+   "evidence": "`escalate_after: -1` was accepted and stored: nothing validates the field, and 0 already means *never escalate*, so a negative is a number with no reading that goes into the escalation arithmetic"
+  }
+ ]
+}

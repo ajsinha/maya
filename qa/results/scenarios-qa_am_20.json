@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-200",
+   "title": "Define with cadence_days: 0",
+   "verdict": "PASS",
+   "evidence": "accepted; cadence_days=0.0"
+  },
+  {
+   "id": "QA-AM-201",
+   "title": "Define a `performance` monitor against a class whose fibre cannot answer it",
+   "verdict": "PASS",
+   "evidence": "refused 'kind_not_answerable', naming the class"
+  },
+  {
+   "id": "QA-AM-202",
+   "title": "Define a monitor on a model with no version yet",
+   "verdict": "PASS",
+   "evidence": "accepted: no version, so the fibre has no opinion to give"
+  },
+  {
+   "id": "QA-AM-205",
+   "title": "Set a monitor's status to something that is not a status",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  }
+ ]
+}
