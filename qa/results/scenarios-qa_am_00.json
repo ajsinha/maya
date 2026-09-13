@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 6,
-  "pass": 6,
-  "fail": 0,
+  "total": 9,
+  "pass": 8,
+  "fail": 1,
   "blocked": 0
  },
- "seconds": 1.2,
+ "seconds": 0.9,
  "results": [
   {
    "id": "QA-AM-001",
@@ -38,10 +38,28 @@
    "evidence": "refused 'validation_refused'"
   },
   {
+   "id": "QA-AM-006",
+   "title": "Validator deactivated *after* the episode opened, then the episode is concluded",
+   "verdict": "FAIL",
+   "evidence": "the episode concluded and its reading still reports `independent` on the strength of a validator suspended before the conclusion; nothing in the record says so, so a supervisor reading the pack cannot tell"
+  },
+  {
    "id": "QA-AM-007",
    "title": "A version with no recorded builder",
    "verdict": "PASS",
    "evidence": "the builder cannot be blanked \u2014 the column is immutable in the database \u2014 and no version in the estate carries an empty one, so independence is never evaluated against nothing"
+  },
+  {
+   "id": "QA-AM-008",
+   "title": "Two episodes open on one version at once, concluded to opposite outcomes",
+   "verdict": "PASS",
+   "evidence": "both outcomes are rendered on the model page, side by side"
+  },
+  {
+   "id": "QA-AM-009",
+   "title": "Conclude with no tier verdict",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
   }
  ]
 }

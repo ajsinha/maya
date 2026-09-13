@@ -1,0 +1,425 @@
+{
+ "summary": {
+  "total": 69,
+  "pass": 59,
+  "fail": 6,
+  "blocked": 4
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-AM-001",
+   "title": "The builder's name spelled with a person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-002",
+   "title": "The builder's name with the case flipped",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-003",
+   "title": "Two validators, one of whom built the version",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', and no episode was recorded"
+  },
+  {
+   "id": "QA-AM-004",
+   "title": "A validator who resolves to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-005",
+   "title": "A validator who exists but is not active",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-006",
+   "title": "Validator deactivated *after* the episode opened, then the episode is concluded",
+   "verdict": "BLOCKED",
+   "evidence": "the validator could not be suspended: {\"error\":\"forbidden\",\"detail\":\"'principal:manage' is not granted by your roles (model_risk_manager)\",\"remediation\":\"ask an administrator for"
+  },
+  {
+   "id": "QA-AM-007",
+   "title": "A version with no recorded builder",
+   "verdict": "PASS",
+   "evidence": "the builder cannot be blanked \u2014 the column is immutable in the database \u2014 and no version in the estate carries an empty one, so independence is never evaluated against nothing"
+  },
+  {
+   "id": "QA-AM-008",
+   "title": "Two episodes open on one version at once, concluded to opposite outcomes",
+   "verdict": "BLOCKED",
+   "evidence": "the model page answered 404"
+  },
+  {
+   "id": "QA-AM-009",
+   "title": "Conclude with no tier verdict",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-010",
+   "title": "Conclude should_be_higher with a blank note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-011",
+   "title": "should_be_higher raises a finding",
+   "verdict": "PASS",
+   "evidence": "1 tiering finding(s) raised"
+  },
+  {
+   "id": "QA-AM-012",
+   "title": "should_be_lower raises nothing",
+   "verdict": "PASS",
+   "evidence": "no finding; reducing control needs a re-assessment"
+  },
+  {
+   "id": "QA-AM-013",
+   "title": "The tier moves between open and conclude",
+   "verdict": "PASS",
+   "evidence": "tier_at_open stays None while the model moved to 1"
+  },
+  {
+   "id": "QA-AM-014",
+   "title": "Conclude approved with no test result at all",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-015",
+   "title": "Conclude `approved` over one recorded result that declared no threshold",
+   "verdict": "PASS",
+   "evidence": "approved, and the reading says the test declared no limit"
+  },
+  {
+   "id": "QA-AM-016",
+   "title": "Conclude `approved` over a single *not computable* result",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-017",
+   "title": "Conclude rejected over a failed test",
+   "verdict": "PASS",
+   "evidence": "rejected over a failed test"
+  },
+  {
+   "id": "QA-AM-018",
+   "title": "Conclude deferred while a blocking finding is open",
+   "verdict": "PASS",
+   "evidence": "deferred"
+  },
+  {
+   "id": "QA-AM-019",
+   "title": "Conclude approved_with_conditions with no conditions",
+   "verdict": "FAIL",
+   "evidence": "an episode with a failed test concluded 'approved_with_conditions' and NO conditions. `_check_approvable` runs only for 'approved', so the route the failure refusal points a validator towards accepts everything 'approved' refuses \u2014 a model with a failed test is approved under a longer name and the conditions the outcome is named for are absent"
+  },
+  {
+   "id": "QA-AM-020",
+   "title": "Blocking finding open against a *different version* of the same model blocks approval of this one",
+   "verdict": "BLOCKED",
+   "evidence": "the blocking finding could not be raised"
+  },
+  {
+   "id": "QA-AM-021",
+   "title": "Close the blocking finding, then re-attempt the same conclusion",
+   "verdict": "BLOCKED",
+   "evidence": "the fixture could not be built"
+  },
+  {
+   "id": "QA-AM-022",
+   "title": "Record a result after the episode concluded",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-023",
+   "title": "Conclude an already concluded episode",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-024",
+   "title": "Open with `snapshot_id` naming a snapshot that does not exist",
+   "verdict": "FAIL",
+   "evidence": "accepted at open and discovered only at replay ('validation_refused'): the episode carries a pin to 'snap-does-not-exist' for as long as nobody replays it, and the failure lands on whoever asked for the evidence rather than on whoever typed the identifier"
+  },
+  {
+   "id": "QA-AM-025",
+   "title": "Open an episode with no validators",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-026",
+   "title": "Open with the same validator listed twice",
+   "verdict": "FAIL",
+   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 9 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+  },
+  {
+   "id": "QA-AM-027",
+   "title": "`due_at` set to a moment in the past at open",
+   "verdict": "FAIL",
+   "evidence": "an episode opened a week overdue is stored with that date and read by nothing: the queue and the backlog both compute what falls due from the re-validation triggers, so `due_at` is written at open and never evaluated \u2014 a date somebody will believe is enforced"
+  },
+  {
+   "id": "QA-AM-028",
+   "title": "Every operation in this group, run a second time against the same episode",
+   "verdict": "PASS",
+   "evidence": "three repeats, each stable: ['validation_refused']"
+  },
+  {
+   "id": "QA-AM-030",
+   "title": "Labels and scores of different lengths",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-031",
+   "title": "A threshold declaring both min and max",
+   "verdict": "FAIL",
+   "evidence": "value 0.0 passed a threshold declaring max -0.5: the evaluator returns on `min` and never reads `max`, so a validator who declares a band gets one end of it checked and the detail \u2014 0 meets the minimum of -1 \u2014 names only the end that was applied"
+  },
+  {
+   "id": "QA-AM-032",
+   "title": "A threshold declaring a key the catalogue does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming min/max/target"
+  },
+  {
+   "id": "QA-AM-033",
+   "title": "A target with no tolerance",
+   "verdict": "PASS",
+   "evidence": "tolerance stated: 0 is 0 from the target 0, tolerance 0"
+  },
+  {
+   "id": "QA-AM-034",
+   "title": "A value exactly equal to min",
+   "verdict": "PASS",
+   "evidence": "the minimum is inclusive"
+  },
+  {
+   "id": "QA-AM-035",
+   "title": "A value exactly equal to max",
+   "verdict": "PASS",
+   "evidence": "the maximum is inclusive"
+  },
+  {
+   "id": "QA-AM-036",
+   "title": "A deviation exactly equal to tolerance",
+   "verdict": "PASS",
+   "evidence": "the tolerance is inclusive"
+  },
+  {
+   "id": "QA-AM-040",
+   "title": "More bins than the reference has points",
+   "verdict": "PASS",
+   "evidence": "not quoted as a result: not computable on this sample \u2014 a class may be absent, or the sample too small f"
+  },
+  {
+   "id": "QA-AM-041",
+   "title": "Both series empty",
+   "verdict": "PASS",
+   "evidence": "null value, not passed, and said to be not computable"
+  },
+  {
+   "id": "QA-AM-042",
+   "title": "An empty series with no threshold",
+   "verdict": "PASS",
+   "evidence": "not computable beats no-threshold-so-it-passes"
+  },
+  {
+   "id": "QA-AM-044",
+   "title": "The same numbers recorded twice",
+   "verdict": "PASS",
+   "evidence": "identical inputs, identical digest sha256:a11db82ff"
+  },
+  {
+   "id": "QA-AM-045",
+   "title": "The same value under a different slice",
+   "verdict": "PASS",
+   "evidence": "different slices, different digests"
+  },
+  {
+   "id": "QA-AM-046",
+   "title": "A slice the supplied data was never filtered by",
+   "verdict": "PASS",
+   "evidence": "the slice is recorded as declared; the platform cannot check the data was filtered by it and does not claim to"
+  },
+  {
+   "id": "QA-AM-048",
+   "title": "A test key that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-049",
+   "title": "Replay supplying data for one of two recorded tests",
+   "verdict": "PASS",
+   "evidence": "1 reproduced, 1 skipped, reproducible false"
+  },
+  {
+   "id": "QA-AM-050",
+   "title": "Replay an episode with zero recorded results",
+   "verdict": "PASS",
+   "evidence": "not reproducible, and the reason is that there is nothing"
+  },
+  {
+   "id": "QA-AM-051",
+   "title": "Replay twice with identical data",
+   "verdict": "PASS",
+   "evidence": "identical both times: all 1 result(s) reproduced exactly"
+  },
+  {
+   "id": "QA-AM-053",
+   "title": "Replay-from-storage on an episode pinning no snapshot",
+   "verdict": "PASS",
+   "evidence": "unreadable, and the missing snapshot is the stated reason"
+  },
+  {
+   "id": "QA-AM-061",
+   "title": "The same data in a different row order",
+   "verdict": "PASS",
+   "evidence": "reordered and still reproduced"
+  },
+  {
+   "id": "QA-AM-063",
+   "title": "Replayability over a model with no episodes",
+   "verdict": "PASS",
+   "evidence": "this episode pins no dataset snapshot, so it cannot be replayed without the data being sup"
+  },
+  {
+   "id": "QA-AM-066",
+   "title": "Replay, conclude the episode, replay again",
+   "verdict": "PASS",
+   "evidence": "the same report before and after concluding"
+  },
+  {
+   "id": "QA-AM-067",
+   "title": "A Critical finding blocks without anybody deciding",
+   "verdict": "PASS",
+   "evidence": "blocking by default"
+  },
+  {
+   "id": "QA-AM-068",
+   "title": "A Critical finding explicitly marked non-blocking",
+   "verdict": "PASS",
+   "evidence": "accepted, and not blocking"
+  },
+  {
+   "id": "QA-AM-071",
+   "title": "Raise with an unknown severity",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-073",
+   "title": "Raise with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-081",
+   "title": "Assign a finding to the person who already owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned'"
+  },
+  {
+   "id": "QA-AM-082",
+   "title": "Assign to the current owner without the person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned'"
+  },
+  {
+   "id": "QA-AM-083",
+   "title": "Acknowledge with a date already in the past",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past' (422)"
+  },
+  {
+   "id": "QA-AM-084",
+   "title": "Assign with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-085",
+   "title": "Assign to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-AM-086",
+   "title": "Acknowledge as somebody other than the owner",
+   "verdict": "PASS",
+   "evidence": "refused 'not_the_owner'"
+  },
+  {
+   "id": "QA-AM-087",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-AM-088",
+   "title": "Acknowledge to a date after the finding's due date",
+   "verdict": "PASS",
+   "evidence": "refused 'beyond_the_due_date'"
+  },
+  {
+   "id": "QA-AM-089",
+   "title": "Immediately re-attempt QA-AM-088 with no plan at all",
+   "verdict": "FAIL",
+   "evidence": "an acknowledgement refused `beyond_the_due_date` still recorded its plan \u2014 `plan_for` runs before the date check \u2014 so acknowledging again with NO plan is accepted. A refused act left a durable write behind, and the plan requirement is satisfied by a call that failed"
+  },
+  {
+   "id": "QA-AM-090",
+   "title": "Act on a finding that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_finding' (404)"
+  },
+  {
+   "id": "QA-AM-091",
+   "title": "Acknowledge to exactly the due date",
+   "verdict": "PASS",
+   "evidence": "the due date itself is inside the window"
+  },
+  {
+   "id": "QA-AM-092",
+   "title": "Acknowledge to a date that has already passed",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past'"
+  },
+  {
+   "id": "QA-AM-093",
+   "title": "Acknowledge, then hand the finding over",
+   "verdict": "PASS",
+   "evidence": "the acknowledgement did not follow the finding"
+  },
+  {
+   "id": "QA-AM-096",
+   "title": "Record a plan that is empty",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required'"
+  },
+  {
+   "id": "QA-AM-098",
+   "title": "Extend before anybody has acknowledged",
+   "verdict": "PASS",
+   "evidence": "refused 'not_acknowledged'"
+  },
+  {
+   "id": "QA-AM-099",
+   "title": "Extend as the owner",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' at the gate and 'self_extension' in the register"
+  }
+ ]
+}
