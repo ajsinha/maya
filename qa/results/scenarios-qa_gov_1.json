@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 56,
-  "pass": 52,
-  "fail": 3,
-  "blocked": 1
+  "total": 65,
+  "pass": 60,
+  "fail": 5,
+  "blocked": 0
  },
- "seconds": 1.4,
+ "seconds": 7.2,
  "results": [
   {
    "id": "QA-GOV-100",
@@ -82,8 +82,8 @@
   {
    "id": "QA-GOV-103",
    "title": "Complete a two-role quorum with two distinct people",
-   "verdict": "FAIL",
-   "evidence": "both roles signed and the version reads 'None'; the quorum completed and approved nothing"
+   "verdict": "PASS",
+   "evidence": "two people, two roles, and the version is approved"
   },
   {
    "id": "QA-GOV-104",
@@ -100,8 +100,8 @@
   {
    "id": "QA-GOV-106",
    "title": "The version's creator signs the quorum",
-   "verdict": "BLOCKED",
-   "evidence": "the dual-hatted builder could not be created"
+   "verdict": "PASS",
+   "evidence": "the pairing is refused at the role store ('incompatible_roles'), before any version exists to sign"
   },
   {
    "id": "QA-GOV-107",
@@ -176,6 +176,12 @@
    "evidence": "tiers 0, 5, -1 and 99 all refused"
   },
   {
+   "id": "QA-GOV-120",
+   "title": "Publish a band with tier 0",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_tier'"
+  },
+  {
    "id": "QA-GOV-121",
    "title": "Publish a band with a negative amount floor",
    "verdict": "PASS",
@@ -186,6 +192,12 @@
    "title": "Publish the same band name twice",
    "verdict": "PASS",
    "evidence": "refused 'band_exists'"
+  },
+  {
+   "id": "QA-GOV-123",
+   "title": "Race two publications of the same band name",
+   "verdict": "PASS",
+   "evidence": "one published, the other refused 'band_exists'"
   },
   {
    "id": "QA-GOV-124",
@@ -200,10 +212,52 @@
    "evidence": "withdrawn from the live matrix"
   },
   {
+   "id": "QA-GOV-126",
+   "title": "Publish the first band at all \u2014 every tier 3 model now falls under a matrix",
+   "verdict": "FAIL",
+   "evidence": "publishing one tier 3 band removed the shipped bands ['tier-1', 'tier-2'] from the matrix: the matrix is `published or DEFAULT_BANDS`, so the first band a firm publishes silently drops the tier-1 sequencing \u2014 the only place the platform requires the second line to sign before the validator"
+  },
+  {
+   "id": "QA-GOV-127",
+   "title": "Publish a matrix that reaches no tier 1 model",
+   "verdict": "FAIL",
+   "evidence": "band null and the approval requires nobody: a matrix that does not reach a model must fall back to the tier quorum, not to an empty list"
+  },
+  {
    "id": "QA-GOV-128",
    "title": "An amount exactly equal to a band's floor",
    "verdict": "PASS",
    "evidence": "the floor is stored as given, and named at_or_above"
+  },
+  {
+   "id": "QA-GOV-129",
+   "title": "Amount one unit below the floor",
+   "verdict": "PASS",
+   "evidence": "999,999 -> 'bd-48e1bac3', the band below the floor"
+  },
+  {
+   "id": "QA-GOV-130",
+   "title": "No sourced exposure at all",
+   "verdict": "PASS",
+   "evidence": "deepest band 'bd-06e2f801', reached_by 'deepest_band_because_the_amount_is_unknown'"
+  },
+  {
+   "id": "QA-GOV-131",
+   "title": "Sourced exposure recorded as a non-numeric string",
+   "verdict": "PASS",
+   "evidence": "unparseable, so the deepest band 'bd-0bc2b517' \u2014 and the attested row is still on the record to be corrected"
+  },
+  {
+   "id": "QA-GOV-132",
+   "title": "Two exposure facts, the later one dated in the future",
+   "verdict": "FAIL",
+   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-ece84a7d'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
+  },
+  {
+   "id": "QA-GOV-133",
+   "title": "Sourced exposure of exactly 0",
+   "verdict": "PASS",
+   "evidence": "0 -> 'bd-507da12e', matched rather than reached by absence"
   },
   {
    "id": "QA-GOV-134",
