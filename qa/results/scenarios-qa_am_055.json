@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-055",
+   "title": "Replay-from-storage when the snapshot's table has been removed",
+   "verdict": "PASS",
+   "evidence": "described as unreadable, and the frame read refuses by name"
+  }
+ ]
+}

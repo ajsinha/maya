@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-064",
+   "title": "`GET /replayable` where a snapshot row exists but its table is gone",
+   "verdict": "PASS",
+   "evidence": "with_snapshot 1, readable 0, coverage 0.0"
+  }
+ ]
+}

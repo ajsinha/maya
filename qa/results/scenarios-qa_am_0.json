@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 69,
-  "pass": 59,
-  "fail": 6,
-  "blocked": 4
+  "total": 71,
+  "pass": 62,
+  "fail": 9,
+  "blocked": 0
  },
- "seconds": 1.4,
+ "seconds": 2.1,
  "results": [
   {
    "id": "QA-AM-001",
@@ -40,8 +40,8 @@
   {
    "id": "QA-AM-006",
    "title": "Validator deactivated *after* the episode opened, then the episode is concluded",
-   "verdict": "BLOCKED",
-   "evidence": "the validator could not be suspended: {\"error\":\"forbidden\",\"detail\":\"'principal:manage' is not granted by your roles (model_risk_manager)\",\"remediation\":\"ask an administrator for"
+   "verdict": "FAIL",
+   "evidence": "the episode concluded and its reading still reports `independent` on the strength of a validator suspended before the conclusion; nothing in the record says so, so a supervisor reading the pack cannot tell"
   },
   {
    "id": "QA-AM-007",
@@ -52,8 +52,8 @@
   {
    "id": "QA-AM-008",
    "title": "Two episodes open on one version at once, concluded to opposite outcomes",
-   "verdict": "BLOCKED",
-   "evidence": "the model page answered 404"
+   "verdict": "PASS",
+   "evidence": "both outcomes are rendered on the model page, side by side"
   },
   {
    "id": "QA-AM-009",
@@ -124,14 +124,14 @@
   {
    "id": "QA-AM-020",
    "title": "Blocking finding open against a *different version* of the same model blocks approval of this one",
-   "verdict": "BLOCKED",
-   "evidence": "the blocking finding could not be raised"
+   "verdict": "PASS",
+   "evidence": "refused, naming the finding raised against 1.0.0"
   },
   {
    "id": "QA-AM-021",
    "title": "Close the blocking finding, then re-attempt the same conclusion",
-   "verdict": "BLOCKED",
-   "evidence": "the fixture could not be built"
+   "verdict": "PASS",
+   "evidence": "refused while open, approved once the finding closed"
   },
   {
    "id": "QA-AM-022",
@@ -161,7 +161,7 @@
    "id": "QA-AM-026",
    "title": "Open with the same validator listed twice",
    "verdict": "FAIL",
-   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 9 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 8 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
   },
   {
    "id": "QA-AM-027",
@@ -260,46 +260,58 @@
    "evidence": "refused 'validation_refused'"
   },
   {
-   "id": "QA-AM-049",
-   "title": "Replay supplying data for one of two recorded tests",
+   "id": "QA-AM-052",
+   "title": "The stored threshold is edited in the register, then replay is run with the original data",
    "verdict": "PASS",
-   "evidence": "1 reproduced, 1 skipped, reproducible false"
+   "evidence": "mismatched with the value unchanged at 0.0: the digest covers the threshold"
   },
   {
-   "id": "QA-AM-050",
-   "title": "Replay an episode with zero recorded results",
-   "verdict": "PASS",
-   "evidence": "not reproducible, and the reason is that there is nothing"
+   "id": "QA-AM-055",
+   "title": "Replay-from-storage when the snapshot's table has been removed",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: dataset_snapshot.as_of\n[SQL: INSERT INTO dataset_snapshot (name, delta_table, delta_version, row_count, pit_verified, id) VALUES (?, ?, ?, ?, ?, ?)]\n[parameters: ('snap-c96f8edb', 'gone_table_fe54a7c0', 2, 50, False, '01a09ca5fb6e21998c44be5a995c')]\n(Background on this error at: https://sqlalche.me/e/20/gkp"
   },
   {
-   "id": "QA-AM-051",
-   "title": "Replay twice with identical data",
+   "id": "QA-AM-057",
+   "title": "Replay-from-storage with a slice naming a column the frame does not have",
    "verdict": "PASS",
-   "evidence": "identical both times: all 1 result(s) reproduced exactly"
+   "evidence": "an unknown slice column yields nothing, not everything"
   },
   {
-   "id": "QA-AM-053",
-   "title": "Replay-from-storage on an episode pinning no snapshot",
+   "id": "QA-AM-058",
+   "title": "Replay-from-storage with a slice matching zero rows",
    "verdict": "PASS",
-   "evidence": "unreadable, and the missing snapshot is the stated reason"
+   "evidence": "a zero-row slice is skipped rather than computed over"
   },
   {
-   "id": "QA-AM-061",
-   "title": "The same data in a different row order",
+   "id": "QA-AM-059",
+   "title": "Frame carrying both `actual` and `label` columns",
    "verdict": "PASS",
-   "evidence": "reordered and still reproduced"
+   "evidence": "'actual' wins over 'label', as DEFAULT_LEFT orders them"
   },
   {
-   "id": "QA-AM-063",
-   "title": "Replayability over a model with no episodes",
+   "id": "QA-AM-060",
+   "title": "Frame where the label column is entirely null",
    "verdict": "PASS",
-   "evidence": "this episode pins no dataset snapshot, so it cannot be replayed without the data being sup"
+   "evidence": "the pair drops to empty and the test is skipped"
   },
   {
-   "id": "QA-AM-066",
-   "title": "Replay, conclude the episode, replay again",
+   "id": "QA-AM-062",
+   "title": "Same data supplied with the pairing broken (both series shuffled independently)",
    "verdict": "PASS",
-   "evidence": "the same report before and after concluding"
+   "evidence": "the broken pairing is reported as mismatched"
+  },
+  {
+   "id": "QA-AM-064",
+   "title": "`GET /replayable` where a snapshot row exists but its table is gone",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: dataset_snapshot.as_of\n[SQL: INSERT INTO dataset_snapshot (name, delta_table, delta_version, row_count, pit_verified, id) VALUES (?, ?, ?, ?, ?, ?)]\n[parameters: ('snap-a0e3d053', 'a_table_nobody_wrote', 3, 100, False, '01a09ca5fb8df58081d710bffaa2')]\n(Background on this error at: https://sqlalche.me/e/20/g"
+  },
+  {
+   "id": "QA-AM-065",
+   "title": "`GET /replayable` on an instance with no storage provider wired",
+   "verdict": "PASS",
+   "evidence": "refused: this replayer was built without a storage provider, so it can only replay from data suppli"
   },
   {
    "id": "QA-AM-067",
