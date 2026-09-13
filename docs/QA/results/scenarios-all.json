@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 166,
-  "pass": 166,
+  "total": 190,
+  "pass": 190,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 15.7,
+ "seconds": 29.6,
  "results": [
   {
    "id": "QA-AM-067",
@@ -128,6 +128,84 @@
    "evidence": "the acknowledged child is still counted"
   },
   {
+   "id": "QA-AM-200",
+   "title": "Define with cadence_days: 0",
+   "verdict": "PASS",
+   "evidence": "accepted; cadence_days=0.0"
+  },
+  {
+   "id": "QA-AM-205",
+   "title": "Set a monitor's status to something that is not a status",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-210",
+   "title": "Define with a negative threshold",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-211",
+   "title": "Define a monitor of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-212",
+   "title": "Define against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-213",
+   "title": "Define with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-214",
+   "title": "A valid monitor is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-215",
+   "title": "Ingest an observation with no computed_by",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' (422)"
+  },
+  {
+   "id": "QA-AM-216",
+   "title": "Ingest a window that ends before it starts",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-217",
+   "title": "Ingest against a monitor that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_monitor' (404)"
+  },
+  {
+   "id": "QA-AM-218",
+   "title": "An observation inside the threshold does not breach",
+   "verdict": "PASS",
+   "evidence": "no breach, as expected"
+  },
+  {
+   "id": "QA-AM-219",
+   "title": "An observation past the threshold breaches",
+   "verdict": "PASS",
+   "evidence": "breached"
+  },
+  {
+   "id": "QA-AM-220",
+   "title": "Two identical observations are not two breaches",
+   "verdict": "PASS",
+   "evidence": "0 breach for the same window twice"
+  },
+  {
    "id": "QA-DEL-001",
    "title": "Delete as a non-administrator holding model:delete",
    "verdict": "PASS",
@@ -185,7 +263,7 @@
    "id": "QA-DEL-011",
    "title": "The evidence node is appended before the rows go",
    "verdict": "PASS",
-   "evidence": "the chain grew 65 -> 66 and the screen shows it"
+   "evidence": "the chain grew 95 -> 96 and the screen shows it"
   },
   {
    "id": "QA-DEL-012",
@@ -317,7 +395,7 @@
    "id": "QA-DEL-078",
    "title": "Vacuum answers and reports what it reclaimed",
    "verdict": "PASS",
-   "evidence": "{'before_bytes': 1392640, 'after_bytes': 1425408, 'reclaimed_bytes': 0, 'measured': True}"
+   "evidence": "{'before_bytes': 1445888, 'after_bytes': 1445888, 'reclaimed_bytes': 0, 'measured': True}"
   },
   {
    "id": "QA-DEL-079",
@@ -407,7 +485,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ab94db467969d6314239f32\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ac3499c698a90ea192ac180\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -527,7 +605,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-915c59b7\",\"name\":\"gov-915c59b7-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-915ae20f\",\"name\":\"gov-915ae20f-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -692,16 +770,82 @@
    "evidence": "accepted (200)"
   },
   {
+   "id": "QA-GOV-100",
+   "title": "POST /api/v1/models with a blank `owner`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-101",
+   "title": "POST /api/v1/models with a blank `urn`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-102",
+   "title": "POST /api/v1/models with a blank `name`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-103",
+   "title": "POST /api/v1/models with a blank `legal_entity`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-104",
+   "title": "POST /api/v1/models with a blank `purpose`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-105",
+   "title": "POST /api/v1/legal-holds with a blank `matter`",
+   "verdict": "PASS",
+   "evidence": "refused 'matter_required'"
+  },
+  {
+   "id": "QA-GOV-106",
+   "title": "POST /api/v1/legal-holds with a blank `owner`",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-GOV-107",
+   "title": "POST /api/v1/intake with a blank `title`",
+   "verdict": "PASS",
+   "evidence": "refused 'description_required'"
+  },
+  {
+   "id": "QA-GOV-108",
+   "title": "POST /api/v1/finding-roots with a blank `title`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind'"
+  },
+  {
+   "id": "QA-GOV-109",
+   "title": "POST /api/v1/finding-roots with a blank `detail`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind'"
+  },
+  {
+   "id": "QA-GOV-130",
+   "title": "Every stated-ground field this pass has fixed stays fixed",
+   "verdict": "PASS",
+   "evidence": "all four still strip before checking"
+  },
+  {
    "id": "QA-PLT-001",
    "title": "Verify, do nothing, verify again",
    "verdict": "PASS",
-   "evidence": "length 254, head stable"
+   "evidence": "length 284, head stable"
   },
   {
    "id": "QA-PLT-002",
    "title": "One append, then verify \u2014 the new head links to the old",
    "verdict": "PASS",
-   "evidence": "256 -> 257, still valid"
+   "evidence": "286 -> 287, still valid"
   },
   {
    "id": "QA-PLT-003",
@@ -743,7 +887,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:b40d798217e4b"
+   "evidence": "a fresh chain of 8 verifies, head sha256:87fd16f8aa80d"
   },
   {
    "id": "QA-PLT-010",
@@ -851,7 +995,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:a9d04b65bcfe3641a305e62"
+   "evidence": "identical: sha256:af052d668405f67e72d85b1"
   },
   {
    "id": "QA-PLT-124",
@@ -869,7 +1013,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:ed28e0bd75395caed469edb"
+   "evidence": "stable: sha256:bfd890b9d2e8e5e21515317"
   },
   {
    "id": "QA-PLT-127",

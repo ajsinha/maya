@@ -101,6 +101,21 @@ class MonitorRegistry:
                 "threshold_required",
                 "a monitor with no threshold can never breach, so it monitors nothing",
                 "declare a min, max or target threshold")
+        # And a monitor with no OWNER is one whose breaches reach nobody.
+        #
+        # The threshold was checked and the owner was not, so `"   "` was
+        # accepted — and the owner is who a breach is raised against. A
+        # monitor that breaches to nobody is the same as one that does not
+        # run, except that it reports as healthy.
+        #
+        # The fourth blank stated ground this QA pass has found: a warrant's
+        # declared use, a revocation reason, a finding title, and now this.
+        # All four were declared required and all four passed on whitespace.
+        if not (owner or "").strip():
+            raise MonitorError(
+                "owner_required",
+                "a monitor with no owner is one whose breaches reach nobody",
+                "name the person a breach of this monitor is raised against")
         if breach_severity not in SEVERITIES:
             raise MonitorError("unknown_severity",
                                f"unknown severity '{breach_severity}'",

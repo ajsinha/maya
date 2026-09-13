@@ -118,6 +118,24 @@ def sections() -> List[str]:
     return sorted({cid.rsplit("-", 1)[0] for cid in REGISTRY})
 
 
+def valid_body(ctx: Ctx, method: str, path: str, **over) -> Dict[str, Any]:
+    """A body the endpoint accepts, from its own schema, with overrides.
+
+    Authoring these cases was slow for a reason that had nothing to do with
+    the cases: each one discovered the request shape by sending a wrong body
+    and reading the 422. `threshold` is a mapping and not a float, `claims`
+    are objects and not strings, `output` is an object — every one cost a
+    round trip and an edit, and every one looked briefly like a defect.
+
+    So a scenario asks the application what it accepts and then changes the
+    field it is actually about.
+    """
+    from tools.qa.shapes import body_for
+    body = body_for(method, path, ctx.api)
+    body.update(over)
+    return body
+
+
 # --------------------------------------------------------------- sequences
 #
 # Most hand-written cases are the same shape: perform a short sequence of
