@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-392",
+   "title": "Import a batch where one row is already registered",
+   "verdict": "PASS",
+   "evidence": "1 imported, 1 skipped with a reason"
+  },
+  {
+   "id": "QA-AM-393",
+   "title": "Import the identical batch twice",
+   "verdict": "PASS",
+   "evidence": "every row skipped, and the debt is unchanged at 9 item(s)"
+  },
+  {
+   "id": "QA-AM-394",
+   "title": "Import an empty models list",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_import'"
+  },
+  {
+   "id": "QA-AM-398",
+   "title": "Reconcile twice",
+   "verdict": "PASS",
+   "evidence": "nothing closed, nothing breached, 10 left"
+  }
+ ]
+}
