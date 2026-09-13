@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 2.7,
+ "results": [
+  {
+   "id": "QA-GOV-291",
+   "title": "Decommission a model that was already retired the old way",
+   "verdict": "PASS",
+   "evidence": "a bare retirement acquired its record"
+  },
+  {
+   "id": "QA-GOV-292",
+   "title": "Estate view after one proper and one bare retirement",
+   "verdict": "PASS",
+   "evidence": "the bare retirement is named and the proper one is not"
+  },
+  {
+   "id": "QA-GOV-293",
+   "title": "Delete a model as a principal holding `model:delete` but not the admin",
+   "verdict": "BLOCKED",
+   "evidence": "answered 'forbidden' \u2014 the caller never reached the control, so this proves nothing about it"
+  },
+  {
+   "id": "QA-GOV-294",
+   "title": "Delete with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-295",
+   "title": "Delete under an estate-wide legal hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold', naming HOLD-0001"
+  },
+  {
+   "id": "QA-GOV-296",
+   "title": "Delete under a hold scoped to the model by **URN** rather than internal id",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' on a URN-scoped hold"
+  },
+  {
+   "id": "QA-GOV-298",
+   "title": "Delete under a hold whose `classes` do not include `model_record`",
+   "verdict": "PASS",
+   "evidence": "a class-narrowed hold does not cover the model record"
+  },
+  {
+   "id": "QA-GOV-299",
+   "title": "Delete under a hold with an empty `classes` list",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' \u2014 an empty class list is all of them"
+  }
+ ]
+}
