@@ -83,7 +83,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--only", default="",
                     help="run only case ids starting with this")
-    ap.add_argument("--out", default="docs/QA/results/scenarios.json")
+    # Per-prefix by default. One shared file meant each partial run erased
+    # the last, and the coverage summary then reported whatever had been run
+    # most recently as though it were everything.
+    ap.add_argument("--out", default="")
     args = ap.parse_args(argv)
 
     _load()
@@ -122,7 +125,8 @@ def main(argv=None) -> int:
                "pass": sum(1 for r in results if r["verdict"] == PASS),
                "fail": sum(1 for r in results if r["verdict"] == FAIL),
                "blocked": sum(1 for r in results if r["verdict"] == BLOCKED)}
-    out = pathlib.Path(args.out)
+    stem = (args.only or "all").replace("-", "_").lower()
+    out = pathlib.Path(args.out or f"docs/QA/results/scenarios-{stem}.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"summary": summary, "seconds": round(took, 1),
                                "results": results}, indent=1), encoding="utf-8")
