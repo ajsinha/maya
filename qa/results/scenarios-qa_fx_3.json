@@ -1,0 +1,269 @@
+{
+ "summary": {
+  "total": 43,
+  "pass": 41,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-FX-300",
+   "title": "A field the version's input schema does not declare",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_field'"
+  },
+  {
+   "id": "QA-FX-3000",
+   "title": "The evaluator and on_error vocabularies are closed",
+   "verdict": "PASS",
+   "evidence": "both vocabularies closed and named in their refusals"
+  },
+  {
+   "id": "QA-FX-301",
+   "title": "Resolving over a model that was never attested",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found' (404)"
+  },
+  {
+   "id": "QA-FX-302",
+   "title": "is_null carrying a value",
+   "verdict": "PASS",
+   "evidence": "refused 'value_not_expected'"
+  },
+  {
+   "id": "QA-FX-303",
+   "title": "A warrant with an undeclared use",
+   "verdict": "PASS",
+   "evidence": "refused 'declared_use_required' (422)"
+  },
+  {
+   "id": "QA-FX-304",
+   "title": "Resolving in an environment with no alias",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found' (404)"
+  },
+  {
+   "id": "QA-FX-306",
+   "title": "A trial records nothing",
+   "verdict": "PASS",
+   "evidence": "the register is unchanged"
+  },
+  {
+   "id": "QA-FX-307",
+   "title": "Checking a draft needs only model:read",
+   "verdict": "PASS",
+   "evidence": "a reader may check (200)"
+  },
+  {
+   "id": "QA-FX-310",
+   "title": "Move an alias to a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-3100",
+   "title": "A warrant stating nothing has nothing unenforceable",
+   "verdict": "PASS",
+   "evidence": "no statement, no gap"
+  },
+  {
+   "id": "QA-FX-3101",
+   "title": "A resource limit of zero is not a limit",
+   "verdict": "PASS",
+   "evidence": "zero falls to 30.0s / 2048MB"
+  },
+  {
+   "id": "QA-FX-3102",
+   "title": "What was applied is reported, not what was intended",
+   "verdict": "PASS",
+   "evidence": "the applied limits are returned for the parent to record"
+  },
+  {
+   "id": "QA-FX-311",
+   "title": "A second alias move where neither version declares a schema",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-312",
+   "title": "A trial row that matches no rule",
+   "verdict": "PASS",
+   "evidence": "matched_rule is null and the otherwise answered"
+  },
+  {
+   "id": "QA-FX-320",
+   "title": "A warrant missing one of the ten sections",
+   "verdict": "PASS",
+   "evidence": "all 10 sections required and named"
+  },
+  {
+   "id": "QA-FX-321",
+   "title": "A wrong warrant grammar version",
+   "verdict": "PASS",
+   "evidence": "refused, naming v1.0 as expected"
+  },
+  {
+   "id": "QA-FX-322",
+   "title": "Two shape errors at once",
+   "verdict": "PASS",
+   "evidence": "2 problems reported together"
+  },
+  {
+   "id": "QA-FX-323",
+   "title": "A clean shape with three admissibility failures",
+   "verdict": "FAIL",
+   "evidence": "a document breaking several laws reported 1 of them: ['L-W0'] \u2014 an author fixes one at a time and never sees the shape"
+  },
+  {
+   "id": "QA-FX-324",
+   "title": "A trainability class with a trailing space",
+   "verdict": "PASS",
+   "evidence": "'T0 ' refused"
+  },
+  {
+   "id": "QA-FX-325",
+   "title": "L-W1 \u2014 `fit` on a T0",
+   "verdict": "PASS",
+   "evidence": "fit refused on T0, score allowed, fit allowed on T2"
+  },
+  {
+   "id": "QA-FX-326",
+   "title": "L-W2 \u2014 `generate` on `onnx`",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised ImportError: cannot import name 'GENERATIVE_RUNTIMES' from 'core.execution.grammar.vocabulary' (/home/ashutosh/PycharmProjects/maya/core/execution/grammar/vocabulary.py) | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regre"
+  },
+  {
+   "id": "QA-FX-327",
+   "title": "L-W3 \u2014 a `fit` reading a `sql_query`",
+   "verdict": "PASS",
+   "evidence": "refused for a fit, admissible for a score and for ['dataset_snapshot', 'feature_namespace', 'featureset']"
+  },
+  {
+   "id": "QA-FX-328",
+   "title": "L-W3 \u2014 a fit with one bitemporal input and one that is not",
+   "verdict": "PASS",
+   "evidence": "one problem, naming inputs[1]: ['data.inputs[1].binding']"
+  },
+  {
+   "id": "QA-FX-329",
+   "title": "L-W4 \u2014 a `fit` with no `parameter_object` sink",
+   "verdict": "PASS",
+   "evidence": "refused without the sink, admissible with it, not on a score"
+  },
+  {
+   "id": "QA-FX-330",
+   "title": "L-W5 \u2014 determinism on `container` with no seed",
+   "verdict": "PASS",
+   "evidence": "unpinned refused across 8 code-running runtimes; a seed or 'stochastic' satisfies it"
+  },
+  {
+   "id": "QA-FX-331",
+   "title": "L-W5 \u2014 determinism on `onnx`, `pmml`, `sql`, `spreadsheet` and `descriptor_only`",
+   "verdict": "PASS",
+   "evidence": "all five may claim determinism with no seed"
+  },
+  {
+   "id": "QA-FX-332",
+   "title": "L-W5 \u2014 determinism on `quantlib` with no seed",
+   "verdict": "PASS",
+   "evidence": "quantlib may claim determinism unseeded, and is named as such"
+  },
+  {
+   "id": "QA-FX-334",
+   "title": "L-W6 \u2014 `fit` on `descriptor_only`",
+   "verdict": "PASS",
+   "evidence": "fit refused, score admitted \u2014 the vendor case still works"
+  },
+  {
+   "id": "QA-FX-336",
+   "title": "L-W8 \u2014 a `fit` bound to `parameter_set`",
+   "verdict": "PASS",
+   "evidence": "fit from a parameter_set refused, 'to_be_fitted' admitted"
+  },
+  {
+   "id": "QA-FX-337",
+   "title": "L-W8 \u2014 a `score` bound to `to_be_fitted`",
+   "verdict": "PASS",
+   "evidence": "refused under L-W8"
+  },
+  {
+   "id": "QA-FX-340",
+   "title": "L-W8 \u2014 a source absent while the kind is not `none`",
+   "verdict": "PASS",
+   "evidence": "omission refused where the object is inhabited, admitted where it is terminal"
+  },
+  {
+   "id": "QA-FX-349",
+   "title": "The grammar is checked before the signature",
+   "verdict": "PASS",
+   "evidence": "validated, then signed \u2014 asserted on the calls, not the words"
+  },
+  {
+   "id": "QA-FX-350",
+   "title": "The published schema agrees with the enforced vocabulary",
+   "verdict": "PASS",
+   "evidence": "10 verbs and 10 sections present"
+  },
+  {
+   "id": "QA-FX-3800",
+   "title": "A three-class label \u2014 neither binary nor continuous",
+   "verdict": "PASS",
+   "evidence": "'label' has 3 classes, and a threshold split says nothing unless the label is binary \u2014 so decoder was not screened"
+  },
+  {
+   "id": "QA-FX-3801",
+   "title": "The screen is run under the column the label occupies",
+   "verdict": "PASS",
+   "evidence": "blind: no 'label' column in the assembled frame \u2014 under 'defaulted_12m': ['sale_price']"
+  },
+  {
+   "id": "QA-FX-3802",
+   "title": "The continuous ratio is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "ratio 0.5, and a class label stays a class"
+  },
+  {
+   "id": "QA-FX-3900",
+   "title": "Both bounds present",
+   "verdict": "PASS",
+   "evidence": "both temporal bounds present"
+  },
+  {
+   "id": "QA-FX-3901",
+   "title": "Layer 2 over nothing is not a verification",
+   "verdict": "PASS",
+   "evidence": "nothing to verify"
+  },
+  {
+   "id": "QA-FX-3902",
+   "title": "Layer 2 catches a row that disagrees",
+   "verdict": "PASS",
+   "evidence": "1 violation(s), naming e7"
+  },
+  {
+   "id": "QA-FX-3903",
+   "title": "Layer 2 reports comparisons, not rows",
+   "verdict": "PASS",
+   "evidence": "10 of 10 rows independently recomputed (30 values compared)"
+  },
+  {
+   "id": "QA-FX-3904",
+   "title": "What layer 2 proves is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "what it proves, and what it does not, are both written down"
+  },
+  {
+   "id": "QA-FX-3905",
+   "title": "The sample size and the strata are stated",
+   "verdict": "PASS",
+   "evidence": "200 comparison(s) over 500 rows"
+  },
+  {
+   "id": "QA-FX-399",
+   "title": "An input outside a numeric bound",
+   "verdict": "PASS",
+   "evidence": "both ends inclusive, outside both refused"
+  }
+ ]
+}
