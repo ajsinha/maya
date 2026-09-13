@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-401",
+   "title": "The same gap at exactly 18 months",
+   "verdict": "PASS",
+   "evidence": "still debt up to its expiry; the comparison is `<`, so the boundary itself is inside the window"
+  }
+ ]
+}

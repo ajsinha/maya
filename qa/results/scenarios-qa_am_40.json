@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 7,
+  "fail": 3,
+  "blocked": 0
+ },
+ "seconds": 2.9,
+ "results": [
+  {
+   "id": "QA-AM-400",
+   "title": "A Tier 1 `owner` gap at 18 months and one day",
+   "verdict": "PASS",
+   "evidence": "18 months and a day: breached, with a finding"
+  },
+  {
+   "id": "QA-AM-401",
+   "title": "The same gap at exactly 18 months",
+   "verdict": "FAIL",
+   "evidence": "an item expiring at this instant is already a breach; every other window in this platform leaves the boundary itself inside"
+  },
+  {
+   "id": "QA-AM-402",
+   "title": "Debt and breach on one dashboard",
+   "verdict": "PASS",
+   "evidence": "debt and breach appear apart on the model and the burn-down"
+  },
+  {
+   "id": "QA-AM-403",
+   "title": "Plan a debt item with an empty plan",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-404",
+   "title": "Burn-down over an estate with nothing baselined",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised AttributeError: 'Nothing' object has no attribute 'debts' | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-AM-405",
+   "title": "An importer who under-declares by naming two gaps",
+   "verdict": "PASS",
+   "evidence": "9 gap(s) computed from the register, not the 2 the importer declared"
+  },
+  {
+   "id": "QA-AM-406",
+   "title": "Run every job twice in one pass",
+   "verdict": "PASS",
+   "evidence": "27 jobs, twice, and the register is unchanged after the second"
+  },
+  {
+   "id": "QA-AM-407",
+   "title": "`monitoring.stalled` at exactly three cadences",
+   "verdict": "FAIL",
+   "evidence": "a monitor evaluated exactly 3 cadences ago is already reported stalled. `overdue_by` is 3 - 1 = 2 cadences and the guard is `overdue_by < cadence * (MULTIPLE - 1)`, so the boundary itself fires. Every comparable boundary in this platform is exclusive \u2014 escalation is `>` not `>=`, the acknowledge window skips on `<=`, the extension window and the tau bands the same \u2014 so this one alone reports a con"
+  },
+  {
+   "id": "QA-AM-408",
+   "title": "`monitoring.stalled` after the monitor was paused",
+   "verdict": "PASS",
+   "evidence": "a paused monitor is not a stalled one"
+  },
+  {
+   "id": "QA-AM-409",
+   "title": "`findings.overdue` does not escalate its own escalations",
+   "verdict": "PASS",
+   "evidence": "1 escalation, and no escalation of it"
+  }
+ ]
+}
