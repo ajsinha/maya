@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-FX-280",
+   "title": "Concluding with no responses at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_conclude'"
+  },
+  {
+   "id": "QA-FX-281",
+   "title": "Concluding with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required' on whitespace"
+  },
+  {
+   "id": "QA-FX-283",
+   "title": "A spread that widens across rounds",
+   "verdict": "PASS",
+   "evidence": "narrowed false, spreads [0.0952, 1.956]"
+  },
+  {
+   "id": "QA-FX-284",
+   "title": "The dissent travels with the conclusion",
+   "verdict": "PASS",
+   "evidence": "dissent ['person/b'] on the chain and in the reading"
+  },
+  {
+   "id": "QA-FX-286",
+   "title": "A rule set with no otherwise",
+   "verdict": "PASS",
+   "evidence": "refused 'otherwise_required'"
+  },
+  {
+   "id": "QA-FX-287",
+   "title": "A rule with no because",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-FX-288",
+   "title": "Exactly the rule limit, then one more",
+   "verdict": "PASS",
+   "evidence": "512 accepted, 513 refused"
+  },
+  {
+   "id": "QA-FX-289",
+   "title": "Nesting exactly the depth limit, then one deeper",
+   "verdict": "PASS",
+   "evidence": "within 6 accepted, past it refused 'condition_too_deep'"
+  }
+ ]
+}
