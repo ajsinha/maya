@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 8,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-190",
+   "title": "Regulatory-change trigger against a regime activated *before* the assessment",
+   "verdict": "PASS",
+   "evidence": "1 regime(s) active, all activated before this assessment, and the trigger does not fire"
+  },
+  {
+   "id": "QA-GOV-191",
+   "title": "Exposure trigger with no fact-sourcing wired",
+   "verdict": "PASS",
+   "evidence": "reported 'cannot_check' with no sourced exposure"
+  },
+  {
+   "id": "QA-GOV-192",
+   "title": "New-use trigger with no use register wired",
+   "verdict": "FAIL",
+   "evidence": "with no use register wired the trigger answers None, which the reading renders as *did not fire* \u2014 indistinguishable from a model nobody added a use to. `_cannot_check` exists for exactly this and is not used"
+  },
+  {
+   "id": "QA-GOV-193",
+   "title": "Monitoring-breach trigger with no breach register wired",
+   "verdict": "FAIL",
+   "evidence": "with no breach register wired the trigger answers None, which reads as *no breach since the assessment* \u2014 the one answer a monitoring-off estate must not be given"
+  },
+  {
+   "id": "QA-GOV-194",
+   "title": "Exposure moved exactly 25%",
+   "verdict": "PASS",
+   "evidence": "fired at exactly 25%"
+  },
+  {
+   "id": "QA-GOV-195",
+   "title": "Exposure moved 24.9%",
+   "verdict": "PASS",
+   "evidence": "24.9% does not fire"
+  },
+  {
+   "id": "QA-GOV-196",
+   "title": "Exposure moved downward by 40%",
+   "verdict": "PASS",
+   "evidence": "a 40% fall fires"
+  },
+  {
+   "id": "QA-GOV-197",
+   "title": "Assessment exposure of 0, current exposure of 5,000,000",
+   "verdict": "PASS",
+   "evidence": "a move from zero does not fire"
+  },
+  {
+   "id": "QA-GOV-198",
+   "title": "A Medium-severity breach after the assessment",
+   "verdict": "PASS",
+   "evidence": "fires on High, Critical and nothing below"
+  },
+  {
+   "id": "QA-GOV-199",
+   "title": "Elapsed-time trigger exactly at `next_review_due`",
+   "verdict": "PASS",
+   "evidence": "not at the date, fired a day after it"
+  }
+ ]
+}
