@@ -72,6 +72,26 @@ class WarrantGrants:
 
     def issue(self, urn: str, environment: str, principal: str, declared_use: str,
               flavour: str = "descriptor_only", actor: str = "system") -> Dict[str, Any]:
+        # A warrant is an authorisation TO DO SOMETHING, and the declared use
+        # is the something. An empty one was accepted and resolved to a signed,
+        # time-bounded descriptor — a warrant authorising nothing in
+        # particular, which is indistinguishable from one authorising
+        # everything.
+        #
+        # It also breaks the only check that can be made after the fact: the
+        # inference log records the use a decision was made under, and a
+        # reconciliation against the empty string matches nothing anybody can
+        # act on. Every other stated ground in this platform is refused when
+        # blank — a hold's matter, a deletion's reason, a triage rationale —
+        # and this was not.
+        if not (declared_use or "").strip():
+            raise WarrantError(
+                "declared_use_required",
+                "a warrant with no declared use authorises nothing in "
+                "particular, which cannot be told apart from authorising "
+                "anything",
+                "name the use this principal is being authorised for; it is "
+                "what the inference log is later reconciled against")
         name, semver, aliasname = parse_urn(urn)
         m = self.registry.require(model_urn(name))
         tier = m.get("tier") or 1
@@ -105,6 +125,20 @@ class WarrantGrants:
 
     # ------------------------------------------------------------- revocation
     def revoke(self, warrant_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
+        # Stripped, like every other stated ground here. `reason` was declared
+        # required and a body of `"   "` satisfied it, so a revocation could be
+        # recorded with a reason that reads as blank in every screen that shows
+        # it.
+        #
+        # Revocation is the kill switch: it is the act somebody will be asked
+        # to account for, and "why was this model taken out of service" is
+        # answered by exactly this field.
+        if not (reason or "").strip():
+            raise WarrantError(
+                "reason_required",
+                "revoking a warrant without a reason leaves the one question "
+                "somebody will be asked about it unanswerable",
+                "say why this authorisation is being withdrawn")
         row = self.repo.one(id=warrant_id)
         if not row:
             raise WarrantError("not_found", f"no warrant {warrant_id}", "")

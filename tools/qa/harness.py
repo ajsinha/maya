@@ -39,6 +39,21 @@ UNPRIVILEGED_ROLES = ["operator"]
 
 ADMIN = ("admin", "maya-admin-dev")
 
+#: One principal per duty, because an attestation cannot be signed by one
+#: person however many permissions they hold.
+#:
+#: `admin` holds every *permission* and none of the *roles*, so signing as
+#: model_owner is refused `role_not_held` — segregation of duties working
+#: exactly as designed, and the reason a QA estate needs real people in it
+#: rather than one superuser.
+PEOPLE = {
+    "owner": (["model_owner"], "qa-owner-password"),
+    "developer": (["model_developer"], "qa-developer-password"),
+    "validator": (["validator"], "qa-validator-password"),
+    "risk": (["model_risk_manager"], "qa-risk-password"),
+    "auditor": (["auditor"], "qa-auditor-password"),
+}
+
 CONFIG = """
 app: {{name: MAYA, version: "0.1.0", tagline: "Model & AI Lifecycle Assurance",
        slogan: "Evidence, not assertion.",
@@ -186,6 +201,14 @@ def live_client() -> Iterator[Tuple[object, Tuple[str, str]]]:
                   TestClient(app, raise_server_exceptions=False) as api):
                 observer.auth = UNPRIVILEGED
                 api.auth = ADMIN
+                for username, (roles, password) in PEOPLE.items():
+                    made = api.post("/api/v1/principals", json={
+                        "username": username, "display_name": username,
+                        "roles": roles, "password": password})
+                    if made.status_code not in (200, 201, 409):
+                        raise RuntimeError(
+                            f"could not create {username}: "
+                            f"{made.status_code} {made.text[:160]}")
                 yield client, api, observer
     finally:
         shutil.rmtree(workspace, ignore_errors=True)
