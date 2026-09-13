@@ -20,6 +20,12 @@ from core.assist import providers as assist_providers
 from routes.base import Body, Routes
 
 
+class SuspendIn(Body):
+    reason: str = Field(description="why this capability is being stopped; a "
+                                    "suspension nobody can explain is one "
+                                    "nobody will lift")
+
+
 class CapabilityIn(Body):
     capability_key: str
     description: str
@@ -94,6 +100,29 @@ class AssistRoutes(Routes):
                 body.capability_key, body.description, body.tier, body.base_model,
                 body.prompt_digest, body.owner, body.oracle_key, body.autonomy,
                 body.review_sample, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/assist/capabilities/{{capability_key}}/suspend",
+                       tags=["assistance"])
+        def suspend_capability(request: Request, capability_key: str,
+                               body: SuspendIn):
+            """Stop a capability being used, with a reason.
+
+            `AssistCapabilities.suspend` existed, appended
+            `ai_capability_suspended` to the chain, and **nothing called it**.
+            `capability_inactive` is raised whenever a generation names a
+            capability that is not active, and the only thing that makes one
+            inactive is this — so the refusal was unreachable and the control
+            that stops a misbehaving capability could not be invoked at all.
+
+            The eleventh instance of that shape in this codebase, and the
+            first the uncalled-controls sweep could not see: it matches
+            gate-shaped names (`refuse*`, `require*`, `may*`), and this is a
+            withdrawal, which is a different shape and the one most likely to
+            be built for a day nobody has had yet.
+            """
+            who = self.authorise(request, "assist:register")
+            return self.guard(lambda: capabilities.suspend(
+                capability_key, body.reason, actor=self.actor(who)))
 
         @self.app.get(f"{api}/assist/metrics", tags=["assistance"])
         def assist_metrics(request: Request):
