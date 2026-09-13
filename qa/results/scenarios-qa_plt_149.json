@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-149",
+   "title": "The raiser closing their own point",
+   "verdict": "PASS",
+   "evidence": "refused 'raiser_may_not_close'"
+  }
+ ]
+}

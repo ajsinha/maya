@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-2603",
+   "title": "A plain comment may be closed by its raiser",
+   "verdict": "PASS",
+   "evidence": "a 'comment' closes without a second person"
+  }
+ ]
+}

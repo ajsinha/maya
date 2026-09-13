@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-144",
+   "title": "Withdraw a comment that was already resolved",
+   "verdict": "FAIL",
+   "evidence": "a resolved comment was withdrawn, erasing the answer somebody gave it"
+  }
+ ]
+}

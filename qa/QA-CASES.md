@@ -3963,6 +3963,11 @@ repository's own `data/`.
 | QA-PLT-2500 | `regression` | A flagged row cannot carry the content it flags | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2500` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-2501 | `regression` | The same key with a different body | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2501` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-2502 | `regression` | The same key with the same body, keys reordered | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2502` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2600 | `regression` | A comment asking for something that is not an ask | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2600` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2601 | `regression` | A comment with no body | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2601` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2602 | `regression` | Somebody else may close it | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2602` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2603 | `regression` | A plain comment may be closed by its raiser | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2603` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2604 | `regression` | Resolve with no resolution | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2604` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->
