@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-245",
+   "title": "Reviewing a set that was already reviewed",
+   "verdict": "PASS",
+   "evidence": "refused 'already_reviewed'"
+  }
+ ]
+}

@@ -2815,6 +2815,8 @@ Every case is **re-runnable**. The second run is where the state bugs live, and 
 | QA-FX-2002 | `regression` | The grammar is published for a reader | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-2002` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-2003 | `regression` | Validate a document that is not a document | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-2003` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-2004 | `regression` | A tampered document is still measured against the grammar | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-2004` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-2400 | `regression` | The same kinds are accepted as declared | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-2400` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-2401 | `regression` | A fitted set naming a warrant that does not exist | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-2401` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- H-assurance-monitoring.md -->

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-242",
+   "title": "An empty parameter set",
+   "verdict": "PASS",
+   "evidence": "refused 'no_parameters'"
+  }
+ ]
+}
