@@ -1,0 +1,419 @@
+{
+ "summary": {
+  "total": 68,
+  "pass": 61,
+  "fail": 7,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-PLT-1000",
+   "title": "Anchoring a chain that does not verify is refused",
+   "verdict": "PASS",
+   "evidence": "verified before anchoring, and refused if broken"
+  },
+  {
+   "id": "QA-PLT-1001",
+   "title": "An anchor is written outside the database",
+   "verdict": "PASS",
+   "evidence": "anchored to a store outside the database"
+  },
+  {
+   "id": "QA-PLT-1002",
+   "title": "The WORM store refuses to overwrite",
+   "verdict": "PASS",
+   "evidence": "refused: 'a.anchor' is already held with different content, and this store is write-once"
+  },
+  {
+   "id": "QA-PLT-1003",
+   "title": "Timestamping says it has no authority rather than faking one",
+   "verdict": "PASS",
+   "evidence": "refused: no time stamp authority is wired"
+  },
+  {
+   "id": "QA-PLT-1004",
+   "title": "The timestamp posture says what it does not prove",
+   "verdict": "PASS",
+   "evidence": "the posture states its limit"
+  },
+  {
+   "id": "QA-PLT-1005",
+   "title": "The chain head is readable and stable",
+   "verdict": "PASS",
+   "evidence": "head stable at length 8"
+  },
+  {
+   "id": "QA-PLT-1006",
+   "title": "Verifying says who asked and whether that means anything",
+   "verdict": "PASS",
+   "evidence": "self_certified=0"
+  },
+  {
+   "id": "QA-PLT-1007",
+   "title": "A node carrying personal data stores an empty payload",
+   "verdict": "PASS",
+   "evidence": "enforced at the storage layer, in both dialects"
+  },
+  {
+   "id": "QA-PLT-1100",
+   "title": "An attachment with no file",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-PLT-1101",
+   "title": "An attachment with no title",
+   "verdict": "PASS",
+   "evidence": "refused 'title_required'"
+  },
+  {
+   "id": "QA-PLT-1102",
+   "title": "An attachment of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind'"
+  },
+  {
+   "id": "QA-PLT-1103",
+   "title": "An attachment against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-PLT-1104",
+   "title": "An uploaded file is addressed by its content",
+   "verdict": "PASS",
+   "evidence": "stored under the digest of its content"
+  },
+  {
+   "id": "QA-PLT-1105",
+   "title": "Review an attachment that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attachment'"
+  },
+  {
+   "id": "QA-PLT-1106",
+   "title": "An artifact digest that is not a digest",
+   "verdict": "PASS",
+   "evidence": "refused 'malformed_digest'"
+  },
+  {
+   "id": "QA-PLT-1107",
+   "title": "An artifact that was never uploaded",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-1108",
+   "title": "A dossier for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 404"
+  },
+  {
+   "id": "QA-PLT-1109",
+   "title": "Artifact provenance is absent, not unverified",
+   "verdict": "PASS",
+   "evidence": "absent and unverified are held apart"
+  },
+  {
+   "id": "QA-PLT-1200",
+   "title": "Discovery reads packaging metadata and imports nothing",
+   "verdict": "PASS",
+   "evidence": "discover reads, enable imports, and only enable calls load()"
+  },
+  {
+   "id": "QA-PLT-1201",
+   "title": "Enabling something configuration does not name",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-1202",
+   "title": "Enabling against a closed axis",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' for closed axis connectors"
+  },
+  {
+   "id": "QA-PLT-1203",
+   "title": "The contract says which axes are closed and what each protects",
+   "verdict": "PASS",
+   "evidence": "4 closed axes, each naming what it protects"
+  },
+  {
+   "id": "QA-PLT-1204",
+   "title": "A fibre may add obligations and never remove one",
+   "verdict": "PASS",
+   "evidence": "a narrowing is refused by name at load time"
+  },
+  {
+   "id": "QA-PLT-1205",
+   "title": "Discovery is listable without enabling anything",
+   "verdict": "PASS",
+   "evidence": "listed, nothing enabled"
+  },
+  {
+   "id": "QA-PLT-1206",
+   "title": "An import format that is refused by name",
+   "verdict": "PASS",
+   "evidence": "refused 'drools' by name, with what to do instead"
+  },
+  {
+   "id": "QA-PLT-1207",
+   "title": "An import format nobody has heard of",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_import_format'"
+  },
+  {
+   "id": "QA-PLT-1208",
+   "title": "A row a parser cannot read refuses the whole document",
+   "verdict": "PASS",
+   "evidence": "1 untranslated row(s) named, no importable document"
+  },
+  {
+   "id": "QA-PLT-1209",
+   "title": "A hit policy that does not map is refused, not approximated",
+   "verdict": "PASS",
+   "evidence": "refused 'no_outcome_columns' for hit policy C"
+  },
+  {
+   "id": "QA-PLT-1210",
+   "title": "An import produces a candidate, never a parameter set",
+   "verdict": "PASS",
+   "evidence": "a candidate of 2 rule(s), and nothing written"
+  },
+  {
+   "id": "QA-PLT-1211",
+   "title": "The catch-all is not invented from the last row",
+   "verdict": "PASS",
+   "evidence": "no catch-all invented, and the gap is reported"
+  },
+  {
+   "id": "QA-PLT-1212",
+   "title": "The published formats are the ones actually read",
+   "verdict": "PASS",
+   "evidence": "2 read, 3 refused by name"
+  },
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile twice with nothing changed \u2014 digests identical",
+   "verdict": "PASS",
+   "evidence": "identical: sha256:c54b170c72f9bf4bc414db0"
+  },
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "stable at 1 citation(s) across five compiles"
+  },
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile with open review comments",
+   "verdict": "PASS",
+   "evidence": "1 comment(s) still on this document"
+  },
+  {
+   "id": "QA-PLT-126",
+   "title": "Two export packs of unchanged state agree",
+   "verdict": "PASS",
+   "evidence": "stable: sha256:4ceedc6a01f450e230b7dca"
+  },
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-128",
+   "title": "A bare model, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "coverage.complete is false, 10 section(s) marked unfillable"
+  },
+  {
+   "id": "QA-PLT-132",
+   "title": "The published list of document kinds is closed",
+   "verdict": "PASS",
+   "evidence": "4 kinds published"
+  },
+  {
+   "id": "QA-PLT-135",
+   "title": "A dossier for a URN that is not registered",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-136",
+   "title": "A dossier for a registered model with nothing filed",
+   "verdict": "PASS",
+   "evidence": "1 gap(s) named"
+  },
+  {
+   "id": "QA-PLT-144",
+   "title": "Withdraw a comment that was already resolved",
+   "verdict": "FAIL",
+   "evidence": "a resolved comment was withdrawn, erasing the answer somebody gave it"
+  },
+  {
+   "id": "QA-PLT-147",
+   "title": "Two people resolving one comment",
+   "verdict": "PASS",
+   "evidence": "refused 'comment_closed'"
+  },
+  {
+   "id": "QA-PLT-149",
+   "title": "The raiser closing their own point",
+   "verdict": "PASS",
+   "evidence": "refused 'raiser_may_not_close'"
+  },
+  {
+   "id": "QA-PLT-150",
+   "title": "The raiser under a different spelling of their name",
+   "verdict": "FAIL",
+   "evidence": "the raiser closed their own factual objection by writing their name as 'person/validator' instead of 'validator'. The check is `raised_by == actor`, not `same_person`, so seven characters step around it \u2014 the same failure the register already fixed for validation independence and for the finding workflow"
+  },
+  {
+   "id": "QA-PLT-151",
+   "title": "A comment on a section the document does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_section'"
+  },
+  {
+   "id": "QA-PLT-157",
+   "title": "A share read at exactly its expiry instant",
+   "verdict": "PASS",
+   "evidence": "open at the instant, expired a second later"
+  },
+  {
+   "id": "QA-PLT-158",
+   "title": "A share created with `max_reads: 0`",
+   "verdict": "FAIL",
+   "evidence": "`max_reads: 0` was stored as None: the guard is `if max_reads`, and zero is falsy, so asking for NO permitted reads produces a share with NO LIMIT \u2014 the exact inverse of the request, and the one direction that cannot be noticed by reading the row back"
+  },
+  {
+   "id": "QA-PLT-159",
+   "title": "A share created with `max_reads: -1`",
+   "verdict": "FAIL",
+   "evidence": "`max_reads: -1` was accepted and the share is born exhausted: nothing validates the field, so a typo produces a link that refuses every read and reads on the register as one somebody used up"
+  },
+  {
+   "id": "QA-PLT-161",
+   "title": "Revoking a share that has already expired",
+   "verdict": "PASS",
+   "evidence": "an expired share can still be revoked, and the record keeps both the expiry and the revocation"
+  },
+  {
+   "id": "QA-PLT-162",
+   "title": "`days_left` on an expired share",
+   "verdict": "FAIL",
+   "evidence": "an expired share reports -10.0 days left: a negative number sorts on a list as the link with the longest to run"
+  },
+  {
+   "id": "QA-PLT-163",
+   "title": "Redeem a share link end to end",
+   "verdict": "FAIL",
+   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/UuJz9OYfV3SxSGF8Ddv1ed_lSsBAO1oP3bFKTyImprU:404, /api/v1/export-shares/UuJz9OYfV3SxSGF8Ddv1ed_lSsBAO1oP3bFKTyImprU/open:404, /api/v1/export-shares/UuJz9OYfV3SxSGF8Ddv1ed_lSsBAO1oP3bFKTyImprU/pack:404, /"
+  },
+  {
+   "id": "QA-PLT-164",
+   "title": "Recovering a share reference after creation",
+   "verdict": "PASS",
+   "evidence": "found by purpose, with its reference, among 7"
+  },
+  {
+   "id": "QA-PLT-165",
+   "title": "The share window at 90 days and at 91",
+   "verdict": "PASS",
+   "evidence": "90 accepted, 91 refused"
+  },
+  {
+   "id": "QA-PLT-166",
+   "title": "A share created without a purpose or a recipient",
+   "verdict": "PASS",
+   "evidence": "refused 'recipient_required' and 'purpose_required'"
+  },
+  {
+   "id": "QA-PLT-180",
+   "title": "Register a Tier C capability",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-181",
+   "title": "Register with tier 'c', lower case",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-182",
+   "title": "Tier A registered without an oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required' (422)"
+  },
+  {
+   "id": "QA-PLT-183",
+   "title": "Tier C and a bogus oracle together",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-184",
+   "title": "A capability naming an oracle that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_oracle' (422)"
+  },
+  {
+   "id": "QA-PLT-185",
+   "title": "Use a suspended capability",
+   "verdict": "PASS",
+   "evidence": "refused 'capability_inactive'"
+  },
+  {
+   "id": "QA-PLT-186",
+   "title": "review_sample outside 0..1",
+   "verdict": "PASS",
+   "evidence": "both refused"
+  },
+  {
+   "id": "QA-PLT-188",
+   "title": "A Tier B generation whose grounding rejects every claim",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded'"
+  },
+  {
+   "id": "QA-PLT-189",
+   "title": "Draft against a subject with no evidence at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-192",
+   "title": "A fabricated citation on the drafting path",
+   "verdict": "PASS",
+   "evidence": "1 kept, 1 rejected"
+  },
+  {
+   "id": "QA-PLT-194",
+   "title": "Attest your own generation",
+   "verdict": "PASS",
+   "evidence": "refused 'self_attestation'"
+  },
+  {
+   "id": "QA-PLT-195",
+   "title": "A generation created by `system`, attested by `system`",
+   "verdict": "FAIL",
+   "evidence": "a generation created by `system` was attested by `system`. Attestation is a person taking responsibility for machine output, and the `created_by` is-not-system carve-out \u2014 which exists so a human can attest a scheduled job's output \u2014 also lets the machine sign for itself"
+  },
+  {
+   "id": "QA-PLT-196",
+   "title": "Attest the same generation twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_decided'"
+  },
+  {
+   "id": "QA-PLT-197",
+   "title": "The raw ungrounded prose survives in the record",
+   "verdict": "PASS",
+   "evidence": "the rejected claim is kept beside the kept ones"
+  }
+ ]
+}
