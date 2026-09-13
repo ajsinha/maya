@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-120",
+   "title": "Close a blocking finding, then resolve a warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'blocked', then resolved once the finding closed"
+  },
+  {
+   "id": "QA-AM-121",
+   "title": "Close a blocking finding while a *second* blocking finding is open",
+   "verdict": "PASS",
+   "evidence": "refused, naming the second blocker and not the first"
+  },
+  {
+   "id": "QA-AM-122",
+   "title": "The owner is reassigned to the intended verifier, who then closes",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-123",
+   "title": "Ageing over a model with one finding open four years and nine opened last week",
+   "verdict": "PASS",
+   "evidence": "{'0-30 days': 9, 'over 180 days': 1}, mean 150.5 days shown beside it rather than instead of it"
+  },
+  {
+   "id": "QA-AM-124",
+   "title": "Ageing where every finding is closed",
+   "verdict": "PASS",
+   "evidence": "open 0, closed 3, no worst severity, 'nothing is open'"
+  },
+  {
+   "id": "QA-AM-125",
+   "title": "Age of a closed finding stops at its closure",
+   "verdict": "PASS",
+   "evidence": "frozen at 60.0 days \u2014 closed_at minus raised_at"
+  },
+  {
+   "id": "QA-AM-126",
+   "title": "`days_overdue` for a finding that is not overdue",
+   "verdict": "PASS",
+   "evidence": "0.0, not -30.0"
+  },
+  {
+   "id": "QA-AM-127",
+   "title": "Escalation at exactly seven days past the date",
+   "verdict": "PASS",
+   "evidence": "not at 7 days, escalated at 7 days and an hour, to the model risk manager"
+  },
+  {
+   "id": "QA-AM-128",
+   "title": "A blocking finding one hour past its date",
+   "verdict": "PASS",
+   "evidence": "escalated: it is blocking, so the model cannot be served while it is op"
+  },
+  {
+   "id": "QA-AM-129",
+   "title": "A finding unaccepted at exactly five days",
+   "verdict": "PASS",
+   "evidence": "not at 5 days, escalated at 5 days and an hour, silent once accepted"
+  }
+ ]
+}
