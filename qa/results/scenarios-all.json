@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 391,
-  "pass": 368,
+  "total": 401,
+  "pass": 378,
   "fail": 22,
   "blocked": 1
  },
- "seconds": 18.4,
+ "seconds": 35.5,
  "results": [
   {
    "id": "QA-AM-067",
@@ -107,7 +107,7 @@
    "id": "QA-AM-400",
    "title": "Telemetry for a version that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-13333925 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
+   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-cc2aa940 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
   },
   {
    "id": "QA-AM-402",
@@ -281,7 +281,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b4bf09c3225bbace6b9c11d\",\"model_id\":\"01a09b4bf09739cfbf3fc781ea95\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-856c3c66\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b5162800f1886c7a76cb2e7\",\"model_id\":\"01a09b51627c1704db9f8047e9fb\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-c99b6bc7\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -311,13 +311,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b4bf0b69c374fca48d99406\",\"reference\":\"SUP-a3c5c1f9\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b51629e16f28ecd6ba53c1b\",\"reference\":\"SUP-6f725c60\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b4bf0bde9c4814cace77ed6\",\"reference\":\"SUP-2600f796\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b5162a5261cf725adddae6f\",\"reference\":\"SUP-9fbd8d55\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",
@@ -353,7 +353,7 @@
    "id": "QA-AM-638",
    "title": "The same batch sent twice is not counted twice",
    "verdict": "PASS",
-   "evidence": "read back: {\"model\":\"maya://model/tl-adcce004\",\"semver\":\"1.0.0\",\"scores\":1,\"outcomes\":0,\"labelled_fraction\":0.0,\"latest_s"
+   "evidence": "read back: {\"model\":\"maya://model/tl-6a8b4b34\",\"semver\":\"1.0.0\",\"scores\":1,\"outcomes\":0,\"labelled_fraction\":0.0,\"latest_s"
   },
   {
    "id": "QA-AM-639",
@@ -407,7 +407,7 @@
    "id": "QA-AM-700",
    "title": "Replay a validation that has no results",
    "verdict": "PASS",
-   "evidence": "answered 200: {\"validation_id\":\"01a09b4bf182f5f36755792629ad\",\"reproducible\":false,\"total\":0,\"reproduced\":0,\"misma"
+   "evidence": "answered 200: {\"validation_id\":\"01a09b51635bdebc79a1b791193e\",\"reproducible\":false,\"total\":0,\"reproduced\":0,\"misma"
   },
   {
    "id": "QA-AM-701",
@@ -761,7 +761,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b4bf3e6df84c02616609b2a\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b5165d20345d07de918655f\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-104",
@@ -1061,7 +1061,7 @@
    "id": "QA-FX-800",
    "title": "A parameter set with no name",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a09b4bf670c2ab0681f23a0e0c\",\"model_id\":\"01a09b4bf66b38b7595507427ad6\",\"model_version_id\":\"01a09b4bf66d744be06d550c94fe\",\"name\":\"   \",\"version\":1,\"kind\""
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a09b516864426de1f9d044561f\",\"model_id\":\"01a09b51685fe7d9220f7ba04567\",\"model_version_id\":\"01a09b5168610fa36263b3299f10\",\"name\":\"   \",\"version\":1,\"kind\""
   },
   {
    "id": "QA-FX-801",
@@ -1259,7 +1259,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-908f8fd5\",\"name\":\"gov-908f8fd5-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-687370f5\",\"name\":\"gov-687370f5-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -1469,7 +1469,7 @@
    "id": "QA-GOV-514",
    "title": "A band naming a role that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b4bf96ff6df6ae5ecb52209\",\"name\":\"band-c7bae459\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b516c8369fdfa984df170b3\",\"name\":\"band-a5932393\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
   },
   {
    "id": "QA-GOV-515",
@@ -1799,7 +1799,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:f8f0113477729"
+   "evidence": "a fresh chain of 8 verifies, head sha256:bc1915594a76a"
   },
   {
    "id": "QA-PLT-011",
@@ -1877,7 +1877,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:642992a44dc6db5c10f7e57"
+   "evidence": "identical: sha256:685be38ce7b839f908b02ad"
   },
   {
    "id": "QA-PLT-124",
@@ -1895,7 +1895,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:8a9800b76204be0da30f519"
+   "evidence": "stable: sha256:e173342315ad9eeebe57f54"
   },
   {
    "id": "QA-PLT-127",
@@ -2111,7 +2111,7 @@
    "id": "QA-PLT-519",
    "title": "A request id travels with the answer",
    "verdict": "PASS",
-   "evidence": "x-request-id: 8b366775610d78de"
+   "evidence": "x-request-id: 89535f2c587cd348"
   },
   {
    "id": "QA-PLT-520",
@@ -2352,6 +2352,66 @@
    "title": "Derived feature lineage for a feature that does not exist",
    "verdict": "PASS",
    "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-PLT-800",
+   "title": "The job catalogue publishes what each job is for",
+   "verdict": "PASS",
+   "evidence": "27 jobs, each with a stated reason"
+  },
+  {
+   "id": "QA-PLT-801",
+   "title": "Run a job that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-PLT-802",
+   "title": "Run the whole pass twice and nothing doubles",
+   "verdict": "PASS",
+   "evidence": "0 findings before and after the second pass"
+  },
+  {
+   "id": "QA-PLT-803",
+   "title": "A job that raises does not stop the pass",
+   "verdict": "PASS",
+   "evidence": "? jobs ran"
+  },
+  {
+   "id": "QA-PLT-804",
+   "title": "The run history records what happened",
+   "verdict": "PASS",
+   "evidence": "50 run(s) recorded"
+  },
+  {
+   "id": "QA-PLT-805",
+   "title": "The scheduler reports when it last ran",
+   "verdict": "PASS",
+   "evidence": "it says when it last ran"
+  },
+  {
+   "id": "QA-PLT-810",
+   "title": "A subscription to an event that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-811",
+   "title": "A subscription with no kinds at all",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-PLT-812",
+   "title": "A subscription to a plaintext endpoint",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-813",
+   "title": "A subscription with a wildcard over every event",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
   }
  ]
 }
