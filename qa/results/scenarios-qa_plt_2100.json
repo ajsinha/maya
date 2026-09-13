@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-2100",
+   "title": "Writing the same object twice is not an overwrite",
+   "verdict": "PASS",
+   "evidence": "identical content, accepted twice"
+  }
+ ]
+}

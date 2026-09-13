@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-037",
+   "title": "The period before the first token is explicitly uncovered",
+   "verdict": "PASS",
+   "evidence": "the uncovered period is named"
+  }
+ ]
+}

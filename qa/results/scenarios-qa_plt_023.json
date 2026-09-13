@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-023",
+   "title": "Anchor the same head twice with no act in between",
+   "verdict": "PASS",
+   "evidence": "an unchanged head refuses 'nothing_to_anchor'"
+  }
+ ]
+}
