@@ -45,6 +45,40 @@ def _load() -> None:
             importlib.import_module(f"tools.qa.scenarios.{info.name}")
 
 
+def _run(fn, ctx):
+    """One case, with its own failure contained.
+
+    A case that raises is recorded against itself rather than ending the pass.
+    A run that stops at the first surprise reports nothing about everything
+    after it.
+    """
+    try:
+        return fn(ctx)
+    except AssertionError as setup:
+        return BLOCKED, f"setup: {setup}"
+    except Exception as exc:
+        return FAIL, (f"the case itself raised {type(exc).__name__}: {exc} | "
+                      + traceback.format_exc(limit=2).replace("\n", " ")[:220])
+
+
+def _isolated(case_id: str, fn):
+    """Run one case against an application of its own.
+
+    For cases that damage shared state — the evidence-chain tamper cases leave
+    the chain broken, and everything after them would then detect damage it
+    did not do.
+    """
+    from tools.qa.harness import PEOPLE, UNPRIVILEGED, live_client
+    with live_client() as (ui, api, observer):
+        app_ctx = getattr(getattr(ui, "app", None), "state", None)
+        held = getattr(app_ctx, "ctx", {}) or {}
+        ctx = Ctx(ui=ui, api=api, observer=observer,
+                  people={"observer": UNPRIVILEGED,
+                          **{w: (w, pw) for w, (_r, pw) in PEOPLE.items()}},
+                  made={"db": held.get("db"), "evidence": held.get("evidence")})
+        return _run(fn, ctx)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--only", default="",
@@ -70,18 +104,15 @@ def main(argv=None) -> int:
                   people={"observer": UNPRIVILEGED,
                           **{who: (who, password)
                              for who, (_roles, password) in PEOPLE.items()}},
-                  made={"db": (getattr(app_ctx, "ctx", {}) or {}).get("db")})
+                  made={"db": (getattr(app_ctx, "ctx", {}) or {}).get("db"),
+                        "evidence": (getattr(app_ctx, "ctx", {}) or {}).get(
+                            "evidence")})
         for case_id in chosen:
             title, fn = common.REGISTRY[case_id]
-            try:
-                verdict, evidence = fn(ctx)
-            except AssertionError as setup:
-                verdict, evidence = BLOCKED, f"setup: {setup}"
-            except Exception as exc:
-                verdict = FAIL
-                evidence = (f"the case itself raised {type(exc).__name__}: "
-                            f"{exc} | "
-                            + traceback.format_exc(limit=2).replace("\n", " ")[:220])
+            if case_id in common.ISOLATED:
+                verdict, evidence = _isolated(case_id, fn)
+            else:
+                verdict, evidence = _run(fn, ctx)
             results.append({"id": case_id, "title": title, "verdict": verdict,
                             "evidence": str(evidence)[:400]})
             print(f"  {verdict:8s} {case_id}  {title[:64]}", flush=True)
