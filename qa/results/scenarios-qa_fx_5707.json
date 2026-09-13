@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5707",
+   "title": "Somebody else may approve it",
+   "verdict": "PASS",
+   "evidence": "declared by one person, approved by another"
+  }
+ ]
+}
