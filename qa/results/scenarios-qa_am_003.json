@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-003",
+   "title": "Two validators, one of whom built the version",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', and no episode was recorded"
+  }
+ ]
+}

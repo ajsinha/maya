@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-031",
+   "title": "A threshold declaring both min and max",
+   "verdict": "FAIL",
+   "evidence": "value 0.0 passed a threshold declaring max -0.5: the evaluator returns on `min` and never reads `max`, so a validator who declares a band gets one end of it checked and the detail \u2014 0 meets the minimum of -1 \u2014 names only the end that was applied"
+  }
+ ]
+}

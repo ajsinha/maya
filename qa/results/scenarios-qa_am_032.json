@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-032",
+   "title": "A threshold declaring a key the catalogue does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming min/max/target"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-040",
+   "title": "More bins than the reference has points",
+   "verdict": "PASS",
+   "evidence": "not quoted as a result: not computable on this sample \u2014 a class may be absent, or the sample too small f"
+  }
+ ]
+}
