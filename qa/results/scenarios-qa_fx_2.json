@@ -1,0 +1,275 @@
+{
+ "summary": {
+  "total": 44,
+  "pass": 41,
+  "fail": 3,
+  "blocked": 0
+ },
+ "seconds": 2.0,
+ "results": [
+  {
+   "id": "QA-FX-2000",
+   "title": "A warrant the platform issued conforms to its own grammar",
+   "verdict": "PASS",
+   "evidence": "issued and conforming"
+  },
+  {
+   "id": "QA-FX-2001",
+   "title": "A verb that is not a warrant verb",
+   "verdict": "PASS",
+   "evidence": "refused, naming the 10 verbs"
+  },
+  {
+   "id": "QA-FX-2002",
+   "title": "The grammar is published for a reader",
+   "verdict": "PASS",
+   "evidence": "v1.0 published with every verb"
+  },
+  {
+   "id": "QA-FX-2003",
+   "title": "Validate a document that is not a document",
+   "verdict": "PASS",
+   "evidence": "11 problem(s) on an empty document"
+  },
+  {
+   "id": "QA-FX-2004",
+   "title": "A tampered document is still measured against the grammar",
+   "verdict": "PASS",
+   "evidence": "the grammar answers on shape alone (valid=True); the signature is a separate question"
+  },
+  {
+   "id": "QA-FX-228",
+   "title": "A fitted set with no warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'warrant_required'"
+  },
+  {
+   "id": "QA-FX-232",
+   "title": "A `fitted` set against a T0 kernel",
+   "verdict": "FAIL",
+   "evidence": "the delivery path does not refuse a fitted set over a terminal parameter object, so the type error is enforced on the warrant route only"
+  },
+  {
+   "id": "QA-FX-234",
+   "title": "A fitted set against a kernel data does not produce",
+   "verdict": "PASS",
+   "evidence": "all 3 authored kinds refused as fitted and as calibrated"
+  },
+  {
+   "id": "QA-FX-236",
+   "title": "A `fitted` set with no featureset",
+   "verdict": "PASS",
+   "evidence": "refused for a fitted set, not demanded of a declared one"
+  },
+  {
+   "id": "QA-FX-237",
+   "title": "A `fitted` set naming a snapshot that is not PIT verified",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised TypeError: ParameterRegister._refuse_unverified_snapshot() missing 1 required positional argument: 'provenance' | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-FX-238",
+   "title": "A `fitted` set naming an unknown snapshot",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised TypeError: ParameterRegister._refuse_unverified_snapshot() missing 1 required positional argument: 'provenance' | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-FX-239",
+   "title": "Exactly the inline cap, then one more",
+   "verdict": "PASS",
+   "evidence": "4096 inline, 4097 refused naming values_uri"
+  },
+  {
+   "id": "QA-FX-240",
+   "title": "Past the cap, supplied out of line",
+   "verdict": "PASS",
+   "evidence": "held out of line"
+  },
+  {
+   "id": "QA-FX-2400",
+   "title": "The same kinds are accepted as declared",
+   "verdict": "PASS",
+   "evidence": "all 3 authored kinds accepted as declared"
+  },
+  {
+   "id": "QA-FX-2401",
+   "title": "A fitted set naming a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_warrant'"
+  },
+  {
+   "id": "QA-FX-242",
+   "title": "An empty parameter set",
+   "verdict": "PASS",
+   "evidence": "refused 'no_parameters'"
+  },
+  {
+   "id": "QA-FX-243",
+   "title": "The recorder approving their own set",
+   "verdict": "PASS",
+   "evidence": "the recorder cannot approve their own set"
+  },
+  {
+   "id": "QA-FX-244",
+   "title": "Rejecting a set with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-FX-245",
+   "title": "Reviewing a set that was already reviewed",
+   "verdict": "PASS",
+   "evidence": "refused 'already_reviewed'"
+  },
+  {
+   "id": "QA-FX-249",
+   "title": "A parameter set does not create a model version",
+   "verdict": "PASS",
+   "evidence": "1 version(s) before and after"
+  },
+  {
+   "id": "QA-FX-253",
+   "title": "A fit with no window",
+   "verdict": "PASS",
+   "evidence": "absent, empty, start-only and end-only all refused"
+  },
+  {
+   "id": "QA-FX-254",
+   "title": "An inverted window",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted', naming both ends"
+  },
+  {
+   "id": "QA-FX-255",
+   "title": "A window whose `from` equals its `to`",
+   "verdict": "PASS",
+   "evidence": "zero-length refused, the smallest positive window accepted"
+  },
+  {
+   "id": "QA-FX-256",
+   "title": "The window is checked before the data",
+   "verdict": "PASS",
+   "evidence": "window, then snapshot, then warrant, then rows"
+  },
+  {
+   "id": "QA-FX-258",
+   "title": "A snapshot whose Delta table is gone",
+   "verdict": "PASS",
+   "evidence": "refused 'snapshot_storage_missing', naming the table"
+  },
+  {
+   "id": "QA-FX-260",
+   "title": "Exactly one row below the minimum, then the minimum",
+   "verdict": "PASS",
+   "evidence": "29 refused naming the minimum, 30 accepted"
+  },
+  {
+   "id": "QA-FX-261",
+   "title": "Two perfectly collinear regressors",
+   "verdict": "PASS",
+   "evidence": "refused 'collinear_regressors'"
+  },
+  {
+   "id": "QA-FX-262",
+   "title": "Two nearly collinear regressors",
+   "verdict": "PASS",
+   "evidence": "fitted, with a condition number reported"
+  },
+  {
+   "id": "QA-FX-263",
+   "title": "The target appearing as a regressor",
+   "verdict": "PASS",
+   "evidence": "refused 'target_is_a_regressor'"
+  },
+  {
+   "id": "QA-FX-264",
+   "title": "A constant series",
+   "verdict": "PASS",
+   "evidence": "refused 'collinear_regressors'"
+  },
+  {
+   "id": "QA-FX-265",
+   "title": "A non-numeric value in a regressor",
+   "verdict": "PASS",
+   "evidence": "refused 'value_not_numeric'"
+  },
+  {
+   "id": "QA-FX-268",
+   "title": "The same fit run twice",
+   "verdict": "PASS",
+   "evidence": "bit-identical across two runs"
+  },
+  {
+   "id": "QA-FX-270",
+   "title": "The person who ran the fit approving it",
+   "verdict": "PASS",
+   "evidence": "refused 'self_approval', compared as identities"
+  },
+  {
+   "id": "QA-FX-271",
+   "title": "Diagnostics travel with the coefficients",
+   "verdict": "PASS",
+   "evidence": "2 coefficient(s), diagnostics ['adjusted_r_squared', 'condition_number', 'degrees_of_freedom', 'intercept', 'k']"
+  },
+  {
+   "id": "QA-FX-286",
+   "title": "A rule set with no otherwise",
+   "verdict": "PASS",
+   "evidence": "refused 'otherwise_required'"
+  },
+  {
+   "id": "QA-FX-287",
+   "title": "A rule with no because",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-FX-288",
+   "title": "Exactly the rule limit, then one more",
+   "verdict": "PASS",
+   "evidence": "512 accepted, 513 refused"
+  },
+  {
+   "id": "QA-FX-289",
+   "title": "Nesting exactly the depth limit, then one deeper",
+   "verdict": "PASS",
+   "evidence": "within 6 accepted, past it refused 'condition_too_deep'"
+  },
+  {
+   "id": "QA-FX-290",
+   "title": "Two rules with one id",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_rule_id'"
+  },
+  {
+   "id": "QA-FX-291",
+   "title": "Two rules with the same condition and different outcomes",
+   "verdict": "PASS",
+   "evidence": "refused 'rules_contradict'"
+  },
+  {
+   "id": "QA-FX-292",
+   "title": "A rule shadowed by one earlier rule",
+   "verdict": "PASS",
+   "evidence": "refused 'rule_unreachable'"
+  },
+  {
+   "id": "QA-FX-295",
+   "title": "A between with the bounds the wrong way round",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_range'"
+  },
+  {
+   "id": "QA-FX-297",
+   "title": "An ordered operator on a categorical field",
+   "verdict": "PASS",
+   "evidence": "refused 'unordered_comparison'"
+  },
+  {
+   "id": "QA-FX-298",
+   "title": "A numeric field compared against text",
+   "verdict": "PASS",
+   "evidence": "refused 'value_wrong_type'"
+  }
+ ]
+}
