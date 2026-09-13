@@ -128,7 +128,8 @@ from core.risk.approvals import RegulatoryApprovals
 from core.risk.whatif import TieringWhatIf
 from core.features.skew import SkewDetector
 from core.plugins import ExtensionPoints
-from core.retention import LegalHolds, RetentionSchedule
+from core.retention import (Cascade, Compaction, LegalHolds,
+                            RetentionSchedule, Tombstones)
 from core.registry.comparison import VersionComparison
 from core.assist.monitoring import AssistMonitoring
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
@@ -190,7 +191,8 @@ from db import (ServingAttestationRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ApprovalConditionRepository, SubscriptionRepository,
-                DiscoveryRepository, LegalHoldRepository,
+                BlobOrphanRepository, DiscoveryRepository,
+                LegalHoldRepository, ModelTombstoneRepository,
                 RegulatoryApprovalRepository,
                 ParallelObservationRepository, ParallelRunRepository,
                 VendorAssessmentRepository, VendorItemRepository,
@@ -1041,6 +1043,27 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # holds register is built after the lifecycle service, and moving either
     # would reorder half this file.
     lifecycle.holds = legal_holds
+
+    # What a deletion leaves behind. Attached here for the same reason as the
+    # holds: both are built after the lifecycle service, and the alternative is
+    # reordering half this file.
+    #
+    # The tombstone register is also handed to the catalogue, because the act
+    # it has to reach is not the deletion — it is the *registration* that comes
+    # later and would otherwise take the dead model's identifier.
+    tombstones = Tombstones(ModelTombstoneRepository(db), evidence,
+                            holds=legal_holds)
+    cascade = Cascade(db)
+    lifecycle.tombstones = tombstones
+    lifecycle.cascade = cascade
+    registry.catalogue.tombstones = tombstones
+
+    compaction = Compaction(
+        db, BlobOrphanRepository(db), artifacts=artifacts,
+        attachments=getattr(attachments, "store", None),
+        delta_root=delta.root, holds=legal_holds, tombstones=tombstones,
+        evidence=evidence)
+
     retention = RetentionSchedule(worm=getattr(evidence, "anchors", None),
                                   holds=legal_holds)
 
@@ -1406,6 +1429,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "api_keys": ApiKeyRegister(
                                ApiKeyRepository(db), principals, authz, evidence),
                            "references": ReferenceIndex(db, registry, features),
+                           "tombstones": tombstones, "cascade": cascade,
+                           "compaction": compaction,
                            "limitations": limitations,
                            "assumptions": assumptions,
                            "waivers": waivers,

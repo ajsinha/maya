@@ -107,6 +107,21 @@ STATUS: Dict[str, int] = {
     # looks, from every screen, exactly like one that does.
     "unknown_scope_id": 422,
     "under_legal_hold": 423,
+    # What a deletion leaves behind.
+    #
+    # 409 for a URN that belonged to a destroyed model: the request is
+    # well-formed and the conflict is with the register's own history, which
+    # is precisely a conflict and not a validation error. The caller's fix is
+    # to choose a different name, and no retry of this request will work.
+    "urn_was_deleted": 409,
+    # 409 rather than 404 for a model that is still registered: "there is no
+    # tombstone" is not a missing resource, it is the wrong act — a live model
+    # is compacted by deleting it first.
+    "no_tombstone": 409, "already_compacted": 409,
+    # 501: the deployment has no tombstone register wired, so it cannot delete
+    # a model safely. Not the caller's fault and not fixable by retrying, which
+    # is what separates this from every 4xx above it.
+    "no_tombstone_register": 501, "no_tombstones": 501,
     "revoked": 410, "revoked_epoch": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
     # authorisation
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,

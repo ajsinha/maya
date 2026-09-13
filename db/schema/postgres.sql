@@ -284,6 +284,18 @@ CREATE TABLE IF NOT EXISTS baseline_import (
     PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS blob_orphan (
+    id TEXT NOT NULL,
+    store TEXT NOT NULL,
+    digest TEXT NOT NULL,
+    bytes INTEGER DEFAULT 0 NOT NULL,
+    first_seen_at DOUBLE PRECISION NOT NULL,
+    last_seen_at DOUBLE PRECISION NOT NULL,
+    sightings INTEGER DEFAULT 1 NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_blob_orphan ON blob_orphan (store, digest);
+
 CREATE TABLE IF NOT EXISTS board_pack (
     id TEXT NOT NULL,
     period TEXT NOT NULL,
@@ -1037,6 +1049,30 @@ CREATE TABLE IF NOT EXISTS model_limitation (
     PRIMARY KEY (id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_model_limitation_model_version_id_reference ON model_limitation (model_version_id, reference);
+
+CREATE TABLE IF NOT EXISTS model_tombstone (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    urn TEXT NOT NULL,
+    name TEXT NOT NULL,
+    model_class TEXT DEFAULT '' NOT NULL,
+    domain TEXT DEFAULT '' NOT NULL,
+    owner TEXT DEFAULT '' NOT NULL,
+    legal_entity TEXT DEFAULT '' NOT NULL,
+    status TEXT NOT NULL,
+    tier INTEGER,
+    registered_at DOUBLE PRECISION,
+    deleted_at DOUBLE PRECISION NOT NULL,
+    deleted_by TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    destroyed TEXT DEFAULT '{}' NOT NULL,
+    compacted_at DOUBLE PRECISION,
+    compacted_by TEXT,
+    reclaimed TEXT DEFAULT '{}' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_model_tombstone_deleted ON model_tombstone (deleted_at);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_tombstone_urn ON model_tombstone (urn);
 
 CREATE TABLE IF NOT EXISTS model_use (
     id TEXT NOT NULL,

@@ -761,7 +761,11 @@ class UIRoutes(Routes):
                 inference=self.ctx["inference"].posture(),
                 # How long any of it is kept, and what stops it going.
                 retention=self.ctx["retention"].describe(),
-                holds=self.ctx["legal_holds"].across_the_estate())
+                holds=self.ctx["legal_holds"].across_the_estate(),
+                # And the end of the same story: what was destroyed, and what
+                # is still on disk with nothing pointing at it.
+                tombstones=self.ctx["tombstones"].list(),
+                compaction=self.ctx["compaction"].plan())
 
         # -------------------------------------------- machine assistance
         @self.app.get("/assist", response_class=HTMLResponse, tags=["ui"])

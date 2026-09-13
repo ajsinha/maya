@@ -26,7 +26,20 @@ integrity is the application's business.
 **The compensating control already exists and is stronger for the case that
 matters.** `core/references/index.py` reads every table carrying a `model_id`
 before a deletion and refuses one that anything still refers to, *naming what
-refers to it*. A foreign key would refuse the same deletion with
+refers to it*.
+
+> **This sentence was not true when it was written, and the correction is worth
+> keeping visible.** The index queried thirty-three of the thirty-eight tables;
+> `validation`, `version_approval`, `model_assumption` and `model_limitation`
+> were never read, so a model with an unfinished validation reported
+> `deletable: true`. An ADR that rests a decision on a compensating control has
+> to be right about what the control covers, and this one was not for two
+> milestones. It is true now, and true by construction rather than by
+> inspection: `core/retention/cascade.py` declares a disposition for **every**
+> table carrying a `model_id`, and `tests/test_tombstones.py` fails the build if
+> one is missing. See [14 §26a.2](../14-detailed-design.md) — the mechanism
+> matters more than the instance, because the earlier guard test passed by
+> matching the table's name *in prose*. A foreign key would refuse the same deletion with
 `FOREIGN KEY constraint failed` and no indication of which of twenty tables
 objected. The index is also the thing `test_schema_discipline` walks, so a
 twenty-first table cannot be added without a decision about it — a guarantee a

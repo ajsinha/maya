@@ -318,13 +318,22 @@ def staff(principals):
 @pytest.fixture
 def lifecycle(db, registry, evidence):
     from core.lifecycle import AmendmentService, AttestationService, LifecycleService
-    from db import AmendmentRepository, AttestationRepository, SignatureRepository
+    from core.retention import Cascade, Tombstones
+    from db import (AmendmentRepository, AttestationRepository,
+                    ModelTombstoneRepository, SignatureRepository)
+    # Wired here rather than left out, because `delete` refuses without a
+    # tombstone register: a deletion that frees the URN lets the next model of
+    # the same name inherit the destroyed one's evidence, and that is worse
+    # than a deletion that fails. A fixture without it would be testing a
+    # deployment the platform refuses to be.
+    tombstones = Tombstones(ModelTombstoneRepository(db), evidence)
     service = LifecycleService(
         registry,
         AmendmentService(AmendmentRepository(db), evidence),
         AttestationService(AttestationRepository(db), SignatureRepository(db), evidence),
-        evidence)
+        evidence, tombstones=tombstones, cascade=Cascade(db))
     registry.attach_gate(service)
+    registry.catalogue.tombstones = tombstones
     return service
 
 
