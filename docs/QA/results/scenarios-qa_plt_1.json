@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 2
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile twice with nothing changed \u2014 digests identical",
+   "verdict": "PASS",
+   "evidence": "identical: sha256:f61f15b065dddfa7a7d309d"
+  },
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "stable at 1 citation(s) across five compiles"
+  },
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile with open review comments",
+   "verdict": "BLOCKED",
+   "evidence": "could not raise a comment: {\"detail\":[{\"type\":\"missing\",\"loc\":[\"query\",\"document_id\"],\"msg\":\"Field required\",\"input\":null},{\"type\":\"missing\",\"loc\":[\"body\",\"body\"],\"msg\":\"Field r"
+  },
+  {
+   "id": "QA-PLT-126",
+   "title": "Two export packs of unchanged state agree",
+   "verdict": "BLOCKED",
+   "evidence": "packs unavailable: 405 {\"detail\":\"Method Not Allowed\"}"
+  },
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-128",
+   "title": "A bare model, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "coverage.complete is false, 10 section(s) marked unfillable"
+  },
+  {
+   "id": "QA-PLT-130",
+   "title": "Compile against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-131",
+   "title": "Read a document that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-132",
+   "title": "The published list of document kinds is closed",
+   "verdict": "PASS",
+   "evidence": "4 kinds published"
+  }
+ ]
+}

@@ -124,6 +124,27 @@ class DocumentCompiler:
     def compile(self, kind: str, urn: str, actor: str = "system") -> Dict[str, Any]:
         """Render it, then author it: persisted, and recorded as having happened."""
         row = self.render(kind, urn)
+        # An identical rendering is the SAME document, not a new one.
+        #
+        # The digest is over the kind, the subject and the content, and two
+        # renderings of unchanged state now produce the same digest — so a
+        # recompile that changed nothing was writing a second row with a new
+        # id and identical content. Review comments are keyed on the document
+        # id, so every open comment was orphaned onto an earlier version by a
+        # recompile that changed nothing at all: somebody presses the button,
+        # and the reviewer's unresolved question is now against a document
+        # nobody is looking at.
+        #
+        # Returned rather than re-authored. Recording a `document_compiled`
+        # act for a document that already exists would also be false — nothing
+        # was compiled.
+        existing = self.documents.one(digest=row["digest"])
+        if existing is not None:
+            logger.info(
+                "recompiled %s for %s and the rendering is identical; "
+                "returning the existing document %s rather than authoring a "
+                "second copy of it", kind, urn, existing["id"])
+            return existing
         head, _ = self.evidence.head()
         row.update({"evidence_head": head, "status": "compiled",
                     "compiled_at": time.time(), "compiled_by": actor})
