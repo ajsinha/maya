@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 8,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-081",
+   "title": "Assign a finding to the person who already owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned'"
+  },
+  {
+   "id": "QA-AM-082",
+   "title": "Assign to the current owner without the person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned'"
+  },
+  {
+   "id": "QA-AM-083",
+   "title": "Acknowledge with a date already in the past",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past' (422)"
+  },
+  {
+   "id": "QA-AM-084",
+   "title": "Assign with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-085",
+   "title": "Assign to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-AM-086",
+   "title": "Acknowledge as somebody other than the owner",
+   "verdict": "PASS",
+   "evidence": "refused 'not_the_owner'"
+  },
+  {
+   "id": "QA-AM-087",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-AM-088",
+   "title": "Acknowledge to a date after the finding's due date",
+   "verdict": "PASS",
+   "evidence": "refused 'beyond_the_due_date'"
+  },
+  {
+   "id": "QA-AM-089",
+   "title": "A refused acknowledgement leaves its plan behind",
+   "verdict": "FAIL",
+   "evidence": "an acknowledgement refused `beyond_the_due_date` still recorded its plan \u2014 `plan_for` runs before the date check \u2014 so acknowledging again with NO plan is accepted. A refused act left a durable write behind, and the plan requirement is satisfied by a call that failed"
+  }
+ ]
+}

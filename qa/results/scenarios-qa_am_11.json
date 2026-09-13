@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-111",
+   "title": "Act against a closed finding",
+   "verdict": "PASS",
+   "evidence": "assign, acknowledge, plan and extend all refused once closed"
+  },
+  {
+   "id": "QA-AM-112",
+   "title": "Act against a finding id that does not exist",
+   "verdict": "PASS",
+   "evidence": "all four acts refused against an unknown id"
+  }
+ ]
+}
