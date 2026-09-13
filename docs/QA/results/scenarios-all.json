@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 190,
-  "pass": 190,
-  "fail": 0,
+  "total": 221,
+  "pass": 215,
+  "fail": 6,
   "blocked": 0
  },
- "seconds": 16.6,
+ "seconds": 20.1,
  "results": [
   {
    "id": "QA-AM-067",
@@ -485,7 +485,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ac4e0dac019da8178ffdf67\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09adbc7eb0a5581522aa19890\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -510,6 +510,84 @@
    "title": "An assembly on a view version that does not exist",
    "verdict": "PASS",
    "evidence": "refused (409)"
+  },
+  {
+   "id": "QA-FX-104",
+   "title": "Amend a sealed feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-106",
+   "title": "Seal an ephemeral feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-107",
+   "title": "Seal a feature that is already sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-108",
+   "title": "Break a seal with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-109",
+   "title": "Break a seal as somebody without the authority",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-FX-110",
+   "title": "Seal, break, amend, re-seal \u2014 and the chain records all four",
+   "verdict": "PASS",
+   "evidence": "four acts, 4 evidence nodes"
+  },
+  {
+   "id": "QA-FX-111",
+   "title": "Transfer ownership of a sealed feature",
+   "verdict": "PASS",
+   "evidence": "answered 409 (feature_refused)"
+  },
+  {
+   "id": "QA-FX-112",
+   "title": "Transfer ownership to the current owner",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-113",
+   "title": "Transfer ownership to an empty name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-114",
+   "title": "created_by survives an ownership transfer",
+   "verdict": "PASS",
+   "evidence": "owner is now 'risk', created_by unchanged"
+  },
+  {
+   "id": "QA-FX-116",
+   "title": "Seal a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-117",
+   "title": "Break a seal on a feature that was never sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-118",
+   "title": "An unsealed feature can still be amended",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
   },
   {
    "id": "QA-FX-300",
@@ -596,6 +674,114 @@
    "evidence": "5 live and silent"
   },
   {
+   "id": "QA-FX-400",
+   "title": "Define a feature with no name",
+   "verdict": "FAIL",
+   "evidence": "a feature with no name was accepted, and a feature nobody can name is one nobody can cite"
+  },
+  {
+   "id": "QA-FX-401",
+   "title": "Define a feature with no owner",
+   "verdict": "FAIL",
+   "evidence": "a feature with no owner was accepted, and an unowned feature is one nobody maintains"
+  },
+  {
+   "id": "QA-FX-402",
+   "title": "Define a feature of an unknown dtype",
+   "verdict": "FAIL",
+   "evidence": "a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves"
+  },
+  {
+   "id": "QA-FX-403",
+   "title": "Define a feature with no entity",
+   "verdict": "FAIL",
+   "evidence": "a feature with no entity was accepted, and the entity is what a row is keyed on"
+  },
+  {
+   "id": "QA-FX-404",
+   "title": "Define a feature with no description",
+   "verdict": "FAIL",
+   "evidence": "a feature with no description was accepted, and a business definition is what stops two teams meaning different things by one name"
+  },
+  {
+   "id": "QA-FX-405",
+   "title": "Define a negative ttl",
+   "verdict": "FAIL",
+   "evidence": "a negative ttl was accepted, and a negative lifetime is a row that expired before it arrived"
+  },
+  {
+   "id": "QA-FX-406",
+   "title": "Define a shape that is not a shape",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-410",
+   "title": "A well-formed feature is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-411",
+   "title": "The same feature name twice",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-412",
+   "title": "A feature declared as personal data",
+   "verdict": "PASS",
+   "evidence": "accepted and flagged"
+  },
+  {
+   "id": "QA-FX-413",
+   "title": "A feature naming a protected basis",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-414",
+   "title": "A featureset over a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-415",
+   "title": "A featureset with no features at all",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-416",
+   "title": "Retire a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_subject'"
+  },
+  {
+   "id": "QA-FX-417",
+   "title": "Read a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (405)"
+  },
+  {
+   "id": "QA-FX-418",
+   "title": "A feature expression that references itself",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-419",
+   "title": "Trial an expression that divides by zero",
+   "verdict": "PASS",
+   "evidence": "answered 200 (accepted)"
+  },
+  {
+   "id": "QA-FX-420",
+   "title": "Trial an expression that is not an expression",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
    "id": "QA-GOV-001",
    "title": "Register the same URN twice",
    "verdict": "PASS",
@@ -605,7 +791,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-c0485f43\",\"name\":\"gov-c0485f43-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-39737e00\",\"name\":\"gov-39737e00-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -839,13 +1025,13 @@
    "id": "QA-PLT-001",
    "title": "Verify, do nothing, verify again",
    "verdict": "PASS",
-   "evidence": "length 284, head stable"
+   "evidence": "length 316, head stable"
   },
   {
    "id": "QA-PLT-002",
    "title": "One append, then verify \u2014 the new head links to the old",
    "verdict": "PASS",
-   "evidence": "286 -> 287, still valid"
+   "evidence": "318 -> 319, still valid"
   },
   {
    "id": "QA-PLT-003",
@@ -887,7 +1073,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:7c59aa709e8a4"
+   "evidence": "a fresh chain of 8 verifies, head sha256:da1c0d92359cf"
   },
   {
    "id": "QA-PLT-010",
@@ -995,7 +1181,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:d3b2d7ed3566b4f558333b0"
+   "evidence": "identical: sha256:d2330dff8e6ca7235c0e967"
   },
   {
    "id": "QA-PLT-124",
@@ -1013,7 +1199,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:c3b82f5dc3b253431cdc941"
+   "evidence": "stable: sha256:c9e6d016ed376e45477fc58"
   },
   {
    "id": "QA-PLT-127",
