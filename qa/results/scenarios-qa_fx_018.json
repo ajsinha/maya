@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-018",
+   "title": "A spine of zero rows",
+   "verdict": "PASS",
+   "evidence": "only 0 rows; below eight a relationship between a column and the label is not evidence of anything"
+  }
+ ]
+}

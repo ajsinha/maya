@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-3802",
+   "title": "The continuous ratio is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "ratio 0.5, and a class label stays a class"
+  }
+ ]
+}

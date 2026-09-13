@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-3801",
+   "title": "The screen is run under the column the label occupies",
+   "verdict": "PASS",
+   "evidence": "blind: no 'label' column in the assembled frame \u2014 under 'defaulted_12m': ['sale_price']"
+  }
+ ]
+}

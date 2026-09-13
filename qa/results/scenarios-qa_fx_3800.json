@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-3800",
+   "title": "A three-class label \u2014 neither binary nor continuous",
+   "verdict": "PASS",
+   "evidence": "'label' has 3 classes, and a threshold split says nothing unless the label is binary \u2014 so decoder was not screened"
+  }
+ ]
+}
