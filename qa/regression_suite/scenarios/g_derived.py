@@ -126,7 +126,7 @@ def fx_136(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}', naming both entities"
 
 
-@case("QA-FX-143", "The expression language will not evaluate a program")
+@case("QA-FX-143", "Attribute access, subscripting, a comprehension, a lambda")
 def fx_143(ctx: Ctx) -> Result:
     """An expression language is an execution surface. Attribute access,
     subscripting, comprehensions, lambdas and calls to anything outside the
