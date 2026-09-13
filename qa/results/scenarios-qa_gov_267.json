@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-267",
+   "title": "Reuse the reference of a closed campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists'"
+  }
+ ]
+}

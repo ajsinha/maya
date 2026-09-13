@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-3500",
+   "title": "A reviewer answering their own row, spelled differently",
+   "verdict": "PASS",
+   "evidence": "a prefixed name cannot enter a population, so the `==` self-review check never sees two spellings"
+  }
+ ]
+}

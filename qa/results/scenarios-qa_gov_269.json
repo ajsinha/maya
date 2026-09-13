@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-269",
+   "title": "Reassign to a principal who does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal'"
+  }
+ ]
+}

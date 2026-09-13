@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-3501",
+   "title": "Revoking removes roles here and says so",
+   "verdict": "PASS",
+   "evidence": "the wording is bounded to what the platform can see"
+  }
+ ]
+}
