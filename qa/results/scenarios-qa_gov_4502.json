@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-4502",
+   "title": "A condition window outside the permitted range",
+   "verdict": "PASS",
+   "evidence": "0, -1, 184.0 and 3650 refused; 183.0 accepted"
+  }
+ ]
+}
