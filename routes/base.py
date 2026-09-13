@@ -547,6 +547,11 @@ STATUS: Dict[str, int] = {
     # composite is refused because of the STATE of one of them, which is
     # a conflict the caller can resolve rather than a permission it lacks.
     "composite_refused": 409,
+    # 409, and the caller should retry. A composite whose members resolved
+    # either side of a revocation is not any one node refusing — every node
+    # passed its own check and the set was never consistent, which is exactly
+    # a conflict with concurrent state.
+    "composite_spanned_a_revocation": 409,
     "share_out_of_range": 422, "mirrors_required": 422,
     "shadow_use_is_a_production_use": 409,
     # the run register, and the standing approval for a re-fit

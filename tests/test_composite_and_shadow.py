@@ -283,3 +283,72 @@ class TestAShadowThatNeverEnds:
         out = shadow.across_the_estate(
             now=first + (MAX_SHADOW_DAYS + 1) * DAY)
         assert out["models"][0]["urn"] == URN
+
+
+class TestAcompositeThatSpannedARevocation:
+    """M-4, and the disposition that said composite warrants were not built.
+
+    They are, and have been for two milestones — the review's medium row was
+    describing an earlier codebase. What was genuinely true underneath is the
+    finding itself: members resolve one at a time, so a grant revoked between
+    the first node and the last leaves a composite whose earlier descriptors
+    were minted under an authorisation that no longer holds. Every node's own
+    check passed. The **set** was never consistent, and the caller receives a
+    chain that looks whole.
+
+    A single-node chain is enough to demonstrate it, and is the *harder* case:
+    with one node there is no second resolution to catch the change, so only
+    the pinned epoch can.
+    """
+
+    def _authorised(self, registry, warrants):
+        registry.move_alias(URN, "prod", "champion", "3.2.1")
+        warrants.issue(URN, "prod", "svc/pricer", "origination_decision",
+                       actor="person/j.okafor")
+
+    def test_a_revocation_during_resolution_refuses_the_whole_composite(
+            self, composites, registry, warrants, approved_version):
+        """Caught even though no single node refused."""
+        self._authorised(registry, warrants)
+        real = warrants.resolve
+
+        def resolve_then_revoke(*a, **kw):
+            out = real(*a, **kw)
+            warrants.grants.epoch += 1      # somebody revokes, mid-chain
+            return out
+
+        warrants.resolve = resolve_then_revoke
+        with pytest.raises(WarrantError) as refused:
+            composites.resolve(URN, "prod", "svc/pricer",
+                               "origination_decision")
+        assert refused.value.code == "composite_spanned_a_revocation"
+
+    def test_the_refusal_tells_the_caller_to_retry(
+            self, composites, registry, warrants, approved_version):
+        """A different failure from any one node refusing, and the remediation
+        has to say so — otherwise the caller goes looking for the bad node."""
+        self._authorised(registry, warrants)
+        real = warrants.resolve
+
+        def resolve_then_revoke(*a, **kw):
+            out = real(*a, **kw)
+            warrants.grants.epoch += 1
+            return out
+
+        warrants.resolve = resolve_then_revoke
+        with pytest.raises(WarrantError) as refused:
+            composites.resolve(URN, "prod", "svc/pricer",
+                               "origination_decision")
+        assert "retry" in refused.value.remediation.lower()
+        assert "never consistent" in refused.value.remediation
+
+    def test_a_quiet_estate_still_resolves_and_reports_the_epoch(
+            self, composites, registry, warrants, approved_version):
+        """The guard must not refuse when nothing was revoked, and the epoch is
+        part of the answer — a caller holding descriptors has no other way to
+        say which revocation state they were minted under."""
+        self._authorised(registry, warrants)
+        out = composites.resolve(URN, "prod", "svc/pricer",
+                                 "origination_decision")
+        assert out["revocation_epoch"] == warrants.epoch
+        assert out["nodes"]

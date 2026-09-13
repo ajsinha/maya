@@ -33,6 +33,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from core.authz import csrf
 from fastapi.templating import Jinja2Templates
 
+from core.execution.observability import ExecutionObservability
 from core.execution.invocations import InvocationLog
 from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
@@ -1365,9 +1366,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         monitoring_defaults=monitoring_defaults, appetite=appetite,
         retraining=retraining, registry=registry, config=cfg)
 
+    # What the register can observe about execution it cannot observe.
+    # `warrant.flavour` was written at issue and read by nothing, and the
+    # telemetry liveness report was computed and consumed by nothing.
+    execution_observability = ExecutionObservability(db, registry, telemetry)
+
     scheduler = Scheduler(
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
+                   execution_observability=execution_observability,
                    findings=findings, monitoring=monitoring, overlays=overlays,
                    debts=debts, documents=documents,
                    notifications=notifications,
@@ -1430,6 +1437,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                ApiKeyRepository(db), principals, authz, evidence),
                            "references": ReferenceIndex(db, registry, features),
                            "tombstones": tombstones, "cascade": cascade,
+                           "execution_observability": execution_observability,
                            "compaction": compaction,
                            "limitations": limitations,
                            "assumptions": assumptions,

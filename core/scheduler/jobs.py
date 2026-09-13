@@ -77,6 +77,9 @@ class JobContext:
     approvals: Any = None
     health: Any = None
     retier_triggers: Any = None
+    #: What the register can see about execution it cannot see —
+    #: `core/execution/observability.py`. C-6's fifth mitigation.
+    execution_observability: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -119,6 +122,54 @@ def attestation_lapsed(ctx: JobContext) -> Dict[str, Any]:
             blocking=True,
             category="attestation", source="self_identified", actor=ctx.actor)
         raised.append(model["urn"])
+    return {"raised": raised, "count": len(raised)}
+
+
+def authorised_and_reporting_nothing(ctx: JobContext) -> Dict[str, Any]:
+    """A live warrant whose model has reported nothing back.
+
+    C-6's fifth mitigation, and the one symptom of its attack that MAYA is
+    positioned to notice — because both halves of it are in MAYA's own records.
+    It issued the warrant; it received no telemetry. Nothing about an engine is
+    observed, and nothing here claims otherwise.
+
+    `TelemetryCollector.estate()` has classified every version as `silent`,
+    `never` or `sending` since it was written, and **no job consumed it**. So a
+    principal that resolved warrants weekly and had never reported a single
+    score raised nothing at all.
+
+    Raised **advisory, not blocking**, and that is deliberate against the grain
+    of `attestation.lapsed` above. Silence has an innocent reading — the model
+    is authorised and nobody used it — and MAYA cannot tell that apart from an
+    engine ignoring its telemetry obligation. Blocking on a condition the
+    platform admits it cannot diagnose would train people to override it, and
+    an override people perform weekly is not a control.
+    """
+    obs = ctx.execution_observability
+    if not (obs and ctx.findings):
+        return {"skipped": "execution observability or findings not available"}
+    raised = []
+    for row in obs.authorised_and_silent(ctx.models(), now=ctx.now):
+        model = ctx.registry.get(row["urn"])
+        if model is None:
+            continue
+        title = "Authorised, and reporting nothing"
+        if _already_raised(ctx.findings, model["id"], title):
+            continue
+        ctx.findings.raise_finding(
+            model["id"], "Medium", title, model["owner"] or "unassigned",
+            description=(
+                f"A live warrant authorises {row['principal']} to run this "
+                f"model in {row['environment']}, and no telemetry has arrived "
+                f"for {', '.join(row['versions']) or 'any version'}. "
+                f"{row['explanation_absent']}. Either confirm the warrant is "
+                f"unused and revoke it, or find out why the engine is not "
+                f"reporting — an authorisation nobody exercises and one whose "
+                f"exercise nobody can see look identical from here, and only "
+                f"one of them is harmless."),
+            blocking=False,
+            category="execution", source="self_identified", actor=ctx.actor)
+        raised.append(row["urn"])
     return {"raised": raised, "count": len(raised)}
 
 
@@ -972,6 +1023,14 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "a model in force on a lapsed attestation is in force on nobody's "
         "current signature",
         attestation_lapsed),
+    Job("execution.unreported",
+        "raises a finding for a live warrant whose model reports nothing",
+        "`TelemetryCollector.estate()` has classified every version as silent, "
+        "never or sending since it was written and no job consumed it, so a "
+        "principal that resolved warrants weekly and never reported a score "
+        "raised nothing — the one symptom of C-6's attack that is visible from "
+        "inside MAYA's own records",
+        authorised_and_reporting_nothing),
     Job("review.overdue",
         "raises a finding for a model past the review date its tier set",
         "`next_review_due` was computed from the tier, written to every "
