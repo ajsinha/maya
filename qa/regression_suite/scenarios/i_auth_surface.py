@@ -202,28 +202,70 @@ def plt_339(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(again) or again.status_code}'"
 
 
-@case("QA-PLT-338", "A revoked key stops working")
+@case("QA-PLT-338", "A revoked key, an expired key, and a key whose principal was suspended")
 def plt_338(ctx: Ctx) -> Result:
-    """Revocation that does not bite immediately is a note in a table."""
-    made = ctx.api.post(KEYS, json={"username": "admin",
-                                    "name": ctx.unique("k"),
-                                    "lifetime_days": 30})
-    if made.status_code >= 400:
-        return BLOCKED, made.text[:170]
-    body = made.json() or {}
-    secret = body.get("key") or body.get("secret") or body.get("token")
-    kid = body.get("id") or body.get("key_id")
+    """Three different reasons a credential should stop working, and each
+    gets its own code. They read the same in prose and are different answers:
+    `key_revoked` is a decision somebody took, `key_expired` is a decision
+    nobody took, and `key_principal_not_active` is about the human rather
+    than the credential.
+    """
+    register = ctx.ui.app.state.ctx.get("api_keys")
+
+    def _issue(username: str = "admin"):
+        made = ctx.api.post(KEYS, json={"username": username,
+                                        "name": ctx.unique("k"),
+                                        "lifetime_days": 30})
+        if made.status_code >= 400:
+            return None, None
+        body = made.json() or {}
+        return (body.get("key") or body.get("secret") or body.get("token"),
+                body.get("id") or body.get("key_id"))
+
+    def _call(secret):
+        return ctx.api.get("/api/v1/models", headers={"X-API-Key": secret},
+                           auth=None)
+
+    seen = {}
+
+    # 1. revoked
+    secret, kid = _issue()
     if not secret or not kid:
-        return BLOCKED, f"no usable key came back: {sorted(body)}"
-    header = {"X-API-Key": secret}
-    before = ctx.api.get("/api/v1/models", headers=header, auth=None)
-    if before.status_code >= 400:
-        return BLOCKED, f"the fresh key does not work: {before.text[:130]}"
+        return BLOCKED, "no usable key came back"
+    if _call(secret).status_code >= 400:
+        return BLOCKED, "a fresh key does not authenticate"
     ctx.api.post(f"{KEYS}/{kid}/revoke", json={"reason": "qa"})
-    after = ctx.api.get("/api/v1/models", headers=header, auth=None)
-    if after.status_code < 400:
-        return FAIL, "a revoked key still authenticates"
-    return PASS, f"refused '{code_of(after) or after.status_code}' once revoked"
+    seen["revoked"] = _call(secret)
+
+    # 2. expired — wound back rather than waited out
+    secret, kid = _issue()
+    if register is None:
+        return BLOCKED, "no api key register reachable to expire one"
+    register.repo.set({"expires_at": 1.0}, id=kid)
+    seen["expired"] = _call(secret)
+
+    # 3. the principal suspended under a live key
+    who = ctx.unique("kp")
+    ctx.api.post("/api/v1/principals",
+                 json={"username": who, "display_name": who,
+                       "roles": ["auditor"], "password": f"{who}-password",
+                       "legal_entities": [], "domains": []})
+    secret, kid = _issue(who)
+    if not secret:
+        return BLOCKED, "could not issue a key to the new principal"
+    ctx.api.post(f"/api/v1/principals/{who}/suspend",
+                 json={"reason": "left the firm"})
+    seen["suspended"] = _call(secret)
+
+    working = [k for k, r in seen.items() if r.status_code < 400]
+    if working:
+        return FAIL, f"these credentials still authenticate: {working}"
+    codes = {k: code_of(r) or r.status_code for k, r in seen.items()}
+    if len(set(str(c) for c in codes.values())) < 3:
+        return FAIL, (f"three different reasons answer with fewer than three "
+                      f"codes, so a reader cannot tell a revocation from a "
+                      f"lapse from a leaver: {codes}")
+    return PASS, f"three reasons, three codes: {codes}"
 
 
 @case("QA-PLT-344", "SSO status on an instance with SSO unconfigured")
