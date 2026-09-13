@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-GOV-150",
+   "title": "Delegation scoped to LE-UK, model in LE-US",
+   "verdict": "PASS",
+   "evidence": "refused 'entity_out_of_delegation'"
+  },
+  {
+   "id": "QA-GOV-151",
+   "title": "Delegation with no entity, model in any entity",
+   "verdict": "PASS",
+   "evidence": "an unscoped delegation reaches the entity"
+  }
+ ]
+}
