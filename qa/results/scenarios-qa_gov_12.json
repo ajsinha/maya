@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 8,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 2.6,
+ "results": [
+  {
+   "id": "QA-GOV-120",
+   "title": "Publish a band with tier 0",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_tier'"
+  },
+  {
+   "id": "QA-GOV-121",
+   "title": "Publish a band with a negative amount floor",
+   "verdict": "PASS",
+   "evidence": "refused 'negative_floor'"
+  },
+  {
+   "id": "QA-GOV-122",
+   "title": "Publish the same band name twice",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists'"
+  },
+  {
+   "id": "QA-GOV-123",
+   "title": "Race two publications of the same band name",
+   "verdict": "PASS",
+   "evidence": "one published, the other refused 'band_exists'"
+  },
+  {
+   "id": "QA-GOV-124",
+   "title": "Withdraw a band nobody published",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_band'"
+  },
+  {
+   "id": "QA-GOV-125",
+   "title": "Withdraw a band and read the matrix",
+   "verdict": "PASS",
+   "evidence": "withdrawn from the live matrix"
+  },
+  {
+   "id": "QA-GOV-126",
+   "title": "Publish the first band at all \u2014 every tier 3 model now falls under a matrix",
+   "verdict": "FAIL",
+   "evidence": "publishing one tier 3 band removed the shipped bands ['tier-1', 'tier-2'] from the matrix: the matrix is `published or DEFAULT_BANDS`, so the first band a firm publishes silently drops the tier-1 sequencing \u2014 the only place the platform requires the second line to sign before the validator"
+  },
+  {
+   "id": "QA-GOV-127",
+   "title": "Publish a matrix that reaches no tier 1 model",
+   "verdict": "FAIL",
+   "evidence": "a tier 1 version was approved by ONE person. `banded()` returns `required_for(urn)` whenever ANY matrix is published, and that answer carries `required_roles: []` for a model no band reaches \u2014 so `roles_for` reports no quorum and `refuse_without_quorum` returns silently. Publishing one tier 3 band therefore removes the quorum from every tier 1 and tier 2 model in the estate, and QA-GOV-126 is why "
+  },
+  {
+   "id": "QA-GOV-128",
+   "title": "An amount exactly equal to a band's floor",
+   "verdict": "PASS",
+   "evidence": "the floor is stored as given, and named at_or_above"
+  },
+  {
+   "id": "QA-GOV-129",
+   "title": "Amount one unit below the floor",
+   "verdict": "PASS",
+   "evidence": "999,999 -> 'bd-e5861295', the band below the floor"
+  }
+ ]
+}
