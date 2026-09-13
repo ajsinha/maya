@@ -1,12 +1,18 @@
 {
  "summary": {
-  "total": 6,
-  "pass": 6,
-  "fail": 0,
+  "total": 16,
+  "pass": 14,
+  "fail": 2,
   "blocked": 0
  },
- "seconds": 0.8,
+ "seconds": 6.5,
  "results": [
+  {
+   "id": "QA-GOV-140",
+   "title": "Record delegations but publish no band",
+   "verdict": "FAIL",
+   "evidence": "a 1 USD ceiling signed off a 250,000,000 exposure because no band is published: `refuse_beyond_delegation` runs only inside `if approval.get('band')`, and nothing in the estate view says the recorded ceilings are deciding nothing"
+  },
   {
    "id": "QA-GOV-1400",
    "title": "The sourcing vocabulary is closed",
@@ -42,6 +48,60 @@
    "title": "Every baselined model carries its debt",
    "verdict": "PASS",
    "evidence": "10 debt item(s) against 13 named gaps"
+  },
+  {
+   "id": "QA-GOV-141",
+   "title": "Sign a tier 3 version while holding no delegation",
+   "verdict": "PASS",
+   "evidence": "a tier 3 version is approved without a delegation: the check lives in the quorum signing path and a tier 3 version never enters it. Pinned as a known edge"
+  },
+  {
+   "id": "QA-GOV-142",
+   "title": "Signer holds no live delegation while others do",
+   "verdict": "PASS",
+   "evidence": "refused 'no_delegated_authority'"
+  },
+  {
+   "id": "QA-GOV-143",
+   "title": "Signer's delegation expired yesterday",
+   "verdict": "PASS",
+   "evidence": "refused 'no_delegated_authority' on an expired delegation"
+  },
+  {
+   "id": "QA-GOV-144",
+   "title": "Delegation expiring in one second",
+   "verdict": "PASS",
+   "evidence": "live with a second left, not live five seconds later"
+  },
+  {
+   "id": "QA-GOV-145",
+   "title": "Delegation recorded for `person/j.okafor`, signer authenticates as `j.okafor`",
+   "verdict": "FAIL",
+   "evidence": "a delegation recorded for 'person/risk' grants nothing to the principal who authenticates as 'risk': `held_by` matches the principal column as a STRING, so the two spellings of one human are two people. The register writes owners in the prefixed form, so this is the spelling a firm will use"
+  },
+  {
+   "id": "QA-GOV-146",
+   "title": "Delegation in JPY against a USD-read exposure",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_not_comparable'"
+  },
+  {
+   "id": "QA-GOV-147",
+   "title": "Two delegations, one JPY one USD",
+   "verdict": "PASS",
+   "evidence": "the comparable ceiling decides and the JPY row is ignored"
+  },
+  {
+   "id": "QA-GOV-148",
+   "title": "Two USD delegations of different sizes",
+   "verdict": "PASS",
+   "evidence": "the larger of two live ceilings decides"
+  },
+  {
+   "id": "QA-GOV-149",
+   "title": "Exposure exactly equal to the ceiling",
+   "verdict": "PASS",
+   "evidence": "an exposure of exactly 250,000,000 is within the ceiling"
   }
  ]
 }
