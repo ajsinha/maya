@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-4770",
+   "title": "A key on a GET",
+   "verdict": "PASS",
+   "evidence": "a GET claims nothing, and the key is free for a write"
+  },
+  {
+   "id": "QA-PLT-4771",
+   "title": "A key released by a failure is usable again",
+   "verdict": "PASS",
+   "evidence": "the failed attempt left no row at all"
+  }
+ ]
+}
