@@ -2960,6 +2960,8 @@ Every case is **re-runnable**. The second run is where the state bugs live, and 
 | QA-FX-6108 | `regression` | A shadow against a model that does not exist | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-6108` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-4800 | `regression` | Every admissibility law is reachable from the validator | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4800` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-4810 | `regression` | `fitted` is refused for every kind that nothing fits | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4810` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4820 | `regression` | Independent edits commute | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4820` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4821 | `regression` | merge is not mutation | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4821` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- H-assurance-monitoring.md -->

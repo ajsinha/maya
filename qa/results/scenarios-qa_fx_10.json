@@ -1,0 +1,107 @@
+{
+ "summary": {
+  "total": 16,
+  "pass": 16,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-FX-100",
+   "title": "Composing something that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing parent and its kind"
+  },
+  {
+   "id": "QA-FX-1000",
+   "title": "The compute zones a warrant may name are published",
+   "verdict": "PASS",
+   "evidence": "none configured, and the consequence is stated: no compute zone is configured, so every zone handles no more than 'internal' and a fit ove"
+  },
+  {
+   "id": "QA-FX-1001",
+   "title": "Attest a compute zone for a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-FX-1002",
+   "title": "A grant limit on a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-FX-1003",
+   "title": "A negative rate limit",
+   "verdict": "PASS",
+   "evidence": "answered 404 (no_grant)"
+  },
+  {
+   "id": "QA-FX-1004",
+   "title": "The execution posture names what it cannot observe",
+   "verdict": "PASS",
+   "evidence": "the caveat names the limit"
+  },
+  {
+   "id": "QA-FX-1005",
+   "title": "Unreported execution says what it cannot distinguish",
+   "verdict": "PASS",
+   "evidence": "0 live and silent"
+  },
+  {
+   "id": "QA-FX-1006",
+   "title": "The declared cascade of what a deletion touches",
+   "verdict": "PASS",
+   "evidence": "38 tables, all three dispositions present"
+  },
+  {
+   "id": "QA-FX-1007",
+   "title": "A sandbox refuses to run anything",
+   "verdict": "PASS",
+   "evidence": "no process is spawned"
+  },
+  {
+   "id": "QA-FX-1008",
+   "title": "The captive engine is the only one that has run a warrant",
+   "verdict": "PASS",
+   "evidence": "the engine names itself"
+  },
+  {
+   "id": "QA-FX-101",
+   "title": "Composing an ephemeral parent",
+   "verdict": "PASS",
+   "evidence": "refused, naming the ephemeral parent"
+  },
+  {
+   "id": "QA-FX-104",
+   "title": "Amend a sealed feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-106",
+   "title": "Seal an ephemeral feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-107",
+   "title": "Seal a feature that is already sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-108",
+   "title": "Break a seal with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-109",
+   "title": "Break a seal as somebody without the authority",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  }
+ ]
+}

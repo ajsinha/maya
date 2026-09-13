@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-090",
+   "title": "Rightmost wins, per member",
+   "verdict": "PASS",
+   "evidence": "later parent wins on 'b' only, 'a' and 'c' both survive"
+  },
+  {
+   "id": "QA-FX-091",
+   "title": "The object's own operations are applied last",
+   "verdict": "PASS",
+   "evidence": "the child's override is applied after the fold"
+  },
+  {
+   "id": "QA-FX-092",
+   "title": "Associativity of the fold",
+   "verdict": "PASS",
+   "evidence": "associative, with {} as identity: {'x': 1, 'y': 2, 'z': 3, 'w': 3}"
+  },
+  {
+   "id": "QA-FX-093",
+   "title": "`drop` of a member no parent has",
+   "verdict": "PASS",
+   "evidence": "refused, naming the operation and its index"
+  },
+  {
+   "id": "QA-FX-094",
+   "title": "`add` of a member a parent already has",
+   "verdict": "PASS",
+   "evidence": "refused, naming 'override' as the way to say it"
+  },
+  {
+   "id": "QA-FX-095",
+   "title": "`override` of a member no parent has",
+   "verdict": "PASS",
+   "evidence": "refused, naming 'add' as the way to say it"
+  },
+  {
+   "id": "QA-FX-096",
+   "title": "An operation naming no member",
+   "verdict": "PASS",
+   "evidence": "unnamed members and unknown operations both refused"
+  },
+  {
+   "id": "QA-FX-097",
+   "title": "An `add` carrying no definition",
+   "verdict": "PASS",
+   "evidence": "add and override both refuse a missing definition"
+  },
+  {
+   "id": "QA-FX-098",
+   "title": "A composition cycle",
+   "verdict": "PASS",
+   "evidence": "refused, printing the chain: composes itself through a \u2192 b \u2192 c \u2192 a; a cycle has no fixed "
+  },
+  {
+   "id": "QA-FX-099",
+   "title": "A chain exactly twelve deep, then thirteen",
+   "verdict": "PASS",
+   "evidence": "12 resolved, 13 refused by name"
+  }
+ ]
+}
