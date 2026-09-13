@@ -1,0 +1,209 @@
+{
+ "summary": {
+  "total": 33,
+  "pass": 32,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 9.3,
+ "results": [
+  {
+   "id": "QA-PLT-001",
+   "title": "Verify, do nothing, verify again",
+   "verdict": "PASS",
+   "evidence": "length 11, head stable"
+  },
+  {
+   "id": "QA-PLT-002",
+   "title": "One append, then verify \u2014 the new head links to the old",
+   "verdict": "PASS",
+   "evidence": "13 -> 14, still valid"
+  },
+  {
+   "id": "QA-PLT-003",
+   "title": "A payload edited with the trigger stood down",
+   "verdict": "PASS",
+   "evidence": "reported invalid at 2: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-004",
+   "title": "Authorship reassigned on one node",
+   "verdict": "PASS",
+   "evidence": "reported invalid: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-005",
+   "title": "trust downgraded on one node",
+   "verdict": "PASS",
+   "evidence": "reported invalid: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-006",
+   "title": "The LAST node deleted \u2014 the documented blind spot",
+   "verdict": "PASS",
+   "evidence": "as documented: truncating the chain is undetectable by walking it. This is the finding. The anchor on a second medium is the only check that sees it"
+  },
+  {
+   "id": "QA-PLT-007",
+   "title": "A node deleted from the MIDDLE",
+   "verdict": "PASS",
+   "evidence": "reported invalid: sequence gap"
+  },
+  {
+   "id": "QA-PLT-008",
+   "title": "A node forged into the history with a plausible seq",
+   "verdict": "PASS",
+   "evidence": "reported invalid: prev_hash mismatch"
+  },
+  {
+   "id": "QA-PLT-009",
+   "title": "Verify a chain with nothing in it",
+   "verdict": "PASS",
+   "evidence": "a fresh chain of 8 verifies, head sha256:85b36311224ff"
+  },
+  {
+   "id": "QA-PLT-011",
+   "title": "The dashboard does not walk the whole chain",
+   "verdict": "PASS",
+   "evidence": "the dashboard takes the incremental path"
+  },
+  {
+   "id": "QA-PLT-012",
+   "title": "A compiled document does not re-walk the chain",
+   "verdict": "PASS",
+   "evidence": "incremental, and does not move the mark"
+  },
+  {
+   "id": "QA-PLT-013",
+   "title": "Break a node **before** the checkpoint, then ask the cheap question",
+   "verdict": "PASS",
+   "evidence": "the full walk reports broken at 1; the cheap read starts at 12 and cannot see below it \u2014 which is what the anchors are for"
+  },
+  {
+   "id": "QA-PLT-018",
+   "title": "`verify_since_checkpoint(advance=False)` must write nothing",
+   "verdict": "PASS",
+   "evidence": "three reads and a page load, 0 checkpoint row(s) still"
+  },
+  {
+   "id": "QA-PLT-020",
+   "title": "Anchor a head when no anchor root is configured",
+   "verdict": "PASS",
+   "evidence": "anchored 0, and both readings say self-certified"
+  },
+  {
+   "id": "QA-PLT-021",
+   "title": "Anchor a chain that does not verify",
+   "verdict": "PASS",
+   "evidence": "verified first; a broken chain refuses 'chain_broken'"
+  },
+  {
+   "id": "QA-PLT-022",
+   "title": "Anchor on an empty chain",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_anchor' at sequence 0"
+  },
+  {
+   "id": "QA-PLT-023",
+   "title": "Anchor the same head twice with no act in between",
+   "verdict": "PASS",
+   "evidence": "an unchanged head refuses 'nothing_to_anchor'"
+  },
+  {
+   "id": "QA-PLT-024",
+   "title": "The chain truncated **below** the newest anchor",
+   "verdict": "PASS",
+   "evidence": "agrees 0, and the reason is: the chain is shorter than this anchor, and an append-only chain cannot"
+  },
+  {
+   "id": "QA-PLT-028",
+   "title": "The store made unreadable",
+   "verdict": "PASS",
+   "evidence": "refused 'worm_unreadable' rather than reported absent"
+  },
+  {
+   "id": "QA-PLT-029",
+   "title": "An existing anchor file rewritten",
+   "verdict": "PASS",
+   "evidence": "refused, and the held copy is unchanged"
+  },
+  {
+   "id": "QA-PLT-030",
+   "title": "An anchor filename that is not a flat object name",
+   "verdict": "PASS",
+   "evidence": "every separator and dot name refused worm_bad_name"
+  },
+  {
+   "id": "QA-PLT-031",
+   "title": "An anchor written by the process it certifies",
+   "verdict": "PASS",
+   "evidence": "self_certified=0, verified_by=auditor"
+  },
+  {
+   "id": "QA-PLT-032",
+   "title": "Time-stamping with no authority wired",
+   "verdict": "PASS",
+   "evidence": "MAYA is not the authority and does not verify the token. Verifying one means holding a certificate c"
+  },
+  {
+   "id": "QA-PLT-037",
+   "title": "The period before the first token is explicitly uncovered",
+   "verdict": "PASS",
+   "evidence": "the uncovered period is named"
+  },
+  {
+   "id": "QA-PLT-049",
+   "title": "One idempotency key reused across two routes",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused'"
+  },
+  {
+   "id": "QA-PLT-055",
+   "title": "A write with a deliberately wrong If-Match",
+   "verdict": "PASS",
+   "evidence": "refused 412 'precondition_failed'"
+  },
+  {
+   "id": "QA-PLT-058",
+   "title": "If-None-Match with the current tag",
+   "verdict": "PASS",
+   "evidence": "304 with no body"
+  },
+  {
+   "id": "QA-PLT-059",
+   "title": "The ETag does not move when nothing changed",
+   "verdict": "PASS",
+   "evidence": "stable across three reads: W/\"sha256:2087a081abb9d6"
+  },
+  {
+   "id": "QA-PLT-061",
+   "title": "A governed act that fails half way",
+   "verdict": "PASS",
+   "evidence": "the refused act left exactly one row"
+  },
+  {
+   "id": "QA-PLT-064",
+   "title": "Every immutable column written directly",
+   "verdict": "PASS",
+   "evidence": "all 14 immutable column(s) refused by the database"
+  },
+  {
+   "id": "QA-PLT-065",
+   "title": "model_version.status is deliberately not guarded",
+   "verdict": "PASS",
+   "evidence": "status moves; the immutable columns do not"
+  },
+  {
+   "id": "QA-PLT-066",
+   "title": "An append-only table against UPDATE and DELETE",
+   "verdict": "PASS",
+   "evidence": "1 append-only table(s) refuse both"
+  },
+  {
+   "id": "QA-PLT-099",
+   "title": "`recorded_at` moved on a node, chain unchanged",
+   "verdict": "FAIL",
+   "evidence": "a node's `recorded_at` was moved by 9,999 seconds and the chain still verifies: the timestamp is outside the content hash, so WHEN a governance act was recorded can be rewritten with a single UPDATE while every verification reports the chain intact"
+  }
+ ]
+}
