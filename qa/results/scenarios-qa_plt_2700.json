@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-2700",
+   "title": "Every duties comparison asks identity the same way",
+   "verdict": "FAIL",
+   "evidence": "10 duties comparison(s) use `==`/`!=` on an identity rather than `same_person`, so each is stepped around by writing the same human the other way: core/authz/breakglass.py:151 if actor == row[\"requested_by\"] and not unilateral:; core/authz/breakglass.py:158 if actor != row[\"requested_by\"] and unilateral:; core/authz/breakglass.py:248 if actor == row[\"principal\"]:; core/authz/principals.py:267 if u"
+  }
+ ]
+}
