@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 4,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-270",
+   "title": "Compare the `plan_digest` in a submission against the plan that was issued",
+   "verdict": "FAIL",
+   "evidence": "the outcome records plan digest sha256:3f663b389693218e2b7b0f9b5703882384fecf7a64c4d8bac4f8e98bc0c10931 and the plan issued was sha256:3f8338aa36d736eae7395494674192e6d84c801179f76be12132c061cbca149d: the submission was judged against a plan nobody was given"
+  },
+  {
+   "id": "QA-AM-272",
+   "title": "Submit the same statistics twice",
+   "verdict": "PASS",
+   "evidence": "identical value and digest; 0 observation(s) recorded \u2014 see QA-AM-1313 for why that is zero"
+  },
+  {
+   "id": "QA-AM-273",
+   "title": "Compare a version against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-AM-274",
+   "title": "Two versions that share no monitor definition",
+   "verdict": "PASS",
+   "evidence": "refused 'no_shared_monitor'"
+  },
+  {
+   "id": "QA-AM-276",
+   "title": "Fewer paired windows than the minimum",
+   "verdict": "PASS",
+   "evidence": "5 pairs minimum, reported as insufficient_evidence"
+  }
+ ]
+}

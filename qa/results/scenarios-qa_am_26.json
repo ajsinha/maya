@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 8,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-261",
+   "title": "Submit with a `reference_digest` from a different monitor",
+   "verdict": "BLOCKED",
+   "evidence": "the two monitors share a reference digest, so this run cannot tell them apart"
+  },
+  {
+   "id": "QA-AM-262",
+   "title": "Submit for AUC without `ranked_globally`",
+   "verdict": "PASS",
+   "evidence": "refused, naming ranked_globally"
+  },
+  {
+   "id": "QA-AM-263",
+   "title": "Submit with `ranked_globally: true` but per-partition ranks",
+   "verdict": "PASS",
+   "evidence": "accepted at 0.16583333333333333, attested not observed, scanned by spark-3.5"
+  },
+  {
+   "id": "QA-AM-264",
+   "title": "Submit with no `predicate`",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing predicate"
+  },
+  {
+   "id": "QA-AM-265",
+   "title": "Submit with three partitions, one of them missing `rows`",
+   "verdict": "PASS",
+   "evidence": "refused, naming partitions[1].rows"
+  },
+  {
+   "id": "QA-AM-266",
+   "title": "Submit with a partition returning the wrong number of bins",
+   "verdict": "PASS",
+   "evidence": "refused 'bin_count_mismatch', 9 against 10"
+  },
+  {
+   "id": "QA-AM-267",
+   "title": "Submit where every partition returns zero rows",
+   "verdict": "PASS",
+   "evidence": "refused 'no_rows_in_submission'"
+  },
+  {
+   "id": "QA-AM-268",
+   "title": "Submit an AUC where every row is one class",
+   "verdict": "PASS",
+   "evidence": "refused 'one_class_absent'"
+  },
+  {
+   "id": "QA-AM-269",
+   "title": "Submit a KS where `negative_quantiles` is longer than `positive_quantiles`",
+   "verdict": "PASS",
+   "evidence": "refused 'quantiles_ragged', not a 500"
+  }
+ ]
+}
