@@ -24,6 +24,12 @@ PARALLEL = "/api/v1/parallel-runs"
 APPROVALS = "/api/v1/regulatory-approvals"
 PACKS = "/api/v1/board-packs"
 
+#: One telemetry row, shaped as the platform describes it: "a 'scores' row
+#: carries entity_id, scored_at, score". Read from the refusal rather than
+#: guessed — my first version omitted `score` and two cases failed on the
+#: shape instead of on their subject.
+SCORE = {"entity_id": "e1", "scored_at": 1.0, "score": 0.5}
+
 
 def _versioned(ctx: Ctx) -> str:
     name = ctx.unique("tl")
@@ -38,7 +44,7 @@ def _versioned(ctx: Ctx) -> str:
 def _send(ctx: Ctx, **over):
     body = valid_body(ctx, "POST", TELEMETRY, urn=_versioned(ctx),
                       semver="1.0.0",
-                      rows=[{"scored_at": 1.0, "entity_id": "e1"}])
+                      rows=[SCORE])
     body.update(over)
     return ctx.api.post(TELEMETRY, json=body)
 
@@ -54,7 +60,7 @@ def am_400(ctx: Ctx) -> Result:
 @case("QA-AM-635", "Telemetry for a model that does not exist")
 def am_401(ctx: Ctx) -> Result:
     body = valid_body(ctx, "POST", TELEMETRY, urn="maya://model/qa.never",
-                      semver="1.0.0", rows=[{"scored_at": 1.0}])
+                      semver="1.0.0", rows=[SCORE])
     return expect_refused(ctx.api.post(TELEMETRY, json=body),
                           "registry_refused", "not_found",
                           "telemetry_refused")
@@ -101,22 +107,39 @@ def am_405(ctx: Ctx) -> Result:
 def am_406(ctx: Ctx) -> Result:
     urn = _versioned(ctx)
     body = valid_body(ctx, "POST", TELEMETRY, urn=urn, semver="1.0.0",
-                      rows=[{"scored_at": 1.0, "entity_id": "e1"}])
+                      rows=[SCORE])
     first = ctx.api.post(TELEMETRY, json=body)
     if first.status_code >= 400:
         return BLOCKED, first.text[:150]
     ctx.api.post(TELEMETRY, json=body)
-    seen = ctx.api.get("/api/v1/telemetry", params={"urn": urn})
+    # `semver` is required too — a telemetry stream belongs to a version,
+    # not to a model, which is the whole reason a restatement of one version
+    # cannot be read as evidence about another.
+    seen = ctx.api.get("/api/v1/telemetry",
+                       params={"urn": urn, "semver": "1.0.0"})
     if seen.status_code >= 400:
         return BLOCKED, f"cannot read it back: {seen.status_code}"
     return PASS, f"read back: {seen.text[:110]}"
 
 
 # ---------------------------------------------------------- parallel runs
-def _run(ctx: Ctx, **over):
+def _two_versions(ctx: Ctx) -> str:
+    """A model with a champion and a challenger to compare."""
     urn = _versioned(ctx)
-    body = valid_body(ctx, "POST", PARALLEL, urn=urn, champion="1.0.0",
-                      challenger="1.0.0", purpose="QA comparison")
+    name = urn.rsplit("/", 1)[-1]
+    ctx.api.post(f"/api/v1/models/{name}/versions", json={"semver": "1.1.0"},
+                 auth=ctx.people["developer"])
+    return urn
+
+
+def _run(ctx: Ctx, **over):
+    # TWO versions. With one, `same_version` fires first and every case in
+    # this group passes on a refusal about the wrong thing — which is the
+    # failure this whole pass is about, committed in the setup rather than in
+    # the assertion.
+    body = valid_body(ctx, "POST", PARALLEL, urn=_two_versions(ctx),
+                      champion="1.0.0", challenger="1.1.0",
+                      purpose="QA comparison")
     body.update(over)
     return ctx.api.post(PARALLEL, json=body)
 
@@ -132,7 +155,7 @@ def am_420(ctx: Ctx) -> Result:
 
 @case("QA-AM-640", "A challenger that is the same version as the champion")
 def am_421(ctx: Ctx) -> Result:
-    got = _run(ctx)
+    got = _run(ctx, challenger="1.0.0")
     if got.status_code >= 500:
         return FAIL, f"{got.status_code}"
     if got.status_code < 400:
@@ -146,8 +169,7 @@ def am_422(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"{PARALLEL}/qa-never/conclude",
                      json={"conclusion": "adopt", "note": "   "}),
-        "not_found", "validation_error", "note_required",
-        "parallel_refused", "monitor_refused")
+        "no_run", "not_found", "note_required")
 
 
 # ------------------------------------------------------------- approvals
@@ -187,8 +209,7 @@ def am_441(ctx: Ctx) -> Result:
 def am_442(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"{APPROVALS}/qa-never/withdraw", json={"reason": "  "}),
-        "not_found", "validation_error", "reason_required",
-        "registry_refused")
+        "no_approval", "not_found", "reason_required")
 
 
 # ------------------------------------------------------------ board packs
