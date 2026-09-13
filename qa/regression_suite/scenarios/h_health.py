@@ -3,195 +3,255 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Section H — the model health score.
+Section H — the model health score, and what it refuses to say.
 
-The module's own docstring names the two ways a composite lies. A single
-number hides a verdict — a Critical finding past its date, an unmeasured
-overlay carrying the model's answer — so the number and the verdict are
-reported separately and the verdict wins. And an unmeasured component scores
-as a good one, so "a score of 92 at 30% coverage is not a healthy model; it is
-a model nobody has looked at, and the two must not print the same".
+The score is a weighted mean over six components, and almost everything worth
+testing is about what it does when a component cannot be measured. **A score
+of nothing is not a score of zero**, and printing a number over one measured
+component would be inventing one — so `coverage` travels beside the score and
+the detail says when the number says more about how little is known than about
+the model.
+
+The caps are the other half. A band that is `poor` because the validation
+lapsed is a different piece of work from one that is `poor` because three
+monitors are failing, so the arithmetic band and the capped band are reported
+separately and the cap says why. **No amount of good news elsewhere outweighs
+a cap** — which is what stops a model with one Critical finding past its date
+averaging its way back to `good`.
 """
 from __future__ import annotations
 
-from core.monitoring.health import (BANDS, COMPONENTS, GOOD, GOOD_AT, POOR,
-                                    WATCH, WATCH_AT, WEIGHTS)
 from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx,
                                                   Result, case)
 
-H = "/api/v1/model-health"
+HEALTH = "/api/v1/model-health"
 M = "/api/v1/models"
-TIER = {"model_class": "logistic", "domain": "credit",
-        "legal_entity": "LE-US-01", "purpose": "credit_decision"}
+F = "/api/v1/findings"
+SHAPE = {"model_class": "logistic", "domain": "credit",
+         "legal_entity": "LE-US-01", "purpose": "credit_decision"}
+FACTS = {"exposure": 1_000_000.0, "purpose_class": "credit_decision",
+         "feature_count": 3, "interpretable": True,
+         "uses_alternative_data": False}
+DAY = 86400.0
 
 
-def _bare(ctx: Ctx) -> str:
+def _model(ctx: Ctx, *, assess: bool = True) -> tuple:
     name = ctx.unique("hl")
-    ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
-                          "owner": "owner", **TIER})
-    return f"maya://model/{name}"
+    urn = f"maya://model/{name}"
+    ctx.api.post(M, json={"urn": urn, "name": name, "owner": "owner", **SHAPE})
+    ctx.api.post(f"{M}/{name}/versions", json={"semver": "1.0.0"},
+                 auth=ctx.people["developer"])
+    if assess:
+        ctx.api.post(f"{M}/{name}/assess", json=dict(FACTS))
+    return name, urn
 
 
-def _health(ctx: Ctx, urn: str):
-    return ctx.api.get(f"{H}?urn={urn}", auth=ctx.people["risk"])
+def _health(ctx: Ctx, urn: str) -> dict:
+    got = ctx.api.get(f"{HEALTH}?urn={urn}", auth=ctx.people["risk"])
+    return got.json() if got.status_code < 400 else {}
 
 
-@case("QA-AM-287", "A model where nothing at all is measurable")
-def am_287(ctx: Ctx) -> Result:
-    """A score of nothing, not a score of zero — and the platform has to be
-    able to produce that state at all. A bare model is NOT it: two of six
-    components (no findings, no overlays) are genuinely measurable and
-    genuinely good, so it scores 100 at 25% coverage. The underivable case is
-    reached by measuring nothing, which the service must answer with null
-    rather than with a zero.
-    """
-    health = ctx.ui.app.state.ctx.get("model_health")
-    if health is None:
-        return BLOCKED, "no health service reachable from this run"
-    empty = health._band(None) if hasattr(health, "_band") else "missing"
-    if empty == "missing":
-        return BLOCKED, "no band helper to call"
-    if empty:
-        return FAIL, (f"a score of None lands in band '{empty}'; nothing "
-                      f"measured reads as a verdict")
-    detail = health._detail(None, None, None, 0.0, [], []) \
-        if hasattr(health, "_detail") else ""
-    if "nothing" not in (detail or "").lower():
-        return FAIL, (f"an underivable score is not explained: "
-                      f"{str(detail)[:120]}")
-    if "zero" not in (detail or "").lower():
-        return FAIL, ("the explanation does not distinguish a score of "
-                      "nothing from a score of zero, which is the whole "
-                      "point of leaving it null")
-    return PASS, str(detail)[:110]
+def _component(reading: dict, key: str) -> dict:
+    for part in reading.get("components") or []:
+        if part.get("component") == key:
+            return part
+    return {}
 
 
-@case("QA-AM-286", "A model with no monitors, no validation and no findings")
-def am_286(ctx: Ctx) -> Result:
-    """The published expectation is exact: a score null OR high, with
-    coverage well under 0.5, and the DETAIL saying so. A high number beside a
-    thin coverage is only safe if the prose says which it is."""
-    got = _health(ctx, _bare(ctx))
-    if got.status_code >= 400:
-        return BLOCKED, got.text[:170]
-    row = got.json() or {}
-    coverage = row.get("coverage")
-    if coverage is None:
-        return FAIL, ("the health record carries no coverage, so a score "
-                      "nobody could measure prints like one that was")
-    if coverage >= 0.5:
-        return FAIL, (f"a bare model reports coverage {coverage}; more than "
-                      f"half its weight was measurable with nothing recorded")
-    detail = (row.get("detail") or "").lower()
-    if "how little is known" not in detail and "measurable" not in detail:
-        return FAIL, (f"the score is {row.get('score')} at coverage "
-                      f"{coverage} and the detail does not say the number is "
-                      f"about how little is known: {detail[:120]}")
-    if row.get("not_measured") is None:
-        return FAIL, "the unmeasured components are not named"
-    return PASS, (f"score {row.get('score')} at coverage {coverage}, and the "
-                  f"detail says what that means")
+def _raise(ctx: Ctx, urn: str, **over) -> str:
+    body = {"urn": urn, "severity": "Critical", "title": ctx.unique("finding"),
+            "owner": "person/owner", "description": "qa",
+            "category": "general", "source": "validation"}
+    body.update(over)
+    made = ctx.api.post(F, json=body, auth=ctx.people["risk"])
+    return made.json().get("id", "") if made.status_code < 400 else ""
 
 
-@case("QA-AM-3300", "The weights are data, and they sum to one")
-def am_3300(ctx: Ctx) -> Result:
-    """"A composite whose weights live in a conditional is a composite nobody
-    can check." They are held as data so the derivation can be rendered — and
-    if they did not sum to one the arithmetic would not be a mean."""
-    total = sum(WEIGHTS.values())
-    if abs(total - 1.0) > 1e-9:
-        return FAIL, (f"the {len(WEIGHTS)} component weights sum to {total}, "
-                      f"so the score is not a weighted mean of anything")
-    unasked = [c["key"] for c in COMPONENTS
-               if not (c.get("asks") or c.get("question") or
-                       c.get("detail") or "").strip()]
-    if unasked:
-        return FAIL, f"components with no stated question: {unasked}"
-    return PASS, f"{len(WEIGHTS)} components, weights sum to 1, each asking something"
+@case("QA-AM-290", "A model with no overlays at all")
+def am_290(ctx: Ctx) -> Result:
+    """Not absent, and this is the distinction the component turns on. A
+    model carrying no overlay is a MEASURED fact and a good one — nothing is
+    being adjusted, so nothing is being relied on. Reporting it as absent
+    would drop 15% of the weight for every model that never needed an
+    overlay."""
+    _name, urn = _model(ctx)
+    part = _component(_health(ctx, urn), "overlay_reliance")
+    if not part:
+        return BLOCKED, "the health reading carries no overlay component"
+    if not part.get("measured"):
+        return FAIL, ("a model with no overlays reports overlay_reliance as "
+                      "ABSENT, so every model that never needed an overlay "
+                      "loses 15% of its measurable weight")
+    if part.get("score") != 1.0:
+        return FAIL, f"no overlays scores {part.get('score')} rather than 1.0"
+    if "no active overlay" not in (part.get("detail") or ""):
+        return FAIL, f"the detail reads '{part.get('detail')}'"
+    return PASS, "measured at 1.0: nothing adjusted, nothing relied on"
 
 
-@case("QA-AM-3301", "The bands are ordered and the thresholds are stated")
-def am_3301(ctx: Ctx) -> Result:
-    """A band boundary a reader cannot see is a verdict nobody can argue
-    with."""
-    if GOOD_AT <= WATCH_AT:
-        return FAIL, (f"the good threshold {GOOD_AT} is not above the watch "
-                      f"threshold {WATCH_AT}")
-    if BANDS != (GOOD, WATCH, POOR):
-        return FAIL, f"the bands are not ordered best-first: {BANDS}"
-    return PASS, f"{GOOD} at {GOOD_AT}, {WATCH} at {WATCH_AT}, then {POOR}"
+@case("QA-AM-291", "A model with one Critical finding past its date")
+def am_291(ctx: Ctx) -> Result:
+    """The cap that stops averaging. A Critical finding past its remediation
+    date caps the band at `poor` however well everything else scores, and the
+    reading has to report the arithmetic band separately so a reader can see
+    the cap did the work."""
+    _name, urn = _model(ctx)
+    fid = _raise(ctx, urn, severity="Critical")
+    if not fid:
+        return BLOCKED, "the finding could not be raised"
+    engine = ctx.ui.app.state.ctx.get("findings")
+    if engine is None:
+        return BLOCKED, "no findings register is wired"
+    row = engine.require(fid)
+    # Wound back rather than waited out: there is no API for a due date in
+    # the past and there should not be one.
+    engine.findings.set({"due_at": row["raised_at"] - DAY}, id=fid)
+    reading = _health(ctx, urn)
+    if reading.get("band") != "poor":
+        return FAIL, (f"a Critical finding past its date leaves the band "
+                      f"'{reading.get('band')}'")
+    caps = [c for c in (reading.get("caps") or [])
+            if c.get("component") == "open_findings"]
+    if not caps:
+        return FAIL, "the band is poor and no cap says why"
+    if "past their remediation date" not in caps[0].get("why", ""):
+        return FAIL, f"the cap reads '{caps[0].get('why')}'"
+    # The arithmetic band is poor here as well, because a model built for
+    # this case has also never been validated. The cap is still the thing
+    # being tested: it must be PRESENT and name the finding, so that a model
+    # scoring well everywhere else cannot average its way past it.
+    return PASS, (f"arithmetic {reading.get('arithmetic_band')}, band poor, "
+                  f"and the findings cap says: {caps[0]['why'][:70]}")
 
 
-@case("QA-AM-3304", "The verdict wins over the arithmetic")
-def am_3304(ctx: Ctx) -> Result:
-    """A single number hides a verdict, so the two are reported separately —
-    and when they disagree, the disagreement is the finding. The record has to
-    carry BOTH or there is nothing to disagree."""
-    got = _health(ctx, _bare(ctx))
-    if got.status_code >= 400:
-        return BLOCKED, got.text[:170]
-    body = got.json() or {}
-    row = (body.get("models") or [body])[0] if isinstance(body, dict) else body
-    for field in ("band", "arithmetic_band", "caps"):
-        if field not in row:
-            return FAIL, (f"the health record has no '{field}', so a capped "
-                          f"verdict cannot be told from the arithmetic")
-    return PASS, "band, arithmetic_band and caps are all reported"
+@case("QA-AM-292", "A model with twenty open Observation findings")
+def am_292(ctx: Ctx) -> Result:
+    """Weighted by severity, because five Observations and one Critical are
+    not the same estate and must not divide to the same number. Twenty
+    Observations should not cap the band at all — nothing about them is past
+    a date or blocking."""
+    _name, urn = _model(ctx)
+    for _ in range(20):
+        if not _raise(ctx, urn, severity="Observation"):
+            return BLOCKED, "an observation finding could not be raised"
+    reading = _health(ctx, urn)
+    part = _component(reading, "open_findings")
+    if not part.get("measured"):
+        return BLOCKED, "the findings component is not measured"
+    caps = [c for c in (reading.get("caps") or [])
+            if c.get("component") == "open_findings"]
+    if caps:
+        return FAIL, (f"twenty Observation findings capped the band: "
+                      f"{caps[0].get('why')}")
+    critical = _model(ctx)[1]
+    _raise(ctx, critical, severity="Critical")
+    one = _component(_health(ctx, critical), "open_findings")
+    # A HIGHER component score is healthier, so twenty Observations must score
+    # ABOVE one Critical. Reading it the other way round is how a health
+    # score comes to reward the estate that raises fewer findings.
+    if part.get("score", 0.0) <= one.get("score", 1.0):
+        return FAIL, (f"twenty Observations score {part.get('score')} and one "
+                      f"Critical scores {one.get('score')}: the weighting "
+                      f"reads severity backwards, so twenty trivia are worse "
+                      f"than one Critical")
+    return PASS, (f"twenty Observations score {part.get('score')} against "
+                  f"{one.get('score')} for one Critical, and nothing is capped")
 
 
-@case("QA-AM-3302", "A cap never improves the band")
-def am_3302(ctx: Ctx) -> Result:
-    """The verdict wins by being the WORST of the arithmetic and the caps. A
-    cap that could raise a band would be a Critical finding making a model
-    look better."""
-    health = ctx.ui.app.state.ctx.get("model_health")
-    if health is None:
-        return BLOCKED, "no health service reachable from this run"
-    wrong = []
-    for arithmetic in BANDS:
-        for cap in BANDS:
-            got = health._worst([arithmetic, cap])
-            rank = {GOOD: 0, WATCH: 1, POOR: 2}
-            if rank[got] < max(rank[arithmetic], rank[cap]):
-                wrong.append(f"{arithmetic}+{cap}={got}")
-    if wrong:
-        return FAIL, f"a cap improved the band: {', '.join(wrong)}"
-    return PASS, f"the worst of the two always wins, over {len(BANDS)**2} pairs"
+@case("QA-AM-293", "A model that has never been validated")
+def am_293(ctx: Ctx) -> Result:
+    """Never validated is not an absence of a window; it is a model standing
+    on nothing. So `validation_currency` is measured at 0.0 with a `poor`
+    cap, rather than dropped from the mean — dropping it would let a model
+    nobody has ever validated score higher than one whose validation lapsed
+    last week."""
+    _name, urn = _model(ctx)
+    reading = _health(ctx, urn)
+    part = _component(reading, "validation_currency")
+    if not part:
+        return BLOCKED, "the health reading carries no validation component"
+    if not part.get("measured"):
+        return FAIL, ("a model that has never been validated reports "
+                      "validation_currency as ABSENT, so it is dropped from "
+                      "the mean and scores higher than one whose validation "
+                      "lapsed last week")
+    if part.get("score") != 0.0:
+        return FAIL, f"never validated scores {part.get('score')}"
+    caps = [c for c in (reading.get("caps") or [])
+            if c.get("component") == "validation_currency"]
+    if not caps or caps[0].get("band") != "poor":
+        return FAIL, "never validated does not cap the band at poor"
+    return PASS, "measured 0.0, capped poor, 'never been validated'"
 
 
-@case("QA-AM-3303", "Nothing is stored, so the score cannot go stale")
-def am_3303(ctx: Ctx) -> Result:
-    """"A health score that is written down is a health score that is stale,
-    and staleness is exactly the condition it exists to detect." Asserted
-    against the schema, because a persisted score is a table."""
-    import pathlib
-    import re
-    schema = "\n".join(
-        p.read_text(encoding="utf-8")
-        for p in pathlib.Path("db/schema").rglob("*.py"))
-    stored = re.findall(r'"(\w*health\w*)"', schema)
-    scoring = [t for t in set(stored) if "score" in t or t.endswith("_health")]
-    if scoring:
-        return FAIL, (f"a health score is persisted in {scoring}, so it can "
-                      f"drift away from the registers it is derived from")
-    return PASS, "no health table; the score is derived on every read"
+@case("QA-AM-299", "Estate health over an empty estate")
+def am_299(ctx: Ctx) -> Result:
+    """A fresh estate must read as zero models rather than as an estate in
+    perfect health — and a by-band summary over nothing must not report every
+    band at zero as though it had counted them."""
+    engine = ctx.ui.app.state.ctx.get("model_health")
+    if engine is None:
+        return BLOCKED, "no health engine is wired"
+
+    class Nothing:
+        """An estate with no models. It cannot be built through the API —
+        the QA harness registers models — so the catalogue is emptied here."""
+
+        def __init__(self, real):
+            self.require = real.require
+
+        @staticmethod
+        def list():
+            return []
+
+    was, engine.registry = engine.registry, Nothing(engine.registry)
+    try:
+        report = engine.across_the_estate()
+    finally:
+        engine.registry = was
+    if report.get("models") not in (0, [], None):
+        rows = report.get("models")
+        if isinstance(rows, list) and rows:
+            return FAIL, f"an empty estate reports {len(rows)} model(s)"
+    detail = report.get("detail") or ""
+    if not detail:
+        return FAIL, "an empty estate reports no detail at all"
+    by_band = report.get("by_band") or {}
+    if by_band and sum(by_band.values()):
+        return FAIL, f"an empty estate counts models by band: {by_band}"
+    return PASS, f"no models, and the detail reads: {detail[:90]}"
 
 
-@case("QA-AM-3305", "The estate view separates a poor score from a thin one")
-def am_3305(ctx: Ctx) -> Result:
-    """A model scoring badly and a model nobody has looked at need different
-    responses, and an estate list that ranks them together sends the wrong
-    people to the wrong models."""
-    _bare(ctx)
-    got = ctx.api.get(H, auth=ctx.people["risk"])
-    if got.status_code >= 400:
-        return BLOCKED, got.text[:170]
-    text = got.text.lower()
-    if "coverage" not in text:
-        return FAIL, ("the estate view does not carry coverage, so a thin "
-                      "score cannot be told from a real one")
-    body = got.json() or {}
-    if not any(k in body for k in ("thin", "underivable", "not_measurable",
-                                   "declining", "detail")):
-        return FAIL, f"the estate view offers no grouping at all: {sorted(body)}"
-    return PASS, f"the estate view reports {sorted(body)[:6]}"
+@case("QA-AM-4730",
+      "The score is absent rather than zero when nothing is measurable")
+def am_4730(ctx: Ctx) -> Result:
+    """The sentence the module is built around: *that is a score of nothing,
+    not a score of zero, and printing a number here would be inventing one*.
+    A model with no monitors, no validation and no findings must come back
+    with a null score and `derivable: false` rather than 0."""
+    _name, urn = _model(ctx, assess=False)
+    reading = _health(ctx, urn)
+    if not reading:
+        return BLOCKED, "the health reading could not be read"
+    measured = reading.get("measured") or []
+    if reading.get("score") is None:
+        if reading.get("derivable"):
+            return FAIL, "the score is null and `derivable` says true"
+        if "not a score of zero" not in (reading.get("detail") or ""):
+            return FAIL, (f"the score is absent and the detail does not say "
+                          f"why: {reading.get('detail')}")
+        return PASS, "score null, derivable false, and the detail says so"
+    if reading.get("score") == 0.0 and not measured:
+        return FAIL, ("nothing about this model is measurable and the score "
+                      "reads 0.0, which is a number invented from an absence")
+    if reading.get("coverage", 1.0) < 0.5:
+        detail = reading.get("detail") or ""
+        if "how little is known" not in detail:
+            return FAIL, (f"coverage is {reading.get('coverage')} and the "
+                          f"detail does not warn that the number says more "
+                          f"about what is unknown: {detail[:120]}")
+        return PASS, (f"scored over {reading.get('coverage'):.0%} of the "
+                      f"weight, and the detail says so")
+    return PASS, (f"score {reading.get('score')} over "
+                  f"{reading.get('coverage'):.0%} of the weight "
+                  f"({', '.join(measured)})")
