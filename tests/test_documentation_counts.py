@@ -310,12 +310,34 @@ def _collected_tests() -> int:
 
 
 def _as_number(token: str):
-    if token.isdigit():
-        return int(token)
+    """A claimed count, from digits or from the word.
+
+    **Commas are stripped, and that was a real hole.** Every pattern for a
+    four-figure count captures `[\d,]+`, and `"4,800".isdigit()` is False — so
+    `_as_number` returned None and the comparison below was skipped entirely.
+    The README's test count, which is the number most readers see first, sat at
+    "over 4,800 passing" against a suite of 5,338 while the guard that exists
+    to catch exactly that reported a pass. Same shape as the rest of this
+    file's history: a check that passes for a reason other than the one it
+    names.
+    """
+    cleaned = token.replace(",", "")
+    if cleaned.isdigit():
+        return int(cleaned)
     for value, word in WORDS.items():
         if word == token.lower():
             return value
     return None
+
+
+#: Subjects whose documents deliberately say "over N" rather than N.
+#:
+#: A lower bound is the honest way to state a number that moves every commit,
+#: but "over 100" is also true of 5,338 — so a bound is checked as a bound AND
+#: as a claim: at or under the truth, and within a tenth of it. A number that
+#: has drifted further than that is not a bound any more, it is stale.
+BOUNDED = {"tests"}
+STALE_BELOW = 0.9
 
 
 @pytest.mark.parametrize("subject", sorted(CLAIMS))
@@ -346,7 +368,20 @@ def test_every_stated_count_matches_the_code(subject):
                 # sees lower-case sentences guards the middles of sentences.
                 for token in re.findall(pattern, line, re.I):
                     claimed = _as_number(token)
-                    if claimed is not None and claimed != actual:
+                    if claimed is None:
+                        continue
+                    if subject in BOUNDED:
+                        if claimed > actual:
+                            wrong.append(
+                                f"{path.relative_to(ROOT)}:{line_number} claims "
+                                f"over {claimed} {subject}; the code has "
+                                f"{actual}, so the bound is not true")
+                        elif claimed < actual * STALE_BELOW:
+                            wrong.append(
+                                f"{path.relative_to(ROOT)}:{line_number} claims "
+                                f"over {claimed} {subject} against {actual} — "
+                                f"true, and stale by more than a tenth")
+                    elif claimed != actual:
                         wrong.append(
                             f"{path.relative_to(ROOT)}:{line_number} claims "
                             f"{claimed} {subject}, code has {actual}")
