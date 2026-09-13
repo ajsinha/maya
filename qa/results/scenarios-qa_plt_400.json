@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-400",
+   "title": "The sign-in page carries the same affordances",
+   "verdict": "PASS",
+   "evidence": "the sign-in page carries the layout's affordances"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-399",
+   "title": "An outcome announced to a screen reader",
+   "verdict": "PASS",
+   "evidence": "every template that writes a result announces it"
+  }
+ ]
+}
