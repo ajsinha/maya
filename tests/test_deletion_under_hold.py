@@ -84,6 +84,51 @@ class TestDeletionRefusesThroughAHold:
         assert registry.get(a_model["urn"]) is not None
 
 
+class TestAHoldPlacedTheWayAPersonWouldPlaceIt:
+    """The scope a hold is placed with, against the scope `applies` matches.
+
+    `applies` compares `scope_id` to the model's internal **row id** and
+    `place` validated only that the field was non-empty. So a hold placed with
+    the URN — the identifier a person actually has, and the one every screen
+    and every document shows them — matched no model, and deletion proceeded.
+    A hold that silently protects nothing looks from the outside exactly like
+    one that does.
+    """
+
+    def test_a_hold_placed_by_urn_stops_the_deletion(self, held, holds,
+                                                     a_model):
+        holds.place(matter="Regulator request 2026/14", owner="person/legal",
+                    scope_kind="model", scope_id=a_model["urn"])
+        with pytest.raises(LifecycleError) as refusal:
+            held.delete(a_model, ADMIN, "cleaning up")
+        assert refusal.value.code == "under_legal_hold"
+
+    def test_a_hold_placed_by_internal_id_still_works(self, held, holds,
+                                                      a_model):
+        """The identifier that always worked must keep working."""
+        holds.place(matter="Regulator request 2026/14", owner="person/legal",
+                    scope_kind="model", scope_id=a_model["id"])
+        with pytest.raises(LifecycleError):
+            held.delete(a_model, ADMIN, "cleaning up")
+
+    def test_a_scope_that_resolves_to_nothing_is_refused_at_placement(
+            self, holds):
+        """Refused when it is placed, not discovered when it fails to protect
+        something — by then the deletion has already happened."""
+        from core.retention.common import RetentionError
+        with pytest.raises(RetentionError) as refusal:
+            holds.place(matter="m", owner="person/legal", scope_kind="model",
+                        scope_id="maya://model/never.existed")
+        assert refusal.value.code == "unknown_scope_id"
+        assert "protects nothing" in refusal.value.remediation
+
+    def test_a_typo_is_refused_rather_than_stored(self, holds, a_model):
+        from core.retention.common import RetentionError
+        with pytest.raises(RetentionError):
+            holds.place(matter="m", owner="person/legal", scope_kind="model",
+                        scope_id=a_model["urn"] + "x")
+
+
 class TestWhatStillDeletes:
     def test_with_no_hold_the_deletion_proceeds(self, held, a_model,
                                                 registry):

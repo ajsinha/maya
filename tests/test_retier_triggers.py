@@ -216,6 +216,31 @@ class TestTheOtherFive:
         assert "across the whole estate at once" in \
             fired["regulatory_change"]["detail"]
 
+    def test_a_regime_activated_BEFORE_the_assessment_does_not_fire(
+            self, db, registry, assessed):
+        """The half nothing covered, and the half that was broken.
+
+        `if _as_float(_activated_at(...)) or since < 0` parses as
+        `_as_float(...) or (since < 0)`, so any regime carrying an activation
+        timestamp matched and the assessment date was never compared against
+        anything. The trigger fired for regimes activated years before the
+        assessment while its own message said *activated after the
+        assessment* — and because it is the trigger that correlates across the
+        estate, it inflated every sweep and every board-pack staleness figure.
+        """
+        engine = RetierTriggers(
+            RiskRepository(db), registry,
+            regimes=_Regimes(["eu-ai-act"], {"eu-ai-act": ASSESSED - 30 * DAY}))
+        assert "regulatory_change" not in _fired(engine, assessed)
+
+    def test_a_regime_activated_at_the_assessment_moment_does_not_fire(
+            self, db, registry, assessed):
+        """The boundary. `after` means after, not at."""
+        engine = RetierTriggers(
+            RiskRepository(db), registry,
+            regimes=_Regimes(["eu-ai-act"], {"eu-ai-act": ASSESSED}))
+        assert "regulatory_change" not in _fired(engine, assessed)
+
     def test_elapsed_time_still_fires(self, triggers, assessed, db):
         """The one trigger that was watched before this module."""
         db.execute("UPDATE risk_assessment SET next_review_due = :d "
