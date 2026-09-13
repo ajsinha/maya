@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-270",
+   "title": "Compare the `plan_digest` in a submission against the plan that was issued",
+   "verdict": "FAIL",
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:f661f5d05509ce0df7196e6dbd2264152a77dbed108cb574f0a9ae63b83a4508 against the issued sha256:72e292cdae8598fd31e54d25b86b56843569eec6323d39b65decd86a5b2692d6. The digest exists to tie a submiss"
+  }
+ ]
+}
