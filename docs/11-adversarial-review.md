@@ -137,6 +137,20 @@ forty thousand nodes, and `/health/ready` cannot pay that. But the result is tha
 the one that runs continuously, compares the chain against a mark the same process wrote. C-4's third
 disposition has recurred one abstraction higher than where it was written.
 
+**Now closed, and the test is the part worth keeping.** `ChainAnchor.corroborates` asks whether the anchors
+still vouch for the chain *below* the mark, and `verify_since_checkpoint` discards a checkpoint they
+contradict and falls back to the full walk, reporting `checkpoint_repudiated`. Three distinctions are held
+apart deliberately: *nothing vouches for this yet* (no anchor below the mark) is not *something contradicts
+this*, and an **unreadable** anchor is treated as tampering rather than as absence — which is the path
+where calling it absence would have been most convenient.
+
+`tests/test_checkpoint_corroboration.py` performs the attack rather than describing it: it drops the
+append-only triggers, edits a node, **recomputes every hash forward**, and moves the mark. The test then
+asserts `verify_chain()` still reports valid — because a rewritten chain that is self-consistent passes
+every check the chain can perform on itself, and if that assertion ever fails the test would be passing for
+the wrong reason. A weaker attacker, editing a field and leaving the hashes alone, proves only that
+`verify_chain` works.
+
 ### 3.6 A fix applied to one call site
 
 The full chain walk was moved off the readiness probe for the reason above. The docstring that records the
@@ -145,6 +159,12 @@ calls it: the `/dashboard` route in `routes/ui_routes.py` runs `verify_chain()` 
 `core/docs/context.py`, which means every compiled document and every export pack walks and re-hashes the
 whole chain. The probe is fixed; the two paths a person actually waits on are not, and the code comment
 reads as though all three were.
+
+**Both now take the incremental path**, and the order in which that became safe is the point. Narrowing the
+dashboard to `verify_since_checkpoint` *before* §3.5 was closed would have been trading a real check for a
+cheap one — the mark it trusts was written by the process being checked. It is a defensible narrowing only
+now that a repudiated checkpoint falls back to the full walk. **A performance fix and the control it leans
+on are one change, and doing them in the wrong order produces a fast endpoint that verifies nothing.**
 
 ### 3.7 A rule held on one side of a boundary
 
@@ -573,10 +593,20 @@ Disposition 2 — anchoring — **is built and this paragraph said otherwise for
 `core/evidence/anchor.py` holds `ChainAnchor` and `core/evidence/worm.py` a filesystem WORM store, wired in
 `run_maya_web.py`. What the original finding asked for beyond that is an anchor written somewhere the
 platform cannot reach, and a filesystem the same process can write is a weaker thing than an external
-notary — so this closes as *built, and narrower than the finding imagined*, not as met. Disposition 4 —
-role separation — is unbuilt. And disposition 3, *compare the head against the anchor rather than against
-itself*, has recurred inside the incremental verifier: see
-[§3.5](#35-an-anchor-written-by-the-thing-it-certifies).
+notary — so this closes as *built, and narrower than the finding imagined*, not as met.
+
+**Disposition 3** — *compare the head against the anchor rather than against itself* — recurred inside the
+incremental verifier and is now closed there too: the checkpoint is corroborated against the anchors before
+anything trusts it, and a contradicted one is discarded rather than believed.
+[§3.5](#35-an-anchor-written-by-the-thing-it-certifies) has the attack.
+
+**Disposition 4** — role separation — **is not built, and what changed is that it is now visible instead of
+invisible.** The checkpoint's `verified_by` was always `"system"`, so a verification a named person ran and
+one the writing process ran were the same record and both read as *verified*. Reports now carry
+`self_certified` and say in words that the same process appends and checks the chain. That is not
+separation and the code says so: real separation needs a second identity or an external notary, which is a
+topology change — [ADR-016](adr/ADR-016-one-process-one-database.md). **The distinction worth keeping is
+between an unmet control and an invisible one.** This was the second; it is now the first.
 
 ### C-5 · Day-one adoption fails: 1,200 imported models are all non-compliant
 
@@ -864,10 +894,10 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 
 | | Closed, with the control in the source | Moot | Open |
 |---|---|---|---|
-| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built) | — | C-4 dispositions 3–4; C-6, four of five mitigations |
+| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built); **C-4 disposition 3** (the checkpoint is corroborated against the anchors, and the attack is in the suite) | — | **C-4 disposition 4** — role separation, unbuilt and now *reported* as unbuilt rather than reading as met (a topology change, [ADR-016](adr/ADR-016-one-process-one-database.md)); C-6, four of five mitigations |
 | **High** | H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2 and H-9 — open **under a recorded decision**, [ADR-016](adr/ADR-016-one-process-one-database.md); H-3 (satisfied in the law, not the mechanism) |
 | **Medium / low** | M-1, M-2, **M-6**, **M-7** — the deleter asks the hold, the tombstone keeps the identity from falling free, the cascade is declared for all thirty-eight tables and compaction reclaims the bytes — **M-8**, F-1 … F-4 | M-3, M-5 | M-4 (composite warrants are not built either) |
-| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start) | — | **§4.9**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md), answered by ADR-011 — and now one of the three consequences recorded in [ADR-016](adr/ADR-016-one-process-one-database.md) |
+| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start), **§3.5** and **§3.6** — the checkpoint is no longer self-certified, and the dashboard and the document compiler stopped walking the whole chain *because* it stopped being self-certified | — | **§4.9**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md), answered by ADR-011 — and now one of the three consequences recorded in [ADR-016](adr/ADR-016-one-process-one-database.md) |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
 | **The sweep** ([§6b](#6b-two-more-controls-that-exist-and-nobody-consults)) | both — and the sweep itself is now `tests/test_uncalled_controls.py` | three false positives | — |

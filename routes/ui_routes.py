@@ -82,7 +82,22 @@ class UIRoutes(Routes):
             who = self.principal(request)
             return self.page(
                 request, "dashboard.html", models=models, by_tier=by_tier,
-                chain=self.ctx["evidence"].verify_chain(),
+                # The incremental check, not the full walk.
+                #
+                # Moving the full walk off the readiness probe fixed one call
+                # site, and the docstring that recorded the change named this
+                # one — "and the same call sat on the dashboard" — while the
+                # dashboard went on calling it, 2.9 seconds and 83 MB at forty
+                # thousand nodes on every page load. A comment that reads as
+                # though a fix reached three places when it reached one is
+                # worse than no comment.
+                #
+                # This answers a narrower question, and the narrowing is now
+                # safe in a way it was not: the checkpoint is corroborated
+                # against the anchors before it is trusted, so a rewritten
+                # chain with a moved mark falls back to the full walk here
+                # rather than being reported healthy.
+                chain=self.ctx["evidence"].verify_since_checkpoint(),
                 estate=self.ctx["estate"].of(models),
                 work=self.ctx["worklist"].mine(who, self.ctx["authz"], models))
 

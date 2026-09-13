@@ -27,6 +27,11 @@ from core.log import get_logger, swallowed
 from db import EvidenceRepository
 from db.database import digest as canonical_digest
 
+#: The actor recorded when nobody asked — a scheduled run, a probe, a page
+#: load. Held as a constant so `verified_by == SELF` is a check rather than a
+#: string comparison somebody has to remember to spell the same way.
+SELF = "system"
+
 logger = get_logger(__name__)
 
 GENESIS = "sha256:" + "0" * 64
@@ -280,7 +285,8 @@ class EvidenceEngine:
                               "self-certified and nothing contradicts it"}
         return self.anchors.verify(self.chain_hash_at)
 
-    def verify_since_checkpoint(self, advance: bool = True) -> Dict[str, Any]:
+    def verify_since_checkpoint(self, advance: bool = True,
+                                actor: str = SELF) -> Dict[str, Any]:
         """Has anything broken since the last full verification?
 
         O(nodes added since), rather than O(chain). This is the question a
@@ -299,8 +305,22 @@ class EvidenceEngine:
         if mark is None:
             report = self.verify_chain()
             if advance and report["valid"]:
-                self._record_checkpoint(report["length"], report["head"])
-            return {**report, "scope": "full", "from_seq": 0}
+                self._record_checkpoint(report["length"], report["head"],
+                                        actor=actor)
+            return {**report, "scope": "full", "from_seq": 0,
+                    **self.attribution(actor)}
+
+        # A checkpoint the anchors contradict is worse than no checkpoint,
+        # because it makes the cheap check report valid forever over a chain
+        # somebody rewrote. Fall back to the full walk and say why.
+        vouched = self._corroborate(mark)
+        if vouched is not None and not vouched["corroborated"]:
+            logger.error("checkpoint at seq %s repudiated by the anchors: %s",
+                         mark["seq"], vouched["detail"])
+            report = self.verify_chain()
+            return {**report, "scope": "full", "from_seq": 0,
+                    "checkpoint_repudiated": 1,
+                    "detail": vouched["detail"], **self.attribution(actor)}
 
         nodes = self.repo.since(mark["seq"])
         report = self._walk(nodes, mark["chain_hash"], mark["seq"] + 1)
@@ -308,8 +328,65 @@ class EvidenceEngine:
                   "checked": len(nodes),
                   "verified_at": mark["verified_at"]}
         if advance and report["valid"] and nodes:
-            self._record_checkpoint(nodes[-1]["seq"], report["head"])
-        return report
+            self._record_checkpoint(nodes[-1]["seq"], report["head"],
+                                    actor=actor)
+        return {**report, **self.attribution(mark.get("verified_by") or SELF)}
+
+    @staticmethod
+    def attribution(actor: str) -> Dict[str, Any]:
+        """Who last verified, and whether that is worth anything.
+
+        C-4's fourth disposition asked for role separation, and this is the
+        part of it a single-process deployment can honestly give. The
+        checkpoint's `verified_by` was always `"system"` — so a verification a
+        named person ran and one the writing process ran were the same record,
+        and a report saying *verified* did not distinguish the chain being
+        checked by somebody from the chain checking itself.
+
+        Separation is not achieved here and this does not claim it is. The
+        process that appends evidence is still the process that verifies it,
+        and only a separate identity (or an external notary) changes that —
+        [ADR-016](../../docs/adr/ADR-016-one-process-one-database.md). What
+        this does is stop the two cases *reading the same*, which is the
+        difference between an unmet control and an invisible one.
+        """
+        by_a_person = actor not in (SELF, "", None)
+        return {
+            "verified_by": actor,
+            "self_certified": int(not by_a_person),
+            "verification_note": (
+                f"verified at the request of {actor}; the same process still "
+                f"appends and checks the chain, so this is corroboration by a "
+                f"second person, not by a second system"
+                if by_a_person else
+                "verified by the process that writes the chain — self-"
+                "certified. The anchors are the only check here that an "
+                "attacker with database access alone cannot satisfy"),
+        }
+
+    def _corroborate(self, mark: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Ask a second medium whether the checkpoint is standing on anything.
+
+        Returns None when there is no anchor store at all — a deployment with
+        none is self-certified and this cannot improve on that, which is a
+        different answer from "the anchors are silent" and both are different
+        from "the anchors disagree".
+        """
+        if self.anchors is None:
+            return None
+        try:
+            return self.anchors.corroborates(mark["seq"], self.chain_hash_at)
+        except Exception as exc:
+            # An unreadable anchor is treated as tampering everywhere else
+            # here, and this is the path where treating it as absence would be
+            # most convenient and least honest.
+            logger.error("anchors could not be read to corroborate the "
+                         "checkpoint at seq %s: %s", mark["seq"], exc)
+            return {"corroborated": 0, "contradicted": 0, "checked": 0,
+                    "at_seq": None,
+                    "detail": f"the anchor store could not be read ({exc}); a "
+                              f"checkpoint nothing can vouch for is not "
+                              f"trusted"}
 
     def _record_checkpoint(self, seq: int, chain_hash: str,
                            actor: str = "system") -> None:

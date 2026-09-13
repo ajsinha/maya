@@ -73,7 +73,13 @@ class ContextBuilder:
             # rendered as filled while citing nothing.
             "evidence": self.evidence.for_subjects(
                 [model["id"], *(v["id"] for v in versions)]),
-            "chain": self.evidence.verify_chain(),
+            # Incremental, for the same reason as the dashboard: every
+            # compiled document and every export pack was re-hashing the whole
+            # chain. A document cites the evidence FOR ITS SUBJECTS, which is
+            # the line above; this is the estate-wide health line beside it,
+            # and paying O(chain) per document to render one status field was
+            # never the trade it looked like.
+            "chain": self.evidence.verify_since_checkpoint(),
             "alias_history": self.registry.alias_history(urn),
         }
         ctx["assessment"] = self._assessment(model["id"])

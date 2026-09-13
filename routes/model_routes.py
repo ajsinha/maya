@@ -1420,8 +1420,18 @@ class ModelRoutes(Routes):
 
         @self.app.get(f"{self.api}/evidence/chain", tags=["evidence"])
         def chain(request: Request):
-            self.authorise(request, "evidence:read")
-            return ev.verify_chain()
+            """Walk the whole chain, and record who asked.
+
+            The caller is threaded through rather than defaulted, because the
+            checkpoint's `verified_by` was always `"system"` — which made a
+            verification somebody ran and one the writing process ran the same
+            record. It is still the same process doing the work; what changes
+            is that the report says so, instead of letting a self-certified
+            check read as an independent one.
+            """
+            who = self.authorise(request, "evidence:read")
+            report = ev.verify_chain()
+            return {**report, **ev.attribution(self.actor(who))}
 
         # ---------------------------------------------- what is still owed
         @self.app.get(f"{self.api}/remediation", tags=["lifecycle"])
