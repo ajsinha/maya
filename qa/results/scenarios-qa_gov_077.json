@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-077",
+   "title": "Declared `artifact_format` disagrees with the stored artifact",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the stored format"
+  }
+ ]
+}
