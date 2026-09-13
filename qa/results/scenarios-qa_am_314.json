@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-314",
+   "title": "An unaccepted escalated finding, then the owner accepts it",
+   "verdict": "BLOCKED",
+   "evidence": "no acknowledgement item was derived: wf=<core.validation.workflow.FindingWorkflow object at 0x75d7fd1f0440> esc=[{'finding_id': '01a09cf6878f2d91aa93b02c5725', 'owner': 'person/owner', 'severity': 'High', 'status': 'open', 'blocking': False, 'age_days': 30.0, 'age_bucket': '31-60 days', 'due_at': 1797115797.3914363, 'overdue': False, 'days_overdue': 0.0, 'owned_since': 1786747797.3914363, 'acknowl"
+  }
+ ]
+}

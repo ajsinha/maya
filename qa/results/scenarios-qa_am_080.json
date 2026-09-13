@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-AM-080",
+   "title": "Read a finding by id that belongs to a model out of scope",
+   "verdict": "FAIL",
+   "evidence": "the urn path refused 'out_of_scope' and the id path answered 200 with the finding \u2014 severity 'High', owner 'person/owner', 'The other entity's model failed challenge'. The route authorises `finding:read` with no model, so any finding id reads across every entity"
+  }
+ ]
+}

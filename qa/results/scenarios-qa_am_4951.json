@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-4951",
+   "title": "An item always names the permission its action needs",
+   "verdict": "FAIL",
+   "evidence": "an Item built in _upstream_moved names no permission, so the filter cannot tell who may act on it"
+  }
+ ]
+}
