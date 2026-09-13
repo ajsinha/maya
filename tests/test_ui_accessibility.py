@@ -708,3 +708,171 @@ def test_the_page_declares_its_language() -> None:
     """Without `lang`, a screen reader guesses the pronunciation — and guesses
     from the user's locale rather than the document's."""
     assert _re.search(r"<html[^>]*\blang=", _body(TEMPLATES / "base.html"))
+
+
+# ---------------------------------------------------------------- WCAG 2.2 AA
+#
+# `NFR-USE-002` says *WCAG 2.2 AA* and said **not verified** since the first
+# release. Everything above measures something real — contrast computed rather
+# than judged, focus rings, the skip link, labels, text resize — but no row
+# said which success criteria that adds up to, so the requirement could not be
+# read as met or missed.
+#
+# What follows is the rest of what a template can be held to **statically**,
+# named by criterion. `TestWhatAStaticCheckCannotSee` is the other half and is
+# the more important one: this is a floor for an audit, not a substitute for
+# one, and a suite claiming AA conformance from a grep would be exactly the
+# kind of control this platform exists to argue against.
+#: Named apart from the module-level `TEMPLATES` above, which is the directory.
+#: Shadowing it broke four unrelated tests in this file, which is a small
+#: lesson about adding to the bottom of a long module.
+PAGES = sorted((ROOT / "web" / "templates").glob("*.html"))
+
+#: The layout every page extends. It holds the chrome — a nav, a footer, an
+#: `<h6>` in the menu — and is not a page, so the page-shaped criteria below do
+#: not apply to it.
+LAYOUT = "base.html"
+
+
+def _templates() -> dict:
+    return {p.name: p.read_text(encoding="utf-8") for p in PAGES}
+
+
+class TestTheCriteriaATemplateCanBeHeldTo:
+    def test_every_image_carries_alt_text(self):
+        """**1.1.1 Non-text Content, Level A.** `alt=""` is allowed and is a
+        decision — it says *decorative* — but the attribute has to be there,
+        because its absence makes a screen reader read the file name."""
+        wrong = [f"{name}: {tag[:60]}" for name, body in _templates().items()
+                 for tag in re.findall(r"<img\b[^>]*>", body)
+                 if "alt=" not in tag]
+        assert not wrong, "images with no alt attribute:\n    " + "\n    ".join(wrong)
+
+    def test_the_page_declares_its_language(self):
+        """**3.1.1 Language of Page, Level A.** Without it a screen reader
+        pronounces English with whatever voice it defaulted to."""
+        assert re.search(r"<html[^>]+\blang=", _templates()["base.html"])
+
+    def test_every_page_has_a_title(self):
+        """**2.4.2 Page Titled, Level A.** A page's title is how somebody with
+        twenty tabs open finds it again, and how a screen reader announces
+        arrival."""
+        pages = {n: b for n, b in _templates().items()
+                 if "{% extends" in b and "{% block content %}" in b}
+        wrong = [n for n, b in pages.items() if "{% block title %}" not in b]
+        assert not wrong, (
+            f"these pages inherit the default title instead of naming "
+            f"themselves: {wrong}")
+
+    def test_no_link_says_click_here(self):
+        """**2.4.4 Link Purpose, Level A.** A screen reader can list every link
+        on a page out of context; *here* and *read more* are useless in that
+        list."""
+        vague = re.compile(r">\s*(click here|read more|here|more|link|this)\s*<",
+                           re.I)
+        wrong = [f"{name}: {m.group(0).strip()}"
+                 for name, body in _templates().items()
+                 for m in vague.finditer(body)
+                 if "</a>" in body[m.start():m.start() + 40]]
+        assert not wrong, "links whose text says nothing:\n    " + "\n    ".join(wrong)
+
+    def test_a_password_field_says_which_password_it_wants(self):
+        """**1.3.5 Identify Input Purpose, Level AA.**
+
+        Found by looking: the *create a principal* form had none, so a browser
+        offered the administrator's own saved password on a form whose purpose
+        is to set somebody else's. `new-password` there and
+        `current-password` at sign-in are different answers to the same
+        criterion.
+        """
+        wrong = []
+        for name, body in _templates().items():
+            for tag in re.findall(r"<input\b[^>]*type=\"password\"[^>]*>", body):
+                if "autocomplete=" not in tag:
+                    wrong.append(f"{name}: {tag[:70]}")
+        assert not wrong, ("password fields with no autocomplete:\n    "
+                           + "\n    ".join(wrong))
+
+    def test_every_data_table_has_header_cells(self):
+        """**1.3.1 Info and Relationships, Level A.** Without `<th>` a table is
+        a grid of unrelated cells to anything that is not looking at it."""
+        wrong = [name for name, body in _templates().items()
+                 if "<table" in body and "<th" not in body]
+        assert not wrong, f"tables with no header cells: {wrong}"
+
+    def test_no_page_starts_below_a_first_level_heading(self):
+        """**1.3.1** again, as hierarchy. A page whose first heading is an
+        `<h3>` reads to a screen reader as though two levels were skipped."""
+        wrong = []
+        for name, body in _templates().items():
+            if "{% block content %}" not in body or name == LAYOUT:
+                continue
+            first = re.search(r"<h([1-6])\b", body)
+            if first and first.group(1) != "1":
+                wrong.append(f"{name}: starts at h{first.group(1)}")
+        assert not wrong, "pages that start below h1:\n    " + "\n    ".join(wrong)
+
+    def test_the_measurement_can_fail(self):
+        """A guard on the guards above: each is a grep, and a grep over a
+        pattern nothing matches passes by finding nothing."""
+        assert len(_templates()) > 60, "the template scan found almost nothing"
+        assert any("<table" in b for b in _templates().values())
+        assert any('type="password"' in b for b in _templates().values())
+
+
+class TestWhatAStaticCheckCannotSee:
+    """The honest half, and the reason `NFR-USE-002` does not now read *met*.
+
+    Everything above is a property of the markup. Conformance is a property of
+    the **rendered page in a real browser with a real assistive technology**,
+    and these are the criteria this suite cannot reach. They are listed so an
+    audit knows where to start rather than re-deriving it, and so nobody reads
+    a green suite as a conformance statement.
+    """
+
+    #: Criterion, and why a template cannot answer it.
+    UNREACHABLE = {
+        "1.4.10 Reflow":
+            "needs a 320 CSS px viewport rendered; a template cannot say "
+            "whether content reflows or scrolls in two dimensions",
+        "1.4.12 Text Spacing":
+            "needs the user stylesheet applied and the result looked at",
+        "2.4.11 Focus Not Obscured":
+            "needs a focused element and a rendered layout to know whether "
+            "anything covers it",
+        "2.5.8 Target Size":
+            "computed pixels, not declared classes — a 24x24 minimum is a "
+            "property of the box after layout",
+        "3.3.7 Redundant Entry":
+            "a property of a multi-step flow, not of one page",
+        "4.1.3 Status Messages":
+            "`aria-live` presence is checked above; whether the announcement "
+            "is USEFUL is a judgement",
+        "1.4.5 Images of Text":
+            "no images of text ship here, and nothing enforces that they "
+            "never will",
+    }
+
+    def test_each_unreachable_criterion_says_why(self):
+        assert len(self.UNREACHABLE) >= 7
+        for criterion, why in self.UNREACHABLE.items():
+            assert re.match(r"^\d\.\d+\.\d+ ", criterion), criterion
+            assert len(why) > 30, criterion
+
+    def test_the_requirement_does_not_claim_conformance(self):
+        """`docs/03`'s row must not say AA is met. A suite of greps is a floor
+        for an audit and not a substitute for one."""
+        row = [line for line in (ROOT / "docs" / "03-requirements.md")
+               .read_text(encoding="utf-8").splitlines()
+               if line.startswith("| NFR-USE-002")]
+        assert row, "the WCAG requirement row has moved"
+        # The word may appear — the row says "not claimed as conformant", and
+        # an earlier version of this check failed on that, which is a small
+        # lesson about matching words instead of claims.
+        for claim in ("**Met**", "**Verified**", "**Conformant**",
+                      "**Fully conformant**"):
+            assert claim not in row[0], f"the row claims {claim}"
+        assert "cannot reach" in row[0] or "not a substitute" in row[0], (
+            "the row should say what the static check does not cover; that "
+            "sentence is the whole reason this suite is not a conformance "
+            "statement")
