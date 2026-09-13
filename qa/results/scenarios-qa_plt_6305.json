@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-6305",
+   "title": "The genesis constant is not a node",
+   "verdict": "PASS",
+   "evidence": "head at seq 8; genesis is all zeroes"
+  }
+ ]
+}

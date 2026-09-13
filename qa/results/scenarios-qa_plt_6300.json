@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-6300",
+   "title": "A full walk detects a sequence gap",
+   "verdict": "PASS",
+   "evidence": "three break reasons, each naming the sequence"
+  }
+ ]
+}

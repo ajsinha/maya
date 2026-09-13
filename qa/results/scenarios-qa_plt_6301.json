@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-6301",
+   "title": "The repudiation test is contradicted, not un-corroborated",
+   "verdict": "PASS",
+   "evidence": "tested on contradicted, not on the absence of corroboration"
+  }
+ ]
+}
