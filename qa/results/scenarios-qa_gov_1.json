@@ -1,0 +1,347 @@
+{
+ "summary": {
+  "total": 56,
+  "pass": 52,
+  "fail": 3,
+  "blocked": 1
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-GOV-100",
+   "title": "Open two quorums for one version",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_open'"
+  },
+  {
+   "id": "QA-GOV-1000",
+   "title": "A proposal with no title",
+   "verdict": "PASS",
+   "evidence": "refused 'description_required'"
+  },
+  {
+   "id": "QA-GOV-1001",
+   "title": "Register a proposal before it has been triaged",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1002",
+   "title": "Triage with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1003",
+   "title": "Register a proposal triaged out of scope",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1004",
+   "title": "Triage a proposal that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1005",
+   "title": "Re-triage a proposal already triaged",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-GOV-101",
+   "title": "Open a quorum for a version already approved",
+   "verdict": "PASS",
+   "evidence": "refused 'already_approved'"
+  },
+  {
+   "id": "QA-GOV-1010",
+   "title": "The baseline burn-down is computed, not declared",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-GOV-1011",
+   "title": "Debt and breach are reported separately",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-GOV-1012",
+   "title": "Reconcile debt against a register with nothing in it",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-GOV-102",
+   "title": "POST /api/v1/models with a blank `name`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-103",
+   "title": "Complete a two-role quorum with two distinct people",
+   "verdict": "FAIL",
+   "evidence": "both roles signed and the version reads 'None'; the quorum completed and approved nothing"
+  },
+  {
+   "id": "QA-GOV-104",
+   "title": "One person holding both quorum roles signs twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed_personally'"
+  },
+  {
+   "id": "QA-GOV-105",
+   "title": "Race two signatures from one dual-hatted principal",
+   "verdict": "PASS",
+   "evidence": "one signature stood, the other refused 'already_signed_personally'"
+  },
+  {
+   "id": "QA-GOV-106",
+   "title": "The version's creator signs the quorum",
+   "verdict": "BLOCKED",
+   "evidence": "the dual-hatted builder could not be created"
+  },
+  {
+   "id": "QA-GOV-107",
+   "title": "Decline one signature of a two-role quorum",
+   "verdict": "PASS",
+   "evidence": "declined, and the version is not approved"
+  },
+  {
+   "id": "QA-GOV-108",
+   "title": "Sign after a decline closed the approval",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_closed'"
+  },
+  {
+   "id": "QA-GOV-109",
+   "title": "Open a new quorum after one was declined",
+   "verdict": "PASS",
+   "evidence": "a second approval, distinct from the declined one"
+  },
+  {
+   "id": "QA-GOV-110",
+   "title": "Withdraw an open approval, then open another",
+   "verdict": "PASS",
+   "evidence": "withdrawn, and a fresh approval opens"
+  },
+  {
+   "id": "QA-GOV-111",
+   "title": "Withdraw an approval that is already withdrawn",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_closed'"
+  },
+  {
+   "id": "QA-GOV-112",
+   "title": "A UK-scoped validator signs half a US model's tier 2 quorum",
+   "verdict": "PASS",
+   "evidence": "refused 'out_of_scope'"
+  },
+  {
+   "id": "QA-GOV-113",
+   "title": "Raise the tier after a version was approved on one signature",
+   "verdict": "PASS",
+   "evidence": "reported ['1.0.0'] and raised a blocking High finding"
+  },
+  {
+   "id": "QA-GOV-114",
+   "title": "Lower the tier after a quorum-approved version",
+   "verdict": "PASS",
+   "evidence": "tier 2 to tier 3, nothing below quorum and no finding"
+  },
+  {
+   "id": "QA-GOV-115",
+   "title": "Raise the tier twice in a row",
+   "verdict": "PASS",
+   "evidence": "2 findings, one per rise, each naming its own tier: ['tier raised to 1; 1 approved version were approved under tier 2', 'tier raised to 2; 1 approved version were approved under tier 3']"
+  },
+  {
+   "id": "QA-GOV-117",
+   "title": "Publish a band with no stages",
+   "verdict": "PASS",
+   "evidence": "refused 'stages_required'"
+  },
+  {
+   "id": "QA-GOV-118",
+   "title": "Publish a band with a stage that is an empty list",
+   "verdict": "FAIL",
+   "evidence": "a band was published with an empty stage, so one step of the sequence is satisfied by nobody"
+  },
+  {
+   "id": "QA-GOV-119",
+   "title": "Publish a band naming a tier that does not exist",
+   "verdict": "PASS",
+   "evidence": "tiers 0, 5, -1 and 99 all refused"
+  },
+  {
+   "id": "QA-GOV-121",
+   "title": "Publish a band with a negative amount floor",
+   "verdict": "PASS",
+   "evidence": "refused 'negative_floor'"
+  },
+  {
+   "id": "QA-GOV-122",
+   "title": "Publish the same band name twice",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists'"
+  },
+  {
+   "id": "QA-GOV-124",
+   "title": "Withdraw a band nobody published",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_band'"
+  },
+  {
+   "id": "QA-GOV-125",
+   "title": "Withdraw a band and read the matrix",
+   "verdict": "PASS",
+   "evidence": "withdrawn from the live matrix"
+  },
+  {
+   "id": "QA-GOV-128",
+   "title": "An amount exactly equal to a band's floor",
+   "verdict": "PASS",
+   "evidence": "the floor is stored as given, and named at_or_above"
+  },
+  {
+   "id": "QA-GOV-134",
+   "title": "Sign out of stage order",
+   "verdict": "PASS",
+   "evidence": "the second stage cannot sign before the first"
+  },
+  {
+   "id": "QA-GOV-135",
+   "title": "Sign in stage order",
+   "verdict": "PASS",
+   "evidence": "first stage, then second"
+  },
+  {
+   "id": "QA-GOV-136",
+   "title": "A single-stage band with two roles signs either way",
+   "verdict": "PASS",
+   "evidence": "either order within one stage"
+  },
+  {
+   "id": "QA-GOV-137",
+   "title": "Delegate with a ceiling of zero",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_required'"
+  },
+  {
+   "id": "QA-GOV-138",
+   "title": "Delegate with a ceiling that is not a number",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-139",
+   "title": "Delegate with no instrument",
+   "verdict": "PASS",
+   "evidence": "refused 'instrument_required'"
+  },
+  {
+   "id": "QA-GOV-1400",
+   "title": "The sourcing vocabulary is closed",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_sourcing', naming the 4 members"
+  },
+  {
+   "id": "QA-GOV-1401",
+   "title": "The assessment is a reading, never a determination",
+   "verdict": "PASS",
+   "evidence": "5 questions, each naming the words it turned on, and the proposal untouched"
+  },
+  {
+   "id": "QA-GOV-1402",
+   "title": "One bad row does not stop the batch",
+   "verdict": "PASS",
+   "evidence": "1 imported, 1 skipped, batch completed"
+  },
+  {
+   "id": "QA-GOV-1403",
+   "title": "An import of nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_import'"
+  },
+  {
+   "id": "QA-GOV-1404",
+   "title": "A baselined record is not a draft",
+   "verdict": "PASS",
+   "evidence": "baselined: imported from an existing estate; governed going forward, carrying explicit debt"
+  },
+  {
+   "id": "QA-GOV-1405",
+   "title": "Every baselined model carries its debt",
+   "verdict": "PASS",
+   "evidence": "10 debt item(s) against 13 named gaps"
+  },
+  {
+   "id": "QA-GOV-170",
+   "title": "Assess, add a version, assess again",
+   "verdict": "PASS",
+   "evidence": "changed facts need no note"
+  },
+  {
+   "id": "QA-GOV-171",
+   "title": "Assess twice with identical facts and no note",
+   "verdict": "PASS",
+   "evidence": "refused 'review_says_nothing'"
+  },
+  {
+   "id": "QA-GOV-172",
+   "title": "Assess twice with identical facts and a real note",
+   "verdict": "PASS",
+   "evidence": "an unchanged model can be re-reviewed with a note"
+  },
+  {
+   "id": "QA-GOV-173",
+   "title": "Assess twice with a whitespace-only review note",
+   "verdict": "FAIL",
+   "evidence": "three spaces discharged a periodic review: the same numbers, re-POSTed, moved the next review date with nothing examined \u2014 and `review_note` is stored inside `facts`, so the note is compared as though it were a fact about the model"
+  },
+  {
+   "id": "QA-GOV-174",
+   "title": "Assess with a purpose class outside the vocabulary",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_purpose_class', naming the vocabulary"
+  },
+  {
+   "id": "QA-GOV-175",
+   "title": "Feature count at the complexity boundary",
+   "verdict": "PASS",
+   "evidence": "50 -> simple, 51 -> moderate"
+  },
+  {
+   "id": "QA-GOV-178",
+   "title": "Assess with an exposure of zero",
+   "verdict": "PASS",
+   "evidence": "tier 3 from the purpose alone"
+  },
+  {
+   "id": "QA-GOV-179",
+   "title": "Assess with a negative exposure",
+   "verdict": "PASS",
+   "evidence": "accepted at tier 3, no weaker than zero's 3"
+  },
+  {
+   "id": "QA-GOV-184",
+   "title": "supports_tier over an empty control list",
+   "verdict": "PASS",
+   "evidence": "no controls supports tier 4"
+  },
+  {
+   "id": "QA-GOV-185",
+   "title": "supports_tier over tier 1's controls minus one",
+   "verdict": "PASS",
+   "evidence": "all 6 tier 1 controls are necessary"
+  },
+  {
+   "id": "QA-GOV-187",
+   "title": "Assess an attested model",
+   "verdict": "PASS",
+   "evidence": "accepted on an attested record: the tier is a fact about the record rather than part of what it says (now tier 2)"
+  }
+ ]
+}
