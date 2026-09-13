@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 221,
-  "pass": 215,
-  "fail": 6,
+  "total": 241,
+  "pass": 232,
+  "fail": 9,
   "blocked": 0
  },
- "seconds": 20.1,
+ "seconds": 35.9,
  "results": [
   {
    "id": "QA-AM-067",
@@ -485,7 +485,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09adbc7eb0a5581522aa19890\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09ae92595914de384f6c4808d\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -791,7 +791,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-39737e00\",\"name\":\"gov-39737e00-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-a4fc0f65\",\"name\":\"gov-a4fc0f65-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -1022,16 +1022,136 @@
    "evidence": "all four still strip before checking"
   },
   {
+   "id": "QA-GOV-200",
+   "title": "A band with no stages",
+   "verdict": "PASS",
+   "evidence": "refused 'stages_required' (422)"
+  },
+  {
+   "id": "QA-GOV-201",
+   "title": "A band with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_name_required' (422)"
+  },
+  {
+   "id": "QA-GOV-202",
+   "title": "A band naming a role that does not exist",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09ae92a3db29757f3dbb96b14\",\"name\":\"band-84a87c42\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+  },
+  {
+   "id": "QA-GOV-203",
+   "title": "A well-formed band is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-GOV-204",
+   "title": "Two bands with the same name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-210",
+   "title": "A delegation with no ceiling",
+   "verdict": "PASS",
+   "evidence": "answered 422 (ceiling_required)"
+  },
+  {
+   "id": "QA-GOV-211",
+   "title": "A delegation with a negative ceiling",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_required'"
+  },
+  {
+   "id": "QA-GOV-212",
+   "title": "A delegation with no instrument",
+   "verdict": "PASS",
+   "evidence": "refused 'instrument_required' (422)"
+  },
+  {
+   "id": "QA-GOV-213",
+   "title": "A delegation with a blank currency",
+   "verdict": "FAIL",
+   "evidence": "a ceiling was accepted with no currency; the comparison it governs is then between a number and an amount"
+  },
+  {
+   "id": "QA-GOV-214",
+   "title": "A delegation to a principal that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-GOV-220",
+   "title": "Break-glass with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-221",
+   "title": "Break-glass is opened, and it is reviewable",
+   "verdict": "PASS",
+   "evidence": "opened as BG-0001"
+  },
+  {
+   "id": "QA-GOV-222",
+   "title": "Review a break-glass with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required' (422)"
+  },
+  {
+   "id": "QA-GOV-223",
+   "title": "Review a break-glass with an outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_outcome' (422)"
+  },
+  {
+   "id": "QA-GOV-230",
+   "title": "A recertification campaign with no reviewer",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal' (404)"
+  },
+  {
+   "id": "QA-GOV-231",
+   "title": "A campaign over an empty population",
+   "verdict": "FAIL",
+   "evidence": "a campaign opened over nobody; it completes immediately and reads as a clean recertification"
+  },
+  {
+   "id": "QA-GOV-232",
+   "title": "Two campaigns with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-240",
+   "title": "An approval condition with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' (422)"
+  },
+  {
+   "id": "QA-GOV-241",
+   "title": "A condition with a negative window",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range'"
+  },
+  {
+   "id": "QA-GOV-242",
+   "title": "Discharge a condition with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'no_condition' (404)"
+  },
+  {
    "id": "QA-PLT-001",
    "title": "Verify, do nothing, verify again",
    "verdict": "PASS",
-   "evidence": "length 316, head stable"
+   "evidence": "length 325, head stable"
   },
   {
    "id": "QA-PLT-002",
    "title": "One append, then verify \u2014 the new head links to the old",
    "verdict": "PASS",
-   "evidence": "318 -> 319, still valid"
+   "evidence": "327 -> 328, still valid"
   },
   {
    "id": "QA-PLT-003",
@@ -1073,7 +1193,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:da1c0d92359cf"
+   "evidence": "a fresh chain of 8 verifies, head sha256:4e46b722f6f6d"
   },
   {
    "id": "QA-PLT-010",
@@ -1181,7 +1301,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:d2330dff8e6ca7235c0e967"
+   "evidence": "identical: sha256:76e1a6bb61816faa7ad9f47"
   },
   {
    "id": "QA-PLT-124",
@@ -1199,7 +1319,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:c9e6d016ed376e45477fc58"
+   "evidence": "stable: sha256:da696cd8f131274665b3e8f"
   },
   {
    "id": "QA-PLT-127",

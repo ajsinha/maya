@@ -42,6 +42,12 @@ FAMILIES = [
     ("a stated ground accepted blank",
      r"accepted blank|was accepted, and|with no (name|owner|entity|"
      r"description|reason|title)"),
+    ("a closed vocabulary accepted a value that is not in it",
+     r"role that does not exist|not a member|no error code.*201|"
+     r"unknown \w+ accepted"),
+    ("an act permitted over an empty or absent subject",
+     r"over nobody|empty population|no ceiling|blank currency|"
+     r"accepted with no"),
     ("a value outside its range accepted",
      r"negative \w+ was accepted|unknown \w+ was accepted|"
      r"out of range|not a shape|unknown dtype"),
