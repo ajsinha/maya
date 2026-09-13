@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-268",
+   "title": "A sweep with recall unknown, stated",
+   "verdict": "FAIL",
+   "evidence": "a sweep saying nothing about recall was admitted. The contract tests `\"recall_known\" not in sweep`, and the route model declares it `Optional[bool] = None`, so `model_dump()` always supplies the key and the absence can never be observed over HTTP \u2014 the check fires when the key is genuinely absent, so it is the route that defeats it"
+  }
+ ]
+}

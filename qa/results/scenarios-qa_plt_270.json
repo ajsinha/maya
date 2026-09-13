@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 3,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-270",
+   "title": "The same candidate ingested twice",
+   "verdict": "PASS",
+   "evidence": "deduplicated on the fingerprint"
+  },
+  {
+   "id": "QA-PLT-2700",
+   "title": "Every duties comparison asks identity the same way",
+   "verdict": "FAIL",
+   "evidence": "10 duties comparison(s) use `==`/`!=` on an identity rather than `same_person`, so each is stepped around by writing the same human the other way: core/authz/breakglass.py:151 if actor == row[\"requested_by\"] and not unilateral:; core/authz/breakglass.py:158 if actor != row[\"requested_by\"] and unilateral:; core/authz/breakglass.py:248 if actor == row[\"principal\"]:; core/authz/principals.py:267 if u"
+  },
+  {
+   "id": "QA-PLT-2701",
+   "title": "same_person itself is right",
+   "verdict": "PASS",
+   "evidence": "prefix, case and space collapse; different names do not"
+  },
+  {
+   "id": "QA-PLT-2702",
+   "title": "Break-glass dual authorisation under two spellings",
+   "verdict": "FAIL",
+   "evidence": "the person who asked for a break-glass elevation authorised it by writing their name as 'person/risk' instead of 'risk'. Dual authorisation with one person is one person, and the check is `==`"
+  },
+  {
+   "id": "QA-PLT-2703",
+   "title": "The refusal codes for one-person duties are distinct",
+   "verdict": "PASS",
+   "evidence": "10 distinct codes: already_signed_personally, author_may_not_approve, not_the_reviewer, proposer_may_not_approve, raiser_may_not_close, reviewed_by_the_user, same_person, self_approval, self_extension, self_suspension"
+  }
+ ]
+}
