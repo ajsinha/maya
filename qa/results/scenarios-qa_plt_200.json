@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-200",
+   "title": "Zero claims versus every claim rejected",
+   "verdict": "FAIL",
+   "evidence": "both refuse 'nothing_grounded', so a cautious generation and a wholly unsupported one are one fact"
+  }
+ ]
+}

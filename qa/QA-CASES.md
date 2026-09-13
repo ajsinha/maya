@@ -3994,6 +3994,8 @@ repository's own `data/`.
 | QA-PLT-2801 | `regression` | Every actionable refusal says what to do instead | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2801` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-2802 | `regression` | Every refusal type reaches HTTP as a refusal | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2802` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-2803 | `regression` | No refusal code is raised under two spellings | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2803` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-3600 | `regression` | A capability of a tier that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-3600` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-3601 | `regression` | A Tier A capability with no oracle | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-3601` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->
