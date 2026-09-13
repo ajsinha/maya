@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 126,
-  "pass": 126,
+  "total": 140,
+  "pass": 140,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 6.8,
+ "seconds": 13.4,
  "results": [
   {
    "id": "QA-AM-067",
@@ -407,7 +407,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09a86bc45e880cb8071d8ec9f\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09a97c13b8a2ca494d03316eb\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -527,7 +527,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-6822d944\",\"name\":\"gov-6822d944-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-4db14937\",\"name\":\"gov-4db14937-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -743,7 +743,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:189e2153a683a"
+   "evidence": "a fresh chain of 8 verifies, head sha256:5d31e887db01a"
   },
   {
    "id": "QA-PLT-010",
@@ -762,6 +762,90 @@
    "title": "A compiled document does not re-walk the chain",
    "verdict": "PASS",
    "evidence": "incremental, and does not move the mark"
+  },
+  {
+   "id": "QA-PLT-041",
+   "title": "The same key and body twice in sequence",
+   "verdict": "PASS",
+   "evidence": "replayed, and said so"
+  },
+  {
+   "id": "QA-PLT-042",
+   "title": "The same key with a corrected body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused' (409)"
+  },
+  {
+   "id": "QA-PLT-043",
+   "title": "The same key with the same fields in a different order",
+   "verdict": "PASS",
+   "evidence": "replayed"
+  },
+  {
+   "id": "QA-PLT-045",
+   "title": "A key whose first attempt was refused, retried",
+   "verdict": "PASS",
+   "evidence": "the retry ran"
+  },
+  {
+   "id": "QA-PLT-047",
+   "title": "A key of 256 characters",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_too_long' (422)"
+  },
+  {
+   "id": "QA-PLT-048",
+   "title": "Two principals choosing the same key",
+   "verdict": "PASS",
+   "evidence": "both acts happened"
+  },
+  {
+   "id": "QA-PLT-051",
+   "title": "An idempotent act's EFFECTS do not happen twice",
+   "verdict": "PASS",
+   "evidence": "chain grew 1 on the act and 0 on the replay"
+  },
+  {
+   "id": "QA-PLT-052",
+   "title": "A stale If-Match after somebody else wrote",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_failed' (412)"
+  },
+  {
+   "id": "QA-PLT-053",
+   "title": "If-Match against a resource that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (428 precondition_unevaluable)"
+  },
+  {
+   "id": "QA-PLT-058",
+   "title": "A fresh If-Match succeeds",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-PLT-070",
+   "title": "An immutable column on an attested version",
+   "verdict": "PASS",
+   "evidence": "the trigger refused: (sqlite3.IntegrityError) model_version.semver is immutable: it describes what the version IS, and changing it would leave the regi"
+  },
+  {
+   "id": "QA-PLT-071",
+   "title": "A mutable column on the same row still moves",
+   "verdict": "PASS",
+   "evidence": "status moves, as the lifecycle requires"
+  },
+  {
+   "id": "QA-PLT-072",
+   "title": "The evidence chain refuses a DELETE",
+   "verdict": "PASS",
+   "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
+  },
+  {
+   "id": "QA-PLT-073",
+   "title": "The evidence chain refuses an UPDATE",
+   "verdict": "PASS",
+   "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
   }
  ]
 }
