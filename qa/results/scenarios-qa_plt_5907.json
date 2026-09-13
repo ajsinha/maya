@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-5907",
+   "title": "Every entity and operator is published",
+   "verdict": "PASS",
+   "evidence": "8 entities, 10 operators and the 10000 cap all published"
+  }
+ ]
+}

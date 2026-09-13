@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-5900",
+   "title": "There is no field that takes query text",
+   "verdict": "PASS",
+   "evidence": "structured only: ['descending', 'entity', 'limit', 'order_by', 'select', 'where']"
+  }
+ ]
+}
