@@ -3564,6 +3564,9 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-4730 | `regression` | The score is absent rather than zero when nothing is measurable | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4730` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-4740 | `regression` | A heatmap of one dimension against itself | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4740` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-4750 | `regression` | A replay of an episode with no results at all | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4750` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4880 | `regression` | Every excluded model carries a reason | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4880` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4881 | `regression` | An unknown return | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4881` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4882 | `regression` | Each field declares where its value comes from | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4882` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->
