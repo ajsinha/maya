@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-118",
+   "title": "Publish a band with a stage that is an empty list",
+   "verdict": "FAIL",
+   "evidence": "a band was published with an empty stage, so one step of the sequence is satisfied by nobody"
+  }
+ ]
+}

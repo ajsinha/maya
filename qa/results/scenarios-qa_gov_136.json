@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-136",
+   "title": "A single-stage band with two roles signs either way",
+   "verdict": "PASS",
+   "evidence": "either order within one stage"
+  }
+ ]
+}
