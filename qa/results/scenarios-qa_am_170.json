@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 3,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-1700",
+   "title": "Conclude approved over a failed test",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the alternatives"
+  },
+  {
+   "id": "QA-AM-1701",
+   "title": "Conclude approved_with_conditions with no results either",
+   "verdict": "FAIL",
+   "evidence": "an episode that examined nothing concluded 'approved_with_conditions'; the no-results check guards 'approved' alone, so an unexamined model can be passed under a neighbouring outcome"
+  },
+  {
+   "id": "QA-AM-1702",
+   "title": "An outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 4 outcomes"
+  },
+  {
+   "id": "QA-AM-1703",
+   "title": "A tier verdict that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  }
+ ]
+}

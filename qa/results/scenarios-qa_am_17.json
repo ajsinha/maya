@@ -1,12 +1,36 @@
 {
  "summary": {
-  "total": 6,
-  "pass": 5,
-  "fail": 1,
+  "total": 10,
+  "pass": 8,
+  "fail": 2,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 1.1,
  "results": [
+  {
+   "id": "QA-AM-1700",
+   "title": "Conclude approved over a failed test",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the alternatives"
+  },
+  {
+   "id": "QA-AM-1701",
+   "title": "Conclude approved_with_conditions with no results either",
+   "verdict": "FAIL",
+   "evidence": "an episode that examined nothing concluded 'approved_with_conditions'; the no-results check guards 'approved' alone, so an unexamined model can be passed under a neighbouring outcome"
+  },
+  {
+   "id": "QA-AM-1702",
+   "title": "An outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 4 outcomes"
+  },
+  {
+   "id": "QA-AM-1703",
+   "title": "A tier verdict that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
   {
    "id": "QA-AM-173",
    "title": "Approve a waiver whose window has already passed",
