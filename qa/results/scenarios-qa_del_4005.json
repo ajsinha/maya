@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-DEL-4005",
+   "title": "Every dispositioned table exists",
+   "verdict": "PASS",
+   "evidence": "all 38 dispositioned tables exist"
+  }
+ ]
+}

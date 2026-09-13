@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-DEL-4006",
+   "title": "The evidence chain is never destroyed by a cascade",
+   "verdict": "PASS",
+   "evidence": "8 tables destroyed, none of them the trace"
+  }
+ ]
+}

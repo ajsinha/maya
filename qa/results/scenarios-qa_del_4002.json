@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-DEL-4002",
+   "title": "Every blocking disposition produces runnable SQL",
+   "verdict": "PASS",
+   "evidence": "24 blocking queries all run; 3 block unconditionally (model_version, alias, regulatory_approval)"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-DEL-4007",
+   "title": "Delta is reported, never reclaimed",
+   "verdict": "PASS",
+   "evidence": "Delta is reported under not_reclaimable and left alone"
+  }
+ ]
+}
