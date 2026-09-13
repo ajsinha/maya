@@ -1892,3 +1892,12 @@ BEFORE DELETE ON evidence_node
 BEGIN
     SELECT RAISE(ABORT, 'evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not evidence. Append a correcting node instead');
 END;
+
+CREATE TRIGGER IF NOT EXISTS empty_when_flagged_evidence_node
+BEFORE INSERT ON evidence_node
+FOR EACH ROW WHEN NEW.contains_personal_data = 1
+    AND NEW.payload IS NOT NULL
+    AND NEW.payload NOT IN ('', '{}')
+BEGIN
+    SELECT RAISE(ABORT, 'evidence_node.payload: a node flagged as containing personal data must store an EMPTY payload. The chain cannot be edited, so a node that holds content it may later be asked to erase is a request this register could never honour. Law L-18: the payload is discarded at append, not stored behind a pointer');
+END;
