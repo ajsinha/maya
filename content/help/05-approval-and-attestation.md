@@ -716,7 +716,7 @@ authority came from the session cookie — and to nothing else:
 | Exempt paths | `/login`, `/auth/login`, `/auth/callback` — exactly, never as prefixes, because a prefix exemption grows silently as routes are added beneath it |
 | Refusal | **403 `csrf_token_invalid`** |
 
-It runs as middleware rather than as a check in each route, because there are 239
+It runs as middleware rather than as a check in each route, because there are 240
 mutating endpoints and a control that many places have to remember is a control
 that will be missing from the next one. The token is **per session, not per
 form**: a single-use token breaks the back button, breaks two tabs, and breaks

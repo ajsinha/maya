@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 3,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-190",
+   "title": "A generation whose claims cite nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' (422)"
+  },
+  {
+   "id": "QA-PLT-191",
+   "title": "Use a suspended capability",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-192",
+   "title": "The two tiers are the whole vocabulary",
+   "verdict": "PASS",
+   "evidence": "A and B; C is a refusal, not a tier"
+  }
+ ]
+}
