@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 2.5,
+ "results": [
+  {
+   "id": "QA-PLT-117",
+   "title": "A raw `UPDATE` on `evidence_node` against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  }
+ ]
+}

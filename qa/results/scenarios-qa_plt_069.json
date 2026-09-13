@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.4,
+ "results": [
+  {
+   "id": "QA-PLT-069",
+   "title": "A cross-entity read with row-level security in force",
+   "verdict": "FAIL",
+   "evidence": "the URL that runs `tests/test_postgres_dialect.py` cannot be parsed by `psycopg.connect`, which `tests/test_row_level_security.py` calls with it directly: missing \"=\" after \"<MAYA_QA_POSTGRES>\" in connection info string\n. The dialect file's own docstring documents the `postgresql+psycopg://` form, so following the documented instruction ERRORS all six isolation tests at setup, and the plain `postg"
+  }
+ ]
+}

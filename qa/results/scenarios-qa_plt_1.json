@@ -1,12 +1,18 @@
 {
  "summary": {
-  "total": 68,
-  "pass": 61,
-  "fail": 7,
-  "blocked": 0
+  "total": 70,
+  "pass": 59,
+  "fail": 10,
+  "blocked": 1
  },
- "seconds": 1.6,
+ "seconds": 21.0,
  "results": [
+  {
+   "id": "QA-PLT-100",
+   "title": "`contains_personal_data` flipped on a node",
+   "verdict": "FAIL",
+   "evidence": "'contains_personal_data' was flipped on a node and the chain still verifies: it sits outside the content hash, so the chain hash does not move and the anchors cannot see it either. The flag decides what a deletion request reaches under L-18 and what an export may carry"
+  },
   {
    "id": "QA-PLT-1000",
    "title": "Anchoring a chain that does not verify is refused",
@@ -116,6 +122,18 @@
    "evidence": "absent and unverified are held apart"
   },
   {
+   "id": "QA-PLT-115",
+   "title": "Sixteen concurrent version creations against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "the scenario harness serves one app over a TestClient and cannot drive sixteen simultaneous requests against a second dialect; run the concurrency suite with MAYA_TEST_POSTGRES set"
+  },
+  {
+   "id": "QA-PLT-117",
+   "title": "A raw `UPDATE` on `evidence_node` against PostgreSQL",
+   "verdict": "FAIL",
+   "evidence": "the trigger refuses the raw UPDATE, which is correct \u2014 and `tests/test_postgres_dialect.py::test_a_tampered_payload_breaks_the_chain_on_postgres_too` performs exactly that UPDATE through `db.execute` before asserting `verify_chain()['valid'] is False`. The trigger now raises there, so the test ERRORS and the only assertion that the chain DETECTS tampering on PostgreSQL never runs. The guard that w"
+  },
+  {
    "id": "QA-PLT-1200",
    "title": "Discovery reads packaging metadata and imports nothing",
    "verdict": "PASS",
@@ -176,6 +194,12 @@
    "evidence": "refused 'no_outcome_columns' for hit policy C"
   },
   {
+   "id": "QA-PLT-121",
+   "title": "Row-level security asked for on SQLite",
+   "verdict": "PASS",
+   "evidence": "available false, and the reason: row-level security is a PostgreSQL feature and this deployment is on sqlite. There is no database backstop here and ther"
+  },
+  {
    "id": "QA-PLT-1210",
    "title": "An import produces a candidate, never a parameter set",
    "verdict": "PASS",
@@ -194,46 +218,16 @@
    "evidence": "2 read, 3 refused by name"
   },
   {
-   "id": "QA-PLT-123",
-   "title": "Compile twice with nothing changed \u2014 digests identical",
-   "verdict": "PASS",
-   "evidence": "identical: sha256:c54b170c72f9bf4bc414db0"
+   "id": "QA-PLT-122",
+   "title": "A dimension outside `POLICED`",
+   "verdict": "FAIL",
+   "evidence": "the report names the dimensions and not the rows \u2014 a version's entity is its model's, and no policy here expresses that"
   },
   {
-   "id": "QA-PLT-124",
-   "title": "Compile five times and count the citations",
+   "id": "QA-PLT-133",
+   "title": "A compiled document that cites nothing",
    "verdict": "PASS",
-   "evidence": "stable at 1 citation(s) across five compiles"
-  },
-  {
-   "id": "QA-PLT-125",
-   "title": "Recompile with open review comments",
-   "verdict": "PASS",
-   "evidence": "1 comment(s) still on this document"
-  },
-  {
-   "id": "QA-PLT-126",
-   "title": "Two export packs of unchanged state agree",
-   "verdict": "PASS",
-   "evidence": "stable: sha256:4ceedc6a01f450e230b7dca"
-  },
-  {
-   "id": "QA-PLT-127",
-   "title": "An unknown kind against an unknown URN",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
-   "id": "QA-PLT-128",
-   "title": "A bare model, compiled anyway",
-   "verdict": "PASS",
-   "evidence": "coverage.complete is false, 10 section(s) marked unfillable"
-  },
-  {
-   "id": "QA-PLT-132",
-   "title": "The published list of document kinds is closed",
-   "verdict": "PASS",
-   "evidence": "4 kinds published"
+   "evidence": "sound over 2 citation(s), count reported"
   },
   {
    "id": "QA-PLT-135",
@@ -278,6 +272,12 @@
    "evidence": "refused 'unknown_section'"
   },
   {
+   "id": "QA-PLT-153",
+   "title": "A pack requesting a document kind that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 4 kinds"
+  },
+  {
    "id": "QA-PLT-157",
    "title": "A share read at exactly its expiry instant",
    "verdict": "PASS",
@@ -311,7 +311,7 @@
    "id": "QA-PLT-163",
    "title": "Redeem a share link end to end",
    "verdict": "FAIL",
-   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/UuJz9OYfV3SxSGF8Ddv1ed_lSsBAO1oP3bFKTyImprU:404, /api/v1/export-shares/UuJz9OYfV3SxSGF8Ddv1ed_lSsBAO1oP3bFKTyImprU/open:404, /api/v1/export-shares/UuJz9OYfV3SxSGF8Ddv1ed_lSsBAO1oP3bFKTyImprU/pack:404, /"
+   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/Be9c7NTiit_RBUOYVx4IcCsXj3DntQE7z33B2PsTTWA:404, /api/v1/export-shares/Be9c7NTiit_RBUOYVx4IcCsXj3DntQE7z33B2PsTTWA/open:404, /api/v1/export-shares/Be9c7NTiit_RBUOYVx4IcCsXj3DntQE7z33B2PsTTWA/pack:404, /"
   },
   {
    "id": "QA-PLT-164",
@@ -374,6 +374,12 @@
    "evidence": "both refused"
   },
   {
+   "id": "QA-PLT-187",
+   "title": "A Tier A generation whose grounding rejects **every** claim",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' rather than returning empty prose"
+  },
+  {
    "id": "QA-PLT-188",
    "title": "A Tier B generation whose grounding rejects every claim",
    "verdict": "PASS",
@@ -414,6 +420,12 @@
    "title": "The raw ungrounded prose survives in the record",
    "verdict": "PASS",
    "evidence": "the rejected claim is kept beside the kept ones"
+  },
+  {
+   "id": "QA-PLT-199",
+   "title": "`unverified_narrative` as a state",
+   "verdict": "PASS",
+   "evidence": "no unverified narrative state; the states are not enumerated"
   }
  ]
 }

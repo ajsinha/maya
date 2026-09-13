@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.4,
+ "results": [
+  {
+   "id": "QA-PLT-122",
+   "title": "A dimension outside `POLICED`",
+   "verdict": "PASS",
+   "evidence": "policed ['legal_entity'], unpoliced ['domain'], both named in `does_not_reach`"
+  }
+ ]
+}
