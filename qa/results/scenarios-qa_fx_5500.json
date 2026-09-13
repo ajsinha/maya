@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-5500",
+   "title": "A panel smaller than the minimum",
+   "verdict": "PASS",
+   "evidence": "refused 'panel_too_small' below 3"
+  }
+ ]
+}

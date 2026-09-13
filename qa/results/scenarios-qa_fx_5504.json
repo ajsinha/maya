@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5504",
+   "title": "A second elicitation under one reference",
+   "verdict": "PASS",
+   "evidence": "refused 'elicitation_already_open'"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5507",
+   "title": "Dissent travels with the concluded value",
+   "verdict": "PASS",
+   "evidence": "dissent recorded: ['person/carol']"
+  }
+ ]
+}
