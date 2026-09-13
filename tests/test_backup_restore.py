@@ -232,3 +232,38 @@ def _tamper(root: pathlib.Path) -> None:
     conn.execute("UPDATE evidence_node SET recorded_by = 'forged' WHERE seq = 2")
     conn.commit()
     conn.close()
+
+
+class TestEveryRemediationNamesSomethingThatExists:
+    """A refusal that tells you to run a command nobody can run.
+
+    Both of these tools sent a PostgreSQL operator to
+    `python -m tools.ops.verify`, which has never existed in this tree. The
+    remediation is the third of the three parts a MAYA refusal carries, and one
+    naming a phantom is worse than none: it costs the reader the time to find
+    out, and it reads as though somebody checked.
+    """
+
+    OPS = pathlib.Path(__file__).resolve().parents[1] / "tools" / "ops"
+
+    def test_no_tools_module_is_named_that_is_not_importable(self):
+        import importlib.util
+        import re
+        root = self.OPS.parents[1]
+        named = set()
+        for source in sorted(root.glob("tools/**/*.py")):
+            named |= set(re.findall(r"python -m ([a-z_][a-z0-9_.]*)",
+                                    source.read_text(encoding="utf-8")))
+        phantom = sorted(m for m in named
+                         if importlib.util.find_spec(m) is None)
+        assert not phantom, (
+            "these refusals name a module nothing can run:\n    "
+            + "\n    ".join(phantom))
+
+    def test_the_postgres_refusals_still_say_what_to_do(self, instance, tmp_path,
+                                                        monkeypatch):
+        """Removing the phantom must not remove the remediation with it."""
+        for source in ("backup", "restore"):
+            body = (self.OPS / f"{source}.py").read_text(encoding="utf-8")
+            assert "pg_dump" in body or "pg_restore" in body
+            assert "chain" in body

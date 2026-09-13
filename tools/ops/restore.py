@@ -70,9 +70,11 @@ def run(source: str, config: str, force: bool = False) -> dict:
     if not dialect.startswith("sqlite"):
         raise SystemExit(
             f"this configuration points at {dialect}. Restore the dump with "
-            f"`pg_restore`, then run `python -m tools.ops.verify` to check the "
-            f"chain head against this backup's manifest — which is the half "
-            f"`pg_restore` does not do.")
+            f"`pg_restore`, then check the chain head against this backup's "
+            f"manifest — which is the half `pg_restore` does not do. The "
+            f"manifest records it under `chain.head`, and "
+            f"`GET /api/v1/evidence/chain` on the restored instance returns "
+            f"the head it actually has. The two must agree.")
 
     db = open_database(cfg)
     existing = db.query_one("SELECT COUNT(*) AS n FROM evidence_node") \

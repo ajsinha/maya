@@ -368,3 +368,114 @@ def an_admin(client, people):
         "username": "root", "display_name": "root", "roles": ["admin"],
         "password": "root-pw-long-enough"}).status_code == 201
     return ("root", "root-pw-long-enough")
+
+
+class TestTheReviewerCanActuallyAnswer:
+    """The campaign names a reviewer, and until now that reviewer could not
+    answer unless they happened to be an administrator.
+
+    `POST /recertification/{ref}/{principal}` asked for `principal:manage`,
+    which only `admin` carries, and `answer()` refuses anybody who is not the
+    named reviewer. The two checks excluded each other: the reviewer got
+    `forbidden`, the administrator got `not_the_reviewer`, and a campaign whose
+    reviewer sat in the second line could not be answered by anyone at all.
+
+    Every existing test over the wire opened its campaigns with
+    `reviewer: "root"` — the administrator — which is why the whole workflow
+    looked as though it worked.
+    """
+
+    def test_a_second_line_reviewer_answers_a_row(self, client, an_admin, people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-R1", "reviewer": "s.iqbal",
+            "population": ["a.mehta", "d.raman", "s.iqbal"]})
+        out = client.post("/api/v1/recertification/ACC-2026-R1/a.mehta",
+                          auth=people["s.iqbal"],
+                          json={"state": "confirmed", "reason": "still on the desk"})
+        assert out.status_code == 200, out.text
+        assert out.json()["state"] == CONFIRMED
+
+    def test_the_reviewer_is_still_refused_their_own_row(self, client, an_admin,
+                                                         people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-R2", "reviewer": "s.iqbal",
+            "population": ["a.mehta", "s.iqbal"]})
+        out = client.post("/api/v1/recertification/ACC-2026-R2/s.iqbal",
+                          auth=people["s.iqbal"], json={"state": "confirmed"})
+        assert out.status_code == 403 and "self_recertification" in out.text
+
+    def test_an_administrator_who_is_not_the_reviewer_is_still_refused(
+            self, client, an_admin, people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-R3", "reviewer": "s.iqbal",
+            "population": ["a.mehta"]})
+        out = client.post("/api/v1/recertification/ACC-2026-R3/a.mehta",
+                          auth=an_admin, json={"state": "confirmed"})
+        assert out.status_code == 403 and "not_the_reviewer" in out.text
+
+    def test_somebody_with_no_standing_at_all_is_refused(self, client, an_admin,
+                                                         people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-R4", "reviewer": "s.iqbal",
+            "population": ["a.mehta"]})
+        out = client.post("/api/v1/recertification/ACC-2026-R4/a.mehta",
+                          auth=people["d.raman"], json={"state": "confirmed"})
+        assert out.status_code == 403 and "forbidden" in out.text
+
+
+class TestReassignAndCloseAreReachable:
+    """Both were shadowed by the route declared before them.
+
+    Starlette matches in declaration order, and
+    `POST /recertification/{reference}/{principal}` was declared first — so
+    `/ACC-1/close` bound `principal="close"`, answered 422 for a missing
+    `state`, and the two endpoints that end a campaign could not be called.
+    Nothing failed loudly: the campaign simply stayed open.
+    """
+
+    def test_close_closes_rather_than_answering_a_person_called_close(
+            self, client, an_admin):
+        client.post("/api/v1/recertification", auth=an_admin,
+                    json={"reference": "ACC-2026-C1", "reviewer": "root"})
+        out = client.post("/api/v1/recertification/ACC-2026-C1/close",
+                          auth=an_admin)
+        assert out.status_code == 200, out.text
+        assert out.json()["status"] == "closed"
+
+    def test_reassign_reassigns_rather_than_answering_a_person_called_reassign(
+            self, client, an_admin, people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-C2", "reviewer": "root",
+            "population": ["a.mehta"]})
+        out = client.post("/api/v1/recertification/ACC-2026-C2/reassign",
+                          auth=an_admin,
+                          json={"to": "s.iqbal", "reason": "reviewer on leave"})
+        assert out.status_code == 200, out.text
+        assert client.get("/api/v1/recertification/ACC-2026-C2",
+                          auth=an_admin).json()["reviewer"] == "s.iqbal"
+
+    def test_and_the_new_reviewer_can_then_answer(self, client, an_admin, people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-C3", "reviewer": "root",
+            "population": ["a.mehta"]})
+        client.post("/api/v1/recertification/ACC-2026-C3/reassign", auth=an_admin,
+                    json={"to": "s.iqbal", "reason": "reviewer on leave"})
+        out = client.post("/api/v1/recertification/ACC-2026-C3/a.mehta",
+                          auth=people["s.iqbal"],
+                          json={"state": "confirmed", "reason": "checked"})
+        assert out.status_code == 200, out.text
+
+    def test_a_campaign_can_be_closed_after_it_is_answered(self, client, an_admin,
+                                                           people):
+        client.post("/api/v1/recertification", auth=an_admin, json={
+            "reference": "ACC-2026-C4", "reviewer": "s.iqbal",
+            "population": ["a.mehta"]})
+        client.post("/api/v1/recertification/ACC-2026-C4/a.mehta",
+                    auth=people["s.iqbal"],
+                    json={"state": "confirmed", "reason": "checked"})
+        out = client.post("/api/v1/recertification/ACC-2026-C4/close", auth=an_admin)
+        assert out.status_code == 200 and out.json()["status"] == "closed"
+        again = client.post("/api/v1/recertification/ACC-2026-C4/a.mehta",
+                            auth=people["s.iqbal"],
+                            json={"state": "revoked", "reason": "too late"})
+        assert again.status_code == 409 and "campaign_closed" in again.text

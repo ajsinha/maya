@@ -97,6 +97,23 @@ class AuthorizationPolicy:
 
     def visible(self, principal: Dict[str, Any],
                 models: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """The models this principal may see: the permission, then the scope.
+
+        It was the scope alone, and the permission was assumed to have been
+        checked by whoever called — which nineteen callers do and the dashboard
+        did not. So a principal holding no `model:read` at all signed in and
+        was shown every model in the estate, each one a link to a page that
+        then answered 403. A screen that offers something and then refuses it
+        is the one thing the QA cheatsheet asks a tester to report, and this
+        was on the first screen after sign-in.
+
+        Both halves belong here rather than at the callers. `visible` answers
+        *which models may this person see*, and a list filtered by entity but
+        not by permission is not an answer to that question — it is an answer
+        to a narrower one that reads the same.
+        """
+        if not self.permits(principal, "model:read"):
+            return []
         return self.scope(principal).filter(models)
 
     # ----------------------------------------------------------- segregation
