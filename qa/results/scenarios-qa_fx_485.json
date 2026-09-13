@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 2,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-4850",
+   "title": "The upload extensions and the media types agree",
+   "verdict": "FAIL",
+   "evidence": "the control offers '.json' for 'json', which the API will not read"
+  },
+  {
+   "id": "QA-FX-4851",
+   "title": "The read batch is sized by cells, not by rows",
+   "verdict": "PASS",
+   "evidence": "6 columns -> 16384 rows, 2,000 -> 524, floored at 512"
+  },
+  {
+   "id": "QA-FX-4852",
+   "title": "The format is chosen from Accept when none is given",
+   "verdict": "PASS",
+   "evidence": "explicit wins, Accept resolves, json is the fallback"
+  }
+ ]
+}

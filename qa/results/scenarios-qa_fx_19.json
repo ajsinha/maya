@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-190",
+   "title": "JSON export at exactly 10,000 rows, then 10,001",
+   "verdict": "PASS",
+   "evidence": "json capped at 10,000 rows"
+  },
+  {
+   "id": "QA-FX-193",
+   "title": "Streaming formats versus the paged one",
+   "verdict": "PASS",
+   "evidence": "parquet's non-streaming nature is stated where it is written"
+  }
+ ]
+}
