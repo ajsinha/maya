@@ -3355,6 +3355,10 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-1313 | `regression` | A distributed evaluation reaches the monitor's history | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1313` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-1314 | `regression` | Every test refused by name can actually be defined | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1314` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-1315 | `regression` | Every distributable test can actually be defined | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1315` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1500 | `regression` | Raise a matter of a kind that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1500` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1501 | `regression` | Raise a matter with no supervisor reference | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1501` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1502 | `regression` | An MRA's findings do not block | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1502` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-1503 | `regression` | The headroom boundary is stated, not implied | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1503` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->

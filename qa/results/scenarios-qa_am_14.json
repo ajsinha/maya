@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 3,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-147",
+   "title": "One matter raises one finding per model in scope",
+   "verdict": "PASS",
+   "evidence": "4 models, 4 findings"
+  },
+  {
+   "id": "QA-AM-148",
+   "title": "Raise a second matter under one supervisor reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-149",
+   "title": "Raise a matter with an empty scope",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  }
+ ]
+}

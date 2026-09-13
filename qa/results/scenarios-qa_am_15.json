@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-150",
+   "title": "An MRIA's findings block",
+   "verdict": "PASS",
+   "evidence": "all 1 MRIA findings block"
+  },
+  {
+   "id": "QA-AM-1500",
+   "title": "Raise a matter of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 5 kinds"
+  },
+  {
+   "id": "QA-AM-1501",
+   "title": "Raise a matter with no supervisor reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1502",
+   "title": "An MRA's findings do not block",
+   "verdict": "PASS",
+   "evidence": "MRA findings do not block; MRIA findings do"
+  },
+  {
+   "id": "QA-AM-1503",
+   "title": "The headroom boundary is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "slack reported, and 14 days named at the edge"
+  },
+  {
+   "id": "QA-AM-151",
+   "title": "Close a matter with a finding still open",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-153",
+   "title": "Close a matter with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-154",
+   "title": "The internal plan lands months after the committed date",
+   "verdict": "PASS",
+   "evidence": "reported as a miss, not a near miss"
+  },
+  {
+   "id": "QA-AM-157",
+   "title": "A matter with open findings and no committed date",
+   "verdict": "PASS",
+   "evidence": "not at risk, and the missing commitment is the stated reason"
+  },
+  {
+   "id": "QA-AM-158",
+   "title": "Every finding closed, the matter still open",
+   "verdict": "PASS",
+   "evidence": "the headline is that the work is done"
+  }
+ ]
+}
