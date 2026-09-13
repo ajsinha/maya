@@ -4012,6 +4012,9 @@ repository's own `data/`.
 | QA-PLT-4101 | `regression` | Every contract field says why it is required | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4101` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4200 | `regression` | The verdict fields are a closed list | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4200` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4201 | `regression` | Every command declares whether it decides | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4201` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4300 | `regression` | The skip link is hidden until it is focused | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4300` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4301 | `regression` | Every page declares a language | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4301` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4302 | `regression` | A page has exactly one main landmark | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4302` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->

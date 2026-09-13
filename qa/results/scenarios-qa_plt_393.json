@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-393",
+   "title": "A theme value that is not one",
+   "verdict": "PASS",
+   "evidence": "the theme is applied only from a closed list"
+  }
+ ]
+}

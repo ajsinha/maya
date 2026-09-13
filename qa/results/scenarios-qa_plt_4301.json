@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-4301",
+   "title": "Every page declares a language",
+   "verdict": "PASS",
+   "evidence": "every page declares a language"
+  }
+ ]
+}
