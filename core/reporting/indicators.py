@@ -128,17 +128,27 @@ class IndicatorSet:
     def _attestations_lapsed(self, models, now) -> Optional[int]:
         if self.lifecycle is None:
             return None
+        # `attestation_expired` is the key `LifecycleService.state` publishes.
+        #
+        # This read `attestation_lapsed` and `lapsed`, and neither has ever
+        # existed — so the indicator returned 0 on every estate, and a board
+        # pack told its board there were no lapsed attestations whatever the
+        # register held. Two wrong key names beside each other read as
+        # thoroughness; a wrong key on a `.get` is silent by construction.
         lapsed = 0
         for m in models:
             state = self.lifecycle.state(m["urn"]) or {}
-            if state.get("attestation_lapsed") or state.get("lapsed"):
+            if state.get("attestation_expired"):
                 lapsed += 1
         return lapsed
 
     def _baseline_debt(self, models, now) -> Optional[int]:
         if self.baseline is None:
             return None
-        return int((self.baseline.portfolio() or {}).get("open_debt", 0))
+        # `debt_open`, not `open_debt`. Transposed, and therefore 0 on every
+        # estate — including the 1,200-model cold-start import that is the
+        # entire reason this indicator exists.
+        return int((self.baseline.portfolio() or {}).get("debt_open", 0))
 
     # ------------------------------------------------------------- the ratios
     def _monitored_share(self, models, now) -> Optional[float]:

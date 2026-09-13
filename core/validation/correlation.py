@@ -87,6 +87,20 @@ KINDS: Tuple[Tuple[str, str], ...] = (
 
 OPEN, ADDRESSED = "open", "addressed"
 
+#: A finding is still owed until it is one of these.
+#:
+#: **Not `status == "open"`.** Acknowledging a finding moves it to
+#: `in_remediation` — the owner has accepted it and named a date, which is the
+#: point at which it is *most* certainly still owed. Counting only `open` meant
+#: a root reported `open: 0` the moment every child was acknowledged, with
+#: nothing closed and nobody having fixed anything: an all-clear produced by
+#: somebody agreeing to do the work.
+#:
+#: The same mistake hid every acknowledged finding from `candidates`, so the
+#: correlation suggestions went quiet exactly when a shared cause was being
+#: worked on by several owners at once.
+STILL_OWED = ("open", "in_remediation")
+
 
 class FindingRoots:
     """Names a shared cause, and hangs findings off it. Merges nothing."""
@@ -230,7 +244,8 @@ class FindingRoots:
         """One cause, and everything hanging off it."""
         root = self.require(root_id)
         children = self.findings.many(root_id=root_id)
-        open_children = [f for f in children if f.get("status") == "open"]
+        open_children = [f for f in children
+                         if f.get("status") in STILL_OWED]
         owners = {f.get("owner", "") for f in children if f.get("owner")}
         return {
             **root, "findings": children, "open": len(open_children),
@@ -254,7 +269,8 @@ class FindingRoots:
                 "id": root["id"], "title": root["title"],
                 "kind": root["kind"], "status": root["status"],
                 "findings": len(children),
-                "open": sum(1 for f in children if f.get("status") == "open"),
+                "open": sum(1 for f in children
+                            if f.get("status") in STILL_OWED),
                 "models": len({f.get("model_id") for f in children}),
             })
         rows.sort(key=lambda r: -r["open"])
@@ -289,7 +305,12 @@ class FindingRoots:
         """
         moment = now if now is not None else time.time()
         since = moment - window_hours * 3600.0
-        loose = [f for f in self.findings.many(status="open")
+        # Every status that is still owed, not just `open`. Querying one
+        # status meant an acknowledged finding could never be suggested as
+        # part of a group — and a shared upstream failure is usually noticed
+        # *because* several owners have just acknowledged the same thing.
+        loose = [f for status in STILL_OWED
+                 for f in self.findings.many(status=status)
                  if (f.get("raised_at") or 0) >= since and not f.get("root_id")]
         groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
         for finding in loose:
@@ -348,7 +369,8 @@ class FindingRoots:
                         "addressed_by": actor,
                         "addressed_note": note.strip()}, id=root_id)
         children = self.findings.many(root_id=root_id)
-        still_open = [f["id"] for f in children if f.get("status") == "open"]
+        still_open = [f["id"] for f in children
+                      if f.get("status") in STILL_OWED]
         if self.evidence is not None:
             self.evidence.append(
                 "finding_root_addressed", "finding_root", root_id,

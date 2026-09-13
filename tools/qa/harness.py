@@ -18,6 +18,7 @@ over a control it never exercised.
 from __future__ import annotations
 
 import contextlib
+import re
 import pathlib
 import shutil
 import sys
@@ -64,6 +65,34 @@ warrants: {{jitter_pct: 0, signing_key: qa-signing-secret,
 execution: {{captive: {{enabled: true, max_seconds: 5}}}}
 logging: {{level: ERROR}}
 """
+
+
+def carry_csrf(client) -> None:
+    """Read the session's CSRF token off a page and send it on every request.
+
+    A session-authenticated request that changes something is refused
+    `csrf_token_invalid` without it — and 403 is under 500, so the case
+    *passed*. **238 of 611 operations in section A were answered
+    `csrf_token_invalid` and recorded as exercised.** They were never reached.
+
+    Same shape as every other harness defect in this run: a check that passes
+    for a reason other than the one it names. It is also the reason the API
+    half now uses its own Basic-authenticated client — an API caller is not a
+    browser, does not carry a session, and is not subject to CSRF, so making
+    the API section pass by bolting a browser token onto it would be testing a
+    combination nothing in production produces.
+    """
+    from core.authz.csrf import HEADER, META
+    page = client.get("/dashboard")
+    found = re.search(rf'name="{META}"[^>]*content="([^"]+)"', page.text)
+    if not found:
+        found = re.search(rf'content="([^"]+)"[^>]*name="{META}"', page.text)
+    if not found:
+        raise RuntimeError(
+            "no CSRF token in the page: every mutating UI request would be "
+            "refused and, being a 403, would be recorded as a considered "
+            "answer rather than as never having run")
+    client.headers[HEADER] = found.group(1)
 
 
 def sign_in(client) -> None:
@@ -131,6 +160,7 @@ def live_client() -> Iterator[Tuple[object, Tuple[str, str]]]:
             # timed the sign-in page and reported it as a fast dashboard.
             # Status is not evidence of having reached a page.
             sign_in(client)
+            carry_csrf(client)
             landing = client.get("/dashboard")
             if "sign in" in landing.text[:4000].lower():
                 raise RuntimeError(
@@ -148,8 +178,14 @@ def live_client() -> Iterator[Tuple[object, Tuple[str, str]]]:
             # both directions.
             #
             # Two clients, no shared cookie jar, and the distinction is real.
-            with TestClient(app, raise_server_exceptions=False) as observer:
+            # A THIRD client for the API: Basic credentials, no session
+            # cookie, no CSRF. That is what an API caller actually is, and it
+            # is the only configuration under which the API half of this run
+            # exercises the operations rather than the CSRF guard.
+            with (TestClient(app, raise_server_exceptions=False) as observer,
+                  TestClient(app, raise_server_exceptions=False) as api):
                 observer.auth = UNPRIVILEGED
-                yield client, observer
+                api.auth = ADMIN
+                yield client, api, observer
     finally:
         shutil.rmtree(workspace, ignore_errors=True)

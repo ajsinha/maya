@@ -197,7 +197,12 @@ STATUS: Dict[str, int] = {
     "digest_required": 422, "provenance_not_verified": 403,
     "unknown_approval_kind": 422, "regulator_required": 422,
     "not_in_force": 409, "candidate_not_callable": 422,
-    "urn_required": 422, "no_candidate": 404,
+    "urn_required": 422,
+    # 422: the derivation is well-formed and matches too much. The caller
+    # fixes it by narrowing, which is a change to what they sent.
+    "population_too_large": 422,
+    # 422: the partial is malformed. The submitter recomputes and resends.
+    "quantiles_ragged": 422, "no_candidate": 404,
     "scope_required": 422, "no_hold": 404,
     # the event stream and its subscribers
     "kinds_required": 422, "wildcard_refused": 422,

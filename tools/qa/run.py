@@ -132,8 +132,12 @@ class Runner:
     have to restart to learn anything from.
     """
 
-    def __init__(self, client, verbose: bool = False, trace=None):
+    def __init__(self, client, verbose: bool = False, trace=None, api=None):
         self.client, self.verbose = client, verbose
+        # `/api/v1/...` goes to the API client — Basic credentials, no session
+        # cookie, no CSRF, which is what an API caller is. Everything else is a
+        # page and goes to the browser-shaped client.
+        self.api = api or client
         self.results: List[Case] = []
         self.trace = trace
 
@@ -144,19 +148,22 @@ class Runner:
         if self.trace:
             self.trace.write(f"CALL {method} {path}\n")
             self.trace.flush()
+        client = self.api if path.startswith("/api/") else self.client
         if path in SESSION_ENDING:
             # Called, then undone. `/logout` is a real operation and deserves
             # its case; it must not silently sign the rest of the run out.
             from tools.qa.harness import sign_in
-            response = self.client.request(method, path)
+            response = client.request(method, path)
             sign_in(self.client)
+            from tools.qa.harness import carry_csrf
+            carry_csrf(self.client)
             return response
         kwargs: Dict[str, Any] = {}
         if body is not None and method in ("POST", "PUT", "PATCH"):
             kwargs["json"] = body
         if auth is not None:
             kwargs["auth"] = auth
-        return self.client.request(method, path, **kwargs)
+        return client.request(method, path, **kwargs)
 
     def _record(self, case_id: str, section: str, area: str, title: str,
                 expect: str, status: Optional[int], verdict: str,
@@ -348,8 +355,8 @@ def main(argv=None) -> int:
     trace_path.parent.mkdir(parents=True, exist_ok=True)
     runner = None
     with (trace_path.open("w", encoding="utf-8") as trace,
-          live_client() as (client, observer)):
-            runner = Runner(client, verbose=args.verbose, trace=trace)
+          live_client() as (client, api, observer)):
+            runner = Runner(client, verbose=args.verbose, trace=trace, api=api)
             for name in sections:
                 print(f"running section {name} ...", flush=True)
                 trace.write(f"== section {name} ==\n")

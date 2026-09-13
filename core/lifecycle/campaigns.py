@@ -56,6 +56,13 @@ ITEM_STATES = (OUTSTANDING, ANSWERED, DECLINED, NOT_APPLICABLE)
 
 OPEN, CLOSED = "open", "closed"
 
+#: The largest population a single campaign may cover.
+#:
+#: A campaign completes when every item is answered, so its size is a promise
+#: that somebody can answer it. Ten thousand items is already beyond what any
+#: review function clears in a round; the number is a backstop, not a target.
+POPULATION_CAP = 10_000
+
 #: What a round is for. Held as data because the instruction sent to an owner
 #: depends on it, and a campaign whose kind is free text is one nobody can
 #: report on across years.
@@ -144,11 +151,35 @@ class Campaigns:
         the estate report about it should not be able to disagree about what
         `in_force` means.
         """
+        # The cap is real and stays; what changes is that it can no longer be
+        # silent. A campaign completes when every item is answered, so a
+        # population truncated at ten thousand produces a campaign that
+        # reports completion over a subset nobody chose and nothing records
+        # which models were left out.
+        #
+        # Refused rather than trimmed. Trimming and warning would leave a
+        # campaign somebody could still close.
         result = self.semantics.query(
             derivation.get("entity") or "model",
             select=["urn"], where=derivation.get("where") or [],
-            limit=10_000)
-        return [self.registry.require(row["urn"]) for row in result["rows"]]
+            limit=POPULATION_CAP)
+        rows = result["rows"]
+        # Exactly at the cap means *at least* this many, and the query layer
+        # refuses a limit above 10,000 — so the campaign cannot ask whether
+        # there are more, and must not guess that there are not.
+        if len(rows) >= POPULATION_CAP:
+            raise LifecycleError(
+                "population_too_large",
+                f"this derivation matches at least {POPULATION_CAP:,} models "
+                f"— the most the query layer will return, so there may be "
+                f"more and there is no way from here to find out. A campaign "
+                f"over a population this size cannot be answered item by "
+                f"item, and truncating it silently would produce a campaign "
+                f"that reports completion over a subset nobody chose",
+                "narrow the derivation — by tier, by domain, or by legal "
+                "entity — and open one campaign per slice, so every model is "
+                "in exactly one and each can actually be completed")
+        return [self.registry.require(row["urn"]) for row in rows]
 
     # ------------------------------------------------------------------ respond
     def respond(self, reference: str, urn: str, *, state: str,
