@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-059",
+   "title": "The ETag does not move when nothing changed",
+   "verdict": "PASS",
+   "evidence": "stable across three reads: W/\"sha256:af15e021c0c12b"
+  }
+ ]
+}

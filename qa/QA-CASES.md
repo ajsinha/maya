@@ -3960,6 +3960,9 @@ repository's own `data/`.
 | QA-PLT-2101 | `regression` | A held object is read-only after writing | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2101` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-2102 | `regression` | The store lists nothing when it holds nothing | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2102` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-2103 | `regression` | A staging file is not listed as an object | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2103` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2500 | `regression` | A flagged row cannot carry the content it flags | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2500` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2501 | `regression` | The same key with a different body | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2501` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-2502 | `regression` | The same key with the same body, keys reordered | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-2502` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->

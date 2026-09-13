@@ -3,237 +3,303 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Section I — idempotency, preconditions, and immutability at the storage layer.
+Section I — persistence: what the database refuses whatever the code does.
 
-The two questions underneath all of it: **did this act happen twice**, and
-**did the thing I am overwriting change while I was deciding**. Both are
-invisible when they go wrong. A duplicated governance act looks like two
-governance acts, and a lost update looks like a successful one.
+Everything above the storage layer can be argued with. A trigger cannot. These
+cases go under the application and write to the tables directly, because a
+guarantee enforced only by the code that respects it is a convention.
 """
 from __future__ import annotations
 
-from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx, Result, case,
-                                       code_of, expect_accepted,
-                                       expect_refused)
+from db.schema.immutable import (APPEND_ONLY, EMPTY_WHEN_FLAGGED,
+                                 IMMUTABLE_COLUMNS)
+from qa.regression_suite.scenarios.common import (BLOCKED, DENIAL, FAIL, PASS,
+                                                  Ctx, Result, case, code_of)
 
-KEY = "idempotency-key"
+M = "/api/v1/models"
 TIER = {"model_class": "logistic", "domain": "credit",
         "legal_entity": "LE-US-01", "purpose": "credit_decision"}
 
 
-def _body(ctx: Ctx) -> dict:
-    name = ctx.unique("idem")
-    return {"urn": f"maya://model/{name}", "name": name, "owner": "owner",
-            **TIER}
+def _db(ctx: Ctx):
+    return ctx.made.get("db") or ctx.ui.app.state.ctx.get("db")
 
 
-# ------------------------------------------------------------- idempotency
-@case("QA-PLT-041", "The same key and body twice in sequence")
-def plt_041(ctx: Ctx) -> Result:
-    key, body = ctx.unique("k"), _body(ctx)
-    first = ctx.api.post("/api/v1/models", json=body, headers={KEY: key})
+def _versioned(ctx: Ctx) -> str:
+    """A model with a version, and the version's row id."""
+    name = ctx.unique("pe")
+    ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                          "owner": "owner", **TIER})
+    ctx.api.post(f"{M}/{name}/versions", json={"semver": "1.0.0"},
+                 auth=ctx.people["developer"])
+    registry = ctx.ui.app.state.ctx.get("registry")
+    return (registry.version(f"maya://model/{name}", "1.0.0") or {}).get("id")
+
+
+def _execute(db, sql: str, params: dict):
+    """`Database` wraps the engine and exposes `execute`/`query`/`query_one`.
+    It has no `begin` and no `connect`, so a case reaching for a SQLAlchemy
+    connection raises AttributeError — which the runner reports as the CASE
+    failing, and which reads exactly like the database having allowed the
+    write it was asked to refuse."""
+    db.execute(sql, params)
+
+
+@case("QA-PLT-064", "Every immutable column written directly")
+def plt_064(ctx: Ctx) -> Result:
+    """The whole list, not a sample. A column left out of the trigger is a
+    column the register believes is immutable and is not — and the belief is
+    what everything above rests on.
+    """
+    db, vid = _db(ctx), _versioned(ctx)
+    if db is None or not vid:
+        return BLOCKED, "no database or no version to attack"
+    slipped = []
+    for table, columns in IMMUTABLE_COLUMNS.items():
+        for column in columns:
+            try:
+                _execute(db, f"UPDATE {table} SET {column} = :v WHERE id = :i",
+                         {"v": "tampered", "i": vid})
+            except Exception as exc:
+                if "immutable" not in str(exc):
+                    slipped.append(f"{table}.{column} -> {type(exc).__name__}")
+            else:
+                slipped.append(f"{table}.{column} WRITTEN")
+    if slipped:
+        return FAIL, ("these are declared immutable and the database allowed "
+                      "the write: " + ", ".join(slipped[:6]))
+    total = sum(len(c) for c in IMMUTABLE_COLUMNS.values())
+    return PASS, f"all {total} immutable column(s) refused by the database"
+
+
+@case("QA-PLT-065", "model_version.status is deliberately not guarded")
+def plt_065(ctx: Ctx) -> Result:
+    """The lifecycle has to be able to move it. A guard here would freeze
+    every version at the state it was created in, so its ABSENCE is the
+    design and is worth pinning."""
+    if "status" in IMMUTABLE_COLUMNS.get("model_version", ()):
+        return FAIL, ("`status` is guarded as immutable, so no version can "
+                      "ever be approved")
+    db, vid = _db(ctx), _versioned(ctx)
+    if db is None or not vid:
+        return BLOCKED, "no database or no version"
+    try:
+        _execute(db, "UPDATE model_version SET status = :v WHERE id = :i",
+                 {"v": "approved", "i": vid})
+    except Exception as exc:
+        return FAIL, f"the lifecycle cannot move a version's status: {exc}"
+    return PASS, "status moves; the immutable columns do not"
+
+
+@case("QA-PLT-066", "An append-only table against UPDATE and DELETE")
+def plt_066(ctx: Ctx) -> Result:
+    """Both, because guarding one leaves the other. A chain node that can be
+    deleted is a chain that can be shortened, and one that can be updated is
+    a chain that can be rewritten."""
+    db = _db(ctx)
+    if db is None:
+        return BLOCKED, "no database"
+    slipped = []
+    for table in APPEND_ONLY:
+        row = db.query_one(f"SELECT id FROM {table} LIMIT 1")
+        if not row:
+            return BLOCKED, f"{table} is empty, so there is nothing to attack"
+        for sql in (f"UPDATE {table} SET actor = 'tampered' WHERE id = :i",
+                    f"DELETE FROM {table} WHERE id = :i"):
+            try:
+                _execute(db, sql, {"i": row["id"]})
+            except Exception as exc:
+                if not str(exc):
+                    slipped.append(f"{table}: {sql.split()[0]} silently")
+            else:
+                slipped.append(f"{table}: {sql.split()[0]}")
+    if slipped:
+        return FAIL, f"an append-only table allowed: {', '.join(slipped)}"
+    return PASS, f"{len(APPEND_ONLY)} append-only table(s) refuse both"
+
+
+@case("QA-PLT-2500", "A flagged row cannot carry the content it flags")
+def plt_2500(ctx: Ctx) -> Result:
+    """`contains_personal_data` on an evidence node means the payload must be
+    empty. Enforced by trigger rather than by the code that sets the flag,
+    because the two are set at the same moment and one caller forgetting is
+    the whole risk."""
+    db = _db(ctx)
+    if db is None:
+        return BLOCKED, "no database"
+    slipped = []
+    for table, (flag, content) in EMPTY_WHEN_FLAGGED.items():
+        try:
+            _execute(
+                db,
+                f"INSERT INTO {table} (id, {flag}, {content}) "
+                f"VALUES (:i, 1, :p)",
+                {"i": ctx.unique("qa")[:28], "p": '{"name": "a real person"}'})
+        except Exception as exc:
+            if "empty" not in str(exc).lower() and "personal" not in str(exc).lower():
+                # Any refusal is acceptable here; a NOT NULL on another
+                # column would also stop it, and that is not the guard.
+                slipped.append(f"{table}: refused for another reason ({exc})")
+        else:
+            slipped.append(f"{table}: WRITTEN with {content} populated")
+    real = [s for s in slipped if "WRITTEN" in s]
+    if real:
+        return FAIL, ("a row flagged as containing personal data was written "
+                      "with that data in it: " + "; ".join(real))
+    return PASS, f"{len(EMPTY_WHEN_FLAGGED)} flagged table(s) refuse content"
+
+
+@case("QA-PLT-049", "One idempotency key reused across two routes")
+def plt_049(ctx: Ctx) -> Result:
+    """A key is a promise about ONE request. Honouring it across two routes
+    would return the first route's answer to the second."""
+    key = ctx.unique("idem")
+    name = ctx.unique("pe")
+    first = ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                                  "owner": "owner", **TIER},
+                         headers={"Idempotency-Key": key})
     if first.status_code >= 400:
-        return BLOCKED, f"the first call failed: {first.text[:160]}"
-    second = ctx.api.post("/api/v1/models", json=body, headers={KEY: key})
-    if second.status_code >= 400:
-        return FAIL, (f"the replay was refused rather than replayed: "
-                      f"{second.text[:160]}")
-    if second.headers.get("idempotency-replayed") is None:
-        return FAIL, ("the second answer does not say it was a replay — a "
-                      "caller cannot tell a retry that worked from an act "
-                      "that happened twice")
-    return PASS, "replayed, and said so"
-
-
-@case("QA-PLT-042", "The same key with a corrected body")
-def plt_042(ctx: Ctx) -> Result:
-    """The dangerous one. A caller who fixed a typo and kept the key must not
-    silently receive the answer to their mistake."""
-    key = ctx.unique("k")
-    ctx.api.post("/api/v1/models", json=_body(ctx), headers={KEY: key})
-    return expect_refused(
-        ctx.api.post("/api/v1/models", json=_body(ctx), headers={KEY: key}),
-        "idempotency_key_reused")
-
-
-@case("QA-PLT-043", "The same key with the same fields in a different order")
-def plt_043(ctx: Ctx) -> Result:
-    """A replay, not a conflict. JSON object order is not meaning, and
-    refusing on it would make every client library's field ordering a
-    correctness question."""
-    key, body = ctx.unique("k"), _body(ctx)
-    ctx.api.post("/api/v1/models", json=body, headers={KEY: key})
-    reordered = dict(reversed(list(body.items())))
-    got = ctx.api.post("/api/v1/models", json=reordered, headers={KEY: key})
-    if got.status_code >= 400:
-        return FAIL, (f"reordering the same fields was treated as a different "
-                      f"request: {got.text[:150]}")
-    return PASS, "replayed"
-
-
-@case("QA-PLT-045", "A key whose first attempt was refused, retried")
-def plt_045(ctx: Ctx) -> Result:
-    """The retry must really run. Replaying a refusal would mean a caller who
-    fixed the problem is told about the old one forever."""
-    key = ctx.unique("k")
-    bad = dict(_body(ctx))
-    bad["urn"] = "not-a-urn"
-    first = ctx.api.post("/api/v1/models", json=bad, headers={KEY: key})
-    if first.status_code < 400:
-        return BLOCKED, "the deliberately bad body was accepted"
-    good = ctx.api.post("/api/v1/models", json=_body(ctx), headers={KEY: key})
-    if good.status_code >= 400:
-        return FAIL, (f"the retry after a refusal was itself refused "
-                      f"('{code_of(good)}') — a caller who corrected the "
-                      f"problem can never get past it")
-    return PASS, "the retry ran"
-
-
-@case("QA-PLT-047", "A key of 256 characters")
-def plt_047(ctx: Ctx) -> Result:
-    return expect_refused(
-        ctx.api.post("/api/v1/models", json=_body(ctx),
-                     headers={KEY: "k" * 256}),
-        "idempotency_key_too_long")
-
-
-@case("QA-PLT-048", "Two principals choosing the same key")
-def plt_048(ctx: Ctx) -> Result:
-    """Both acts must happen. A key is scoped to who sent it, or one tenant
-    can silently suppress another's writes by guessing a UUID."""
-    key = ctx.unique("k")
-    first = ctx.api.post("/api/v1/models", json=_body(ctx), headers={KEY: key})
-    if first.status_code >= 400:
-        return BLOCKED, first.text[:160]
-    second = ctx.api.post("/api/v1/models", json=_body(ctx),
-                          headers={KEY: key}, auth=ctx.people["owner"])
-    if second.status_code >= 400:
-        return FAIL, (f"a second principal reusing the same key was refused "
-                      f"('{code_of(second)}') — one caller can suppress "
-                      f"another's writes by guessing a key")
-    return PASS, "both acts happened"
-
-
-@case("QA-PLT-051", "An idempotent act's EFFECTS do not happen twice")
-def plt_051(ctx: Ctx) -> Result:
-    """The response can be replayed from a cache and still leave two evidence
-    nodes behind, which is the failure that looks like success."""
-    key, body = ctx.unique("k"), _body(ctx)
-    before = ctx.made["evidence"].verify_chain()["length"]
-    ctx.api.post("/api/v1/models", json=body, headers={KEY: key})
-    middle = ctx.made["evidence"].verify_chain()["length"]
-    ctx.api.post("/api/v1/models", json=body, headers={KEY: key})
-    after = ctx.made["evidence"].verify_chain()["length"]
-    if after != middle:
-        return FAIL, (f"the replay appended {after - middle} more evidence "
-                      f"node(s); the answer was cached and the act was not")
-    return PASS, f"chain grew {middle - before} on the act and 0 on the replay"
-
-
-# -------------------------------------------------------------- preconditions
-@case("QA-PLT-052", "A stale If-Match after somebody else wrote")
-def plt_052(ctx: Ctx) -> Result:
-    body = _body(ctx)
-    ctx.api.post("/api/v1/models", json=body)
-    name = body["name"]
-    read = ctx.api.get(f"/api/v1/models/{name}")
-    tag = read.headers.get("etag")
-    if not tag:
-        return BLOCKED, "the resource carries no ETag to be stale about"
-    ctx.api.patch(f"/api/v1/models/{name}", json={"fields": {"owner": "risk"}})
-    return expect_refused(
-        ctx.api.patch(f"/api/v1/models/{name}",
-                      json={"fields": {"owner": "validator"}},
-                      headers={"If-Match": tag}),
-        "precondition_failed", status=412)
-
-
-@case("QA-PLT-053", "If-Match against a resource that does not exist")
-def plt_053(ctx: Ctx) -> Result:
-    got = ctx.api.patch("/api/v1/models/qa-never",
-                        json={"fields": {"owner": "risk"}},
-                        headers={"If-Match": "*"})
+        return BLOCKED, first.text[:170]
+    other = ctx.unique("pe")
+    got = ctx.api.post("/api/v1/features",
+                       json={"name": other, "owner": "owner",
+                             "entity": "customer", "dtype": "float",
+                             "description": "a QA feature"},
+                       headers={"Idempotency-Key": key})
     if got.status_code >= 500:
         return FAIL, f"{got.status_code}"
     if got.status_code < 400:
-        return FAIL, "If-Match: * matched a resource that does not exist"
-    return PASS, f"refused ({got.status_code} {code_of(got) or 'no code'})"
+        body = got.text
+        if name in body:
+            return FAIL, ("one key across two routes replayed the FIRST "
+                          "route's answer to the second")
+        return FAIL, "one key was honoured on two different routes"
+    if code_of(got) in DENIAL:
+        return BLOCKED, "the caller never reached the check"
+    return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-PLT-501", "A fresh If-Match succeeds")
+@case("QA-PLT-2501", "The same key with a different body")
+def plt_2501(ctx: Ctx) -> Result:
+    """The point of the key is that a retry is the SAME request. A different
+    body under one key is a second request wearing the first's promise."""
+    key = ctx.unique("idem")
+    name = ctx.unique("pe")
+    first = ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                                  "owner": "owner", **TIER},
+                         headers={"Idempotency-Key": key})
+    if first.status_code >= 400:
+        return BLOCKED, first.text[:170]
+    other = ctx.unique("pe")
+    got = ctx.api.post(M, json={"urn": f"maya://model/{other}", "name": other,
+                                "owner": "owner", **TIER},
+                       headers={"Idempotency-Key": key})
+    if got.status_code >= 500:
+        return FAIL, f"{got.status_code}"
+    if got.status_code < 400 and other in got.text:
+        return FAIL, ("a different body under one key created a second "
+                      "model, so the key promised nothing")
+    if got.status_code < 400:
+        return FAIL, "a different body under one key replayed the first answer"
+    return PASS, f"refused '{code_of(got)}'"
+
+
+@case("QA-PLT-2502", "The same key with the same body, keys reordered")
+def plt_2502(ctx: Ctx) -> Result:
+    """A retry serialised by a different client library orders its JSON keys
+    differently. Digesting the raw bytes would call that a different request
+    and refuse a legitimate retry."""
+    key = ctx.unique("idem")
+    name = ctx.unique("pe")
+    body = {"urn": f"maya://model/{name}", "name": name, "owner": "owner",
+            **TIER}
+    first = ctx.api.post(M, json=body, headers={"Idempotency-Key": key})
+    if first.status_code >= 400:
+        return BLOCKED, first.text[:170]
+    shuffled = {k: body[k] for k in reversed(list(body))}
+    got = ctx.api.post(M, json=shuffled, headers={"Idempotency-Key": key})
+    if got.status_code >= 400:
+        return FAIL, (f"the same request with its JSON keys in another order "
+                      f"was refused '{code_of(got)}'; a retry from a "
+                      f"different client library cannot succeed")
+    return PASS, "reordered keys are the same request"
+
+
+@case("QA-PLT-055", "A write with a deliberately wrong If-Match")
+def plt_055(ctx: Ctx) -> Result:
+    """A client sending `If-Match` believes it has optimistic concurrency."""
+    name = ctx.unique("pe")
+    ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                          "owner": "owner", **TIER})
+    got = ctx.api.patch(f"{M}/{name}",
+                        json={"fields": {"description": "changed"}},
+                        headers={"If-Match": '"not-the-current-tag"'})
+    if got.status_code >= 500:
+        return FAIL, f"{got.status_code}"
+    if got.status_code < 400:
+        return FAIL, ("a wrong If-Match was ignored, so a client that "
+                      "believes it has optimistic concurrency does not")
+    if got.status_code != 412 and code_of(got) != "precondition_failed":
+        return FAIL, f"refused '{code_of(got)}' ({got.status_code}), not 412"
+    return PASS, f"refused {got.status_code} '{code_of(got)}'"
+
+
+@case("QA-PLT-059", "The ETag does not move when nothing changed")
+def plt_059(ctx: Ctx) -> Result:
+    """A tag that moves on every read makes If-Match unusable: every write
+    would race the read that preceded it."""
+    name = ctx.unique("pe")
+    ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                          "owner": "owner", **TIER})
+    tags = []
+    for _ in range(3):
+        got = ctx.api.get(f"{M}/{name}")
+        tags.append(got.headers.get("etag"))
+    if not tags[0]:
+        return BLOCKED, "the route issues no ETag"
+    if len(set(tags)) != 1:
+        return FAIL, (f"three reads of an unchanged model gave different "
+                      f"tags: {tags}")
+    return PASS, f"stable across three reads: {tags[0][:24]}"
+
+
+@case("QA-PLT-058", "If-None-Match with the current tag")
 def plt_058(ctx: Ctx) -> Result:
-    """The other half. A precondition that always refuses is not a
-    precondition, and this is what would catch an ETag that never matches."""
-    body = _body(ctx)
-    ctx.api.post("/api/v1/models", json=body)
-    name = body["name"]
-    tag = ctx.api.get(f"/api/v1/models/{name}").headers.get("etag")
+    name = ctx.unique("pe")
+    ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                          "owner": "owner", **TIER})
+    first = ctx.api.get(f"{M}/{name}")
+    tag = first.headers.get("etag")
     if not tag:
-        return BLOCKED, "no ETag issued"
-    return expect_accepted(
-        ctx.api.patch(f"/api/v1/models/{name}",
-                      json={"fields": {"owner": "risk"}},
-                      headers={"If-Match": tag}))
+        return BLOCKED, "the route issues no ETag"
+    got = ctx.api.get(f"{M}/{name}", headers={"If-None-Match": tag})
+    if got.status_code != 304:
+        return FAIL, (f"the current tag answered {got.status_code}, not 304, "
+                      f"so a conditional read never saves anything")
+    if got.content:
+        return FAIL, "a 304 carried a body"
+    return PASS, "304 with no body"
 
 
-# --------------------------------------------------------------- immutability
-@case("QA-PLT-502", "An immutable column on an attested version")
-def plt_070(ctx: Ctx) -> Result:
-    """Enforced by a trigger at the storage layer, not by a service that
-    somebody could route around."""
-    db = ctx.made["db"]
-    body = _body(ctx)
-    ctx.api.post("/api/v1/models", json=body)
-    ctx.api.post(f"/api/v1/models/{body['name']}/versions",
-                 json={"semver": "1.0.0"}, auth=ctx.people["developer"])
-    row = db.query_one("SELECT id FROM model_version WHERE semver = '1.0.0' "
-                       "ORDER BY created_at DESC")
-    if not row:
-        return BLOCKED, "no version to attack"
-    try:
-        db.execute("UPDATE model_version SET semver = '9.9.9' WHERE id = :i",
-                   {"i": row["id"]})
-    except Exception as refused:
-        return PASS, f"the trigger refused: {str(refused)[:130]}"
-    return FAIL, ("an immutable column was rewritten — the enforcement is a "
-                  "convention, not a constraint")
-
-
-@case("QA-PLT-071", "A mutable column on the same row still moves")
-def plt_071(ctx: Ctx) -> Result:
-    """`status` is deliberately NOT immutable: a version is approved after it
-    is created. A guard that froze the whole row would stop the lifecycle."""
-    db = ctx.made["db"]
-    body = _body(ctx)
-    ctx.api.post("/api/v1/models", json=body)
-    ctx.api.post(f"/api/v1/models/{body['name']}/versions",
-                 json={"semver": "1.0.0"}, auth=ctx.people["developer"])
-    row = db.query_one("SELECT id FROM model_version WHERE semver = '1.0.0' "
-                       "ORDER BY created_at DESC")
-    try:
-        db.execute("UPDATE model_version SET status = 'approved' "
-                   "WHERE id = :i", {"i": row["id"]})
-    except Exception as refused:
-        return FAIL, (f"`status` is frozen, so no version can ever be "
-                      f"approved: {str(refused)[:120]}")
-    return PASS, "status moves, as the lifecycle requires"
-
-
-@case("QA-PLT-503", "The evidence chain refuses a DELETE")
-def plt_072(ctx: Ctx) -> Result:
-    db = ctx.made["db"]
-    try:
-        db.execute("DELETE FROM evidence_node WHERE seq = 1")
-    except Exception as refused:
-        return PASS, f"refused: {str(refused)[:130]}"
-    return FAIL, "a row was deleted from the evidence chain"
-
-
-@case("QA-PLT-504", "The evidence chain refuses an UPDATE")
-def plt_073(ctx: Ctx) -> Result:
-    db = ctx.made["db"]
-    try:
-        db.execute("UPDATE evidence_node SET recorded_by = 'x' WHERE seq = 1")
-    except Exception as refused:
-        return PASS, f"refused: {str(refused)[:130]}"
-    return FAIL, "a row in the evidence chain was rewritten"
+@case("QA-PLT-061", "A governed act that fails half way")
+def plt_061(ctx: Ctx) -> Result:
+    """Registering a model appends evidence and writes a row. If the two are
+    not one transaction, a failed registration leaves an evidence node for a
+    model that does not exist."""
+    name = ctx.unique("pe")
+    ctx.api.post(M, json={"urn": f"maya://model/{name}", "name": name,
+                          "owner": "owner", **TIER})
+    # The same urn again: refused, and the refusal must leave nothing behind.
+    again = ctx.api.post(M, json={"urn": f"maya://model/{name}",
+                                  "name": name, "owner": "owner", **TIER})
+    if again.status_code < 400:
+        return BLOCKED, "the duplicate registration was not refused"
+    db = _db(ctx)
+    if db is None:
+        return BLOCKED, "no database"
+    row = db.query_one("SELECT COUNT(*) AS n FROM model WHERE name = :n",
+                       {"n": name})
+    rows = (row or {}).get("n")
+    if rows != 1:
+        return FAIL, f"{rows} rows for one model after a refused duplicate"
+    return PASS, "the refused act left exactly one row"

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-2502",
+   "title": "The same key with the same body, keys reordered",
+   "verdict": "PASS",
+   "evidence": "reordered keys are the same request"
+  }
+ ]
+}
