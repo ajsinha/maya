@@ -4035,6 +4035,8 @@ repository's own `data/`.
 | QA-PLT-4300 | `regression` | The skip link is hidden until it is focused | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4300` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4301 | `regression` | Every page declares a language | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4301` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4302 | `regression` | A page has exactly one main landmark | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4302` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4700 | `regression` | No control reads a key one edit from the one written | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4700` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4701 | `regression` | The regime state reads only keys the context carries | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4701` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->
