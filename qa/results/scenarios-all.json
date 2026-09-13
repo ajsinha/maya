@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 401,
-  "pass": 378,
+  "total": 413,
+  "pass": 390,
   "fail": 22,
   "blocked": 1
  },
- "seconds": 35.5,
+ "seconds": 46.7,
  "results": [
   {
    "id": "QA-AM-067",
@@ -107,7 +107,7 @@
    "id": "QA-AM-400",
    "title": "Telemetry for a version that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-cc2aa940 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
+   "evidence": "expected registry_refused/not_found/telemetry_refused, got 'no_such_version' (404): {\"error\":\"no_such_version\",\"detail\":\"maya://model/tl-d3970da5 has no version 9.9.9\",\"remediation\":\"send telemetry for a version that exists\"}"
   },
   {
    "id": "QA-AM-402",
@@ -281,7 +281,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b5162800f1886c7a76cb2e7\",\"model_id\":\"01a09b51627c1704db9f8047e9fb\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-c99b6bc7\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09b57ce318abdfdaf88840594\",\"model_id\":\"01a09b57ce1d5dc6446797f69d54\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-24de88e8\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -311,13 +311,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b51629e16f28ecd6ba53c1b\",\"reference\":\"SUP-6f725c60\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b57cea072b49f1a4c091ebe\",\"reference\":\"SUP-54133622\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b5162a5261cf725adddae6f\",\"reference\":\"SUP-9fbd8d55\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09b57cebde8acc7dd78943800\",\"reference\":\"SUP-88b3eeb5\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",
@@ -353,7 +353,7 @@
    "id": "QA-AM-638",
    "title": "The same batch sent twice is not counted twice",
    "verdict": "PASS",
-   "evidence": "read back: {\"model\":\"maya://model/tl-6a8b4b34\",\"semver\":\"1.0.0\",\"scores\":1,\"outcomes\":0,\"labelled_fraction\":0.0,\"latest_s"
+   "evidence": "read back: {\"model\":\"maya://model/tl-9e819d78\",\"semver\":\"1.0.0\",\"scores\":1,\"outcomes\":0,\"labelled_fraction\":0.0,\"latest_s"
   },
   {
    "id": "QA-AM-639",
@@ -407,7 +407,7 @@
    "id": "QA-AM-700",
    "title": "Replay a validation that has no results",
    "verdict": "PASS",
-   "evidence": "answered 200: {\"validation_id\":\"01a09b51635bdebc79a1b791193e\",\"reproducible\":false,\"total\":0,\"reproduced\":0,\"misma"
+   "evidence": "answered 200: {\"validation_id\":\"01a09b57d0357a34907f3408e852\",\"reproducible\":false,\"total\":0,\"reproduced\":0,\"misma"
   },
   {
    "id": "QA-AM-701",
@@ -692,6 +692,78 @@
    "evidence": "{'before_bytes': 1536000, 'after_bytes': 1536000, 'reclaimed_bytes': 0, 'measured': True}"
   },
   {
+   "id": "QA-DEL-300",
+   "title": "The retention schedule is published with its reasons",
+   "verdict": "PASS",
+   "evidence": "7 class(es) published"
+  },
+  {
+   "id": "QA-DEL-301",
+   "title": "A period is a floor and says so",
+   "verdict": "PASS",
+   "evidence": "the schedule states that a period is a floor"
+  },
+  {
+   "id": "QA-DEL-310",
+   "title": "A hold over a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope_id'"
+  },
+  {
+   "id": "QA-DEL-311",
+   "title": "A model-scoped hold with no identifier",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_required'"
+  },
+  {
+   "id": "QA-DEL-312",
+   "title": "A hold of a scope kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope' (422)"
+  },
+  {
+   "id": "QA-DEL-313",
+   "title": "Two holds with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-DEL-314",
+   "title": "Lift a hold with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-DEL-315",
+   "title": "Lift a hold that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_hold'"
+  },
+  {
+   "id": "QA-DEL-316",
+   "title": "A hold has no end date, deliberately",
+   "verdict": "PASS",
+   "evidence": "no end date, as designed"
+  },
+  {
+   "id": "QA-DEL-317",
+   "title": "A lifted hold no longer applies",
+   "verdict": "PASS",
+   "evidence": "lifted, and the deletion proceeds"
+  },
+  {
+   "id": "QA-DEL-330",
+   "title": "The inference log says what it holds and for how long",
+   "verdict": "PASS",
+   "evidence": "posture published with retention"
+  },
+  {
+   "id": "QA-DEL-331",
+   "title": "Inference past its retention is reported, not hidden",
+   "verdict": "PASS",
+   "evidence": "past_retention is reported"
+  },
+  {
    "id": "QA-FX-001",
    "title": "A restatement landing after the label cannot reach the row",
    "verdict": "PASS",
@@ -761,7 +833,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b5165d20345d07de918655f\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09b57d8684ae05b49723cf0bb\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-104",
@@ -1061,7 +1133,7 @@
    "id": "QA-FX-800",
    "title": "A parameter set with no name",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a09b516864426de1f9d044561f\",\"model_id\":\"01a09b51685fe7d9220f7ba04567\",\"model_version_id\":\"01a09b5168610fa36263b3299f10\",\"name\":\"   \",\"version\":1,\"kind\""
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a09b57dca9bfe939e224b3b59b\",\"model_id\":\"01a09b57dc9d81e09474a386c804\",\"model_version_id\":\"01a09b57dca27993e6d1fab477c7\",\"name\":\"   \",\"version\":1,\"kind\""
   },
   {
    "id": "QA-FX-801",
@@ -1259,7 +1331,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-687370f5\",\"name\":\"gov-687370f5-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-9135419f\",\"name\":\"gov-9135419f-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -1469,7 +1541,7 @@
    "id": "QA-GOV-514",
    "title": "A band naming a role that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b516c8369fdfa984df170b3\",\"name\":\"band-a5932393\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09b57e2bad2fedfccbf5eb7ac\",\"name\":\"band-56235442\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
   },
   {
    "id": "QA-GOV-515",
@@ -1751,13 +1823,13 @@
    "id": "QA-PLT-001",
    "title": "Verify, do nothing, verify again",
    "verdict": "PASS",
-   "evidence": "length 620, head stable"
+   "evidence": "length 623, head stable"
   },
   {
    "id": "QA-PLT-002",
    "title": "One append, then verify \u2014 the new head links to the old",
    "verdict": "PASS",
-   "evidence": "622 -> 623, still valid"
+   "evidence": "625 -> 626, still valid"
   },
   {
    "id": "QA-PLT-003",
@@ -1799,7 +1871,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:bc1915594a76a"
+   "evidence": "a fresh chain of 8 verifies, head sha256:8a197a94096e5"
   },
   {
    "id": "QA-PLT-011",
@@ -1877,7 +1949,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:685be38ce7b839f908b02ad"
+   "evidence": "identical: sha256:e88585d2c8ffabfb383e971"
   },
   {
    "id": "QA-PLT-124",
@@ -1895,7 +1967,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:e173342315ad9eeebe57f54"
+   "evidence": "stable: sha256:9491f9896854d7ec53d8ba7"
   },
   {
    "id": "QA-PLT-127",
@@ -2111,7 +2183,7 @@
    "id": "QA-PLT-519",
    "title": "A request id travels with the answer",
    "verdict": "PASS",
-   "evidence": "x-request-id: 89535f2c587cd348"
+   "evidence": "x-request-id: 44ac5ba026a032e9"
   },
   {
    "id": "QA-PLT-520",
