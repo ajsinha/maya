@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-267",
+   "title": "A sweep reporting confidence 1.0",
+   "verdict": "PASS",
+   "evidence": "refused at 1.0"
+  }
+ ]
+}

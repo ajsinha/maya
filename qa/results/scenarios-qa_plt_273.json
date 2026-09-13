@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-273",
+   "title": "Precision on a scanner with too few triaged candidates",
+   "verdict": "PASS",
+   "evidence": "floor 20 published; no candidate has been triaged either way, so no scanner has a precision yet. Not"
+  }
+ ]
+}
