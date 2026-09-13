@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-252",
+   "title": "Open a campaign over an explicitly empty population",
+   "verdict": "PASS",
+   "evidence": "a blank population means everybody active: 8 subject(s)"
+  }
+ ]
+}

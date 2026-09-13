@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-256",
+   "title": "A reviewer spelled person/r against a campaign naming r",
+   "verdict": "PASS",
+   "evidence": "a prefixed name is refused at the door, so the `==` reviewer check never sees two spellings"
+  }
+ ]
+}
