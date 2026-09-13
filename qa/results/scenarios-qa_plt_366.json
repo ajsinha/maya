@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-366",
+   "title": "An answer with no verdict field",
+   "verdict": "PASS",
+   "evidence": "an absent verdict is UNDETERMINED and exits 2"
+  }
+ ]
+}

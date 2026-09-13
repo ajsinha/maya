@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-370",
+   "title": "An unknown subcommand and a missing positional",
+   "verdict": "PASS",
+   "evidence": "a usage error exits 2"
+  },
+  {
+   "id": "QA-PLT-3700",
+   "title": "Every job says what it does and why",
+   "verdict": "PASS",
+   "evidence": "all 27 jobs state what and why"
+  },
+  {
+   "id": "QA-PLT-3701",
+   "title": "Every run is on the evidence chain",
+   "verdict": "PASS",
+   "evidence": "27 run(s) recorded and appended"
+  },
+  {
+   "id": "QA-PLT-3702",
+   "title": "A job key that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_job'"
+  }
+ ]
+}

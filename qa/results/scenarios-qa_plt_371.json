@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-371",
+   "title": "No credentials in the environment",
+   "verdict": "PASS",
+   "evidence": "reads MAYA_PASSWORD, MAYA_TOKEN, MAYA_URL, MAYA_USER"
+  }
+ ]
+}
