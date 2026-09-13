@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-029",
+   "title": "An existing anchor file rewritten",
+   "verdict": "PASS",
+   "evidence": "refused, and the held copy is unchanged"
+  }
+ ]
+}

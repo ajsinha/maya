@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-032",
+   "title": "Time-stamping with no authority wired",
+   "verdict": "PASS",
+   "evidence": "MAYA is not the authority and does not verify the token. Verifying one means holding a certificate c"
+  }
+ ]
+}

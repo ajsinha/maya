@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-031",
+   "title": "An anchor written by the process it certifies",
+   "verdict": "PASS",
+   "evidence": "self_certified=0, verified_by=auditor"
+  }
+ ]
+}
