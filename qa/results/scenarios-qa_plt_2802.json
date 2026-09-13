@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-2802",
+   "title": "Every refusal type reaches HTTP as a refusal",
+   "verdict": "PASS",
+   "evidence": "all 48 refusal types reach HTTP as refusals: duck-typed, adapted by `guard`, caught by name in a route, or raised only at start-up"
+  }
+ ]
+}

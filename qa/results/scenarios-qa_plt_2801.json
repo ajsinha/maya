@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-2801",
+   "title": "Every actionable refusal says what to do instead",
+   "verdict": "FAIL",
+   "evidence": "28 actionable refusal code(s) of 773 raise sites carry an explicitly empty remediation, so a caller who did something they could have done differently is told what and not what instead: already_decided, already_recorded, already_registered, already_revoked, approval_closed, bad_digest, bad_signature, campaign_closed, channel_not_built, different_version, discovery_incomplete, duplicate_capability"
+  }
+ ]
+}
