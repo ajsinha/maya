@@ -32,21 +32,35 @@ RESULTS = ROOT / "docs" / "QA" / "results"
 
 #: How a failure is grouped. First match wins, so the specific patterns come
 #: before the general ones.
+#: How a failure is grouped, matched against the EVIDENCE only.
+#:
+#: Not against the title or the "why", which is prose written to explain the
+#: case to a reader — "the entity is what a row is keyed on" matched the
+#: family about reading a wrong *key*, and a plan that groups by a word in an
+#: explanation groups nothing.
 FAMILIES = [
     ("a stated ground accepted blank",
-     r"accepted blank|blank `|whitespace|reason_required|owner_required"),
+     r"accepted blank|was accepted, and|with no (name|owner|entity|"
+     r"description|reason|title)"),
+    ("a value outside its range accepted",
+     r"negative \w+ was accepted|unknown \w+ was accepted|"
+     r"out of range|not a shape|unknown dtype"),
     ("an unknown identifier answered 500",
      r"-> 500|answered 500|Internal Server Error"),
-    ("a coded refusal escaping as an unhandled error",
-     r"no error code|KeyError|TypeError|AttributeError"),
+    ("an unhandled exception reached the caller",
+     r"KeyError|TypeError|AttributeError|IndexError|raised \w+Error"),
     ("a control that exists and nothing calls",
      r"unknown_permission|no caller|never called|unreachable"),
-    ("an answer that changes when nothing changed",
-     r"digest|identical|deterministic|differ"),
     ("a warning to a human and success to the script",
      r"exited 0|exit code|DIGEST DIFFERS"),
+    ("an answer that changes when nothing changed",
+     r"digests? (differ|changed)|two renderings|grew because"),
     ("a count read off a key nothing publishes",
-     r"reports? \d+|always 0|reported zero|key"),
+     r"reports? 0|always 0|reported zero|reads a key"),
+    ("not callable by a generic driver — needs a hand-written case",
+     r"not callable by a generic driver|streams without ending"),
+    ("the platform is right and the case was wrong",
+     r"a considered refusal|known.: ?false|correct refusal"),
 ]
 
 
@@ -64,7 +78,7 @@ def failures() -> List[Dict]:
 
 
 def family_of(row: Dict) -> str:
-    text = f"{row.get('title', '')} {row.get('evidence', '')}"
+    text = row.get("evidence", "")
     for name, pattern in FAMILIES:
         if re.search(pattern, text, re.I):
             return name

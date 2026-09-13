@@ -95,10 +95,20 @@ def example(schema: Dict[str, Any], spec: Dict[str, Any],
         return schema["enum"][0]
     kind = schema.get("type")
     if kind == "object" or "properties" in schema:
+        # REQUIRED fields only.
+        #
+        # Filling every optional field too seemed generous and was wrong: an
+        # optional field with a constrained format gets type-correct nonsense.
+        # `shape` accepts "a comma-separated list of positive integers", the
+        # filler supplied `"qa"`, and eight feature cases were refused for a
+        # field none of them was about — which reads as eight defects.
+        #
+        # A body carrying exactly what the endpoint demands is the minimal
+        # thing that can be accepted, which is what a starting point should be.
         out: Dict[str, Any] = {}
         required = set(schema.get("required") or [])
         for name, child in (schema.get("properties") or {}).items():
-            if name in required or depth == 0:
+            if name in required:
                 out[name] = example(child, spec, depth + 1)
         return out
     if kind == "array":
