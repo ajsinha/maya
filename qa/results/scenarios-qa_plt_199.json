@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-199",
+   "title": "`unverified_narrative` as a state",
+   "verdict": "PASS",
+   "evidence": "no unverified narrative state; the states are not enumerated"
+  }
+ ]
+}

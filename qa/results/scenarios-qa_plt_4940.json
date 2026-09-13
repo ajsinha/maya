@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-4940",
+   "title": "A capability nobody set a budget for",
+   "verdict": "PASS",
+   "evidence": "0 of 0 capabilities on a default, counted apart"
+  }
+ ]
+}
