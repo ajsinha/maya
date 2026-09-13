@@ -423,3 +423,44 @@ class TestTheValidatorPairs:
         assert documented == enforced, (
             f"documented but not enforced: {documented - enforced}; "
             f"enforced but not documented: {enforced - documented}")
+
+
+class TestWhatIsVisibleIsFilteredByPermissionAndNotOnlyByScope:
+    """`visible` answered a narrower question than its name.
+
+    It filtered by legal-entity and domain scope alone, and left the permission
+    to whoever called. Nineteen callers check it first; the dashboard does not,
+    and it is the first screen after sign-in — so a principal holding no
+    `model:read` at all was shown every model in the estate, each rendered as a
+    link to a page that then answered 403.
+
+    Found by a QA case that walks every navbar link a role is offered and opens
+    it: four dead links on the dashboard of a `feature_curator`.
+    """
+
+    def _policy(self, evidence=None):
+        from core.authz import AuthorizationPolicy
+        return AuthorizationPolicy()
+
+    MODELS = [{"urn": "maya://model/a", "legal_entity": "LE-US-01",
+               "domain": "credit", "tier": 3},
+              {"urn": "maya://model/b", "legal_entity": "LE-UK-01",
+               "domain": "credit", "tier": 2}]
+
+    def test_somebody_with_model_read_sees_the_estate(self):
+        who = {"username": "a.mehta", "roles": ["validator"],
+               "legal_entities": [], "domains": []}
+        assert len(self._policy().visible(who, self.MODELS)) == 2
+
+    def test_somebody_without_model_read_sees_nothing(self):
+        """A `feature_curator` defines and loads features. Its four permissions
+        do not include reading the register, and it was being shown all of it."""
+        who = {"username": "q.tester", "roles": [], "legal_entities": [],
+               "domains": []}
+        assert self._policy().visible(who, self.MODELS) == []
+
+    def test_the_scope_still_applies_on_top_of_the_permission(self):
+        who = {"username": "uk.reader", "roles": ["auditor"],
+               "legal_entities": ["LE-UK-01"], "domains": []}
+        seen = self._policy().visible(who, self.MODELS)
+        assert [m["urn"] for m in seen] == ["maya://model/b"]

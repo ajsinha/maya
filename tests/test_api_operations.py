@@ -498,3 +498,51 @@ class TestDraftingOverTheApi:
                                   "subject_id": "never-heard-of-it"})
         assert r.status_code == 422
         assert r.json()["error"] == "nothing_to_ground"
+
+
+class TestReadingAMonitorsObservations:
+    """The one route on a monitor that did neither of the two things every
+    sibling route does.
+
+    `require` was outside `guard`, so an identifier that does not resolve
+    escaped as an unhandled exception and answered **500 with an empty body** —
+    no code, no detail, no remediation. And `authorise` was called without
+    `model=`, so the legal-entity scope was never applied: a principal refused
+    `GET /models/<urn>` and refused the monitor LIST for that model could still
+    read its monitor, its observations and its breaches through this one path.
+    """
+
+    def _a_monitor(self, registered, people):
+        return registered.post("/api/v1/monitors", auth=people["j.okafor"], json={
+            "urn": URN, "name": "score drift", "kind": "score_drift",
+            "test_key": "stability.psi", "threshold": {"max": 0.25},
+            "owner": "person/j.okafor"}).json()["id"]
+
+    def test_an_identifier_that_does_not_resolve_is_a_refusal_not_a_500(
+            self, registered, people):
+        out = registered.get("/api/v1/monitors/no-such-monitor/observations",
+                             auth=people["j.okafor"])
+        assert out.status_code == 404, out.text
+        assert out.json()["error"] == "no_monitor"
+
+    def test_it_answers_for_a_monitor_that_exists(self, registered, people):
+        mid = self._a_monitor(registered, people)
+        out = registered.get(f"/api/v1/monitors/{mid}/observations",
+                             auth=people["j.okafor"])
+        assert out.status_code == 200
+        assert out.json()["monitor"]["id"] == mid
+        assert out.json()["observations"] == [] and out.json()["breaches"] == []
+
+    def test_the_legal_entity_scope_applies_here_too(self, registered, people):
+        """The model is `LE-US-01`. Somebody scoped elsewhere is refused the
+        model itself and the monitor list, and must be refused this."""
+        mid = self._a_monitor(registered, people)
+        assert registered.post("/api/v1/principals", json={
+            "username": "uk.reader", "display_name": "UK reader",
+            "roles": ["auditor"], "password": "uk-pw-long-enough",
+            "legal_entities": ["LE-UK-99"]}).status_code == 201
+        uk = ("uk.reader", "uk-pw-long-enough")
+        assert registered.get(f"/api/v1/models/{NAME}", auth=uk).status_code == 403
+        out = registered.get(f"/api/v1/monitors/{mid}/observations", auth=uk)
+        assert out.status_code == 403, \
+            "a monitor's observations are about a model, and the scope is the model's"

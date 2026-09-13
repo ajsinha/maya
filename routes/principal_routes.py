@@ -350,27 +350,13 @@ class PrincipalRoutes(Routes):
                 body.reference, reviewer=body.reviewer, title=body.title,
                 population=body.population or None, actor=self.actor(who)))
 
-        @self.app.post(f"{api}/recertification/{{reference}}/{{principal}}",
-                       tags=["authorisation"])
-        def recertify(request: Request, reference: str, principal: str,
-                      body: RecertifyIn):
-            """Confirm or revoke one person's access.
-
-            **Revoking removes roles in this register and nothing else.** It
-            does not touch a directory, a database grant, a VPN profile or
-            anybody's job, and a platform reporting *access removed* would be
-            reporting a removal it cannot see.
-
-            Recertifying your own access is refused. That is the whole failure
-            mode of an access review, and it is not hypothetical.
-            """
-            who = self.authorise(
-                request, "principal:manage",
-                estate_wide="answering an access recertification")
-            return self.guard(lambda: self.ctx["recertification"].answer(
-                reference, principal, state=body.state, reason=body.reason,
-                actor=self.actor(who)))
-
+        # `/reassign` and `/close` are declared BEFORE `/{principal}`, and the
+        # order is the whole of what makes them reachable. Starlette matches in
+        # declaration order, so a generic `{principal}` segment declared first
+        # swallows both literals: `POST /recertification/REC-1/close` bound
+        # `principal="close"`, answered 422 for a missing `state`, and the two
+        # endpoints that end a campaign could not be called at all. Nothing
+        # failed loudly — the campaign simply stayed open forever.
         @self.app.post(f"{api}/recertification/{{reference}}/reassign",
                        tags=["authorisation"])
         def reassign_recertification(request: Request, reference: str,
@@ -399,6 +385,52 @@ class PrincipalRoutes(Routes):
                 estate_wide="closing an access recertification")
             return self.guard(lambda: self.ctx["recertification"].close(
                 reference, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/recertification/{{reference}}/{{principal}}",
+                       tags=["authorisation"])
+        def recertify(request: Request, reference: str, principal: str,
+                      body: RecertifyIn):
+            """Confirm or revoke one person's access.
+
+            **Revoking removes roles in this register and nothing else.** It
+            does not touch a directory, a database grant, a VPN profile or
+            anybody's job, and a platform reporting *access removed* would be
+            reporting a removal it cannot see.
+
+            Recertifying your own access is refused. That is the whole failure
+            mode of an access review, and it is not hypothetical.
+            """
+            # The reviewer is authorised by being NAMED, and an administrator
+            # is not authorised at all.
+            #
+            # This route asked for `principal:manage`, which only `admin`
+            # carries — and `answer()` refuses anybody who is not the
+            # campaign's reviewer. So the two checks excluded each other: a
+            # reviewer who was not an administrator got `forbidden`, the
+            # administrator who could reach the route got `not_the_reviewer`,
+            # and a campaign opened over a reviewer in the second line could
+            # never be answered by anyone. The control that names a reviewer
+            # was added to stop the column being decoration; requiring an
+            # administrator's permission to act on it made the whole workflow
+            # unreachable instead.
+            #
+            # An administrator chose the reviewer when the campaign was opened
+            # — that act needs `principal:manage` and still does. Being named
+            # by it is the authority to answer, and `not_the_reviewer`,
+            # `self_recertification` and `campaign_closed` remain the controls.
+            who = self.principal(request)
+            campaign = self.ctx["recertification"].campaigns.one(
+                reference=reference)
+            if not campaign or campaign.get("reviewer") != who.get("username"):
+                # Not the reviewer — so this is somebody reaching into a
+                # campaign that is not theirs, and they need the permission
+                # that opens one before `answer()` tells them the same thing.
+                who = self.authorise(
+                    request, "principal:manage",
+                    estate_wide="answering an access recertification")
+            return self.guard(lambda: self.ctx["recertification"].answer(
+                reference, principal, state=body.state, reason=body.reason,
+                actor=self.actor(who)))
 
         @self.app.get(f"{api}/principals", tags=["authorisation"])
         def list_principals(request: Request):
