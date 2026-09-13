@@ -91,6 +91,7 @@ class LegalHolds:
                 f"a {scope_kind} hold must say which {scope_kind}",
                 "give the identifier, or place it over the estate — which is "
                 "blunt and sometimes exactly right")
+        scope_id = self._resolve_scope(scope_kind, scope_id)
 
         rows = self.repo.many()
         row = {
@@ -112,6 +113,46 @@ class LegalHolds:
                        f" {row['scope_id']}" if row["scope_id"] else "",
                        actor, matter)
         return stored
+
+    def _resolve_scope(self, scope_kind: str,
+                       scope_id: Optional[str]) -> Optional[str]:
+        """Turn what a person typed into what `applies` matches on.
+
+        `applies` compares `scope_id` against the model's internal **row id**,
+        and `place` validated only that the field was non-empty — so a hold
+        placed with the URN a person would actually type, or with a typo,
+        matched no model at all and `LifecycleService.delete` proceeded. The
+        one act with no workflow, no reversal and no second signature was the
+        act the hold silently failed to stop.
+
+        A URN is accepted because a URN is what a person has; it is resolved to
+        the id here, once, rather than at every read. An identifier that
+        resolves to nothing is **refused** — a hold over a model that does not
+        exist is a hold somebody believes is protecting something.
+        """
+        if scope_kind != "model" or not scope_id:
+            return scope_id
+        wanted = scope_id.strip()
+        if self.registry is None:
+            # Nothing to resolve against. Kept working rather than refused, and
+            # said out loud: a register wired without a catalogue is a unit
+            # configuration, not a deployment.
+            logger.warning("a model hold was placed on '%s' with no registry "
+                           "to resolve it against, so it will match only if "
+                           "that is already the model's id", wanted)
+            return wanted
+        found = self.registry.get(wanted) if wanted.startswith("maya://") \
+            else self.registry.by_id(wanted)
+        if found is None and not wanted.startswith("maya://"):
+            found = self.registry.get(wanted)
+        if found is None:
+            raise RetentionError(
+                "unknown_scope_id",
+                f"no model in this register is '{wanted}'",
+                "give the model's URN. A hold naming something that does not "
+                "resolve protects nothing, and looks from every screen exactly "
+                "like one that does")
+        return found["id"]
 
     # ---------------------------------------------------------------- lift
     def lift(self, reference: str, reason: str,
