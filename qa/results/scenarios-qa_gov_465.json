@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 1
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-4650",
+   "title": "Create a version with a digest nothing has stored",
+   "verdict": "FAIL",
+   "evidence": "refused 'registry_refused' \u2014 a well-formed digest the store does not hold is how a vendor model is registered at all"
+  },
+  {
+   "id": "QA-GOV-4651",
+   "title": "Declare no `artifact_format` over a stored artifact",
+   "verdict": "BLOCKED",
+   "evidence": "the artifact could not be stored"
+  }
+ ]
+}

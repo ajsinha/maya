@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 7,
+  "fail": 1,
+  "blocked": 1
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-070",
+   "title": "A second attestation after a completed cycle",
+   "verdict": "PASS",
+   "evidence": "a completed attestation does not block the next"
+  },
+  {
+   "id": "QA-GOV-071",
+   "title": "Create the same semver twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-072",
+   "title": "Create a version on an attested record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the amendment route"
+  },
+  {
+   "id": "QA-GOV-073",
+   "title": "Create a version on a `submitted` record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-074",
+   "title": "A version with a malformed artifact digest",
+   "verdict": "PASS",
+   "evidence": "five malformed digests refused"
+  },
+  {
+   "id": "QA-GOV-075",
+   "title": "Create a version with a digest of exactly 63 hex characters",
+   "verdict": "FAIL",
+   "evidence": "the refusal does not say how long a digest is, so the caller cannot see what is wrong with theirs"
+  },
+  {
+   "id": "QA-GOV-076",
+   "title": "A version with no digest at all",
+   "verdict": "PASS",
+   "evidence": "a version may have no artifact"
+  },
+  {
+   "id": "QA-GOV-077",
+   "title": "Declared `artifact_format` disagrees with the stored artifact",
+   "verdict": "BLOCKED",
+   "evidence": "the artifact could not be stored"
+  },
+  {
+   "id": "QA-GOV-079",
+   "title": "Semver ordering across a ten boundary",
+   "verdict": "PASS",
+   "evidence": "0.10.0 is later than 0.9.0"
+  }
+ ]
+}
