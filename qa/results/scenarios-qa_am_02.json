@@ -1,12 +1,24 @@
 {
  "summary": {
-  "total": 4,
-  "pass": 3,
-  "fail": 1,
+  "total": 9,
+  "pass": 6,
+  "fail": 3,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 0.7,
  "results": [
+  {
+   "id": "QA-AM-020",
+   "title": "Blocking finding open against a *different version* of the same model blocks approval of this one",
+   "verdict": "PASS",
+   "evidence": "refused, naming the finding raised against 1.0.0"
+  },
+  {
+   "id": "QA-AM-021",
+   "title": "Close the blocking finding, then re-attempt the same conclusion",
+   "verdict": "PASS",
+   "evidence": "refused while open, approved once the finding closed"
+  },
   {
    "id": "QA-AM-022",
    "title": "Record a result after the episode concluded",
@@ -20,6 +32,12 @@
    "evidence": "refused 'validation_refused'"
   },
   {
+   "id": "QA-AM-024",
+   "title": "Open with `snapshot_id` naming a snapshot that does not exist",
+   "verdict": "FAIL",
+   "evidence": "accepted at open and discovered only at replay ('validation_refused'): the episode carries a pin to 'snap-does-not-exist' for as long as nobody replays it, and the failure lands on whoever asked for the evidence rather than on whoever typed the identifier"
+  },
+  {
    "id": "QA-AM-025",
    "title": "Open an episode with no validators",
    "verdict": "PASS",
@@ -29,7 +47,19 @@
    "id": "QA-AM-026",
    "title": "Open with the same validator listed twice",
    "verdict": "FAIL",
-   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 2 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 4 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+  },
+  {
+   "id": "QA-AM-027",
+   "title": "`due_at` set to a moment in the past at open",
+   "verdict": "FAIL",
+   "evidence": "an episode opened a week overdue is stored with that date and read by nothing: the queue and the backlog both compute what falls due from the re-validation triggers, so `due_at` is written at open and never evaluated \u2014 a date somebody will believe is enforced"
+  },
+  {
+   "id": "QA-AM-028",
+   "title": "Every operation in this group, run a second time against the same episode",
+   "verdict": "PASS",
+   "evidence": "three repeats, each stable: ['validation_refused']"
   }
  ]
 }
