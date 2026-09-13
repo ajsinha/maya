@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-3701",
+   "title": "Every run is on the evidence chain",
+   "verdict": "PASS",
+   "evidence": "27 run(s) recorded and appended"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-242",
+   "title": "Run with no body at all",
+   "verdict": "PASS",
+   "evidence": "all 27 jobs ran"
+  }
+ ]
+}
