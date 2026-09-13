@@ -1,0 +1,281 @@
+{
+ "summary": {
+  "total": 45,
+  "pass": 43,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-100",
+   "title": "Composing something that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing parent and its kind"
+  },
+  {
+   "id": "QA-FX-1000",
+   "title": "The compute zones a warrant may name are published",
+   "verdict": "PASS",
+   "evidence": "none configured, and the consequence is stated: no compute zone is configured, so every zone handles no more than 'internal' and a fit ove"
+  },
+  {
+   "id": "QA-FX-1001",
+   "title": "Attest a compute zone for a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-FX-1002",
+   "title": "A grant limit on a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-FX-1003",
+   "title": "A negative rate limit",
+   "verdict": "PASS",
+   "evidence": "answered 404 (no_grant)"
+  },
+  {
+   "id": "QA-FX-1004",
+   "title": "The execution posture names what it cannot observe",
+   "verdict": "PASS",
+   "evidence": "the caveat names the limit"
+  },
+  {
+   "id": "QA-FX-1005",
+   "title": "Unreported execution says what it cannot distinguish",
+   "verdict": "PASS",
+   "evidence": "0 live and silent"
+  },
+  {
+   "id": "QA-FX-1006",
+   "title": "The declared cascade of what a deletion touches",
+   "verdict": "PASS",
+   "evidence": "38 tables, all three dispositions present"
+  },
+  {
+   "id": "QA-FX-1007",
+   "title": "A sandbox refuses to run anything",
+   "verdict": "PASS",
+   "evidence": "no process is spawned"
+  },
+  {
+   "id": "QA-FX-1008",
+   "title": "The captive engine is the only one that has run a warrant",
+   "verdict": "PASS",
+   "evidence": "the engine names itself"
+  },
+  {
+   "id": "QA-FX-101",
+   "title": "Composing an ephemeral parent",
+   "verdict": "PASS",
+   "evidence": "refused, naming the ephemeral parent"
+  },
+  {
+   "id": "QA-FX-104",
+   "title": "Amend a sealed feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-106",
+   "title": "Seal an ephemeral feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-107",
+   "title": "Seal a feature that is already sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-108",
+   "title": "Break a seal with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-109",
+   "title": "Break a seal as somebody without the authority",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-FX-110",
+   "title": "Seal, break, amend, re-seal \u2014 and the chain records all four",
+   "verdict": "PASS",
+   "evidence": "four acts, 4 evidence nodes"
+  },
+  {
+   "id": "QA-FX-111",
+   "title": "Transfer ownership of a sealed feature",
+   "verdict": "PASS",
+   "evidence": "answered 409 (feature_refused)"
+  },
+  {
+   "id": "QA-FX-112",
+   "title": "Transfer ownership to the current owner",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-113",
+   "title": "Transfer ownership to an empty name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-114",
+   "title": "created_by survives an ownership transfer",
+   "verdict": "PASS",
+   "evidence": "owner is now 'risk', created_by unchanged"
+  },
+  {
+   "id": "QA-FX-118",
+   "title": "An unsealed feature can still be amended",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-FX-1200",
+   "title": "A profile that selects on a fact nobody derives",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_profile_fact'"
+  },
+  {
+   "id": "QA-FX-1201",
+   "title": "A predicate that allows nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_predicate'"
+  },
+  {
+   "id": "QA-FX-1202",
+   "title": "A profile that supplies no defaults",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_profile'"
+  },
+  {
+   "id": "QA-FX-1203",
+   "title": "Every authority key is refused as a default",
+   "verdict": "PASS",
+   "evidence": "all 15 authority keys refused by the control itself"
+  },
+  {
+   "id": "QA-FX-1204",
+   "title": "A default that is neither authority nor defaultable",
+   "verdict": "PASS",
+   "evidence": "refused 'not_defaultable'"
+  },
+  {
+   "id": "QA-FX-1205",
+   "title": "A profile with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'profile_name_required'"
+  },
+  {
+   "id": "QA-FX-1206",
+   "title": "A profile needs authority over the whole estate",
+   "verdict": "PASS",
+   "evidence": "refused (403)"
+  },
+  {
+   "id": "QA-FX-1207",
+   "title": "Retire a profile that was never registered",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_profile'"
+  },
+  {
+   "id": "QA-FX-1208",
+   "title": "Retiring a profile stops it applying",
+   "verdict": "FAIL",
+   "evidence": "retiring 'prof-f1b4abb0' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+  },
+  {
+   "id": "QA-FX-1209",
+   "title": "A profile never overrides what the caller wrote",
+   "verdict": "PASS",
+   "evidence": "the caller's value stands and is not reported as filled"
+  },
+  {
+   "id": "QA-FX-1210",
+   "title": "Every filled value names the profile it came from",
+   "verdict": "PASS",
+   "evidence": "1 value(s), each naming profile@version"
+  },
+  {
+   "id": "QA-FX-1211",
+   "title": "Preview against a model with no version",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-FX-1212",
+   "title": "The vocabulary is published, not documented",
+   "verdict": "PASS",
+   "evidence": "published lists match the enforced ones"
+  },
+  {
+   "id": "QA-FX-125",
+   "title": "A derived feature computed directly from the label",
+   "verdict": "PASS",
+   "evidence": "the label itself is refused as a feature"
+  },
+  {
+   "id": "QA-FX-126",
+   "title": "A derived feature three hops from the label",
+   "verdict": "PASS",
+   "evidence": "the check runs over the transitive lineage, with a seen set"
+  },
+  {
+   "id": "QA-FX-127",
+   "title": "The same derived feature in a featureset that declares no label",
+   "verdict": "PASS",
+   "evidence": "with no label declared there is nothing to leak"
+  },
+  {
+   "id": "QA-FX-130",
+   "title": "An external derived feature whose expression parses and which declares inputs",
+   "verdict": "PASS",
+   "evidence": "an external feature is not computed and its definition stands"
+  },
+  {
+   "id": "QA-FX-139",
+   "title": "`on_error: null` with a zero denominator",
+   "verdict": "PASS",
+   "evidence": "a zero denominator evaluates to null, an ordinary one does not"
+  },
+  {
+   "id": "QA-FX-140",
+   "title": "`on_error: refuse` with a zero denominator",
+   "verdict": "PASS",
+   "evidence": "the refuse policy is consulted and names the entity"
+  },
+  {
+   "id": "QA-FX-142",
+   "title": "`0 ** -1` and `1e308 * 10`",
+   "verdict": "FAIL",
+   "evidence": "'a * b' over {'a': 1e+308, 'b': 10.0} evaluates to inf. Every other arithmetic failure here answers null or refuses; an infinity is neither, and it propagates through every mean, sum and threshold downstream without any of them noticing \u2014 a monitor over the column reports a breach it cannot explain"
+  },
+  {
+   "id": "QA-FX-145",
+   "title": "The ingest clock of a derived feature is the max of its inputs",
+   "verdict": "PASS",
+   "evidence": "max over the inputs, floored at the row's own stamp"
+  },
+  {
+   "id": "QA-FX-146",
+   "title": "Certification is the meet of the inputs",
+   "verdict": "PASS",
+   "evidence": "the meet lands at deprecated, and an unknown level ranks worst"
+  },
+  {
+   "id": "QA-FX-147",
+   "title": "A featureset plan reports certification as of now, not as pinned",
+   "verdict": "PASS",
+   "evidence": "the meet is recomputed from the inputs' current levels"
+  }
+ ]
+}
