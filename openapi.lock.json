@@ -427,6 +427,20 @@
         ]
       }
     },
+    "/api/v1/assist/capabilities/{capability_key}/suspend": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:capability_key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/assist/drafts": {
       "post": {
         "body": [

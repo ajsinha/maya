@@ -44,6 +44,12 @@ class CapabilityRegistry:
                  autonomy: str = "human_approved_automation",
                  review_sample: float = DEFAULT_REVIEW_SAMPLE,
                  actor: str = "system") -> Dict[str, Any]:
+        # Normalised before the comparison, so the same mistake gets the same
+        # answer. `tier == "C"` was case-sensitive, and a lower-case `c` fell
+        # through to `unknown_tier` — "expected A or B" — so somebody who
+        # typed the wrong case never learned that C is a deliberate refusal
+        # with an argument behind it, and would go looking for a typo.
+        tier = (tier or "").strip().upper()
         if tier == "C":
             raise AssistError(
                 "advisory_not_registrable",
@@ -67,6 +73,21 @@ class CapabilityRegistry:
                 "unknown_oracle", f"no oracle '{oracle_key}'",
                 "known oracles are "
                 + ", ".join(o["key"] for o in oracles.describe()))
+        # A review sample is the FRACTION of generations a person checks, so
+        # it lives in 0..1. Nothing checked it: 1.5 and -1 were both stored.
+        #
+        # A negative one is the dangerous value. Every screen that shows this
+        # renders a number beside "reviewed", and -1 reads as a control that
+        # is switched on while meaning that nothing is ever sampled.
+        if not isinstance(review_sample, (int, float)) or isinstance(
+                review_sample, bool) or not 0.0 <= float(review_sample) <= 1.0:
+            raise AssistError(
+                "review_sample_out_of_range",
+                f"a review sample of {review_sample!r} is not a fraction; it "
+                f"is the proportion of this capability's generations a person "
+                f"reads, so it lies between 0 and 1",
+                "0.0 means nobody samples and 1.0 means everything is read; "
+                "say which")
         if autonomy not in AUTONOMY:
             raise AssistError("unknown_autonomy", f"unknown autonomy '{autonomy}'",
                               f"expected one of {', '.join(AUTONOMY)}")
