@@ -5,11 +5,11 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.7,
+ "seconds": 0.6,
  "results": [
   {
    "id": "QA-FX-143",
-   "title": "The expression language will not evaluate a program",
+   "title": "Attribute access, subscripting, a comprehension, a lambda",
    "verdict": "PASS",
    "evidence": "all 7 escapes refused"
   }
