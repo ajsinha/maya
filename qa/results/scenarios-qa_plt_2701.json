@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-2701",
+   "title": "same_person itself is right",
+   "verdict": "PASS",
+   "evidence": "prefix, case and space collapse; different names do not"
+  }
+ ]
+}

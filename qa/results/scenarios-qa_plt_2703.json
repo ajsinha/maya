@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-2703",
+   "title": "The refusal codes for one-person duties are distinct",
+   "verdict": "PASS",
+   "evidence": "10 distinct codes: already_signed_personally, author_may_not_approve, not_the_reviewer, proposer_may_not_approve, raiser_may_not_close, reviewed_by_the_user, same_person, self_approval, self_extension, self_suspension"
+  }
+ ]
+}
