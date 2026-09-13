@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-324",
+   "title": "A trainability class with a trailing space",
+   "verdict": "PASS",
+   "evidence": "'T0 ' refused"
+  }
+ ]
+}

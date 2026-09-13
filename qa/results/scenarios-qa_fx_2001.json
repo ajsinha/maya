@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-FX-2001",
+   "title": "A verb that is not a warrant verb",
+   "verdict": "PASS",
+   "evidence": "refused, naming the 10 verbs"
+  }
+ ]
+}

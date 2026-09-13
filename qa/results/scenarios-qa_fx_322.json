@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-322",
+   "title": "Two shape errors at once",
+   "verdict": "PASS",
+   "evidence": "2 problems reported together"
+  }
+ ]
+}

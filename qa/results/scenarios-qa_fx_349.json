@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-349",
+   "title": "The grammar is checked before the signature",
+   "verdict": "PASS",
+   "evidence": "validated, then signed \u2014 asserted on the calls, not the words"
+  }
+ ]
+}

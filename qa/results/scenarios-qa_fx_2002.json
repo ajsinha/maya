@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-FX-2002",
+   "title": "The grammar is published for a reader",
+   "verdict": "PASS",
+   "evidence": "v1.0 published with every verb"
+  }
+ ]
+}
