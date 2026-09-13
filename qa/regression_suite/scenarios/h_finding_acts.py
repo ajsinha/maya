@@ -139,7 +139,7 @@ def am_088(ctx: Ctx) -> Result:
         "date, which is an uncounted extension")
 
 
-@case("QA-AM-089", "A refused acknowledgement leaves its plan behind")
+@case("QA-AM-089", "Immediately re-attempt QA-AM-088 with no plan at all")
 def am_089(ctx: Ctx) -> Result:
     """`acknowledge` records the plan BEFORE it checks the committed date. So
     an acknowledgement refused `beyond_the_due_date` has already written the
@@ -247,7 +247,7 @@ def am_098(ctx: Ctx) -> Result:
         "a date nobody had agreed to was extended")
 
 
-@case("QA-AM-099", "The owner extends their own deadline")
+@case("QA-AM-099", "Extend as the owner")
 def am_099(ctx: Ctx) -> Result:
     """An extension is the point at which somebody independent asks whether
     the date was ever realistic.
@@ -285,7 +285,7 @@ def am_099(ctx: Ctx) -> Result:
                   "deadline they set for themselves")
 
 
-@case("QA-AM-100", "The owner extends, spelled without the person/ prefix")
+@case("QA-AM-100", "Extend as the owner spelled without the person/ prefix")
 def am_100(ctx: Ctx) -> Result:
     """The same human, seven characters shorter. `same_person`, not `==`."""
     fid = _finding(ctx)

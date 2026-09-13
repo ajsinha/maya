@@ -5,11 +5,11 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.9,
+ "seconds": 0.8,
  "results": [
   {
    "id": "QA-AM-100",
-   "title": "The owner extends, spelled without the person/ prefix",
+   "title": "Extend as the owner spelled without the person/ prefix",
    "verdict": "PASS",
    "evidence": "refused 'self_extension' on the bare spelling too"
   }
