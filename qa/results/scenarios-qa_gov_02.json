@@ -1,41 +1,71 @@
 {
-  "summary": {
-    "total": 7,
-    "pass": 7,
-    "fail": 0,
-    "blocked": 0
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-020",
+   "title": "Register the same proposal twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_triaged'"
   },
-  "seconds": 1.0,
-  "results": [
-    {
-      "id": "QA-GOV-020",
-      "title": "Register the same proposal twice",
-      "verdict": "PASS",
-      "evidence": "refused 'not_triaged'"
-    },
-    {
-      "id": "QA-GOV-021",
-      "title": "Re-triage a proposal already triaged",
-      "verdict": "PASS",
-      "evidence": "revised; the chain holds both determinations ['build', 'buy']"
-    },
-    {
-      "id": "QA-GOV-022",
-      "title": "Register a proposal onto a URN already in the register",
-      "verdict": "PASS",
-      "evidence": "refused 'registry_refused', proposal still triaged"
-    },
-    {
-      "id": "QA-GOV-023",
-      "title": "Triage with an empty rationale",
-      "verdict": "PASS",
-      "evidence": "refused 'validation_error' (422)"
-    },
-    {
-      "id": "QA-GOV-029",
-      "title": "Submit twice",
-      "verdict": "PASS",
-      "evidence": "refused 'illegal_transition' (409)"
-    }
-  ]
+  {
+   "id": "QA-GOV-021",
+   "title": "Re-triage a proposal already triaged",
+   "verdict": "PASS",
+   "evidence": "revised; the chain holds both determinations ['build', 'buy']"
+  },
+  {
+   "id": "QA-GOV-022",
+   "title": "Register a proposal onto a URN already in the register",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', proposal still triaged"
+  },
+  {
+   "id": "QA-GOV-023",
+   "title": "Triage with an empty rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-GOV-024",
+   "title": "Amend a baselined record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition'"
+  },
+  {
+   "id": "QA-GOV-025",
+   "title": "Retire a baselined record with open debt",
+   "verdict": "PASS",
+   "evidence": "retired; 0 debt item(s) still recorded"
+  },
+  {
+   "id": "QA-GOV-026",
+   "title": "Submit a baselined record with open debt",
+   "verdict": "PASS",
+   "evidence": "submitted from baselined with 0 debt item(s) still open \u2014 the debt is governance owed, not a gate on the path"
+  },
+  {
+   "id": "QA-GOV-027",
+   "title": "Import the same legacy model twice",
+   "verdict": "PASS",
+   "evidence": "0 imported, 1 skipped, each naming the reason"
+  },
+  {
+   "id": "QA-GOV-028",
+   "title": "Record the same debt gap twice against one model",
+   "verdict": "PASS",
+   "evidence": "refused 'already_recorded' for gap 'version'"
+  },
+  {
+   "id": "QA-GOV-029",
+   "title": "Submit twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  }
+ ]
 }
