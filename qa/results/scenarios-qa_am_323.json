@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-323",
+   "title": "A heatmap over an empty estate",
+   "verdict": "PASS",
+   "evidence": "0 model(s) across 0 domain and 0 legal_entity. Shaded by what is OWED and not by count: a "
+  }
+ ]
+}

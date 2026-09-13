@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-327",
+   "title": "Aggregate exposure where no model records one",
+   "verdict": "PASS",
+   "evidence": "exposure reported with its coverage: the register is empty"
+  }
+ ]
+}
