@@ -313,8 +313,24 @@ class EvidenceEngine:
         # A checkpoint the anchors contradict is worse than no checkpoint,
         # because it makes the cheap check report valid forever over a chain
         # somebody rewrote. Fall back to the full walk and say why.
+        # **`contradicted`, not `not corroborated`.** Those are different
+        # facts and this line collapsed them for one commit.
+        #
+        # `corroborates` returns `corroborated: 0, contradicted: 0` when there
+        # is no anchor at or below the mark — *nothing vouches for this yet*,
+        # which is the state of every install until the first anchor job runs.
+        # Treating that as repudiation sent every readiness probe, dashboard
+        # load and compiled document down the full-chain walk and logged an
+        # ERROR each time: the exact regression §3.6 had just removed,
+        # reintroduced by the control added to make removing it safe.
+        #
+        # The unit test for this passed throughout. It asserted the first
+        # verification carried no `checkpoint_repudiated` — and the first
+        # verification has no checkpoint, so it takes the `mark is None`
+        # branch and never reaches this line. Found by watching the log during
+        # a QA run, not by the suite.
         vouched = self._corroborate(mark)
-        if vouched is not None and not vouched["corroborated"]:
+        if vouched is not None and vouched["contradicted"]:
             logger.error("checkpoint at seq %s repudiated by the anchors: %s",
                          mark["seq"], vouched["detail"])
             report = self.verify_chain()
@@ -382,7 +398,12 @@ class EvidenceEngine:
             # most convenient and least honest.
             logger.error("anchors could not be read to corroborate the "
                          "checkpoint at seq %s: %s", mark["seq"], exc)
-            return {"corroborated": 0, "contradicted": 0, "checked": 0,
+            # `contradicted: 1`, deliberately. An unreadable anchor is
+            # treated as tampering everywhere else here, and this is the path
+            # where calling it absence would be most convenient — it is the
+            # difference between "no anchor exists" and "the anchor cannot be
+            # read", and only the second is evidence of a problem.
+            return {"corroborated": 0, "contradicted": 1, "checked": 0,
                     "at_seq": None,
                     "detail": f"the anchor store could not be read ({exc}); a "
                               f"checkpoint nothing can vouch for is not "

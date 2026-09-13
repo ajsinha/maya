@@ -187,9 +187,13 @@ class WarrantRoutes(Routes):
             # The model is looked up from the warrant rather than taken from
             # the caller: `warrant:execute` is a permission about one model, and
             # a legal-entity scope that is not applied is not a scope.
-            grant = self.ctx["warrants"].grants.repo.one(id=body.warrant_id)
-            model = (self.ctx["registry"].by_id(grant["model_id"])
-                     if grant else None)
+            # An unknown warrant id left `model=None` and the scope check
+            # answered 500. That status means "the route forgot to say which
+            # model", and the route did not forget — the warrant is not there.
+            grant = self.found(
+                self.ctx["warrants"].grants.repo.one(id=body.warrant_id),
+                "warrant", body.warrant_id)
+            model = self.ctx["registry"].by_id(grant["model_id"])
             who = self.authorise(request, "warrant:execute", model=model)
             return self.guard(lambda: self.ctx["compute_zones"].attest(
                 body.warrant_id, ran_in=body.ran_in,
