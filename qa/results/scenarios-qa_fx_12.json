@@ -1,0 +1,89 @@
+{
+ "summary": {
+  "total": 13,
+  "pass": 12,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-FX-1200",
+   "title": "A profile that selects on a fact nobody derives",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_profile_fact'"
+  },
+  {
+   "id": "QA-FX-1201",
+   "title": "A predicate that allows nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_predicate'"
+  },
+  {
+   "id": "QA-FX-1202",
+   "title": "A profile that supplies no defaults",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_profile'"
+  },
+  {
+   "id": "QA-FX-1203",
+   "title": "Every authority key is refused as a default",
+   "verdict": "PASS",
+   "evidence": "all 15 authority keys refused by the control itself"
+  },
+  {
+   "id": "QA-FX-1204",
+   "title": "A default that is neither authority nor defaultable",
+   "verdict": "PASS",
+   "evidence": "refused 'not_defaultable'"
+  },
+  {
+   "id": "QA-FX-1205",
+   "title": "A profile with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'profile_name_required'"
+  },
+  {
+   "id": "QA-FX-1206",
+   "title": "A profile needs authority over the whole estate",
+   "verdict": "PASS",
+   "evidence": "refused (403)"
+  },
+  {
+   "id": "QA-FX-1207",
+   "title": "Retire a profile that was never registered",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_profile'"
+  },
+  {
+   "id": "QA-FX-1208",
+   "title": "Retiring a profile stops it applying",
+   "verdict": "FAIL",
+   "evidence": "retiring 'prof-7d6028b6' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+  },
+  {
+   "id": "QA-FX-1209",
+   "title": "A profile never overrides what the caller wrote",
+   "verdict": "PASS",
+   "evidence": "the caller's value stands and is not reported as filled"
+  },
+  {
+   "id": "QA-FX-1210",
+   "title": "Every filled value names the profile it came from",
+   "verdict": "PASS",
+   "evidence": "1 value(s), each naming profile@version"
+  },
+  {
+   "id": "QA-FX-1211",
+   "title": "Preview against a model with no version",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-FX-1212",
+   "title": "The vocabulary is published, not documented",
+   "verdict": "PASS",
+   "evidence": "published lists match the enforced ones"
+  }
+ ]
+}
