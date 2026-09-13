@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-331",
+   "title": "A next= parameter pointing off-site",
+   "verdict": "PASS",
+   "evidence": "the off-site destination is not carried"
+  }
+ ]
+}

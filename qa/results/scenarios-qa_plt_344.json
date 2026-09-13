@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-344",
+   "title": "SSO status on an instance with SSO unconfigured",
+   "verdict": "PASS",
+   "evidence": "answers that SSO is not enabled"
+  }
+ ]
+}

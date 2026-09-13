@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-325",
+   "title": "An API route under a session cookie with no CSRF token",
+   "verdict": "PASS",
+   "evidence": "refused 'csrf_token_invalid'"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-337",
+   "title": "An API key issued for an impossible lifetime",
+   "verdict": "PASS",
+   "evidence": "0, -1, 366 and 100000 days all refused"
+  }
+ ]
+}
