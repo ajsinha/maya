@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-PLT-2600",
+   "title": "A comment asking for something that is not an ask",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_ask', naming the 5 asks"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-PLT-2601",
+   "title": "A comment with no body",
+   "verdict": "PASS",
+   "evidence": "refused 'body_required'"
+  }
+ ]
+}

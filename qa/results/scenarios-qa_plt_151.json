@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-PLT-151",
+   "title": "A comment on a section the document does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_section'"
+  }
+ ]
+}
