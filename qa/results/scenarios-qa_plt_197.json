@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-197",
+   "title": "The raw ungrounded prose survives in the record",
+   "verdict": "PASS",
+   "evidence": "the rejected claim is kept beside the kept ones"
+  }
+ ]
+}

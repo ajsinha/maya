@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-195",
+   "title": "A generation created by `system`, attested by `system`",
+   "verdict": "FAIL",
+   "evidence": "a generation created by `system` was attested by `system`. Attestation is a person taking responsibility for machine output, and the `created_by` is-not-system carve-out \u2014 which exists so a human can attest a scheduled job's output \u2014 also lets the machine sign for itself"
+  }
+ ]
+}

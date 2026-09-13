@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-188",
+   "title": "A Tier B generation whose grounding rejects every claim",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded'"
+  }
+ ]
+}

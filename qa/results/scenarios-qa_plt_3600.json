@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-3600",
+   "title": "A capability of a tier that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable', naming tiers A, B"
+  }
+ ]
+}

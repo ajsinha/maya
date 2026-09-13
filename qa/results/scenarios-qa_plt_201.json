@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-201",
+   "title": "Set a budget of zero",
+   "verdict": "PASS",
+   "evidence": "zero refused on tokens, cost and steps"
+  }
+ ]
+}
