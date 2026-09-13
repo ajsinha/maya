@@ -48,6 +48,21 @@ class FindingRegister:
                                   f"expected one of {', '.join(SOURCES)}")
         if not owner:
             raise ValidationError("a finding with no owner is a finding nobody will fix")
+        # And a finding with no TITLE is a row in a worklist that says nothing
+        # about what is wrong.
+        #
+        # `owner` was checked and `title` was not, and the title is the only
+        # part of a finding that appears in a digest, a worklist and a board
+        # pack. `"   "` was accepted, so somebody could be assigned a blocking
+        # finding whose entire description of the problem is three spaces.
+        #
+        # Stripped, not merely truthy: `not "   "` is False, which is exactly
+        # how the blank ones got through everywhere else this pass found them.
+        if not (title or "").strip():
+            raise ValidationError(
+                "a finding with no title is a row in a worklist that says "
+                "nothing about what is wrong; the title is the only part that "
+                "reaches a digest or a board pack")
         now = time.time()
         row = {"model_id": model_id, "model_version_id": model_version_id,
                "validation_id": validation_id, "source": source, "severity": severity,
