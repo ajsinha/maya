@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-3904",
+   "title": "What layer 2 proves is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "what it proves, and what it does not, are both written down"
+  }
+ ]
+}
