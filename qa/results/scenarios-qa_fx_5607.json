@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5607",
+   "title": "The write check is anchored, not a substring search",
+   "verdict": "PASS",
+   "evidence": "anchored with word boundaries: ^\\s*(INSERT|UPDATE|DELETE|DROP|TRUNCATE|\u2026"
+  }
+ ]
+}
