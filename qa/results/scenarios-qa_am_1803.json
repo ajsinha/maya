@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-1803",
+   "title": "A breach names the observation it came from",
+   "verdict": "PASS",
+   "evidence": "1 breach(es), each naming observation and finding"
+  }
+ ]
+}

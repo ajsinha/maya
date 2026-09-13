@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-218",
+   "title": "A passing evaluation restarts the consecutive count",
+   "verdict": "PASS",
+   "evidence": "the run restarted; the next breach is Medium"
+  }
+ ]
+}
