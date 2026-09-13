@@ -14,17 +14,14 @@ was retired actually stops applying.
 from __future__ import annotations
 
 from core.execution.profiles import AUTHORITY_KEYS, DEFAULTABLE
-from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx,
-                                                  Result, case, code_of)
+from qa.regression_suite.scenarios.common import (BLOCKED, DENIAL, FAIL, PASS,
+                                                  Ctx, Result, case, code_of,
+                                                  refused_by_the_control)
 
 PROFILES = "/api/v1/warrant-profiles"
 #: `warrant:issue` is a FIRST-LINE act — it sits with the model owner, not
 #: with the model risk manager. Running these as `risk` had every case
-#: answering `forbidden`, which is a refusal, which read as a pass. A
-#: permission refusal proves nothing about the control being tested, so
-#: `refused_by_the_control` rejects it explicitly rather than trusting the
-#: fixture to keep using the right identity.
-DENIAL = ("forbidden", "unauthorised", "unauthorized")
+#: answering `forbidden`, which is a refusal, which read as a pass.
 TIER = {"model_class": "logistic", "domain": "credit",
         "legal_entity": "LE-US-01", "purpose": "credit_decision"}
 
@@ -34,19 +31,6 @@ def _profile(ctx: Ctx, **over):
             "defaults": {"max_seconds": 30}, "note": "QA"}
     body.update(over)
     return ctx.api.post(PROFILES, json=body, auth=ctx.people["owner"])
-
-
-def refused_by_the_control(got, subject: str) -> Result:
-    """Refused, and NOT merely because the caller lacked permission."""
-    if got.status_code >= 500:
-        return FAIL, f"{got.status_code} {got.text[:150]}"
-    if got.status_code < 400:
-        return FAIL, subject
-    code = code_of(got)
-    if code in DENIAL:
-        return BLOCKED, (f"answered '{code}' — the caller could not reach the "
-                         f"control, so this proves nothing about it")
-    return PASS, f"refused '{code or got.status_code}'"
 
 
 def _versioned_model(ctx: Ctx) -> str:

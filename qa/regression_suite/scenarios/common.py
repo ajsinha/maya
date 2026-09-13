@@ -58,6 +58,32 @@ def code_of(response) -> str:
     return ""
 
 
+#: Refusal codes that mean "the caller never reached the control". They are
+#: refusals, so a case asserting only `status_code >= 400` scores them as a
+#: pass — and then proves nothing about the thing it claims to test. This has
+#: cost two batches: a module run under a principal lacking the permission had
+#: every case green, including one walking a fifteen-member tuple.
+DENIAL = ("forbidden", "unauthorised", "unauthorized", "not_authenticated",
+          "csrf_token_invalid", "csrf_token_missing")
+
+
+def refused_by_the_control(response, subject: str) -> Result:
+    """Refused, and NOT merely because the caller could not get through the door.
+
+    `subject` is what to say if the act was ALLOWED — phrase it as the defect,
+    not as the expectation.
+    """
+    if response.status_code >= 500:
+        return FAIL, f"{response.status_code} {response.text[:150]}"
+    if response.status_code < 400:
+        return FAIL, subject
+    code = code_of(response)
+    if code in DENIAL:
+        return BLOCKED, (f"answered '{code}' — the caller never reached the "
+                         f"control, so this proves nothing about it")
+    return PASS, f"refused '{code or response.status_code}'"
+
+
 def expect_refused(response, *codes: str, status: Optional[int] = None) -> Result:
     """Refused, with one of these codes. The CODE is the assertion."""
     got = code_of(response)
