@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-3903",
+   "title": "Layer 2 reports comparisons, not rows",
+   "verdict": "PASS",
+   "evidence": "10 of 10 rows independently recomputed (30 values compared)"
+  }
+ ]
+}
