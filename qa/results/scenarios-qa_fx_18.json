@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 5,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-182",
+   "title": "Exporting CSV",
+   "verdict": "PASS",
+   "evidence": "refused, naming the 4 it will write"
+  },
+  {
+   "id": "QA-FX-183",
+   "title": "Importing CSV",
+   "verdict": "PASS",
+   "evidence": "csv reads and does not write; json writes and does not read"
+  },
+  {
+   "id": "QA-FX-185",
+   "title": "An empty body",
+   "verdict": "PASS",
+   "evidence": "an empty body and a zero-row file refuse apart"
+  },
+  {
+   "id": "QA-FX-186",
+   "title": "A well-formed parquet file holding zero rows",
+   "verdict": "PASS",
+   "evidence": "a zero-row upload is refused at the transfer boundary, unlike the materialise path \u2014 see QA-FX-039"
+  },
+  {
+   "id": "QA-FX-187",
+   "title": "An upload missing `ingest_ts`, checked once against the schema",
+   "verdict": "PASS",
+   "evidence": "the clocks are required and checked against the schema"
+  }
+ ]
+}

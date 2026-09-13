@@ -2970,6 +2970,9 @@ Every case is **re-runnable**. The second run is where the state bugs live, and 
 | QA-FX-4835 | `regression` | The rule count bound | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4835` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-4840 | `regression` | A clock that is a string rather than a number | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4840` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-4841 | `regression` | A clock that is a boolean | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4841` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4850 | `regression` | The upload extensions and the media types agree | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4850` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4851 | `regression` | The read batch is sized by cells, not by rows | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4851` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4852 | `regression` | The format is chosen from Accept when none is given | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4852` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- H-assurance-monitoring.md -->

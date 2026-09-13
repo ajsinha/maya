@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-4850",
+   "title": "The upload extensions and the media types agree",
+   "verdict": "FAIL",
+   "evidence": "the browser upload control offers '.json' and the API will not read 'json': `accept_attribute` builds its list from a hand-written tuple rather than from UPLOAD_FORMATS, so the two vocabularies have drifted again \u2014 this time in the direction where a picker accepts a file the upload then refuses. The comment above SUFFIXES records the same defect in the other direction"
+  }
+ ]
+}
