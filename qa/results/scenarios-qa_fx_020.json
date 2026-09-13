@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-020",
+   "title": "Exactly seven spine rows, then exactly eight",
+   "verdict": "PASS",
+   "evidence": "seven: only 7 rows; below eight a relationship between a column and \u2014 eight: screened"
+  }
+ ]
+}

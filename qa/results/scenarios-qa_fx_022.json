@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-022",
+   "title": "A continuous label \u2014 a regression training set",
+   "verdict": "PASS",
+   "evidence": "'label' is continuous, and the only screen available for a continuous column is a threshold split, which means nothing unless the label is binary"
+  }
+ ]
+}
