@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-4780",
+   "title": "A fresh `If-Match` is accepted",
+   "verdict": "PASS",
+   "evidence": "the current tag satisfies the precondition"
+  }
+ ]
+}

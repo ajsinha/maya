@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 1,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-4780",
+   "title": "A fresh `If-Match` is accepted",
+   "verdict": "FAIL",
+   "evidence": "a write carrying the CURRENT tag was refused 'precondition_unevaluable', so no conditional write can succeed"
+  },
+  {
+   "id": "QA-PLT-4781",
+   "title": "The ETag is served on a GET and is stable",
+   "verdict": "PASS",
+   "evidence": "stable across reads, moved by a write"
+  }
+ ]
+}

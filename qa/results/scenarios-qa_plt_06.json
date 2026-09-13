@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 6,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-060",
+   "title": "Two writers, no `If-Match` at all",
+   "verdict": "PASS",
+   "evidence": "both unconditional writes land, and the tag is offered on the read so a client can opt in"
+  },
+  {
+   "id": "QA-PLT-061",
+   "title": "A governed act that fails half way",
+   "verdict": "PASS",
+   "evidence": "the refused act left exactly one row"
+  },
+  {
+   "id": "QA-PLT-062",
+   "title": "An evidence append racing another evidence append",
+   "verdict": "PASS",
+   "evidence": "6 concurrent registrations, 6 nodes, contiguous and verifying"
+  },
+  {
+   "id": "QA-PLT-063",
+   "title": "A read-then-write check under concurrency",
+   "verdict": "FAIL",
+   "evidence": "3 of 4 racing writes answered 500 with no code: Internal Server Error"
+  },
+  {
+   "id": "QA-PLT-064",
+   "title": "Every immutable column written directly",
+   "verdict": "PASS",
+   "evidence": "all 14 immutable column(s) refused by the database"
+  },
+  {
+   "id": "QA-PLT-065",
+   "title": "model_version.status is deliberately not guarded",
+   "verdict": "PASS",
+   "evidence": "status moves; the immutable columns do not"
+  },
+  {
+   "id": "QA-PLT-066",
+   "title": "An append-only table against UPDATE and DELETE",
+   "verdict": "PASS",
+   "evidence": "1 append-only table(s) refuse both"
+  }
+ ]
+}

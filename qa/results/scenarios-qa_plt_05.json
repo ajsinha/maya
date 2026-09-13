@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-051",
+   "title": "An idempotent act whose *effects* are not in the response",
+   "verdict": "PASS",
+   "evidence": "the answer replayed and the chain is unchanged at 1"
+  },
+  {
+   "id": "QA-PLT-052",
+   "title": "A stale `If-Match` after somebody else wrote",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_failed', carrying the current tag"
+  },
+  {
+   "id": "QA-PLT-053",
+   "title": "`If-Match: *` against a resource that exists, and one that does not",
+   "verdict": "PASS",
+   "evidence": "`*` accepted where the resource exists, refused 'precondition_unevaluable' where it does not"
+  },
+  {
+   "id": "QA-PLT-054",
+   "title": "`If-Match` sent to a route that has no representation to compare",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_unevaluable'"
+  },
+  {
+   "id": "QA-PLT-055",
+   "title": "A write with a deliberately wrong If-Match",
+   "verdict": "PASS",
+   "evidence": "refused 412 'precondition_failed'"
+  },
+  {
+   "id": "QA-PLT-056",
+   "title": "A change confined to a field named `detail` produces an unchanged ETag",
+   "verdict": "PASS",
+   "evidence": "`detail` excluded, real state still tagged; 5 volatile fields"
+  },
+  {
+   "id": "QA-PLT-057",
+   "title": "A strong tag sent where a weak one was issued",
+   "verdict": "PASS",
+   "evidence": "the strong form is not silently normalised to the weak one"
+  },
+  {
+   "id": "QA-PLT-058",
+   "title": "If-None-Match with the current tag",
+   "verdict": "PASS",
+   "evidence": "304 with no body"
+  },
+  {
+   "id": "QA-PLT-059",
+   "title": "The ETag does not move when nothing changed",
+   "verdict": "PASS",
+   "evidence": "stable across three reads: W/\"sha256:72e16841b33af8"
+  }
+ ]
+}
