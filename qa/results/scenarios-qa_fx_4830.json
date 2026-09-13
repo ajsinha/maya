@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-4830",
+   "title": "Contradictions are reported before shadowing",
+   "verdict": "PASS",
+   "evidence": "contradictions raised before shadowing"
+  }
+ ]
+}

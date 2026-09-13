@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-290",
+   "title": "Two rules with one id",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_rule_id'"
+  },
+  {
+   "id": "QA-FX-291",
+   "title": "Two rules with the same condition and different outcomes",
+   "verdict": "PASS",
+   "evidence": "refused 'rules_contradict'"
+  },
+  {
+   "id": "QA-FX-292",
+   "title": "A rule shadowed by one earlier rule",
+   "verdict": "PASS",
+   "evidence": "refused 'rule_unreachable'"
+  },
+  {
+   "id": "QA-FX-293",
+   "title": "A rule shadowed by two earlier rules together",
+   "verdict": "PASS",
+   "evidence": "the union of a partition covers what neither half does"
+  },
+  {
+   "id": "QA-FX-294",
+   "title": "A condition expanding past 256 disjunctions",
+   "verdict": "PASS",
+   "evidence": "past 256 the expansion refuses, coverage answers a sound negative and satisfiability a sound positive"
+  },
+  {
+   "id": "QA-FX-295",
+   "title": "A between with the bounds the wrong way round",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_range'"
+  },
+  {
+   "id": "QA-FX-296",
+   "title": "The negation of `between`",
+   "verdict": "PASS",
+   "evidence": "treated as opaque: covers nothing rather than guessing"
+  },
+  {
+   "id": "QA-FX-297",
+   "title": "An ordered operator on a categorical field",
+   "verdict": "PASS",
+   "evidence": "refused 'unordered_comparison'"
+  },
+  {
+   "id": "QA-FX-298",
+   "title": "A numeric field compared against text",
+   "verdict": "PASS",
+   "evidence": "refused 'value_wrong_type'"
+  },
+  {
+   "id": "QA-FX-299",
+   "title": "A date field compared against an ISO string and against an epoch",
+   "verdict": "PASS",
+   "evidence": "an ISO date and an epoch are both accepted"
+  }
+ ]
+}

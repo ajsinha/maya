@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-317",
+   "title": "A catch-all row that is not last",
+   "verdict": "PASS",
+   "evidence": "the catch-all covers all 2 rows below it, the disjunctive half through the union pass"
+  }
+ ]
+}

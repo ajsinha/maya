@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 7,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-310",
+   "title": "Move an alias to a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-3100",
+   "title": "A warrant stating nothing has nothing unenforceable",
+   "verdict": "PASS",
+   "evidence": "no statement, no gap"
+  },
+  {
+   "id": "QA-FX-3101",
+   "title": "A resource limit of zero is not a limit",
+   "verdict": "PASS",
+   "evidence": "zero falls to 30.0s / 2048MB"
+  },
+  {
+   "id": "QA-FX-3102",
+   "title": "What was applied is reported, not what was intended",
+   "verdict": "PASS",
+   "evidence": "the applied limits are returned for the parent to record"
+  },
+  {
+   "id": "QA-FX-311",
+   "title": "A second alias move where neither version declares a schema",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-312",
+   "title": "A trial row that matches no rule",
+   "verdict": "PASS",
+   "evidence": "matched_rule is null and the otherwise answered"
+  },
+  {
+   "id": "QA-FX-317",
+   "title": "A catch-all row that is not last",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised RuleError: when uses operator 'gte' | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-FX-318",
+   "title": "A table with no catch-all row",
+   "verdict": "PASS",
+   "evidence": "an otherwise clause is carried, never invented"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-293",
+   "title": "A rule shadowed by two earlier rules together",
+   "verdict": "PASS",
+   "evidence": "the union of a partition covers what neither half does"
+  }
+ ]
+}
