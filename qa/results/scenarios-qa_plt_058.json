@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-058",
+   "title": "If-None-Match with the current tag",
+   "verdict": "PASS",
+   "evidence": "304 with no body"
+  }
+ ]
+}

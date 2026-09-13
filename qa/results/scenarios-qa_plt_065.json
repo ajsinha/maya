@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-065",
+   "title": "model_version.status is deliberately not guarded",
+   "verdict": "PASS",
+   "evidence": "status moves; the immutable columns do not"
+  }
+ ]
+}

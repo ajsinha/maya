@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-2500",
+   "title": "A flagged row cannot carry the content it flags",
+   "verdict": "PASS",
+   "evidence": "1 flagged table(s) refuse content"
+  }
+ ]
+}

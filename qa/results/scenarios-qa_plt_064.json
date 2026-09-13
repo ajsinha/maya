@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-064",
+   "title": "Every immutable column written directly",
+   "verdict": "PASS",
+   "evidence": "all 14 immutable column(s) refused by the database"
+  }
+ ]
+}

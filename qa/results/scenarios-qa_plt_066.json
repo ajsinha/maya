@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-066",
+   "title": "An append-only table against UPDATE and DELETE",
+   "verdict": "PASS",
+   "evidence": "1 append-only table(s) refuse both"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-055",
+   "title": "A write with a deliberately wrong If-Match",
+   "verdict": "PASS",
+   "evidence": "refused 412 'precondition_failed'"
+  }
+ ]
+}
