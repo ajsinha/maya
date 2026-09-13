@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-2003",
+   "title": "Validate a document that is not a document",
+   "verdict": "PASS",
+   "evidence": "11 problem(s) on an empty document"
+  }
+ ]
+}

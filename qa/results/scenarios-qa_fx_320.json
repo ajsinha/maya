@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-320",
+   "title": "A warrant missing one of the ten sections",
+   "verdict": "PASS",
+   "evidence": "all 10 sections required and named"
+  }
+ ]
+}

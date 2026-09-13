@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-350",
+   "title": "The published schema agrees with the enforced vocabulary",
+   "verdict": "PASS",
+   "evidence": "10 verbs and 10 sections present"
+  }
+ ]
+}

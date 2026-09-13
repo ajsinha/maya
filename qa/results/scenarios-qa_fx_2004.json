@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-2004",
+   "title": "A tampered document is still measured against the grammar",
+   "verdict": "PASS",
+   "evidence": "the grammar answers on shape alone (valid=True); the signature is a separate question"
+  }
+ ]
+}

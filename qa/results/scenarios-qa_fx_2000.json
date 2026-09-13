@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-2000",
+   "title": "A warrant the platform issued conforms to its own grammar",
+   "verdict": "PASS",
+   "evidence": "issued and conforming"
+  }
+ ]
+}

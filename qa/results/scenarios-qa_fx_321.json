@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-FX-321",
+   "title": "A wrong warrant grammar version",
+   "verdict": "PASS",
+   "evidence": "refused, naming v1.0 as expected"
+  }
+ ]
+}
