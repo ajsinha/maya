@@ -3463,6 +3463,9 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-3303 | `regression` | Nothing is stored, so the score cannot go stale | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-3303` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-3304 | `regression` | The verdict wins over the arithmetic | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-3304` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-3305 | `regression` | The estate view separates a poor score from a thin one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-3305` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-5200 | `regression` | The recommendation vocabulary never says promote | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-5200` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-5201 | `regression` | The materiality threshold is declared, never inferred | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-5201` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-5202 | `regression` | Every portfolio dimension says what it is | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-5202` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->

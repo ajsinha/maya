@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-5200",
+   "title": "The recommendation vocabulary never says promote",
+   "verdict": "PASS",
+   "evidence": "4: insufficient_evidence, no_material_difference, challenger_ahead, champion_ahead"
+  }
+ ]
+}

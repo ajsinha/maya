@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-320",
+   "title": "Cut the register by an unknown dimension",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_dimension', naming 7 dimensions"
+  },
+  {
+   "id": "QA-AM-3200",
+   "title": "A stream that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_stream', naming 2 streams"
+  }
+ ]
+}
