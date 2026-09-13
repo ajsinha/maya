@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 4,
-  "pass": 4,
+  "total": 10,
+  "pass": 10,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.8,
+ "seconds": 0.7,
  "results": [
   {
    "id": "QA-AM-1600",
@@ -30,6 +30,42 @@
    "title": "The estate view with no matters recorded",
    "verdict": "PASS",
    "evidence": "0 at risk, and the view says so"
+  },
+  {
+   "id": "QA-AM-163",
+   "title": "Declare a capacity of zero",
+   "verdict": "PASS",
+   "evidence": "zero, negative and an unowned capacity all refused"
+  },
+  {
+   "id": "QA-AM-164",
+   "title": "Declare a capacity twice for one person",
+   "verdict": "PASS",
+   "evidence": "one row at 9.0, and the chain records it was 4.0"
+  },
+  {
+   "id": "QA-AM-165",
+   "title": "Workload where a validator carries episodes and has declared none",
+   "verdict": "PASS",
+   "evidence": "1 validator(s) with no declared capacity, utilisation null and each named"
+  },
+  {
+   "id": "QA-AM-167",
+   "title": "Forecast with work due and no capacity declared anywhere",
+   "verdict": "PASS",
+   "evidence": "no division by zero, and the detail says why: 0 validation(s) fall due within 365 days and no validator has declared a capacit"
+  },
+  {
+   "id": "QA-AM-168",
+   "title": "Queue where a Tier 4 model is due before a Tier 1",
+   "verdict": "PASS",
+   "evidence": "inverted, naming the model in front and what it precedes"
+  },
+  {
+   "id": "QA-AM-169",
+   "title": "Queue with `horizon_days=0`",
+   "verdict": "PASS",
+   "evidence": "zero horizon -> 0, ten years -> 0"
   }
  ]
 }
