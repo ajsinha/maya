@@ -5,11 +5,11 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.7,
+ "seconds": 0.6,
  "results": [
   {
    "id": "QA-FX-141",
-   "title": "Arithmetic with no answer gives null, not an exception",
+   "title": "`log` of a non-positive number and `sqrt` of a negative",
    "verdict": "PASS",
    "evidence": "undefined arithmetic gives null across 9 functions"
   }

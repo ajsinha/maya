@@ -95,7 +95,7 @@ def fx_132(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-FX-137", "An input that is not defined")
+@case("QA-FX-137", "An undefined input")
 def fx_137(ctx: Ctx) -> Result:
     """Naming it is the point: a derived feature reading something that does
     not exist fails at assembly, months later, over a cohort."""
@@ -225,7 +225,7 @@ def fx_138(ctx: Ctx) -> Result:
                   "parse")
 
 
-@case("QA-FX-141", "Arithmetic with no answer gives null, not an exception")
+@case("QA-FX-141", "`log` of a non-positive number and `sqrt` of a negative")
 def fx_141(ctx: Ctx) -> Result:
     """`log` of a non-positive number and `sqrt` of a negative one. A row
     whose arithmetic has no answer is a null, not a failed batch."""

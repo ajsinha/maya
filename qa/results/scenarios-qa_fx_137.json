@@ -5,11 +5,11 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.8,
+ "seconds": 0.6,
  "results": [
   {
    "id": "QA-FX-137",
-   "title": "An input that is not defined",
+   "title": "An undefined input",
    "verdict": "PASS",
    "evidence": "refused 'feature_refused', naming the input"
   }
