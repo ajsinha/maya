@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-041",
+   "title": "Materialise exactly one row",
+   "verdict": "PASS",
+   "evidence": "version 1, row_count 1"
+  },
+  {
+   "id": "QA-FX-042",
+   "title": "Materialise identical rows twice",
+   "verdict": "PASS",
+   "evidence": "versions 1 and 2, 5 rows each"
+  },
+  {
+   "id": "QA-FX-043",
+   "title": "A row missing `ingest_ts`",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming ingest_ts"
+  },
+  {
+   "id": "QA-FX-044",
+   "title": "A row missing `event_ts`",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming event_ts"
+  },
+  {
+   "id": "QA-FX-045",
+   "title": "A row missing `entity_id`",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming entity_id"
+  },
+  {
+   "id": "QA-FX-046",
+   "title": "One row of a hundred missing a clock",
+   "verdict": "PASS",
+   "evidence": "refused whole, nothing written, a clean load then records 100"
+  },
+  {
+   "id": "QA-FX-047",
+   "title": "A row carrying a column the view does not list",
+   "verdict": "PASS",
+   "evidence": "the extra column is recorded: ['score', 'unlisted']"
+  },
+  {
+   "id": "QA-FX-048",
+   "title": "`feature_names` naming a column no row carries",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' \u2014 a declared column no row carries is rejected at the load"
+  },
+  {
+   "id": "QA-FX-049",
+   "title": "A column that is null in every row",
+   "verdict": "PASS",
+   "evidence": "accepted, and the quality report shows the null rate"
+  }
+ ]
+}
