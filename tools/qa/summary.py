@@ -83,7 +83,24 @@ def main() -> int:
           f"{blocked:>6} {unproven:>6}")
     print(f"\n{run} of {total} published cases executed "
           f"({100.0 * run / total:.0f}%), {total - run} not yet run")
-    stray = sorted(c for c in ran if c not in known)
+    # The sweep is reported SEPARATELY and never added to the coverage
+    # figure. It asks a different question — is this property true
+    # everywhere — over ids nobody published, and folding it in would let a
+    # run claim a percentage of a list it is not walking.
+    sweep = RESULTS / "sweep.json"
+    if sweep.is_file():
+        payload = json.loads(sweep.read_text(encoding="utf-8"))
+        counts = payload.get("summary", {})
+        rows = payload.get("results", [])
+        print(f"\nproperty sweep (a different method, not part of the "
+              f"coverage above): {len(rows)} probes over "
+              f"{len({r['path'] for r in rows})} endpoints")
+        print(f"  refused {counts.get('REFUSED', 0)} · "
+              f"accepted {counts.get('ACCEPTED', 0)} · "
+              f"crashed {counts.get('CRASHED', 0)} · "
+              f"unreached {counts.get('UNREACHED', 0)}")
+
+    stray = sorted(c for c in ran if c not in known and not c.startswith("SWEEP-"))
     if stray:
         print(f"{len(stray)} result(s) for ids not in the published list: "
               f"{stray[:6]}")

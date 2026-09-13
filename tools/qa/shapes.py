@@ -124,6 +124,19 @@ def example(schema: Dict[str, Any], spec: Dict[str, Any],
     return "qa"
 
 
+def fields_of(method: str, path: str, client=None) -> Dict[str, Any]:
+    """Every declared property and its schema, required or not."""
+    spec = document(client)
+    operation = spec.get("paths", {}).get(path, {}).get(method.lower(), {})
+    schema = (operation.get("requestBody", {})
+              .get("content", {}).get("application/json", {}).get("schema"))
+    if not schema:
+        return {}
+    schema = _resolve(schema, spec)
+    return {name: _resolve(child, spec)
+            for name, child in (schema.get("properties") or {}).items()}
+
+
 def body_for(method: str, path: str, client=None) -> Dict[str, Any]:
     """A body the endpoint will accept, built from its own schema."""
     spec = document(client)
