@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 22,
-  "pass": 20,
+  "total": 49,
+  "pass": 47,
   "fail": 2,
   "blocked": 0
  },
- "seconds": 0.9,
+ "seconds": 1.1,
  "results": [
   {
    "id": "QA-FX-400",
@@ -16,8 +16,8 @@
   {
    "id": "QA-FX-412",
    "title": "A runtime the captive engine never implemented",
-   "verdict": "FAIL",
-   "evidence": "the case itself raised TypeError: 'in <string>' requires string as left operand, not dict | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenarios/g_execution_guards.py\", line 286, in fx_412     engine.runtimes.invoke(Invocation(warrant, {}))     ~~~~~~~~~~~"
+   "verdict": "PASS",
+   "evidence": "refused 'no_runtime', naming 8 it has"
   },
   {
    "id": "QA-FX-414",
@@ -34,8 +34,8 @@
   {
    "id": "QA-FX-416",
    "title": "An artifact path resolving outside the configured root",
-   "verdict": "FAIL",
-   "evidence": "refused 'artifact_missing'"
+   "verdict": "PASS",
+   "evidence": "traversal refused 'artifact_outside_root'; a real path inside the root refused 'artifact_missing'"
   },
   {
    "id": "QA-FX-417",
@@ -120,6 +120,168 @@
    "title": "The order of the six pre-artifact checks",
    "verdict": "PASS",
    "evidence": "six checks, all before dispatch: resolve, signature, revocation, epoch, expiry, boundary"
+  },
+  {
+   "id": "QA-FX-446",
+   "title": "A profile supplying `principal`",
+   "verdict": "PASS",
+   "evidence": "refused 'authority_not_defaultable', naming the gate"
+  },
+  {
+   "id": "QA-FX-447",
+   "title": "A profile supplying the TTL or the grace",
+   "verdict": "PASS",
+   "evidence": "both the ttl and the grace are refused as authority"
+  },
+  {
+   "id": "QA-FX-448",
+   "title": "A profile with no defaults",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_profile'"
+  },
+  {
+   "id": "QA-FX-449",
+   "title": "A profile selecting on a fact outside the nine",
+   "verdict": "FAIL",
+   "evidence": "the refusal does not name ['trainability_class', 'parameter_kind', 'fit_procedure', 'runtime', 'artifact_format', 'environment', 'tier', 'domain', 'model_class']"
+  },
+  {
+   "id": "QA-FX-450",
+   "title": "A predicate that allows nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_predicate', naming the alternative"
+  },
+  {
+   "id": "QA-FX-451",
+   "title": "Two matching profiles fold rightmost-wins per key",
+   "verdict": "PASS",
+   "evidence": "the general supplies what the specific is silent about, the specific wins where they overlap"
+  },
+  {
+   "id": "QA-FX-453",
+   "title": "A profile default identical to the caller's value",
+   "verdict": "PASS",
+   "evidence": "the caller's value stands and the profile claims nothing"
+  },
+  {
+   "id": "QA-FX-456",
+   "title": "Every filled value names its origin",
+   "verdict": "PASS",
+   "evidence": "both keys attributed to ['shape@7']"
+  },
+  {
+   "id": "QA-FX-4800",
+   "title": "Every admissibility law is reachable from the validator",
+   "verdict": "PASS",
+   "evidence": "all 13 check_ functions are called by the validator"
+  },
+  {
+   "id": "QA-FX-4810",
+   "title": "`fitted` is refused for every kind that nothing fits",
+   "verdict": "PASS",
+   "evidence": "3 kinds refused `fitted`: ['elicited_weights', 'llm_configuration', 'rule_set']"
+  },
+  {
+   "id": "QA-FX-4820",
+   "title": "Independent edits commute",
+   "verdict": "PASS",
+   "evidence": "independent edits commute to {'a': 10, 'b': 20}; dependent ones do not"
+  },
+  {
+   "id": "QA-FX-4821",
+   "title": "merge is not mutation",
+   "verdict": "PASS",
+   "evidence": "merge, apply and fold all leave their inputs alone"
+  },
+  {
+   "id": "QA-FX-4830",
+   "title": "Contradictions are reported before shadowing",
+   "verdict": "PASS",
+   "evidence": "contradictions raised before shadowing"
+  },
+  {
+   "id": "QA-FX-4831",
+   "title": "An undecided rule is reported, never counted as clean",
+   "verdict": "PASS",
+   "evidence": "Undecided is caught, recorded, and kept apart from shadowed"
+  },
+  {
+   "id": "QA-FX-4832",
+   "title": "A condition no input can satisfy",
+   "verdict": "PASS",
+   "evidence": "the impossible interval is caught, the ordinary one is not"
+  },
+  {
+   "id": "QA-FX-4833",
+   "title": "A condition nested past the depth bound",
+   "verdict": "PASS",
+   "evidence": "refused past 6 levels, naming the path"
+  },
+  {
+   "id": "QA-FX-4834",
+   "title": "A condition naming no field, and an unknown operator",
+   "verdict": "PASS",
+   "evidence": "no field, unknown operator and empty group all refused by path"
+  },
+  {
+   "id": "QA-FX-4835",
+   "title": "The rule count bound",
+   "verdict": "PASS",
+   "evidence": "bounded at 512 rules"
+  },
+  {
+   "id": "QA-FX-4840",
+   "title": "A clock that is a string rather than a number",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming the row and the clock"
+  },
+  {
+   "id": "QA-FX-4841",
+   "title": "A clock that is a boolean",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming the type"
+  },
+  {
+   "id": "QA-FX-4850",
+   "title": "The upload extensions and the media types agree",
+   "verdict": "FAIL",
+   "evidence": "the browser upload control offers '.json' and the API will not read 'json': `accept_attribute` builds its list from a hand-written tuple rather than from UPLOAD_FORMATS, so the two vocabularies have drifted again \u2014 this time in the direction where a picker accepts a file the upload then refuses. The comment above SUFFIXES records the same defect in the other direction"
+  },
+  {
+   "id": "QA-FX-4851",
+   "title": "The read batch is sized by cells, not by rows",
+   "verdict": "PASS",
+   "evidence": "6 columns -> 16384 rows, 2,000 -> 524, floored at 512"
+  },
+  {
+   "id": "QA-FX-4852",
+   "title": "The format is chosen from Accept when none is given",
+   "verdict": "PASS",
+   "evidence": "explicit wins, Accept resolves, json is the fallback"
+  },
+  {
+   "id": "QA-FX-4860",
+   "title": "A panel with the same person listed twice",
+   "verdict": "PASS",
+   "evidence": "three entries naming two people is refused as a panel of two, so a name cannot be repeated to meet the floor"
+  },
+  {
+   "id": "QA-FX-4870",
+   "title": "Every authority key is refused, and only those",
+   "verdict": "PASS",
+   "evidence": "15 authority keys refused, 5 defaultable keys accepted, no overlap"
+  },
+  {
+   "id": "QA-FX-4871",
+   "title": "A single value is accepted where a list is expected",
+   "verdict": "PASS",
+   "evidence": "a scalar is normalised to a one-element list"
+  },
+  {
+   "id": "QA-FX-4872",
+   "title": "No matching profile leaves the request untouched",
+   "verdict": "PASS",
+   "evidence": "unchanged, nothing applied, and it says so"
   },
   {
    "id": "QA-FX-4900",

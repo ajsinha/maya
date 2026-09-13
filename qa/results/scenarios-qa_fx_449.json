@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-449",
+   "title": "A profile selecting on a fact outside the nine",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_profile_fact', naming all 9 derived facts"
+  }
+ ]
+}
