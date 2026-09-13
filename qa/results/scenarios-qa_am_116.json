@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-116",
+   "title": "A second person closes with an empty evidence object",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  }
+ ]
+}

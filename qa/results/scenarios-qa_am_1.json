@@ -1,12 +1,114 @@
 {
  "summary": {
-  "total": 33,
-  "pass": 27,
-  "fail": 6,
+  "total": 77,
+  "pass": 69,
+  "fail": 8,
   "blocked": 0
  },
- "seconds": 1.1,
+ "seconds": 1.4,
  "results": [
+  {
+   "id": "QA-AM-100",
+   "title": "Extend as the owner spelled without the person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'self_extension' on the bare spelling too"
+  },
+  {
+   "id": "QA-AM-101",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-103",
+   "title": "Extend to exactly the current due date",
+   "verdict": "PASS",
+   "evidence": "refused 'not_an_extension'"
+  },
+  {
+   "id": "QA-AM-104",
+   "title": "Extend a High finding by exactly its own window",
+   "verdict": "PASS",
+   "evidence": "90 days granted, the boundary is inclusive"
+  },
+  {
+   "id": "QA-AM-105",
+   "title": "Extend a High finding by one day more than its window",
+   "verdict": "PASS",
+   "evidence": "refused 'extension_too_long'"
+  },
+  {
+   "id": "QA-AM-111",
+   "title": "Act against a closed finding",
+   "verdict": "PASS",
+   "evidence": "assign, acknowledge, plan and extend all refused once closed"
+  },
+  {
+   "id": "QA-AM-112",
+   "title": "Act against a finding id that does not exist",
+   "verdict": "PASS",
+   "evidence": "all four acts refused against an unknown id"
+  },
+  {
+   "id": "QA-AM-113",
+   "title": "Owner closes their own finding",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-114",
+   "title": "Owner closes their own finding naming a colleague as `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'verifier_not_self'"
+  },
+  {
+   "id": "QA-AM-115",
+   "title": "Owner closes naming themselves in `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' \u2014 the duties check, not the name"
+  },
+  {
+   "id": "QA-AM-116",
+   "title": "A second person closes with an empty evidence object",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-117",
+   "title": "A second person closes with `evidence: {\"note\": \"\"}`",
+   "verdict": "FAIL",
+   "evidence": "a finding closed with `{\"note\": \"\"}`: the check is `if not evidence`, which is truthiness on the dict and not on anything in it, so a closure with nothing written down is recorded as evidenced \u2014 while `extend` refuses a reason that is only whitespace"
+  },
+  {
+   "id": "QA-AM-118",
+   "title": "Close an already closed finding",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-119",
+   "title": "Close a finding straight from `open`, never acknowledged or planned",
+   "verdict": "PASS",
+   "evidence": "closed, verified by validator"
+  },
+  {
+   "id": "QA-AM-120",
+   "title": "Close a blocking finding, then resolve a warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'blocked', then resolved once the finding closed"
+  },
+  {
+   "id": "QA-AM-121",
+   "title": "Close a blocking finding while a *second* blocking finding is open",
+   "verdict": "PASS",
+   "evidence": "refused, naming the second blocker and not the first"
+  },
+  {
+   "id": "QA-AM-122",
+   "title": "The owner is reassigned to the intended verifier, who then closes",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
   {
    "id": "QA-AM-1300",
    "title": "A test that does not decompose is refused by name",
@@ -116,6 +218,132 @@
    "evidence": "the acknowledged child is still counted"
   },
   {
+   "id": "QA-AM-147",
+   "title": "One matter raises one finding per model in scope",
+   "verdict": "PASS",
+   "evidence": "4 models, 4 findings"
+  },
+  {
+   "id": "QA-AM-148",
+   "title": "Raise a second matter under one supervisor reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-149",
+   "title": "Raise a matter with an empty scope",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-150",
+   "title": "An MRIA's findings block",
+   "verdict": "PASS",
+   "evidence": "all 1 MRIA findings block"
+  },
+  {
+   "id": "QA-AM-1500",
+   "title": "Raise a matter of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 5 kinds"
+  },
+  {
+   "id": "QA-AM-1501",
+   "title": "Raise a matter with no supervisor reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1502",
+   "title": "An MRA's findings do not block",
+   "verdict": "PASS",
+   "evidence": "MRA findings do not block; MRIA findings do"
+  },
+  {
+   "id": "QA-AM-1503",
+   "title": "The headroom boundary is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "slack reported, and 14 days named at the edge"
+  },
+  {
+   "id": "QA-AM-151",
+   "title": "Close a matter with a finding still open",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-153",
+   "title": "Close a matter with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-154",
+   "title": "The internal plan lands months after the committed date",
+   "verdict": "PASS",
+   "evidence": "reported as a miss, not a near miss"
+  },
+  {
+   "id": "QA-AM-157",
+   "title": "A matter with open findings and no committed date",
+   "verdict": "PASS",
+   "evidence": "not at risk, and the missing commitment is the stated reason"
+  },
+  {
+   "id": "QA-AM-158",
+   "title": "Every finding closed, the matter still open",
+   "verdict": "PASS",
+   "evidence": "the headline is that the work is done"
+  },
+  {
+   "id": "QA-AM-1600",
+   "title": "A validation kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1601",
+   "title": "Open against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1602",
+   "title": "The independence verdict names who built it",
+   "verdict": "PASS",
+   "evidence": "independent of 'developer': no validator built this version"
+  },
+  {
+   "id": "QA-AM-161",
+   "title": "The estate view with no matters recorded",
+   "verdict": "PASS",
+   "evidence": "2 at risk, and the view says so"
+  },
+  {
+   "id": "QA-AM-1700",
+   "title": "Conclude approved over a failed test",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the alternatives"
+  },
+  {
+   "id": "QA-AM-1701",
+   "title": "Conclude approved_with_conditions with no results either",
+   "verdict": "FAIL",
+   "evidence": "an episode that examined nothing concluded 'approved_with_conditions'; the no-results check guards 'approved' alone, so an unexamined model can be passed under a neighbouring outcome"
+  },
+  {
+   "id": "QA-AM-1702",
+   "title": "An outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 4 outcomes"
+  },
+  {
+   "id": "QA-AM-1703",
+   "title": "A tier verdict that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
    "id": "QA-AM-173",
    "title": "Approve a waiver whose window has already passed",
    "verdict": "FAIL",
@@ -156,6 +384,30 @@
    "title": "Renew an active waiver early, with most of it left to run",
    "verdict": "FAIL",
    "evidence": "renewing shortened the window by 50 days: `renew` sets `expires_at` to now + days rather than extending from the existing expiry, so renewing a waiver early takes time away from it under a verb that reads as adding time"
+  },
+  {
+   "id": "QA-AM-1800",
+   "title": "The first breach carries the monitor's own severity",
+   "verdict": "PASS",
+   "evidence": "first breach at the monitor's own severity"
+  },
+  {
+   "id": "QA-AM-1801",
+   "title": "Escalation stops at Critical",
+   "verdict": "PASS",
+   "evidence": "a run of 300 stops at Critical"
+  },
+  {
+   "id": "QA-AM-1802",
+   "title": "escalate_after of zero does not escalate",
+   "verdict": "PASS",
+   "evidence": "escalate_after 0 holds the base severity"
+  },
+  {
+   "id": "QA-AM-1803",
+   "title": "A breach names the observation it came from",
+   "verdict": "PASS",
+   "evidence": "1 breach(es), each naming observation and finding"
   },
   {
    "id": "QA-AM-182",
@@ -204,6 +456,18 @@
    "title": "Revoke an already closed waiver",
    "verdict": "PASS",
    "evidence": "refused 'already_closed'"
+  },
+  {
+   "id": "QA-AM-1900",
+   "title": "Replay with data that is not the data",
+   "verdict": "PASS",
+   "evidence": "mismatched: stored 0.00729286227175818, replayed 2.301270110990763"
+  },
+  {
+   "id": "QA-AM-1901",
+   "title": "Replay data for a test the episode never recorded",
+   "verdict": "PASS",
+   "evidence": "extra data supplied, and only the recorded test counted"
   }
  ]
 }

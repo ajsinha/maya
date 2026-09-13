@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-114",
+   "title": "Owner closes their own finding naming a colleague as `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'verifier_not_self'"
+  }
+ ]
+}

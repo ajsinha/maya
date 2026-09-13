@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-117",
+   "title": "A second person closes with `evidence: {\"note\": \"\"}`",
+   "verdict": "FAIL",
+   "evidence": "a finding closed with `{\"note\": \"\"}`: the check is `if not evidence`, which is truthiness on the dict and not on anything in it, so a closure with nothing written down is recorded as evidenced \u2014 while `extend` refuses a reason that is only whitespace"
+  }
+ ]
+}

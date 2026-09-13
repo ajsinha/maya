@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 2,
-  "pass": 2,
-  "fail": 0,
+  "total": 9,
+  "pass": 8,
+  "fail": 1,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 0.6,
  "results": [
   {
    "id": "QA-AM-111",
@@ -18,6 +18,48 @@
    "title": "Act against a finding id that does not exist",
    "verdict": "PASS",
    "evidence": "all four acts refused against an unknown id"
+  },
+  {
+   "id": "QA-AM-113",
+   "title": "Owner closes their own finding",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-114",
+   "title": "Owner closes their own finding naming a colleague as `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'verifier_not_self'"
+  },
+  {
+   "id": "QA-AM-115",
+   "title": "Owner closes naming themselves in `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' \u2014 the duties check, not the name"
+  },
+  {
+   "id": "QA-AM-116",
+   "title": "A second person closes with an empty evidence object",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-117",
+   "title": "A second person closes with `evidence: {\"note\": \"\"}`",
+   "verdict": "FAIL",
+   "evidence": "a finding closed with `{\"note\": \"\"}`: the check is `if not evidence`, which is truthiness on the dict and not on anything in it, so a closure with nothing written down is recorded as evidenced \u2014 while `extend` refuses a reason that is only whitespace"
+  },
+  {
+   "id": "QA-AM-118",
+   "title": "Close an already closed finding",
+   "verdict": "PASS",
+   "evidence": "refused 'segregation_of_duties'"
+  },
+  {
+   "id": "QA-AM-119",
+   "title": "Close a finding straight from `open`, never acknowledged or planned",
+   "verdict": "PASS",
+   "evidence": "closed, verified by validator"
   }
  ]
 }
