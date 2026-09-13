@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-5604",
+   "title": "A trailing semicolon is not a second statement",
+   "verdict": "PASS",
+   "evidence": "a trailing semicolon is accepted"
+  }
+ ]
+}

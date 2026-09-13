@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5602",
+   "title": "Leading whitespace and case do not hide a write",
+   "verdict": "PASS",
+   "evidence": "whitespace and case do not disguise a write"
+  }
+ ]
+}

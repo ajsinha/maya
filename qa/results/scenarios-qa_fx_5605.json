@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-5605",
+   "title": "An empty statement",
+   "verdict": "PASS",
+   "evidence": "an empty statement is refused"
+  }
+ ]
+}

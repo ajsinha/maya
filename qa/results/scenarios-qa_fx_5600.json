@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5600",
+   "title": "Every write verb is refused",
+   "verdict": "PASS",
+   "evidence": "all 15 write verbs refused"
+  }
+ ]
+}
