@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.2,
+ "results": [
+  {
+   "id": "QA-PLT-226",
+   "title": "A restore whose head disagrees with the manifest",
+   "verdict": "PASS",
+   "evidence": "head_agrees false, exit 1: the restored chain verifies against ITSELF but sits at a different head from the one this backup recorded. Tha"
+  }
+ ]
+}

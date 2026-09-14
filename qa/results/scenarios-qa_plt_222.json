@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.0,
+ "results": [
+  {
+   "id": "QA-PLT-222",
+   "title": "Back up an instance on a dialect that is neither",
+   "verdict": "FAIL",
+   "evidence": "the tool branches on `not dialect.startswith('sqlite')` and every non-SQLite dialect is told about `pg_dump` and `pg_basebackup`. An operator on MySQL, Oracle or a typo in the URL is handed PostgreSQL instructions \u2014 the remediation is confident and wrong, which reads as though somebody checked the dialect and did not. The refusal is right; only its addressee is assumed"
+  }
+ ]
+}

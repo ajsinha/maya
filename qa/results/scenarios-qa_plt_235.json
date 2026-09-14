@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-PLT-235",
+   "title": "Back up, restore, and verify the chain end to end",
+   "verdict": "PASS",
+   "evidence": "4 node(s) backed up and restored; head agrees, chain verifies, every store digest matches"
+  }
+ ]
+}
