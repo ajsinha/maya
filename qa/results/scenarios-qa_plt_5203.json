@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-PLT-5203",
+   "title": "No permission is ever read from a token or its claims",
+   "verdict": "PASS",
+   "evidence": "the authoriser shares no vocabulary with the directory, and claim-shaped fields on a principal grant nothing"
+  }
+ ]
+}

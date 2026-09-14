@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-PLT-350",
+   "title": "An unknown SSO identity with provisioning off",
+   "verdict": "PASS",
+   "evidence": "refused 'not_provisioned': stranger-bc4e267e authenticated successfully and has no principal here"
+  }
+ ]
+}

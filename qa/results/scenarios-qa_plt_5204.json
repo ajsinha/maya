@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.7,
+ "results": [
+  {
+   "id": "QA-PLT-5204",
+   "title": "A directory sign-in overwrites locally granted roles",
+   "verdict": "PASS",
+   "evidence": "the directory is the source of truth for roles while SSO is on: ['model_risk_manager'] \u2192 ['validator'] on sign-in. Authorisation is still the register's \u2014 the roles are WRITTEN to it and read from it \u2014 and the act is recorded with the groups, the mapping and the resulting roles, which is what makes a past grant explainable"
+  }
+ ]
+}
