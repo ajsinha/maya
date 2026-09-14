@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-167",
+   "title": "A search whose query is nothing but stop words",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_query' 422 over 17 stop words, and a one-character term too"
+  }
+ ]
+}

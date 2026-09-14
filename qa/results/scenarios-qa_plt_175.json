@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-175",
+   "title": "A search with `limit=1` over many matches",
+   "verdict": "PASS",
+   "evidence": "matches 6 over 6 searched, one row returned"
+  }
+ ]
+}

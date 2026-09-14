@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-170",
+   "title": "A genuinely extractable PDF declared honestly",
+   "verdict": "FAIL",
+   "evidence": "a text-bearing PDF filed under its true media type is counted unread and stays unread: `text_indexed` is written once in `attach()` as `media_type in TEXT_MEDIA` and no route in the API writes it again \u2014 there is no re-index, no extract, no correction. The only way to make this document searchable is to file it again declaring a media type it does not have, which is the behaviour the coverage figu"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-169",
+   "title": "Coverage driven to 1.0 by mislabelling one file",
+   "verdict": "FAIL",
+   "evidence": "the same bytes filed twice \u2014 as `application/pdf` and as `text/plain` \u2014 move coverage from 0.0 to 0.5, because `text_indexed` is `media_type in TEXT_MEDIA` and the media type is whatever the uploading client declared. The mislabelled copy is now counted as searchable and its bytes are searched as text (1 result(s) for a term inside it). Coverage is the figure a reader is told to check BEFORE trust"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-174",
+   "title": "A quarantined or rejected attachment in the search results",
+   "verdict": "FAIL",
+   "evidence": "a document the register rejected \u2014 state 'rejected', reviewed with 'wrong figure, do not use' \u2014 is returned by search with its text quoted back: 'the rejected figure is 99.9 percent'. `_candidates` yields every current attachment and filters only on `kind`, so none of the 4 states narrows the corpus. The hit carries `state`, which is honest and is not a filter: a reader searching for a figure find"
+  }
+ ]
+}

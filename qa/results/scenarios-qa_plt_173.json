@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-173",
+   "title": "Superseding every unread document with a text note",
+   "verdict": "FAIL",
+   "evidence": "superseding an unread PDF with a 31-byte text note moved coverage from 0.0 to 1.0 (1 unread \u2192 0) while the content it measured became unreachable: a term inside the superseded document now returns 0 result(s). The figure a reader is told to check before trusting an empty answer is improved by removing the documents it was counting"
+  }
+ ]
+}

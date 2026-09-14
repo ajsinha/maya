@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 2,
+  "fail": 8,
+  "blocked": 0
+ },
+ "seconds": 2.5,
+ "results": [
+  {
+   "id": "QA-PLT-170",
+   "title": "A genuinely extractable PDF declared honestly",
+   "verdict": "FAIL",
+   "evidence": "a text-bearing PDF filed under its true media type is counted unread and stays unread: `text_indexed` is written once in `attach()` as `media_type in TEXT_MEDIA` and no route in the API writes it again \u2014 there is no re-index, no extract, no correction. The only way to make this document searchable is to file it again declaring a media type it does not have, which is the behaviour the coverage figu"
+  },
+  {
+   "id": "QA-PLT-171",
+   "title": "Coverage on an empty estate versus a principal who can see nothing",
+   "verdict": "FAIL",
+   "evidence": "an estate with nothing filed and a reader who may see nothing both answer coverage 0.0 over 0 document(s) with the identical sentence: 'no document has been filed against any model you can see'. The first is a register with a gap and the second is a scope doing its job; a reader told the first when the truth is the second concludes the bank has filed nothing"
+  },
+  {
+   "id": "QA-PLT-172",
+   "title": "Coverage against a `kind`- or `urn`-filtered search",
+   "verdict": "FAIL",
+   "evidence": "a search narrowed to one model answers 0 match(es) over 0 document(s) searched and 1 unread, while `GET /api/v1/document-search/coverage` \u2014 the figure the search's own detail line tells a reader to check first \u2014 answers 0.5 over 4 document(s) across the whole estate. `coverage()` takes no `urn` and no `kind`, and the route passes neither, so the two numbers are about different corpora and nothing "
+  },
+  {
+   "id": "QA-PLT-173",
+   "title": "Superseding every unread document with a text note",
+   "verdict": "FAIL",
+   "evidence": "superseding an unread PDF with a 31-byte text note moved coverage from 0.4 to 0.6 (3 unread \u2192 2) while the content it measured became unreachable: a term inside the superseded document now returns 0 result(s). The figure a reader is told to check before trusting an empty answer is improved by removing the documents it was counting"
+  },
+  {
+   "id": "QA-PLT-174",
+   "title": "A quarantined or rejected attachment in the search results",
+   "verdict": "FAIL",
+   "evidence": "a document the register rejected \u2014 state 'rejected', reviewed with 'wrong figure, do not use' \u2014 is returned by search with its text quoted back: 'the rejected figure is 99.9 percent'. `_candidates` yields every current attachment and filters only on `kind`, so none of the 4 states narrows the corpus. The hit carries `state`, which is honest and is not a filter: a reader searching for a figure find"
+  },
+  {
+   "id": "QA-PLT-175",
+   "title": "A search with `limit=1` over many matches",
+   "verdict": "PASS",
+   "evidence": "matches 6 over 6 searched, one row returned"
+  },
+  {
+   "id": "QA-PLT-176",
+   "title": "A search run with no principal while an authoriser is wired",
+   "verdict": "FAIL",
+   "evidence": "`search(principal=None)` with an authoriser wired returned 9 result(s) across 11 document(s) \u2014 `_visible` applies the filter only `if self.authz is not None and principal is not None`, so nothing was filtered \u2014 and the answer reports `scoped: true`, because that flag is `self.authz is not None`. It describes the wiring. A caller reading it concludes the estate was narrowed to them when the whole c"
+  },
+  {
+   "id": "QA-PLT-177",
+   "title": "Two documents, one term, wildly different densities",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised ImportError: cannot import name '_match' from 'core.docs.search' (/home/ashutosh/PycharmProjects/maya/core/docs/search.py) | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-PLT-178",
+   "title": "Search over an estate where nothing is indexed",
+   "verdict": "PASS",
+   "evidence": "0 searched, 1 unread named with their media type, and the detail says so"
+  },
+  {
+   "id": "QA-PLT-179",
+   "title": "A markdown link in the shipped documentation that resolves to a 500",
+   "verdict": "FAIL",
+   "evidence": "`tests/test_documentation_links.py` asks each absolute link for its status and fails only on 404 \u2014 the comment says 3xx means the route exists, which is right, and a 500 is treated the same way. A documentation set every one of whose targets raises would pass this crawler, and the reader following a link gets an error page rather than the page the documentation promised. The check that exists to s"
+  }
+ ]
+}

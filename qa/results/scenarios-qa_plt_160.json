@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-160",
+   "title": "Ten concurrent reads of a `max_reads: 1` share",
+   "verdict": "PASS",
+   "evidence": "the cap held: 1 read served, 9 refused ['share_exhausted']. Read what held it \u2014 `open_share` is still a read-modify-write with no lock and no conditional update, and what serialised these ten was the database's own write lock under one process. ADR-016 chooses that topology, so the cap is safe where MAYA is deployed as specified and rests on the deployment rather than on this code"
+  }
+ ]
+}

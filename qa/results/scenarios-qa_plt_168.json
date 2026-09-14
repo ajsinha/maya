@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-168",
+   "title": "Search `limit` at 0, 200, 201, and `abc`",
+   "verdict": "PASS",
+   "evidence": "200 accepted; 0 and 201 refused 'limit_out_of_range'; 'abc' refused 'validation_error' \u2014 every 422 on this parameter carries a code, so one client path reads all three"
+  }
+ ]
+}
