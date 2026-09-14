@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-PLT-329",
+   "title": "Two tabs, one form submitted after the other signed out",
+   "verdict": "PASS",
+   "evidence": "the session is gone before the token is looked at, so the refusal is 'unauthenticated'"
+  }
+ ]
+}

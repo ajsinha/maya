@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.3,
+ "results": [
+  {
+   "id": "QA-PLT-343",
+   "title": "A session cookie, HTTP Basic and an API key on one request",
+   "verdict": "PASS",
+   "evidence": "refused 'csrf_token_invalid' \u2014 the request is authorised against one credential"
+  }
+ ]
+}

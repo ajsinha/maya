@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-PLT-333",
+   "title": "A session older than its maximum age",
+   "verdict": "PASS",
+   "evidence": "`auth.session_max_age` is read and passed as the cookie's max_age with a shipped default of 28800s (8h); this instance resolves 28800s"
+  }
+ ]
+}
