@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-086",
+   "title": "Two anonymous callers choosing the same idempotency key",
+   "verdict": "PASS",
+   "evidence": "both refused at the door and the key is released each time, so the shared anonymous scope carries nothing"
+  }
+ ]
+}

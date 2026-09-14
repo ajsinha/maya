@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-046",
+   "title": "A key whose first attempt 500'd, retried",
+   "verdict": "PASS",
+   "evidence": "the key is released on the way out of a 500 and the retry really runs"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-076",
+   "title": "A deletion refused because something still refers to it",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming fs-2ce16d22"
+  }
+ ]
+}

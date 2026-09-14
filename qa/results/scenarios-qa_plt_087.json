@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-087",
+   "title": "An in-flight key held past the stale window",
+   "verdict": "FAIL",
+   "evidence": "a caller who abandons a request every 15 minutes keeps the key alive indefinitely: eleven abandonments later it is 0.00 hours old by `started_at` and the 24-hour sweep does not reach it. The stale release writes `started_at = now`, and the sweep reads `started_at` \u2014 so the column that means *when this attempt began* is also the column that means *how long we have kept this record*, and refreshing "
+  }
+ ]
+}
