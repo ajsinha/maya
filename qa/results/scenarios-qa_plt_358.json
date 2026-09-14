@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-358",
+   "title": "`?fields=` naming a field that does not exist",
+   "verdict": "FAIL",
+   "evidence": "`?fields=invented_field` answers 2 empty object(s) with 200 and no refusal. The only thing distinguishing it from a listing of rows that genuinely have no values is `projected_to: ['invented_field']` \u2014 which says what was asked for, not that nothing matched it. A client mapping a mistyped field name gets a page of empty rows and a success, and the register looks empty"
+  }
+ ]
+}

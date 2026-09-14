@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-356",
+   "title": "An unknown field in a request body",
+   "verdict": "PASS",
+   "evidence": "refused 422 `extra_forbidden` naming the field, in the framework's `detail` list shape rather than the platform's error/detail/remediation"
+  }
+ ]
+}

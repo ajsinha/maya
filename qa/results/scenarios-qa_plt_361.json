@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-PLT-361",
+   "title": "A 429 from the quota path",
+   "verdict": "FAIL",
+   "evidence": "4 refusal code(s) map to 429 \u2014 ['budget_exhausted', 'cost_limit_reached', 'quota_limit_reached', 'rate_limit_reached'] \u2014 and no route or service anywhere sets a `Retry-After` header. The status says *come back later*; the header is the only part of that a client can act on, and every one of these limits is a window MAYA knows the length of. A machine told 429 with no interval either retries immedi"
+  }
+ ]
+}

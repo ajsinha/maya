@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.9,
+ "results": [
+  {
+   "id": "QA-PLT-362",
+   "title": "Every refusal carries all three parts",
+   "verdict": "FAIL",
+   "evidence": "1 of 5 coded refusal(s) omit a part: [\"unknown model (not_found): missing ['remediation']\"]"
+  }
+ ]
+}
