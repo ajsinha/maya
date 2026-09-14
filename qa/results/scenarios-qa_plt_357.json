@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-357",
+   "title": "`?fields=` projecting away a partial answer",
+   "verdict": "PASS",
+   "evidence": "all 15 incompleteness field(s) survive a projection that removes everything else, and the answer says `projected_to`"
+  }
+ ]
+}

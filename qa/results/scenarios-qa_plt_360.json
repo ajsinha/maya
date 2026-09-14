@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 2,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-360",
+   "title": "The models listing with no ordering parameter",
+   "verdict": "FAIL",
+   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/hc-b3676b18']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exists"
+  },
+  {
+   "id": "QA-PLT-3600",
+   "title": "A capability of a tier that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable', naming tiers A, B"
+  },
+  {
+   "id": "QA-PLT-3601",
+   "title": "A Tier A capability with no oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required'"
+  }
+ ]
+}

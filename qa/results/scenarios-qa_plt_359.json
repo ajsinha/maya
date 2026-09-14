@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-PLT-359",
+   "title": "A search over the models listing that matches nothing",
+   "verdict": "PASS",
+   "evidence": "total 0, returned 0, detail 'nothing matched' while the unfiltered listing shows 1 model(s)"
+  }
+ ]
+}
