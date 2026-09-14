@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-074",
+   "title": "A table not in `SCOPED_TABLES` reached through one that is",
+   "verdict": "PASS",
+   "evidence": "38 table(s) carry a model_id outside SCOPED_TABLES; the posture names the gap and the application refuses all three reads"
+  }
+ ]
+}

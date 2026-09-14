@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-088",
+   "title": "A replayed response and its ETag",
+   "verdict": "PASS",
+   "evidence": "neither the original nor the replay carries a tag on this path, so the two agree"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-072",
+   "title": "A directly-addressable page under a scope that should not see it",
+   "verdict": "PASS",
+   "evidence": "refused 403 on the directly-addressable page"
+  }
+ ]
+}

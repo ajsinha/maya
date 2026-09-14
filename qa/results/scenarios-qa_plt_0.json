@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 33,
-  "pass": 32,
-  "fail": 1,
-  "blocked": 0
+  "total": 77,
+  "pass": 66,
+  "fail": 8,
+  "blocked": 3
  },
- "seconds": 9.3,
+ "seconds": 10.3,
  "results": [
   {
    "id": "QA-PLT-001",
@@ -59,7 +59,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:85b36311224ff"
+   "evidence": "a fresh chain of 8 verifies, head sha256:c76c06583273d"
   },
   {
    "id": "QA-PLT-011",
@@ -152,16 +152,106 @@
    "evidence": "the uncovered period is named"
   },
   {
+   "id": "QA-PLT-041",
+   "title": "The same idempotency key, same body, twice in sequence",
+   "verdict": "PASS",
+   "evidence": "the first answer replayed, marked as a replay"
+  },
+  {
+   "id": "QA-PLT-042",
+   "title": "The same key with a **corrected** body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused', naming the way forward"
+  },
+  {
+   "id": "QA-PLT-043",
+   "title": "The same key with the same fields in a different order",
+   "verdict": "PASS",
+   "evidence": "reordered keys replay rather than conflict"
+  },
+  {
+   "id": "QA-PLT-044",
+   "title": "Two requests with one key arriving at the same moment",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_in_flight'"
+  },
+  {
+   "id": "QA-PLT-045",
+   "title": "A key whose first attempt was **refused**, retried",
+   "verdict": "PASS",
+   "evidence": "the retry after a refusal really runs"
+  },
+  {
+   "id": "QA-PLT-046",
+   "title": "A key whose first attempt 500'd, retried",
+   "verdict": "PASS",
+   "evidence": "the key is released on the way out of a 500 and the retry really runs"
+  },
+  {
+   "id": "QA-PLT-047",
+   "title": "A key of 256 characters",
+   "verdict": "PASS",
+   "evidence": "255 accepted, 256 refused"
+  },
+  {
+   "id": "QA-PLT-048",
+   "title": "Two principals choosing the same key",
+   "verdict": "PASS",
+   "evidence": "both acts happened, neither replayed the other"
+  },
+  {
    "id": "QA-PLT-049",
    "title": "One idempotency key reused across two routes",
    "verdict": "PASS",
    "evidence": "refused 'idempotency_key_reused'"
   },
   {
+   "id": "QA-PLT-050",
+   "title": "A key replayed after the retention window",
+   "verdict": "PASS",
+   "evidence": "past 24 hours the key is gone and the act runs again \u2014 refused here by the register's own duplicate-URN guard, which is the point: every act has its own refusals in front of it"
+  },
+  {
+   "id": "QA-PLT-051",
+   "title": "An idempotent act whose *effects* are not in the response",
+   "verdict": "PASS",
+   "evidence": "the answer replayed and the chain is unchanged at 1"
+  },
+  {
+   "id": "QA-PLT-052",
+   "title": "A stale `If-Match` after somebody else wrote",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_failed', carrying the current tag"
+  },
+  {
+   "id": "QA-PLT-053",
+   "title": "`If-Match: *` against a resource that exists, and one that does not",
+   "verdict": "PASS",
+   "evidence": "`*` accepted where the resource exists, refused 'precondition_unevaluable' where it does not"
+  },
+  {
+   "id": "QA-PLT-054",
+   "title": "`If-Match` sent to a route that has no representation to compare",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_unevaluable'"
+  },
+  {
    "id": "QA-PLT-055",
    "title": "A write with a deliberately wrong If-Match",
    "verdict": "PASS",
    "evidence": "refused 412 'precondition_failed'"
+  },
+  {
+   "id": "QA-PLT-056",
+   "title": "A change confined to a field named `detail` produces an unchanged ETag",
+   "verdict": "PASS",
+   "evidence": "`detail` excluded, real state still tagged; 5 volatile fields"
+  },
+  {
+   "id": "QA-PLT-057",
+   "title": "A strong tag sent where a weak one was issued",
+   "verdict": "PASS",
+   "evidence": "the strong form is not silently normalised to the weak one"
   },
   {
    "id": "QA-PLT-058",
@@ -173,13 +263,31 @@
    "id": "QA-PLT-059",
    "title": "The ETag does not move when nothing changed",
    "verdict": "PASS",
-   "evidence": "stable across three reads: W/\"sha256:2087a081abb9d6"
+   "evidence": "stable across three reads: W/\"sha256:238b0ca3b03c49"
+  },
+  {
+   "id": "QA-PLT-060",
+   "title": "Two writers, no `If-Match` at all",
+   "verdict": "PASS",
+   "evidence": "both unconditional writes land, and the tag is offered on the read so a client can opt in"
   },
   {
    "id": "QA-PLT-061",
    "title": "A governed act that fails half way",
    "verdict": "PASS",
    "evidence": "the refused act left exactly one row"
+  },
+  {
+   "id": "QA-PLT-062",
+   "title": "An evidence append racing another evidence append",
+   "verdict": "PASS",
+   "evidence": "6 concurrent registrations, 6 nodes, contiguous and verifying"
+  },
+  {
+   "id": "QA-PLT-063",
+   "title": "A read-then-write check under concurrency",
+   "verdict": "FAIL",
+   "evidence": "3 of 4 racing writes answered 500 with no code: Internal Server Error"
   },
   {
    "id": "QA-PLT-064",
@@ -198,6 +306,162 @@
    "title": "An append-only table against UPDATE and DELETE",
    "verdict": "PASS",
    "evidence": "1 append-only table(s) refuse both"
+  },
+  {
+   "id": "QA-PLT-067",
+   "title": "A database role that cannot create triggers",
+   "verdict": "PASS",
+   "evidence": "17 warning(s) and the instance still starts: could not apply an integrity trigger, so that protection is a convention on this database rather than a constraint: permission den"
+  },
+  {
+   "id": "QA-PLT-068",
+   "title": "The same immutability attacks against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-069",
+   "title": "A cross-entity read with row-level security in force",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-072",
+   "title": "A directly-addressable page under a scope that should not see it",
+   "verdict": "PASS",
+   "evidence": "refused 403 on the directly-addressable page"
+  },
+  {
+   "id": "QA-PLT-073",
+   "title": "Filtering happens **before** paging",
+   "verdict": "PASS",
+   "evidence": "6 of 49 match, and two pages of the filtered list are disjoint and in scope"
+  },
+  {
+   "id": "QA-PLT-074",
+   "title": "A table not in `SCOPED_TABLES` reached through one that is",
+   "verdict": "PASS",
+   "evidence": "38 table(s) carry a model_id outside SCOPED_TABLES; the posture names the gap and the application refuses all three reads"
+  },
+  {
+   "id": "QA-PLT-075",
+   "title": "A hard delete and what still names the model",
+   "verdict": "PASS",
+   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a09da0e05d"
+  },
+  {
+   "id": "QA-PLT-076",
+   "title": "A deletion refused because something still refers to it",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming fs-53dfb99a"
+  },
+  {
+   "id": "QA-PLT-077",
+   "title": "A deletion under legal hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' naming the matter, and permitted once it was lifted"
+  },
+  {
+   "id": "QA-PLT-078",
+   "title": "A write landing during an estate fold",
+   "verdict": "PASS",
+   "evidence": "a model landed mid-fold and both aggregates agree on 53"
+  },
+  {
+   "id": "QA-PLT-079",
+   "title": "The estate-fold cache after a mutation",
+   "verdict": "PASS",
+   "evidence": "54 \u2192 55; the index is built and dropped inside each read"
+  },
+  {
+   "id": "QA-PLT-080",
+   "title": "The estate fold on an estate of exactly zero models",
+   "verdict": "PASS",
+   "evidence": "zeroes and a detail: 'the register is empty'"
+  },
+  {
+   "id": "QA-PLT-081",
+   "title": "The estate fold on an estate of exactly one model",
+   "verdict": "PASS",
+   "evidence": "one model: one cell in each of three dimensions, coverage 0.0, and a detail"
+  },
+  {
+   "id": "QA-PLT-085",
+   "title": "A truth-valued column written as a Python `bool`",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-086",
+   "title": "Two anonymous callers choosing the same idempotency key",
+   "verdict": "PASS",
+   "evidence": "both refused at the door and the key is released each time, so the shared anonymous scope carries nothing"
+  },
+  {
+   "id": "QA-PLT-087",
+   "title": "An in-flight key held past the stale window",
+   "verdict": "FAIL",
+   "evidence": "a caller who abandons a request every 15 minutes keeps the key alive indefinitely: eleven abandonments later it is 0.00 hours old by `started_at` and the 24-hour sweep does not reach it. The stale release writes `started_at = now`, and the sweep reads `started_at` \u2014 so the column that means *when this attempt began* is also the column that means *how long we have kept this record*, and refreshing "
+  },
+  {
+   "id": "QA-PLT-088",
+   "title": "A replayed response and its ETag",
+   "verdict": "PASS",
+   "evidence": "neither the original nor the replay carries a tag on this path, so the two agree"
+  },
+  {
+   "id": "QA-PLT-089",
+   "title": "The same path with and without `?fields=`",
+   "verdict": "FAIL",
+   "evidence": "`?fields=` discards the rows of 12 of 12 listings sampled, and keeps none: ['/api/v1/models', '/api/v1/features', '/api/v1/featuresets', '/api/v1/warrants', '/api/v1/principals', '/api/v1/roles'] \u2026. `project()` narrows `payload['rows']` or a bare list; exactly ONE route in the API answers `rows` (`conventions.page` has a single caller), so every other listing falls through to `_narrow` on the top-"
+  },
+  {
+   "id": "QA-PLT-090",
+   "title": "The precondition check re-dispatches a synthetic GET",
+   "verdict": "FAIL",
+   "evidence": "one guarded write dispatched 1 GET(s) to its own path through the router. The precondition is real and this is what it costs: every `If-Match` write is two trips through routing, authorisation and the service layer, and only one of them is in the caller's request"
+  },
+  {
+   "id": "QA-PLT-091",
+   "title": "A JSON response that will not parse gets no ETag",
+   "verdict": "PASS",
+   "evidence": "no tag, and a warning: a response from /api/v1/qa-unparseable-1789350963153 declares JSON and does not parse; serving it without an ETag"
+  },
+  {
+   "id": "QA-PLT-092",
+   "title": "A write through a repository during a fold",
+   "verdict": "FAIL",
+   "evidence": "refused with a bare RuntimeError carrying no code, no detail and no remediation, so `Routes.guard` cannot map it and a route reaching it answers 500. Latent rather than live: the folded tables are read by `WorkList.across` and the portfolio cuts, which write nothing, and the digest's `notification` writes land after the fold has closed \u2014 so no route reaches it today and the first one that does fin"
+  },
+  {
+   "id": "QA-PLT-093",
+   "title": "A write during a fold that does not go through a repository",
+   "verdict": "FAIL",
+   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-3fa4036a' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
+  },
+  {
+   "id": "QA-PLT-094",
+   "title": "A fold, an inner fold, and the outer index",
+   "verdict": "PASS",
+   "evidence": "the inner fold is a no-op and the outer index survives it"
+  },
+  {
+   "id": "QA-PLT-095",
+   "title": "A folded read with an `order` or a `limit`",
+   "verdict": "PASS",
+   "evidence": "64 rows either way; ordered and limited reads fall through to SQL unchanged"
+  },
+  {
+   "id": "QA-PLT-096",
+   "title": "A table outside the folded fourteen read during a fold",
+   "verdict": "PASS",
+   "evidence": "evidence_node is outside the fourteen and reads fresh: 83 \u2192 84 during the fold"
+  },
+  {
+   "id": "QA-PLT-097",
+   "title": "An append-only repository `set()` reaching HTTP",
+   "verdict": "FAIL",
+   "evidence": "the repository refuses 'append_only' with a detail and a remediation, and neither half of the taxonomy receives it: NOT in STATUS, NOT caught by Routes.guard. It is a bare RuntimeError, so a route reaching it answers 500 with no code \u2014 the refusal was written for a mapping it was never added to. Latent: `EvidenceRepository` is the only AppendOnly subclass and nothing outside the tests calls its se"
   },
   {
    "id": "QA-PLT-099",

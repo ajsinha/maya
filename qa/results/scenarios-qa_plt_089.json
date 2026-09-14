@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-089",
+   "title": "The same path with and without `?fields=`",
+   "verdict": "FAIL",
+   "evidence": "`?fields=` discards the rows of 12 of 12 listings sampled, and keeps none: ['/api/v1/models', '/api/v1/features', '/api/v1/featuresets', '/api/v1/warrants', '/api/v1/principals', '/api/v1/roles'] \u2026. `project()` narrows `payload['rows']` or a bare list; exactly ONE route in the API answers `rows` (`conventions.page` has a single caller), so every other listing falls through to `_narrow` on the top-"
+  }
+ ]
+}

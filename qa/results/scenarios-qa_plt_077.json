@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-077",
+   "title": "A deletion under legal hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' naming the matter, and permitted once it was lifted"
+  }
+ ]
+}

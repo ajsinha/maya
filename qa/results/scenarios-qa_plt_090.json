@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-090",
+   "title": "The precondition check re-dispatches a synthetic GET",
+   "verdict": "FAIL",
+   "evidence": "one guarded write dispatched 1 GET(s) to its own path through the router. The precondition is real and this is what it costs: every `If-Match` write is two trips through routing, authorisation and the service layer, and only one of them is in the caller's request"
+  }
+ ]
+}

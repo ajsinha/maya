@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-050",
+   "title": "A key replayed after the retention window",
+   "verdict": "PASS",
+   "evidence": "past 24 hours the key is gone and the act runs again \u2014 refused here by the register's own duplicate-URN guard, which is the point: every act has its own refusals in front of it"
+  }
+ ]
+}

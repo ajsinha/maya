@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-067",
+   "title": "A database role that cannot create triggers",
+   "verdict": "PASS",
+   "evidence": "17 warning(s) and the instance still starts: could not apply an integrity trigger, so that protection is a convention on this database rather than a constraint: permission den"
+  }
+ ]
+}

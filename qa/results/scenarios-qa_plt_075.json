@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-075",
+   "title": "A hard delete and what still names the model",
+   "verdict": "PASS",
+   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a09d9f6fc5"
+  }
+ ]
+}
