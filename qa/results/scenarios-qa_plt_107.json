@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.8,
+ "results": [
+  {
+   "id": "QA-PLT-107",
+   "title": "Tampering below the newest anchor",
+   "verdict": "PASS",
+   "evidence": "the node at seq 1 was rewritten. The full walk catches it at 1 because it RECOMPUTES each content hash; the anchors report agrees=1 over 1 anchor(s), because an anchor names one sequence's stored chain_hash and that column was not touched. Both answers are correct and they answer different questions \u2014 the anchors bound what the chain SAID at a moment, not what it contains. Only the scheduled full "
+  }
+ ]
+}

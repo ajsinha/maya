@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.2,
+ "results": [
+  {
+   "id": "QA-PLT-109",
+   "title": "A crash part-way through a WORM write",
+   "verdict": "PASS",
+   "evidence": "nothing readable was left behind; 1 staging file(s) on disk and none of them listed"
+  }
+ ]
+}

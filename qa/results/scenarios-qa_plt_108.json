@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 4.6,
+ "results": [
+  {
+   "id": "QA-PLT-108",
+   "title": "The `_freeze` chmod fails and the store carries on",
+   "verdict": "PASS",
+   "evidence": "written, and warned: could not make qa-freeze-1789387549994.anchor read-only: this filesystem does not support the permission \u2014 the object is"
+  }
+ ]
+}

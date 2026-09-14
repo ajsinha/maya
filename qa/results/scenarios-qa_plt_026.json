@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 4.7,
+ "results": [
+  {
+   "id": "QA-PLT-026",
+   "title": "The anchor files deleted from the WORM root",
+   "verdict": "FAIL",
+   "evidence": "1 anchor(s) were deleted from /tmp/maya-qa-vawjm7kh/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothing here contradicts it'. That is word for word the answer a fresh instance gives. Nothing records that anchors ONCE existed \u2014 the store is the only register of itself \u2014 so an estate whose anchors were cleared is in"
+  }
+ ]
+}
