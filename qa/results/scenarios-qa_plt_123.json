@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile one document twice with nothing changed between",
+   "verdict": "PASS",
+   "evidence": "the same document id and digest sha256:bb5dad7f0"
+  }
+ ]
+}

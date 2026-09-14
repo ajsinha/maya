@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-131",
+   "title": "An event recorded at exactly the sequence the document recorded as head",
+   "verdict": "PASS",
+   "evidence": "head 9 carries 1 event(s) and the document is not stale; the boundary is exclusive"
+  }
+ ]
+}

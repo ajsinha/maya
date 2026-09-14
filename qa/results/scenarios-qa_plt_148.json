@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-148",
+   "title": "Resolve citing an `evidence_id` that does not exist",
+   "verdict": "FAIL",
+   "evidence": "a comment was resolved citing 'evidence-node-that-never-existed', which is in no chain, and the act was recorded with `changed_the_record: true` \u2014 it is `bool(evidence_id)` with no existence check. The review history now asserts that a wrong sentence was fixed by fixing the record, and points at nothing; the comment reads state='resolved'. `verify_citations` exists for exactly this question about "
+  }
+ ]
+}

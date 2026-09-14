@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-143",
+   "title": "The `superseded` review state",
+   "verdict": "FAIL",
+   "evidence": "'superseded' is one of the 4 states the review vocabulary publishes at GET /api/v1/document-review/asks, and no code path in `core/docs/review.py` writes it \u2014 `comment` opens, `resolve` writes resolved, `withdraw` writes withdrawn, and nothing writes this. A client filtering or reporting on it filters on a state that cannot occur, which reads as 'none of those' rather than as 'that never happens h"
+  }
+ ]
+}

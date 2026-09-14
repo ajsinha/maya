@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-128",
+   "title": "A model with nothing recorded, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "10 of 15 sections unfillable, 10 of them required, complete=False"
+  }
+ ]
+}

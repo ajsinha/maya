@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-145",
+   "title": "Withdraw with an empty reason",
+   "verdict": "FAIL",
+   "evidence": "a comment was withdrawn with no reason at all and the record now reads state='withdrawn' resolution=''. `resolve` refuses exactly this \u2014 'closing a comment needs a sentence about what was done' \u2014 and `withdraw` writes the same column with no check, so the review history has a closed objection and no account of why it was dropped"
+  }
+ ]
+}
