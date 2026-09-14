@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 4.4,
+ "results": [
+  {
+   "id": "QA-PLT-019",
+   "title": "Verify, restore a backup taken before that verification",
+   "verdict": "FAIL",
+   "evidence": "the chain was restored to seq 10 and the checkpoint still reads 13, three ahead of it. The cheap check answers valid over 0 node(s) \u2014 `since(mark)` finds nothing past a mark the chain no longer reaches, and nothing compares the two. A restore is the one operation that produces this state and the one nobody re-verifies afterwards"
+  }
+ ]
+}

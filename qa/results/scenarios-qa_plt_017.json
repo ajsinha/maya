@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.0,
+ "results": [
+  {
+   "id": "QA-PLT-017",
+   "title": "Checkpoint rows accumulate and none is ever retired",
+   "verdict": "FAIL",
+   "evidence": "twelve verifications wrote 12 checkpoint row(s) (0 \u2192 12) and nothing in `EvidenceEngine` removes one. Only `first('seq', desc=True)` is ever read, so every row but the newest is dead weight that grows at the scheduled cadence for the life of the deployment \u2014 on a register whose stated position is that nothing is deleted, in a table that is not the evidence chain and carries no evidentiary value"
+  }
+ ]
+}

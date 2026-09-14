@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-PLT-102",
+   "title": "The `WHY` semiring past its term cap",
+   "verdict": "PASS",
+   "evidence": "under the cap: 40 support set(s), truncated=False; over it: 9, truncated=True. The shipped bound is 4096"
+  }
+ ]
+}

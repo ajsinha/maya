@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.0,
+ "results": [
+  {
+   "id": "QA-PLT-101",
+   "title": "A node recorded with `contains_personal_data`",
+   "verdict": "PASS",
+   "evidence": "the payload is empty, the flag is kept, and the chain still verifies over the node"
+  }
+ ]
+}

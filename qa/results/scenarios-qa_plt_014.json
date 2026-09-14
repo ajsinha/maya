@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-PLT-014",
+   "title": "The checkpoint ahead of the head",
+   "verdict": "FAIL",
+   "evidence": "the checkpoint was moved to seq 511, five hundred beyond a chain that ends at 11, and the cheap check answers valid over 0 node(s) checked. `repo.since(mark)` returns nothing, `_walk` over an empty list reports valid, and nothing compares the mark against the head \u2014 so a chain truncated below its own checkpoint reads healthy on every readiness probe until the scheduled full walk runs"
+  }
+ ]
+}

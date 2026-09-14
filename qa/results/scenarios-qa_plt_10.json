@@ -1,0 +1,95 @@
+{
+ "summary": {
+  "total": 14,
+  "pass": 12,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 4.0,
+ "results": [
+  {
+   "id": "QA-PLT-100",
+   "title": "`contains_personal_data` flipped on a node",
+   "verdict": "FAIL",
+   "evidence": "'contains_personal_data' was flipped on a node and the chain still verifies: it sits outside the content hash, so the chain hash does not move and the anchors cannot see it either. The flag decides what a deletion request reaches under L-18 and what an export may carry"
+  },
+  {
+   "id": "QA-PLT-1000",
+   "title": "Anchoring a chain that does not verify is refused",
+   "verdict": "PASS",
+   "evidence": "verified before anchoring, and refused if broken"
+  },
+  {
+   "id": "QA-PLT-1001",
+   "title": "An anchor is written outside the database",
+   "verdict": "PASS",
+   "evidence": "anchored to a store outside the database"
+  },
+  {
+   "id": "QA-PLT-1002",
+   "title": "The WORM store refuses to overwrite",
+   "verdict": "PASS",
+   "evidence": "refused: 'a.anchor' is already held with different content, and this store is write-once"
+  },
+  {
+   "id": "QA-PLT-1003",
+   "title": "Timestamping says it has no authority rather than faking one",
+   "verdict": "PASS",
+   "evidence": "refused: no time stamp authority is wired"
+  },
+  {
+   "id": "QA-PLT-1004",
+   "title": "The timestamp posture says what it does not prove",
+   "verdict": "PASS",
+   "evidence": "the posture states its limit"
+  },
+  {
+   "id": "QA-PLT-1005",
+   "title": "The chain head is readable and stable",
+   "verdict": "PASS",
+   "evidence": "head stable at length 8"
+  },
+  {
+   "id": "QA-PLT-1006",
+   "title": "Verifying says who asked and whether that means anything",
+   "verdict": "PASS",
+   "evidence": "self_certified=0"
+  },
+  {
+   "id": "QA-PLT-1007",
+   "title": "A node carrying personal data stores an empty payload",
+   "verdict": "PASS",
+   "evidence": "enforced at the storage layer, in both dialects"
+  },
+  {
+   "id": "QA-PLT-101",
+   "title": "A node recorded with `contains_personal_data`",
+   "verdict": "PASS",
+   "evidence": "the payload is empty, the flag is kept, and the chain still verifies over the node"
+  },
+  {
+   "id": "QA-PLT-102",
+   "title": "The `WHY` semiring past its term cap",
+   "verdict": "PASS",
+   "evidence": "under the cap: 40 support set(s), truncated=False; over it: 9, truncated=True. The shipped bound is 4096"
+  },
+  {
+   "id": "QA-PLT-103",
+   "title": "A claim resting on a missing fact under freshness",
+   "verdict": "FAIL",
+   "evidence": "a claim resting on a present fact and a MISSING one answers freshness 1000.0, the same as one resting on that fact and a stale one. FRESHNESS is (max, max) with `zero = 0.0`, so an absent fact contributes 0.0 and `max` discards it \u2014 the answer is the freshness of what is present, and carries nothing saying a term was absent. The Boolean semiring answers the presence question; a reader who asks onl"
+  },
+  {
+   "id": "QA-PLT-104",
+   "title": "A broken chain's report shape",
+   "verdict": "PASS",
+   "evidence": "broken_at 12, reason 'prev_hash mismatch', and no length, head or scope"
+  },
+  {
+   "id": "QA-PLT-105",
+   "title": "The scheduled verification meets a broken chain",
+   "verdict": "PASS",
+   "evidence": "verified false at seq 12, checkpoint held at 11"
+  }
+ ]
+}

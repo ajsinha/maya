@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.7,
+ "results": [
+  {
+   "id": "QA-PLT-105",
+   "title": "The scheduled verification meets a broken chain",
+   "verdict": "PASS",
+   "evidence": "verified false at seq 12, checkpoint held at 11"
+  }
+ ]
+}

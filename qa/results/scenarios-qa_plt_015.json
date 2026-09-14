@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.8,
+ "results": [
+  {
+   "id": "QA-PLT-015",
+   "title": "The node at the checkpoint sequence is the one mutated",
+   "verdict": "PASS",
+   "evidence": "the node at seq 11 was rewritten; the full walk breaks at 11 and the incremental walk answers valid \u2014 correctly, because it asks a narrower question and SAYS SO: scope='incremental' from_seq=11 over 2 node(s). A reader taking that as 'the chain is intact' is reading a field that is not there"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 5.0,
+ "results": [
+  {
+   "id": "QA-PLT-103",
+   "title": "A claim resting on a missing fact under freshness",
+   "verdict": "FAIL",
+   "evidence": "a claim resting on a present fact and a MISSING one answers freshness 1000.0, the same as one resting on that fact and a stale one. FRESHNESS is (max, max) with `zero = 0.0`, so an absent fact contributes 0.0 and `max` discards it \u2014 the answer is the freshness of what is present, and carries nothing saying a term was absent. The Boolean semiring answers the presence question; a reader who asks onl"
+  }
+ ]
+}

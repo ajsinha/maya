@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-016",
+   "title": "The first checkpoint records `length`, not the head sequence",
+   "verdict": "FAIL",
+   "evidence": "both ['engine', 'scheduler'] record the checkpoint as `report['length']` (11) rather than the head sequence (11). They agree here only because this chain is contiguous from 1. After any restore or compaction that leaves the chain starting above 1, the mark lands below the head, `repo.since(mark)` re-walks nodes already verified against the WRONG prev_hash, and the next incremental check reports a "
+  }
+ ]
+}
