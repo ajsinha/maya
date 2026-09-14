@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.9,
+ "results": [
+  {
+   "id": "QA-PLT-010",
+   "title": "Two full verifications running at once",
+   "verdict": "PASS",
+   "evidence": "two full walks, both valid, one head sha256:128e4e43041a6"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 4.2,
+ "results": [
+  {
+   "id": "QA-PLT-104",
+   "title": "A broken chain's report shape",
+   "verdict": "PASS",
+   "evidence": "broken_at 12, reason 'prev_hash mismatch', and no length, head or scope"
+  }
+ ]
+}
