@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-039",
+   "title": "An artifact whose bytes changed under a stable digest",
+   "verdict": "FAIL",
+   "evidence": "the bytes under sha256:4cadb37ba59f5b2b\u2026 were replaced. `GET /api/v1/artifacts/{digest}/verify` re-hashes and reports intact=False with recomputed sha256:c6b2fe0c1ae01eb7\u2026, and `GET /api/v1/artifacts/{digest}` serves the substituted bytes with 200. That separation is deliberate and documented \u2014 re-hashing a multi-gigabyte file on every read is not free \u2014 so the control rests entirely on somebody C"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-PLT-040",
+   "title": "An artifact path pointed outside the artifact root",
+   "verdict": "PASS",
+   "evidence": "5 malformed addresses refused 'malformed_digest' at the store, and 404 over HTTP"
+  }
+ ]
+}

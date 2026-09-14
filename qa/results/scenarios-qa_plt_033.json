@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.7,
+ "results": [
+  {
+   "id": "QA-PLT-033",
+   "title": "A token is held and nothing here can check it",
+   "verdict": "PASS",
+   "evidence": "three distinct states; this one is 'unverified' carrying the token, and says why"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.0,
+ "results": [
+  {
+   "id": "QA-PLT-114",
+   "title": "Timestamp coverage on an estate with no anchors",
+   "verdict": "PASS",
+   "evidence": "share 0.0 twice, two different sentences: 'nothing is anchored, so there is nothing to timest' then '1 anchored head(s) and no time stamp authority wir'"
+  }
+ ]
+}
