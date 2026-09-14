@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 6.3,
+ "results": [
+  {
+   "id": "QA-PLT-025",
+   "title": "Nodes deleted above the newest anchor",
+   "verdict": "FAIL",
+   "evidence": "4 node(s) appended above the newest anchor (seq 12) were deleted, and nothing notices: the full walk is valid over 12 node(s) and the anchors agree over 1 of them. An anchor bounds the chain from below \u2014 it says what the head was at seq 12 \u2014 and there is no upper bound anywhere: nothing records how LONG the chain was expected to be, so governance acts recorded between two anchor runs sit in a wind"
+  }
+ ]
+}

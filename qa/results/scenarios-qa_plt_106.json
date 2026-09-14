@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 5.1,
+ "results": [
+  {
+   "id": "QA-PLT-106",
+   "title": "The scheduled anchor meets a chain that disagrees",
+   "verdict": "PASS",
+   "evidence": "refused 'chain_broken', 1 anchor(s) preserved: the chain does not verify, so anchoring its head would write the broken state down as the truth"
+  }
+ ]
+}

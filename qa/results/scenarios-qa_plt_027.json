@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 5.1,
+ "results": [
+  {
+   "id": "QA-PLT-027",
+   "title": "The whole WORM directory removed while the instance runs",
+   "verdict": "FAIL",
+   "evidence": "the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-sjtc7p8l/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.mkdir(parents=True, exist_ok=True)`, so a store that has vanished is repaired rather than reported. Every earlier anchor is gone, the new one agrees with the chain, and `verify_against_anchors` now reports a chain"
+  }
+ ]
+}

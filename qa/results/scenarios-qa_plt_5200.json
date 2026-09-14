@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.8,
+ "results": [
+  {
+   "id": "QA-PLT-5200",
+   "title": "The write-once store refuses a second, different write",
+   "verdict": "PASS",
+   "evidence": "the same bytes twice is a no-op, different bytes is 'worm_overwrite_refused', and four path-escaping names are 'worm_bad_name'"
+  }
+ ]
+}

@@ -1,0 +1,77 @@
+{
+ "summary": {
+  "total": 11,
+  "pass": 10,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 4.4,
+ "results": [
+  {
+   "id": "QA-PLT-110",
+   "title": "An unwritable WORM root",
+   "verdict": "FAIL",
+   "evidence": "an unwritable anchor root raises a bare PermissionError with no code, no detail and no remediation \u2014 `put` catches nothing around `write_bytes`, while `get` wraps its OSError as `worm_unreadable` with the note that an object which cannot be read must not be treated as absent. The write path has no equivalent, so the one condition that stops the second medium existing at all arrives as PermissionEr"
+  },
+  {
+   "id": "QA-PLT-1100",
+   "title": "An attachment with no file",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-PLT-1101",
+   "title": "An attachment with no title",
+   "verdict": "PASS",
+   "evidence": "refused 'title_required'"
+  },
+  {
+   "id": "QA-PLT-1102",
+   "title": "An attachment of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind'"
+  },
+  {
+   "id": "QA-PLT-1103",
+   "title": "An attachment against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-PLT-1104",
+   "title": "An uploaded file is addressed by its content",
+   "verdict": "PASS",
+   "evidence": "stored under the digest of its content"
+  },
+  {
+   "id": "QA-PLT-1105",
+   "title": "Review an attachment that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attachment'"
+  },
+  {
+   "id": "QA-PLT-1106",
+   "title": "An artifact digest that is not a digest",
+   "verdict": "PASS",
+   "evidence": "refused 'malformed_digest'"
+  },
+  {
+   "id": "QA-PLT-1107",
+   "title": "An artifact that was never uploaded",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-1108",
+   "title": "A dossier for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 404"
+  },
+  {
+   "id": "QA-PLT-1109",
+   "title": "Artifact provenance is absent, not unverified",
+   "verdict": "PASS",
+   "evidence": "absent and unverified are held apart"
+  }
+ ]
+}
