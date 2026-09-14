@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 9.6,
+ "results": [
+  {
+   "id": "QA-DEL-071",
+   "title": "Sweep twice",
+   "verdict": "FAIL",
+   "evidence": "the first sweep marked 2 candidate(s) and the second raised 'malformed_digest': 'sha256:c5605778ec7d8f64d896739d668272c40da8df6e8b83c543e3fbf2bb37b4b73f.fmt' is. The marks include the `<digest>.fmt` sidecar `ArtifactStore._remember` writes beside every artifact (1 in this store); `Compaction._unreferenced` skips only `.partial`, so on the reclaim pass `_remove` asks the store for the path of `sha2"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.1,
+ "results": [
+  {
+   "id": "QA-DEL-084",
+   "title": "`.partial` upload files are never marked",
+   "verdict": "PASS",
+   "evidence": "skipped by both passes and never marked"
+  }
+ ]
+}

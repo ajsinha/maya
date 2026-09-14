@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 4.0,
+ "results": [
+  {
+   "id": "QA-DEL-077",
+   "title": "`not_reclaimable` in the plan",
+   "verdict": "PASS",
+   "evidence": "delta_bytes 0 left alone with a reason, and 0 free page(s) reported separately"
+  }
+ ]
+}

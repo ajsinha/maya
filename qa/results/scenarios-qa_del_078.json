@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.6,
+ "results": [
+  {
+   "id": "QA-DEL-078",
+   "title": "Vacuum after a cascade",
+   "verdict": "PASS",
+   "evidence": "free pages 0 \u2192 0; file 1392640 \u2192 1392640 bytes, 0 reclaimed, measured=True"
+  }
+ ]
+}

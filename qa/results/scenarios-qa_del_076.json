@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 4.4,
+ "results": [
+  {
+   "id": "QA-DEL-076",
+   "title": "A dry-run sweep",
+   "verdict": "PASS",
+   "evidence": "reports 1 would-be sweep(s) and 0 mark(s), changes neither the store nor the register"
+  }
+ ]
+}
