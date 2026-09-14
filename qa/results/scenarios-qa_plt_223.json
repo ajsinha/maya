@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.7,
+ "results": [
+  {
+   "id": "QA-PLT-223",
+   "title": "Back up an instance with `data/worm/` missing",
+   "verdict": "PASS",
+   "evidence": "absent in the manifest with the path it looked at, and absent again after the restore \u2014 not silently skipped"
+  }
+ ]
+}

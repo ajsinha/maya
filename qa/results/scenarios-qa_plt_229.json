@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-PLT-229",
+   "title": "A manifest from a different build",
+   "verdict": "FAIL",
+   "evidence": "a manifest declaring `manifest_version: 99` \u2014 a version this build does not write (it writes 1) \u2014 was restored without a word, while a manifest missing a SECTION is refused by name. The version field is written into every manifest and read by nothing, so a backup from a future build whose sections have moved is restored optimistically and the parts this build cannot see are silently skipped"
+  }
+ ]
+}

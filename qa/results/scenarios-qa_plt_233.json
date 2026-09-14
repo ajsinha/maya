@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.4,
+ "results": [
+  {
+   "id": "QA-PLT-233",
+   "title": "The two ways the restore exits 1",
+   "verdict": "PASS",
+   "evidence": "refused before touching anything with its own message, and exit 1 after restoring with a head that disagrees \u2014 two states, one code, two sentences"
+  }
+ ]
+}

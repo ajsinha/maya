@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-PLT-219",
+   "title": "A backup of a broken chain, with and without the flag",
+   "verdict": "PASS",
+   "evidence": "refused by default naming the flag; the forensic copy records verifies=False at seq 4"
+  }
+ ]
+}
