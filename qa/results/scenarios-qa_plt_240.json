@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 3.2,
+ "results": [
+  {
+   "id": "QA-PLT-240",
+   "title": "The database locked while a job records its result",
+   "verdict": "FAIL",
+   "evidence": "a lock while RECORDING the second job's result aborted the whole batch with RuntimeError: database is locked. `Scheduler._one` wraps `job.run(context)` in a try \u2014 one job must not stop four \u2014 and then writes the run row and the evidence node outside it. Every job after the second never ran, and the caller gets an exception rather than three results and one failure; the jobs that did run are record"
+  }
+ ]
+}

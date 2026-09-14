@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-PLT-238",
+   "title": "A manual run inside the in-process loop",
+   "verdict": "PASS",
+   "evidence": "two overlapping runs of 'evidence.verify', both recorded, neither failed"
+  }
+ ]
+}

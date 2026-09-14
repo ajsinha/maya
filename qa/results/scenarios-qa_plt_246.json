@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 3.5,
+ "results": [
+  {
+   "id": "QA-PLT-246",
+   "title": "A finding retitled, then the job that raised it run again",
+   "verdict": "FAIL",
+   "evidence": "`_already_raised` matches `f['title'] == title`, so a finding whose title a person edited is no longer recognised as the one the job raised: the check answers False and the next run raises a second copy of the same condition. The model holds 1 open finding(s) now (was 1) and would hold 2 after one more batch. Six job sites call this, all of them nightly, and the register's counts are what the agei"
+  }
+ ]
+}

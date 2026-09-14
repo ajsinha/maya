@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 3.2,
+ "results": [
+  {
+   "id": "QA-PLT-251",
+   "title": "Two concurrent ingests into the discovery register",
+   "verdict": "FAIL",
+   "evidence": "1 reference(s) are held by more than one row after two concurrent sweeps: ['DISC-0004']. `ingest` mints `DISC-{n:04d}` from a count of the rows already there, so two sweeps that read the same count produce the same reference \u2014 and a triage queue where two candidates answer to one name is one where dismissing a spreadsheet dismisses somebody else's"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 4.7,
+ "results": [
+  {
+   "id": "QA-PLT-254",
+   "title": "A channel failing for a week, then recovering",
+   "verdict": "FAIL",
+   "evidence": "30 failure(s) recorded and summarised, and recovery sends \u2014 all correct. What is not: `_deliver` calls `transport.send` outside any try, and the contract that makes that safe is that a channel reports rather than raises. `WebhookChannel.send` calls `permit(self.url)` BEFORE its own try, so an operator who pastes a `file:` URL \u2014 the case the comment beside it names \u2014 raises out of `send`, out of `_"
+  }
+ ]
+}
