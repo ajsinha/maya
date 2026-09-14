@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-179",
+   "title": "A markdown link in the shipped documentation that resolves to a 500",
+   "verdict": "FAIL",
+   "evidence": "`tests/test_documentation_links.py` asks each absolute link for its status and fails only on 404 \u2014 the comment says 3xx means the route exists, which is right, and a 500 is treated the same way. A documentation set every one of whose targets raises would pass this crawler, and the reader following a link gets an error page rather than the page the documentation promised. The check that exists to s"
+  }
+ ]
+}

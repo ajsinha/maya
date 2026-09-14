@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-178",
+   "title": "Search over an estate where nothing is indexed",
+   "verdict": "PASS",
+   "evidence": "0 searched, 1 unread named with their media type, and the detail says so"
+  }
+ ]
+}
