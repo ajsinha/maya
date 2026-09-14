@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-137",
+   "title": "A dossier for a model with three empty versions",
+   "verdict": "PASS",
+   "evidence": "exactly four gaps: ['model dp-1cab3de1', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
+  }
+ ]
+}

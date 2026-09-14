@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-126",
+   "title": "The same document through the export packer instead",
+   "verdict": "PASS",
+   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:16fb3bc33835f"
+  }
+ ]
+}

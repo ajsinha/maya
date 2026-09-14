@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-139",
+   "title": "A dangling pin on a fitted set versus no pin at all",
+   "verdict": "FAIL",
+   "evidence": "both states print the same sentence: \"a fitted set that does not name the featureset version it came from \u2014 'what data produced these numbers' has no answer from here\". It is false for the dangling case \u2014 that set DOES name the featureset version it came from, and the register has lost it. The comment above `_pin` states the rule ('a pin that does not resolve is a real gap, and a different one fro"
+  }
+ ]
+}

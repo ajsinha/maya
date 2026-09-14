@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-140",
+   "title": "The attachment register throws while a dossier is built",
+   "verdict": "FAIL",
+   "evidence": "the attachment register raised for every subject and the dossier records 1 gap(s) all saying 'nothing is filed here; expected the methodology, and the literature the approach'. `_attached` catches the exception, logs it and returns `[]`, so `_node` cannot tell 'nothing is filed' from 'the store did not answer' \u2014 and reports the first. A reader sent to file a document that is already filed cannot d"
+  }
+ ]
+}

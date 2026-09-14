@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-PLT-152",
+   "title": "A pack over the size ceiling",
+   "verdict": "FAIL",
+   "evidence": "`pack_too_large` is raised at source line 90 and `self._zip(members)` runs at line 89 \u2014 the whole archive is built, compressed and held in memory before its size is measured against the 2GB ceiling. Every member is already resident as bytes in `members` too, so the peak is the uncompressed content plus the archive. The refusal protects the recipient from an export nobody can open; it does not prot"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-130",
+   "title": "A pack cut while a subsystem is unreadable",
+   "verdict": "FAIL",
+   "evidence": "the monitoring service raised while this pack was cut and `gaps.md` does not mention it. `ContextBuilder` records what it could not read under `ctx['unreadable']`; `ExportPacker.build` reads `ctx.get('_gaps')`, which nothing writes \u2014 so the loop that turns context failures into gap entries iterates an empty list every time. Keys read by the packer and never written by the context builder: ['_gaps'"
+  }
+ ]
+}
