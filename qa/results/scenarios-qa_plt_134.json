@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-134",
+   "title": "A citation to an evidence node the reader may not see",
+   "verdict": "FAIL",
+   "evidence": "`GET /api/v1/documents/{document_id}` authorises `document:read` with NO model, while `GET /api/v1/documents?urn=` passes one and refuses this reader 'out_of_scope'. So a principal scoped to LE-XX-99 is served an LE-US-01 model's compiled document by id \u2014 15 sections of its identity, methodology, findings and approvals \u2014 and told its 1 citation(s) are sound. The soundness claim is itself unscoped "
+  }
+ ]
+}

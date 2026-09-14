@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile the same document five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "1 citations, unchanged across five compiles"
+  }
+ ]
+}

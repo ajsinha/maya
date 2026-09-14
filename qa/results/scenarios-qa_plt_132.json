@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-132",
+   "title": "A document row with no `subjects` list",
+   "verdict": "FAIL",
+   "evidence": "a document row whose `subjects` list is empty falls back to the model id alone, so a new version \u2014 the event a document most needs to notice \u2014 leaves it reporting 'nothing has been recorded since it was compiled'; the column reads []. Latent rather than live on a fresh estate: `render` writes `subjects` on every compile, so the `or [doc['model_id']]` fallback is only reached by a row that predates"
+  }
+ ]
+}

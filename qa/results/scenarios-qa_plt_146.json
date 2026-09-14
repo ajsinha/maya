@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-146",
+   "title": "Withdraw under a read-only permission",
+   "verdict": "FAIL",
+   "evidence": "`withdraw_comment` authorises `document:read` where `comment` authorises `document:review`. Somebody else is stopped by the register rather than by the route \u2014 'not_your_comment' \u2014 so the reachable case is narrow and real: a reviewer whose `document:review` has been revoked still holds `document:read`, and can still close the objections they raised while they had it. The permission that gates rais"
+  }
+ ]
+}

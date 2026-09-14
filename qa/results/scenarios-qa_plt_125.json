@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile a document that has open review comments",
+   "verdict": "PASS",
+   "evidence": "1 open comment(s) still against 01a09da54b58"
+  }
+ ]
+}

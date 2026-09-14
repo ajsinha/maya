@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "the subject is resolved first \u2014 'registry_refused' 409 for the URN, then 'unknown_document_kind' 422 once the model exists, listing the kinds"
+  }
+ ]
+}
