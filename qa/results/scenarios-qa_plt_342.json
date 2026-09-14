@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.4,
+ "results": [
+  {
+   "id": "QA-PLT-342",
+   "title": "An expired key used repeatedly",
+   "verdict": "PASS",
+   "evidence": "twenty calls, all 401 'key_expired' by name, and `last_used_at` unchanged"
+  }
+ ]
+}

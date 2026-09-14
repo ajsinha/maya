@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-336",
+   "title": "A key whose owner loses the role after it was issued",
+   "verdict": "PASS",
+   "evidence": "the same key answers 200 before the role is removed and 403 ('forbidden') after, with nothing revoked"
+  }
+ ]
+}

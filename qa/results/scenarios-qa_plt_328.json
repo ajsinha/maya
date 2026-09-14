@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-PLT-328",
+   "title": "A CSRF token replayed after sign-out and back in",
+   "verdict": "PASS",
+   "evidence": "a new token is minted on the new session and the old one is refused 'csrf_token_invalid'"
+  }
+ ]
+}

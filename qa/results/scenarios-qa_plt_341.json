@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.7,
+ "results": [
+  {
+   "id": "QA-PLT-341",
+   "title": "Concurrent authentications with one key",
+   "verdict": "PASS",
+   "evidence": "50 concurrent calls, use_count 0 \u2192 50"
+  }
+ ]
+}
