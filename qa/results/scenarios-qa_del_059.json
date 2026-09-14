@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 4.0,
+ "results": [
+  {
+   "id": "QA-DEL-059",
+   "title": "A blocking row is never destroyed by the cascade",
+   "verdict": "PASS",
+   "evidence": "24 blocking table(s) untouched, 1 table(s) counted: ['risk_assessment']"
+  }
+ ]
+}

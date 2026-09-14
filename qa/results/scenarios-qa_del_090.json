@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.4,
+ "results": [
+  {
+   "id": "QA-DEL-090",
+   "title": "Delete a model carrying outstanding baseline debt",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming 9 debt item(s)"
+  }
+ ]
+}

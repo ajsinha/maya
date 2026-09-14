@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.2,
+ "results": [
+  {
+   "id": "QA-PLT-5201",
+   "title": "Every table the cascade calls BLOCKS is one the refusal can see",
+   "verdict": "PASS",
+   "evidence": "24 blocking table(s): 22 asked by hand, 2 answered from the declaration, every query valid against the schema"
+  }
+ ]
+}
