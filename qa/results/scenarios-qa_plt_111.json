@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-PLT-111",
+   "title": "Time-stamping with the authority unconfigured",
+   "verdict": "FAIL",
+   "evidence": "the refusal is correct and its remediation says *configure one under `evidence.timestamps`* \u2014 and nothing reads that key. `ChainTimestamps` is constructed with `authority=None, verifier=None` as literals (chain_timestamps = ChainTimestamps(\u2026), and `cfg.get('evidence.timestamps...')` appears nowhere in the application. A deployer following the remediation sets a key the platform never looks at and "
+  }
+ ]
+}

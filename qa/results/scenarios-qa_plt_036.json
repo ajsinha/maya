@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-PLT-036",
+   "title": "A token over a head that is no longer the head",
+   "verdict": "PASS",
+   "evidence": "the token still names seq 11; the new head at 15 reads absent; coverage 1/2 and the detail names the uncovered span"
+  }
+ ]
+}

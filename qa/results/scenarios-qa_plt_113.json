@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-PLT-113",
+   "title": "The same head stamped twice",
+   "verdict": "PASS",
+   "evidence": "one object, one request to the authority, written=0 on the second"
+  }
+ ]
+}
