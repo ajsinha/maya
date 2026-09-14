@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.2,
+ "results": [
+  {
+   "id": "QA-DEL-045",
+   "title": "Delete a model with an undischarged approval condition",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming the condition"
+  }
+ ]
+}

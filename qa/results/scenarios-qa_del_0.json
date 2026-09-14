@@ -1,0 +1,245 @@
+{
+ "summary": {
+  "total": 39,
+  "pass": 38,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 14.5,
+ "results": [
+  {
+   "id": "QA-DEL-001",
+   "title": "Delete as a non-administrator holding model:delete",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-DEL-002",
+   "title": "Delete with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-DEL-003",
+   "title": "Delete with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-DEL-004",
+   "title": "Delete a model under a model-scoped hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' (423)"
+  },
+  {
+   "id": "QA-DEL-005",
+   "title": "Delete a model under a legal hold",
+   "verdict": "PASS",
+   "evidence": "the delete path consults a legal hold"
+  },
+  {
+   "id": "QA-DEL-006",
+   "title": "A hold placed by URN still reaches the deleter",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' (423)"
+  },
+  {
+   "id": "QA-DEL-007",
+   "title": "Delete after the covering hold is lifted",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-DEL-008",
+   "title": "There is no force or override on delete",
+   "verdict": "PASS",
+   "evidence": "no override parameter; accepts ['name', 'reason']"
+  },
+  {
+   "id": "QA-DEL-009",
+   "title": "Delete a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-DEL-010",
+   "title": "Delete the same model twice",
+   "verdict": "PASS",
+   "evidence": "second deletion refused (409)"
+  },
+  {
+   "id": "QA-DEL-011",
+   "title": "The evidence node is appended before the rows go",
+   "verdict": "PASS",
+   "evidence": "the chain grew 22 -> 23 and the screen shows it"
+  },
+  {
+   "id": "QA-DEL-012",
+   "title": "The chain still verifies after a deletion",
+   "verdict": "PASS",
+   "evidence": "valid"
+  },
+  {
+   "id": "QA-DEL-014",
+   "title": "The deletion response carries what was destroyed",
+   "verdict": "PASS",
+   "evidence": "destroyed={}"
+  },
+  {
+   "id": "QA-DEL-015",
+   "title": "The deletion says storage was NOT reclaimed",
+   "verdict": "PASS",
+   "evidence": "storage_reclaimed is false"
+  },
+  {
+   "id": "QA-DEL-020",
+   "title": "Register at a URN that belonged to a deleted model",
+   "verdict": "PASS",
+   "evidence": "refused 'urn_was_deleted' (409)"
+  },
+  {
+   "id": "QA-DEL-021",
+   "title": "The refusal names when and by whom",
+   "verdict": "PASS",
+   "evidence": "the refusal names the actor and the reason"
+  },
+  {
+   "id": "QA-DEL-022",
+   "title": "Register at a URN nobody ever used",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-DEL-024",
+   "title": "A URN nobody ever used does not resolve",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_urn' (404)"
+  },
+  {
+   "id": "QA-DEL-025",
+   "title": "The tombstone records the state deleted FROM",
+   "verdict": "PASS",
+   "evidence": "records draft"
+  },
+  {
+   "id": "QA-DEL-026",
+   "title": "A deleted model is absent from listings",
+   "verdict": "PASS",
+   "evidence": "absent from the listing"
+  },
+  {
+   "id": "QA-DEL-027",
+   "title": "Act on a tombstoned model",
+   "verdict": "PASS",
+   "evidence": "a deleted URN refuses reuse, with no override"
+  },
+  {
+   "id": "QA-DEL-028",
+   "title": "There is no route that reverses a tombstone",
+   "verdict": "PASS",
+   "evidence": "no reversal route"
+  },
+  {
+   "id": "QA-DEL-029",
+   "title": "Tombstones need evidence:read",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-DEL-042",
+   "title": "Delete a model with an unfinished validation",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming the validation"
+  },
+  {
+   "id": "QA-DEL-045",
+   "title": "Delete a model with an undischarged approval condition",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming the condition"
+  },
+  {
+   "id": "QA-DEL-053",
+   "title": "A blocking reference names itself in the refusal",
+   "verdict": "PASS",
+   "evidence": "refused and named the version"
+  },
+  {
+   "id": "QA-DEL-054",
+   "title": "Delete a model with limitations and assumptions attached",
+   "verdict": "FAIL",
+   "evidence": "the GOES disposition on `model_limitation` and `model_assumption` cannot fire through the delete route. Both rows carry a NOT NULL `model_version_id` ({'model_limitation': False, 'model_assumption': False}), so neither can exist without a version \u2014 and `model_version` blocks a deletion unconditionally, so a model that has either is always refused: 'still_referenced', {\"error\":\"still_referenced\",\"d"
+  },
+  {
+   "id": "QA-DEL-055",
+   "title": "Inference records survive a deletion",
+   "verdict": "PASS",
+   "evidence": "declared STAYS"
+  },
+  {
+   "id": "QA-DEL-056",
+   "title": "Warrant invocations survive a deletion and are counted",
+   "verdict": "PASS",
+   "evidence": "the invocation survives and is counted: warrant_invocation (kept) = 1"
+  },
+  {
+   "id": "QA-DEL-057",
+   "title": "The cascade declaration covers every table",
+   "verdict": "PASS",
+   "evidence": "38 tables declared, all 38 covered"
+  },
+  {
+   "id": "QA-DEL-058",
+   "title": "A table with no disposition fails the build",
+   "verdict": "PASS",
+   "evidence": "every table carrying a model_id has a disposition and tests/test_tombstones.py enforces it"
+  },
+  {
+   "id": "QA-DEL-059",
+   "title": "A blocking row is never destroyed by the cascade",
+   "verdict": "PASS",
+   "evidence": "24 blocking table(s) untouched, 1 table(s) counted: ['risk_assessment']"
+  },
+  {
+   "id": "QA-DEL-070",
+   "title": "An unreferenced blob is marked before it is swept",
+   "verdict": "PASS",
+   "evidence": "2 sightings before anything is swept"
+  },
+  {
+   "id": "QA-DEL-074",
+   "title": "A sweep is refused under an estate-wide hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' (423)"
+  },
+  {
+   "id": "QA-DEL-075",
+   "title": "A compaction plan reclaims nothing",
+   "verdict": "PASS",
+   "evidence": "plan is repeatable: 0 ready"
+  },
+  {
+   "id": "QA-DEL-079",
+   "title": "Compacting a model that was never deleted",
+   "verdict": "PASS",
+   "evidence": "refused no_tombstone"
+  },
+  {
+   "id": "QA-DEL-081",
+   "title": "A sweep needs storage:compact",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-DEL-082",
+   "title": "Every content address is refcounted",
+   "verdict": "PASS",
+   "evidence": "2 address column(s) refcounted"
+  },
+  {
+   "id": "QA-DEL-090",
+   "title": "Delete a model carrying outstanding baseline debt",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming 9 debt item(s)"
+  }
+ ]
+}

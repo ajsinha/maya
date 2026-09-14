@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 4.7,
+ "results": [
+  {
+   "id": "QA-DEL-055",
+   "title": "Inference records survive a deletion",
+   "verdict": "PASS",
+   "evidence": "declared STAYS"
+  }
+ ]
+}

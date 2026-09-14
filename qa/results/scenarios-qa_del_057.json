@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-DEL-057",
+   "title": "The cascade declaration covers every table",
+   "verdict": "PASS",
+   "evidence": "38 tables declared, all 38 covered"
+  }
+ ]
+}

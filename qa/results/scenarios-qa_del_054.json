@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.7,
+ "results": [
+  {
+   "id": "QA-DEL-054",
+   "title": "Delete a model with limitations and assumptions attached",
+   "verdict": "FAIL",
+   "evidence": "the GOES disposition on `model_limitation` and `model_assumption` cannot fire through the delete route. Both rows carry a NOT NULL `model_version_id` ({'model_limitation': False, 'model_assumption': False}), so neither can exist without a version \u2014 and `model_version` blocks a deletion unconditionally, so a model that has either is always refused: 'still_referenced', {\"error\":\"still_referenced\",\"d"
+  }
+ ]
+}

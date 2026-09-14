@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.3,
+ "results": [
+  {
+   "id": "QA-DEL-056",
+   "title": "Warrant invocations survive a deletion and are counted",
+   "verdict": "PASS",
+   "evidence": "the invocation survives and is counted: warrant_invocation (kept) = 1"
+  }
+ ]
+}

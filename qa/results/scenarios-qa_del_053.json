@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.1,
+ "results": [
+  {
+   "id": "QA-DEL-053",
+   "title": "A blocking reference names itself in the refusal",
+   "verdict": "PASS",
+   "evidence": "refused and named the version"
+  }
+ ]
+}
