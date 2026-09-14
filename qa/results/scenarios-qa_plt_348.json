@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-PLT-348",
+   "title": "An id token dated in the future and one just expired",
+   "verdict": "PASS",
+   "evidence": "both refused by name through the real `_assert`, and both directions of a 120s leeway accepted: {'expired': 'token_expired', 'just expired, inside leeway': 'accepted', 'future': 'token_from_the_future', 'a moment ahead, inside leeway': 'accepted'}"
+  }
+ ]
+}

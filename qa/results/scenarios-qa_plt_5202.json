@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.3,
+ "results": [
+  {
+   "id": "QA-PLT-5202",
+   "title": "An instance with no identity provider configured",
+   "verdict": "PASS",
+   "evidence": "no provider is built without an issuer; both SSO endpoints refuse 'sso_not_configured' naming local credentials, and the local form still signs in"
+  }
+ ]
+}

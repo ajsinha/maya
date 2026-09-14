@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.2,
+ "results": [
+  {
+   "id": "QA-PLT-346",
+   "title": "A mismatched state, an expired pending login, a replayed nonce",
+   "verdict": "PASS",
+   "evidence": "three conditions, three named refusals: {'state': 'state_mismatch', 'expired': 'login_expired', 'no pending': 'no_login_in_progress'}"
+  }
+ ]
+}

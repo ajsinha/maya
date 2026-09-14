@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.8,
+ "results": [
+  {
+   "id": "QA-PLT-351",
+   "title": "Group claims mapping to two incompatible roles",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles' for ['model_developer', 'validator'], nothing created"
+  }
+ ]
+}
