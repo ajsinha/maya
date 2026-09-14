@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-154",
+   "title": "Two attachments with the same filename and a colliding digest prefix",
+   "verdict": "FAIL",
+   "evidence": "two attachments named 'report.pdf' whose digests agree on bytes 7:15 produced 1 archive member(s) \u2014 ['attachments/AAAAAAAA-report.pdf'] \u2014 while attachments/index.json lists 2. The name is `digest[7:15] + filename`, a dict assignment overwrites, and no gap is recorded: the index says two documents are in this pack and one of them is not. 0 gap(s) recorded"
+  }
+ ]
+}

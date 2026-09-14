@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-142",
+   "title": "Dossier gaps carried into the pack",
+   "verdict": "PASS",
+   "evidence": "2 dossier gap(s) carried under documentation/, manifest counts 20 (21 listed)"
+  }
+ ]
+}

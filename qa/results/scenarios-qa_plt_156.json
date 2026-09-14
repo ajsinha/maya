@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-156",
+   "title": "A pack cut while the evidence chain is broken",
+   "verdict": "PASS",
+   "evidence": "the pack is cut and the manifest reports verified: false"
+  }
+ ]
+}

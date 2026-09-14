@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-141",
+   "title": "A dossier over a large featureset estate",
+   "verdict": "PASS",
+   "evidence": "one parameter set, one dossier build, an estate of 20 featureset(s): 1 full scan(s) of the register and 20 version read(s), 6 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
+  }
+ ]
+}

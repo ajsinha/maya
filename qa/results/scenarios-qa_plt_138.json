@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-138",
+   "title": "A dangling featureset pin on a non-fitted parameter set",
+   "verdict": "FAIL",
+   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-63c3f00c', "
+  }
+ ]
+}
