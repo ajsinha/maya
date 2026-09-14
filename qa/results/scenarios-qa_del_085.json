@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.8,
+ "results": [
+  {
+   "id": "QA-DEL-085",
+   "title": "A sweep under an estate-wide legal hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' at the service and at 423 over HTTP, blob intact"
+  }
+ ]
+}

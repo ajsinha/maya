@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.2,
+ "results": [
+  {
+   "id": "QA-DEL-083",
+   "title": "Sweep against a store directory that does not exist",
+   "verdict": "PASS",
+   "evidence": "a missing root sweeps to zero without raising, and the real root still sees 2 candidate(s) \u2014 so the zero came from the root being absent rather than from the store being empty"
+  }
+ ]
+}

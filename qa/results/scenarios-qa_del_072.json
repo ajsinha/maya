@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.8,
+ "results": [
+  {
+   "id": "QA-DEL-072",
+   "title": "A reference appears between the two passes",
+   "verdict": "PASS",
+   "evidence": "1 mark(s) cleared when the reference arrived; two further passes reclaim nothing"
+  }
+ ]
+}
