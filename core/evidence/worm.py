@@ -97,8 +97,26 @@ class FilesystemWORM:
                 "do not overwrite it; an object that changed is the observation "
                 "the store exists to make, and the held copy is the evidence")
         staging = path.with_suffix(_STAGING)
-        staging.write_bytes(content)
-        staging.replace(path)
+        try:
+            staging.write_bytes(content)
+            staging.replace(path)
+        except OSError as exc:
+            # The mirror of `get`, which already says that an object which
+            # cannot be READ must not be treated as absent. A root that cannot
+            # be WRITTEN to is the condition that stops the second medium
+            # existing at all, and it arrived as whatever the filesystem
+            # raised — no code, no detail, no remediation — so the scheduler
+            # swallowed it into a job error string and nothing was anchored.
+            staging.unlink(missing_ok=True)
+            logger.error("write-once object %s could not be written: %s",
+                         name, exc)
+            raise WormError(
+                "worm_unwritable",
+                f"'{name}' could not be written to {self.root}: {exc}",
+                "the anchor store is the only check here that an attacker "
+                "holding the database cannot satisfy; until this root takes "
+                "writes again the chain is self-certified, and that is the "
+                "state to report rather than to retry past") from exc
         self._freeze(path)
 
     def exists(self, name: str) -> bool:

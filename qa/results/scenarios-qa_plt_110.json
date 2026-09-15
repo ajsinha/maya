@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 11,
-  "pass": 10,
-  "fail": 1,
+  "pass": 11,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 4.4,
+ "seconds": 1.5,
  "results": [
   {
    "id": "QA-PLT-110",
    "title": "An unwritable WORM root",
-   "verdict": "FAIL",
-   "evidence": "an unwritable anchor root raises a bare PermissionError with no code, no detail and no remediation \u2014 `put` catches nothing around `write_bytes`, while `get` wraps its OSError as `worm_unreadable` with the note that an object which cannot be read must not be treated as absent. The write path has no equivalent, so the one condition that stops the second medium existing at all arrives as PermissionEr"
+   "verdict": "PASS",
+   "evidence": "refused 'worm_unwritable': 'qa-unwritable-1789446986056.anchor' could not be written to /tmp/maya-qa-tqpr7lwh/data/worm: [Errno 13] Permi"
   },
   {
    "id": "QA-PLT-1100",

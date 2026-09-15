@@ -1084,6 +1084,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                              warrants, overlays, regimes, attachments,
                              limitations=limitations, assumptions=assumptions)
     documents = DocumentCompiler(DocumentRepository(db), evidence, context)
+    # Wired AFTER the compiler exists, because the context feeds the compiler
+    # and the compiler owns the register the context needs to read. A regime
+    # obligation conditioned on documentation existing read a key nothing
+    # wrote, so it could never be satisfied.
+    context.documents = documents.documents
 
     # The pack uses the SAME context builder the compiler does. Two gatherers
     # would be two answers to "what is true about this model", and the second

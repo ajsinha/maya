@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.6,
+ "seconds": 3.6,
  "results": [
   {
    "id": "QA-PLT-4701",
    "title": "The regime state reads only keys the context carries",
-   "verdict": "FAIL",
-   "evidence": "`core_state` reads ['documents'] from the model context, which does not carry it \u2014 the context holds ['alias_history', 'assessment', 'assumptions', 'attachment_status', 'attachments', 'chain']\u2026 \u2014 so every fact derived from that key is permanently False, and this model has a compiled document"
+   "verdict": "PASS",
+   "evidence": "all 9 context keys `core_state` reads are present"
   }
  ]
 }

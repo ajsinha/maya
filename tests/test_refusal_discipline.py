@@ -5,7 +5,8 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 A refusal is a governance decision, and a decision delivered as an unexplained
 400 is one the caller cannot act on. Every ``SomethingError("code", ...)`` in
-``core/`` must therefore appear in the route layer's status taxonomy.
+``core/`` and ``db/`` must therefore appear in the route layer's status
+taxonomy.
 
 This is enforced by walking the source rather than by review, because the
 alternative is what happened: fifteen execution-layer codes accumulated over
@@ -27,10 +28,23 @@ CODE_SHAPE = re.compile(r"[a-z][a-z0-9_]*$")
 GENERIC = {400}
 
 
+#: Where a coded refusal may be raised.
+#:
+#: `db/` as well as `core/`, because the storage layer raises refusals the
+#: route layer maps exactly like any other — `append_only` when something
+#: updates the evidence chain, `written_during_a_fold` when a request writes a
+#: table an estate fold is serving reads from. Both carried a code, a detail
+#: and a remediation and neither was in the taxonomy, and this test could not
+#: see them: it read one directory, so a refusal raised in the other looked
+#: like a code nothing raises.
+RAISING = ("core", "db")
+
+
 def _coded_refusals():
     """Every (code, file, line) raised as the first argument of an *Error."""
     found = []
-    for path in sorted((ROOT / "core").rglob("*.py")):
+    paths = [p for d in RAISING for p in sorted((ROOT / d).rglob("*.py"))]
+    for path in paths:
         tree = ast.parse(path.read_text(), filename=str(path))
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
@@ -42,6 +56,34 @@ def _coded_refusals():
             if isinstance(first, ast.Constant) and isinstance(first.value, str):
                 if CODE_SHAPE.fullmatch(first.value):
                     found.append((first.value, path.relative_to(ROOT), node.lineno))
+    return found + _codes_set_on_self()
+
+
+def _codes_set_on_self():
+    """Refusals that carry their code as `self.code = "..."`.
+
+    A refusal is anything that carries a code, not anything whose class name
+    ends in `Error`. `AppendOnlyViolation` and `FoldViolation` both carry
+    `error`, `detail` and `remediation` and neither was visible here, so two
+    codes added to the taxonomy read as codes nothing raises — by a test whose
+    job is to notice exactly that.
+    """
+    found = []
+    paths = [p for d in RAISING for p in sorted((ROOT / d).rglob("*.py"))]
+    for path in paths:
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            targets = [t for t in node.targets
+                       if isinstance(t, ast.Attribute) and t.attr == "code"
+                       and isinstance(t.value, ast.Name) and t.value.id == "self"]
+            if not targets:
+                continue
+            value = node.value
+            if isinstance(value, ast.Constant) and isinstance(value.value, str) \
+                    and CODE_SHAPE.fullmatch(value.value):
+                found.append((value.value, path.relative_to(ROOT), node.lineno))
     return found
 
 
@@ -96,7 +138,8 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (
-        "these codes are in the status taxonomy but nothing in core/ raises "
+        "these codes are in the status taxonomy and nothing in "
+        + "/, ".join(RAISING) + "/ raises "
         "them:\n    " + "\n    ".join(orphans))
 
 

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-097",
+   "title": "An append-only repository `set()` reaching HTTP",
+   "verdict": "PASS",
+   "evidence": "refused 'append_only' \u2192 409, and the guard catches it"
+  }
+ ]
+}
