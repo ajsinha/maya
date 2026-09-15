@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-FX-396",
+   "title": "Setting no limit at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_set', nothing appended to the chain"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-391",
+   "title": "A refused call does not consume quota",
+   "verdict": "PASS",
+   "evidence": "100 refusals counted and charged nothing; the first served call is the first unit of spend"
+  }
+ ]
+}

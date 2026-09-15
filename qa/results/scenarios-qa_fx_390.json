@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-390",
+   "title": "The burst across a fixed bucket boundary",
+   "verdict": "PASS",
+   "evidence": "the last minute counts 120 across the boundary and the rate is exhausted: a sliding window"
+  },
+  {
+   "id": "QA-FX-3900",
+   "title": "Both bounds present",
+   "verdict": "PASS",
+   "evidence": "both temporal bounds present"
+  },
+  {
+   "id": "QA-FX-3901",
+   "title": "Layer 2 over nothing is not a verification",
+   "verdict": "PASS",
+   "evidence": "nothing to verify"
+  },
+  {
+   "id": "QA-FX-3902",
+   "title": "Layer 2 catches a row that disagrees",
+   "verdict": "PASS",
+   "evidence": "1 violation(s), naming e7"
+  },
+  {
+   "id": "QA-FX-3903",
+   "title": "Layer 2 reports comparisons, not rows",
+   "verdict": "PASS",
+   "evidence": "10 of 10 rows independently recomputed (30 values compared)"
+  },
+  {
+   "id": "QA-FX-3904",
+   "title": "What layer 2 proves is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "what it proves, and what it does not, are both written down"
+  },
+  {
+   "id": "QA-FX-3905",
+   "title": "The sample size and the strata are stated",
+   "verdict": "PASS",
+   "evidence": "200 comparison(s) over 500 rows"
+  }
+ ]
+}

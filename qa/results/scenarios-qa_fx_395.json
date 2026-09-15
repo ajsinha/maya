@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-FX-395",
+   "title": "A window of zero hours",
+   "verdict": "PASS",
+   "evidence": "refused 'window_not_positive', and nothing was written"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-392",
+   "title": "Exactly the quota, then one more",
+   "verdict": "PASS",
+   "evidence": "nine served, ten exhausts: this grant has reached its quota limit of 10 per 24h. calls per window \u2014 protects the authorisation from being"
+  }
+ ]
+}

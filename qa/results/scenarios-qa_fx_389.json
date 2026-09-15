@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-389",
+   "title": "Exactly the rate limit, then one more",
+   "verdict": "PASS",
+   "evidence": "59 served, the 60th exhausts, and the rate refills a minute later: this grant has reached its rate limit of 60 per minute. calls per minute \u2014 protects the downstream s"
+  }
+ ]
+}

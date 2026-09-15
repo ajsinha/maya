@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.0,
+ "results": [
+  {
+   "id": "QA-FX-397",
+   "title": "Limits are per grant, not per principal",
+   "verdict": "PASS",
+   "evidence": "one of 4 grants on one principal is exhausted and the other 3 still resolve"
+  }
+ ]
+}
