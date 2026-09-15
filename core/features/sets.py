@@ -93,6 +93,18 @@ class FeaturesetRegistry:
         left-to-right fold a feature's components use, so it may declare none of
         its own and still have a schema.
         """
+        # Stripped and then checked, at the service: a body model refuses an
+        # ABSENT field and `"   "` is present, so a blank arrives here having
+        # satisfied the route.
+        for field, value, why in (
+                ("name", name,
+                 "a featureset nobody can name is one no contract can pin, "
+                 "and the name is what a model version binds"),
+                ("entity", entity,
+                 "the entity is what every row in this set is keyed on, so a "
+                 "set without one does not say what a row IS")):
+            if not str(value or "").strip():
+                raise FeatureError(f"a featureset needs a {field}: {why}")
         if self.sets.one(name=name):
             raise FeatureError(f"featureset '{name}' already exists")
         if not slots and not composes:

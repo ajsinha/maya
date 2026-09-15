@@ -119,6 +119,24 @@ class TestTheThreeRefusals:
         assert e.value.code == "empty_population"
         assert "an estate it never saw" in e.value.remediation
 
+    def test_an_explicitly_empty_population_is_not_everybody(self, review):
+        """The refusal above existed and `[]` never reached it.
+
+        `_population` tested the argument for TRUTH, so an explicitly empty
+        list was indistinguishable from an omitted one and fell through to
+        "everybody active". A caller who computed a population, got nothing
+        back and sent it opened a review over the WHOLE ESTATE — the exact
+        inverse of what they asked for, silently.
+        """
+        with pytest.raises(AuthzError) as e:
+            review.open("ACC-2026-Q4", reviewer="s.iqbal", population=[])
+        assert e.value.code == "empty_population"
+
+    def test_an_omitted_population_still_means_everybody(self, review):
+        """The other half: the documented default has to survive the fix."""
+        review.open("ACC-2026-Q5", reviewer="s.iqbal")
+        assert review.status("ACC-2026-Q5")["population"] > 1
+
     def test_two_campaigns_with_one_reference_are_refused(self, review):
         review.open("ACC-2026-Q3", reviewer="s.iqbal")
         with pytest.raises(AuthzError) as e:

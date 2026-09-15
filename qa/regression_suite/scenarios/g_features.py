@@ -42,10 +42,6 @@ REFUSALS: List[Tuple[str, str, Dict[str, Any], Tuple[str, ...], str]] = [
     ("QA-FX-701", "a feature with no owner", {"owner": "   "},
      ("validation_error", "feature_refused", "validation_refused"),
      "an unowned feature is one nobody maintains"),
-    ("QA-FX-702", "a feature of an unknown dtype", {"dtype": "vibes"},
-     ("validation_error", "feature_refused", "unknown_dtype",
-      "validation_refused"),
-     "the dtype decides how every later comparison behaves"),
     ("QA-FX-703", "a feature with no entity", {"entity": "   "},
      ("validation_error", "feature_refused", "validation_refused"),
      "the entity is what a row is keyed on"),
@@ -201,3 +197,44 @@ def fx_420(ctx: Ctx) -> Result:
         return FAIL, ("an import statement was accepted as a feature "
                       "expression")
     return PASS, f"refused '{code_of(got)}'"
+
+
+@case("QA-FX-702", "Define a feature of an unknown dtype")
+def fx_702(ctx: Ctx) -> Result:
+    """**Accepted, and that is the design.** This case used to demand a
+    refusal and it was asking for the wrong thing.
+
+    The register takes anything a bank calls a type, because a closed list
+    refuses `decimal(18,4)`, `varchar(40)` and every other real spelling — and
+    the only thing that reads a dtype is `Field.accepts`, which compares them
+    by **string equality**. An unfamiliar name therefore costs nothing: it
+    matches itself and nothing else, which is exactly the behaviour a closed
+    vocabulary would have given it.
+
+    What the openness must not become is a dtype that is BLANK. A blank
+    compares equal to another blank, so two versions declaring nothing about a
+    field's type would pass the schema check on the strength of both saying
+    nothing — and `SUGGESTED_DTYPES` exists so a form still offers a list
+    rather than each screen inventing one.
+    """
+    from core.features.common import SUGGESTED_DTYPES
+
+    unfamiliar = _define(ctx, dtype="decimal(18,4)")
+    if unfamiliar.status_code >= 400:
+        return FAIL, (f"a dtype a bank really writes was refused "
+                      f"'{code_of(unfamiliar)}', so the register has a closed "
+                      f"list that does not contain the types it will meet")
+    blank = _define(ctx, dtype="   ")
+    if blank.status_code < 400:
+        return FAIL, ("a feature was defined with a BLANK dtype, and blank "
+                      "compares equal to blank — so two versions that say "
+                      "nothing about a field's type pass the schema check on "
+                      "the strength of both saying nothing")
+    offered = ctx.api.get(FEATURE + "-dtypes")
+    if offered.status_code == 404:
+        if not SUGGESTED_DTYPES:
+            return FAIL, "nothing is suggested, so every form invents a list"
+        return PASS, (f"open by design, blank refused '{code_of(blank)}', and "
+                      f"{len(SUGGESTED_DTYPES)} dtype(s) suggested in source")
+    return PASS, (f"open by design, blank refused '{code_of(blank)}', and the "
+                  f"suggestions are published")

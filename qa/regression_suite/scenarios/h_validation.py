@@ -241,16 +241,20 @@ def _matter(ctx: Ctx, **over):
 @case("QA-AM-631", "A supervisory matter with no supervisor")
 def am_340(ctx: Ctx) -> Result:
     """Which regulator asked is the first thing anybody will want to know."""
+    # `validation_refused` is the code this subsystem's refusals arrive under:
+    # `ValidationError` carries no code of its own, so the route supplies one.
     return expect_refused(_matter(ctx, supervisor="   "),
-                          "validation_error", "supervisor_required",
-                          "matter_refused", "regime_refused")
+                          "validation_error", "validation_refused",
+                          "supervisor_required", "matter_refused",
+                          "regime_refused")
 
 
 @case("QA-AM-632", "A supervisory matter with no owner")
 def am_341(ctx: Ctx) -> Result:
     return expect_refused(_matter(ctx, owner="   "),
-                          "validation_error", "owner_required",
-                          "matter_refused", "regime_refused")
+                          "validation_error", "validation_refused",
+                          "owner_required", "matter_refused",
+                          "regime_refused")
 
 
 @case("QA-AM-633", "Two matters with the same reference")

@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 10,
-  "pass": 6,
-  "fail": 4,
+  "pass": 8,
+  "fail": 2,
   "blocked": 0
  },
- "seconds": 1.6,
+ "seconds": 1.3,
  "results": [
   {
    "id": "QA-PLT-150",
@@ -41,7 +41,7 @@
    "id": "QA-PLT-155",
    "title": "Two packs of unchanged state",
    "verdict": "PASS",
-   "evidence": "content sha256:7a961f5b6763a on both; archive digests differ because the manifest carries the moment"
+   "evidence": "content sha256:f784cd03b82a7 on both; archive digests differ because the manifest carries the moment"
   },
   {
    "id": "QA-PLT-156",
@@ -58,14 +58,14 @@
   {
    "id": "QA-PLT-158",
    "title": "A share created with `max_reads: 0`",
-   "verdict": "FAIL",
-   "evidence": "`max_reads: 0` was stored as None: the guard is `if max_reads`, and zero is falsy, so asking for NO permitted reads produces a share with NO LIMIT \u2014 the exact inverse of the request, and the one direction that cannot be noticed by reading the row back"
+   "verdict": "PASS",
+   "evidence": "refused 'max_reads_refused' \u2014 a share nobody may read is not a share"
   },
   {
    "id": "QA-PLT-159",
    "title": "A share created with `max_reads: -1`",
-   "verdict": "FAIL",
-   "evidence": "`max_reads: -1` was accepted and the share is born exhausted: nothing validates the field, so a typo produces a link that refuses every read and reads on the register as one somebody used up"
+   "verdict": "PASS",
+   "evidence": "refused 'max_reads_refused'"
   }
  ]
 }

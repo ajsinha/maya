@@ -78,6 +78,14 @@ class ParameterRegister:
                warrant_id: Optional[str] = None, values_uri: Optional[str] = None,
                note: str = "", actor: str = "system") -> Dict[str, Any]:
         """Take delivery of an inhabitant of P."""
+        if not str(name or "").strip():
+            raise ParameterError(
+                "name_required",
+                "a parameter set with no name is a set of numbers a warrant "
+                "cites by id and nobody can recognise. The name is what "
+                "appears beside the version in every reading of it",
+                "name it after what it parameterises — 'PD coefficients "
+                "2026-Q1', 'LGD downturn floors'")
         if provenance not in PROVENANCE:
             raise ParameterError("unknown_provenance",
                                  f"unknown provenance '{provenance}'",

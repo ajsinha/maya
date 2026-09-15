@@ -560,6 +560,8 @@ STATUS: Dict[str, int] = {
     "unknown_cost_dimension": 422,
     "not_a_sourceable_fact": 422, "source_required": 422,
     "reference_required": 422,
+    # 422: a read cap of zero or below. Zero was stored as "no limit".
+    "max_reads_refused": 422,
     "cursor_malformed": 422, "cursor_ordering_changed": 422,
     "cursor_expired": 422,
     "test_does_not_decompose": 422, "test_not_distributable": 422,
@@ -587,7 +589,9 @@ STATUS: Dict[str, int] = {
     "raiser_may_not_close": 403, "not_your_comment": 403,
     "unknown_comment": 404, "unknown_document": 404,
     # a panel asked a question, and the judgement component of a number
-    "period_required": 422, "unknown_method": 422,
+    "period_required": 422,
+    # 422: the one role that makes a panel's answer attributable.
+    "facilitator_required": 422, "unknown_method": 422,
     "panel_too_small": 422, "facilitator_is_a_panellist": 409,
     "elicitation_already_open": 409, "elicitation_closed": 409,
     "not_on_the_panel": 403, "already_answered": 409,

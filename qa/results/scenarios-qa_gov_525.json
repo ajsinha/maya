@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.3,
+ "results": [
+  {
+   "id": "QA-GOV-525",
+   "title": "A campaign over an empty population",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population'"
+  }
+ ]
+}

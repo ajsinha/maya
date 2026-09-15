@@ -55,6 +55,40 @@ class FeatureCatalogue:
                defaults: Optional[Dict[str, Any]] = None,
                assertions: Optional[List[Dict[str, Any]]] = None,
                actor: str = "system") -> Dict[str, Any]:
+        # Stated grounds, stripped and then checked. A body model can only
+        # refuse a field that is ABSENT; `"   "` is present, so every one of
+        # these arrived through the route's own validation and was stored.
+        #
+        # `dtype` is deliberately not among them beyond being non-blank: the
+        # register accepts anything a bank calls a type, and `Field.accepts`
+        # compares dtypes by string equality — so an unfamiliar name costs
+        # nothing, while a closed list would refuse `decimal(18,4)` and every
+        # other real spelling. `SUGGESTED_DTYPES` is what a form offers, and
+        # says so.
+        for field, value, why in (
+                ("name", name,
+                 "a feature nobody can name is one nobody can cite, and the "
+                 "name is what a featureset binds and a contract pins"),
+                ("entity", entity,
+                 "the entity is what a row is keyed on — without it there is "
+                 "no answer to 'one row per what'"),
+                ("dtype", dtype,
+                 "the dtype is compared when a version replaces another, so a "
+                 "blank one matches only another blank one"),
+                ("description", description,
+                 "a business definition is what stops two teams meaning "
+                 "different things by one name, which is the failure a "
+                 "feature register exists to prevent"),
+                ("owner", owner,
+                 "an unowned feature is one nobody maintains, and the owner "
+                 "is who a question about it goes to")):
+            if not str(value or "").strip():
+                raise FeatureError(f"a feature needs a {field}: {why}")
+        if ttl_days is not None and float(ttl_days) <= 0:
+            raise FeatureError(
+                f"a ttl of {ttl_days} is not a lifetime — a feature with a "
+                f"lifetime at or below zero has expired before it was "
+                f"written, and every read of it would be a miss")
         if self.features.one(name=name):
             raise FeatureError(f"feature '{name}' is already defined")
         # Closed here rather than anywhere downstream. `sensitivity` was free

@@ -106,7 +106,12 @@ class BaselineImporter:
             spec.get("domain", "unassigned"), spec.get("owner", ""),
             spec.get("legal_entity", ""), spec.get("purpose", ""),
             spec.get("description", ""), spec.get("origin", "internal"),
-            actor=actor)
+            actor=actor,
+            # The whole point of this register: a model that arrived without
+            # its evidence is admitted with the absence recorded as a dated
+            # debt, rather than refused and left off the register where
+            # nobody can find it to fix it.
+            admitting_gaps=True)
         # Baselined, not draft: the register must never imply that historical
         # evidence was asserted when it was not.
         self.registry.catalogue.models.set({"status": BASELINED}, id=model["id"])

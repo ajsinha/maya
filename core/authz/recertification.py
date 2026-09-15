@@ -191,7 +191,13 @@ class Recertification:
 
     def _population(self, population: Optional[Sequence[str]]
                     ) -> List[Dict[str, Any]]:
-        if population:
+        # `is not None`, not truthiness. An explicitly empty list is the
+        # caller saying "these people, and there are none" — a different
+        # statement from omitting the field, which means "everybody active".
+        # Read as truthy, `[]` fell through to the estate-wide branch and a
+        # caller who computed an empty population opened a review over
+        # everybody.
+        if population is not None:
             return [self.principals.require(u) for u in population]
         return [p for p in self.principals.list()
                 if p.get("status") == "active"]

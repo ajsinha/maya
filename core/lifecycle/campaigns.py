@@ -98,6 +98,15 @@ class Campaigns:
                 f"'{kind}' is not a kind of campaign",
                 f"the six are {', '.join(KINDS)} — the list is closed so that "
                 f"two rounds run three years apart can be compared")
+        if not str(reference or "").strip():
+            raise LifecycleError(
+                "reference_required",
+                "a round with no reference is one nobody can cite. It is how "
+                "the exercise is named in a board paper and in a supervisor's "
+                "request, and what it produced belongs to no identifiable "
+                "exercise without it",
+                "give it the name the firm will use — 'Q2-2026 owner "
+                "confirmation', 'annual inventory certification'")
         if self.campaigns.one(reference=reference):
             raise LifecycleError(
                 "campaign_already_open",

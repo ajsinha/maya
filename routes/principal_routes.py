@@ -33,7 +33,14 @@ class RecertificationIn(Body):
     reference: str
     reviewer: str
     title: str = ""
-    population: List[str] = Field(default_factory=list)
+    #: `None` and `[]` are DIFFERENT answers and the type says so. Omitted
+    #: means "everybody active", which is the documented default; an explicit
+    #: empty list means "review these, and there are none of them", which is
+    #: refused. Defaulting to `[]` conflated them, so a caller who computed a
+    #: population, got nothing back and sent it opened a review over the WHOLE
+    #: estate — the exact inverse of what they asked for, and the same shape
+    #: as a share created with `max_reads: 0` and stored as unlimited.
+    population: Optional[List[str]] = None
 
 
 class RecertifyIn(Body):
@@ -348,7 +355,7 @@ class PrincipalRoutes(Routes):
                 estate_wide="opening an access recertification")
             return self.guard(lambda: self.ctx["recertification"].open(
                 body.reference, reviewer=body.reviewer, title=body.title,
-                population=body.population or None, actor=self.actor(who)))
+                population=body.population, actor=self.actor(who)))
 
         # `/reassign` and `/close` are declared BEFORE `/{principal}`, and the
         # order is the whole of what makes them reachable. Starlette matches in

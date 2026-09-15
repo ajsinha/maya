@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 10,
-  "pass": 8,
-  "fail": 2,
+  "pass": 10,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.9,
+ "seconds": 3.7,
  "results": [
   {
    "id": "QA-AM-630",
@@ -16,14 +16,14 @@
   {
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a721c807dd995c95fa0e28f2\",\"reference\":\"SUP-e6ea5eb1\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a721c80fc1e7af3dbd2393fa\",\"reference\":\"SUP-553010b2\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
   },
   {
    "id": "QA-AM-633",

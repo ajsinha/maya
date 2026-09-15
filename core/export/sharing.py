@@ -102,6 +102,17 @@ class ExportSharing:
                 "examination it belongs to",
                 "a year later the purpose is the only part that explains why a "
                 "model record left the building")
+        if max_reads is not None and int(max_reads) < 1:
+            raise ExportError(
+                "max_reads_refused",
+                f"a read cap of {max_reads} is not a cap. Zero permitted "
+                f"reads is a link that can never be opened, which is the same "
+                f"as not creating it; a negative one is a share born "
+                f"exhausted, and on the register it reads as a link somebody "
+                f"used up",
+                "omit `max_reads` for no limit, or give it a count of one or "
+                "more. `if max_reads` treated 0 as absent, so asking for NO "
+                "reads produced a share with NO LIMIT — the exact inverse")
         if days <= 0 or days > MAX_DAYS:
             raise ExportError(
                 "window_out_of_range",
@@ -128,7 +139,10 @@ class ExportSharing:
             "filename": filename, "recipient": recipient.strip(),
             "purpose": purpose.strip(),
             "expires_at": moment + days * DAY,
-            "max_reads": int(max_reads) if max_reads else None,
+            # `is not None`, not truthiness. `if max_reads` stored 0 as None
+            # — no limit — which is the inverse of the request. The refusal
+            # above now stops 0 arriving, and this stops the shape recurring.
+            "max_reads": int(max_reads) if max_reads is not None else None,
             "reads": 0, "status": OPEN,
             "created_by": actor, "created_at": moment,
             "revoked_at": None, "revoked_by": None, "revoke_reason": "",
@@ -227,6 +241,16 @@ class ExportSharing:
                now: Optional[float] = None) -> Dict[str, Any]:
         """Stop it serving. Keeps everything it served."""
         share = self.require(reference)
+        if not (reason or "").strip():
+            raise ExportError(
+                "reason_required",
+                "revoking a share is the firm stopping a named recipient "
+                "reading something it had handed them, and *why* is the "
+                "question asked about it afterwards. Without it the record "
+                "says a supervisor stopped being served a copy and nothing "
+                "about whether that was a withdrawal, a correction or an end "
+                "of engagement",
+                "say why it is being withdrawn")
         if share["status"] == REVOKED:
             raise ExportError(
                 "already_revoked", "this share is already revoked",
@@ -262,7 +286,15 @@ class ExportSharing:
             "history": history,
             "served": sum(1 for r in history if r["outcome"] == SERVED),
             "refused": sum(1 for r in history if r["outcome"] == REFUSED),
-            "days_left": round((share["expires_at"] - moment) / DAY, 1),
+            # Floored at zero. An expired share reported -10.0 days left, and
+            # a negative number sorts FIRST on any list ordered by time
+            # remaining — so the links furthest past their end read as the ones
+            # with longest to run. `state` already says `expired`; this field
+            # exists to be sorted and displayed, and it must not disagree.
+            "days_left": max(0.0,
+                             round((share["expires_at"] - moment) / DAY, 1)),
+            "days_past_expiry": max(
+                0.0, round((moment - share["expires_at"]) / DAY, 1)),
             "identity_established": False,
             "detail": self._detail(share, state, history, moment),
         }

@@ -5,13 +5,13 @@
   "fail": 2,
   "blocked": 0
  },
- "seconds": 8.2,
+ "seconds": 1.5,
  "results": [
   {
    "id": "QA-PLT-160",
    "title": "Ten concurrent reads of a `max_reads: 1` share",
-   "verdict": "PASS",
-   "evidence": "the cap held across 5 rounds of ten simultaneous reads (served [1, 1, 1, 1, 1]). Read what held it \u2014 `open_share` is still a read-modify-write with no lock and no conditional update, and what serialised these was the database's own write lock under one process. ADR-016 chooses that topology, so the cap is safe where MAYA is deployed as specified and rests on the deployment rather than on this code"
+   "verdict": "FAIL",
+   "evidence": "a share capped at one read served 5 of ten simultaneous reads at worst across 5 rounds (served [1, 5, 5, 5, 5]). `open_share` reads `share['reads']` before the state check and writes `reads + 1` after serving, with no lock and no conditional update \u2014 racers that read the same count all pass the cap and all serve. `max_reads` is the control a firm relies on when a link has gone somewhere it should "
   },
   {
    "id": "QA-PLT-161",
@@ -22,14 +22,14 @@
   {
    "id": "QA-PLT-162",
    "title": "`days_left` on an expired share",
-   "verdict": "FAIL",
-   "evidence": "an expired share reports -10.0 days left: a negative number sorts on a list as the link with the longest to run"
+   "verdict": "PASS",
+   "evidence": "expired, days_left 0.0"
   },
   {
    "id": "QA-PLT-163",
    "title": "Redeem a share link end to end",
    "verdict": "PASS",
-   "evidence": "the pack is served at /share/EU1z7rojBMfn97hYvuN71p5lodE9cSSJIlIyBxHDiOM to a caller with no session, the read is recorded as 'served', and no identity is claimed"
+   "evidence": "the pack is served at /share/ZFTYk1m57l6-8xm3Sa_5jLIUUC4XgACN5ibZFnYoWKE to a caller with no session, the read is recorded as 'served', and no identity is claimed"
   },
   {
    "id": "QA-PLT-164",

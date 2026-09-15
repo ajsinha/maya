@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-900",
+   "title": "A featureset with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-901",
+   "title": "A featureset with no entity",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-902",
+   "title": "A well-formed featureset is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-903",
+   "title": "Two featuresets with the same name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-904",
+   "title": "A negative outcome window",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-905",
+   "title": "Retire a featureset with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-906",
+   "title": "Publish a version with no bindings",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  }
+ ]
+}
