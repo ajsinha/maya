@@ -8,10 +8,10 @@
  "seconds": 0.5,
  "results": [
   {
-   "id": "QA-GOV-4504",
-   "title": "An enforced condition cannot be confirmed",
+   "id": "QA-PLT-518",
+   "title": "A negative limit is refused",
    "verdict": "PASS",
-   "evidence": "refused 'not_attested'"
+   "evidence": "refused (422)"
   }
  ]
 }

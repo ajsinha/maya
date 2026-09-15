@@ -76,10 +76,26 @@ SUFFIXES: Dict[str, Tuple[str, ...]] = {
 }
 
 
+#: What order to OFFER them in, which is a presentation decision and not a
+#: vocabulary. Anything here that is not in `UPLOAD_FORMATS` is dropped, and
+#: anything in `UPLOAD_FORMATS` that is missing here is appended — so the list
+#: can be reordered and cannot disagree about membership.
+OFFER_ORDER: Tuple[str, ...] = (CSV, NDJSON, PARQUET, ARROW)
+
+
 def accept_attribute() -> str:
-    """The `accept` attribute for an upload control, from the formats read."""
-    return ",".join(suffix for fmt in (CSV, NDJSON, PARQUET, ARROW, JSON)
-                    for suffix in SUFFIXES[fmt])
+    """The `accept` attribute for an upload control, from the formats read.
+
+    **Derived from `UPLOAD_FORMATS`, not from a second list beside it.** This
+    walked a hand-written tuple that included JSON — which is a format MAYA
+    WRITES and does not read — so the browser control offered `.json`, somebody
+    chose a `.json` file, and the API refused it as an unreadable format. The
+    page and the endpoint disagreed about what could be uploaded, which is the
+    same defect the `SUFFIXES` comment above records two templates having.
+    """
+    order = [f for f in OFFER_ORDER if f in UPLOAD_FORMATS]
+    order += [f for f in UPLOAD_FORMATS if f not in order]
+    return ",".join(suffix for fmt in order for suffix in SUFFIXES[fmt])
 
 FORMAT_MEANING: Dict[str, str] = {
     ARROW: "streaming Arrow IPC — zero-copy, incremental both ways; use this "

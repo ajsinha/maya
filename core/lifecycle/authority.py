@@ -139,10 +139,15 @@ class AuthorityMatrix:
 
     def __init__(self, bands, delegations, registry, sourcing=None,
                  evidence=None, stands_for_days: int = STANDS_FOR_DAYS,
-                 reporting_currency: str = REPORTING_CURRENCY):
+                 reporting_currency: str = REPORTING_CURRENCY,
+                 roles=None):
         self.bands, self.delegations = bands, delegations
         self.registry, self.sourcing = registry, sourcing
         self.evidence = evidence
+        # Optional, and its ABSENCE is reported rather than passed over: a
+        # matrix built without a role store cannot say whether a band names a
+        # role that exists, and `posture` says so. Nothing else here needs it.
+        self.roles = roles
         self.stands_for = stands_for_days * 86400.0
         self.reporting_currency = str(reporting_currency or "").upper()
 
@@ -203,6 +208,26 @@ class AuthorityMatrix:
                 "give it at least one stage: a list of roles that sign "
                 "together. Several stages sign in order")
         tier = band.get("tier")
+        # A stage naming a role nobody can hold is a stage nobody can sign.
+        # The band publishes, the approval opens, the quorum waits — and it
+        # waits forever, because the set of people holding
+        # `chief_vibes_officer` is empty and always will be. Nothing in the
+        # approval path can distinguish that from a stage whose holders have
+        # simply not got round to it.
+        if self.roles is not None:
+            unknown = sorted({r for stage in stages for r in stage
+                              if not self.roles.get(r)})
+            if unknown:
+                known = ", ".join(sorted(x["name"] for x in self.roles.all())[:8])
+                raise LifecycleError(
+                    "unknown_role",
+                    f"this band names {', '.join(unknown)}, which no role is. "
+                    f"A stage naming a role nobody can hold is a stage nobody "
+                    f"can sign, and the approval it governs waits forever "
+                    f"while looking exactly like one whose signatories are "
+                    f"slow",
+                    f"use a role that exists — {known} — or create the role "
+                    f"first")
         if tier is not None and int(tier) not in (1, 2, 3, 4):
             raise LifecycleError(
                 "unknown_tier", f"tier {tier} is not one this platform has",
@@ -487,8 +512,31 @@ class AuthorityMatrix:
                 "ceiling_required", "a ceiling of zero delegates nothing",
                 why["ceiling"] + ". A person with no authority does not need a "
                 "row; withdraw the delegation instead")
+        # `str(currency or "USD").upper()` — `"   "` is TRUTHY, so a blank
+        # currency was stored as a blank and never became the default. A
+        # ceiling is an amount of MONEY: without a currency it is a number,
+        # and the comparison it governs is then between a number and an
+        # amount. The platform reports in USD, so the failure is silent and
+        # wrong by whatever the rate is.
+        code = str(currency or "").strip().upper()
+        if not code:
+            raise LifecycleError(
+                "currency_required",
+                "a ceiling with no currency is a number, and the comparison it "
+                "governs is between a number and an amount. Omit the field to "
+                "take the default; sending a blank is not the same thing",
+                "name the currency the ceiling is denominated in — USD, GBP, "
+                "EUR")
+        if len(code) != 3 or not code.isalpha():
+            raise LifecycleError(
+                "currency_required",
+                f"'{currency}' is not a currency code. MAYA is not a currency "
+                f"library and does not convert — it COMPARES, and a code it "
+                f"cannot match against an exposure's is a ceiling that governs "
+                f"nothing",
+                "use the three-letter code, as ISO 4217 writes it")
         row = {"principal": who, "ceiling": limit,
-               "currency": str(currency or "USD").upper(),
+               "currency": code,
                "legal_entity": legal_entity or None,
                "instrument": str(instrument).strip(),
                "granted_by": actor, "granted_at": moment,

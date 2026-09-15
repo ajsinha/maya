@@ -40,6 +40,23 @@ DEFAULT_LIMIT = 50
 MAX_LIMIT = 500
 
 
+class PagingError(ValueError):
+    """A page request that cannot be honoured, and why.
+
+    Named `…Error` like every other refusal here so
+    `tests/test_refusal_discipline.py` can see it: a coded refusal the
+    discipline test cannot find is one that reaches a caller as a bare 400.
+    """
+
+    def __init__(self, code: str, detail: str, remediation: str = ""):
+        super().__init__(detail)
+        self.code, self.detail, self.remediation = code, detail, remediation
+
+    def as_problem(self) -> Dict[str, str]:
+        return {"error": self.code, "detail": self.detail,
+                "remediation": self.remediation}
+
+
 @dataclass(frozen=True)
 class Page:
     """A slice of a list, and enough for a caller to ask for the next one."""
@@ -78,6 +95,31 @@ def page(rows: Sequence[Any], limit: Optional[int] = None,
 
     Already filtered, because the alternative is a page of the wrong list.
     """
-    size = DEFAULT_LIMIT if limit is None else max(1, min(int(limit), MAX_LIMIT))
-    start = max(0, int(offset or 0))
+    # Refused rather than repaired, for the reason the outbound guard gives:
+    # a request somebody had to repair is one nobody understands.
+    #
+    # `max(1, min(int(limit), MAX_LIMIT))` clamped a negative limit to 1, so
+    # `?limit=-1` came back as a normal page of one row with `limit: 1` —
+    # and a caller who computed that limit from something read it as the
+    # answer. Clamping a limit ABOVE the maximum is different and stays: the
+    # caller asked for more than this platform will serve in one go, which has
+    # an honest partial answer, and `limit` says what they got.
+    if limit is not None and int(limit) < 1:
+        raise PagingError(
+            "limit_refused",
+            f"a page size of {limit} is not a page size. Asking for fewer than "
+            f"one row has no answer, and this used to be clamped to 1 — so the "
+            f"caller was served a single row and nothing said their request "
+            f"had been changed",
+            f"omit `limit` for {DEFAULT_LIMIT}, or ask for between 1 and "
+            f"{MAX_LIMIT}")
+    if offset is not None and int(offset) < 0:
+        raise PagingError(
+            "offset_refused",
+            f"an offset of {offset} is not a position in a list, and it was "
+            f"clamped to 0 — so a caller paging backwards past the start was "
+            f"served page one and told nothing",
+            "offsets count from 0")
+    size = DEFAULT_LIMIT if limit is None else min(int(limit), MAX_LIMIT)
+    start = int(offset or 0)
     return Page(list(rows[start:start + size]), len(rows), size, start)

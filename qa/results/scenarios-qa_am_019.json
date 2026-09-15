@@ -8,10 +8,10 @@
  "seconds": 0.6,
  "results": [
   {
-   "id": "QA-GOV-2200",
-   "title": "A delegation names a currency",
+   "id": "QA-AM-019",
+   "title": "Conclude approved_with_conditions with no conditions",
    "verdict": "PASS",
-   "evidence": "refused 'currency_required'"
+   "evidence": "refused 'validation_refused'"
   }
  ]
 }

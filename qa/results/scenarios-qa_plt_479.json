@@ -5,7 +5,7 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.6,
+ "seconds": 0.7,
  "results": [
   {
    "id": "QA-PLT-4790",
@@ -23,7 +23,7 @@
    "id": "QA-PLT-4792",
    "title": "A page is a slice of what was already filtered",
    "verdict": "PASS",
-   "evidence": "total counts the filtered list, slices are contiguous, limit clamps and a negative offset floors at zero"
+   "evidence": "total counts the filtered list, slices are contiguous, a limit above the maximum clamps with `limit` saying so, and a page size or offset that is not one is refused"
   }
  ]
 }

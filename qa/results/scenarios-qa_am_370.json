@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-370",
+   "title": "A model with no purpose class at all",
+   "verdict": "PASS",
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rrb-3ca06538', 'why': 'neither designated consumer_impacti"
+  }
+ ]
+}

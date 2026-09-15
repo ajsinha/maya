@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 6,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-950",
+   "title": "A source of a kind the platform cannot read",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-951",
+   "title": "A source with no locator",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-952",
+   "title": "A source on a view that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-953",
+   "title": "A pull from a source that was never configured",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-954",
+   "title": "Retire a source with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-955",
+   "title": "A configured source reports where it reads from",
+   "verdict": "PASS",
+   "evidence": "readable, and it names where it reads from"
+  }
+ ]
+}

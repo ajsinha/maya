@@ -1,8 +1,8 @@
 {
  "summary": {
   "total": 11,
-  "pass": 9,
-  "fail": 2,
+  "pass": 11,
+  "fail": 0,
   "blocked": 0
  },
  "seconds": 0.7,
@@ -17,13 +17,13 @@
    "id": "QA-AM-1900",
    "title": "Replay with data that is not the data",
    "verdict": "PASS",
-   "evidence": "mismatched: stored 0.00729286227175818, replayed 2.301270110990763"
+   "evidence": "the reversed scores are reported as not matching"
   },
   {
    "id": "QA-AM-1901",
    "title": "Replay data for a test the episode never recorded",
    "verdict": "PASS",
-   "evidence": "extra data supplied, and only the recorded test counted"
+   "evidence": "only the recorded test was compared"
   },
   {
    "id": "QA-AM-191",
@@ -52,8 +52,8 @@
   {
    "id": "QA-AM-195",
    "title": "Define with `threshold: {\"floor\": 0.4}`",
-   "verdict": "FAIL",
-   "evidence": "accepted at definition and refused at evaluation ('no_reference'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as active until somebody runs it \u2014 and the refusal lands on whoever is reading the monitor rather than whoever wrote it"
+   "verdict": "PASS",
+   "evidence": "refused at definition ('unknown_threshold') \u2014 the vocabulary is checked where it is written"
   },
   {
    "id": "QA-AM-196",
@@ -70,8 +70,8 @@
   {
    "id": "QA-AM-198",
    "title": "Define with `escalate_after: -1`",
-   "verdict": "FAIL",
-   "evidence": "`escalate_after: -1` was accepted and stored: nothing validates the field, and 0 already means *never escalate*, so a negative is a number with no reading that goes into the escalation arithmetic"
+   "verdict": "PASS",
+   "evidence": "refused 'escalate_after_refused'"
   }
  ]
 }

@@ -1,9 +1,9 @@
 {
  "summary": {
   "total": 9,
-  "pass": 7,
-  "fail": 1,
-  "blocked": 1
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
  },
  "seconds": 0.7,
  "results": [
@@ -29,7 +29,7 @@
    "id": "QA-AM-2902",
    "title": "The derivation is kept, not the list",
    "verdict": "PASS",
-   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'op': 'eq', 'value': 'credit'}"
+   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'operator': 'eq', 'value': 'cr"
   },
   {
    "id": "QA-AM-2903",
@@ -40,14 +40,14 @@
   {
    "id": "QA-AM-291",
    "title": "A model with one Critical finding past its date",
-   "verdict": "BLOCKED",
-   "evidence": "the arithmetic band is poor too, so this run does not show the cap outranking good news elsewhere"
+   "verdict": "PASS",
+   "evidence": "arithmetic poor, band poor, and the findings cap says: 1 Critical or High finding(s) are past their remediation date"
   },
   {
    "id": "QA-AM-292",
    "title": "A model with twenty open Observation findings",
-   "verdict": "FAIL",
-   "evidence": "twenty Observations score 1.0 and one Critical scores 0.0: the weighting reads severity backwards"
+   "verdict": "PASS",
+   "evidence": "twenty Observations score 1.0 against 0.0 for one Critical, and nothing is capped"
   },
   {
    "id": "QA-AM-293",

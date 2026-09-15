@@ -122,7 +122,7 @@ def am_216(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx)
     got = ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest",
                        json={"value": 0.01, "window_start": 100.0,
-                             "window_end": 1.0, "computed_by": "qa"})
+                             "window_end": 1.0, "computed_by": "qa", "sample_size": 5000})
     if got.status_code >= 500:
         return FAIL, f"{got.status_code}"
     if got.status_code < 400:
@@ -137,7 +137,7 @@ def am_217(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/monitors/qa-never/ingest",
                      json={"value": 0.01, "window_start": 0.0,
-                           "window_end": 1.0, "computed_by": "qa"}),
+                           "window_end": 1.0, "computed_by": "qa", "sample_size": 5000}),
         "no_monitor", "not_found", "unknown_monitor")
 
 
@@ -146,7 +146,7 @@ def am_218(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx, threshold=DRIFT)
     got = ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest",
                        json={"value": 0.01, "window_start": 0.0,
-                             "window_end": 1.0, "computed_by": "qa"})
+                             "window_end": 1.0, "computed_by": "qa", "sample_size": 5000})
     if got.status_code >= 400:
         return BLOCKED, got.text[:150]
     if got.json().get("breach"):
@@ -161,7 +161,7 @@ def am_219(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx, threshold=DRIFT)
     got = ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest",
                        json={"value": 0.9, "window_start": 0.0,
-                             "window_end": 1.0, "computed_by": "qa"})
+                             "window_end": 1.0, "computed_by": "qa", "sample_size": 5000})
     if got.status_code >= 400:
         return BLOCKED, got.text[:150]
     if not got.json().get("breach"):
@@ -174,7 +174,7 @@ def am_219(ctx: Ctx) -> Result:
 def am_220(ctx: Ctx) -> Result:
     monitor_id = _defined(ctx, threshold=DRIFT)
     body = {"value": 0.9, "window_start": 0.0, "window_end": 1.0,
-            "computed_by": "qa"}
+            "computed_by": "qa", "sample_size": 5000}
     ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest", json=body)
     ctx.api.post(f"/api/v1/monitors/{monitor_id}/ingest", json=body)
     # Observations are read from the monitor, not from a `/breaches`

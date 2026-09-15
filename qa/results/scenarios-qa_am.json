@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 440,
-  "pass": 416,
-  "fail": 24,
+  "pass": 425,
+  "fail": 15,
   "blocked": 0
  },
- "seconds": 47.4,
+ "seconds": 45.0,
  "results": [
   {
    "id": "QA-AM-001",
@@ -118,8 +118,8 @@
   {
    "id": "QA-AM-019",
    "title": "Conclude approved_with_conditions with no conditions",
-   "verdict": "FAIL",
-   "evidence": "an episode with a failed test concluded 'approved_with_conditions' and NO conditions. `_check_approvable` runs only for 'approved', so the route the failure refusal points a validator towards accepts everything 'approved' refuses \u2014 a model with a failed test is approved under a longer name and the conditions the outcome is named for are absent"
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
   },
   {
    "id": "QA-AM-020",
@@ -161,7 +161,7 @@
    "id": "QA-AM-026",
    "title": "Open with the same validator listed twice",
    "verdict": "FAIL",
-   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 8 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 9 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
   },
   {
    "id": "QA-AM-027",
@@ -737,7 +737,7 @@
    "id": "QA-AM-138",
    "title": "Attach a finding that is already attached to a *different* root",
    "verdict": "FAIL",
-   "evidence": "a finding under root 01a0a738460007ca55ce604f5a3d was moved to root 01a0a738460236225381f262f1d9 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+   "evidence": "a finding under root 01a0a77e31ef5178e1b941ff1bd0 was moved to root 01a0a77e31f0463ee47c077cbf1e by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
   },
   {
    "id": "QA-AM-139",
@@ -934,8 +934,8 @@
   {
    "id": "QA-AM-1701",
    "title": "Conclude approved_with_conditions with no results either",
-   "verdict": "FAIL",
-   "evidence": "an episode that examined nothing concluded 'approved_with_conditions'; the no-results check guards 'approved' alone, so an unexamined model can be passed under a neighbouring outcome"
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
   },
   {
    "id": "QA-AM-1702",
@@ -1114,8 +1114,8 @@
   {
    "id": "QA-AM-195",
    "title": "Define with `threshold: {\"floor\": 0.4}`",
-   "verdict": "FAIL",
-   "evidence": "accepted at definition and refused at evaluation ('validation_refused'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as active until somebody runs it \u2014 and the refusal lands on whoever is reading the monitor rather than whoever wrote it"
+   "verdict": "PASS",
+   "evidence": "refused at definition ('unknown_threshold') \u2014 the vocabulary is checked where it is written"
   },
   {
    "id": "QA-AM-196",
@@ -1132,14 +1132,14 @@
   {
    "id": "QA-AM-198",
    "title": "Define with `escalate_after: -1`",
-   "verdict": "FAIL",
-   "evidence": "`escalate_after: -1` was accepted and stored: nothing validates the field, and 0 already means *never escalate*, so a negative is a number with no reading that goes into the escalation arithmetic"
+   "verdict": "PASS",
+   "evidence": "refused 'escalate_after_refused'"
   },
   {
    "id": "QA-AM-200",
    "title": "Define with cadence_days: 0",
    "verdict": "PASS",
-   "evidence": "accepted; cadence_days=0.0"
+   "evidence": "refused 'cadence_refused'"
   },
   {
    "id": "QA-AM-201",
@@ -1348,8 +1348,8 @@
   {
    "id": "QA-AM-251",
    "title": "Ingest with `sample_size: 0`",
-   "verdict": "FAIL",
-   "evidence": "an AUC over a stated sample of 0 was accepted and the observation says nothing about it: `sample_size` defaults to 0, so *the job did not say* and *it computed this over nothing* are the same row"
+   "verdict": "PASS",
+   "evidence": "refused 'sample_size_required' \u2014 a number over no rows is not a number"
   },
   {
    "id": "QA-AM-252",
@@ -1367,7 +1367,7 @@
    "id": "QA-AM-256",
    "title": "Estate provenance where 80% of observations are external",
    "verdict": "PASS",
-   "evidence": "6 external, and the share is stated"
+   "evidence": "5 external, and the share is stated"
   },
   {
    "id": "QA-AM-261",
@@ -1427,7 +1427,7 @@
    "id": "QA-AM-270",
    "title": "Compare the `plan_digest` in a submission against the plan that was issued",
    "verdict": "FAIL",
-   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:4a635af83ce112ff254f5c2a57e55014a057a47d2f7cc1552ca3b79f1c055608 against the issued sha256:763b98f03de805885fd3d1118b1cbedad581884ae6c3d1f23848fb5276b5b40d. The digest exists to tie a submiss"
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:d3173f85c1604cc2f4103ec203ccdca32e98c77b6ef29dd2625a64238623c573 against the issued sha256:7d42f6915d07380a6c2faa74f0637794bed23402ac700ec5ed40c7595db2579d. The digest exists to tie a submiss"
   },
   {
    "id": "QA-AM-272",
@@ -1511,7 +1511,7 @@
    "id": "QA-AM-2902",
    "title": "The derivation is kept, not the list",
    "verdict": "PASS",
-   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'op': 'eq', 'value': 'credit'}"
+   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'operator': 'eq', 'value': 'cr"
   },
   {
    "id": "QA-AM-2903",
@@ -1583,7 +1583,7 @@
    "id": "QA-AM-317",
    "title": "Baseline debt on a freshly imported model",
    "verdict": "PASS",
-   "evidence": "one row for 9 of 13 gaps: Baseline debt: 9 item(s) outstanding"
+   "evidence": "one row for 9 of 14 gaps: Baseline debt: 9 item(s) outstanding"
   },
   {
    "id": "QA-AM-318",
@@ -1631,13 +1631,13 @@
    "id": "QA-AM-327",
    "title": "Aggregate exposure where no model records one",
    "verdict": "PASS",
-   "evidence": "exposure reported with its coverage: 148 of 234 model(s) have something outstanding, carrying 82% of the exposure the"
+   "evidence": "exposure reported with its coverage: 147 of 234 model(s) have something outstanding, carrying 82% of the exposure the"
   },
   {
    "id": "QA-AM-328",
    "title": "Aggregate exposure where one of forty models records one",
    "verdict": "PASS",
-   "evidence": "coverage 10% stated beside the figure: 148 of 238 model(s) have something outstanding, carrying 82% of the exposure the"
+   "evidence": "coverage 10% stated beside the figure: 147 of 238 model(s) have something outstanding, carrying 82% of the exposure the"
   },
   {
    "id": "QA-AM-329",
@@ -1835,7 +1835,7 @@
    "id": "QA-AM-370",
    "title": "A model with no purpose class at all",
    "verdict": "PASS",
-   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-6c48683f', 'why': 'neither designated consumer_impactin"
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rrb-3edc2f95', 'why': 'neither designated consumer_impacti"
   },
   {
    "id": "QA-AM-372",
@@ -1865,7 +1865,7 @@
    "id": "QA-AM-378",
    "title": "Open a campaign whose derivation selects nothing",
    "verdict": "PASS",
-   "evidence": "refused 'empty_population'"
+   "evidence": "refused 'unknown_clause_key'"
   },
   {
    "id": "QA-AM-379",
@@ -2039,7 +2039,7 @@
    "id": "QA-AM-4720",
    "title": "Bind a monitor to a model version through the API",
    "verdict": "PASS",
-   "evidence": "the monitor is bound to version 01a0a738988e539d4a5fe67c2304, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
+   "evidence": "the monitor is bound to version 01a0a77e7e7736dbad15cd255b53, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
   },
   {
    "id": "QA-AM-4730",
@@ -2356,8 +2356,8 @@
   {
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a7389ad01250866b70870e68\",\"model_id\":\"01a0a7389acbd8a05f9642b9d43c\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-bc0d75ff\",\"kind\":\"judgem"
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
   },
   {
    "id": "QA-AM-627",
@@ -2386,14 +2386,14 @@
   {
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a7389aedec314a6d587fbca3\",\"reference\":\"SUP-90ec9a2b\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a7389af5d47da9d13442b519\",\"reference\":\"SUP-31f8d947\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
   },
   {
    "id": "QA-AM-633",
@@ -2531,7 +2531,7 @@
    "id": "QA-AM-724",
    "title": "A well-formed waiver is granted",
    "verdict": "PASS",
-   "evidence": "proposed as 'proposed', expiring at 1792103900.2643974, awaiting somebody else"
+   "evidence": "proposed as 'proposed', expiring at 1792108481.0776207, awaiting somebody else"
   },
   {
    "id": "QA-AM-740",
@@ -2560,8 +2560,8 @@
   {
    "id": "QA-AM-801",
    "title": "A campaign with no reference",
-   "verdict": "FAIL",
-   "evidence": "a recertification round opened with nothing to cite it by, so what it produced belongs to no identifiable exercise"
+   "verdict": "PASS",
+   "evidence": "refused 'reference_required'"
   },
   {
    "id": "QA-AM-804",
@@ -2579,7 +2579,7 @@
    "id": "QA-AM-807",
    "title": "A campaign's population is frozen at launch",
    "verdict": "PASS",
-   "evidence": "the population stayed at 332 across a registration made after launch"
+   "evidence": "the population stayed at 331 across a registration made after launch"
   },
   {
    "id": "QA-AM-808",

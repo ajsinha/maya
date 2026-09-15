@@ -231,7 +231,7 @@ def am_2902(ctx: Ctx) -> Result:
     joined or left the population since it opened."""
     _model(ctx)
     ref = ctx.unique("CERT")
-    where = [{"field": "domain", "op": "eq", "value": "credit"}]
+    where = [{"field": "domain", "operator": "eq", "value": "credit"}]
     made = _open(ctx, reference=ref, where=where)
     if made.status_code >= 400:
         return BLOCKED, made.text[:170]

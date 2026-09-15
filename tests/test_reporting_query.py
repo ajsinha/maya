@@ -111,6 +111,26 @@ class TestAQueryIsRefusedByName:
                 {"field": "registered_at", "operator": "contains", "value": "x"}])
         assert e.value.code == "operator_not_admissible"
 
+    def test_a_clause_key_the_language_does_not_read(self, semantics):
+        """The operators were closed and the clause SHAPE was not, which is
+        the whole protection gone.
+
+        `{"field": "domain", "op": "like", "value": "credit"}` ran as `eq` —
+        `op` was ignored, `operator` defaulted — and returned exact matches to
+        somebody who asked for a pattern, with nothing anywhere saying their
+        filter had not applied.
+        """
+        with pytest.raises(QueryError) as e:
+            semantics.query("model", where=[
+                {"field": "domain", "op": "like", "value": "credit"}])
+        assert e.value.code == "unknown_clause_key"
+        assert "did not apply" in e.value.detail
+        assert "operator" in e.value.remediation
+
+    def test_the_three_keys_a_clause_may_carry_are_published(self):
+        from core.reporting.semantics import CLAUSE_KEYS
+        assert sorted(CLAUSE_KEYS) == ["field", "operator", "value"]
+
     def test_in_needs_a_list(self, semantics):
         with pytest.raises(QueryError) as e:
             semantics.query("model", where=[

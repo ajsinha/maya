@@ -220,3 +220,30 @@ class TestThroughTheApi:
                          params={"cursor": "not-a-cursor"})
         assert out.status_code == 422
         assert "cursor_malformed" in out.text
+
+    def test_a_page_size_below_one_is_refused_not_clamped(self, client):
+        """`max(1, min(int(limit), MAX_LIMIT))` repaired it, so `?limit=-1`
+        came back as a normal page of one row with `limit: 1` — and a
+        caller who computed that limit from something read it as the answer.
+
+        A request somebody had to repair is one nobody understands, which is
+        the same rule the outbound guard states for URLs.
+        """
+        out = client.get("/api/v1/models", params={"limit": -1})
+        assert out.status_code == 422
+        assert "limit_refused" in out.text
+        assert "nothing said their request had been changed" in out.text
+
+    def test_a_negative_offset_is_refused_not_clamped(self, client):
+        out = client.get("/api/v1/models", params={"offset": -5})
+        assert out.status_code == 422
+        assert "offset_refused" in out.text
+
+    def test_a_limit_above_the_maximum_is_still_served(self, client):
+        """The other direction stays a clamp, and the difference is that this
+        one has an honest partial answer: the caller asked for more than the
+        platform serves in one go, and `limit` says what they got."""
+        from core.domain.paging import MAX_LIMIT
+        out = client.get("/api/v1/models", params={"limit": MAX_LIMIT + 1000})
+        assert out.status_code == 200
+        assert out.json()["limit"] == MAX_LIMIT

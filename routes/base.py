@@ -38,6 +38,7 @@ from db.database import FoldViolation
 from core.references.index import NoSuchSubject
 from db.repositories import AppendOnlyViolation
 from core.http.conventions import CursorError
+from core.domain.paging import PagingError
 from core.discovery.common import DiscoveryError
 from core.plugins.common import PluginError
 from core.retention.common import RetentionError
@@ -266,6 +267,9 @@ STATUS: Dict[str, int] = {
     "ruleset_malformed": 422, "condition_malformed": 422,
     "condition_ambiguous": 422, "condition_too_deep": 422,
     "unknown_operator": 422, "value_required": 422, "value_not_expected": 422,
+    # 422: a where-clause carrying a key the language does not read, which is
+    # a filter that silently did not apply.
+    "unknown_clause_key": 422,
     "value_malformed": 422, "empty_range": 422, "unknown_field": 422,
     "unordered_comparison": 422, "unknown_outcome_field": 422,
     "value_wrong_type": 422,
@@ -562,6 +566,20 @@ STATUS: Dict[str, int] = {
     "reference_required": 422,
     # 422: a read cap of zero or below. Zero was stored as "no limit".
     "max_reads_refused": 422,
+    # 422: a threshold in a vocabulary nothing reads, and an escalation or a
+    # cadence that is not a count. Each was accepted at definition and would
+    # have been discovered at the first evaluation, or never.
+    "unknown_threshold": 422, "escalate_after_refused": 422,
+    "cadence_refused": 422,
+    # 422: an ingested observation with no stated sample. 0 meant both "the
+    # job did not say" and "computed over nothing".
+    "sample_size_required": 422,
+    # 422: a ceiling with no currency is a number, not an amount.
+    "currency_required": 422,
+    # 422: a page size below one and an offset below zero. Both were CLAMPED,
+    # so a caller who computed a bad one was served a repaired page and told
+    # nothing — and read it as the answer.
+    "limit_refused": 422, "offset_refused": 422,
     "cursor_malformed": 422, "cursor_ordering_changed": 422,
     "cursor_expired": 422,
     "test_does_not_decompose": 422, "test_not_distributable": 422,
@@ -913,7 +931,7 @@ class Routes:
                 # none of them was caught here — so a refusal built to
                 # be delivered reached a caller as an unmapped 500.
                 AnchorError, WormError, AppendOnlyViolation,
-                FoldViolation, NoSuchSubject) as exc:
+                FoldViolation, NoSuchSubject, PagingError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

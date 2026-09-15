@@ -257,10 +257,31 @@ class TestItDoesNotRunByItself:
     def test_starting_the_server_does_not_repair(self):
         """A process that alters the schema every time somebody starts it is
         one nobody can reason about — and the point of the drift report is that
-        a PERSON decides."""
+        a PERSON decides.
+
+        Asserted on the CALL, by walking the syntax tree, rather than on the
+        word. `"repair" not in source` failed the moment an unrelated docstring
+        said "refused rather than repaired" — and it would equally have passed
+        over `getattr(db, "rep" + "air")()`. A guard that reads prose is a
+        guard that reports on prose: the lesson is already written down in
+        `docs/11 §7`, about a reference check that matched a table name in a
+        `why` clause and so approved four tables nothing read.
+        """
+        import ast
+
         import run_maya_web
 
-        assert "repair" not in inspect.getsource(run_maya_web.create_app)
+        tree = ast.parse(inspect.getsource(run_maya_web.create_app))
+        called = {node.func.attr for node in ast.walk(tree)
+                  if isinstance(node, ast.Call)
+                  and isinstance(node.func, ast.Attribute)}
+        called |= {node.func.id for node in ast.walk(tree)
+                   if isinstance(node, ast.Call)
+                   and isinstance(node.func, ast.Name)}
+        assert "repair" not in called, (
+            "create_app calls repair(), so starting the server alters the "
+            "schema and nobody decided to")
+        assert "_repair_schema" not in called
 
     def test_the_flags_exist_and_check_is_the_safe_one(self):
         import run_maya_web

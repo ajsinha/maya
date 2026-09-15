@@ -42,6 +42,17 @@ class ShareIn(Body):
     max_reads: Optional[int] = None
 
 
+class RevokeShareIn(Body):
+    """Why the share is being withdrawn.
+
+    Optional on the model and required by the service, which is the split
+    this codebase uses everywhere: a body model can refuse an ABSENT field
+    and `"   "` is present, so the stated ground is checked where it means
+    something.
+    """
+    reason: str = ""
+
+
 class ExportRoutes(Routes):
     def register(self) -> None:
         api = self.api
@@ -212,12 +223,27 @@ class ExportRoutes(Routes):
 
         @self.app.post(f"{api}/export-shares/{{reference}}/revoke",
                        tags=["documents"])
-        def revoke_share(request: Request, reference: str, reason: str = ""):
-            """Stop it serving. Keeps everything it served."""
+        def revoke_share(request: Request, reference: str,
+                         body: Optional[RevokeShareIn] = None,
+                         reason: str = ""):
+            """Stop it serving. Keeps everything it served.
+
+            The reason arrives in the BODY, for the reason `model-relations/
+            remove` already states: *a reason does not belong in a query
+            string where it will be truncated and logged*. It was a query
+            parameter here, so a caller who sent `{"reason": ...}` — the
+            obvious thing, and what the SDK's own signature suggests — had it
+            silently dropped and revoked with a blank.
+
+            The query form is still read, because the SDK sends it and an
+            operator has it in their shell history. A body wins when both are
+            given: it is the one that cannot be truncated.
+            """
             who = self.authorise(request, "document:read",
                                  estate_wide="revoking an export share")
+            said = (body.reason if body and body.reason else reason)
             return self.guard(lambda: self.ctx["export_sharing"].revoke(
-                reference, reason, actor=self.actor(who)))
+                reference, said, actor=self.actor(who)))
 
         # ------------------------------------------------ rendering a document
         @self.app.get(f"{api}/document-rendering/formats", tags=["documents"])

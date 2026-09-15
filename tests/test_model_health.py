@@ -298,7 +298,7 @@ class TestMayaTakesTheNumberAndRefusesTheVerdict:
             self, external, drift_monitor):
         out = external.ingest(drift_monitor["id"], 0.05,
                               computed_by="acme-mlops", window_start=0.0,
-                              window_end=DAY)
+                              window_end=DAY, sample_size=5000)
         assert out["observation"]["passed"] is True
 
     def test_the_ingest_signature_has_no_passed_parameter(self):
@@ -309,8 +309,23 @@ class TestMayaTakesTheNumberAndRefusesTheVerdict:
     def test_an_unnamed_source_is_refused(self, external, drift_monitor):
         with pytest.raises(MonitorError) as e:
             external.ingest(drift_monitor["id"], 0.1, computed_by="  ",
-                            window_start=0.0, window_end=DAY)
+                            window_start=0.0, window_end=DAY, sample_size=5000)
         assert e.value.code == "computed_by_required"
+
+    def test_a_sample_size_is_required(self, external, drift_monitor):
+        """`sample_size: int = 0` made *the job did not say* and *it computed
+        this over nothing* the same value, and an AUC over a stated sample of
+        zero was accepted with the observation saying nothing about it.
+
+        This is a number MAYA did not compute, and the count is most of what
+        makes it readable — 0.81 over 40 rows and 0.81 over 40,000 are not the
+        same evidence.
+        """
+        with pytest.raises(MonitorError) as e:
+            external.ingest(drift_monitor["id"], 0.1, computed_by="acme",
+                            window_start=0.0, window_end=DAY)
+        assert e.value.code == "sample_size_required"
+        assert "not the same evidence" in e.value.detail
 
     def test_a_window_is_required(self, external, drift_monitor):
         with pytest.raises(MonitorError) as e:
@@ -329,7 +344,7 @@ class TestProvenanceTravelsWithTheNumber:
                                                        drift_monitor, monitoring):
         external.ingest(drift_monitor["id"], 0.05, computed_by="acme-mlops",
                         method="psi over 10 bins", window_start=0.0,
-                        window_end=DAY)
+                        window_end=DAY, sample_size=5000)
         row = monitoring.history(drift_monitor["id"])[-1]
         assert row["source"] == EXTERNAL and row["computed_by"] == "acme-mlops"
         assert "judged here against this firm's threshold" in row["detail"]
@@ -346,7 +361,7 @@ class TestProvenanceTravelsWithTheNumber:
     def test_provenance_says_what_cannot_be_replayed(self, external,
                                                      drift_monitor):
         external.ingest(drift_monitor["id"], 0.05, computed_by="acme-mlops",
-                        window_start=0.0, window_end=DAY)
+                        window_start=0.0, window_end=DAY, sample_size=5000)
         out = external.provenance(drift_monitor["id"])
         assert out["replayable"] == 0
         assert "cannot be replayed" in out["detail"]
@@ -354,7 +369,7 @@ class TestProvenanceTravelsWithTheNumber:
     def test_the_estate_reports_the_split(self, external, drift_monitor,
                                           a_model):
         external.ingest(drift_monitor["id"], 0.05, computed_by="acme-mlops",
-                        window_start=0.0, window_end=DAY)
+                        window_start=0.0, window_end=DAY, sample_size=5000)
         out = external.across_the_estate()
         assert out["external"] == 1 and out["replayable"] == 0
         assert "acme-mlops" in out["systems"]
@@ -369,5 +384,5 @@ class TestProvenanceTravelsWithTheNumber:
         monitors.set_status(drift_monitor["id"], "retired")
         with pytest.raises(MonitorError) as e:
             external.ingest(drift_monitor["id"], 0.05, computed_by="acme",
-                            window_start=0.0, window_end=DAY)
+                            window_start=0.0, window_end=DAY, sample_size=5000)
         assert e.value.code == "monitor_inactive"

@@ -252,8 +252,11 @@ class ExportShares:
         Keeps every read it already served. Revocation ends access; it does not
         unsend a document, and the record does not pretend otherwise.
         """
+        # In the BODY. It went as a query parameter, where a reason is
+        # truncated and logged — the same rule `model-relations/remove`
+        # states — and the endpoint reads both, body first.
         return self._maya.call("POST", f"/export-shares/{reference}/revoke",
-                               params={"reason": reason})
+                               json={"reason": reason})
 
 
 class DocumentRendering:

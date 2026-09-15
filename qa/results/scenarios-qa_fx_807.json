@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.9,
+ "seconds": 0.5,
  "results": [
   {
    "id": "QA-FX-807",
    "title": "Review a parameter set that does not exist",
-   "verdict": "FAIL",
-   "evidence": "500 \u2014 an unknown id crashed the review"
+   "verdict": "PASS",
+   "evidence": "refused 'no_parameter_set'"
   }
  ]
 }

@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 405,
-  "pass": 386,
-  "fail": 19,
+  "pass": 399,
+  "fail": 6,
   "blocked": 0
  },
- "seconds": 13.9,
+ "seconds": 13.4,
  "results": [
   {
    "id": "QA-FX-001",
@@ -77,7 +77,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a7390039df3afe6ef6db4884\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a77ee31a6575e5e17f3d5b08\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-018",
@@ -491,7 +491,7 @@
    "id": "QA-FX-1208",
    "title": "Retiring a profile stops it applying",
    "verdict": "FAIL",
-   "evidence": "retiring 'prof-7f99152a' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+   "evidence": "retiring 'prof-43078c1d' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
   },
   {
    "id": "QA-FX-1209",
@@ -1199,7 +1199,7 @@
    "id": "QA-FX-384",
    "title": "`note_revocation` with a model URN",
    "verdict": "PASS",
-   "evidence": "refused 'revoked' on the model URN: maya://model/gx-7c457e83 is on the local revocation list"
+   "evidence": "refused 'revoked' on the model URN: maya://model/gx-a62e0b82 is on the local revocation list"
   },
   {
    "id": "QA-FX-385",
@@ -1582,8 +1582,8 @@
   {
    "id": "QA-FX-4850",
    "title": "The upload extensions and the media types agree",
-   "verdict": "FAIL",
-   "evidence": "the browser upload control offers '.json' and the API will not read 'json': `accept_attribute` builds its list from a hand-written tuple rather than from UPLOAD_FORMATS, so the two vocabularies have drifted again \u2014 this time in the direction where a picker accepts a file the upload then refuses. The comment above SUFFIXES records the same defect in the other direction"
+   "verdict": "PASS",
+   "evidence": "4 upload formats, all with extensions, and every media type maps to a real one"
   },
   {
    "id": "QA-FX-4851",
@@ -1721,7 +1721,7 @@
    "id": "QA-FX-5105",
    "title": "Composition discharges what the upstream guarantees",
    "verdict": "PASS",
-   "evidence": "assumptions {'raw'}, guarantees {'decision', 'score'}"
+   "evidence": "assumptions {'raw'}, guarantees {'score', 'decision'}"
   },
   {
    "id": "QA-FX-5106",
@@ -1769,7 +1769,7 @@
    "id": "QA-FX-5509",
    "title": "Convergence is readable before concluding",
    "verdict": "PASS",
-   "evidence": "readable while open: {\"reference\":\"ELI-4d419739\",\"method\":\"delphi\",\"rounds\":1,\"spreads\":[1.3333],\"narrowed\":false,\"still_wide\":true"
+   "evidence": "readable while open: {\"reference\":\"ELI-e6039f4d\",\"method\":\"delphi\",\"rounds\":1,\"spreads\":[1.3333],\"narrowed\":false,\"still_wide\":true"
   },
   {
    "id": "QA-FX-5510",
@@ -2146,38 +2146,38 @@
   {
    "id": "QA-FX-700",
    "title": "Define a feature with no name",
-   "verdict": "FAIL",
-   "evidence": "a feature with no name was accepted, and a feature nobody can name is one nobody can cite"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-701",
    "title": "Define a feature with no owner",
-   "verdict": "FAIL",
-   "evidence": "a feature with no owner was accepted, and an unowned feature is one nobody maintains"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-702",
    "title": "Define a feature of an unknown dtype",
-   "verdict": "FAIL",
-   "evidence": "a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves"
+   "verdict": "PASS",
+   "evidence": "open by design, blank refused 'feature_refused', and 7 dtype(s) suggested in source"
   },
   {
    "id": "QA-FX-703",
    "title": "Define a feature with no entity",
-   "verdict": "FAIL",
-   "evidence": "a feature with no entity was accepted, and the entity is what a row is keyed on"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-704",
    "title": "Define a feature with no description",
-   "verdict": "FAIL",
-   "evidence": "a feature with no description was accepted, and a business definition is what stops two teams meaning different things by one name"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-705",
    "title": "Define a negative ttl",
-   "verdict": "FAIL",
-   "evidence": "a negative ttl was accepted, and a negative lifetime is a row that expired before it arrived"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-706",
@@ -2188,8 +2188,8 @@
   {
    "id": "QA-FX-800",
    "title": "A parameter set with no name",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a73932f36b6e6b9e4fbd5141\",\"model_id\":\"01a0a73932edbef8063827d2d022\",\"model_version_id\":\"01a0a73932ef84d63d834b1b23fb\",\"name\":\"   \",\"version\":1,\"kind\""
+   "verdict": "PASS",
+   "evidence": "refused 'name_required' (422)"
   },
   {
    "id": "QA-FX-801",
@@ -2230,8 +2230,8 @@
   {
    "id": "QA-FX-807",
    "title": "Review a parameter set that does not exist",
-   "verdict": "FAIL",
-   "evidence": "500 \u2014 an unknown id crashed the review"
+   "verdict": "PASS",
+   "evidence": "refused 'no_parameter_set'"
   },
   {
    "id": "QA-FX-808",
@@ -2278,14 +2278,14 @@
   {
    "id": "QA-FX-900",
    "title": "A featureset with no name",
-   "verdict": "FAIL",
-   "evidence": "a featureset nobody can name was created"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-901",
    "title": "A featureset with no entity",
-   "verdict": "FAIL",
-   "evidence": "a featureset was created with nothing to key rows on"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-902",
@@ -2356,8 +2356,8 @@
   {
    "id": "QA-FX-941",
    "title": "An elicitation with no facilitator",
-   "verdict": "FAIL",
-   "evidence": "an elicitation with no facilitator; the one role that makes a panel's answer attributable"
+   "verdict": "PASS",
+   "evidence": "refused 'facilitator_required'"
   },
   {
    "id": "QA-FX-942",
@@ -2404,8 +2404,8 @@
   {
    "id": "QA-FX-954",
    "title": "Retire a source with no reason",
-   "verdict": "FAIL",
-   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a73933cc6cfc124966622a04\",\"view_name\":\"tv-9c5e4258\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
   },
   {
    "id": "QA-FX-955",

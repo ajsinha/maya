@@ -256,6 +256,14 @@ class SourceRegistry:
                actor: str = "system") -> Dict[str, Any]:
         """Stop reading from it. The versions it already produced stand."""
         self.require(view_name)
+        if not str(reason or "").strip():
+            raise FeatureError(
+                "retiring a source needs a reason. A feed that stopped being "
+                "read is the first thing somebody investigates when a view "
+                "goes stale, and *why* is the difference between a "
+                "decommissioned system, a data quality problem and somebody "
+                "turning it off by mistake — the row records that it stopped "
+                "and, without this, nothing about which")
         with self.evidence.recording():
             self.repo.set({"retired_at": time.time(), "retired_by": actor,
                            "retire_reason": reason, "enabled": False},

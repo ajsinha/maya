@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 18,
-  "pass": 15,
+  "total": 21,
+  "pass": 18,
   "fail": 3,
   "blocked": 0
  },
- "seconds": 1.7,
+ "seconds": 0.8,
  "results": [
   {
    "id": "QA-AM-1300",
@@ -94,8 +94,8 @@
   {
    "id": "QA-AM-1314",
    "title": "Every test refused by name can actually be defined",
-   "verdict": "FAIL",
-   "evidence": "published as not-distributable but absent from the test catalogue, so no monitor can ever carry it and the refusal can never fire: calibration.hosmer_lemeshow"
+   "verdict": "PASS",
+   "evidence": "all 2 are definable tests"
   },
   {
    "id": "QA-AM-1315",
@@ -104,16 +104,34 @@
    "evidence": "all 4 are definable tests"
   },
   {
-   "id": "QA-AM-132",
-   "title": "A root of an unknown kind",
-   "verdict": "PASS",
-   "evidence": "refused 'unknown_root_kind' (422)"
-  },
-  {
    "id": "QA-AM-135",
    "title": "A root counts an acknowledged child as still owed",
    "verdict": "PASS",
    "evidence": "the acknowledged child is still counted"
+  },
+  {
+   "id": "QA-AM-136",
+   "title": "Attach a list containing one unknown finding id",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_finding', and nothing was attached"
+  },
+  {
+   "id": "QA-AM-137",
+   "title": "Attach the same finding to the same root twice",
+   "verdict": "PASS",
+   "evidence": "reported under already_attached, attached nothing"
+  },
+  {
+   "id": "QA-AM-138",
+   "title": "Attach a finding that is already attached to a *different* root",
+   "verdict": "FAIL",
+   "evidence": "a finding under root 01a0a7745052871012dc44a89f8e was moved to root 01a0a7745054b1a113d2d529521f by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+  },
+  {
+   "id": "QA-AM-139",
+   "title": "Attach a finding that is already closed",
+   "verdict": "PASS",
+   "evidence": "a closed finding can be attached to a cause named later"
   }
  ]
 }
