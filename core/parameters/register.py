@@ -389,7 +389,11 @@ class ParameterRegister:
             raise ParameterError(
                 "different_version",
                 "a parameter set can only be superseded by one for the same "
-                "model version", "")
+                "model version",
+                "record the replacement against the version it belongs to. A "
+                "set is the numbers for one version, so superseding across "
+                "versions would quietly move a calibration onto code that was "
+                "never fitted with it")
         with self.evidence.recording():
             self.parameters.set({"state": SUPERSEDED, "superseded_by": by},
                                 id=parameter_set_id)

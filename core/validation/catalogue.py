@@ -25,8 +25,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core.validation.common import ValidationError
-from core.validation.statistics import (auc, brier, expected_vs_actual, gini, ks, mae,
-                                        psi, rmse)
+from core.validation.statistics import (auc, brier, expected_vs_actual, gini,
+                                        hosmer_lemeshow, ks, mae, psi, rmse)
 from db.database import digest as canonical_digest
 
 LABELS_SCORES = "labels_scores"      # fn(y_true, y_score)
@@ -74,6 +74,13 @@ TESTS = (
                    "lower_is_better"),
     TestDefinition("calibration.expected_vs_actual", "Predicted rate over observed rate",
                    expected_vs_actual, "target"),
+    # Reported as a p-value, so the threshold does not move when somebody
+    # changes the group count. `higher_is_better` is a failure to reject and
+    # not a finding of calibration — see the function's docstring, which says
+    # so at more length than a catalogue row can.
+    TestDefinition("calibration.hosmer_lemeshow",
+                   "Hosmer-Lemeshow goodness of fit, as a p-value",
+                   hosmer_lemeshow, "higher_is_better"),
     TestDefinition("stability.psi", "Population Stability Index against a reference sample",
                    psi, "lower_is_better", TWO_SAMPLES),
     TestDefinition("accuracy.rmse", "Root mean squared error", rmse, "lower_is_better"),

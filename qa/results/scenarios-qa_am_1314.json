@@ -8,10 +8,10 @@
  "seconds": 0.6,
  "results": [
   {
-   "id": "QA-PLT-268",
-   "title": "A sweep with recall unknown, stated",
+   "id": "QA-AM-1314",
+   "title": "Every test refused by name can actually be defined",
    "verdict": "PASS",
-   "evidence": "stated-unknown admissible, silent not"
+   "evidence": "all 2 are definable tests"
   }
  ]
 }

@@ -278,9 +278,13 @@ class Intake:
                 f"exists",
                 "triage it first")
         if proposal["state"] == REGISTERED:
-            raise LifecycleError("already_registered",
-                                f"'{reference}' is already registered as "
-                                f"{proposal['registered_urn']}", "")
+            raise LifecycleError(
+                "already_registered",
+                f"'{reference}' is already registered as "
+                f"{proposal['registered_urn']}",
+                f"the model exists — work on {proposal['registered_urn']} "
+                f"through the register. A proposal registers once, because "
+                f"registering twice is how one model becomes two records")
         model = self.registry.register(urn, name, model_class, domain, owner,
                                        legal_entity, purpose, actor=actor)
         with self.evidence.recording():

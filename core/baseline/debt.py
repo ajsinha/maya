@@ -51,8 +51,12 @@ class DebtRegister:
             raise BaselineError("unknown_gap", f"unknown gap '{gap_key}'",
                                 f"known gaps are {', '.join(sorted(BY_KEY))}")
         if self.debts.one(model_id=model_id, gap_key=gap_key, status="open"):
-            raise BaselineError("already_recorded",
-                                f"'{gap_key}' is already open against this model", "")
+            raise BaselineError(
+                "already_recorded",
+                f"'{gap_key}' is already open against this model",
+                "plan or close the open item rather than raising a second — "
+                "two debts for one gap make the estate's debt count wrong in "
+                "the direction nobody checks")
         now = time.time()
         months = self.expiry_months.get(tier or 4, 36)
         row = {"model_id": model_id, "import_id": import_id, "gap_key": gap_key,
@@ -127,8 +131,12 @@ class DebtRegister:
         """Record how and when this gap will be closed."""
         item = self.require(debt_id)
         if not plan.strip():
-            raise BaselineError("plan_required",
-                                "a debt item needs a dated plan to close it", "")
+            raise BaselineError(
+                "plan_required",
+                "a debt item needs a dated plan to close it",
+                "say how the gap closes and by when. A debt with no dated "
+                "plan is the one that expires into a breach, which is the "
+                "outcome this field exists to make somebody choose")
         with self.evidence.recording():
             self.debts.set({"plan": plan}, id=debt_id)
             self.evidence.append("compliance_debt_planned", "model", item["model_id"],

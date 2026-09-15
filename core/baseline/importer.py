@@ -53,8 +53,10 @@ class BaselineImporter:
                       actor: str = "system", note: str = "") -> Dict[str, Any]:
         """Register a batch, mark it baselined, and compute each model's debt."""
         if not models:
-            raise BaselineError("nothing_to_import",
-                                "the batch contains no models", "")
+            raise BaselineError(
+                "nothing_to_import", "the batch contains no models",
+                "send at least one model; an empty batch would leave an "
+                "import record that nothing was baselined against")
         row = {"reference": f"IMP-{len(self.imports.many()) + 1:03d}",
                "source": source, "note": note, "models": 0, "debt_items": 0,
                "imported_by": actor, "imported_at": time.time()}
@@ -92,8 +94,12 @@ class BaselineImporter:
              actor: str) -> Dict[str, Any]:
         urn = spec["urn"]
         if self.registry.get(urn):
-            raise BaselineError("already_registered",
-                                f"{urn} is already in the register", "")
+            raise BaselineError(
+                "already_registered",
+                f"{urn} is already in the register",
+                "take it out of the batch — a baseline import is for models "
+                "the register does not yet know, and re-importing a governed "
+                "model would raise a second set of debt against it")
         model = self.registry.register(
             urn, spec.get("name") or urn.rsplit("/", 1)[-1],
             spec.get("model_class", "unclassified"),

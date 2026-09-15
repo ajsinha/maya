@@ -205,6 +205,7 @@ python -m tools.ops.restore --from /backups/2026-09-12 --config application.yaml
 | a backup of a chain that **does not verify** | restored six months later it is indistinguishable from a chain that broke *during* the restore, so the investigation starts on the wrong day — and it is a backup somebody will use, since the alternative is nothing. `--even-if-broken` takes a forensic copy that says so in its manifest |
 | a restore **over a database holding evidence** | two chains do not interleave, so there is no merge and the act is irreversible |
 | **PostgreSQL** | `pg_dump` and `pg_basebackup` are better than anything here and are what you already have. It names them, without needing the driver installed to do so |
+| a manifest from a **later build** of MAYA | the version was written into every manifest and read by nothing, so a backup whose sections had moved restored optimistically: everything this build knows about came back, everything it had never heard of was skipped without a word, and the run reported success. `READABLE_MANIFEST_VERSIONS` in `tools/ops/common.py` is the list this build can read, and it is a tuple rather than an integer so that dropping support for an old shape is a decision somebody makes rather than a digit somebody bumps |
 
 **An instance is five stores, not one**: the control database, `data/artifacts/`,
 `data/attachments/`, `data/delta/` and `data/worm/`. The last is the one a

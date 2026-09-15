@@ -69,6 +69,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 MANIFEST = "maya-backup.json"
 MANIFEST_VERSION = 1
 
+#: The manifest shapes a restore in THIS build knows how to read, which is not
+#: the same list as the ones it writes — it writes exactly one.
+#:
+#: The version is checked because a restore is the one operation that reads a
+#: file written by a build nobody here is running. A manifest from a later
+#: build may name sections this code does not look for, and the failure mode is
+#: the quiet one: every section this build knows about restores, the ones it
+#: has never heard of are skipped without a word, and the result reports
+#: success while being an incomplete instance. An operator restoring under
+#: pressure has no way to tell that from a complete one.
+#:
+#: When the shape changes, add the OLD version here and keep the code that
+#: reads it; dropping it from this tuple is the decision to stop restoring
+#: those backups, and it should be made deliberately rather than by editing a
+#: single integer.
+READABLE_MANIFEST_VERSIONS: Tuple[int, ...] = (1,)
+
 #: The stores, in the order they are copied. The database goes LAST on the way
 #: out and FIRST on the way in, for a reason worth keeping: the chain head
 #: recorded in the manifest must not be newer than the artifacts it refers to.
@@ -212,6 +229,24 @@ def read_manifest(source: pathlib.Path) -> Dict[str, Any]:
             f"manifest written with this backup, or take a fresh one — a "
             f"manifest assembled by hand cannot record the chain head the "
             f"restore is verified against.")
+
+    version = manifest["manifest_version"]
+    if version not in READABLE_MANIFEST_VERSIONS:
+        readable = ", ".join(str(v) for v in READABLE_MANIFEST_VERSIONS)
+        ahead = isinstance(version, int) and version > MANIFEST_VERSION
+        raise SystemExit(
+            f"{path} declares manifest_version {version!r} and this build "
+            f"reads {readable}. Nothing has been restored. "
+            + ("The backup was taken by a LATER build of MAYA, which may have "
+               "written sections this one does not look for — restoring it "
+               "here would copy the parts this build understands and skip the "
+               "rest silently. Restore it with a build at least as new as the "
+               "one that took it."
+               if ahead else
+               "This is not a manifest shape this build recognises, so there "
+               "is no reading of it that can be trusted. Check that the "
+               "directory is a MAYA backup and that its manifest has not been "
+               "edited."))
     return manifest
 
 

@@ -138,8 +138,12 @@ class OverlayRegister:
         """Approve and start the clock. The proposer may not do this."""
         row = self.require(overlay_id)
         if row["status"] != "proposed":
-            raise OverlayError("not_proposed",
-                               f"this overlay is '{row['status']}', not proposed", "")
+            raise OverlayError(
+                "not_proposed",
+                f"this overlay is '{row['status']}', not proposed",
+                "only a proposed overlay is approved. An active one is "
+                "already running; a closed one is proposed again as a new "
+                "overlay, so that its own dates and measurement stand")
         if same_person(actor, row["proposed_by"]):
             raise OverlayError(
                 "self_approval",
@@ -255,8 +259,12 @@ class OverlayRegister:
         """Extend an overlay. Refused unless its size has been measured."""
         row = self.require(overlay_id)
         if row["status"] != "active":
-            raise OverlayError("not_active",
-                               f"this overlay is '{row['status']}', not active", "")
+            raise OverlayError(
+                "not_active",
+                f"this overlay is '{row['status']}', not active",
+                "only an active overlay is renewed. If this one has closed, "
+                "propose and approve a new overlay — renewing a closed "
+                "adjustment would restart it without anybody deciding to")
         # An owner is written `person/j.okafor` and authenticated as
         # `j.okafor`, so `==` here compared two spellings of the same human and
         # found them different. The renewal control -- the moment somebody
@@ -329,7 +337,11 @@ class OverlayRegister:
             raise OverlayError("unknown_closure", f"cannot close as '{status}'",
                                "close as withdrawn, absorbed or expired")
         if not reason.strip():
-            raise OverlayError("reason_required", "closing an overlay needs a reason", "")
+            raise OverlayError(
+                "reason_required", "closing an overlay needs a reason",
+                "say why it is closing. 'absorbed' in particular is a claim "
+                "that the model now does what the overlay did, and somebody "
+                "will check it against the version that supposedly does")
         row = self.require(overlay_id)
         with self.evidence.recording():
             self.overlays.set({"status": status, "closed_at": time.time(),

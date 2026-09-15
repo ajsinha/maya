@@ -743,8 +743,8 @@ Applies to models in ECOA/Reg B, FCRA, UDAAP or EU AI Act Annex III scope.
 > **Status, stated first because the gap here is the largest in this document.** Two columns exist on
 > a feature — `protected_basis` and `proxy_risk` — and **nothing consults either of them.** There is
 > no policy rule that refuses a protected-basis feature binding into a credit model's contract, and
-> the test catalogue holds eight tests, all statistical: MAE, RMSE, Brier, expected-versus-actual,
-> AUC, Gini, KS, PSI. **No fairness test exists.** Everything below is a design target, and an
+> the test catalogue holds nine tests, all statistical: MAE, RMSE, Brier, expected-versus-actual,
+> Hosmer-Lemeshow, AUC, Gini, KS, PSI. **No fairness test exists.** Everything below is a design target, and an
 > earlier draft of this section stated the first row as "enforced by the policy engine, not by
 > review", which was false.
 

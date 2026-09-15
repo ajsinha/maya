@@ -59,8 +59,13 @@ def b64url_decode(value: str) -> bytes:
     except (ValueError, TypeError) as exc:
         swallowed(logger, exc, "decoded a token segment",
                   "refused as malformed rather than read past", logging.INFO)
-        raise AuthzError("malformed_token",
-                         f"a token segment is not base64url: {exc}", "") from exc
+        raise AuthzError(
+            "malformed_token",
+            f"a token segment is not base64url: {exc}",
+            "look at what the provider's token endpoint actually returned — "
+            "an error body, an opaque access token and an ID token all arrive "
+            "down the same wire, and only the last of them is readable here"
+        ) from exc
 
 
 def b64url_int(value: str) -> int:
@@ -83,11 +88,17 @@ def split(token: str) -> Tuple[Dict[str, Any], Dict[str, Any], bytes, bytes]:
     except (ValueError, TypeError) as exc:
         swallowed(logger, exc, "parsed a token segment",
                   "refused as malformed rather than guessed at", logging.INFO)
-        raise AuthzError("malformed_token",
-                         f"a token segment is not JSON: {exc}", "") from exc
+        raise AuthzError(
+            "malformed_token",
+            f"a token segment is not JSON: {exc}",
+            "a signed ID token carries a JSON header and JSON claims; check "
+            "the provider's token endpoint response"
+        ) from exc
     if not isinstance(header, dict) or not isinstance(claims, dict):
-        raise AuthzError("malformed_token",
-                         "a token segment is not an object", "")
+        raise AuthzError(
+            "malformed_token", "a token segment is not an object",
+            "the header and the claims are JSON objects — an array or a bare "
+            "string is not an ID token, whatever signed it")
     signed = f"{header_b64}.{claims_b64}".encode()
     return header, claims, signed, b64url_decode(signature_b64)
 
@@ -140,9 +151,13 @@ def _key_for(kid: Optional[str],
 def _verify_rsa(signed: bytes, signature: bytes, key: Dict[str, Any]) -> None:
     """RSA PKCS#1 v1.5 with SHA-256. Constructed and compared, never parsed."""
     if key.get("kty") != "RSA":
-        raise AuthzError("unsupported_key",
-                         f"this verifier reads RSA keys and the provider "
-                         f"published a '{key.get('kty')}'", "")
+        raise AuthzError(
+            "unsupported_key",
+            f"this verifier reads RSA keys and the provider "
+            f"published a '{key.get('kty')}'",
+            "configure the provider to sign with RS256. This verifier is "
+            "deliberately small — it is a hundred lines somebody can read — "
+            "and carries no EC or OKP implementation to fall back on")
     modulus = b64url_int(key["n"])
     exponent = b64url_int(key["e"])
     size = (modulus.bit_length() + 7) // 8
@@ -153,8 +168,13 @@ def _verify_rsa(signed: bytes, signature: bytes, key: Dict[str, Any]) -> None:
             f"requires at least {MIN_MODULUS_BITS}",
             "a key short enough to factor makes every signature meaningless")
     if len(signature) != size:
-        raise AuthzError("bad_signature",
-                         "the signature is not the length of the modulus", "")
+        raise AuthzError(
+            "bad_signature",
+            "the signature is not the length of the modulus",
+            "this was not signed by the key the provider published for it. "
+            "The key set is refetched on the next login, so a rotation that "
+            "has not propagated resolves itself; a token that is not the "
+            "provider's does not")
 
     recovered = pow(int.from_bytes(signature, "big"), exponent, modulus)
     recovered_bytes = recovered.to_bytes(size, "big")
@@ -165,9 +185,11 @@ def _verify_rsa(signed: bytes, signature: bytes, key: Dict[str, Any]) -> None:
     suffix = SHA256_DIGEST_INFO + digest
     padding_length = size - len(suffix) - 3
     if padding_length < 8:
-        raise AuthzError("weak_key",
-                         "the modulus is too small to hold a padded SHA-256 "
-                         "block", "")
+        raise AuthzError(
+            "weak_key",
+            "the modulus is too small to hold a padded SHA-256 block",
+            "nothing can be verified against a key that small; the provider "
+            "has to publish an RSA key of at least 2048 bits")
     expected = b"\x00\x01" + b"\xff" * padding_length + b"\x00" + suffix
 
     if not hmac.compare_digest(expected, recovered_bytes):

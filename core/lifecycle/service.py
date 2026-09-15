@@ -170,7 +170,11 @@ class LifecycleService:
 
     def retire(self, model: Dict[str, Any], actor: str, reason: str) -> Dict[str, Any]:
         if not reason.strip():
-            raise LifecycleError("reason_required", "retiring a model requires a reason", "")
+            raise LifecycleError(
+                "reason_required", "retiring a model requires a reason",
+                "say why it is being withdrawn from use — that sentence is "
+                "what answers 'why did this stop being used' when the model "
+                "comes up in a review a year from now")
         return self._move(model, "retire", actor, {"reason": reason})
 
     # -------------------------------------------------------------- deletion
@@ -191,7 +195,11 @@ class LifecycleService:
                 "POST /api/v1/models/{name}/retire, which withdraws the model "
                 "from use and keeps the record")
         if not reason.strip():
-            raise LifecycleError("reason_required", "deleting a model requires a reason", "")
+            raise LifecycleError(
+                "reason_required", "deleting a model requires a reason",
+                "say why the record is being destroyed. This is the one act "
+                "here that cannot be undone, and the reason is all that will "
+                "be left of it")
         # Asked BEFORE the evidence node, so a refused deletion leaves no
         # `model_deleted` in the chain saying somebody destroyed a record they
         # did not destroy.

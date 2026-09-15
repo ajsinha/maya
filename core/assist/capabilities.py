@@ -92,8 +92,12 @@ class CapabilityRegistry:
             raise AssistError("unknown_autonomy", f"unknown autonomy '{autonomy}'",
                               f"expected one of {', '.join(AUTONOMY)}")
         if self.capabilities.one(capability_key=capability_key):
-            raise AssistError("duplicate_capability",
-                              f"'{capability_key}' is already registered", "")
+            raise AssistError(
+                "duplicate_capability",
+                f"'{capability_key}' is already registered",
+                "register it under a different key, or change the existing "
+                "one — every generation is attributed to a capability key, so "
+                "reusing one merges two things nobody meant to merge")
 
         row = {"capability_key": capability_key, "description": description,
                "tier": tier, "oracle_key": oracle_key, "autonomy": autonomy,

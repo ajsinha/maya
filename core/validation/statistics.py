@@ -99,6 +99,101 @@ def expected_vs_actual(y_true: Sequence[int], y_score: Sequence[float]) -> Optio
     return (sum(y_score) / len(y_score)) / observed
 
 
+def hosmer_lemeshow(y_true: Sequence[int], y_score: Sequence[float],
+                    groups: int = 10) -> Optional[float]:
+    """Hosmer-Lemeshow goodness of fit, returned as a **p-value**.
+
+    Observations are ordered by predicted probability and cut into `groups`
+    equal-count bands. Within each band the predicted count E is the sum of the
+    scores and the observed count O is the sum of the labels, and the statistic
+    is
+
+        H = Σ (O - E)² / (E · (1 - E/n))
+
+    which is asymptotically χ² on `groups - 2` degrees of freedom.
+
+    **The p-value is returned rather than the statistic, and the direction is
+    `higher_is_better`, and both of those need saying out loud.** A threshold on
+    H itself moves with the number of groups — 15.51 at 10 groups, 12.59 at 9 —
+    so a policy stated against H silently changes meaning when somebody passes
+    `groups=9`. The p-value does not move, which is the only reason to prefer
+    it.
+
+    What it is NOT: evidence that the model is calibrated. A large p-value is a
+    failure to reject, and on a small sample everything fails to reject. The
+    converse bites harder in this setting — on a million rows H-L rejects
+    essentially every model, including well calibrated ones, because it is
+    testing an exact null no real model satisfies. Read it beside
+    `calibration.expected_vs_actual`, which has a magnitude, and do not let it
+    stand alone as the calibration evidence for a tier 1 model.
+
+    None when the bands cannot support the arithmetic: a group whose predicted
+    count is 0 or n has a zero denominator, and that is a fact about the sample
+    rather than a number to report.
+    """
+    n = len(y_true)
+    if groups < 3 or n < groups * 2:
+        return None
+    order = sorted(range(n), key=lambda i: y_score[i])
+    statistic = 0.0
+    for g in range(groups):
+        # Equal-count bands over the ORDER, so an uneven division spreads the
+        # remainder across the low bands rather than piling it into the last.
+        band = order[g * n // groups:(g + 1) * n // groups]
+        if not band:
+            return None
+        size = len(band)
+        expected = sum(y_score[i] for i in band)
+        observed = sum(y_true[i] for i in band)
+        denominator = expected * (1.0 - expected / size)
+        if denominator <= 0:
+            return None
+        statistic += (observed - expected) ** 2 / denominator
+    return _chi_square_survival(statistic, groups - 2)
+
+
+def _chi_square_survival(x: float, df: int) -> Optional[float]:
+    """P(χ²_df > x), by the regularised upper incomplete gamma Q(df/2, x/2).
+
+    Here for the same reason as everything else in this file: a validation
+    result has to be reproducible when the library that computed it is gone.
+    Series below the crossover, continued fraction above it, which is where
+    each converges.
+    """
+    if df <= 0 or x < 0:
+        return None
+    if x == 0:
+        return 1.0
+    a, z = df / 2.0, x / 2.0
+    log_prefix = a * math.log(z) - z - math.lgamma(a)
+    if z < a + 1.0:                                   # lower series, then flip
+        term = total = 1.0 / a
+        for i in range(1, 1000):
+            term *= z / (a + i)
+            total += term
+            if abs(term) < abs(total) * 1e-15:
+                break
+        return max(0.0, 1.0 - total * math.exp(log_prefix))
+    tiny = 1e-300                                     # Lentz, upper directly
+    b, c, d = z + 1.0 - a, 1.0 / tiny, 1.0 / (z + 1.0 - a)
+    total = d
+    for i in range(1, 1000):
+        an = -i * (i - a)
+        b += 2.0
+        d = an * d + b
+        if abs(d) < tiny:
+            d = tiny
+        c = b + an / c
+        if abs(c) < tiny:
+            c = tiny
+        d = 1.0 / d
+        delta = d * c
+        total *= delta
+        if abs(delta - 1.0) < 1e-15:
+            break
+    return min(1.0, max(0.0, total * math.exp(log_prefix)))
+
+
 def psi(expected: Sequence[float], actual: Sequence[float], bins: int = 10) -> Optional[float]:
     """Population Stability Index between two samples.
 

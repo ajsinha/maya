@@ -331,8 +331,12 @@ class VersionApproval:
     def withdraw(self, approval_id: str, actor: str = "system") -> Dict[str, Any]:
         approval = self.require(approval_id)
         if approval["status"] != OPEN:
-            raise LifecycleError("approval_closed",
-                                 f"this approval is already '{approval['status']}'", "")
+            raise LifecycleError(
+                "approval_closed",
+                f"this approval is already '{approval['status']}'",
+                "a decided approval is not withdrawn — the decision is what "
+                "somebody is accountable for. Open a new approval if the "
+                "version has to be decided again")
         return self._close(approval, WITHDRAWN)
 
     # ------------------------------------------------------------------ query

@@ -255,6 +255,22 @@ class TestTheScannerContract:
         out = ScannerContract(None).check(sweep)
         assert any(p["what"] == "sweep.recall_known" for p in out["problems"])
 
+    def test_a_null_recall_is_unstated_rather_than_false(self):
+        """The form the check could not see. `SweepIn` declares the field
+        `Optional[bool] = None` and `model_dump()` supplies every declared
+        field, so over HTTP the key was always there and the absence this was
+        written to catch could only be produced by calling the contract
+        directly — the route defeated the control."""
+        out = ScannerContract(None).check({**GOOD_SWEEP, "recall_known": None})
+        assert any(p["what"] == "sweep.recall_known" for p in out["problems"])
+
+    def test_a_truthy_string_does_not_count_as_stating_it(self):
+        """`"false"` is true. A scanner sending the word rather than the value
+        would have been read as claiming it knows its own recall."""
+        out = ScannerContract(None).check({**GOOD_SWEEP,
+                                           "recall_known": "false"})
+        assert any(p["what"] == "sweep.recall_known" for p in out["problems"])
+
     def test_stating_recall_unknown_is_praised_not_penalised(self):
         assert "the honest answer" in ScannerContract(None).check(
             GOOD_SWEEP)["detail"]

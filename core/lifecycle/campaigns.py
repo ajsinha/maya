@@ -241,8 +241,12 @@ class Campaigns:
         campaign = self.require(reference)
         item = self.items.one(campaign_id=campaign["id"], urn=urn)
         if not item:
-            raise LifecycleError("not_in_this_campaign",
-                                f"{urn} is not in '{reference}'", "")
+            raise LifecycleError(
+                "not_in_this_campaign",
+                f"{urn} is not in '{reference}'",
+                "check the URN against the campaign's items — reassignment "
+                "moves an item that exists, and a campaign's population is "
+                "fixed when it opens")
         if not (reason or "").strip():
             raise LifecycleError(
                 "reason_required",
@@ -270,8 +274,12 @@ class Campaigns:
         """
         campaign = self.require(reference)
         if campaign["status"] == CLOSED:
-            raise LifecycleError("campaign_closed",
-                                f"'{reference}' is already closed", "")
+            raise LifecycleError(
+                "campaign_closed",
+                f"'{reference}' is already closed",
+                "nothing further is needed; what it never answered is "
+                "recorded against it. Open the next round rather than "
+                "reclosing this one")
         moment = now if now is not None else time.time()
         state = self.status(reference, now=moment)
         with self.evidence.recording():

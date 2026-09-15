@@ -128,6 +128,11 @@ STATUS: Dict[str, int] = {
     # is what separates this from every 4xx above it.
     "no_tombstone_register": 501, "no_tombstones": 501,
     "revoked": 410, "revoked_epoch": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
+    # 422: the engine was handed an identifier its local revocation floor
+    # cannot key on — a per-descriptor `warrant_id` rather than a model URN.
+    # The request is well formed and the argument cannot do what it was
+    # passed to do, which is the distinction 422 exists for.
+    "not_a_revocable_subject": 422,
     # authorisation
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,
     "segregation_of_duties": 403, "incompatible_roles": 409,

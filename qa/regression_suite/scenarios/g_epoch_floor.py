@@ -228,7 +228,16 @@ def fx_385(ctx: Ctx) -> Result:
     if first["warrant_id"] == second["warrant_id"]:
         return PASS, (f"the descriptor id is stable across a re-resolve "
                       f"({first['warrant_id'][:16]}), so noting one works")
-    engine.note_revocation(first["warrant_id"])
+    try:
+        engine.note_revocation(first["warrant_id"])
+    except WarrantError as refused:
+        if refused.code == "not_a_revocable_subject":
+            return PASS, (
+                f"noting a descriptor id is refused at the point it is "
+                f"offered, naming the form that survives a re-resolve: "
+                f"{refused.remediation[:80]}")
+        return FAIL, (f"refused with {refused.code}, which does not say that "
+                      f"the identifier is the problem")
     try:
         engine.execute(urn, "prod", "svc-pricing", "credit_decision", {})
     except WarrantError as exc:

@@ -200,8 +200,12 @@ class Elicitations:
         """Open another round. The previous one stays exactly as it was."""
         elicitation = self.require(reference)
         if elicitation["state"] != OPEN:
-            raise ParameterError("elicitation_closed",
-                                 f"'{reference}' is {elicitation['state']}", "")
+            raise ParameterError(
+                "elicitation_closed",
+                f"'{reference}' is {elicitation['state']}",
+                "a concluded elicitation does not gain rounds — its number "
+                "was recorded against the rounds it had. Open a new one if "
+                "the panel is to be asked again")
         answered = self.responses.many(elicitation_id=elicitation["id"],
                                        round=elicitation["round"])
         if not answered:
@@ -223,8 +227,12 @@ class Elicitations:
         """Record the number the panel arrived at, with its dissent attached."""
         elicitation = self.require(reference)
         if elicitation["state"] != OPEN:
-            raise ParameterError("elicitation_closed",
-                                 f"'{reference}' is {elicitation['state']}", "")
+            raise ParameterError(
+                "elicitation_closed",
+                f"'{reference}' is {elicitation['state']}",
+                "it already has a number and its dissent recorded against it. "
+                "Run a new elicitation rather than replacing the answer this "
+                "panel gave")
         rounds = self.rounds(reference)
         if not rounds:
             raise ParameterError(

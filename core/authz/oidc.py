@@ -123,7 +123,11 @@ class OidcProvider:
                     raise AuthzError(
                         "discovery_incomplete",
                         f"the provider's configuration has no "
-                        f"'{required}'", "")
+                        f"'{required}'",
+                        f"the document at {self.issuer}{DISCOVERY_PATH} has "
+                        f"to publish '{required}'. Check that "
+                        f"`auth.oidc.issuer` names the provider itself and "
+                        f"not a tenant or realm one level up")
             if self._discovered["issuer"].rstrip("/") != self.issuer:
                 raise AuthzError(
                     "issuer_mismatch",
@@ -216,9 +220,14 @@ class OidcProvider:
                 now: float) -> Dict[str, Any]:
         claims = verify(tokens["id_token"], self.keys())
         if claims.get("iss", "").rstrip("/") != self.issuer:
-            raise AuthzError("issuer_mismatch",
-                             f"the token was issued by "
-                             f"{claims.get('iss')}, not by {self.issuer}", "")
+            raise AuthzError(
+                "issuer_mismatch",
+                f"the token was issued by "
+                f"{claims.get('iss')}, not by {self.issuer}",
+                f"set `auth.oidc.issuer` to {claims.get('iss')!r} if that is "
+                f"the provider you mean to trust. It is compared literally, "
+                f"trailing slash aside, because an issuer matched loosely is "
+                f"not matched")
         audience = claims.get("aud")
         audiences = audience if isinstance(audience, list) else [audience]
         if self.client_id not in audiences:
@@ -229,10 +238,18 @@ class OidcProvider:
                 "a token minted for another client is not a login here, however "
                 "genuine its signature")
         if (expiry := claims.get("exp")) is not None and now > expiry + LEEWAY_SECONDS:
-            raise AuthzError("token_expired", "the token has expired", "")
+            raise AuthzError(
+                "token_expired", "the token has expired",
+                "sign in again. An expired assertion is not made current by "
+                "presenting it again, and the leeway for clock skew has "
+                "already been applied")
         if (issued := claims.get("iat")) is not None and issued > now + LEEWAY_SECONDS:
-            raise AuthzError("token_from_the_future",
-                             "the token was issued in the future", "")
+            raise AuthzError(
+                "token_from_the_future",
+                "the token was issued in the future",
+                "check the clock on this host and on the provider — ordinary "
+                "skew is already allowed for, so this is a real disagreement "
+                "about the time and it makes every expiry meaningless")
         if nonce and claims.get("nonce") != nonce:
             raise AuthzError(
                 "nonce_mismatch",

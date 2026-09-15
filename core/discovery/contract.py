@@ -115,7 +115,16 @@ class ScannerContract:
         problems: List[Dict[str, str]] = []
         for field, why in SWEEP_REQUIRED:
             if field == "recall_known":
-                if "recall_known" not in sweep:
+                # A BOOLEAN, not a truthy value, and `None` is unstated rather
+                # than false. Testing `"recall_known" not in sweep` made this
+                # check unreachable over HTTP: `SweepIn` declares the field
+                # `Optional[bool] = None`, and `model_dump()` supplies every
+                # declared field, so the key was always present and the absence
+                # this looked for could only happen in a direct call. A
+                # scanner that never mentioned its recall was admitted as one
+                # that had stated it — which is the opposite of the answer this
+                # field exists to force.
+                if not isinstance(sweep.get("recall_known"), bool):
                     problems.append({"what": "sweep.recall_known", "why": why})
                 continue
             if not str(sweep.get(field) or "").strip():
