@@ -135,9 +135,25 @@ class ExportSharing:
         }
         with self.evidence.recording():
             self.shares.add(row)
+            # Recorded against the SHARE, not against the model.
+            #
+            # It was `("export_shared", "model", model_id)`, and the pack
+            # carries the model's own evidence segment — so creating a share
+            # changed the thing the share points at, and the content digest it
+            # was created over could never be produced again. A link a firm
+            # believed it had handed over was unredeemable the instant it was
+            # made, and the refusal on redemption would have said the register
+            # had moved, which was true and was caused by the sharing.
+            #
+            # The fact is not lost and it is not hidden: it is in the chain,
+            # under the reference, exactly as `export_pack_cut` is recorded
+            # against `export_pack` rather than against the model it describes.
+            # A model's own segment should not change because somebody was
+            # sent a copy of it.
             self.evidence.append(
-                "export_shared", "model", model["id"],
-                {"urn": model["urn"], "recipient": recipient.strip(),
+                "export_shared", "export_share", row["reference"],
+                {"model_id": model["id"],
+                 "urn": model["urn"], "recipient": recipient.strip(),
                  "purpose": purpose.strip(),
                  "content_digest": content_digest.strip(),
                  "expires_at": row["expires_at"],
@@ -220,9 +236,14 @@ class ExportSharing:
                              "revoked_by": actor,
                              "revoke_reason": reason.strip()},
                             id=share["id"])
+            # Against the share, for the same reason as the issue above: a
+            # revocation is a fact about the link, and a model whose evidence
+            # moved every time one was withdrawn would be a model whose
+            # exported pack changed with it.
             self.evidence.append(
-                "export_share_revoked", "model", share["model_id"],
-                {"urn": share["urn"], "recipient": share["recipient"],
+                "export_share_revoked", "export_share", reference,
+                {"model_id": share["model_id"],
+                 "urn": share["urn"], "recipient": share["recipient"],
                  "reason": reason.strip(), "reads": share["reads"]},
                 actor=actor)
         return self.status(reference, now=moment)

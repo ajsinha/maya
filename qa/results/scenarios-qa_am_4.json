@@ -1,12 +1,48 @@
 {
  "summary": {
-  "total": 15,
-  "pass": 13,
-  "fail": 2,
+  "total": 33,
+  "pass": 32,
+  "fail": 1,
   "blocked": 0
  },
- "seconds": 12.1,
+ "seconds": 6.7,
  "results": [
+  {
+   "id": "QA-AM-400",
+   "title": "A Tier 1 `owner` gap at 18 months and one day",
+   "verdict": "PASS",
+   "evidence": "18 months and a day: breached, with a finding"
+  },
+  {
+   "id": "QA-AM-401",
+   "title": "The same gap at exactly 18 months",
+   "verdict": "PASS",
+   "evidence": "still debt up to its expiry; the comparison is `<`, so the boundary itself is inside the window"
+  },
+  {
+   "id": "QA-AM-402",
+   "title": "Debt and breach on one dashboard",
+   "verdict": "PASS",
+   "evidence": "debt and breach appear apart on the model and the burn-down"
+  },
+  {
+   "id": "QA-AM-403",
+   "title": "Plan a debt item with an empty plan",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-404",
+   "title": "Burn-down over an estate with nothing baselined",
+   "verdict": "PASS",
+   "evidence": "0 raised, burn-down 0.0, and it says why"
+  },
+  {
+   "id": "QA-AM-405",
+   "title": "An importer who under-declares by naming two gaps",
+   "verdict": "PASS",
+   "evidence": "9 gap(s) computed from the register, not the 2 the importer declared"
+  },
   {
    "id": "QA-AM-406",
    "title": "Run every job twice in one pass",
@@ -82,8 +118,8 @@
   {
    "id": "QA-AM-4720",
    "title": "Bind a monitor to a model version through the API",
-   "verdict": "FAIL",
-   "evidence": "no route binds a monitor to a version: `MonitorIn` has no version field, the create route never passes `model_version_id`, and seeding the defaults created 0 monitor(s) with none either. `evaluate_from_telemetry` reads that column to find the stream, so it refuses `monitor_has_no_version` for every monitor in the estate and the telemetry-driven evaluation path cannot be reached at all"
+   "verdict": "PASS",
+   "evidence": "the monitor is bound to version 01a0a6683312fbb1283ec8037b69, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
   },
   {
    "id": "QA-AM-4730",
@@ -96,6 +132,78 @@
    "title": "A heatmap of one dimension against itself",
    "verdict": "PASS",
    "evidence": "refused 'same_dimension', and an unknown dimension too"
+  },
+  {
+   "id": "QA-AM-4750",
+   "title": "A replay of an episode with no results at all",
+   "verdict": "PASS",
+   "evidence": "reproducible false, total 0, 'no results to replay'"
+  },
+  {
+   "id": "QA-AM-4880",
+   "title": "Every excluded model carries a reason",
+   "verdict": "PASS",
+   "evidence": "every exclusion across every return names a model and a reason"
+  },
+  {
+   "id": "QA-AM-4881",
+   "title": "An unknown return",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_return', naming what it does extract"
+  },
+  {
+   "id": "QA-AM-4882",
+   "title": "Each field declares where its value comes from",
+   "verdict": "PASS",
+   "evidence": "36 fields across 3 returns, each declaring held, derived or not_held"
+  },
+  {
+   "id": "QA-AM-4890",
+   "title": "A comparison where no test could run",
+   "verdict": "PASS",
+   "evidence": "insufficient is reported apart from no difference"
+  },
+  {
+   "id": "QA-AM-4891",
+   "title": "The material threshold and the significance test are separate",
+   "verdict": "PASS",
+   "evidence": "both conditions required, and the sign decides which way"
+  },
+  {
+   "id": "QA-AM-4892",
+   "title": "The significance level is stated on every test",
+   "verdict": "PASS",
+   "evidence": "alpha 0.05, the p-value, the method and the threshold all reported"
+  },
+  {
+   "id": "QA-AM-4900",
+   "title": "A queue where every model is the same tier",
+   "verdict": "PASS",
+   "evidence": "one tier, empty and single-model queues are never inverted"
+  },
+  {
+   "id": "QA-AM-4901",
+   "title": "A model with no tier in the queue",
+   "verdict": "PASS",
+   "evidence": "an untiered model ranks behind, never in front"
+  },
+  {
+   "id": "QA-AM-4902",
+   "title": "The forecast states its own assumption",
+   "verdict": "PASS",
+   "evidence": "assumption stated: effort is weighted by tier from a published table and capacity is counted in epi"
+  },
+  {
+   "id": "QA-AM-4950",
+   "title": "The urgency boundary",
+   "verdict": "PASS",
+   "evidence": "absent is open, past is overdue, inside 30.0 days is due, the boundary itself is not"
+  },
+  {
+   "id": "QA-AM-4951",
+   "title": "An item always names the permission its action needs",
+   "verdict": "PASS",
+   "evidence": "14 Items constructed, every one naming a permission"
   }
  ]
 }

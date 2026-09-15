@@ -157,6 +157,59 @@ class ExportRoutes(Routes):
                 pack_digest=body.pack_digest, filename=body.filename,
                 actor=self.actor(who)))
 
+        # ------------------------------------------------------- redemption
+        #
+        # **Unauthenticated, and that is the whole point.** A share exists for
+        # somebody outside the firm who will never be given a login, and
+        # establishing an identity behind the link would mean issuing a
+        # credential to them — which is the thing the sealed pack exists to
+        # avoid. `open_share` says so on every read: *nothing here establishes
+        # WHO opened it, by design.* A firm that needs to know which examiner
+        # opened it should send the pack by a channel that already knows.
+        #
+        # What stands in for authentication is the reference itself: minted
+        # with `secrets`, bound to one recipient and one purpose, expiring on a
+        # date, optionally capped by a read count, revocable, and recording
+        # every read AND every refused read. That is the trade, and it is
+        # written down here rather than inferred from the absence of a
+        # permission check.
+        #
+        # The service has always had `open_share` and nothing reached it: a
+        # share could be created, listed, revoked and reported on, and never
+        # redeemed. The link a firm believed it had handed over went nowhere.
+        @self.app.get("/share/{reference}", tags=["documents"])
+        def redeem(request: Request, reference: str):
+            """Serve the pack behind a share link, to whoever holds it."""
+            seen = request.client.host if request.client else "unstated"
+            opened = self.guard(
+                lambda: self.ctx["export_sharing"].open_share(
+                    reference, seen_from=seen))
+            # Rebuilt and CHECKED, never stored and served. A share names a
+            # content digest rather than a path precisely so that what comes
+            # back is verified against what was handed over — if the register
+            # has moved, the honest answer is that this link no longer
+            # describes anything, not a different pack under the same name.
+            pack = self.guard(lambda: self.ctx["export"].build(
+                opened["urn"], actor="share"))
+            held = pack["manifest"]["content_digest"]
+            if held != opened["content_digest"]:
+                raise self.refusal(
+                    "share_content_moved", 409,
+                    f"this link was created over content digest "
+                    f"{opened['content_digest'][:23]}… and the register now "
+                    f"produces {held[:23]}…, so the pack it named no longer "
+                    f"exists",
+                    "ask for a new link. A share that served whatever the "
+                    "register holds today would be a document nobody can "
+                    "reproduce, which is the failure the content digest is "
+                    "there to prevent")
+            return Response(
+                pack["bytes"], media_type="application/zip",
+                headers={"Content-Disposition":
+                         f'attachment; filename="{opened["filename"] or pack["filename"]}"',
+                         "X-Pack-Content-Digest": held,
+                         "X-Share-Reads": str(opened.get("reads", 0))})
+
         @self.app.post(f"{api}/export-shares/{{reference}}/revoke",
                        tags=["documents"])
         def revoke_share(request: Request, reference: str, reason: str = ""):

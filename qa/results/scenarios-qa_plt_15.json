@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 6,
+  "fail": 4,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-PLT-150",
+   "title": "The raiser under a different spelling of their name",
+   "verdict": "PASS",
+   "evidence": "'person/validator' is recognised as 'validator'"
+  },
+  {
+   "id": "QA-PLT-151",
+   "title": "A comment on a section the document does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_section'"
+  },
+  {
+   "id": "QA-PLT-152",
+   "title": "A pack over the size ceiling",
+   "verdict": "FAIL",
+   "evidence": "`pack_too_large` is raised at source line 90 and `self._zip(members)` runs at line 89 \u2014 the whole archive is built, compressed and held in memory before its size is measured against the 2GB ceiling. Every member is already resident as bytes in `members` too, so the peak is the uncompressed content plus the archive. The refusal protects the recipient from an export nobody can open; it does not prot"
+  },
+  {
+   "id": "QA-PLT-153",
+   "title": "A pack requesting a document kind that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 4 kinds"
+  },
+  {
+   "id": "QA-PLT-154",
+   "title": "Two attachments with the same filename and a colliding digest prefix",
+   "verdict": "FAIL",
+   "evidence": "two attachments named 'report.pdf' whose digests agree on bytes 7:15 produced 1 archive member(s) \u2014 ['attachments/AAAAAAAA-report.pdf'] \u2014 while attachments/index.json lists 2. The name is `digest[7:15] + filename`, a dict assignment overwrites, and no gap is recorded: the index says two documents are in this pack and one of them is not. 0 gap(s) recorded"
+  },
+  {
+   "id": "QA-PLT-155",
+   "title": "Two packs of unchanged state",
+   "verdict": "PASS",
+   "evidence": "content sha256:7a961f5b6763a on both; archive digests differ because the manifest carries the moment"
+  },
+  {
+   "id": "QA-PLT-156",
+   "title": "A pack cut while the evidence chain is broken",
+   "verdict": "PASS",
+   "evidence": "the pack is cut and the manifest reports verified: false"
+  },
+  {
+   "id": "QA-PLT-157",
+   "title": "A share read at exactly its expiry instant",
+   "verdict": "PASS",
+   "evidence": "open at the instant, expired a second later"
+  },
+  {
+   "id": "QA-PLT-158",
+   "title": "A share created with `max_reads: 0`",
+   "verdict": "FAIL",
+   "evidence": "`max_reads: 0` was stored as None: the guard is `if max_reads`, and zero is falsy, so asking for NO permitted reads produces a share with NO LIMIT \u2014 the exact inverse of the request, and the one direction that cannot be noticed by reading the row back"
+  },
+  {
+   "id": "QA-PLT-159",
+   "title": "A share created with `max_reads: -1`",
+   "verdict": "FAIL",
+   "evidence": "`max_reads: -1` was accepted and the share is born exhausted: nothing validates the field, so a typo produces a link that refuses every read and reads on the register as one somebody used up"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-PLT-163",
+   "title": "Redeem a share link end to end",
+   "verdict": "PASS",
+   "evidence": "the pack is served at /share/w-sYy7SVSZCJXc80Yr9aYHahKfkqdIcYOmh_-WGnpMk to a caller with no session, the read is recorded as 'served', and no identity is claimed"
+  }
+ ]
+}

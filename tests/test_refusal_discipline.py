@@ -135,6 +135,12 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
         # arrives with a model and only one version. Core takes two
         # versions and has no notion of a half-filled query string.
         "two_versions_required",
+        # Raised when a share link is redeemed and the pack the register now
+        # produces is not the one the link was created over. Only the route
+        # knows both halves: the service hands back what was shared and the
+        # packer builds what exists now, and comparing them is the redemption
+        # step rather than a rule either of them owns.
+        "share_content_moved",
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (

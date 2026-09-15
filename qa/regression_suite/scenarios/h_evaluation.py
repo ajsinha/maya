@@ -57,15 +57,18 @@ def _monitor(ctx: Ctx, *, bind: bool = True, **over) -> tuple:
     ctx.api.post(f"{M}/{name}/versions",
                  json={"semver": "1.0.0", "kernel": dict(FITTED)},
                  auth=ctx.people["developer"])
-    # `bind` is a parameter this fixture cannot honour: `MonitorIn` carries no
-    # version field and the route never passes `model_version_id`, so every
-    # monitor created through the API is unbound. QA-AM-4720 is the case.
-    del bind
+    # `bind` now means something: `MonitorIn` carries `semver`, so a caller
+    # can say which version a monitor watches. Left OPTIONAL — a monitor on
+    # the model rather than on one version is the ordinary case, and drift in
+    # the population does not belong to a version — so a fixture that wants
+    # the telemetry path asks for the binding and one that does not, does not.
     body = {"urn": urn, "name": ctx.unique("mon"), "kind": "performance",
             "test_key": "discrimination.auc", "threshold": {"min": 0.6},
             "owner": "person/owner", "reference": {}, "slice": {},
             "cadence_days": 1.0, "label_delay_days": DELAY,
             "breach_severity": "Medium", "escalate_after": 3}
+    if bind:
+        body["semver"] = "1.0.0"
     body.update(over)
     got = ctx.api.post(MON, json=body, auth=ctx.people["owner"])
     return ((got.json() or {}).get("id", "") if got.status_code < 400 else ""), urn
@@ -339,9 +342,21 @@ def am_4720(ctx: Ctx) -> Result:
     The recurring shape once more: a control that is built, wired, routed and
     documented, and cannot run.
     """
-    monitor_id, urn = _monitor(ctx)
+    # ASK for the binding. The case used to define a monitor the ordinary way
+    # and report that it came back unbound, which was true and was as far as
+    # it could go: there was no field to put a version in.
+    monitor_id, urn = _monitor(ctx, semver="1.0.0")
     if not monitor_id:
         return BLOCKED, "the monitor could not be defined"
+    unknown = ctx.api.post(
+        MON, json={"urn": urn, "name": ctx.unique("mon"), "kind": "performance",
+                   "test_key": "auc", "threshold": {"minimum": 0.6},
+                   "owner": "person/owner", "semver": "9.9.9"},
+        auth=ctx.people["owner"])
+    if unknown.status_code < 400:
+        return FAIL, ("a monitor was bound to a version that does not exist, "
+                      "so the column names nothing and the telemetry read "
+                      "fails later instead of the binding failing now")
     got = ctx.api.get(f"{MON}?urn={urn}", auth=ctx.people["risk"])
     if got.status_code >= 400:
         return BLOCKED, f"the monitor list answered {got.status_code}"
@@ -353,7 +368,9 @@ def am_4720(ctx: Ctx) -> Result:
         return BLOCKED, "the monitor is not in the list"
     if rows[0].get("model_version_id"):
         return PASS, (f"the monitor is bound to version "
-                      f"{rows[0]['model_version_id']}")
+                      f"{rows[0]['model_version_id']}, and a semver that does "
+                      f"not exist is refused at definition rather than "
+                      f"discovered when telemetry is read")
     # Seeding the defaults is the other creation path; if IT binds, the gap is
     # only in the explicit one.
     seeded = ctx.api.post(f"/api/v1/monitor-defaults?urn={urn}",
