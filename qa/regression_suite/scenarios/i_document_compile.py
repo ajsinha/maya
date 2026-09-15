@@ -397,31 +397,68 @@ def plt_134(ctx: Ctx) -> Result:
 # ------------------------------------------------------------ review states
 @case("QA-PLT-143", "The `superseded` review state")
 def plt_143(ctx: Ctx) -> Result:
-    """A published vocabulary is a claim about what can happen. `superseded`
-    is in `STATES`, it is offered to every client reading
-    `/document-review/asks`, and no transition in the module writes it."""
+    """A published vocabulary is a claim about what can happen. Either
+    something writes every state it offers, or the state is not in it — and
+    if the fact is derived instead, the vocabulary has to say where to read
+    it, because a reader who knows a comment can be superseded and finds no
+    such state concludes the platform does not track it."""
     import inspect
 
     from core.docs import review as module
-    source = inspect.getsource(module)
-    writers = [line.strip() for line in source.splitlines()
-               if "SUPERSEDED" in line and "set(" in line]
-    if writers:
-        return PASS, f"a transition writes it: {writers[0][:110]}"
-    from core.docs.review import STATES, SUPERSEDED
+    from core.docs.review import STATES
     asks = ctx.api.get(f"{R}/asks", auth=ctx.people["validator"])
+    if asks.status_code >= 400:
+        return BLOCKED, f"the vocabulary could not be read: {asks.text[:130]}"
     published = (asks.json() or {}).get("states") or []
-    if SUPERSEDED not in published:
-        return PASS, (f"'{SUPERSEDED}' is in STATES and is not published to "
-                      f"clients, so nothing offers a state it cannot reach")
-    return FAIL, (
-        f"'{SUPERSEDED}' is one of the {len(STATES)} states the review "
-        f"vocabulary publishes at GET {R}/asks, and no code path in "
-        f"`core/docs/review.py` writes it — `comment` opens, `resolve` writes "
-        f"resolved, `withdraw` writes withdrawn, and nothing writes this. A "
-        f"client filtering or reporting on it filters on a state that cannot "
-        f"occur, which reads as 'none of those' rather than as 'that never "
-        f"happens here'")
+    source = inspect.getsource(module)
+    unwritten = []
+    for state in published:
+        constant = state.upper()
+        writes = [ln.strip() for ln in source.splitlines()
+                  if f'"state": {constant}' in ln or f"'state': {constant}" in ln
+                  or f'"state": "{state}"' in ln]
+        if not writes:
+            unwritten.append(state)
+    if unwritten:
+        derived = (asks.json() or {})
+        explained = [s for s in unwritten
+                     if any(s in str(k) for k in derived)]
+        return FAIL, (
+            f"{len(unwritten)} of the {len(published)} states the review "
+            f"vocabulary publishes at GET {R}/asks are written by no path in "
+            f"`core/docs/review.py`: {unwritten}. A client filtering or "
+            f"reporting on one filters on a state that cannot occur, which "
+            f"reads as 'none of those' rather than as 'that never happens "
+            f"here'. Explained as derived: {explained or 'none'}")
+    if sorted(published) != sorted(STATES):
+        return FAIL, (f"the route publishes {published} and the module holds "
+                      f"{list(STATES)}")
+    if "superseded" in published:
+        return FAIL, "superseded is published and was meant to be derived"
+    said = (asks.json() or {}).get("superseded_is_derived") or ""
+    if "digest" not in said:
+        return FAIL, ("the vocabulary drops `superseded` and does not say "
+                      "where supersession IS read from, so a reader concludes "
+                      "the platform does not track it")
+    # And the derived answer has to actually be on the review.
+    urn = _model(ctx)
+    got = _compile(ctx, urn)
+    if got.status_code >= 400:
+        return BLOCKED, f"the document could not be compiled: {got.text[:150]}"
+    document_id = (got.json() or {})["id"]
+    if _comment(ctx, document_id).status_code >= 400:
+        return BLOCKED, "the comment could not be raised"
+    review = ctx.api.get(f"{R}?document_id={document_id}",
+                         auth=ctx.people["validator"]).json() or {}
+    if "raised_against_an_earlier_version" not in review:
+        return FAIL, ("the review does not report comments raised against an "
+                      "earlier rendering, so the derived answer is not there "
+                      "either")
+    return PASS, (f"{len(published)} states, every one written by a path; "
+                  f"supersession is derived from the digest and the review "
+                  f"reports it as "
+                  f"`raised_against_an_earlier_version`: "
+                  f"{review['raised_against_an_earlier_version']}")
 
 
 @case("QA-PLT-145", "Withdraw with an empty reason")

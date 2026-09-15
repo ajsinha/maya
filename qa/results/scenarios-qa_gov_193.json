@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-193",
+   "title": "Monitoring-breach trigger with no breach register wired",
+   "verdict": "PASS",
+   "evidence": "reported 'cannot_check' with no breach register"
+  }
+ ]
+}

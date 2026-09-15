@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-192",
+   "title": "New-use trigger with no use register wired",
+   "verdict": "PASS",
+   "evidence": "reported 'cannot_check' with no use register"
+  }
+ ]
+}

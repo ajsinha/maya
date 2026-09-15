@@ -50,9 +50,24 @@ from core.log import get_logger
 
 logger = get_logger(__name__)
 
-OPEN, RESOLVED, WITHDRAWN, SUPERSEDED = (
-    "open", "resolved", "withdrawn", "superseded")
-STATES = (OPEN, RESOLVED, WITHDRAWN, SUPERSEDED)
+OPEN, RESOLVED, WITHDRAWN = "open", "resolved", "withdrawn"
+
+#: The three states a comment can be IN.
+#:
+#: There were four. `superseded` was published here, offered at
+#: `GET /document-review/asks`, and written by nothing — `comment` opens,
+#: `resolve` resolves, `withdraw` withdraws, and no path wrote the fourth. A
+#: client filtering on it read "none of those" where the truth was "that never
+#: happens here".
+#:
+#: It is not missing: supersession is DERIVED and always was. A comment is
+#: raised against a document DIGEST, and `read` already separates the comments
+#: raised against the digest in front of you from those raised against an
+#: earlier rendering. Storing it as well would be a second source of truth
+#: about the same fact, and the one that goes stale is the stored one — a
+#: recompile that changed nothing returns the same document, and a comment
+#: marked superseded against it would be wrong the moment it was written.
+STATES = (OPEN, RESOLVED, WITHDRAWN)
 
 #: What a comment is asking for. A closed list, because the obligations differ.
 ASKS: Dict[str, str] = {
@@ -306,7 +321,18 @@ class DocumentReview:
         return {
             "asks": [{"asks_for": k, "means": v} for k, v in ASKS.items()],
             "needs_somebody_else": list(NEEDS_SOMEBODY_ELSE),
-            "states": list(STATES), "editable": False,
+            "states": list(STATES),
+            # Said rather than left to be inferred from an absence. A reader
+            # who knows a comment can be superseded and finds no such state
+            # concludes the platform does not track it.
+            "superseded_is_derived": (
+                "a comment is raised against a document digest, so whether it "
+                "still applies is read from the digest rather than stored: "
+                "`raised_against_an_earlier_version` on the review is that "
+                "count. A stored `superseded` state would be a second source "
+                "of truth about the same fact, and the stored one is the one "
+                "that goes stale"),
+            "editable": False,
             "detail": ("a compiled document cannot be edited: every sentence "
                        "cites a node, and editing the prose would break the "
                        "citation without changing the record it cites. The fix "
