@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.3,
+ "results": [
+  {
+   "id": "QA-FX-393",
+   "title": "The cost budget on a token-metered model",
+   "verdict": "PASS",
+   "evidence": "5 call(s) against a quota of 1000 and a budget of 5.0 \u2014 refused 'cost_limit_reached' with the call count nowhere near: this grant has reached its cost limit of 5 per 24h. money per window \u2014 the only one whose unit is no"
+  }
+ ]
+}

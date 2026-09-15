@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-394",
+   "title": "A limit of zero",
+   "verdict": "PASS",
+   "evidence": "rate, quota, cost and a negative all refused 'limit_not_positive', naming revocation as the act meant"
+  }
+ ]
+}
