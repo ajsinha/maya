@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-410",
+   "title": "An unknown `on_boundary_violation` value",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 3 policies: ['clamp', 'flag', 'reject']"
+  }
+ ]
+}

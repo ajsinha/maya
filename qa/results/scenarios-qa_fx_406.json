@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-406",
+   "title": "A contract section spelled `assumption`",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the known keys"
+  }
+ ]
+}

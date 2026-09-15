@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.5,
+ "results": [
+  {
+   "id": "QA-FX-402",
+   "title": "Exactly at the minimum and exactly at the maximum",
+   "verdict": "PASS",
+   "evidence": "0 and 20 are inside; one epsilon either side is not"
+  }
+ ]
+}

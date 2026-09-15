@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-408",
+   "title": "A minimum above the maximum",
+   "verdict": "PASS",
+   "evidence": "refused, naming the inverted bound and what it admits"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.2,
+ "results": [
+  {
+   "id": "QA-FX-405",
+   "title": "An assumption whose key no input supplies",
+   "verdict": "FAIL",
+   "evidence": "a contract clause whose key no input supplies is correctly not a violation, and `Contract.unchecked_inputs` names it \u2014 ['ltv'] \u2014 but the engine only LOGS it. `ExecutionResult` carries `boundary_ok` and `boundary_violations` and nothing about what was never checked, so a caller cannot tell a boundary that held from one that never applied. A contract on `ltv` against a runtime that is never sent `lt"
+  }
+ ]
+}

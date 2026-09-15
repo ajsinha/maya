@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-FX-403",
+   "title": "One epsilon below the minimum",
+   "verdict": "PASS",
+   "evidence": "-1e-9 violates and 0 does not; the refusal maps to 422"
+  }
+ ]
+}

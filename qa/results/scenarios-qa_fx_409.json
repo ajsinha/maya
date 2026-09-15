@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-409",
+   "title": "A clause with no `key`",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' at 409, naming the clause"
+  }
+ ]
+}
