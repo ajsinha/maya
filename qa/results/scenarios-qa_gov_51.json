@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-512",
+   "title": "Every stated-ground field this pass has fixed stays fixed",
+   "verdict": "PASS",
+   "evidence": "all four still strip before checking"
+  },
+  {
+   "id": "QA-GOV-513",
+   "title": "A band with no stages",
+   "verdict": "PASS",
+   "evidence": "refused 'stages_required' (422)"
+  },
+  {
+   "id": "QA-GOV-514",
+   "title": "A band naming a role that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_role' (422)"
+  },
+  {
+   "id": "QA-GOV-515",
+   "title": "A well-formed band is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-GOV-516",
+   "title": "Two bands with the same name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-517",
+   "title": "A delegation with no ceiling",
+   "verdict": "PASS",
+   "evidence": "answered 422 (ceiling_required)"
+  },
+  {
+   "id": "QA-GOV-518",
+   "title": "A delegation with a negative ceiling",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_required'"
+  },
+  {
+   "id": "QA-GOV-519",
+   "title": "A delegation with no instrument",
+   "verdict": "PASS",
+   "evidence": "refused 'instrument_required' (422)"
+  }
+ ]
+}

@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-610",
+   "title": "A root with an empty detail",
+   "verdict": "PASS",
+   "evidence": "refused 'root_detail_required' (422)"
+  },
+  {
+   "id": "QA-AM-611",
+   "title": "Define with a negative threshold",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-612",
+   "title": "Define against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-613",
+   "title": "Define with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-614",
+   "title": "Ingest an observation with no computed_by",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' (422)"
+  },
+  {
+   "id": "QA-AM-615",
+   "title": "Ingest a window that ends before it starts",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-616",
+   "title": "An observation inside the threshold does not breach",
+   "verdict": "PASS",
+   "evidence": "no breach, as expected"
+  },
+  {
+   "id": "QA-AM-617",
+   "title": "An observation past the threshold breaches",
+   "verdict": "PASS",
+   "evidence": "breached"
+  },
+  {
+   "id": "QA-AM-618",
+   "title": "Two identical observations are not two breaches",
+   "verdict": "PASS",
+   "evidence": "0 breach for the same window twice"
+  },
+  {
+   "id": "QA-AM-619",
+   "title": "Open a validation with no validators",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  }
+ ]
+}

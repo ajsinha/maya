@@ -5,11 +5,11 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.6,
+ "seconds": 0.8,
  "results": [
   {
-   "id": "QA-GOV-2200",
-   "title": "A delegation names a currency",
+   "id": "QA-GOV-520",
+   "title": "A delegation with a blank currency",
    "verdict": "PASS",
    "evidence": "refused 'currency_required'"
   }

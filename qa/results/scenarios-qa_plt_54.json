@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-5400",
+   "title": "A share names a digest and never a path",
+   "verdict": "PASS",
+   "evidence": "digest required, no location field among ['content_digest', 'days', 'filename', 'max_reads', 'pack_digest', 'purpose', 'recipient', 'urn']"
+  },
+  {
+   "id": "QA-PLT-5401",
+   "title": "A share with no content digest",
+   "verdict": "PASS",
+   "evidence": "refused 'content_digest_required'"
+  },
+  {
+   "id": "QA-PLT-5402",
+   "title": "A share with no recipient or no purpose",
+   "verdict": "PASS",
+   "evidence": "both recipient and purpose required"
+  },
+  {
+   "id": "QA-PLT-5403",
+   "title": "A share window outside the permitted range",
+   "verdict": "PASS",
+   "evidence": "0, -1, 91.0 and 3650 refused; 90.0 accepted"
+  },
+  {
+   "id": "QA-PLT-5404",
+   "title": "A revoked share stops serving",
+   "verdict": "PASS",
+   "evidence": "a revoked share refuses to serve"
+  },
+  {
+   "id": "QA-PLT-5405",
+   "title": "Revoke a share twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_revoked'"
+  },
+  {
+   "id": "QA-PLT-5406",
+   "title": "Revoke with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-PLT-5407",
+   "title": "A read limit is honoured",
+   "verdict": "PASS",
+   "evidence": "a second read of a one-read share is refused"
+  },
+  {
+   "id": "QA-PLT-5408",
+   "title": "The four states are four",
+   "verdict": "PASS",
+   "evidence": "['exhausted', 'expired', 'open', 'revoked'] with a distinct refusal for each"
+  },
+  {
+   "id": "QA-PLT-5409",
+   "title": "The share posture is readable",
+   "verdict": "PASS",
+   "evidence": "an examiner portal authenticates a third party INTO the register, and whatever that session can reac"
+  }
+ ]
+}

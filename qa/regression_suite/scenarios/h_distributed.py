@@ -43,7 +43,14 @@ def _monitor(ctx: Ctx, test_key: str = "stability.psi", **over):
             "test_key": test_key, "owner": "owner",
             # A label-dependent kind has to declare how long outcomes take.
             "label_delay_days": 0.0 if kind == INPUT_DRIFT else 30.0,
-            "threshold": {"warn": 0.1, "breach": 0.25},
+            # `{"warn": ..., "breach": ...}` for several batches, which is a
+            # vocabulary this platform does not have: `TestCatalogue.judge`
+            # reads `min`, `max` and `target` and refuses anything else. Every
+            # monitor these cases defined was therefore one that could never
+            # evaluate — accepted at definition, refused the first time it ran
+            # — which is the defect QA-AM-195 reports, arriving in the fixture
+            # that was supposed to be testing around it.
+            "threshold": {"max": 0.25},
             "reference": {"sample": REFERENCE, "bins": 10}}
     body.update(over)
     made = ctx.api.post(MONITORS, json=body, auth=ctx.people["risk"])

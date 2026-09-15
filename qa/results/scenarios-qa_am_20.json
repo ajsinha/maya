@@ -1,7 +1,7 @@
 {
  "summary": {
-  "total": 4,
-  "pass": 4,
+  "total": 7,
+  "pass": 7,
   "fail": 0,
   "blocked": 0
  },
@@ -11,7 +11,7 @@
    "id": "QA-AM-200",
    "title": "Define with cadence_days: 0",
    "verdict": "PASS",
-   "evidence": "accepted; cadence_days=0.0"
+   "evidence": "refused 'cadence_refused'"
   },
   {
    "id": "QA-AM-201",
@@ -30,6 +30,24 @@
    "title": "Set a monitor's status to something that is not a status",
    "verdict": "PASS",
    "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-207",
+   "title": "Evaluate a `performance` monitor over a cohort where nothing has matured",
+   "verdict": "PASS",
+   "evidence": "refused 'cohort_immature', naming the maturity date"
+  },
+  {
+   "id": "QA-AM-208",
+   "title": "Evaluate over a cohort where 20 of 70 rows have matured",
+   "verdict": "PASS",
+   "evidence": "measured over the matured part, and the detail says so"
+  },
+  {
+   "id": "QA-AM-209",
+   "title": "Evaluate over a cohort where exactly one row has matured",
+   "verdict": "PASS",
+   "evidence": "one matured row, value None, passed=False"
   }
  ]
 }

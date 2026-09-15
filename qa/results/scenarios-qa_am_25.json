@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 5,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-250",
+   "title": "Ingest a null value",
+   "verdict": "PASS",
+   "evidence": "recorded, not passed, and said to be not computable"
+  },
+  {
+   "id": "QA-AM-251",
+   "title": "Ingest with `sample_size: 0`",
+   "verdict": "PASS",
+   "evidence": "refused 'sample_size_required' \u2014 a number over no rows is not a number"
+  },
+  {
+   "id": "QA-AM-252",
+   "title": "Ingest to a paused monitor",
+   "verdict": "PASS",
+   "evidence": "refused 'monitor_inactive'"
+  },
+  {
+   "id": "QA-AM-255",
+   "title": "Provenance for a monitor that has never been evaluated by anybody",
+   "verdict": "PASS",
+   "evidence": "'this monitor has never been evaluated by anybody'"
+  },
+  {
+   "id": "QA-AM-256",
+   "title": "Estate provenance where 80% of observations are external",
+   "verdict": "PASS",
+   "evidence": "5 external, and the share is stated"
+  }
+ ]
+}

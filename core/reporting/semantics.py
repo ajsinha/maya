@@ -55,6 +55,11 @@ TYPES: Tuple[str, ...] = (TEXT, NUMBER, TIMESTAMP, BOOLEAN)
 
 # The closed set. Every operator here is one a form can offer and a reader can
 # reason about; none of them can reach a row the entity does not already yield.
+#: Everything a where-clause may carry. Closed for the same reason the
+#: operators are: a key the language does not read is a filter that silently
+#: did not apply, and the caller is shown a result set they will trust.
+CLAUSE_KEYS: frozenset = frozenset({"field", "operator", "value"})
+
 OPERATORS: Dict[str, str] = {
     "eq": "equals", "ne": "does not equal",
     "lt": "is less than", "lte": "is at most",
@@ -351,6 +356,25 @@ class SemanticLayer:
 
     @staticmethod
     def _clause(spec: Entity, clause: Dict[str, Any]) -> Callable:
+        # The keys are closed too, not only the operators.
+        #
+        # A clause reads exactly `field`, `operator` and `value`, and anything
+        # else was IGNORED — so `{"field": "domain", "op": "like", "value":
+        # "credit"}` ran as `eq` and returned exact matches to a caller who
+        # asked for a pattern. The operator vocabulary was closed and the
+        # clause shape was not, which is the whole of the protection gone: a
+        # misspelled key defaults, and defaulting is what a query language
+        # must never do quietly.
+        stray = sorted(set(clause) - CLAUSE_KEYS)
+        if stray:
+            raise QueryError(
+                "unknown_clause_key",
+                f"a clause reads {', '.join(sorted(CLAUSE_KEYS))} and this one "
+                f"also carries {', '.join(stray)}. An unread key is a filter "
+                f"that did not apply — `op` instead of `operator` ran as `eq` "
+                f"and returned exact matches to somebody who asked for a "
+                f"pattern",
+                f"use {', '.join(sorted(CLAUSE_KEYS))}")
         field = spec.field(clause.get("field", ""))
         operator = clause.get("operator", "eq")
         if operator not in OPERATORS:

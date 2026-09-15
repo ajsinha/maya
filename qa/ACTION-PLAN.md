@@ -28,64 +28,19 @@ the two batches that need the most care come last. Drill once per batch.
 | | Batch | Findings | Why here |
 |---|---|---|---|
 | ~~1~~ | ~~**B** — A control that is built, wired, documented and never fires~~ | ~~21~~ | **closed** — the recurring defect; every fix was connect-or-delete |
-| **1** | **A** — A required field accepted blank, absent or impossible | 37 | one pattern, 37 sites, mechanical once the first is written |
-| **2** | **F** — Authority bands, delegation, quorum and conditions | 9 | a tier 1 version was approved by one person |
-| **3** | **E** — The evidence chain's edges: checkpoint, anchor, timestamp | 13 | what an investigation rests on |
-| **4** | **H** — HTTP conventions: paging, projection, headers, refusal shape | 6 | one adoption problem behind six symptoms |
-| **5** | **I** — Concurrency, the scheduled batch and delivery | 8 | a half-run batch is worse than no batch |
-| **6** | **G** — Documents: compile, dossier, pack, review, search | 18 | the pack is what leaves the building |
-| **7** | **K** — Deletion, compaction and the operational tools | 5 | the reclaim path is unreachable today |
-| **8** | **L** — Distributed evaluation, monitoring and parameter provenance | 6 | narrower blast radius, needs the most care |
-| **9** | **J** — Lifecycle and workflow correctness | 24 | largest, most independent, safest to do last |
+| ~~2~~ | ~~**A** — A required field accepted blank, absent or impossible~~ | ~~34~~ | **closed** — one pattern, 34 sites, fixed at the service every time |
+| **1** | **F** — Authority bands, delegation, quorum and conditions | 9 | a tier 1 version was approved by one person |
+| **2** | **E** — The evidence chain's edges: checkpoint, anchor, timestamp | 13 | what an investigation rests on |
+| **3** | **H** — HTTP conventions: paging, projection, headers, refusal shape | 6 | one adoption problem behind six symptoms |
+| **4** | **I** — Concurrency, the scheduled batch and delivery | 8 | a half-run batch is worse than no batch |
+| **5** | **G** — Documents: compile, dossier, pack, review, search | 18 | the pack is what leaves the building |
+| **6** | **K** — Deletion, compaction and the operational tools | 5 | the reclaim path is unreachable today |
+| **7** | **L** — Distributed evaluation, monitoring and parameter provenance | 6 | narrower blast radius, needs the most care |
+| **8** | **J** — Lifecycle and workflow correctness | 24 | largest, most independent, safest to do last |
 
 ---
 
-## 1. Batch A — A required field accepted blank, absent or impossible
-
-Fix at the SERVICE, not the route. A body model can only refuse a field that
-is absent; `"   "` is present. Every one of these is a required value the
-register accepted as blank, absent, negative or outside a closed vocabulary —
-and each leaves a row that reads as governed. The pattern is already written
-down in `raise_finding`: strip, then refuse, naming what the field is for.
-
-| Case | What it found |
-|---|---|
-| `QA-AM-019` | an episode with a failed test concluded 'approved_with_conditions' and NO conditions. `_check_approvable` runs only for 'approved', so the route the failure refusal points a validator tow… |
-| `QA-AM-1701` | an episode that examined nothing concluded 'approved_with_conditions'; the no-results check guards 'approved' alone, so an unexamined model can be passed under a neighbouring outcome |
-| `QA-AM-195` | accepted at definition and refused at evaluation ('validation_refused'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as … |
-| `QA-AM-198` | `escalate_after: -1` was accepted and stored: nothing validates the field, and 0 already means *never escalate*, so a negative is a number with no reading that goes into the escalation ar… |
-| `QA-AM-251` | an AUC over a stated sample of 0 was accepted and the observation says nothing about it: `sample_size` defaults to 0, so *the job did not say* and *it computed this over nothing* are the … |
-| `QA-AM-626` | expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {"id":"01a0a328e969b74a537b22c8c2fe","model_id":"01a0a328e9433699dfd7645ca52… |
-| `QA-AM-631` | expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {"id":"01a0a328ea59341a50d617cf63ab","reference":"SUP-7ba… |
-| `QA-AM-632` | expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {"id":"01a0a328ea800431d367c4e86474","reference":"SUP-e48f31f7… |
-| `QA-AM-801` | a campaign was opened with nothing to cite it by |
-| `QA-FX-4850` | the browser upload control offers '.json' and the API will not read 'json': `accept_attribute` builds its list from a hand-written tuple rather than from UPLOAD_FORMATS, so the two vocabu… |
-| `QA-FX-700` | a feature with no name was accepted, and a feature nobody can name is one nobody can cite |
-| `QA-FX-701` | a feature with no owner was accepted, and an unowned feature is one nobody maintains |
-| `QA-FX-702` | a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves |
-| `QA-FX-703` | a feature with no entity was accepted, and the entity is what a row is keyed on |
-| `QA-FX-704` | a feature with no description was accepted, and a business definition is what stops two teams meaning different things by one name |
-| `QA-FX-705` | a negative ttl was accepted, and a negative lifetime is a row that expired before it arrived |
-| `QA-FX-800` | expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {"id":"01a0a32152a345679afd2b200500","model_id":"01a0a3215297e7daaadce531bc… |
-| `QA-FX-807` | 500 — an unknown id crashed the review |
-| `QA-FX-900` | a featureset nobody can name was created |
-| `QA-FX-901` | a featureset was created with nothing to key rows on |
-| `QA-FX-941` | an elicitation with no facilitator; the one role that makes a panel's answer attributable |
-| `QA-FX-954` | expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {"id":"01a0a3215489d6fe0985c8ec223f","view_name":"tv-0117… |
-| `QA-GOV-017` | a model was registered belonging to no legal entity, so no entity-scoped principal can reach it and nobody is accountable for it |
-| `QA-GOV-080` | these are not semvers and were accepted: ['1.0', 'v1.0.0', '1.0.0.0', 'one.two.three', '', '1.0.x'] |
-| `QA-GOV-2200` | a ceiling was recorded with no currency, so the number means whatever the reader assumes |
-| `QA-GOV-514` | expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {"id":"01a0a3208849f4860627a109d138","name":"band-72eedd36… |
-| `QA-GOV-520` | a ceiling was accepted with no currency; the comparison it governs is then between a number and an amount |
-| `QA-GOV-525` | a campaign opened over nobody; it completes immediately and reads as a clean recertification |
-| `QA-PLT-158` | `max_reads: 0` was stored as None: the guard is `if max_reads`, and zero is falsy, so asking for NO permitted reads produces a share with NO LIMIT — the exact inverse of the request, and … |
-| `QA-PLT-159` | `max_reads: -1` was accepted and the share is born exhausted: nothing validates the field, so a typo produces a link that refuses every read and reads on the register as one somebody used up |
-| `QA-PLT-162` | an expired share reports -10.0 days left: a negative number sorts on a list as the link with the longest to run |
-| `QA-PLT-518` | a negative page size was accepted |
-| `QA-PLT-5406` | a share was revoked with no reason recorded — `revoke` strips the reason and never checks it, so the record says a firm stopped serving a supervisor a copy and not why |
-| `QA-PLT-5903` | an operator outside the closed set was accepted and behaved as `eq` — so a caller asking for `like` gets exact match semantics, and a filter that means something different from what was w… |
-
-## 2. Batch F — Authority bands, delegation, quorum and conditions
+## 1. Batch F — Authority bands, delegation, quorum and conditions
 
 Publishing one authority band replaces the shipped rows, so every tier the
 matrix does not reach loses its quorum — a tier 1 version was approved by one
@@ -105,7 +60,7 @@ estate-wide but numbered per model.
 | `QA-GOV-225` | the role 'role-2f0a37b7' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the ma… |
 | `QA-GOV-4620` | the second model in the estate to be approved on terms crashes with 500: the reference is numbered per model and the unique index is over the whole table, so COND-0001 can exist once. Con… |
 
-## 3. Batch E — The evidence chain's edges: checkpoint, anchor, timestamp
+## 2. Batch E — The evidence chain's edges: checkpoint, anchor, timestamp
 
 The checkpoint loses touch with the chain four ways, the anchors bound it from
 below and nothing bounds it from above, and two node columns sit outside the
@@ -126,7 +81,7 @@ them are what an investigation would rest on.
 | `QA-PLT-100` | 'contains_personal_data' was flipped on a node and the chain still verifies: it sits outside the content hash, so the chain hash does not move and the anchors cannot see it either. The fl… |
 | `QA-PLT-103` | a claim resting on a present fact and a MISSING one answers freshness 1000.0, the same as one resting on that fact and a stale one. FRESHNESS is (max, max) with `zero = 0.0`, so an absent… |
 
-## 4. Batch H — HTTP conventions: paging, projection, headers, refusal shape
+## 3. Batch H — HTTP conventions: paging, projection, headers, refusal shape
 
 One root: the conventions were built and almost nothing adopted them.
 `conventions.page` has one caller, `project()` empties every listing that does
@@ -141,7 +96,7 @@ not name its rows `rows`, nothing sets `Retry-After`, and the most-used
 | `QA-PLT-360` | page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-9fba8527']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the bo… |
 | `QA-PLT-361` | 4 refusal code(s) map to 429 — ['budget_exhausted', 'cost_limit_reached', 'quota_limit_reached', 'rate_limit_reached'] — and no route or service anywhere sets a `Retry-After` header. The … |
 
-## 5. Batch I — Concurrency, the scheduled batch and delivery
+## 4. Batch I — Concurrency, the scheduled batch and delivery
 
 Races and the batch that turns derived conditions into records. A lock while
 RECORDING a job's result aborts the whole pass; deduplication is keyed on a
@@ -158,7 +113,7 @@ title somebody edits; two sweeps mint one reference.
 | `QA-PLT-251` | 2 reference(s) are held by more than one row after two concurrent sweeps: ['DISC-0003', 'DISC-0004']. `ingest` mints `DISC-{n:04d}` from a count of the rows already there, so two sweeps t… |
 | `QA-PLT-254` | 30 failure(s) recorded and summarised, and recovery sends — all correct. What is not: `_deliver` calls `transport.send` outside any try, and the contract that makes that safe is that a ch… |
 
-## 6. Batch G — Documents: compile, dossier, pack, review, search
+## 5. Batch G — Documents: compile, dossier, pack, review, search
 
 `gaps.md` reads a key nothing writes, an unreadable source is reported as an
 absence, and the coverage figure a reader is told to check first can be moved
@@ -186,7 +141,7 @@ what leaves the building.
 | `QA-PLT-179` | `tests/test_documentation_links.py` asks each absolute link for its status and fails only on 404 — the comment says 3xx means the route exists, which is right, and a 500 is treated the sa… |
 | `QA-PLT-4933` | a new version left the document reporting that nothing has been recorded since it was compiled. `subjects` is captured AT COMPILE TIME (2 id(s)) and `version_created` is recorded against … |
 
-## 7. Batch K — Deletion, compaction and the operational tools
+## 6. Batch K — Deletion, compaction and the operational tools
 
 Compaction cannot complete on any store that has ever held an artifact, a GOES
 disposition cannot fire, and every non-SQLite dialect is handed PostgreSQL
@@ -200,7 +155,7 @@ instructions.
 | `QA-PLT-222` | the tool branches on `not dialect.startswith('sqlite')` and every non-SQLite dialect is told about `pg_dump` and `pg_basebackup`. An operator on MySQL, Oracle or a typo in the URL is hand… |
 | `QA-PLT-225` | the refusal is right and the tool does not let go. `restore.run` opens the target with `open_database(cfg)` and then raises SystemExit for the evidence it found, with no `dispose()` betwe… |
 
-## 8. Batch L — Distributed evaluation, monitoring and parameter provenance
+## 7. Batch L — Distributed evaluation, monitoring and parameter provenance
 
 The distributed and monitoring edges, plus parameter provenance: a submission
 that is computed and not judged, an evaluation that leaves no trace, an epoch
@@ -215,7 +170,7 @@ that moves once per grant.
 | `QA-FX-386` | withdrawing one model's authority moved the estate-wide epoch by 4 (0 → 4), one per grant. `revoke_model` loops `revoke`, and `revoke` does `self.epoch += 1` — so a model with forty grant… |
 | `QA-FX-387` | revoking a model nobody holds a grant on reports `revoked: 0` and leaves the epoch at 0. `revoke_model` advances the counter inside the per-grant loop, so an empty withdrawal advances it … |
 
-## 9. Batch J — Lifecycle and workflow correctness
+## 8. Batch J — Lifecycle and workflow correctness
 
 Ordinary workflow correctness — an episode, a waiver, a decommission, a
 recertification behaving wrongly at an edge. Individually small, collectively
@@ -244,6 +199,74 @@ the largest group, and the one a user meets.
 | `QA-GOV-280` | a model was recorded as its own replacement: the replacement check asks only whether the URN is registered, and the model being retired always is, so the record names a retired model as t… |
 | `QA-GOV-282` | 'maya://model/dc-1f915f91' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points a… |
 | `QA-PLT-200` | both refuse 'nothing_grounded', so a cautious generation and a wholly unsupported one are one fact |
+
+---
+
+## Batch A — closed
+
+**Thirty-four required values the register accepted as blank, negative, or
+outside a closed vocabulary.** The fix is at the SERVICE in every case, never
+at the route: a body model can only refuse a field that is ABSENT, and `"   "`
+is present — so each of these arrived having satisfied the route's own
+validation and was stored.
+
+A feature, a featureset, a parameter set, a model, an overlay, a supervisory
+matter, an elicitation, a monitor, a campaign, a board pack, a share, a source.
+Name, owner, entity, description, legal entity, purpose, facilitator,
+supervisor, threshold, reference, period, reason — each now stripped and
+refused, each refusal saying what the field is FOR.
+
+**Three fields where the falsy value meant the inverse of the request.**
+`max_reads: 0` on a share was stored as `None` — *no limit*. An explicitly
+empty recertification `population` was indistinguishable from an omitted one,
+so a caller who computed a population, got nothing back and sent it opened a
+review over the WHOLE ESTATE. And `sample_size: 0` on an ingested observation
+meant both *the job did not say* and *it computed this over nothing*. All three
+were truthiness standing in for a presence test.
+
+**Two vocabularies that were closed in name only.** A monitor's threshold was
+checked for being NON-EMPTY, so `{"warn": 0.1, "breach": 0.25}` was accepted at
+definition and refused months later at the first evaluation — and the QA
+fixture for distributed monitoring had been sending exactly that for several
+batches, so seventeen cases were defining monitors that could never run. And a
+semantic-layer where-clause read `field`, `operator`, `value` and IGNORED
+anything else, so `{"op": "like"}` ran as `eq` and returned exact matches to
+somebody who asked for a pattern. The operators were closed and the clause
+shape was not, which is the whole protection gone.
+
+**Two repairs that should have been refusals.** `?limit=-1` was clamped to 1
+and served as a normal page; `?offset=-5` was floored to 0 and served as page
+one. Both now refuse, for the reason the outbound guard already gives: *a
+request somebody had to repair is one nobody understands*. A limit ABOVE the
+maximum still clamps, and the difference is that it has an honest partial
+answer — `limit` says what they got.
+
+**And the escape hatch a refusal pointed at.** `_check_approvable` ran for
+`approved` alone, and the refusal it raises for a failed test says *conclude
+'approved_with_conditions' with the conditions written down* — naming a route
+out that was then checked for nothing. An episode with a failed test could be
+concluded `approved_with_conditions` and NO conditions; one that examined
+nothing at all could be passed under the neighbouring outcome.
+
+**The baseline register is the one caller allowed past all of it**, and
+`admitting_gaps=True` says so at the call. A model that arrived from a
+spreadsheet carries its missing owner as a **tracked gap** with a Critical debt
+item and an expiry; refusing those rows would leave the models off the register
+entirely, which is strictly worse. Building that found a gap the list did not
+have — **`legal_entity`, at Critical** — because scope is applied by entity and
+a model belonging to none is invisible to exactly the people accountable for it.
+
+Three more came out along the way. A version could be called `1.0`, `v1.0.0` or
+`1.0.x`: `semver_key` parses tolerantly BY DESIGN, because it reads whatever is
+already stored, so the format is now checked at CREATION and the tolerant
+reader is left alone — `1.0` keys as `(1, 0)` and sorts below `1.0.0`, so a
+version cut first came out last. An authority band could name
+`chief_vibes_officer`, and the approval it governed would wait forever while
+looking exactly like one whose signatories are slow. And the browser's upload
+control offered `.json` from a hand-written list while the API reads
+`UPLOAD_FORMATS`, which does not include it.
+
+**83 findings open.**
 
 ---
 

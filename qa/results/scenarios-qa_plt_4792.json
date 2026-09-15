@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-4792",
+   "title": "A page is a slice of what was already filtered",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised NameError: name 'PagingError' is not defined | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenarios/i_paging.py\", line 241, in plt_4792     negative = page(rows, limit=10, offset=-5)   File \"/home/ashutosh/Pycha"
+  }
+ ]
+}

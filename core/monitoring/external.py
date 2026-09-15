@@ -95,6 +95,21 @@ class ExternalObservations:
                 f"the window ends {window_start - window_end:.0f}s before it "
                 f"starts", "check the window bounds")
 
+        if int(sample_size or 0) <= 0:
+            raise MonitorError(
+                "sample_size_required",
+                "an ingested observation must say how many rows it was "
+                "computed over. `sample_size` defaulted to 0, so *the job did "
+                "not say* and *it computed this over nothing* were the same "
+                "value — and an AUC over a stated sample of zero was accepted "
+                "with the observation saying nothing about it. This is a "
+                "number MAYA did not compute, and the count is most of what "
+                "makes it readable: 0.81 over 40 rows and 0.81 over 40,000 "
+                "are not the same evidence",
+                "state the row count the value was computed over. A "
+                "MAYA-computed observation takes it from the window it read; "
+                "an ingested one has to be told")
+
         moment = now if now is not None else time.time()
         direction = self.catalogue.definition(monitor["test_key"]).direction
         # The judgement is ours. The caller supplies no `passed` and there is

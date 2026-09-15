@@ -19,7 +19,7 @@ does not add up.
 """
 from __future__ import annotations
 
-from core.domain.paging import DEFAULT_LIMIT, MAX_LIMIT, page
+from core.domain.paging import DEFAULT_LIMIT, MAX_LIMIT, PagingError, page
 from qa.regression_suite.harness import ADMIN
 from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx,
                                                   Result, case, code_of)
@@ -231,8 +231,27 @@ def plt_4792(ctx: Ctx) -> Result:
     clamped = page(rows, limit=MAX_LIMIT + 1000, offset=0)
     if clamped.limit != MAX_LIMIT:
         return FAIL, f"the limit was not clamped: {clamped.limit}"
-    negative = page(rows, limit=10, offset=-5)
-    if negative.offset != 0:
-        return FAIL, f"a negative offset gave {negative.offset}"
-    return PASS, ("total counts the filtered list, slices are contiguous, "
-                  "limit clamps and a negative offset floors at zero")
+    # Refused, not floored. This case asserted the FLOOR, and the floor is
+    # what made `?offset=-5` come back as page one with nothing saying the
+    # request had been changed — a caller paging backwards past the start was
+    # served the beginning and read it as the answer. Clamping a limit ABOVE
+    # the maximum stays, and the difference is that it has an honest partial
+    # answer: `limit` says what they got.
+    try:
+        negative = page(rows, limit=10, offset=-5)
+    except PagingError as refused:
+        if refused.code != "offset_refused":
+            return FAIL, f"refused '{refused.code}', not by name"
+    else:
+        return FAIL, (f"a negative offset was repaired to {negative.offset} "
+                      f"and served as page one, with nothing saying so")
+    try:
+        page(rows, limit=-1)
+    except PagingError as refused:
+        if refused.code != "limit_refused":
+            return FAIL, f"a page size below one refused '{refused.code}'"
+    else:
+        return FAIL, "a page size below one was repaired rather than refused"
+    return PASS, ("total counts the filtered list, slices are contiguous, a "
+                  "limit above the maximum clamps with `limit` saying so, and "
+                  "a page size or offset that is not one is refused")

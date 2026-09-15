@@ -101,6 +101,27 @@ class MonitorRegistry:
                 "threshold_required",
                 "a monitor with no threshold can never breach, so it monitors nothing",
                 "declare a min, max or target threshold")
+        # And a threshold written in a vocabulary nothing reads is the same
+        # thing wearing a number.
+        #
+        # This tested only that the dict was NON-EMPTY, so `{"floor": 0.4}` was
+        # accepted at definition and refused at evaluation — months later,
+        # against a live model, by a subsystem the author is not watching. In
+        # between, the monitor reads on every screen as configured and can
+        # never breach. `TestCatalogue.judge` recognises exactly `min`, `max`
+        # and `target`, and this is the moment the author is still here to be
+        # told.
+        keys = set(threshold)
+        if not keys & {"min", "max", "target"}:
+            raise MonitorError(
+                "unknown_threshold",
+                f"a threshold of {sorted(keys)} declares none of 'min', 'max' "
+                f"or 'target', so nothing compares this monitor's value to "
+                f"anything — it would be accepted here and refused at the "
+                f"first evaluation, with the monitor reading as configured in "
+                f"the meantime",
+                "use `{\"min\": 0.4}` for a floor, `{\"max\": 0.2}` for a "
+                "cap, or `{\"target\": 1.0, \"tolerance\": 0.1}` for a band")
         # And a monitor with no OWNER is one whose breaches reach nobody.
         #
         # The threshold was checked and the owner was not, so `"   "` was
@@ -116,6 +137,23 @@ class MonitorRegistry:
                 "owner_required",
                 "a monitor with no owner is one whose breaches reach nobody",
                 "name the person a breach of this monitor is raised against")
+        if escalate_after < 0:
+            raise MonitorError(
+                "escalate_after_refused",
+                f"an escalation after {escalate_after} breaches is not a "
+                f"number of breaches. Zero already means *never escalate*, so "
+                f"a negative is a value with no reading that goes straight "
+                f"into the arithmetic deciding when a breach is raised to "
+                f"somebody senior",
+                "use 0 to never escalate, or a count of one or more")
+        if cadence_days <= 0:
+            raise MonitorError(
+                "cadence_refused",
+                f"a cadence of {cadence_days} days is not a schedule, and the "
+                f"cadence is what decides whether this monitor is OVERDUE — "
+                f"at zero or below it is overdue the moment it is defined, "
+                f"forever",
+                "set how often this monitor is expected to run, in days")
         if breach_severity not in SEVERITIES:
             raise MonitorError("unknown_severity",
                                f"unknown severity '{breach_severity}'",

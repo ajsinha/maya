@@ -623,10 +623,18 @@ class FeaturesetRoutes(Routes):
         @self.app.post(f"{api}/parameter-sets/{{parameter_set_id}}/review",
                        tags=["parameters"])
         def review(request: Request, parameter_set_id: str, body: ReviewIn):
-            """A parameter set changes behaviour, so it is approved like a version."""
-            who = self.authorise(
-                request, "parameter:approve",
-                model=self.model_behind(parameters.get(parameter_set_id)))
+            """A parameter set changes behaviour, so it is approved like a version.
+
+            The set is REQUIRED before the scope is applied. `get` answers None
+            for an id nobody minted, `model_behind(None)` is None, and
+            `authorise` then raises `scope_not_checked` — a **500**, correctly,
+            because that refusal means *the route forgot to say which model*.
+            Here the route did not forget; the subject does not exist. A caller
+            who mistyped an id was told this platform had a defect.
+            """
+            row = self.guard(lambda: parameters.require(parameter_set_id))
+            who = self.authorise(request, "parameter:approve",
+                                 model=self.model_behind(row))
             actor = self.actor(who)
             return self.guard(
                 lambda: parameters.approve(parameter_set_id, actor, body.note)

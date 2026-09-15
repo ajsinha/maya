@@ -43,6 +43,25 @@ def _model(ctx: Ctx, **over) -> str:
     return urn
 
 
+def _baselined(ctx: Ctx) -> str:
+    """A model with NO purpose, through the only door that still admits one.
+
+    An ordinary registration now refuses a blank purpose, and that is the
+    point of the refusal. The baseline import is the deliberate exception: a
+    model that arrived from a spreadsheet carries its missing purpose as a
+    dated debt rather than being kept off the register, and that population is
+    exactly the one an AI Act return has to say something honest about.
+    """
+    name = ctx.unique("rrb")
+    urn = f"maya://model/{name}"
+    got = ctx.api.post("/api/v1/baseline/imports",
+                       json={"source": "qa-inventory.csv",
+                             "models": [{"urn": urn, "name": name,
+                                         "owner": "person/o", "tier": 2}]},
+                       auth=ctx.people["risk"])
+    return urn if got.status_code < 400 else ""
+
+
 def _extract(ctx: Ctx, name: str) -> dict:
     got = ctx.api.get(f"{R}/{name}", auth=ctx.people["risk"])
     return got.json() if got.status_code < 400 else {"_status": got.status_code,
@@ -184,7 +203,9 @@ def am_370(ctx: Ctx) -> Result:
     is not out of scope — it is unassessable, and the two must not print the
     same, because only one of them is somebody's to fix."""
     _model(ctx)
-    unknown = _model(ctx, purpose="")
+    unknown = _baselined(ctx)
+    if not unknown:
+        return BLOCKED, "no purposeless model could be admitted"
     name = next((k for k in RETURNS if "ai" in k or "annex" in k),
                 next(iter(RETURNS)))
     body = _extract(ctx, name)

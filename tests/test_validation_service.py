@@ -130,6 +130,44 @@ class TestConcluding:
         assert v["outcome"] == "approved_with_conditions"
         assert len(v["conditions"]) == 2
 
+    def test_conditions_are_required_for_a_conditional_approval(
+            self, validation, opened, scored):
+        """The escape hatch the other refusal points at, checked for nothing.
+
+        `_check_approvable` ran for `approved` alone, and the refusal it raises
+        for a failed test says *conclude 'approved_with_conditions' with the
+        conditions written down* — so it named a route out that cost nothing.
+        An episode with a failed test could be concluded
+        `approved_with_conditions` and NO conditions, and it reads on every
+        report as a validated model with something attached to it.
+        """
+        validation.record(opened["id"], "discrimination.gini", *scored,
+                          threshold={"min": 0.99})
+        with pytest.raises(ValidationError) as exc:
+            validation.conclude(opened["id"], "approved_with_conditions", [],
+                                tier_verdict="remains_appropriate")
+        assert "the whole difference between this outcome" in str(exc.value)
+
+    def test_blank_conditions_are_not_conditions(self, validation, opened,
+                                                 scored):
+        validation.record(opened["id"], "discrimination.gini", *scored,
+                          threshold={"min": 0.99})
+        with pytest.raises(ValidationError):
+            validation.conclude(opened["id"], "approved_with_conditions",
+                                ["   ", ""],
+                                tier_verdict="remains_appropriate")
+
+    def test_an_unexamined_episode_cannot_pass_under_either_outcome(
+            self, validation, opened):
+        """The no-results check guarded `approved` alone, so a model nothing
+        examined could be passed under the neighbouring outcome."""
+        for outcome, extra in (("approved", []),
+                               ("approved_with_conditions", ["do something"])):
+            with pytest.raises(ValidationError) as exc:
+                validation.conclude(opened["id"], outcome, extra,
+                                    tier_verdict="remains_appropriate")
+            assert "no test result has been recorded" in str(exc.value), outcome
+
     def test_a_failed_validation_may_be_rejected(self, validation, opened, scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.99})
         assert validation.conclude(opened["id"], "rejected", tier_verdict="remains_appropriate")["outcome"] == "rejected"

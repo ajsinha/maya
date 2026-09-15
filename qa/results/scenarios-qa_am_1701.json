@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-1701",
+   "title": "Conclude approved_with_conditions with no results either",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  }
+ ]
+}

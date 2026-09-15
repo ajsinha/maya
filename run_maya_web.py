@@ -340,6 +340,7 @@ SECURITY_HEADERS: Dict[str, str] = {
     "Referrer-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 }
+from core.domain.paging import PagingError
 from routes.base import STATUS as REFUSAL_STATUS
 from routes.base import authz_problem
 
@@ -1123,7 +1124,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # whoever wants the approval.
     authority = AuthorityMatrix(
         AuthorityBandRepository(db), AuthorityDelegationRepository(db),
-        registry, sourcing=fact_sourcing, evidence=evidence)
+        registry, sourcing=fact_sourcing, evidence=evidence,
+        roles=role_store)
 
     approvals = VersionApproval(
         VersionApprovalRepository(db), VersionApprovalSignatureRepository(db),
@@ -2150,6 +2152,17 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
         problem = authz_problem(exc)
         return JSONResponse(problem.detail, status_code=problem.status_code,
                             headers=problem.headers)
+
+    @app.exception_handler(PagingError)
+    async def bad_page(_request, exc: PagingError):
+        """A page request that cannot be honoured, refused rather than repaired.
+
+        A handler rather than a `guard` at each call site, because `page()` is
+        called from forty listings and a refusal reachable from thirty-nine of
+        them is the shape this whole pass keeps finding.
+        """
+        return JSONResponse(exc.as_problem(),
+                            status_code=REFUSAL_STATUS[exc.code])
 
     @app.exception_handler(HTTPException)
     async def problem(_request, exc: HTTPException):

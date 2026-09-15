@@ -212,8 +212,18 @@ class ValidationService:
         failed = [r for r in self.results_for(validation_id) if not r["passed"]]
         conditions = list(conditions or [])
 
-        if outcome == "approved":
-            self._check_approvable(v, failed, conditions)
+        # BOTH passing outcomes, and the second one is the escape hatch the
+        # first one's refusal points at.
+        #
+        # `_check_approvable` ran for `approved` alone, and the refusal it
+        # raises for a failed test says *conclude 'approved_with_conditions'
+        # with the conditions written down* — so it names a route out that was
+        # then checked for nothing. An episode with a failed test could be
+        # concluded `approved_with_conditions` and NO conditions, and one that
+        # examined nothing at all could be passed under the neighbouring
+        # outcome. Both read on every report as a validated model.
+        if outcome in ("approved", "approved_with_conditions"):
+            self._check_approvable(v, failed, conditions, outcome)
 
         with self.evidence.recording():
             self.validations.set({"status": "completed", "outcome": outcome,
@@ -258,7 +268,8 @@ class ValidationService:
             validation_id=v["id"], blocking=False, actor=actor)
 
     def _check_approvable(self, v: Dict[str, Any], failed: List[Dict[str, Any]],
-                          conditions: List[str]) -> None:
+                          conditions: List[str],
+                          outcome: str = "approved") -> None:
         # A validation with NO results is not a validation that found nothing;
         # it is a validation that did not happen. `failed` is empty in both
         # cases, so an episode opened and concluded `approved` in two calls,
@@ -269,6 +280,21 @@ class ValidationService:
                 "cannot approve: no test result has been recorded, so there is "
                 "nothing this validation examined. Record what was tested and "
                 "what it showed, or conclude 'rejected'")
+        if outcome == "approved_with_conditions":
+            # The conditions ARE the conclusion. Without them this outcome is
+            # `approved` wearing a name that suggests somebody attached
+            # something to it — and it is the outcome the refusal below sends
+            # a validator to, so it has to cost what that refusal implies.
+            written = [c for c in conditions if str(c or "").strip()]
+            if not written:
+                raise ValidationError(
+                    "cannot conclude 'approved_with_conditions' with no "
+                    "conditions: the conditions are the whole difference "
+                    "between this outcome and 'approved', and an episode that "
+                    "names none has attached nothing to the approval while "
+                    "reading on every report as though it had. Write down what "
+                    "must be done, or conclude 'approved'")
+            return                      # a failed test is WHY there are conditions
         if failed:
             keys = ", ".join(sorted({r["test_key"] for r in failed}))
             raise ValidationError(
