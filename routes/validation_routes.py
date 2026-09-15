@@ -443,11 +443,32 @@ class ValidationRoutes(Routes):
             could not be produced by any route in the product.
             """
             who = self.authorise(request, "finding:read")
-            visible = self.ctx["authz"].visible(who, registry.list())
+            everything = registry.list()
+            visible = self.ctx["authz"].visible(who, everything)
             by_id = {m["id"]: m for m in visible}
             rows = register.open_across(list(by_id))
+            # A total that is silently short gets reconciled against somebody
+            # else's and the difference is read as a defect in the register.
+            # The worklist answers the same question with an `others` count for
+            # exactly this reason: a short list and a clean estate must not
+            # render the same. Counted over the models scope removed rather
+            # than over their findings, because the count of what a reader may
+            # not see is itself a fact about the estate they may not have.
+            withheld = len(everything) - len(visible)
             return {"open": len(rows),
                     "models": len({r["model_id"] for r in rows}),
+                    "models_visible": len(visible),
+                    "models_withheld_by_scope": withheld,
+                    "detail": (
+                        f"{len(rows)} open finding(s) across "
+                        f"{len({r['model_id'] for r in rows})} of "
+                        f"{len(visible)} model(s) you can see"
+                        + (f"; {withheld} more model(s) are outside your scope "
+                           f"and their findings are not counted here, so this "
+                           f"total is not the estate's"
+                           if withheld else
+                           "; your scope reaches every model in the register, "
+                           "so this total is the estate's")),
                     "findings": [
                         {**r,
                          "urn": by_id[r["model_id"]]["urn"],

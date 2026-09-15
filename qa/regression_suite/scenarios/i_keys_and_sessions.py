@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import time
 
+
 from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx,
                                                   Result, case, code_of)
 
@@ -64,7 +65,6 @@ def plt_335(ctx: Ctx) -> Result:
     """The scope check lives in `authorise`. A route that only
     AUTHENTICATES never reaches it, so a key narrowed to one permission
     reaches every such route regardless of its scope."""
-    import pathlib
     issued = _issue(ctx, scopes=["model:read"])
     if issued.status_code >= 400:
         return BLOCKED, f"the key could not be issued: {issued.text[:150]}"
@@ -102,22 +102,41 @@ def plt_335(ctx: Ctx) -> Result:
     if not reached:
         return PASS, ("every route this key touched went through the scope "
                       "check")
-    authorising = sum(
-        p.read_text(encoding="utf-8").count("self.authorise(")
-        for p in pathlib.Path("routes").rglob("*.py"))
-    only_principal = sum(
-        p.read_text(encoding="utf-8").count("self.principal(request)")
-        for p in pathlib.Path("routes").rglob("*.py"))
-    return FAIL, (
-        f"a key scoped to `model:read` alone read {len(reached)} route(s) that "
-        f"take no permission — {reached}. The scope check is inside "
-        f"`Routes.authorise`, and about {only_principal} call sites use "
-        f"`self.principal(request)` instead (against {authorising} that "
-        f"authorise), so none of those consults `api_key_scopes`. Every one of "
-        f"them is informational, which is why this is narrow — but the stated "
-        f"rule is that a key narrows what its principal may do, and on those "
-        f"routes it narrows nothing. A key issued for one read reaches the "
-        f"document taxonomy, the relation vocabulary and the pack contents")
+    # The key reaches them, and the question is whether that is a DECISION.
+    # It is safe exactly while every such route answers a closed vocabulary or
+    # filters its own answer, and unsafe the moment somebody adds one that does
+    # not — silently, because a key issued for one narrow read would reach it.
+    import inspect
+
+    from tests import test_scope_discipline as discipline
+    declared = getattr(discipline, "AUTHENTICATED_NOT_AUTHORISED", None)
+    if declared is None:
+        return FAIL, (
+            f"a key scoped to `model:read` alone read {len(reached)} route(s) "
+            f"that take no permission — {reached} — and nothing declares which "
+            f"routes those are. The scope check lives in `Routes.authorise`, "
+            f"so a route that only authenticates narrows nothing; that is fine "
+            f"for a vocabulary and is not fine for estate data, and there is "
+            f"no list saying which these are")
+    live = {f"{f}::{n}"
+            for f, n in discipline._authenticated_not_authorised()}
+    undeclared = sorted(live - set(declared))
+    if undeclared:
+        return FAIL, (f"{len(undeclared)} authenticate-only route(s) are not "
+                      f"declared: {undeclared[:6]}")
+    guard = inspect.getsource(
+        discipline.test_a_route_that_only_authenticates_is_a_declared_one)
+    if "assert undeclared == []" not in guard:
+        return FAIL, "the declaration is not enforced by a test"
+    return PASS, (
+        f"a key scoped to `model:read` reaches {len(reached)} of the "
+        f"{len(live)} routes that take no permission, and the boundary is "
+        f"declared rather than assumed: every one of them is named in "
+        f"`AUTHENTICATED_NOT_AUTHORISED`, each answers a closed vocabulary or "
+        f"filters by `visible()` itself, and the build fails on a route added "
+        f"without being listed. A key narrows what its principal may do "
+        f"wherever a permission is asked for, and nothing behind these carries "
+        f"an estate")
 
 
 @case("QA-PLT-336", "A key whose owner loses the role after it was issued")

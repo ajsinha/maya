@@ -223,3 +223,116 @@ class TestAMissingSubjectIsFourOhFourAndNotFiveHundred:
             assert r.json()["error"] != "scope_not_checked", path
             assert absent in r.json()["detail"], \
                 f"{path}: the refusal must name the subject that is missing"
+
+
+# ---------------------------------------------------------------------------
+# An API key narrows what its principal may do — on the routes that ask for a
+# permission.
+#
+# The scope check lives in `Routes.authorise`, so a route that only
+# AUTHENTICATES never reaches it and an `api_key_scopes` list narrows nothing
+# there. That is defensible exactly while every such route answers a
+# VOCABULARY — what a document kind is, what a fibre is, which verbs exist —
+# or filters its own answer by `visible()`. It stops being defensible the
+# moment somebody adds one that returns estate data, and the failure is
+# silent: a key issued for one narrow read would reach it.
+#
+# So the boundary is written down rather than trusted. A route that
+# authenticates without authorising must be listed here, and the list is
+# the statement that somebody checked: every one of the parameterless GETs
+# below was driven as an UNPRIVILEGED principal against an estate holding a
+# marked model and a marked finding, and none of them returned either.
+# Adding a route is then a decision — the build fails until somebody puts
+# the name here, which is the moment to ask whether it carries an estate.
+# ---------------------------------------------------------------------------
+AUTHENTICATED_NOT_AUTHORISED = {
+    "approval_routes.py::quorum", "artifact_routes.py::formats",
+    "assist_routes.py::assist_metrics", "assist_routes.py::list_providers",
+    "assist_routes.py::tiers", "attachment_routes.py::kinds",
+    "auth_routes.py::login_submit", "baseline_routes.py::gap_catalogue",
+    "document_routes.py::kinds", "document_routes.py::subjects",
+    "export_routes.py::describe", "feature_routes.py::screening_posture",
+    "featureset_routes.py::language", "featureset_routes.py::provenance",
+    "featureset_routes.py::retrieval", "finding_routes.py::acts",
+    "finding_routes.py::root_posture", "grammar_routes.py::check",
+    "grammar_routes.py::conventions_", "grammar_routes.py::deprecations_",
+    "grammar_routes.py::fibre", "grammar_routes.py::fibres",
+    "grammar_routes.py::grammar", "grammar_routes.py::schema",
+    "lifecycle_routes.py::authority_posture",
+    "lifecycle_routes.py::condition_kinds", "lifecycle_routes.py::machine",
+    "lifecycle_routes.py::profile", "lifecycle_routes.py::profiles",
+    "lifecycle_routes.py::stalled", "model_routes.py::assumption_kinds",
+    "model_routes.py::classification_levels",
+    "model_routes.py::designations",
+    "model_routes.py::fact_sourcing_posture",
+    "model_routes.py::limitation_kinds", "model_routes.py::relations",
+    "model_routes.py::retier_posture",
+    "model_routes.py::waivable_controls",
+    "monitoring_routes.py::distributed_posture",
+    "monitoring_routes.py::kinds", "notification_routes.py::preview",
+    "notification_routes.py::status", "overlay_routes.py::kinds",
+    "policy_routes.py::facts", "policy_routes.py::gates",
+    "principal_routes.py::close_break_glass", "principal_routes.py::me",
+    "principal_routes.py::recertification_posture",
+    "principal_routes.py::request_break_glass",
+    "principal_routes.py::roles", "profile_routes.py::listing",
+    "profile_routes.py::preview", "profile_routes.py::vocabulary",
+    "reporting_routes.py::cost_posture", "reporting_routes.py::history",
+    "reporting_routes.py::in_force", "reporting_routes.py::metrics",
+    "reporting_routes.py::portfolio_dimensions",
+    "rule_routes.py::extension_points", "rule_routes.py::import_formats",
+    "rule_routes.py::vocabulary", "sso_routes.py::callback",
+    "telemetry_routes.py::streams", "transfer_routes.py::formats",
+    "ui_routes.py::dashboard", "ui_routes.py::document_search_page",
+    "ui_routes.py::notifications_page", "ui_routes.py::parameters_page",
+    "ui_routes.py::policies_page", "ui_routes.py::query_page",
+    "ui_routes.py::telemetry_page", "validation_routes.py::tier_verdicts",
+    "validation_routes.py::vendor_checklist",
+    "warrant_routes.py::engine_boundary",
+    "warrant_routes.py::signing_posture",
+}
+
+
+def _authenticated_not_authorised() -> List[Tuple[str, str]]:
+    """Every route handler that calls `principal()` and never `authorise()`."""
+    found: List[Tuple[str, str]] = []
+    for path in sorted(ROUTES.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if not any(isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute)
+                       and d.func.attr in ("get", "post", "put", "delete", "patch")
+                       for d in node.decorator_list):
+                continue
+            body = ast.dump(node)
+            if "'authorise'" in body:
+                continue
+            if "'principal'" not in body:
+                continue
+            found.append((path.name, node.name))
+    return found
+
+
+def test_a_route_that_only_authenticates_is_a_declared_one() -> None:
+    """Adding one is a decision somebody makes, not a default they inherit."""
+    undeclared = [f"{f}::{n}" for f, n in _authenticated_not_authorised()
+                  if f"{f}::{n}" not in AUTHENTICATED_NOT_AUTHORISED]
+    assert undeclared == [], (
+        f"{len(undeclared)} route(s) authenticate without asking for a "
+        f"permission and are not declared:\n  " + "\n  ".join(undeclared)
+        + "\n\nAn API key's scope is applied in `authorise`, so a key narrows "
+          "nothing on these. That is safe for a closed vocabulary and for a "
+          "handler that filters by `visible()` itself; it is not safe for "
+          "anything else. Add the permission, or add the name above with the "
+          "reason it carries no estate.")
+
+
+def test_the_declaration_does_not_outlive_its_routes() -> None:
+    """A name left behind after its route was gated reads as a live exemption."""
+    live = {f"{f}::{n}" for f, n in _authenticated_not_authorised()}
+    stale = sorted(AUTHENTICATED_NOT_AUTHORISED - live)
+    assert stale == [], (
+        f"{len(stale)} declared exemption(s) name a route that no longer "
+        f"exists or now authorises: {stale}. An exemption list nobody prunes "
+        f"is one nobody reads.")

@@ -77,16 +77,22 @@ class DocumentRoutes(Routes):
 
         @self.app.get(f"{api}/document-search/coverage",
                       tags=["documentation"])
-        def document_coverage(request: Request):
+        def document_coverage(request: Request, urn: str = "",
+                              kind: str = ""):
             """How much of the corpus a search can actually see.
 
             The figure to read before any result: a search over a corpus that is
             forty percent unextracted is a search whose empty answers mean
             nothing.
+
+            Takes the same `urn` and `kind` the search does, so the two numbers
+            are about the same corpus. Without them a narrowed search sat
+            beside an estate-wide figure and nothing said they disagreed.
             """
             who = self.authorise(request, "document:read")
             return self.guard(
-                lambda: self.ctx["document_search"].coverage(principal=who))
+                lambda: self.ctx["document_search"].coverage(
+                    principal=who, urn=urn, kind=kind))
 
         @self.app.get(f"{api}/document-kinds", tags=["documents"])
         def kinds(request: Request):
@@ -110,8 +116,17 @@ class DocumentRoutes(Routes):
 
         @self.app.get(f"{api}/documents/{{document_id}}", tags=["documents"])
         def get_document(request: Request, document_id: str):
-            self.authorise(request, "document:read")
+            """One compiled document, scoped to the model it is about.
+
+            Loaded before it is authorised, for the same reason as the finding
+            beside it: `GET /documents?urn=` passes a model to the authoriser
+            and this did not, so a reader restricted elsewhere was served
+            another entity's model development document whole — identity,
+            methodology, findings and approvals.
+            """
             doc = self.guard(lambda: docs.require(document_id))
+            self.authorise(request, "document:read",
+                           model=self.model_of(doc["model_id"]))
             return {**doc, "staleness": docs.staleness(document_id),
                     "citations_verified": docs.verify_citations(document_id)}
 

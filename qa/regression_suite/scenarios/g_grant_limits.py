@@ -25,6 +25,7 @@ reason and shows on every screen as what it is.
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Optional
 
 from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx,
@@ -60,16 +61,20 @@ def _invoke(ctx: Ctx, warrant_id: str, model_id: str, n: int = 1,
             at: Optional[float] = None, outcome: str = "served",
             cost: float = 0.0):
     """Record invocations directly: the limits read the invocation log, and
-    driving a runtime N times would test the runtime instead."""
+    driving a runtime N times would test the runtime instead.
+
+    A fresh id per row rather than one built from the timestamp — two batches
+    written inside the same second collided on the primary key, and a case that
+    dies on its own fixture reports nothing about its subject."""
     db = ctx.ui.app.state.ctx["db"]
     moment = at if at is not None else time.time()
-    for i in range(n):
+    for _ in range(n):
         db.execute(
             "INSERT INTO warrant_invocation (id, warrant_id, model_id, "
             "principal, declared_use, environment, verb, outcome, at, cost) "
             "VALUES (:i, :w, :m, 'svc-pricing', 'credit_decision', 'prod', "
             "'score', :o, :t, :c)",
-            {"i": f"inv-{warrant_id[:8]}-{outcome}-{int(moment)}-{i}",
+            {"i": f"inv-{uuid.uuid4().hex}",
              "w": warrant_id, "m": model_id, "o": outcome,
              "t": moment, "c": cost})
 

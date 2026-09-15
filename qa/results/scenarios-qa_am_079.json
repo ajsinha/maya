@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.9,
+ "results": [
+  {
+   "id": "QA-AM-079",
+   "title": "Estate-wide open findings under a scoped reader",
+   "verdict": "PASS",
+   "evidence": "short by 1; the answer carries ['models_withheld_by_scope'] and says so: 0 open finding(s) across 0 of 0 model(s) you can see; 1 more model(s) are outside your sco"
+  }
+ ]
+}

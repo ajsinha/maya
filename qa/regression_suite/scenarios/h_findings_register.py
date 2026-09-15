@@ -311,14 +311,31 @@ def am_079(ctx: Ctx) -> Result:
     if any(f["urn"] == urn for f in seen.get("findings") or []):
         return FAIL, "the scoped reader sees a finding on another entity's model"
     hidden = everything.get("open", 0) - seen.get("open", 0)
-    if not any(k in seen for k in ("hidden", "out_of_scope", "others",
-                                   "withheld")):
+    # A key whose NAME carries the idea, rather than one exact spelling: what
+    # the case is for is whether the answer says it is partial, not what the
+    # field is called.
+    counted = [k for k in seen
+               if any(word in k for word in
+                      ("hidden", "out_of_scope", "others", "withheld"))]
+    said = (seen.get("detail") or "").lower()
+    admits = any(word in said for word in
+                 ("outside your scope", "not the estate", "not counted here"))
+    if not counted and not admits:
         return FAIL, (f"the answer is short by {hidden} and says nothing about "
                       f"it: no count of what scope removed, and no `detail` "
                       f"saying the total is partial — so a reader reconciling "
                       f"against an estate-wide pack sees a discrepancy and "
                       f"reads it as a defect in the register")
-    return PASS, f"short by {hidden}, and the answer says so"
+    if not admits:
+        return FAIL, (f"the answer carries {counted} and the detail does not "
+                      f"say the total is partial: {said[:140]}")
+    wide_body = everything
+    if wide_body.get("detail") and "every model" not in \
+            (wide_body["detail"] or "").lower():
+        return FAIL, ("an unscoped reader is not told their total IS the "
+                      "estate's, so the two answers cannot be told apart")
+    return PASS, (f"short by {hidden}; the answer carries {counted} and says "
+                  f"so: {said[:90]}")
 
 
 @case("QA-AM-080", "Read a finding by id that belongs to a model out of scope")

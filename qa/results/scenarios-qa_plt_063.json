@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.8,
+ "results": [
+  {
+   "id": "QA-PLT-063",
+   "title": "A read-then-write check under concurrency",
+   "verdict": "FAIL",
+   "evidence": "6 of 24 racing writes across 6 rounds answered 500 with no code: Internal Server Error"
+  }
+ ]
+}

@@ -5,7 +5,7 @@
   "fail": 27,
   "blocked": 9
  },
- "seconds": 170.9,
+ "seconds": 131.3,
  "results": [
   {
    "id": "QA-GOV-001",
@@ -17,7 +17,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-eb5bad99\",\"name\":\"gov-eb5bad99-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-5edbbecb\",\"name\":\"gov-5edbbecb-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -713,31 +713,31 @@
    "id": "QA-GOV-129",
    "title": "Amount one unit below the floor",
    "verdict": "PASS",
-   "evidence": "999,999 -> 'bd-0af6c6ac', the band below the floor"
+   "evidence": "999,999 -> 'bd-ca29b415', the band below the floor"
   },
   {
    "id": "QA-GOV-130",
    "title": "No sourced exposure at all",
    "verdict": "PASS",
-   "evidence": "deepest band 'bd-14bde422', reached_by 'deepest_band_because_the_amount_is_unknown'"
+   "evidence": "deepest band 'bd-eda5cbad', reached_by 'deepest_band_because_the_amount_is_unknown'"
   },
   {
    "id": "QA-GOV-131",
    "title": "Sourced exposure recorded as a non-numeric string",
    "verdict": "PASS",
-   "evidence": "unparseable, so the deepest band 'bd-3a31ad06' \u2014 and the attested row is still on the record to be corrected"
+   "evidence": "unparseable, so the deepest band 'bd-e9d54528' \u2014 and the attested row is still on the record to be corrected"
   },
   {
    "id": "QA-GOV-132",
    "title": "Two exposure facts, the later one dated in the future",
    "verdict": "FAIL",
-   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-ef6eba4d'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
+   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-48461413'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
   },
   {
    "id": "QA-GOV-133",
    "title": "Sourced exposure of exactly 0",
    "verdict": "PASS",
-   "evidence": "0 -> 'bd-383d9b9c', matched rather than reached by absence"
+   "evidence": "0 -> 'bd-e48b3f56', matched rather than reached by absence"
   },
   {
    "id": "QA-GOV-134",
@@ -1247,7 +1247,7 @@
    "id": "QA-GOV-225",
    "title": "Delete a role named in a published authority band",
    "verdict": "FAIL",
-   "evidence": "the role 'role-413b4afb' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
+   "evidence": "the role 'role-2f0a37b7' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
   },
   {
    "id": "QA-GOV-227",
@@ -1481,7 +1481,7 @@
    "id": "QA-GOV-271",
    "title": "Open a campaign naming a suspended principal explicitly",
    "verdict": "PASS",
-   "evidence": "REC-c00728c9 reviews the suspended account by name, and a blank population does not sweep it in"
+   "evidence": "REC-a5b15824 reviews the suspended account by name, and a blank population does not sweep it in"
   },
   {
    "id": "QA-GOV-272",
@@ -1499,7 +1499,7 @@
    "id": "QA-GOV-274",
    "title": "Open two campaigns covering the same people at once",
    "verdict": "PASS",
-   "evidence": "answered in REC-ec44037d, still unreviewed in REC-41ca405d"
+   "evidence": "answered in REC-4e9ea821, still unreviewed in REC-3e0bae59"
   },
   {
    "id": "QA-GOV-275",
@@ -1541,13 +1541,13 @@
    "id": "QA-GOV-282",
    "title": "Replacement naming a model that is itself retired",
    "verdict": "FAIL",
-   "evidence": "'maya://model/dc-1b3bfd30' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
+   "evidence": "'maya://model/dc-1f915f91' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
   },
   {
    "id": "QA-GOV-283",
    "title": "Replacement recorded as the literal `none`",
    "verdict": "PASS",
-   "evidence": "accepted, detail says: maya://model/dc-cc833044 is decommissioned, kept under the 'artifact' class, wit"
+   "evidence": "accepted, detail says: maya://model/dc-7d7b60df is decommissioned, kept under the 'artifact' class, wit"
   },
   {
    "id": "QA-GOV-284",
@@ -1991,7 +1991,7 @@
    "id": "QA-GOV-514",
    "title": "A band naming a role that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a0a2d321d73a61f00665784d7c\",\"name\":\"band-4a5587d1\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a0a3208849f4860627a109d138\",\"name\":\"band-72eedd36\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
   },
   {
    "id": "QA-GOV-515",

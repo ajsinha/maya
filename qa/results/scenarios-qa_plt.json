@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 483,
-  "pass": 408,
-  "fail": 70,
+  "pass": 413,
+  "fail": 65,
   "blocked": 5
  },
- "seconds": 104.7,
+ "seconds": 214.1,
  "results": [
   {
    "id": "QA-PLT-001",
@@ -59,13 +59,13 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:caa241f3340db"
+   "evidence": "a fresh chain of 8 verifies, head sha256:245c65da961e0"
   },
   {
    "id": "QA-PLT-010",
    "title": "Two full verifications running at once",
    "verdict": "PASS",
-   "evidence": "two full walks, both valid, one head sha256:5192e430053e2"
+   "evidence": "two full walks, both valid, one head sha256:9b562dcec5d65"
   },
   {
    "id": "QA-PLT-011",
@@ -161,13 +161,13 @@
    "id": "QA-PLT-026",
    "title": "The anchor files deleted from the WORM root",
    "verdict": "FAIL",
-   "evidence": "1 anchor(s) were deleted from /tmp/maya-qa-tomsmzpu/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothing here contradicts it'. That is word for word the answer a fresh instance gives. Nothing records that anchors ONCE existed \u2014 the store is the only register of itself \u2014 so an estate whose anchors were cleared is in"
+   "evidence": "1 anchor(s) were deleted from /tmp/maya-qa-swooc_0n/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothing here contradicts it'. That is word for word the answer a fresh instance gives. Nothing records that anchors ONCE existed \u2014 the store is the only register of itself \u2014 so an estate whose anchors were cleared is in"
   },
   {
    "id": "QA-PLT-027",
    "title": "The whole WORM directory removed while the instance runs",
    "verdict": "FAIL",
-   "evidence": "the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-ypl74u6t/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.mkdir(parents=True, exist_ok=True)`, so a store that has vanished is repaired rather than reported. Every earlier anchor is gone, the new one agrees with the chain, and `verify_against_anchors` now reports a chain"
+   "evidence": "the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-wa153h58/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.mkdir(parents=True, exist_ok=True)`, so a store that has vanished is repaired rather than reported. Every earlier anchor is gone, the new one agrees with the chain, and `verify_against_anchors` now reports a chain"
   },
   {
    "id": "QA-PLT-028",
@@ -359,7 +359,7 @@
    "id": "QA-PLT-059",
    "title": "The ETag does not move when nothing changed",
    "verdict": "PASS",
-   "evidence": "stable across three reads: W/\"sha256:8bf843161a42a1"
+   "evidence": "stable across three reads: W/\"sha256:97809754e8686b"
   },
   {
    "id": "QA-PLT-060",
@@ -383,7 +383,7 @@
    "id": "QA-PLT-063",
    "title": "A read-then-write check under concurrency",
    "verdict": "FAIL",
-   "evidence": "2 of 4 racing writes answered 500 with no code: Internal Server Error"
+   "evidence": "6 of 24 racing writes across 6 rounds answered 500 with no code: Internal Server Error"
   },
   {
    "id": "QA-PLT-064",
@@ -431,7 +431,7 @@
    "id": "QA-PLT-073",
    "title": "Filtering happens **before** paging",
    "verdict": "PASS",
-   "evidence": "6 of 49 match, and two pages of the filtered list are disjoint and in scope"
+   "evidence": "6 of 54 match, and two pages of the filtered list are disjoint and in scope"
   },
   {
    "id": "QA-PLT-074",
@@ -443,13 +443,13 @@
    "id": "QA-PLT-075",
    "title": "A hard delete and what still names the model",
    "verdict": "PASS",
-   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a0a2cf59db"
+   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a0a3250c46"
   },
   {
    "id": "QA-PLT-076",
    "title": "A deletion refused because something still refers to it",
    "verdict": "PASS",
-   "evidence": "refused 'still_referenced', naming fs-0dd182bc"
+   "evidence": "refused 'still_referenced', naming fs-2d40fcf8"
   },
   {
    "id": "QA-PLT-077",
@@ -461,13 +461,13 @@
    "id": "QA-PLT-078",
    "title": "A write landing during an estate fold",
    "verdict": "PASS",
-   "evidence": "a model landed mid-fold and both aggregates agree on 53"
+   "evidence": "a model landed mid-fold and both aggregates agree on 58"
   },
   {
    "id": "QA-PLT-079",
    "title": "The estate-fold cache after a mutation",
    "verdict": "PASS",
-   "evidence": "54 \u2192 55; the index is built and dropped inside each read"
+   "evidence": "59 \u2192 60; the index is built and dropped inside each read"
   },
   {
    "id": "QA-PLT-080",
@@ -521,7 +521,7 @@
    "id": "QA-PLT-091",
    "title": "A JSON response that will not parse gets no ETag",
    "verdict": "PASS",
-   "evidence": "no tag, and a warning: a response from /api/v1/qa-unparseable-1789437895383 declares JSON and does not parse; serving it without an ETag"
+   "evidence": "no tag, and a warning: a response from /api/v1/qa-unparseable-1789443514470 declares JSON and does not parse; serving it without an ETag"
   },
   {
    "id": "QA-PLT-092",
@@ -533,7 +533,7 @@
    "id": "QA-PLT-093",
    "title": "A write during a fold that does not go through a repository",
    "verdict": "FAIL",
-   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-afcb0433' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
+   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-fe3877f7' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
   },
   {
    "id": "QA-PLT-094",
@@ -545,13 +545,13 @@
    "id": "QA-PLT-095",
    "title": "A folded read with an `order` or a `limit`",
    "verdict": "PASS",
-   "evidence": "64 rows either way; ordered and limited reads fall through to SQL unchanged"
+   "evidence": "69 rows either way; ordered and limited reads fall through to SQL unchanged"
   },
   {
    "id": "QA-PLT-096",
    "title": "A table outside the folded fourteen read during a fold",
    "verdict": "PASS",
-   "evidence": "evidence_node is outside the fourteen and reads fresh: 85 \u2192 86 during the fold"
+   "evidence": "evidence_node is outside the fourteen and reads fresh: 95 \u2192 96 during the fold"
   },
   {
    "id": "QA-PLT-097",
@@ -611,7 +611,7 @@
    "id": "QA-PLT-1005",
    "title": "The chain head is readable and stable",
    "verdict": "PASS",
-   "evidence": "head stable at length 86"
+   "evidence": "head stable at length 96"
   },
   {
    "id": "QA-PLT-1006",
@@ -671,7 +671,7 @@
    "id": "QA-PLT-108",
    "title": "The `_freeze` chmod fails and the store carries on",
    "verdict": "PASS",
-   "evidence": "written, and warned: could not make qa-freeze-1789437901275.anchor read-only: this filesystem does not support the permission \u2014 the object is"
+   "evidence": "written, and warned: could not make qa-freeze-1789443530146.anchor read-only: this filesystem does not support the permission \u2014 the object is"
   },
   {
    "id": "QA-PLT-109",
@@ -875,7 +875,7 @@
    "id": "QA-PLT-123",
    "title": "Compile one document twice with nothing changed between",
    "verdict": "PASS",
-   "evidence": "the same document id and digest sha256:735efd06d"
+   "evidence": "the same document id and digest sha256:6f9e3077f"
   },
   {
    "id": "QA-PLT-124",
@@ -887,13 +887,13 @@
    "id": "QA-PLT-125",
    "title": "Recompile a document that has open review comments",
    "verdict": "PASS",
-   "evidence": "1 open comment(s) still against 01a0a2cf8b58"
+   "evidence": "1 open comment(s) still against 01a0a3258b3d"
   },
   {
    "id": "QA-PLT-126",
    "title": "The same document through the export packer instead",
    "verdict": "PASS",
-   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:64689ae6e95f9"
+   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:f979981f9a8e0"
   },
   {
    "id": "QA-PLT-127",
@@ -923,7 +923,7 @@
    "id": "QA-PLT-131",
    "title": "An event recorded at exactly the sequence the document recorded as head",
    "verdict": "PASS",
-   "evidence": "head 113 carries 1 event(s) and the document is not stale; the boundary is exclusive"
+   "evidence": "head 123 carries 1 event(s) and the document is not stale; the boundary is exclusive"
   },
   {
    "id": "QA-PLT-132",
@@ -940,8 +940,8 @@
   {
    "id": "QA-PLT-134",
    "title": "A citation to an evidence node the reader may not see",
-   "verdict": "FAIL",
-   "evidence": "`GET /api/v1/documents/{document_id}` authorises `document:read` with NO model, while `GET /api/v1/documents?urn=` passes one and refuses this reader 'out_of_scope'. So a principal scoped to LE-XX-99 is served an LE-US-01 model's compiled document by id \u2014 15 sections of its identity, methodology, findings and approvals \u2014 and told its 1 citation(s) are sound. The soundness claim is itself unscoped "
+   "verdict": "PASS",
+   "evidence": "the document itself is refused to an out-of-scope reader ('out_of_scope'), so the citation claim never reaches them"
   },
   {
    "id": "QA-PLT-135",
@@ -959,13 +959,13 @@
    "id": "QA-PLT-137",
    "title": "A dossier for a model with three empty versions",
    "verdict": "PASS",
-   "evidence": "exactly four gaps: ['model dp-8e2ebc13', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
+   "evidence": "exactly four gaps: ['model dp-101bb267', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
   },
   {
    "id": "QA-PLT-138",
    "title": "A dangling featureset pin on a non-fitted parameter set",
    "verdict": "FAIL",
-   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-61af275c', "
+   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-2bb2c95a', "
   },
   {
    "id": "QA-PLT-139",
@@ -983,7 +983,7 @@
    "id": "QA-PLT-141",
    "title": "A dossier over a large featureset estate",
    "verdict": "PASS",
-   "evidence": "one parameter set, one dossier build, an estate of 21 featureset(s): 1 full scan(s) of the register and 21 version read(s), 5 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
+   "evidence": "one parameter set, one dossier build, an estate of 21 featureset(s): 1 full scan(s) of the register and 21 version read(s), 15 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
   },
   {
    "id": "QA-PLT-142",
@@ -1067,7 +1067,7 @@
    "id": "QA-PLT-155",
    "title": "Two packs of unchanged state",
    "verdict": "PASS",
-   "evidence": "content sha256:8bb01670e6e6a on both; archive digests differ because the manifest carries the moment"
+   "evidence": "content sha256:790bbd398fba8 on both; archive digests differ because the manifest carries the moment"
   },
   {
    "id": "QA-PLT-156",
@@ -1115,7 +1115,7 @@
    "id": "QA-PLT-163",
    "title": "Redeem a share link end to end",
    "verdict": "FAIL",
-   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/ZpZ9dqU3RDXlX7ZtvFDEET44XPy_j8U-xGdiS0We6Gc:404, /api/v1/export-shares/ZpZ9dqU3RDXlX7ZtvFDEET44XPy_j8U-xGdiS0We6Gc/open:404, /api/v1/export-shares/ZpZ9dqU3RDXlX7ZtvFDEET44XPy_j8U-xGdiS0We6Gc/pack:404, /"
+   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/H-IfaicFeMqKHeNrDZ4-kyZajf6azGQIenepbd9bzKE:404, /api/v1/export-shares/H-IfaicFeMqKHeNrDZ4-kyZajf6azGQIenepbd9bzKE/open:404, /api/v1/export-shares/H-IfaicFeMqKHeNrDZ4-kyZajf6azGQIenepbd9bzKE/pack:404, /"
   },
   {
    "id": "QA-PLT-164",
@@ -1162,14 +1162,14 @@
   {
    "id": "QA-PLT-171",
    "title": "Coverage on an empty estate versus a principal who can see nothing",
-   "verdict": "FAIL",
-   "evidence": "an estate with nothing filed and a reader who may see nothing both answer coverage 0.0 over 0 document(s) with the identical sentence: 'no document has been filed against any model you can see'. The first is a register with a gap and the second is a scope doing its job; a reader told the first when the truth is the second concludes the bank has filed nothing"
+   "verdict": "PASS",
+   "evidence": "distinguishable: 'you can see none of the 116 model(s) in this register, so th' against 'nothing is filed because nothing is registered: this estate '"
   },
   {
    "id": "QA-PLT-172",
    "title": "Coverage against a `kind`- or `urn`-filtered search",
-   "verdict": "FAIL",
-   "evidence": "a search narrowed to one model answers 0 match(es) over 0 document(s) searched and 1 unread, while `GET /api/v1/document-search/coverage` \u2014 the figure the search's own detail line tells a reader to check first \u2014 answers 0.5714 over 7 document(s) across the whole estate. `coverage()` takes no `urn` and no `kind`, and the route passes neither, so the two numbers are about different corpora and nothi"
+   "verdict": "PASS",
+   "evidence": "coverage narrows by ['urn', 'kind']"
   },
   {
    "id": "QA-PLT-173",
@@ -1192,8 +1192,8 @@
   {
    "id": "QA-PLT-176",
    "title": "A search run with no principal while an authoriser is wired",
-   "verdict": "FAIL",
-   "evidence": "`search(principal=None)` with an authoriser wired returned 9 result(s) across 13 document(s) \u2014 `_visible` applies the filter only `if self.authz is not None and principal is not None`, so nothing was filtered \u2014 and the answer reports `scoped: true`, because that flag is `self.authz is not None`. It describes the wiring. A caller reading it concludes the estate was narrowed to them when the whole c"
+   "verdict": "PASS",
+   "evidence": "`scoped` is false when no principal was applied, so it reports the filtering rather than the wiring"
   },
   {
    "id": "QA-PLT-177",
@@ -1517,7 +1517,7 @@
    "id": "QA-PLT-249",
    "title": "A subscription that fails five times in a row",
    "verdict": "PASS",
-   "evidence": "suspended at 5, cursor kept at 385, and it counted down first"
+   "evidence": "suspended at 5, cursor kept at 395, and it counted down first"
   },
   {
    "id": "QA-PLT-250",
@@ -1780,8 +1780,8 @@
   {
    "id": "QA-PLT-335",
    "title": "An API key used on an endpoint that takes no permission",
-   "verdict": "FAIL",
-   "evidence": "a key scoped to `model:read` alone read 4 route(s) that take no permission \u2014 ['/api/v1/document-kinds', '/api/v1/document-subjects', '/api/v1/model-relations', '/api/v1/export-packs']. The scope check is inside `Routes.authorise`, and about 78 call sites use `self.principal(request)` instead (against 494 that authorise), so none of those consults `api_key_scopes`. Every one of them is informationa"
+   "verdict": "PASS",
+   "evidence": "a key scoped to `model:read` reaches 4 of the 69 routes that take no permission, and the boundary is declared rather than assumed: every one of them is named in `AUTHENTICATED_NOT_AUTHORISED`, each answers a closed vocabulary or filters by `visible()` itself, and the build fails on a route added without being listed. A key narrows what its principal may do wherever a permission is asked for, and n"
   },
   {
    "id": "QA-PLT-336",
@@ -1853,7 +1853,7 @@
    "id": "QA-PLT-350",
    "title": "An unknown SSO identity with provisioning off",
    "verdict": "PASS",
-   "evidence": "refused 'not_provisioned': stranger-24e504ac authenticated successfully and has no principal here"
+   "evidence": "refused 'not_provisioned': stranger-713c55ea authenticated successfully and has no principal here"
   },
   {
    "id": "QA-PLT-351",
@@ -1865,7 +1865,7 @@
    "id": "QA-PLT-352",
    "title": "`?limit=100000` on the models listing",
    "verdict": "PASS",
-   "evidence": "clamped to 500, 130 of 130 returned"
+   "evidence": "clamped to 500, 135 of 135 returned"
   },
   {
    "id": "QA-PLT-353",
@@ -1877,7 +1877,7 @@
    "id": "QA-PLT-354",
    "title": "`?offset=9999` on a listing of 120 rows",
    "verdict": "PASS",
-   "evidence": "empty page, total still 136, has_more false"
+   "evidence": "empty page, total still 141, has_more false"
   },
   {
    "id": "QA-PLT-355",
@@ -1907,13 +1907,13 @@
    "id": "QA-PLT-359",
    "title": "A search over the models listing that matches nothing",
    "verdict": "PASS",
-   "evidence": "total 0, returned 0, detail 'nothing matched' while the unfiltered listing shows 137 model(s)"
+   "evidence": "total 0, returned 0, detail 'nothing matched' while the unfiltered listing shows 142 model(s)"
   },
   {
    "id": "QA-PLT-360",
    "title": "The models listing with no ordering parameter",
    "verdict": "FAIL",
-   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-64b49e8a']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exis"
+   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-9fba8527']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exis"
   },
   {
    "id": "QA-PLT-3600",
@@ -2165,7 +2165,7 @@
    "id": "QA-PLT-4790",
    "title": "The default limit when none is asked for",
    "verdict": "PASS",
-   "evidence": "defaulted to 50, 50 of 154"
+   "evidence": "defaulted to 50, 50 of 159"
   },
   {
    "id": "QA-PLT-4791",
@@ -2183,13 +2183,13 @@
    "id": "QA-PLT-4910",
    "title": "Resuming a suspended subscription",
    "verdict": "PASS",
-   "evidence": "active, failures reset, cursor still 490"
+   "evidence": "active, failures reset, cursor still 500"
   },
   {
    "id": "QA-PLT-4911",
    "title": "A new subscription starts at the head",
    "verdict": "PASS",
-   "evidence": "cursor starts at the head, 493"
+   "evidence": "cursor starts at the head, 503"
   },
   {
    "id": "QA-PLT-4912",
@@ -2237,7 +2237,7 @@
    "id": "QA-PLT-4931",
    "title": "Two renderings of unchanged state are identical",
    "verdict": "PASS",
-   "evidence": "identical, digest sha256:7b8f57461710b"
+   "evidence": "identical, digest sha256:9c33b9e5e5f3f"
   },
   {
    "id": "QA-PLT-4932",
@@ -2267,7 +2267,7 @@
    "id": "QA-PLT-4936",
    "title": "Compiling records the act and the chain head it saw",
    "verdict": "PASS",
-   "evidence": "authored by risk against head 512"
+   "evidence": "authored by risk against head 522"
   },
   {
    "id": "QA-PLT-4940",
@@ -2357,7 +2357,7 @@
    "id": "QA-PLT-519",
    "title": "A request id travels with the answer",
    "verdict": "PASS",
-   "evidence": "x-request-id: f68a1867a4026dcd"
+   "evidence": "x-request-id: 1b4638fd42d2b4c9"
   },
   {
    "id": "QA-PLT-520",
@@ -2441,7 +2441,7 @@
    "id": "QA-PLT-5300",
    "title": "Two packs of unchanged state share a content digest",
    "verdict": "PASS",
-   "evidence": "digest stable at sha256:713bab547d5b2 across two cuts at different times"
+   "evidence": "digest stable at sha256:ab922423de754 across two cuts at different times"
   },
   {
    "id": "QA-PLT-5301",
@@ -2483,7 +2483,7 @@
    "id": "QA-PLT-5307",
    "title": "The pack states the chain's condition",
    "verdict": "PASS",
-   "evidence": "chain pinned at seq 537, verified=True"
+   "evidence": "chain pinned at seq 547, verified=True"
   },
   {
    "id": "QA-PLT-5308",
@@ -2735,19 +2735,19 @@
    "id": "QA-PLT-6305",
    "title": "The genesis constant is not a node",
    "verdict": "PASS",
-   "evidence": "head at seq 571; genesis is all zeroes"
+   "evidence": "head at seq 581; genesis is all zeroes"
   },
   {
    "id": "QA-PLT-6306",
    "title": "The chain report states its scope",
    "verdict": "PASS",
-   "evidence": "scope 'incremental' from seq 467"
+   "evidence": "scope 'incremental' from seq 477"
   },
   {
    "id": "QA-PLT-6307",
    "title": "Appending is what moves the head",
    "verdict": "PASS",
-   "evidence": "571 -> 572, and the chain still verifies"
+   "evidence": "581 -> 582, and the chain still verifies"
   },
   {
    "id": "QA-PLT-631",

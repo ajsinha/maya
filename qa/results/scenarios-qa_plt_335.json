@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.8,
+ "seconds": 1.0,
  "results": [
   {
    "id": "QA-PLT-335",
    "title": "An API key used on an endpoint that takes no permission",
-   "verdict": "FAIL",
-   "evidence": "a key scoped to `model:read` alone read 4 route(s) that take no permission \u2014 ['/api/v1/document-kinds', '/api/v1/document-subjects', '/api/v1/model-relations', '/api/v1/export-packs']. The scope check is inside `Routes.authorise`, and about 78 call sites use `self.principal(request)` instead (against 494 that authorise), so none of those consults `api_key_scopes`. Every one of them is informationa"
+   "verdict": "PASS",
+   "evidence": "a key scoped to `model:read` reaches 4 of the 75 routes that take no permission, and the boundary is declared rather than assumed: every one of them is named in `AUTHENTICATED_NOT_AUTHORISED`, each answers a closed vocabulary or filters by `visible()` itself, and the build fails on a route added without being listed. A key narrows what its principal may do wherever a permission is asked for, and n"
   }
  ]
 }

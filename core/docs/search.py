@@ -36,7 +36,7 @@ arriving through a search box.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 #: How much of the matching line to quote. Enough to read, short enough that a
 #: result list is not a way to reconstruct the whole document a term at a time.
@@ -92,7 +92,7 @@ class DocumentSearch:
                 "limit_out_of_range",
                 f"{limit} is not a page size; the bound is 1 to {MAX_LIMIT}")
 
-        visible = self._visible(principal, urn)
+        visible, narrowed = self._visible(principal, urn)
         hits, unread, searched = [], [], 0
         for row in self._candidates(visible, kind):
             body = self._text(row)
@@ -116,7 +116,8 @@ class DocumentSearch:
             "query": query, "terms": wanted, "results": page,
             "matches": len(hits), "documents_searched": searched,
             "could_not_be_read": unread,
-            "scoped": self.authz is not None,
+            "scoped": narrowed,
+            "scope_available": self.authz is not None,
             "detail": self._detail(page, hits, searched, unread),
         }
 
@@ -129,14 +130,24 @@ class DocumentSearch:
                 yield row
 
     def _visible(self, principal: Optional[Dict[str, Any]],
-                 urn: str) -> Dict[str, str]:
-        """model id -> urn, for the models this reader may see."""
+                 urn: str) -> Tuple[Dict[str, str], bool]:
+        """model id -> urn for the models this reader may see, and whether the
+        scope was actually applied.
+
+        The flag is returned rather than inferred from the wiring. `scoped`
+        used to be `self.authz is not None`, which reports how the service was
+        CONSTRUCTED — so a call with no principal searched the whole corpus and
+        answered `scoped: true`. A response that says it was narrowed to you
+        and was not is the leak the scope check exists against, wearing the
+        label of the control.
+        """
         models = self.registry.list()
         if urn:
             models = [m for m in models if m.get("urn") == urn]
-        if self.authz is not None and principal is not None:
+        applied = self.authz is not None and principal is not None
+        if applied:
             models = self.authz.visible(principal, models)
-        return {m["id"]: m.get("urn") for m in models}
+        return {m["id"]: m.get("urn") for m in models}, applied
 
     def _text(self, row: Dict[str, Any]) -> Optional[str]:
         """The document's text, or `None` where it was never extracted."""
@@ -187,18 +198,32 @@ class DocumentSearch:
         return out
 
     # -------------------------------------------------------------- coverage
-    def coverage(self, principal: Optional[Dict[str, Any]] = None
-                 ) -> Dict[str, Any]:
+    def coverage(self, principal: Optional[Dict[str, Any]] = None, *,
+                 urn: str = "", kind: str = "") -> Dict[str, Any]:
         """How much of the corpus a search can actually see.
 
-        The figure to read before any result. A search over a corpus that is
+        The figure to read before any result: a search over a corpus that is
         forty percent unextracted is a search whose empty answers mean nothing.
+
+        **Narrowed the same way the search is.** It took no `urn` and no
+        `kind`, and the route passed neither — so "nothing matches in this
+        model" sat beside a figure computed over the whole estate, and the two
+        numbers were about different corpora with nothing saying so.
+
+        **And an empty register is not a reader who may see nothing.** Both
+        answer zero. One is a gap in the register and the other is a scope
+        doing its job, and telling them apart is the whole point of this
+        figure — so the answer says which, from whether the scope was actually
+        applied rather than from whether an authoriser happens to be wired.
         """
-        visible = self._visible(principal, "")
+        visible, narrowed = self._visible(principal, urn)
+        everything = self.registry.list()
         readable, unread = 0, 0
         by_type: Dict[str, int] = {}
         for model_id in visible:
             for row in self.attachments.for_model(model_id):
+                if kind and row.get("kind") != kind:
+                    continue
                 if row.get("text_indexed"):
                     readable += 1
                 else:
@@ -206,13 +231,21 @@ class DocumentSearch:
                     media = row.get("media_type") or "unknown"
                     by_type[media] = by_type.get(media, 0) + 1
         total = readable + unread
+        withheld = len(everything) - len(visible) if narrowed else 0
         return {
             "documents": total, "readable": readable, "unread": unread,
             "unread_by_media_type": by_type,
             "coverage": round(readable / total, 4) if total else 0.0,
+            "scoped": narrowed,
+            "scope_available": self.authz is not None,
+            "models_in_scope": len(visible),
+            "models_withheld_by_scope": withheld,
+            "narrowed_to": {"urn": urn or None, "kind": kind or None},
             "semantic_search": self.semantic(),
             "detail": (
                 f"{readable} of {total} filed document(s) can be searched"
+                + (f" for {urn}" if urn else "")
+                + (f" of kind '{kind}'" if kind else "")
                 + (f". The other {unread} are formats this platform stores and "
                    f"serves but has never read — mostly "
                    f"{self._commonest(by_type)} "
@@ -220,8 +253,36 @@ class DocumentSearch:
                    f"unextracted corpus means nothing"
                    if unread else ", which is all of them")
                 if total else
-                "no document has been filed against any model you can see"),
+                self._nothing_detail(everything, visible, withheld, urn, kind)),
         }
+
+    @staticmethod
+    def _nothing_detail(everything, visible, withheld, urn, kind) -> str:
+        """Why the corpus is empty — which is four different facts.
+
+        Nothing is filed; nothing is filed against what you asked for; you may
+        see no model at all; or you may see some and none of them has a
+        document. A zero that does not say which gets read as the first.
+        """
+        if urn or kind:
+            asked = " and ".join(filter(None, (
+                f"model {urn}" if urn else "", f"kind '{kind}'" if kind else "")))
+            return (f"no document is filed against {asked} among the "
+                    f"{len(visible)} model(s) you can see"
+                    + (f"; {withheld} further model(s) are outside your scope"
+                       if withheld else ""))
+        if not everything:
+            return ("nothing is filed because nothing is registered: this "
+                    "estate is empty, which is a fact about the register and "
+                    "not about you")
+        if not visible:
+            return (f"you can see none of the {len(everything)} model(s) in "
+                    f"this register, so this zero is your scope rather than "
+                    f"an empty corpus — somebody else's answer will differ")
+        return (f"no document has been filed against any of the "
+                f"{len(visible)} model(s) you can see"
+                + (f"; {withheld} further model(s) are outside your scope"
+                   if withheld else ""))
 
     @staticmethod
     def _commonest(by_type: Dict[str, int]) -> str:

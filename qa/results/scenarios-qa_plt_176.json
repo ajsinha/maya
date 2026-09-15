@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 2.8,
  "results": [
   {
    "id": "QA-PLT-176",
    "title": "A search run with no principal while an authoriser is wired",
-   "verdict": "FAIL",
-   "evidence": "`search(principal=None)` with an authoriser wired returned 1 result(s) across 1 document(s) \u2014 `_visible` applies the filter only `if self.authz is not None and principal is not None`, so nothing was filtered \u2014 and the answer reports `scoped: true`, because that flag is `self.authz is not None`. It describes the wiring. A caller reading it concludes the estate was narrowed to them when the whole co"
+   "verdict": "PASS",
+   "evidence": "`scoped` is false when no principal was applied, so it reports the filtering rather than the wiring"
   }
  ]
 }

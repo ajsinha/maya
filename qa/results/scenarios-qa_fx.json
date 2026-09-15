@@ -5,7 +5,7 @@
   "fail": 22,
   "blocked": 0
  },
- "seconds": 54.9,
+ "seconds": 43.4,
  "results": [
   {
    "id": "QA-FX-001",
@@ -77,7 +77,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a2d36442b012f80352380580\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a320b0fa6b8216b036c90b35\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-018",
@@ -437,7 +437,7 @@
    "id": "QA-FX-1208",
    "title": "Retiring a profile stops it applying",
    "verdict": "FAIL",
-   "evidence": "retiring 'prof-f2a64ed8' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+   "evidence": "retiring 'prof-c58fbef8' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
   },
   {
    "id": "QA-FX-1209",
@@ -1169,13 +1169,13 @@
    "id": "QA-FX-384",
    "title": "`note_revocation` with a model URN",
    "verdict": "PASS",
-   "evidence": "refused 'revoked' on the model URN: maya://model/gx-d964c0be is on the local revocation list"
+   "evidence": "refused 'revoked' on the model URN: maya://model/gx-54f2f1f6 is on the local revocation list"
   },
   {
    "id": "QA-FX-385",
    "title": "`note_revocation` with a `warrant_id`",
    "verdict": "FAIL",
-   "evidence": "`note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a2d3a9e36e5b\u2026 and 01a0a2d3a9e71b67\u2026, so an id noted from one never matches the one `execute` checks and the floor cannot fire. An engine told to stop by descriptor id holds a local revocation list that looks enabled and does nothing \u2014 the model URN is the form that works, and both are accepted with "
+   "evidence": "`note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a320de594281\u2026 and 01a0a320de5e5b42\u2026, so an id noted from one never matches the one `execute` checks and the floor cannot fire. An engine told to stop by descriptor id holds a local revocation list that looks enabled and does nothing \u2014 the model URN is the form that works, and both are accepted with "
   },
   {
    "id": "QA-FX-386",
@@ -2045,7 +2045,7 @@
    "id": "QA-FX-800",
    "title": "A parameter set with no name",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a2d42a460e6bd52abee709bc\",\"model_id\":\"01a0a2d42a2cccbc055749829283\",\"model_version_id\":\"01a0a2d42a37284b0b36b3ec6f38\",\"name\":\"   \",\"version\":1,\"kind\""
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a32152a345679afd2b200500\",\"model_id\":\"01a0a3215297e7daaadce531bce5\",\"model_version_id\":\"01a0a321529d465d829907e3004d\",\"name\":\"   \",\"version\":1,\"kind\""
   },
   {
    "id": "QA-FX-801",
@@ -2261,7 +2261,7 @@
    "id": "QA-FX-954",
    "title": "Retire a source with no reason",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a2d42f2f67dc53389336a7e6\",\"view_name\":\"tv-331dd06c\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
+   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a3215489d6fe0985c8ec223f\",\"view_name\":\"tv-01173555\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
   },
   {
    "id": "QA-FX-955",

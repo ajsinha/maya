@@ -262,34 +262,44 @@ def plt_063(ctx: Ctx) -> Result:
     a 500. An unhandled integrity error at the edge is a caller told nothing
     about a request that may or may not have landed."""
     import threading
-    name = _model(ctx)
-    out = {}
+    # ROUNDS, not one race. Four threads against a read-then-write win or lose
+    # on timing, and a single round reports the control working whenever the
+    # scheduler happens to serialise it — which is the false pass QA-PLT-160
+    # was caught giving. The worst round is the answer.
+    rounds, crashed, winners, seen = 6, [], [], []
+    for _round in range(rounds):
+        name = _model(ctx)
+        out = {}
 
-    def go(n):
-        out[n] = ctx.api.post(f"{M}/{name}/versions", json={"semver": "1.0.0"},
-                              auth=ctx.people["developer"])
+        def go(n, model=name, sink=out):
+            sink[n] = ctx.api.post(f"{M}/{model}/versions",
+                                   json={"semver": "1.0.0"},
+                                   auth=ctx.people["developer"])
 
-    threads = [threading.Thread(target=go, args=(n,)) for n in range(4)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    if len(out) != 4:
-        return BLOCKED, "not every racing request returned"
-    crashed = [r for r in out.values() if r.status_code >= 500]
+        threads = [threading.Thread(target=go, args=(n,)) for n in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        if len(out) != 4:
+            return BLOCKED, "not every racing request returned"
+        crashed += [r for r in out.values() if r.status_code >= 500]
+        won = [r for r in out.values() if r.status_code < 400]
+        winners.append(len(won))
+        seen.append({code_of(r) for r in out.values() if r.status_code >= 400})
     if crashed:
-        return FAIL, (f"{len(crashed)} of 4 racing writes answered "
-                      f"{crashed[0].status_code} with no code: "
-                      f"{crashed[0].text[:120]}")
-    won = [r for r in out.values() if r.status_code < 400]
-    if len(won) != 1:
-        return FAIL, (f"{len(won)} of 4 racing creations of one version "
-                      f"succeeded; versions are immutable so exactly one "
-                      f"should")
-    codes = {code_of(r) for r in out.values() if r.status_code >= 400}
+        return FAIL, (f"{len(crashed)} of {rounds * 4} racing writes across "
+                      f"{rounds} rounds answered {crashed[0].status_code} with "
+                      f"no code: {crashed[0].text[:110]}")
+    if set(winners) != {1}:
+        return FAIL, (f"racing creations of one version succeeded "
+                      f"{winners} times across {rounds} rounds; versions are "
+                      f"immutable so exactly one should win each time")
+    codes = set().union(*seen)
     if not codes or "" in codes:
         return FAIL, f"a loser refused with no code: {codes}"
-    return PASS, f"1 won, 3 refused {sorted(codes)}, no 500"
+    return PASS, (f"{rounds} rounds of four: one winner each time, "
+                  f"losers refused {sorted(codes)}, no 500")
 
 
 @case("QA-PLT-062", "An evidence append racing another evidence append")

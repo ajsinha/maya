@@ -1,0 +1,353 @@
+{
+ "summary": {
+  "total": 57,
+  "pass": 53,
+  "fail": 4,
+  "blocked": 0
+ },
+ "seconds": 11.2,
+ "results": [
+  {
+   "id": "QA-PLT-310",
+   "title": "Readiness answers and says what it checked",
+   "verdict": "PASS",
+   "evidence": "200, and it names what it checked"
+  },
+  {
+   "id": "QA-PLT-325",
+   "title": "An API route under a session cookie with no CSRF token",
+   "verdict": "PASS",
+   "evidence": "refused 'csrf_token_invalid'"
+  },
+  {
+   "id": "QA-PLT-326",
+   "title": "The same route under HTTP Basic with no CSRF token",
+   "verdict": "PASS",
+   "evidence": "accepted; CSRF is a browser control only"
+  },
+  {
+   "id": "QA-PLT-327",
+   "title": "A CSRF token from one session used with another",
+   "verdict": "PASS",
+   "evidence": "refused (403) across sessions"
+  },
+  {
+   "id": "QA-PLT-328",
+   "title": "A CSRF token replayed after sign-out and back in",
+   "verdict": "PASS",
+   "evidence": "a new token is minted on the new session and the old one is refused 'csrf_token_invalid'"
+  },
+  {
+   "id": "QA-PLT-329",
+   "title": "Two tabs, one form submitted after the other signed out",
+   "verdict": "PASS",
+   "evidence": "the session is gone before the token is looked at, so the refusal is 'unauthenticated'"
+  },
+  {
+   "id": "QA-PLT-330",
+   "title": "Sign in with the wrong password",
+   "verdict": "PASS",
+   "evidence": "refused without saying which half was wrong"
+  },
+  {
+   "id": "QA-PLT-331",
+   "title": "A next= parameter pointing off-site",
+   "verdict": "PASS",
+   "evidence": "the off-site destination is not carried"
+  },
+  {
+   "id": "QA-PLT-332",
+   "title": "A principal suspended mid-session",
+   "verdict": "PASS",
+   "evidence": "refused (401) on the next request"
+  },
+  {
+   "id": "QA-PLT-333",
+   "title": "A session older than its maximum age",
+   "verdict": "PASS",
+   "evidence": "`auth.session_max_age` is read and passed as the cookie's max_age with a shipped default of 28800s (8h); this instance resolves 28800s"
+  },
+  {
+   "id": "QA-PLT-334",
+   "title": "Security headers on every response class",
+   "verdict": "PASS",
+   "evidence": "3 headers present on 200, 404 and 403"
+  },
+  {
+   "id": "QA-PLT-335",
+   "title": "An API key used on an endpoint that takes no permission",
+   "verdict": "PASS",
+   "evidence": "a key scoped to `model:read` reaches 4 of the 69 routes that take no permission, and the boundary is declared rather than assumed: every one of them is named in `AUTHENTICATED_NOT_AUTHORISED`, each answers a closed vocabulary or filters by `visible()` itself, and the build fails on a route added without being listed. A key narrows what its principal may do wherever a permission is asked for, and n"
+  },
+  {
+   "id": "QA-PLT-336",
+   "title": "A key whose owner loses the role after it was issued",
+   "verdict": "PASS",
+   "evidence": "the same key answers 200 before the role is removed and 403 ('forbidden') after, with nothing revoked"
+  },
+  {
+   "id": "QA-PLT-337",
+   "title": "An API key issued for an impossible lifetime",
+   "verdict": "PASS",
+   "evidence": "0, -1, 366 and 100000 days all refused"
+  },
+  {
+   "id": "QA-PLT-338",
+   "title": "A revoked key, an expired key, and a key whose principal was suspended",
+   "verdict": "PASS",
+   "evidence": "three reasons, three codes: {'revoked': 'key_revoked', 'expired': 'key_expired', 'suspended': 'key_principal_not_active'}"
+  },
+  {
+   "id": "QA-PLT-339",
+   "title": "Revoke an API key twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_revoked'"
+  },
+  {
+   "id": "QA-PLT-341",
+   "title": "Concurrent authentications with one key",
+   "verdict": "PASS",
+   "evidence": "50 concurrent calls, use_count 0 \u2192 50"
+  },
+  {
+   "id": "QA-PLT-342",
+   "title": "An expired key used repeatedly",
+   "verdict": "PASS",
+   "evidence": "twenty calls, all 401 'key_expired' by name, and `last_used_at` unchanged"
+  },
+  {
+   "id": "QA-PLT-343",
+   "title": "A session cookie, HTTP Basic and an API key on one request",
+   "verdict": "PASS",
+   "evidence": "refused 'csrf_token_invalid' \u2014 the request is authorised against one credential"
+  },
+  {
+   "id": "QA-PLT-344",
+   "title": "SSO status on an instance with SSO unconfigured",
+   "verdict": "PASS",
+   "evidence": "answers that SSO is not enabled"
+  },
+  {
+   "id": "QA-PLT-345",
+   "title": "The SSO login door on an instance with SSO unconfigured",
+   "verdict": "PASS",
+   "evidence": "refused (501)"
+  },
+  {
+   "id": "QA-PLT-346",
+   "title": "A mismatched state, an expired pending login, a replayed nonce",
+   "verdict": "PASS",
+   "evidence": "three conditions, three named refusals: {'state': 'state_mismatch', 'expired': 'login_expired', 'no pending': 'no_login_in_progress'}"
+  },
+  {
+   "id": "QA-PLT-348",
+   "title": "An id token dated in the future and one just expired",
+   "verdict": "PASS",
+   "evidence": "both refused by name through the real `_assert`, and both directions of a 120s leeway accepted: {'expired': 'token_expired', 'just expired, inside leeway': 'accepted', 'future': 'token_from_the_future', 'a moment ahead, inside leeway': 'accepted'}"
+  },
+  {
+   "id": "QA-PLT-350",
+   "title": "An unknown SSO identity with provisioning off",
+   "verdict": "PASS",
+   "evidence": "refused 'not_provisioned': stranger-a7b2dd42 authenticated successfully and has no principal here"
+  },
+  {
+   "id": "QA-PLT-351",
+   "title": "Group claims mapping to two incompatible roles",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles' for ['model_developer', 'validator'], nothing created"
+  },
+  {
+   "id": "QA-PLT-352",
+   "title": "`?limit=100000` on the models listing",
+   "verdict": "PASS",
+   "evidence": "clamped to 500, 5 of 5 returned"
+  },
+  {
+   "id": "QA-PLT-353",
+   "title": "`?limit=0` and `?limit=-5`",
+   "verdict": "PASS",
+   "evidence": "0 and -5 both clamp to a limit of 1"
+  },
+  {
+   "id": "QA-PLT-354",
+   "title": "`?offset=9999` on a listing of 120 rows",
+   "verdict": "PASS",
+   "evidence": "empty page, total still 11, has_more false"
+  },
+  {
+   "id": "QA-PLT-355",
+   "title": "`?limit=abc` versus `?limit=100000`",
+   "verdict": "PASS",
+   "evidence": "'abc' refused 422, 100000 clamped to 500"
+  },
+  {
+   "id": "QA-PLT-356",
+   "title": "An unknown field in a request body",
+   "verdict": "PASS",
+   "evidence": "refused 422 `extra_forbidden` naming the field, in the framework's `detail` list shape rather than the platform's error/detail/remediation"
+  },
+  {
+   "id": "QA-PLT-357",
+   "title": "`?fields=` projecting away a partial answer",
+   "verdict": "PASS",
+   "evidence": "all 15 incompleteness field(s) survive a projection that removes everything else, and the answer says `projected_to`"
+  },
+  {
+   "id": "QA-PLT-358",
+   "title": "`?fields=` naming a field that does not exist",
+   "verdict": "FAIL",
+   "evidence": "`?fields=invented_field` answers 2 empty object(s) with 200 and no refusal. The only thing distinguishing it from a listing of rows that genuinely have no values is `projected_to: ['invented_field']` \u2014 which says what was asked for, not that nothing matched it. A client mapping a mistyped field name gets a page of empty rows and a success, and the register looks empty"
+  },
+  {
+   "id": "QA-PLT-359",
+   "title": "A search over the models listing that matches nothing",
+   "verdict": "PASS",
+   "evidence": "total 0, returned 0, detail 'nothing matched' while the unfiltered listing shows 12 model(s)"
+  },
+  {
+   "id": "QA-PLT-360",
+   "title": "The models listing with no ordering parameter",
+   "verdict": "FAIL",
+   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/hc-55102aac']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exists"
+  },
+  {
+   "id": "QA-PLT-3600",
+   "title": "A capability of a tier that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable', naming tiers A, B"
+  },
+  {
+   "id": "QA-PLT-3601",
+   "title": "A Tier A capability with no oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required'"
+  },
+  {
+   "id": "QA-PLT-361",
+   "title": "A 429 from the quota path",
+   "verdict": "FAIL",
+   "evidence": "4 refusal code(s) map to 429 \u2014 ['budget_exhausted', 'cost_limit_reached', 'quota_limit_reached', 'rate_limit_reached'] \u2014 and no route or service anywhere sets a `Retry-After` header. The status says *come back later*; the header is the only part of that a client can act on, and every one of these limits is a window MAYA knows the length of. A machine told 429 with no interval either retries immedi"
+  },
+  {
+   "id": "QA-PLT-362",
+   "title": "Every refusal carries all three parts",
+   "verdict": "FAIL",
+   "evidence": "1 of 5 coded refusal(s) omit a part: [\"unknown model (not_found): missing ['remediation']\"]"
+  },
+  {
+   "id": "QA-PLT-366",
+   "title": "An answer with no verdict field",
+   "verdict": "PASS",
+   "evidence": "an absent verdict is UNDETERMINED and exits 2"
+  },
+  {
+   "id": "QA-PLT-367",
+   "title": "The three exit codes are three",
+   "verdict": "PASS",
+   "evidence": "0, 1, 2"
+  },
+  {
+   "id": "QA-PLT-368",
+   "title": "A non-verdict command against a refusing platform",
+   "verdict": "PASS",
+   "evidence": "a refusal exits 1 on stderr, verdict or not"
+  },
+  {
+   "id": "QA-PLT-369",
+   "title": "A non-verdict command reporting bad news",
+   "verdict": "PASS",
+   "evidence": "a report exits 0 whatever it says"
+  },
+  {
+   "id": "QA-PLT-370",
+   "title": "An unknown subcommand and a missing positional",
+   "verdict": "PASS",
+   "evidence": "a usage error exits 2"
+  },
+  {
+   "id": "QA-PLT-3700",
+   "title": "Every job says what it does and why",
+   "verdict": "PASS",
+   "evidence": "all 27 jobs state what and why"
+  },
+  {
+   "id": "QA-PLT-3701",
+   "title": "Every run is on the evidence chain",
+   "verdict": "PASS",
+   "evidence": "27 run(s) recorded and appended"
+  },
+  {
+   "id": "QA-PLT-3702",
+   "title": "A job key that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_job'"
+  },
+  {
+   "id": "QA-PLT-371",
+   "title": "No credentials in the environment",
+   "verdict": "PASS",
+   "evidence": "reads MAYA_PASSWORD, MAYA_TOKEN, MAYA_URL, MAYA_USER"
+  },
+  {
+   "id": "QA-PLT-372",
+   "title": "Malformed JSON on the command line",
+   "verdict": "PASS",
+   "evidence": "exits 2"
+  },
+  {
+   "id": "QA-PLT-373",
+   "title": "A flag that suppresses a refusal",
+   "verdict": "PASS",
+   "evidence": "no flag suppresses a refusal"
+  },
+  {
+   "id": "QA-PLT-374",
+   "title": "A password on the command line",
+   "verdict": "PASS",
+   "evidence": "no credential is accepted on the command line"
+  },
+  {
+   "id": "QA-PLT-376",
+   "title": "Answers on stdout, refusals on stderr",
+   "verdict": "PASS",
+   "evidence": "answers to stdout, both failure paths to stderr"
+  },
+  {
+   "id": "QA-PLT-392",
+   "title": "Each appearance choice is served",
+   "verdict": "PASS",
+   "evidence": "4 themes, each defined: ['blue', 'dark', 'light', 'wallstreet']"
+  },
+  {
+   "id": "QA-PLT-393",
+   "title": "A theme value that is not one",
+   "verdict": "PASS",
+   "evidence": "the theme is applied only from a closed list"
+  },
+  {
+   "id": "QA-PLT-395",
+   "title": "A skip link, reachable from the address bar",
+   "verdict": "PASS",
+   "evidence": "skip link to #main, and the target exists"
+  },
+  {
+   "id": "QA-PLT-396",
+   "title": "A visible focus ring",
+   "verdict": "PASS",
+   "evidence": ":focus-visible is styled"
+  },
+  {
+   "id": "QA-PLT-398",
+   "title": "A screen under reduced motion",
+   "verdict": "PASS",
+   "evidence": "animation, transition and scroll behaviour all neutralised"
+  },
+  {
+   "id": "QA-PLT-399",
+   "title": "An outcome announced to a screen reader",
+   "verdict": "PASS",
+   "evidence": "every template that writes a result announces it"
+  }
+ ]
+}
