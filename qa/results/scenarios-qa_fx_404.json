@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-404",
+   "title": "An `allowed` list with the value present, then absent",
+   "verdict": "PASS",
+   "evidence": "categories match by membership and numbers are not coerced into them, either way round"
+  }
+ ]
+}

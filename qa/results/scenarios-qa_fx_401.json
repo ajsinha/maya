@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.0,
+ "results": [
+  {
+   "id": "QA-FX-401",
+   "title": "The same input under `clamp`",
+   "verdict": "FAIL",
+   "evidence": "`clamp` is one of the 3 policies a version may declare (['clamp', 'flag', 'reject']) and it is accepted at registration, and the word does not appear anywhere in the execution engine. The boundary check refuses only when the policy is `reject`, so a version declaring `clamp` runs the model on the value it was sent \u2014 unclamped and unrefused \u2014 and reports `boundary_ok: false` afterwards. A caller re"
+  }
+ ]
+}
