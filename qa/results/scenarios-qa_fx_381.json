@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-381",
+   "title": "A descriptor stamped above, then one between",
+   "verdict": "PASS",
+   "evidence": "9 accepted and the floor rises; 8 is then stale"
+  }
+ ]
+}

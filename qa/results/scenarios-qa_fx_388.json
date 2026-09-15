@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-FX-388",
+   "title": "The epoch after a restart",
+   "verdict": "PASS",
+   "evidence": "the epoch resumed at 6 from the register rather than resetting to 0"
+  }
+ ]
+}

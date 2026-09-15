@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 3.2,
+ "results": [
+  {
+   "id": "QA-FX-386",
+   "title": "Revocation bumps the epoch by exactly one",
+   "verdict": "FAIL",
+   "evidence": "withdrawing one model's authority moved the estate-wide epoch by 4 (0 \u2192 4), one per grant. `revoke_model` loops `revoke`, and `revoke` does `self.epoch += 1` \u2014 so a model with forty grants advances the floor forty times. Every descriptor outstanding anywhere in the estate is now stale by 4 rather than by one, and an engine refusing them reports `revoked_epoch` \u2014 a withdrawal it was never told abou"
+  }
+ ]
+}

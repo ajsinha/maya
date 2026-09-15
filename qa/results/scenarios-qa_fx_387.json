@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 2.6,
+ "results": [
+  {
+   "id": "QA-FX-387",
+   "title": "Revoking a model with no grants",
+   "verdict": "FAIL",
+   "evidence": "revoking a model nobody holds a grant on reports `revoked: 0` and leaves the epoch at 0. `revoke_model` advances the counter inside the per-grant loop, so an empty withdrawal advances it nothing \u2014 the act is recorded as having happened and the mechanism that carries a withdrawal to an engine does not move. A caller who revokes a model, sees `revoked: 0` and an unchanged epoch has been told two dif"
+  }
+ ]
+}

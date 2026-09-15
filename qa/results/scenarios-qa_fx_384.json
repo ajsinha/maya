@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.3,
+ "results": [
+  {
+   "id": "QA-FX-384",
+   "title": "`note_revocation` with a model URN",
+   "verdict": "PASS",
+   "evidence": "refused 'revoked' on the model URN: maya://model/gx-69bbd433 is on the local revocation list"
+  }
+ ]
+}

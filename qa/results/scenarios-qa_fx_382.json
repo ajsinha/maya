@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-382",
+   "title": "A descriptor carrying no epoch at all",
+   "verdict": "FAIL",
+   "evidence": "a descriptor carrying no revocation epoch bypasses the floor entirely: `_refuse_stale_epoch` returns early when `stamped is None`, and all four shapes of absence \u2014 no `authority`, no `revocation`, no `epoch`, a null `epoch` \u2014 take that branch against an engine sitting at epoch 12. The floor's premise is that a descriptor's stamp is trustworthy because the descriptor is signed; the early return is "
+  }
+ ]
+}
