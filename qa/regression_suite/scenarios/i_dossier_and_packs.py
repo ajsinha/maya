@@ -160,7 +160,8 @@ def plt_126(ctx: Ctx) -> Result:
                   f"document carries the compiler's digest {digest[:20]}")
 
 
-@case("QA-PLT-156", "A pack cut while the evidence chain is broken")
+@case("QA-PLT-156", "A pack cut while the evidence chain is broken",
+      isolated=True)
 def plt_156(ctx: Ctx, ) -> Result:
     """The pack is still cut, and the manifest says `chain.verified: false`.
     A pack that quietly asserted a verified chain is the single worst

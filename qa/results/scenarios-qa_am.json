@@ -1,0 +1,2363 @@
+{
+ "summary": {
+  "total": 392,
+  "pass": 364,
+  "fail": 27,
+  "blocked": 1
+ },
+ "seconds": 82.6,
+ "results": [
+  {
+   "id": "QA-AM-001",
+   "title": "The builder's name spelled with a person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-002",
+   "title": "The builder's name with the case flipped",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-003",
+   "title": "Two validators, one of whom built the version",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', and no episode was recorded"
+  },
+  {
+   "id": "QA-AM-004",
+   "title": "A validator who resolves to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-005",
+   "title": "A validator who exists but is not active",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-006",
+   "title": "Validator deactivated *after* the episode opened, then the episode is concluded",
+   "verdict": "FAIL",
+   "evidence": "the episode concluded and its reading still reports `independent` on the strength of a validator suspended before the conclusion; nothing in the record says so, so a supervisor reading the pack cannot tell"
+  },
+  {
+   "id": "QA-AM-007",
+   "title": "A version with no recorded builder",
+   "verdict": "PASS",
+   "evidence": "the builder cannot be blanked \u2014 the column is immutable in the database \u2014 and no version in the estate carries an empty one, so independence is never evaluated against nothing"
+  },
+  {
+   "id": "QA-AM-008",
+   "title": "Two episodes open on one version at once, concluded to opposite outcomes",
+   "verdict": "PASS",
+   "evidence": "both outcomes are rendered on the model page, side by side"
+  },
+  {
+   "id": "QA-AM-009",
+   "title": "Conclude with no tier verdict",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-010",
+   "title": "Conclude should_be_higher with a blank note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-011",
+   "title": "should_be_higher raises a finding",
+   "verdict": "PASS",
+   "evidence": "1 tiering finding(s) raised"
+  },
+  {
+   "id": "QA-AM-012",
+   "title": "should_be_lower raises nothing",
+   "verdict": "PASS",
+   "evidence": "no finding; reducing control needs a re-assessment"
+  },
+  {
+   "id": "QA-AM-013",
+   "title": "The tier moves between open and conclude",
+   "verdict": "PASS",
+   "evidence": "tier_at_open stays None while the model moved to 1"
+  },
+  {
+   "id": "QA-AM-014",
+   "title": "Conclude approved with no test result at all",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-015",
+   "title": "Conclude `approved` over one recorded result that declared no threshold",
+   "verdict": "PASS",
+   "evidence": "approved, and the reading says the test declared no limit"
+  },
+  {
+   "id": "QA-AM-016",
+   "title": "Conclude `approved` over a single *not computable* result",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-017",
+   "title": "Conclude rejected over a failed test",
+   "verdict": "PASS",
+   "evidence": "rejected over a failed test"
+  },
+  {
+   "id": "QA-AM-018",
+   "title": "Conclude deferred while a blocking finding is open",
+   "verdict": "PASS",
+   "evidence": "deferred"
+  },
+  {
+   "id": "QA-AM-019",
+   "title": "Conclude approved_with_conditions with no conditions",
+   "verdict": "FAIL",
+   "evidence": "an episode with a failed test concluded 'approved_with_conditions' and NO conditions. `_check_approvable` runs only for 'approved', so the route the failure refusal points a validator towards accepts everything 'approved' refuses \u2014 a model with a failed test is approved under a longer name and the conditions the outcome is named for are absent"
+  },
+  {
+   "id": "QA-AM-020",
+   "title": "Blocking finding open against a *different version* of the same model blocks approval of this one",
+   "verdict": "PASS",
+   "evidence": "refused, naming the finding raised against 1.0.0"
+  },
+  {
+   "id": "QA-AM-021",
+   "title": "Close the blocking finding, then re-attempt the same conclusion",
+   "verdict": "PASS",
+   "evidence": "refused while open, approved once the finding closed"
+  },
+  {
+   "id": "QA-AM-022",
+   "title": "Record a result after the episode concluded",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-023",
+   "title": "Conclude an already concluded episode",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-024",
+   "title": "Open with `snapshot_id` naming a snapshot that does not exist",
+   "verdict": "FAIL",
+   "evidence": "accepted at open and discovered only at replay ('validation_refused'): the episode carries a pin to 'snap-does-not-exist' for as long as nobody replays it, and the failure lands on whoever asked for the evidence rather than on whoever typed the identifier"
+  },
+  {
+   "id": "QA-AM-025",
+   "title": "Open an episode with no validators",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-026",
+   "title": "Open with the same validator listed twice",
+   "verdict": "FAIL",
+   "evidence": "one validator is recorded twice: ['person/validator', 'person/validator'] and the capacity view has them carrying 8 episodes. The capacity view appends the episode once per entry, so a duplicate inflates that person's open load"
+  },
+  {
+   "id": "QA-AM-027",
+   "title": "`due_at` set to a moment in the past at open",
+   "verdict": "FAIL",
+   "evidence": "an episode opened a week overdue is stored with that date and read by nothing: the queue and the backlog both compute what falls due from the re-validation triggers, so `due_at` is written at open and never evaluated \u2014 a date somebody will believe is enforced"
+  },
+  {
+   "id": "QA-AM-028",
+   "title": "Every operation in this group, run a second time against the same episode",
+   "verdict": "PASS",
+   "evidence": "three repeats, each stable: ['validation_refused']"
+  },
+  {
+   "id": "QA-AM-030",
+   "title": "Labels and scores of different lengths",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-031",
+   "title": "A threshold declaring both min and max",
+   "verdict": "FAIL",
+   "evidence": "value 0.0 passed a threshold declaring max -0.5: the evaluator returns on `min` and never reads `max`, so a validator who declares a band gets one end of it checked and the detail \u2014 0 meets the minimum of -1 \u2014 names only the end that was applied"
+  },
+  {
+   "id": "QA-AM-032",
+   "title": "A threshold declaring a key the catalogue does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming min/max/target"
+  },
+  {
+   "id": "QA-AM-033",
+   "title": "A target with no tolerance",
+   "verdict": "PASS",
+   "evidence": "tolerance stated: 0 is 0 from the target 0, tolerance 0"
+  },
+  {
+   "id": "QA-AM-034",
+   "title": "A value exactly equal to min",
+   "verdict": "PASS",
+   "evidence": "the minimum is inclusive"
+  },
+  {
+   "id": "QA-AM-035",
+   "title": "A value exactly equal to max",
+   "verdict": "PASS",
+   "evidence": "the maximum is inclusive"
+  },
+  {
+   "id": "QA-AM-036",
+   "title": "A deviation exactly equal to tolerance",
+   "verdict": "PASS",
+   "evidence": "the tolerance is inclusive"
+  },
+  {
+   "id": "QA-AM-040",
+   "title": "More bins than the reference has points",
+   "verdict": "PASS",
+   "evidence": "not quoted as a result: not computable on this sample \u2014 a class may be absent, or the sample too small f"
+  },
+  {
+   "id": "QA-AM-041",
+   "title": "Both series empty",
+   "verdict": "PASS",
+   "evidence": "null value, not passed, and said to be not computable"
+  },
+  {
+   "id": "QA-AM-042",
+   "title": "An empty series with no threshold",
+   "verdict": "PASS",
+   "evidence": "not computable beats no-threshold-so-it-passes"
+  },
+  {
+   "id": "QA-AM-044",
+   "title": "The same numbers recorded twice",
+   "verdict": "PASS",
+   "evidence": "identical inputs, identical digest sha256:a11db82ff"
+  },
+  {
+   "id": "QA-AM-045",
+   "title": "The same value under a different slice",
+   "verdict": "PASS",
+   "evidence": "different slices, different digests"
+  },
+  {
+   "id": "QA-AM-046",
+   "title": "A slice the supplied data was never filtered by",
+   "verdict": "PASS",
+   "evidence": "the slice is recorded as declared; the platform cannot check the data was filtered by it and does not claim to"
+  },
+  {
+   "id": "QA-AM-048",
+   "title": "A test key that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-052",
+   "title": "The stored threshold is edited in the register, then replay is run with the original data",
+   "verdict": "PASS",
+   "evidence": "mismatched with the value unchanged at 0.0: the digest covers the threshold"
+  },
+  {
+   "id": "QA-AM-055",
+   "title": "Replay-from-storage when the snapshot's table has been removed",
+   "verdict": "PASS",
+   "evidence": "described as unreadable, and the frame read refuses by name"
+  },
+  {
+   "id": "QA-AM-057",
+   "title": "Replay-from-storage with a slice naming a column the frame does not have",
+   "verdict": "PASS",
+   "evidence": "an unknown slice column yields nothing, not everything"
+  },
+  {
+   "id": "QA-AM-058",
+   "title": "Replay-from-storage with a slice matching zero rows",
+   "verdict": "PASS",
+   "evidence": "a zero-row slice is skipped rather than computed over"
+  },
+  {
+   "id": "QA-AM-059",
+   "title": "Frame carrying both `actual` and `label` columns",
+   "verdict": "PASS",
+   "evidence": "'actual' wins over 'label', as DEFAULT_LEFT orders them"
+  },
+  {
+   "id": "QA-AM-060",
+   "title": "Frame where the label column is entirely null",
+   "verdict": "PASS",
+   "evidence": "the pair drops to empty and the test is skipped"
+  },
+  {
+   "id": "QA-AM-062",
+   "title": "Same data supplied with the pairing broken (both series shuffled independently)",
+   "verdict": "PASS",
+   "evidence": "the broken pairing is reported as mismatched"
+  },
+  {
+   "id": "QA-AM-064",
+   "title": "`GET /replayable` where a snapshot row exists but its table is gone",
+   "verdict": "PASS",
+   "evidence": "with_snapshot 1, readable 0, coverage 0.0"
+  },
+  {
+   "id": "QA-AM-065",
+   "title": "`GET /replayable` on an instance with no storage provider wired",
+   "verdict": "PASS",
+   "evidence": "refused: this replayer was built without a storage provider, so it can only replay from data suppli"
+  },
+  {
+   "id": "QA-AM-067",
+   "title": "A Critical finding blocks without anybody deciding",
+   "verdict": "PASS",
+   "evidence": "blocking by default"
+  },
+  {
+   "id": "QA-AM-068",
+   "title": "A Critical finding explicitly marked non-blocking",
+   "verdict": "PASS",
+   "evidence": "accepted, and not blocking"
+  },
+  {
+   "id": "QA-AM-069",
+   "title": "Raise a Low finding with `blocking: true`",
+   "verdict": "PASS",
+   "evidence": "refused 'blocked' at HTTP 423, naming the finding"
+  },
+  {
+   "id": "QA-AM-070",
+   "title": "A caller-supplied `due_at` two years out",
+   "verdict": "PASS",
+   "evidence": "refused outright \u2014 the body model forbids unknown fields and carries no `due_at`, so the 30-day Critical window cannot be negotiated from any route"
+  },
+  {
+   "id": "QA-AM-071",
+   "title": "Raise with an unknown severity",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-072",
+   "title": "Raise with an unknown source",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 5 sources"
+  },
+  {
+   "id": "QA-AM-073",
+   "title": "Raise with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-074",
+   "title": "Raise the identical finding twice by hand",
+   "verdict": "PASS",
+   "evidence": "both accepted and both counted: nothing dedupes a human-raised finding, so one problem raised twice is two rows in the ageing profile"
+  },
+  {
+   "id": "QA-AM-075",
+   "title": "`set_status` to `closed`",
+   "verdict": "PASS",
+   "evidence": "refused: use close() \u2014 closure needs a verifier and evidence"
+  },
+  {
+   "id": "QA-AM-076",
+   "title": "`set_status` to an unknown value",
+   "verdict": "PASS",
+   "evidence": "no status vocabulary is checked: the finding now reads 'banana' and is still counted open, so the column can disagree with the acts"
+  },
+  {
+   "id": "QA-AM-077",
+   "title": "`set_status` back to `open` after an acknowledgement",
+   "verdict": "PASS",
+   "evidence": "the status moved in_remediation \u2192 open and the acknowledgement stands, because it is derived from the acts"
+  },
+  {
+   "id": "QA-AM-078",
+   "title": "Summary over a model with no findings",
+   "verdict": "PASS",
+   "evidence": "open 0, worst_severity null, by_severity empty"
+  },
+  {
+   "id": "QA-AM-079",
+   "title": "Estate-wide open findings under a scoped reader",
+   "verdict": "FAIL",
+   "evidence": "the answer is short by 12 and says nothing about it: no count of what scope removed, and no `detail` saying the total is partial \u2014 so a reader reconciling against an estate-wide pack sees a discrepancy and reads it as a defect in the register"
+  },
+  {
+   "id": "QA-AM-080",
+   "title": "Read a finding by id that belongs to a model out of scope",
+   "verdict": "FAIL",
+   "evidence": "the urn path refused 'out_of_scope' and the id path answered 200 with the finding \u2014 severity 'High', owner 'person/owner', 'The other entity's model failed challenge'. The route authorises `finding:read` with no model, so any finding id reads across every entity"
+  },
+  {
+   "id": "QA-AM-081",
+   "title": "Assign a finding to the person who already owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned'"
+  },
+  {
+   "id": "QA-AM-082",
+   "title": "Assign to the current owner without the person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned'"
+  },
+  {
+   "id": "QA-AM-083",
+   "title": "Acknowledge with a date already in the past",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past' (422)"
+  },
+  {
+   "id": "QA-AM-084",
+   "title": "Assign with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-085",
+   "title": "Assign to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-AM-086",
+   "title": "Acknowledge as somebody other than the owner",
+   "verdict": "PASS",
+   "evidence": "refused 'not_the_owner'"
+  },
+  {
+   "id": "QA-AM-087",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-AM-088",
+   "title": "Acknowledge to a date after the finding's due date",
+   "verdict": "PASS",
+   "evidence": "refused 'beyond_the_due_date'"
+  },
+  {
+   "id": "QA-AM-089",
+   "title": "Immediately re-attempt QA-AM-088 with no plan at all",
+   "verdict": "FAIL",
+   "evidence": "an acknowledgement refused `beyond_the_due_date` still recorded its plan \u2014 `plan_for` runs before the date check \u2014 so acknowledging again with NO plan is accepted. A refused act left a durable write behind, and the plan requirement is satisfied by a call that failed"
+  },
+  {
+   "id": "QA-AM-090",
+   "title": "Act on a finding that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_finding' (404)"
+  },
+  {
+   "id": "QA-AM-091",
+   "title": "Acknowledge to exactly the due date",
+   "verdict": "PASS",
+   "evidence": "the due date itself is inside the window"
+  },
+  {
+   "id": "QA-AM-092",
+   "title": "Acknowledge to a date that has already passed",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past'"
+  },
+  {
+   "id": "QA-AM-093",
+   "title": "Acknowledge, then hand the finding over",
+   "verdict": "PASS",
+   "evidence": "the acknowledgement did not follow the finding"
+  },
+  {
+   "id": "QA-AM-096",
+   "title": "Record a plan that is empty",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required'"
+  },
+  {
+   "id": "QA-AM-098",
+   "title": "Extend before anybody has acknowledged",
+   "verdict": "PASS",
+   "evidence": "refused 'not_acknowledged'"
+  },
+  {
+   "id": "QA-AM-099",
+   "title": "Extend as the owner",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' at the gate and 'self_extension' in the register"
+  },
+  {
+   "id": "QA-AM-100",
+   "title": "Extend as the owner spelled without the person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'self_extension' on the bare spelling too"
+  },
+  {
+   "id": "QA-AM-101",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-103",
+   "title": "Extend to exactly the current due date",
+   "verdict": "PASS",
+   "evidence": "refused 'not_an_extension'"
+  },
+  {
+   "id": "QA-AM-104",
+   "title": "Extend a High finding by exactly its own window",
+   "verdict": "PASS",
+   "evidence": "90 days granted, the boundary is inclusive"
+  },
+  {
+   "id": "QA-AM-105",
+   "title": "Extend a High finding by one day more than its window",
+   "verdict": "PASS",
+   "evidence": "refused 'extension_too_long'"
+  },
+  {
+   "id": "QA-AM-111",
+   "title": "Act against a closed finding",
+   "verdict": "PASS",
+   "evidence": "assign, acknowledge, plan and extend all refused once closed"
+  },
+  {
+   "id": "QA-AM-112",
+   "title": "Act against a finding id that does not exist",
+   "verdict": "PASS",
+   "evidence": "all four acts refused against an unknown id"
+  },
+  {
+   "id": "QA-AM-113",
+   "title": "Owner closes their own finding",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-114",
+   "title": "Owner closes their own finding naming a colleague as `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'verifier_not_self'"
+  },
+  {
+   "id": "QA-AM-115",
+   "title": "Owner closes naming themselves in `verified_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' \u2014 the duties check, not the name"
+  },
+  {
+   "id": "QA-AM-116",
+   "title": "A second person closes with an empty evidence object",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-117",
+   "title": "A second person closes with `evidence: {\"note\": \"\"}`",
+   "verdict": "FAIL",
+   "evidence": "a finding closed with `{\"note\": \"\"}`: the check is `if not evidence`, which is truthiness on the dict and not on anything in it, so a closure with nothing written down is recorded as evidenced \u2014 while `extend` refuses a reason that is only whitespace"
+  },
+  {
+   "id": "QA-AM-118",
+   "title": "Close an already closed finding",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-119",
+   "title": "Close a finding straight from `open`, never acknowledged or planned",
+   "verdict": "PASS",
+   "evidence": "closed, verified by validator"
+  },
+  {
+   "id": "QA-AM-120",
+   "title": "Close a blocking finding, then resolve a warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'blocked', then resolved once the finding closed"
+  },
+  {
+   "id": "QA-AM-121",
+   "title": "Close a blocking finding while a *second* blocking finding is open",
+   "verdict": "PASS",
+   "evidence": "refused, naming the second blocker and not the first"
+  },
+  {
+   "id": "QA-AM-122",
+   "title": "The owner is reassigned to the intended verifier, who then closes",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-123",
+   "title": "Ageing over a model with one finding open four years and nine opened last week",
+   "verdict": "PASS",
+   "evidence": "{'0-30 days': 9, 'over 180 days': 1}, mean 150.5 days shown beside it rather than instead of it"
+  },
+  {
+   "id": "QA-AM-124",
+   "title": "Ageing where every finding is closed",
+   "verdict": "PASS",
+   "evidence": "open 0, closed 3, no worst severity, 'nothing is open'"
+  },
+  {
+   "id": "QA-AM-125",
+   "title": "Age of a closed finding stops at its closure",
+   "verdict": "PASS",
+   "evidence": "frozen at 60.0 days \u2014 closed_at minus raised_at"
+  },
+  {
+   "id": "QA-AM-126",
+   "title": "`days_overdue` for a finding that is not overdue",
+   "verdict": "PASS",
+   "evidence": "0.0, not -30.0"
+  },
+  {
+   "id": "QA-AM-127",
+   "title": "Escalation at exactly seven days past the date",
+   "verdict": "PASS",
+   "evidence": "not at 7 days, escalated at 7 days and an hour, to the model risk manager"
+  },
+  {
+   "id": "QA-AM-128",
+   "title": "A blocking finding one hour past its date",
+   "verdict": "PASS",
+   "evidence": "escalated: it is blocking, so the model cannot be served while it is op"
+  },
+  {
+   "id": "QA-AM-129",
+   "title": "A finding unaccepted at exactly five days",
+   "verdict": "PASS",
+   "evidence": "not at 5 days, escalated at 5 days and an hour, silent once accepted"
+  },
+  {
+   "id": "QA-AM-1300",
+   "title": "A test that does not decompose is refused by name",
+   "verdict": "PASS",
+   "evidence": "refused 'test_does_not_decompose' for calibration.brier"
+  },
+  {
+   "id": "QA-AM-1301",
+   "title": "A test with no distributed form at all",
+   "verdict": "PASS",
+   "evidence": "refused 'test_not_distributable'"
+  },
+  {
+   "id": "QA-AM-1302",
+   "title": "A PSI plan against a reference too small to bin",
+   "verdict": "PASS",
+   "evidence": "refused 'reference_too_small'"
+  },
+  {
+   "id": "QA-AM-1303",
+   "title": "The plan fixes the reference edges and digests them",
+   "verdict": "PASS",
+   "evidence": "9 edges under digest sha256:d6f10"
+  },
+  {
+   "id": "QA-AM-1304",
+   "title": "A submission quoting different reference edges",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1305",
+   "title": "A submission carrying the metric instead of statistics",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1306",
+   "title": "A submission with no partitions",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1307",
+   "title": "A bad submission is refused whole, not in part",
+   "verdict": "PASS",
+   "evidence": "refused whole: 2 problem(s): submission.predicate is missing; partitions[1].bin_counts is missing"
+  },
+  {
+   "id": "QA-AM-1308",
+   "title": "AUC needs a global ranking and the plan says so",
+   "verdict": "PASS",
+   "evidence": "global ranking demanded, and the reason is in the plan"
+  },
+  {
+   "id": "QA-AM-1309",
+   "title": "An AUC submission that was not ranked globally",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1310",
+   "title": "The distributable list is published, not documented",
+   "verdict": "PASS",
+   "evidence": "4 distributable, 2 refused by name"
+  },
+  {
+   "id": "QA-AM-1311",
+   "title": "The answer says the population is attested, not observed",
+   "verdict": "PASS",
+   "evidence": "attested-not-observed, with the predicate on the record"
+  },
+  {
+   "id": "QA-AM-1312",
+   "title": "A distributed breach is judged, not just computed",
+   "verdict": "FAIL",
+   "evidence": "the submission computed 3.9385 and the outcome carries no comparison to the threshold at all \u2014 no breach, no status, not even the threshold it was supposedly compared against. `posture()` publishes `maya_compares_to_the_threshold: true` and the plan tells the caller the judgement stays here; the arithmetic stays here and the judgement does not happen"
+  },
+  {
+   "id": "QA-AM-1313",
+   "title": "A distributed evaluation reaches the monitor's history",
+   "verdict": "FAIL",
+   "evidence": "the submitted evaluation left no trace on the monitor; the estate-wide sweep computes numbers the register does not keep"
+  },
+  {
+   "id": "QA-AM-1314",
+   "title": "Every test refused by name can actually be defined",
+   "verdict": "FAIL",
+   "evidence": "published as not-distributable but absent from the test catalogue, so no monitor can ever carry it and the refusal can never fire: calibration.hosmer_lemeshow"
+  },
+  {
+   "id": "QA-AM-1315",
+   "title": "Every distributable test can actually be defined",
+   "verdict": "PASS",
+   "evidence": "all 4 are definable tests"
+  },
+  {
+   "id": "QA-AM-132",
+   "title": "A root of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind' (422)"
+  },
+  {
+   "id": "QA-AM-135",
+   "title": "A root counts an acknowledged child as still owed",
+   "verdict": "PASS",
+   "evidence": "the acknowledged child is still counted"
+  },
+  {
+   "id": "QA-AM-136",
+   "title": "Attach a list containing one unknown finding id",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_finding', and nothing was attached"
+  },
+  {
+   "id": "QA-AM-137",
+   "title": "Attach the same finding to the same root twice",
+   "verdict": "PASS",
+   "evidence": "reported under already_attached, attached nothing"
+  },
+  {
+   "id": "QA-AM-138",
+   "title": "Attach a finding that is already attached to a *different* root",
+   "verdict": "FAIL",
+   "evidence": "a finding under root 01a0a2d47400fe3eeb5cd2e6a0c6 was moved to root 01a0a2d474113bdfc61c97bc4888 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+  },
+  {
+   "id": "QA-AM-139",
+   "title": "Attach a finding that is already closed",
+   "verdict": "PASS",
+   "evidence": "a closed finding can be attached to a cause named later"
+  },
+  {
+   "id": "QA-AM-140",
+   "title": "Address a root while its children are open",
+   "verdict": "PASS",
+   "evidence": "addressed, 0 closed, 2 named as still open"
+  },
+  {
+   "id": "QA-AM-141",
+   "title": "Address the same root twice",
+   "verdict": "PASS",
+   "evidence": "refused 'root_already_addressed'"
+  },
+  {
+   "id": "QA-AM-142",
+   "title": "Address with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'root_note_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-143",
+   "title": "Open a root with an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind', naming all 5"
+  },
+  {
+   "id": "QA-AM-144",
+   "title": "Candidates where twelve findings share a source and category on one model",
+   "verdict": "PASS",
+   "evidence": "one model, twelve findings, and no suggestion"
+  },
+  {
+   "id": "QA-AM-145",
+   "title": "Candidates where the findings were acknowledged first",
+   "verdict": "PASS",
+   "evidence": "suggested across 2 models"
+  },
+  {
+   "id": "QA-AM-146",
+   "title": "Candidates with `window_hours=0`",
+   "verdict": "PASS",
+   "evidence": "zero hours, no suggestions, and the window is echoed"
+  },
+  {
+   "id": "QA-AM-147",
+   "title": "One matter raises one finding per model in scope",
+   "verdict": "PASS",
+   "evidence": "4 models, 4 findings"
+  },
+  {
+   "id": "QA-AM-148",
+   "title": "Raise a second matter under one supervisor reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-149",
+   "title": "Raise a matter with an empty scope",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-150",
+   "title": "An MRIA's findings block",
+   "verdict": "PASS",
+   "evidence": "all 1 MRIA findings block"
+  },
+  {
+   "id": "QA-AM-1500",
+   "title": "Raise a matter of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 5 kinds"
+  },
+  {
+   "id": "QA-AM-1501",
+   "title": "Raise a matter with no supervisor reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1502",
+   "title": "An MRA's findings do not block",
+   "verdict": "PASS",
+   "evidence": "MRA findings do not block; MRIA findings do"
+  },
+  {
+   "id": "QA-AM-1503",
+   "title": "The headroom boundary is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "slack reported, and 14 days named at the edge"
+  },
+  {
+   "id": "QA-AM-151",
+   "title": "Close a matter with a finding still open",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-153",
+   "title": "Close a matter with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-154",
+   "title": "The internal plan lands months after the committed date",
+   "verdict": "PASS",
+   "evidence": "reported as a miss, not a near miss"
+  },
+  {
+   "id": "QA-AM-157",
+   "title": "A matter with open findings and no committed date",
+   "verdict": "PASS",
+   "evidence": "not at risk, and the missing commitment is the stated reason"
+  },
+  {
+   "id": "QA-AM-158",
+   "title": "Every finding closed, the matter still open",
+   "verdict": "PASS",
+   "evidence": "the headline is that the work is done"
+  },
+  {
+   "id": "QA-AM-1600",
+   "title": "A validation kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1601",
+   "title": "Open against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-1602",
+   "title": "The independence verdict names who built it",
+   "verdict": "PASS",
+   "evidence": "independent of 'developer': no validator built this version"
+  },
+  {
+   "id": "QA-AM-161",
+   "title": "The estate view with no matters recorded",
+   "verdict": "PASS",
+   "evidence": "2 at risk, and the view says so"
+  },
+  {
+   "id": "QA-AM-163",
+   "title": "Declare a capacity of zero",
+   "verdict": "PASS",
+   "evidence": "zero, negative and an unowned capacity all refused"
+  },
+  {
+   "id": "QA-AM-164",
+   "title": "Declare a capacity twice for one person",
+   "verdict": "PASS",
+   "evidence": "one row at 9.0, and the chain records it was 4.0"
+  },
+  {
+   "id": "QA-AM-165",
+   "title": "Workload where a validator carries episodes and has declared none",
+   "verdict": "PASS",
+   "evidence": "1 validator(s) with no declared capacity, utilisation null and each named"
+  },
+  {
+   "id": "QA-AM-167",
+   "title": "Forecast with work due and no capacity declared anywhere",
+   "verdict": "PASS",
+   "evidence": "no division by zero, and the detail says why: 4 validation(s) fall due within 365 days and no validator has declared a capacit"
+  },
+  {
+   "id": "QA-AM-168",
+   "title": "Queue where a Tier 4 model is due before a Tier 1",
+   "verdict": "PASS",
+   "evidence": "inverted, naming the model in front and what it precedes"
+  },
+  {
+   "id": "QA-AM-169",
+   "title": "Queue with `horizon_days=0`",
+   "verdict": "PASS",
+   "evidence": "zero horizon -> 3, ten years -> 4"
+  },
+  {
+   "id": "QA-AM-1700",
+   "title": "Conclude approved over a failed test",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the alternatives"
+  },
+  {
+   "id": "QA-AM-1701",
+   "title": "Conclude approved_with_conditions with no results either",
+   "verdict": "FAIL",
+   "evidence": "an episode that examined nothing concluded 'approved_with_conditions'; the no-results check guards 'approved' alone, so an unexamined model can be passed under a neighbouring outcome"
+  },
+  {
+   "id": "QA-AM-1702",
+   "title": "An outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 4 outcomes"
+  },
+  {
+   "id": "QA-AM-1703",
+   "title": "A tier verdict that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-171",
+   "title": "Queue on an instance built without the validation plans",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing plans: this register was built without the validation plans, and every date in a foreca"
+  },
+  {
+   "id": "QA-AM-173",
+   "title": "Approve a waiver whose window has already passed",
+   "verdict": "FAIL",
+   "evidence": "a waiver whose window had already run became 'active': `expires_at` is set at PROPOSE time and `approve` does not check it, so a waiver that waited out its own window in the approval queue is granted already expired and reads as a live exception"
+  },
+  {
+   "id": "QA-AM-174",
+   "title": "The proposer approves their own waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' at the gate and 'proposer_may_not_approve' in the register"
+  },
+  {
+   "id": "QA-AM-176",
+   "title": "One person signs a tier 1 waiver twice under two roles",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed'"
+  },
+  {
+   "id": "QA-AM-177",
+   "title": "Two people sign a tier 1 waiver under the same role",
+   "verdict": "PASS",
+   "evidence": "refused 'role_already_signed'"
+  },
+  {
+   "id": "QA-AM-178",
+   "title": "A tier 1 waiver with one of two signatures",
+   "verdict": "PASS",
+   "evidence": "still 'proposed' with 1 of 2 signatures"
+  },
+  {
+   "id": "QA-AM-179",
+   "title": "A waiver on an untiered model",
+   "verdict": "PASS",
+   "evidence": "one signature is not enough on an untiered model"
+  },
+  {
+   "id": "QA-AM-180",
+   "title": "Renew an active waiver early, with most of it left to run",
+   "verdict": "FAIL",
+   "evidence": "renewing shortened the window by 50 days: `renew` sets `expires_at` to now + days rather than extending from the existing expiry, so renewing a waiver early takes time away from it under a verb that reads as adding time"
+  },
+  {
+   "id": "QA-AM-1800",
+   "title": "The first breach carries the monitor's own severity",
+   "verdict": "PASS",
+   "evidence": "first breach at the monitor's own severity"
+  },
+  {
+   "id": "QA-AM-1801",
+   "title": "Escalation stops at Critical",
+   "verdict": "PASS",
+   "evidence": "a run of 300 stops at Critical"
+  },
+  {
+   "id": "QA-AM-1802",
+   "title": "escalate_after of zero does not escalate",
+   "verdict": "PASS",
+   "evidence": "escalate_after 0 holds the base severity"
+  },
+  {
+   "id": "QA-AM-1803",
+   "title": "A breach names the observation it came from",
+   "verdict": "PASS",
+   "evidence": "1 breach(es), each naming observation and finding"
+  },
+  {
+   "id": "QA-AM-182",
+   "title": "Renew a proposed waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active'"
+  },
+  {
+   "id": "QA-AM-183",
+   "title": "Propose a waiver for zero days",
+   "verdict": "PASS",
+   "evidence": "refused 'no_expiry'"
+  },
+  {
+   "id": "QA-AM-184",
+   "title": "Propose a waiver with no compensating control",
+   "verdict": "PASS",
+   "evidence": "refused 'no_compensating_control'"
+  },
+  {
+   "id": "QA-AM-185",
+   "title": "Propose a waiver of a control no tier requires",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_control', naming the 21 controls"
+  },
+  {
+   "id": "QA-AM-186",
+   "title": "Run the expiry sweep twice",
+   "verdict": "PASS",
+   "evidence": "first sweep ['WVR-0001'], second []"
+  },
+  {
+   "id": "QA-AM-187",
+   "title": "A proposed waiver whose window passed, after the sweep",
+   "verdict": "FAIL",
+   "evidence": "a proposal whose window ran out is still 'proposed' after the expiry sweep, which only looks at active waivers. It stays proposed for ever and can still be approved into an exception that expired before anybody granted it"
+  },
+  {
+   "id": "QA-AM-188",
+   "title": "Revoke a waiver with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'no_reason'"
+  },
+  {
+   "id": "QA-AM-189",
+   "title": "Revoke an already closed waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'already_closed'"
+  },
+  {
+   "id": "QA-AM-190",
+   "title": "Pair `input_drift` with `discrimination.gini`",
+   "verdict": "PASS",
+   "evidence": "refused 'test_not_admissible', naming what does answer it"
+  },
+  {
+   "id": "QA-AM-191",
+   "title": "Define a `performance` monitor with no `label_delay_days`",
+   "verdict": "PASS",
+   "evidence": "refused 'label_delay_required'"
+  },
+  {
+   "id": "QA-AM-192",
+   "title": "Define a `performance` monitor with `label_delay_days: 0`",
+   "verdict": "PASS",
+   "evidence": "refused 'label_delay_required' on an explicit zero"
+  },
+  {
+   "id": "QA-AM-193",
+   "title": "Define a `calibration` monitor with a delay of 0.5 days",
+   "verdict": "PASS",
+   "evidence": "half a day accepted and kept as half a day"
+  },
+  {
+   "id": "QA-AM-194",
+   "title": "Define with no threshold",
+   "verdict": "PASS",
+   "evidence": "refused 'threshold_required'"
+  },
+  {
+   "id": "QA-AM-195",
+   "title": "Define with `threshold: {\"floor\": 0.4}`",
+   "verdict": "FAIL",
+   "evidence": "accepted at definition and refused at evaluation ('validation_refused'): `define` tests only that the threshold dict is non-empty, so a monitor written with the wrong vocabulary reads as active until somebody runs it \u2014 and the refusal lands on whoever is reading the monitor rather than whoever wrote it"
+  },
+  {
+   "id": "QA-AM-196",
+   "title": "Define two monitors with the same name on one model",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_monitor'"
+  },
+  {
+   "id": "QA-AM-197",
+   "title": "Define with `escalate_after: 0`",
+   "verdict": "PASS",
+   "evidence": "0 accepted and kept"
+  },
+  {
+   "id": "QA-AM-198",
+   "title": "Define with `escalate_after: -1`",
+   "verdict": "FAIL",
+   "evidence": "`escalate_after: -1` was accepted and stored: nothing validates the field, and 0 already means *never escalate*, so a negative is a number with no reading that goes into the escalation arithmetic"
+  },
+  {
+   "id": "QA-AM-200",
+   "title": "Define with cadence_days: 0",
+   "verdict": "PASS",
+   "evidence": "accepted; cadence_days=0.0"
+  },
+  {
+   "id": "QA-AM-201",
+   "title": "Define a `performance` monitor against a class whose fibre cannot answer it",
+   "verdict": "PASS",
+   "evidence": "refused 'kind_not_answerable', naming the class"
+  },
+  {
+   "id": "QA-AM-202",
+   "title": "Define a monitor on a model with no version yet",
+   "verdict": "PASS",
+   "evidence": "accepted: no version, so the fibre has no opinion to give"
+  },
+  {
+   "id": "QA-AM-205",
+   "title": "Set a monitor's status to something that is not a status",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-207",
+   "title": "Evaluate a `performance` monitor over a cohort where nothing has matured",
+   "verdict": "PASS",
+   "evidence": "refused 'cohort_immature', naming the maturity date"
+  },
+  {
+   "id": "QA-AM-208",
+   "title": "Evaluate over a cohort where 20 of 70 rows have matured",
+   "verdict": "PASS",
+   "evidence": "measured over the matured part, and the detail says so"
+  },
+  {
+   "id": "QA-AM-209",
+   "title": "Evaluate over a cohort where exactly one row has matured",
+   "verdict": "PASS",
+   "evidence": "one matured row, value None, passed=False"
+  },
+  {
+   "id": "QA-AM-210",
+   "title": "Evaluate over a partly mature cohort where every mature row carries the same label",
+   "verdict": "PASS",
+   "evidence": "value null, passed false"
+  },
+  {
+   "id": "QA-AM-211",
+   "title": "Define a monitor of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-212",
+   "title": "Evaluate a drift monitor with no reference anywhere",
+   "verdict": "PASS",
+   "evidence": "refused 'no_reference'"
+  },
+  {
+   "id": "QA-AM-213",
+   "title": "Evaluate a paused monitor",
+   "verdict": "PASS",
+   "evidence": "refused 'monitor_inactive'"
+  },
+  {
+   "id": "QA-AM-214",
+   "title": "A valid monitor is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-215",
+   "title": "The third consecutive breach with escalate_after 3",
+   "verdict": "PASS",
+   "evidence": "third consecutive breach escalated Medium -> High"
+  },
+  {
+   "id": "QA-AM-216",
+   "title": "The sixth consecutive breach",
+   "verdict": "PASS",
+   "evidence": "sixth consecutive breach at Critical"
+  },
+  {
+   "id": "QA-AM-217",
+   "title": "Ingest against a monitor that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_monitor' (404)"
+  },
+  {
+   "id": "QA-AM-218",
+   "title": "A passing evaluation restarts the consecutive count",
+   "verdict": "PASS",
+   "evidence": "the run restarted; the next breach is Medium"
+  },
+  {
+   "id": "QA-AM-219",
+   "title": "Recovery resolves the breach and leaves the finding open",
+   "verdict": "PASS",
+   "evidence": "the breach resolves; the finding stands"
+  },
+  {
+   "id": "QA-AM-221",
+   "title": "Resolve breaches for a monitor with none open",
+   "verdict": "PASS",
+   "evidence": "nothing resolved, nothing raised"
+  },
+  {
+   "id": "QA-AM-222",
+   "title": "Evaluate the same rows twice",
+   "verdict": "PASS",
+   "evidence": "2 observations, 2 breach(es), severity ['Medium']"
+  },
+  {
+   "id": "QA-AM-223",
+   "title": "Evaluate from telemetry with no rows in the window",
+   "verdict": "BLOCKED",
+   "evidence": "the monitor names no version, so the read never reaches the window at all \u2014 nothing binds one through the API, see QA-AM-4720"
+  },
+  {
+   "id": "QA-AM-227",
+   "title": "Evaluate from telemetry on a monitor bound to no version",
+   "verdict": "PASS",
+   "evidence": "refused 'monitor_has_no_version'"
+  },
+  {
+   "id": "QA-AM-229",
+   "title": "`monitor:observe` holder attempts to evaluate",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' \u2014 observing is not evaluating"
+  },
+  {
+   "id": "QA-AM-230",
+   "title": "`monitor:evaluate` holder attempts to post telemetry",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' \u2014 evaluating is not delivering"
+  },
+  {
+   "id": "QA-AM-231",
+   "title": "Deliver the identical batch twice",
+   "verdict": "PASS",
+   "evidence": "first delivery clean, redelivery reported as duplicate"
+  },
+  {
+   "id": "QA-AM-232",
+   "title": "The same rows plus one more",
+   "verdict": "PASS",
+   "evidence": "a superset is a different batch"
+  },
+  {
+   "id": "QA-AM-234",
+   "title": "A scores row with no scored_at",
+   "verdict": "PASS",
+   "evidence": "all 6 required fields refused by name when absent"
+  },
+  {
+   "id": "QA-AM-235",
+   "title": "Deliver row 400 of 500 malformed",
+   "verdict": "PASS",
+   "evidence": "refused 'malformed_row' whole"
+  },
+  {
+   "id": "QA-AM-236",
+   "title": "Deliver an empty batch",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_batch'"
+  },
+  {
+   "id": "QA-AM-237",
+   "title": "A sample rate of zero",
+   "verdict": "PASS",
+   "evidence": "0, -1, 1.5 and 100 all refused"
+  },
+  {
+   "id": "QA-AM-239",
+   "title": "A scored row whose outcome never arrives",
+   "verdict": "PASS",
+   "evidence": "4 row(s) in the cohort, 0 labelled"
+  },
+  {
+   "id": "QA-AM-241",
+   "title": "More outcomes than scores",
+   "verdict": "PASS",
+   "evidence": "2 labelled of 2 scored, bounded by the scores"
+  },
+  {
+   "id": "QA-AM-242",
+   "title": "Read the cohort before anything was delivered",
+   "verdict": "PASS",
+   "evidence": "an empty cohort is an answer"
+  },
+  {
+   "id": "QA-AM-243",
+   "title": "A batch of exactly the maximum size, and one row more",
+   "verdict": "PASS",
+   "evidence": "refused 'batch_too_large', naming the 100,000 limit"
+  },
+  {
+   "id": "QA-AM-245",
+   "title": "Ingest a result carrying a `passed` field",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' \u2014 an unknown field is not quietly dropped"
+  },
+  {
+   "id": "QA-AM-246",
+   "title": "Ingest with no `computed_by`",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-247",
+   "title": "Ingest with no window",
+   "verdict": "PASS",
+   "evidence": "the body schema refuses first ('validation_error') and the service's own 'window_required' still stands behind it"
+  },
+  {
+   "id": "QA-AM-248",
+   "title": "Ingest with `window_end` before `window_start`",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-250",
+   "title": "Ingest a null value",
+   "verdict": "PASS",
+   "evidence": "recorded, not passed, and said to be not computable"
+  },
+  {
+   "id": "QA-AM-251",
+   "title": "Ingest with `sample_size: 0`",
+   "verdict": "FAIL",
+   "evidence": "an AUC over a stated sample of 0 was accepted and the observation says nothing about it: `sample_size` defaults to 0, so *the job did not say* and *it computed this over nothing* are the same row"
+  },
+  {
+   "id": "QA-AM-252",
+   "title": "Ingest to a paused monitor",
+   "verdict": "PASS",
+   "evidence": "refused 'monitor_inactive'"
+  },
+  {
+   "id": "QA-AM-255",
+   "title": "Provenance for a monitor that has never been evaluated by anybody",
+   "verdict": "PASS",
+   "evidence": "'this monitor has never been evaluated by anybody'"
+  },
+  {
+   "id": "QA-AM-256",
+   "title": "Estate provenance where 80% of observations are external",
+   "verdict": "PASS",
+   "evidence": "6 external, and the share is stated"
+  },
+  {
+   "id": "QA-AM-261",
+   "title": "Submit with a `reference_digest` from a different monitor",
+   "verdict": "PASS",
+   "evidence": "refused, naming the reference digest"
+  },
+  {
+   "id": "QA-AM-262",
+   "title": "Submit for AUC without `ranked_globally`",
+   "verdict": "PASS",
+   "evidence": "refused, naming ranked_globally"
+  },
+  {
+   "id": "QA-AM-263",
+   "title": "Submit with `ranked_globally: true` but per-partition ranks",
+   "verdict": "PASS",
+   "evidence": "accepted at 0.16583333333333333, attested not observed, scanned by spark-3.5"
+  },
+  {
+   "id": "QA-AM-264",
+   "title": "Submit with no `predicate`",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing predicate"
+  },
+  {
+   "id": "QA-AM-265",
+   "title": "Submit with three partitions, one of them missing `rows`",
+   "verdict": "PASS",
+   "evidence": "refused, naming partitions[1].rows"
+  },
+  {
+   "id": "QA-AM-266",
+   "title": "Submit with a partition returning the wrong number of bins",
+   "verdict": "PASS",
+   "evidence": "refused 'bin_count_mismatch', 9 against 10"
+  },
+  {
+   "id": "QA-AM-267",
+   "title": "Submit where every partition returns zero rows",
+   "verdict": "PASS",
+   "evidence": "refused 'no_rows_in_submission'"
+  },
+  {
+   "id": "QA-AM-268",
+   "title": "Submit an AUC where every row is one class",
+   "verdict": "PASS",
+   "evidence": "refused 'one_class_absent'"
+  },
+  {
+   "id": "QA-AM-269",
+   "title": "Submit a KS where `negative_quantiles` is longer than `positive_quantiles`",
+   "verdict": "PASS",
+   "evidence": "refused 'quantiles_ragged', not a 500"
+  },
+  {
+   "id": "QA-AM-270",
+   "title": "Compare the `plan_digest` in a submission against the plan that was issued",
+   "verdict": "FAIL",
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:c150a00b69e2849e6a92f5828f51651a76d5048b1baacf152fa03aa93a1a057a against the issued sha256:42d6186b02348c54b384594c7a329b5b772c0a8c9a3ac147157b4d036205af1a. The digest exists to tie a submiss"
+  },
+  {
+   "id": "QA-AM-272",
+   "title": "Submit the same statistics twice",
+   "verdict": "PASS",
+   "evidence": "identical value and digest; 0 observation(s) recorded \u2014 see QA-AM-1313 for why that is zero"
+  },
+  {
+   "id": "QA-AM-273",
+   "title": "Compare a version against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-AM-274",
+   "title": "Two versions that share no monitor definition",
+   "verdict": "PASS",
+   "evidence": "refused 'no_shared_monitor'"
+  },
+  {
+   "id": "QA-AM-276",
+   "title": "Fewer paired windows than the minimum",
+   "verdict": "PASS",
+   "evidence": "5 pairs minimum, reported as insufficient_evidence"
+  },
+  {
+   "id": "QA-AM-277",
+   "title": "Five paired windows, exactly",
+   "verdict": "PASS",
+   "evidence": "five pairs, exact enumeration, p=0.0625"
+  },
+  {
+   "id": "QA-AM-278",
+   "title": "Fifteen paired windows",
+   "verdict": "PASS",
+   "evidence": "exact up to 14 inclusive, approximate above, and the method is named"
+  },
+  {
+   "id": "QA-AM-281",
+   "title": "Every paired difference identical and non-zero, over twenty windows",
+   "verdict": "PASS",
+   "evidence": "identical non-zero gives 0.0, identical zero gives 1.0"
+  },
+  {
+   "id": "QA-AM-282",
+   "title": "Significant and immaterial",
+   "verdict": "PASS",
+   "evidence": "significance and materiality both required; threshold 0.01 declared"
+  },
+  {
+   "id": "QA-AM-283",
+   "title": "A challenger ahead on one test and behind on another",
+   "verdict": "PASS",
+   "evidence": "trade-off -> no_material_difference with 'open a validation of the challenger'; clean win -> challenger_ahead"
+  },
+  {
+   "id": "QA-AM-284",
+   "title": "Any comparison at all",
+   "verdict": "PASS",
+   "evidence": "the reachable verdicts are ['challenger_ahead', 'champion_ahead', 'no_material_difference'], none a promotion"
+  },
+  {
+   "id": "QA-AM-290",
+   "title": "A model with no overlays at all",
+   "verdict": "PASS",
+   "evidence": "measured at 1.0: nothing adjusted, nothing relied on"
+  },
+  {
+   "id": "QA-AM-2900",
+   "title": "A campaign kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_campaign_kind', naming the 6 kinds"
+  },
+  {
+   "id": "QA-AM-2901",
+   "title": "Close a campaign twice",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-AM-2902",
+   "title": "The derivation is kept, not the list",
+   "verdict": "PASS",
+   "evidence": "derivation kept: {'entity': 'model', 'where': [{'field': 'domain', 'op': 'eq', 'value': 'credit'}"
+  },
+  {
+   "id": "QA-AM-2903",
+   "title": "A limit at or above the threshold is never slack",
+   "verdict": "PASS",
+   "evidence": "slack only below 0.25, and never on null"
+  },
+  {
+   "id": "QA-AM-291",
+   "title": "A model with one Critical finding past its date",
+   "verdict": "PASS",
+   "evidence": "arithmetic poor, band poor, and the findings cap says: 1 Critical or High finding(s) are past their remediation date"
+  },
+  {
+   "id": "QA-AM-292",
+   "title": "A model with twenty open Observation findings",
+   "verdict": "PASS",
+   "evidence": "twenty Observations score 1.0 against 0.0 for one Critical, and nothing is capped"
+  },
+  {
+   "id": "QA-AM-293",
+   "title": "A model that has never been validated",
+   "verdict": "PASS",
+   "evidence": "measured 0.0, capped poor, 'never been validated'"
+  },
+  {
+   "id": "QA-AM-299",
+   "title": "Estate health over an empty estate",
+   "verdict": "PASS",
+   "evidence": "no models, and the detail reads: 0 model(s): "
+  },
+  {
+   "id": "QA-AM-301",
+   "title": "Open a validation against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-307",
+   "title": "Record a result with no test key",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-311",
+   "title": "A model owner who owns a blocking finding sees it on their list",
+   "verdict": "PASS",
+   "evidence": "the owner sees 1 item(s) under others; the validator is offered the close"
+  },
+  {
+   "id": "QA-AM-312",
+   "title": "A low-severity finding with months left",
+   "verdict": "PASS",
+   "evidence": "an open, non-blocking finding is skipped"
+  },
+  {
+   "id": "QA-AM-313",
+   "title": "A Low finding that is blocking",
+   "verdict": "PASS",
+   "evidence": "present with urgency 'due', naming the cost"
+  },
+  {
+   "id": "QA-AM-314",
+   "title": "An unaccepted escalated finding, then the owner accepts it",
+   "verdict": "PASS",
+   "evidence": "the item disappears the moment the owner accepts"
+  },
+  {
+   "id": "QA-AM-315",
+   "title": "A subsystem that raises during a worklist build",
+   "verdict": "PASS",
+   "evidence": "2 item(s) survive one source raising: ['draft', 'finding']"
+  },
+  {
+   "id": "QA-AM-316",
+   "title": "The `others` count under a scoped reader",
+   "verdict": "PASS",
+   "evidence": "scoped first, and `others` is counted over what is visible"
+  },
+  {
+   "id": "QA-AM-317",
+   "title": "Baseline debt on a freshly imported model",
+   "verdict": "PASS",
+   "evidence": "one row for 9 of 13 gaps: Baseline debt: 9 item(s) outstanding"
+  },
+  {
+   "id": "QA-AM-318",
+   "title": "Debt where every gap has a dated plan and none is near expiry",
+   "verdict": "PASS",
+   "evidence": "9 gaps planned and the row clears; it returns when one is within 30 days of expiry"
+  },
+  {
+   "id": "QA-AM-319",
+   "title": "Worklist ordering with an overdue item, a due item and an open item",
+   "verdict": "PASS",
+   "evidence": "overdue, due, open \u2014 then by date, then by model"
+  },
+  {
+   "id": "QA-AM-320",
+   "title": "Cut the register by an unknown dimension",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_dimension', naming 7 dimensions"
+  },
+  {
+   "id": "QA-AM-3200",
+   "title": "A stream that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_stream', naming 2 streams"
+  },
+  {
+   "id": "QA-AM-321",
+   "title": "Heatmap of a dimension against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_dimension'"
+  },
+  {
+   "id": "QA-AM-322",
+   "title": "Heatmap where a row value and a column value never co-occur",
+   "verdict": "PASS",
+   "evidence": "2 combination(s) never co-occur and none is materialised as a zero cell"
+  },
+  {
+   "id": "QA-AM-323",
+   "title": "A heatmap over an empty estate",
+   "verdict": "PASS",
+   "evidence": "238 model(s) across 2 domain and 1 legal_entity. Shaded by what is OWED and not by count: "
+  },
+  {
+   "id": "QA-AM-327",
+   "title": "Aggregate exposure where no model records one",
+   "verdict": "PASS",
+   "evidence": "exposure reported with its coverage: 152 of 238 model(s) have something outstanding, carrying 82% of the exposure the"
+  },
+  {
+   "id": "QA-AM-328",
+   "title": "Aggregate exposure where one of forty models records one",
+   "verdict": "PASS",
+   "evidence": "coverage 10% stated beside the figure: 152 of 242 model(s) have something outstanding, carrying 82% of the exposure the"
+  },
+  {
+   "id": "QA-AM-329",
+   "title": "Trend on an instance with no as-at projection",
+   "verdict": "PASS",
+   "evidence": "available false: no as-at projection is wired into this instance, so the trend cannot be computed. That is "
+  },
+  {
+   "id": "QA-AM-330",
+   "title": "Trend with `points: 1`",
+   "verdict": "PASS",
+   "evidence": "one point, and no division by zero"
+  },
+  {
+   "id": "QA-AM-331",
+   "title": "Trend where each point carries a chain hash",
+   "verdict": "PASS",
+   "evidence": "all 1 covered point(s) carry a chain seq and hash; 3 predate the chain and claim none"
+  },
+  {
+   "id": "QA-AM-333",
+   "title": "Concentration with a `MINIMUM` of one dependent",
+   "verdict": "PASS",
+   "evidence": "the floor is 2 and nothing below it is reported"
+  },
+  {
+   "id": "QA-AM-334",
+   "title": "Concentration on an estate with nothing recorded",
+   "verdict": "PASS",
+   "evidence": "nothing shared, and the detail warns why: nothing is shared by two or more of 0 model(s). Worth checking against"
+  },
+  {
+   "id": "QA-AM-335",
+   "title": "Any concentration answer",
+   "verdict": "PASS",
+   "evidence": "aggregate_score present and null on every answer"
+  },
+  {
+   "id": "QA-AM-341",
+   "title": "Declare a limit on a metric the platform does not compute",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_metric'"
+  },
+  {
+   "id": "QA-AM-342",
+   "title": "Declare a limit with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-343",
+   "title": "Declare a rationale of exactly 2,000 characters, then 2,001",
+   "verdict": "PASS",
+   "evidence": "2000 in, 2001 refused"
+  },
+  {
+   "id": "QA-AM-344",
+   "title": "Amber equal to the limit on a lower-is-better metric",
+   "verdict": "PASS",
+   "evidence": "amber at the limit refused, amber inside it accepted"
+  },
+  {
+   "id": "QA-AM-345",
+   "title": "Amber above the limit on a higher-is-better metric",
+   "verdict": "PASS",
+   "evidence": "amber above the floor accepted, below it refused"
+  },
+  {
+   "id": "QA-AM-346",
+   "title": "Declare a limit scoped to `region`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope', naming all 3"
+  },
+  {
+   "id": "QA-AM-347",
+   "title": "Raise a limit that was previously tighter",
+   "verdict": "PASS",
+   "evidence": "raised, and 1 node(s) say relaxed"
+  },
+  {
+   "id": "QA-AM-348",
+   "title": "Tighten a limit",
+   "verdict": "PASS",
+   "evidence": "tightened, not flagged relaxed, 2 versions"
+  },
+  {
+   "id": "QA-AM-349",
+   "title": "Retire a limit and then declare it again",
+   "verdict": "PASS",
+   "evidence": "version 1 -> 2 across the retirement"
+  },
+  {
+   "id": "QA-AM-350",
+   "title": "Retire a limit that was never declared",
+   "verdict": "PASS",
+   "evidence": "refused 'no_appetite'"
+  },
+  {
+   "id": "QA-AM-351",
+   "title": "An estate-wide limit and a Tier 1 limit on one metric",
+   "verdict": "PASS",
+   "evidence": "2 limits live on 'models_untiered', each versioned apart"
+  },
+  {
+   "id": "QA-AM-352",
+   "title": "Preview a pack and then cut one",
+   "verdict": "PASS",
+   "evidence": "0 packs, preview changed nothing, cut added one"
+  },
+  {
+   "id": "QA-AM-357",
+   "title": "An indicator the register could not compute",
+   "verdict": "PASS",
+   "evidence": "12 indicators; every unmeasured one states why"
+  },
+  {
+   "id": "QA-AM-361",
+   "title": "Movement against a pack that did not measure it",
+   "verdict": "PASS",
+   "evidence": "not comparable: one of the two packs did not measure it"
+  },
+  {
+   "id": "QA-AM-362",
+   "title": "Movement with no previous pack over this scope",
+   "verdict": "PASS",
+   "evidence": "no previous pack over this scope to move from"
+  },
+  {
+   "id": "QA-AM-363",
+   "title": "Utilisation against a limit of zero",
+   "verdict": "PASS",
+   "evidence": "a zero limit gives no utilisation, in both directions"
+  },
+  {
+   "id": "QA-AM-364",
+   "title": "Standing at exactly the limit",
+   "verdict": "PASS",
+   "evidence": "exactly on the limit is 'within' in both directions"
+  },
+  {
+   "id": "QA-AM-366",
+   "title": "One pack under the slack threshold",
+   "verdict": "PASS",
+   "evidence": "no slack until 2 quiet pack(s)"
+  },
+  {
+   "id": "QA-AM-367",
+   "title": "A pack carries no composite score",
+   "verdict": "PASS",
+   "evidence": "This pack reports indicators and refuses to average them. A single model-risk figure requires the pa"
+  },
+  {
+   "id": "QA-AM-368",
+   "title": "Catalogue before running anything",
+   "verdict": "PASS",
+   "evidence": "3 returns, 3 declaring unanswerable fields up front"
+  },
+  {
+   "id": "QA-AM-370",
+   "title": "A model with no purpose class at all",
+   "verdict": "PASS",
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-2a48e802', 'why': 'neither designated consumer_impactin"
+  },
+  {
+   "id": "QA-AM-372",
+   "title": "Every `not_held` field in the output",
+   "verdict": "PASS",
+   "evidence": "5 not-held field(s), present as columns, empty in every row, and the return says incomplete"
+  },
+  {
+   "id": "QA-AM-373",
+   "title": "A field the register could hold and every row leaves blank",
+   "verdict": "PASS",
+   "evidence": "0 blank, 5 not held, no overlap"
+  },
+  {
+   "id": "QA-AM-374",
+   "title": "An extract over zero rows",
+   "verdict": "PASS",
+   "evidence": "0 rows, not complete, and the detail says so"
+  },
+  {
+   "id": "QA-AM-376",
+   "title": "An extract under a scoped reader",
+   "verdict": "PASS",
+   "evidence": "scoped before the population is derived"
+  },
+  {
+   "id": "QA-AM-378",
+   "title": "Open a campaign whose derivation selects nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population'"
+  },
+  {
+   "id": "QA-AM-379",
+   "title": "Open a second campaign under one reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_already_open'"
+  },
+  {
+   "id": "QA-AM-382",
+   "title": "Respond for a model not in the frozen population",
+   "verdict": "PASS",
+   "evidence": "refused 'not_in_this_campaign'"
+  },
+  {
+   "id": "QA-AM-384",
+   "title": "Respond declined with no reason",
+   "verdict": "PASS",
+   "evidence": "'declined' and 'not_applicable' both need a reason"
+  },
+  {
+   "id": "QA-AM-385",
+   "title": "Respond outstanding",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_response', naming 3 states"
+  },
+  {
+   "id": "QA-AM-386",
+   "title": "Respond after the campaign closed",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-AM-387",
+   "title": "Close a round with items outstanding",
+   "verdict": "PASS",
+   "evidence": "closed, and the unanswered items are named"
+  },
+  {
+   "id": "QA-AM-392",
+   "title": "Import a batch where one row is already registered",
+   "verdict": "PASS",
+   "evidence": "1 imported, 1 skipped with a reason"
+  },
+  {
+   "id": "QA-AM-393",
+   "title": "Import the identical batch twice",
+   "verdict": "PASS",
+   "evidence": "every row skipped, and the debt is unchanged at 9 item(s)"
+  },
+  {
+   "id": "QA-AM-394",
+   "title": "Import an empty models list",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_import'"
+  },
+  {
+   "id": "QA-AM-398",
+   "title": "Reconcile twice",
+   "verdict": "PASS",
+   "evidence": "nothing closed, nothing breached, 10 left"
+  },
+  {
+   "id": "QA-AM-400",
+   "title": "A Tier 1 `owner` gap at 18 months and one day",
+   "verdict": "PASS",
+   "evidence": "18 months and a day: breached, with a finding"
+  },
+  {
+   "id": "QA-AM-401",
+   "title": "The same gap at exactly 18 months",
+   "verdict": "PASS",
+   "evidence": "still debt up to its expiry; the comparison is `<`, so the boundary itself is inside the window"
+  },
+  {
+   "id": "QA-AM-402",
+   "title": "Debt and breach on one dashboard",
+   "verdict": "PASS",
+   "evidence": "debt and breach appear apart on the model and the burn-down"
+  },
+  {
+   "id": "QA-AM-403",
+   "title": "Plan a debt item with an empty plan",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required' on whitespace"
+  },
+  {
+   "id": "QA-AM-404",
+   "title": "Burn-down over an estate with nothing baselined",
+   "verdict": "PASS",
+   "evidence": "0 raised, burn-down 0.0, and it says why"
+  },
+  {
+   "id": "QA-AM-405",
+   "title": "An importer who under-declares by naming two gaps",
+   "verdict": "PASS",
+   "evidence": "9 gap(s) computed from the register, not the 2 the importer declared"
+  },
+  {
+   "id": "QA-AM-406",
+   "title": "Run every job twice in one pass",
+   "verdict": "PASS",
+   "evidence": "27 jobs, twice, and the register is unchanged after the second"
+  },
+  {
+   "id": "QA-AM-407",
+   "title": "`monitoring.stalled` at exactly three cadences",
+   "verdict": "FAIL",
+   "evidence": "a monitor evaluated exactly 3 cadences ago is already reported stalled. `overdue_by` is 3 - 1 = 2 cadences and the guard is `overdue_by < cadence * (MULTIPLE - 1)`, so the boundary itself fires. Every comparable boundary in this platform is exclusive \u2014 escalation is `>` not `>=`, the acknowledge window skips on `<=`, the extension window and the tau bands the same \u2014 so this one alone reports a con"
+  },
+  {
+   "id": "QA-AM-408",
+   "title": "`monitoring.stalled` after the monitor was paused",
+   "verdict": "PASS",
+   "evidence": "a paused monitor is not a stalled one"
+  },
+  {
+   "id": "QA-AM-409",
+   "title": "`findings.overdue` does not escalate its own escalations",
+   "verdict": "PASS",
+   "evidence": "1 escalation, and no escalation of it"
+  },
+  {
+   "id": "QA-AM-411",
+   "title": "`findings.unacknowledged` at exactly the acknowledge window",
+   "verdict": "PASS",
+   "evidence": "silent at 5 days, reported an hour later"
+  },
+  {
+   "id": "QA-AM-413",
+   "title": "One job raises during a pass",
+   "verdict": "PASS",
+   "evidence": "27 ran, 1 failed, named in the detail with its error"
+  },
+  {
+   "id": "QA-AM-415",
+   "title": "Run one job by name, then the whole pass",
+   "verdict": "PASS",
+   "evidence": "one job, then the pass; 0 new finding(s) and none from the job already run"
+  },
+  {
+   "id": "QA-AM-416",
+   "title": "The scheduler has not run for a week",
+   "verdict": "PASS",
+   "evidence": "a week-old batch is flagged stale, not reported as a number"
+  },
+  {
+   "id": "QA-AM-417",
+   "title": "Delete the whole run history and run a pass",
+   "verdict": "PASS",
+   "evidence": "history cleared, and the pass is identical"
+  },
+  {
+   "id": "QA-AM-4700",
+   "title": "Define two monitors with the same name on two models",
+   "verdict": "PASS",
+   "evidence": "one name, two models, both defined"
+  },
+  {
+   "id": "QA-AM-4701",
+   "title": "Every label-dependent kind demands a delay",
+   "verdict": "PASS",
+   "evidence": "performance, calibration demand a delay; input_drift, score_drift do not"
+  },
+  {
+   "id": "QA-AM-4710",
+   "title": "An ingested breach opens a breach and a finding, like any other",
+   "verdict": "PASS",
+   "evidence": "1 breach(es) and 1 finding(s)"
+  },
+  {
+   "id": "QA-AM-4720",
+   "title": "Bind a monitor to a model version through the API",
+   "verdict": "FAIL",
+   "evidence": "no route binds a monitor to a version: `MonitorIn` has no version field, the create route never passes `model_version_id`, and seeding the defaults created 0 monitor(s) with none either. `evaluate_from_telemetry` reads that column to find the stream, so it refuses `monitor_has_no_version` for every monitor in the estate and the telemetry-driven evaluation path cannot be reached at all"
+  },
+  {
+   "id": "QA-AM-4730",
+   "title": "The score is absent rather than zero when nothing is measurable",
+   "verdict": "PASS",
+   "evidence": "scored over 25% of the weight, and the detail says so"
+  },
+  {
+   "id": "QA-AM-4740",
+   "title": "A heatmap of one dimension against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_dimension', and an unknown dimension too"
+  },
+  {
+   "id": "QA-AM-4750",
+   "title": "A replay of an episode with no results at all",
+   "verdict": "PASS",
+   "evidence": "reproducible false, total 0, 'no results to replay'"
+  },
+  {
+   "id": "QA-AM-4880",
+   "title": "Every excluded model carries a reason",
+   "verdict": "PASS",
+   "evidence": "every exclusion across every return names a model and a reason"
+  },
+  {
+   "id": "QA-AM-4881",
+   "title": "An unknown return",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_return', naming what it does extract"
+  },
+  {
+   "id": "QA-AM-4882",
+   "title": "Each field declares where its value comes from",
+   "verdict": "PASS",
+   "evidence": "36 fields across 3 returns, each declaring held, derived or not_held"
+  },
+  {
+   "id": "QA-AM-4890",
+   "title": "A comparison where no test could run",
+   "verdict": "PASS",
+   "evidence": "insufficient is reported apart from no difference"
+  },
+  {
+   "id": "QA-AM-4891",
+   "title": "The material threshold and the significance test are separate",
+   "verdict": "PASS",
+   "evidence": "both conditions required, and the sign decides which way"
+  },
+  {
+   "id": "QA-AM-4892",
+   "title": "The significance level is stated on every test",
+   "verdict": "PASS",
+   "evidence": "alpha 0.05, the p-value, the method and the threshold all reported"
+  },
+  {
+   "id": "QA-AM-4900",
+   "title": "A queue where every model is the same tier",
+   "verdict": "PASS",
+   "evidence": "one tier, empty and single-model queues are never inverted"
+  },
+  {
+   "id": "QA-AM-4901",
+   "title": "A model with no tier in the queue",
+   "verdict": "PASS",
+   "evidence": "an untiered model ranks behind, never in front"
+  },
+  {
+   "id": "QA-AM-4902",
+   "title": "The forecast states its own assumption",
+   "verdict": "PASS",
+   "evidence": "assumption stated: effort is weighted by tier from a published table and capacity is counted in epi"
+  },
+  {
+   "id": "QA-AM-4950",
+   "title": "The urgency boundary",
+   "verdict": "PASS",
+   "evidence": "absent is open, past is overdue, inside 30.0 days is due, the boundary itself is not"
+  },
+  {
+   "id": "QA-AM-4951",
+   "title": "An item always names the permission its action needs",
+   "verdict": "PASS",
+   "evidence": "14 Items constructed, every one naming a permission"
+  },
+  {
+   "id": "QA-AM-5200",
+   "title": "The recommendation vocabulary never says promote",
+   "verdict": "PASS",
+   "evidence": "4: insufficient_evidence, no_material_difference, challenger_ahead, champion_ahead"
+  },
+  {
+   "id": "QA-AM-5201",
+   "title": "The materiality threshold is declared, never inferred",
+   "verdict": "PASS",
+   "evidence": "the threshold is declared by the firm, not chosen here"
+  },
+  {
+   "id": "QA-AM-5202",
+   "title": "Every portfolio dimension says what it is",
+   "verdict": "PASS",
+   "evidence": "7 dimensions, each published with a meaning"
+  },
+  {
+   "id": "QA-AM-600",
+   "title": "Raise against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-601",
+   "title": "Raise with an empty title",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-602",
+   "title": "Acknowledge as somebody who does not own it",
+   "verdict": "PASS",
+   "evidence": "refused 'not_the_owner' (403)"
+  },
+  {
+   "id": "QA-AM-603",
+   "title": "Acknowledge with no plan and none on record",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required' (422)"
+  },
+  {
+   "id": "QA-AM-604",
+   "title": "Acknowledge with a plan",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-AM-605",
+   "title": "Acknowledging moves the finding out of open",
+   "verdict": "PASS",
+   "evidence": "status is now 'in_remediation'"
+  },
+  {
+   "id": "QA-AM-606",
+   "title": "Close with no evidence",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-AM-607",
+   "title": "Close verified by the person who owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-AM-608",
+   "title": "Assign to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-609",
+   "title": "A root with no findings attached",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-610",
+   "title": "A root with an empty detail",
+   "verdict": "PASS",
+   "evidence": "refused 'root_detail_required' (422)"
+  },
+  {
+   "id": "QA-AM-611",
+   "title": "Define with a negative threshold",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-612",
+   "title": "Define against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-613",
+   "title": "Define with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-614",
+   "title": "Ingest an observation with no computed_by",
+   "verdict": "PASS",
+   "evidence": "refused 'computed_by_required' (422)"
+  },
+  {
+   "id": "QA-AM-615",
+   "title": "Ingest a window that ends before it starts",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted'"
+  },
+  {
+   "id": "QA-AM-616",
+   "title": "An observation inside the threshold does not breach",
+   "verdict": "PASS",
+   "evidence": "no breach, as expected"
+  },
+  {
+   "id": "QA-AM-617",
+   "title": "An observation past the threshold breaches",
+   "verdict": "PASS",
+   "evidence": "breached"
+  },
+  {
+   "id": "QA-AM-618",
+   "title": "Two identical observations are not two breaches",
+   "verdict": "PASS",
+   "evidence": "0 breach for the same window twice"
+  },
+  {
+   "id": "QA-AM-619",
+   "title": "Open a validation with no validators",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-620",
+   "title": "Open a validation against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-621",
+   "title": "A well-formed validation opens",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-622",
+   "title": "Conclude a validation with an outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-623",
+   "title": "Conclude a validation twice",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-624",
+   "title": "Conclude a validation you are not a validator on",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-AM-625",
+   "title": "An overlay with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' (422)"
+  },
+  {
+   "id": "QA-AM-626",
+   "title": "An overlay with no owner",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a2d58c57af018e94d55764af\",\"model_id\":\"01a0a2d58c3c591233e3355a3758\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-89dfffe6\",\"kind\":\"judgem"
+  },
+  {
+   "id": "QA-AM-627",
+   "title": "An overlay of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-628",
+   "title": "An overlay with no expiry",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-629",
+   "title": "Close an overlay with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-AM-630",
+   "title": "Measure an overlay that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_overlay'"
+  },
+  {
+   "id": "QA-AM-631",
+   "title": "A supervisory matter with no supervisor",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a2d58d3be4d86680b144d069\",\"reference\":\"SUP-b4d1811b\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+  },
+  {
+   "id": "QA-AM-632",
+   "title": "A supervisory matter with no owner",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a2d58d6e4888951588c31ce9\",\"reference\":\"SUP-6d408ceb\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+  },
+  {
+   "id": "QA-AM-633",
+   "title": "Two matters with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-634",
+   "title": "Close a supervisory matter with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  }
+ ]
+}

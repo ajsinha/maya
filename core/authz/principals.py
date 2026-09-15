@@ -23,7 +23,7 @@ import secrets
 import time
 from typing import Any, Dict, List, Optional, Sequence
 
-from core.authz.common import AuthzError
+from core.authz.common import AuthzError, same_person
 from core.authz.roles import conflicts, permissions_for
 from core.evidence import EvidenceEngine
 from core.log import get_logger
@@ -264,7 +264,7 @@ class PrincipalService:
         everybody except the person clicking.
         """
         row = self.require(username)
-        if username == actor:
+        if same_person(username, actor):
             raise AuthzError(
                 "self_suspension",
                 "you cannot suspend yourself: reinstating needs "

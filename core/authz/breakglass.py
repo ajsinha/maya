@@ -48,7 +48,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional
 
-from core.authz.common import AuthzError
+from core.authz.common import AuthzError, same_person
 from core.log import get_logger
 
 logger = get_logger(__name__)
@@ -148,14 +148,14 @@ class BreakGlass:
                 "not_requested",
                 f"{reference} is {row['state']}, not awaiting authorisation",
                 "a grant is authorised once")
-        if actor == row["requested_by"] and not unilateral:
+        if same_person(actor, row["requested_by"]) and not unilateral:
             raise AuthzError(
                 "same_person",
                 f"{actor} asked for this elevation and cannot also authorise "
                 f"it. Dual authorisation with one person is one person",
                 "have somebody else authorise it, or open it unilaterally — "
                 "which is allowed, gets a shorter window, and is flagged")
-        if actor != row["requested_by"] and unilateral:
+        if not same_person(actor, row["requested_by"]) and unilateral:
             raise AuthzError(
                 "not_unilateral",
                 "a second person is authorising this, so it is not unilateral",
@@ -245,7 +245,7 @@ class BreakGlass:
             raise AuthzError(
                 "unknown_outcome", f"'{outcome}' is not a review outcome",
                 "one of " + ", ".join(f"{k} ({v})" for k, v in OUTCOMES.items()))
-        if actor == row["principal"]:
+        if same_person(actor, row["principal"]):
             raise AuthzError(
                 "reviewed_by_the_user",
                 f"{actor} used this elevation and cannot review it",

@@ -1,0 +1,2909 @@
+{
+ "summary": {
+  "total": 483,
+  "pass": 408,
+  "fail": 70,
+  "blocked": 5
+ },
+ "seconds": 104.7,
+ "results": [
+  {
+   "id": "QA-PLT-001",
+   "title": "Verify, do nothing, verify again",
+   "verdict": "PASS",
+   "evidence": "length 11, head stable"
+  },
+  {
+   "id": "QA-PLT-002",
+   "title": "One append, then verify \u2014 the new head links to the old",
+   "verdict": "PASS",
+   "evidence": "13 -> 14, still valid"
+  },
+  {
+   "id": "QA-PLT-003",
+   "title": "A payload edited with the trigger stood down",
+   "verdict": "PASS",
+   "evidence": "reported invalid at 2: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-004",
+   "title": "Authorship reassigned on one node",
+   "verdict": "PASS",
+   "evidence": "reported invalid: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-005",
+   "title": "trust downgraded on one node",
+   "verdict": "PASS",
+   "evidence": "reported invalid: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-006",
+   "title": "The LAST node deleted \u2014 the documented blind spot",
+   "verdict": "PASS",
+   "evidence": "as documented: truncating the chain is undetectable by walking it. This is the finding. The anchor on a second medium is the only check that sees it"
+  },
+  {
+   "id": "QA-PLT-007",
+   "title": "A node deleted from the MIDDLE",
+   "verdict": "PASS",
+   "evidence": "reported invalid: sequence gap"
+  },
+  {
+   "id": "QA-PLT-008",
+   "title": "A node forged into the history with a plausible seq",
+   "verdict": "PASS",
+   "evidence": "reported invalid: prev_hash mismatch"
+  },
+  {
+   "id": "QA-PLT-009",
+   "title": "Verify a chain with nothing in it",
+   "verdict": "PASS",
+   "evidence": "a fresh chain of 8 verifies, head sha256:caa241f3340db"
+  },
+  {
+   "id": "QA-PLT-010",
+   "title": "Two full verifications running at once",
+   "verdict": "PASS",
+   "evidence": "two full walks, both valid, one head sha256:5192e430053e2"
+  },
+  {
+   "id": "QA-PLT-011",
+   "title": "The dashboard does not walk the whole chain",
+   "verdict": "PASS",
+   "evidence": "the dashboard takes the incremental path"
+  },
+  {
+   "id": "QA-PLT-012",
+   "title": "A compiled document does not re-walk the chain",
+   "verdict": "PASS",
+   "evidence": "incremental, and does not move the mark"
+  },
+  {
+   "id": "QA-PLT-013",
+   "title": "Break a node **before** the checkpoint, then ask the cheap question",
+   "verdict": "PASS",
+   "evidence": "the full walk reports broken at 1; the cheap read starts at 12 and cannot see below it \u2014 which is what the anchors are for"
+  },
+  {
+   "id": "QA-PLT-014",
+   "title": "The checkpoint ahead of the head",
+   "verdict": "FAIL",
+   "evidence": "the checkpoint was moved to seq 511, five hundred beyond a chain that ends at 11, and the cheap check answers valid over 0 node(s) checked. `repo.since(mark)` returns nothing, `_walk` over an empty list reports valid, and nothing compares the mark against the head \u2014 so a chain truncated below its own checkpoint reads healthy on every readiness probe until the scheduled full walk runs"
+  },
+  {
+   "id": "QA-PLT-015",
+   "title": "The node at the checkpoint sequence is the one mutated",
+   "verdict": "PASS",
+   "evidence": "the node at seq 11 was rewritten; the full walk breaks at 11 and the incremental walk answers valid \u2014 correctly, because it asks a narrower question and SAYS SO: scope='incremental' from_seq=11 over 2 node(s). A reader taking that as 'the chain is intact' is reading a field that is not there"
+  },
+  {
+   "id": "QA-PLT-016",
+   "title": "The first checkpoint records `length`, not the head sequence",
+   "verdict": "FAIL",
+   "evidence": "both ['engine', 'scheduler'] record the checkpoint as `report['length']` (11) rather than the head sequence (11). They agree here only because this chain is contiguous from 1. After any restore or compaction that leaves the chain starting above 1, the mark lands below the head, `repo.since(mark)` re-walks nodes already verified against the WRONG prev_hash, and the next incremental check reports a "
+  },
+  {
+   "id": "QA-PLT-017",
+   "title": "Checkpoint rows accumulate and none is ever retired",
+   "verdict": "FAIL",
+   "evidence": "twelve verifications wrote 12 checkpoint row(s) (0 \u2192 12) and nothing in `EvidenceEngine` removes one. Only `first('seq', desc=True)` is ever read, so every row but the newest is dead weight that grows at the scheduled cadence for the life of the deployment \u2014 on a register whose stated position is that nothing is deleted, in a table that is not the evidence chain and carries no evidentiary value"
+  },
+  {
+   "id": "QA-PLT-018",
+   "title": "`verify_since_checkpoint(advance=False)` must write nothing",
+   "verdict": "PASS",
+   "evidence": "three reads and a page load, 0 checkpoint row(s) still"
+  },
+  {
+   "id": "QA-PLT-019",
+   "title": "Verify, restore a backup taken before that verification",
+   "verdict": "FAIL",
+   "evidence": "the chain was restored to seq 10 and the checkpoint still reads 13, three ahead of it. The cheap check answers valid over 0 node(s) \u2014 `since(mark)` finds nothing past a mark the chain no longer reaches, and nothing compares the two. A restore is the one operation that produces this state and the one nobody re-verifies afterwards"
+  },
+  {
+   "id": "QA-PLT-020",
+   "title": "Anchor a head when no anchor root is configured",
+   "verdict": "PASS",
+   "evidence": "anchored 0, and both readings say self-certified"
+  },
+  {
+   "id": "QA-PLT-021",
+   "title": "Anchor a chain that does not verify",
+   "verdict": "PASS",
+   "evidence": "verified first; a broken chain refuses 'chain_broken'"
+  },
+  {
+   "id": "QA-PLT-022",
+   "title": "Anchor on an empty chain",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_anchor' at sequence 0"
+  },
+  {
+   "id": "QA-PLT-023",
+   "title": "Anchor the same head twice with no act in between",
+   "verdict": "PASS",
+   "evidence": "an unchanged head refuses 'nothing_to_anchor'"
+  },
+  {
+   "id": "QA-PLT-024",
+   "title": "The chain truncated **below** the newest anchor",
+   "verdict": "PASS",
+   "evidence": "agrees 0, and the reason is: the chain is shorter than this anchor, and an append-only chain cannot"
+  },
+  {
+   "id": "QA-PLT-025",
+   "title": "Nodes deleted above the newest anchor",
+   "verdict": "FAIL",
+   "evidence": "4 node(s) appended above the newest anchor (seq 12) were deleted, and nothing notices: the full walk is valid over 12 node(s) and the anchors agree over 1 of them. An anchor bounds the chain from below \u2014 it says what the head was at seq 12 \u2014 and there is no upper bound anywhere: nothing records how LONG the chain was expected to be, so governance acts recorded between two anchor runs sit in a wind"
+  },
+  {
+   "id": "QA-PLT-026",
+   "title": "The anchor files deleted from the WORM root",
+   "verdict": "FAIL",
+   "evidence": "1 anchor(s) were deleted from /tmp/maya-qa-tomsmzpu/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothing here contradicts it'. That is word for word the answer a fresh instance gives. Nothing records that anchors ONCE existed \u2014 the store is the only register of itself \u2014 so an estate whose anchors were cleared is in"
+  },
+  {
+   "id": "QA-PLT-027",
+   "title": "The whole WORM directory removed while the instance runs",
+   "verdict": "FAIL",
+   "evidence": "the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-ypl74u6t/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.mkdir(parents=True, exist_ok=True)`, so a store that has vanished is repaired rather than reported. Every earlier anchor is gone, the new one agrees with the chain, and `verify_against_anchors` now reports a chain"
+  },
+  {
+   "id": "QA-PLT-028",
+   "title": "The store made unreadable",
+   "verdict": "PASS",
+   "evidence": "refused 'worm_unreadable' rather than reported absent"
+  },
+  {
+   "id": "QA-PLT-029",
+   "title": "An existing anchor file rewritten",
+   "verdict": "PASS",
+   "evidence": "refused, and the held copy is unchanged"
+  },
+  {
+   "id": "QA-PLT-030",
+   "title": "An anchor filename that is not a flat object name",
+   "verdict": "PASS",
+   "evidence": "every separator and dot name refused worm_bad_name"
+  },
+  {
+   "id": "QA-PLT-031",
+   "title": "An anchor written by the process it certifies",
+   "verdict": "PASS",
+   "evidence": "self_certified=0, verified_by=auditor"
+  },
+  {
+   "id": "QA-PLT-032",
+   "title": "Time-stamping with no authority wired",
+   "verdict": "PASS",
+   "evidence": "MAYA is not the authority and does not verify the token. Verifying one means holding a certificate c"
+  },
+  {
+   "id": "QA-PLT-033",
+   "title": "A token is held and nothing here can check it",
+   "verdict": "PASS",
+   "evidence": "three distinct states; this one is 'unverified' carrying the token, and says why"
+  },
+  {
+   "id": "QA-PLT-034",
+   "title": "A token dated after the moment it was requested",
+   "verdict": "FAIL",
+   "evidence": "an authority returned a token dated a year ahead of the request and it was stored and read back with state 'unverified' and no remark. `stamp` records `requested_at` alongside the token and the module says exactly why \u2014 *the gap between them is the only thing a reader can use to notice a token that was issued somewhere else* \u2014 and nothing computes that gap. Not verifying an RFC 3161 token is a sta"
+  },
+  {
+   "id": "QA-PLT-035",
+   "title": "A token past its validity",
+   "verdict": "FAIL",
+   "evidence": "a token whose validity ended nine years ago was stored and is counted in coverage: 1 of 1 anchored head(s) 'carry a token'. Nothing in `stamp` looks at the token at all \u2014 not `genTime`, not `notAfter` \u2014 because verification is delegated to a verifier that is not wired, and coverage counts `state != absent`. So the number a supervisor is shown about the chain's age counts an attestation nobody woul"
+  },
+  {
+   "id": "QA-PLT-036",
+   "title": "A token over a head that is no longer the head",
+   "verdict": "PASS",
+   "evidence": "the token still names seq 11; the new head at 15 reads absent; coverage 1/2 and the detail names the uncovered span"
+  },
+  {
+   "id": "QA-PLT-037",
+   "title": "The period before the first token is explicitly uncovered",
+   "verdict": "PASS",
+   "evidence": "the uncovered period is named"
+  },
+  {
+   "id": "QA-PLT-038",
+   "title": "An artifact digest in the register that resolves to nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'artifact_not_stored' at 404"
+  },
+  {
+   "id": "QA-PLT-039",
+   "title": "An artifact whose bytes changed under a stable digest",
+   "verdict": "FAIL",
+   "evidence": "the bytes under sha256:4cadb37ba59f5b2b\u2026 were replaced. `GET /api/v1/artifacts/{digest}/verify` re-hashes and reports intact=False with recomputed sha256:c6b2fe0c1ae01eb7\u2026, and `GET /api/v1/artifacts/{digest}` serves the substituted bytes with 200. That separation is deliberate and documented \u2014 re-hashing a multi-gigabyte file on every read is not free \u2014 so the control rests entirely on somebody C"
+  },
+  {
+   "id": "QA-PLT-040",
+   "title": "An artifact path pointed outside the artifact root",
+   "verdict": "PASS",
+   "evidence": "5 malformed addresses refused 'malformed_digest' at the store, and 404 over HTTP"
+  },
+  {
+   "id": "QA-PLT-041",
+   "title": "The same idempotency key, same body, twice in sequence",
+   "verdict": "PASS",
+   "evidence": "the first answer replayed, marked as a replay"
+  },
+  {
+   "id": "QA-PLT-042",
+   "title": "The same key with a **corrected** body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused', naming the way forward"
+  },
+  {
+   "id": "QA-PLT-043",
+   "title": "The same key with the same fields in a different order",
+   "verdict": "PASS",
+   "evidence": "reordered keys replay rather than conflict"
+  },
+  {
+   "id": "QA-PLT-044",
+   "title": "Two requests with one key arriving at the same moment",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_in_flight'"
+  },
+  {
+   "id": "QA-PLT-045",
+   "title": "A key whose first attempt was **refused**, retried",
+   "verdict": "PASS",
+   "evidence": "the retry after a refusal really runs"
+  },
+  {
+   "id": "QA-PLT-046",
+   "title": "A key whose first attempt 500'd, retried",
+   "verdict": "PASS",
+   "evidence": "the key is released on the way out of a 500 and the retry really runs"
+  },
+  {
+   "id": "QA-PLT-047",
+   "title": "A key of 256 characters",
+   "verdict": "PASS",
+   "evidence": "255 accepted, 256 refused"
+  },
+  {
+   "id": "QA-PLT-048",
+   "title": "Two principals choosing the same key",
+   "verdict": "PASS",
+   "evidence": "both acts happened, neither replayed the other"
+  },
+  {
+   "id": "QA-PLT-049",
+   "title": "One idempotency key reused across two routes",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused'"
+  },
+  {
+   "id": "QA-PLT-050",
+   "title": "A key replayed after the retention window",
+   "verdict": "PASS",
+   "evidence": "past 24 hours the key is gone and the act runs again \u2014 refused here by the register's own duplicate-URN guard, which is the point: every act has its own refusals in front of it"
+  },
+  {
+   "id": "QA-PLT-051",
+   "title": "An idempotent act whose *effects* are not in the response",
+   "verdict": "PASS",
+   "evidence": "the answer replayed and the chain is unchanged at 1"
+  },
+  {
+   "id": "QA-PLT-052",
+   "title": "A stale `If-Match` after somebody else wrote",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_failed', carrying the current tag"
+  },
+  {
+   "id": "QA-PLT-053",
+   "title": "`If-Match: *` against a resource that exists, and one that does not",
+   "verdict": "PASS",
+   "evidence": "`*` accepted where the resource exists, refused 'precondition_unevaluable' where it does not"
+  },
+  {
+   "id": "QA-PLT-054",
+   "title": "`If-Match` sent to a route that has no representation to compare",
+   "verdict": "PASS",
+   "evidence": "refused 'precondition_unevaluable'"
+  },
+  {
+   "id": "QA-PLT-055",
+   "title": "A write with a deliberately wrong If-Match",
+   "verdict": "PASS",
+   "evidence": "refused 412 'precondition_failed'"
+  },
+  {
+   "id": "QA-PLT-056",
+   "title": "A change confined to a field named `detail` produces an unchanged ETag",
+   "verdict": "PASS",
+   "evidence": "`detail` excluded, real state still tagged; 5 volatile fields"
+  },
+  {
+   "id": "QA-PLT-057",
+   "title": "A strong tag sent where a weak one was issued",
+   "verdict": "PASS",
+   "evidence": "the strong form is not silently normalised to the weak one"
+  },
+  {
+   "id": "QA-PLT-058",
+   "title": "If-None-Match with the current tag",
+   "verdict": "PASS",
+   "evidence": "304 with no body"
+  },
+  {
+   "id": "QA-PLT-059",
+   "title": "The ETag does not move when nothing changed",
+   "verdict": "PASS",
+   "evidence": "stable across three reads: W/\"sha256:8bf843161a42a1"
+  },
+  {
+   "id": "QA-PLT-060",
+   "title": "Two writers, no `If-Match` at all",
+   "verdict": "PASS",
+   "evidence": "both unconditional writes land, and the tag is offered on the read so a client can opt in"
+  },
+  {
+   "id": "QA-PLT-061",
+   "title": "A governed act that fails half way",
+   "verdict": "PASS",
+   "evidence": "the refused act left exactly one row"
+  },
+  {
+   "id": "QA-PLT-062",
+   "title": "An evidence append racing another evidence append",
+   "verdict": "PASS",
+   "evidence": "6 concurrent registrations, 6 nodes, contiguous and verifying"
+  },
+  {
+   "id": "QA-PLT-063",
+   "title": "A read-then-write check under concurrency",
+   "verdict": "FAIL",
+   "evidence": "2 of 4 racing writes answered 500 with no code: Internal Server Error"
+  },
+  {
+   "id": "QA-PLT-064",
+   "title": "Every immutable column written directly",
+   "verdict": "PASS",
+   "evidence": "all 14 immutable column(s) refused by the database"
+  },
+  {
+   "id": "QA-PLT-065",
+   "title": "model_version.status is deliberately not guarded",
+   "verdict": "PASS",
+   "evidence": "status moves; the immutable columns do not"
+  },
+  {
+   "id": "QA-PLT-066",
+   "title": "An append-only table against UPDATE and DELETE",
+   "verdict": "PASS",
+   "evidence": "1 append-only table(s) refuse both"
+  },
+  {
+   "id": "QA-PLT-067",
+   "title": "A database role that cannot create triggers",
+   "verdict": "PASS",
+   "evidence": "17 warning(s) and the instance still starts: could not apply an integrity trigger, so that protection is a convention on this database rather than a constraint: permission den"
+  },
+  {
+   "id": "QA-PLT-068",
+   "title": "The same immutability attacks against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-069",
+   "title": "A cross-entity read with row-level security in force",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-072",
+   "title": "A directly-addressable page under a scope that should not see it",
+   "verdict": "PASS",
+   "evidence": "refused 403 on the directly-addressable page"
+  },
+  {
+   "id": "QA-PLT-073",
+   "title": "Filtering happens **before** paging",
+   "verdict": "PASS",
+   "evidence": "6 of 49 match, and two pages of the filtered list are disjoint and in scope"
+  },
+  {
+   "id": "QA-PLT-074",
+   "title": "A table not in `SCOPED_TABLES` reached through one that is",
+   "verdict": "PASS",
+   "evidence": "38 table(s) carry a model_id outside SCOPED_TABLES; the posture names the gap and the application refuses all three reads"
+  },
+  {
+   "id": "QA-PLT-075",
+   "title": "A hard delete and what still names the model",
+   "verdict": "PASS",
+   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a0a2cf59db"
+  },
+  {
+   "id": "QA-PLT-076",
+   "title": "A deletion refused because something still refers to it",
+   "verdict": "PASS",
+   "evidence": "refused 'still_referenced', naming fs-0dd182bc"
+  },
+  {
+   "id": "QA-PLT-077",
+   "title": "A deletion under legal hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' naming the matter, and permitted once it was lifted"
+  },
+  {
+   "id": "QA-PLT-078",
+   "title": "A write landing during an estate fold",
+   "verdict": "PASS",
+   "evidence": "a model landed mid-fold and both aggregates agree on 53"
+  },
+  {
+   "id": "QA-PLT-079",
+   "title": "The estate-fold cache after a mutation",
+   "verdict": "PASS",
+   "evidence": "54 \u2192 55; the index is built and dropped inside each read"
+  },
+  {
+   "id": "QA-PLT-080",
+   "title": "The estate fold on an estate of exactly zero models",
+   "verdict": "PASS",
+   "evidence": "zeroes and a detail: 'the register is empty'"
+  },
+  {
+   "id": "QA-PLT-081",
+   "title": "The estate fold on an estate of exactly one model",
+   "verdict": "PASS",
+   "evidence": "one model: one cell in each of three dimensions, coverage 0.0, and a detail"
+  },
+  {
+   "id": "QA-PLT-085",
+   "title": "A truth-valued column written as a Python `bool`",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-086",
+   "title": "Two anonymous callers choosing the same idempotency key",
+   "verdict": "PASS",
+   "evidence": "both refused at the door and the key is released each time, so the shared anonymous scope carries nothing"
+  },
+  {
+   "id": "QA-PLT-087",
+   "title": "An in-flight key held past the stale window",
+   "verdict": "FAIL",
+   "evidence": "a caller who abandons a request every 15 minutes keeps the key alive indefinitely: eleven abandonments later it is 0.00 hours old by `started_at` and the 24-hour sweep does not reach it. The stale release writes `started_at = now`, and the sweep reads `started_at` \u2014 so the column that means *when this attempt began* is also the column that means *how long we have kept this record*, and refreshing "
+  },
+  {
+   "id": "QA-PLT-088",
+   "title": "A replayed response and its ETag",
+   "verdict": "PASS",
+   "evidence": "neither the original nor the replay carries a tag on this path, so the two agree"
+  },
+  {
+   "id": "QA-PLT-089",
+   "title": "The same path with and without `?fields=`",
+   "verdict": "FAIL",
+   "evidence": "`?fields=` discards the rows of 12 of 12 listings sampled, and keeps none: ['/api/v1/models', '/api/v1/features', '/api/v1/featuresets', '/api/v1/warrants', '/api/v1/principals', '/api/v1/roles'] \u2026. `project()` narrows `payload['rows']` or a bare list; exactly ONE route in the API answers `rows` (`conventions.page` has a single caller), so every other listing falls through to `_narrow` on the top-"
+  },
+  {
+   "id": "QA-PLT-090",
+   "title": "The precondition check re-dispatches a synthetic GET",
+   "verdict": "FAIL",
+   "evidence": "one guarded write dispatched 1 GET(s) to its own path through the router. The precondition is real and this is what it costs: every `If-Match` write is two trips through routing, authorisation and the service layer, and only one of them is in the caller's request"
+  },
+  {
+   "id": "QA-PLT-091",
+   "title": "A JSON response that will not parse gets no ETag",
+   "verdict": "PASS",
+   "evidence": "no tag, and a warning: a response from /api/v1/qa-unparseable-1789437895383 declares JSON and does not parse; serving it without an ETag"
+  },
+  {
+   "id": "QA-PLT-092",
+   "title": "A write through a repository during a fold",
+   "verdict": "FAIL",
+   "evidence": "refused with a bare RuntimeError carrying no code, no detail and no remediation, so `Routes.guard` cannot map it and a route reaching it answers 500. Latent rather than live: the folded tables are read by `WorkList.across` and the portfolio cuts, which write nothing, and the digest's `notification` writes land after the fold has closed \u2014 so no route reaches it today and the first one that does fin"
+  },
+  {
+   "id": "QA-PLT-093",
+   "title": "A write during a fold that does not go through a repository",
+   "verdict": "FAIL",
+   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-afcb0433' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
+  },
+  {
+   "id": "QA-PLT-094",
+   "title": "A fold, an inner fold, and the outer index",
+   "verdict": "PASS",
+   "evidence": "the inner fold is a no-op and the outer index survives it"
+  },
+  {
+   "id": "QA-PLT-095",
+   "title": "A folded read with an `order` or a `limit`",
+   "verdict": "PASS",
+   "evidence": "64 rows either way; ordered and limited reads fall through to SQL unchanged"
+  },
+  {
+   "id": "QA-PLT-096",
+   "title": "A table outside the folded fourteen read during a fold",
+   "verdict": "PASS",
+   "evidence": "evidence_node is outside the fourteen and reads fresh: 85 \u2192 86 during the fold"
+  },
+  {
+   "id": "QA-PLT-097",
+   "title": "An append-only repository `set()` reaching HTTP",
+   "verdict": "FAIL",
+   "evidence": "the repository refuses 'append_only' with a detail and a remediation, and neither half of the taxonomy receives it: NOT in STATUS, NOT caught by Routes.guard. It is a bare RuntimeError, so a route reaching it answers 500 with no code \u2014 the refusal was written for a mapping it was never added to. Latent: `EvidenceRepository` is the only AppendOnly subclass and nothing outside the tests calls its se"
+  },
+  {
+   "id": "QA-PLT-098",
+   "title": "An anchor or WORM refusal reaching HTTP",
+   "verdict": "FAIL",
+   "evidence": "7 anchor and WORM refusal codes are mapped in STATUS \u2014 ['anchor_disagreement', 'anchor_unreadable', 'chain_broken', 'nothing_to_anchor', 'worm_overwrite_refused', 'worm_unreadable', 'worm_bad_name'] \u2014 and `Routes.guard` catches neither AnchorError nor WormError (it caught neither). Both carry error, detail and remediation, so the taxonomy is half-built: the status map knows these codes and nothing"
+  },
+  {
+   "id": "QA-PLT-099",
+   "title": "`recorded_at` moved on a node, chain unchanged",
+   "verdict": "FAIL",
+   "evidence": "a node's `recorded_at` was moved by 9,999 seconds and the chain still verifies: the timestamp is outside the content hash, so WHEN a governance act was recorded can be rewritten with a single UPDATE while every verification reports the chain intact"
+  },
+  {
+   "id": "QA-PLT-100",
+   "title": "`contains_personal_data` flipped on a node",
+   "verdict": "FAIL",
+   "evidence": "'contains_personal_data' was flipped on a node and the chain still verifies: it sits outside the content hash, so the chain hash does not move and the anchors cannot see it either. The flag decides what a deletion request reaches under L-18 and what an export may carry"
+  },
+  {
+   "id": "QA-PLT-1000",
+   "title": "Anchoring a chain that does not verify is refused",
+   "verdict": "PASS",
+   "evidence": "verified before anchoring, and refused if broken"
+  },
+  {
+   "id": "QA-PLT-1001",
+   "title": "An anchor is written outside the database",
+   "verdict": "PASS",
+   "evidence": "anchored to a store outside the database"
+  },
+  {
+   "id": "QA-PLT-1002",
+   "title": "The WORM store refuses to overwrite",
+   "verdict": "PASS",
+   "evidence": "refused: 'a.anchor' is already held with different content, and this store is write-once"
+  },
+  {
+   "id": "QA-PLT-1003",
+   "title": "Timestamping says it has no authority rather than faking one",
+   "verdict": "PASS",
+   "evidence": "refused: no time stamp authority is wired"
+  },
+  {
+   "id": "QA-PLT-1004",
+   "title": "The timestamp posture says what it does not prove",
+   "verdict": "PASS",
+   "evidence": "the posture states its limit"
+  },
+  {
+   "id": "QA-PLT-1005",
+   "title": "The chain head is readable and stable",
+   "verdict": "PASS",
+   "evidence": "head stable at length 86"
+  },
+  {
+   "id": "QA-PLT-1006",
+   "title": "Verifying says who asked and whether that means anything",
+   "verdict": "PASS",
+   "evidence": "self_certified=0"
+  },
+  {
+   "id": "QA-PLT-1007",
+   "title": "A node carrying personal data stores an empty payload",
+   "verdict": "PASS",
+   "evidence": "enforced at the storage layer, in both dialects"
+  },
+  {
+   "id": "QA-PLT-101",
+   "title": "A node recorded with `contains_personal_data`",
+   "verdict": "PASS",
+   "evidence": "the payload is empty, the flag is kept, and the chain still verifies over the node"
+  },
+  {
+   "id": "QA-PLT-102",
+   "title": "The `WHY` semiring past its term cap",
+   "verdict": "PASS",
+   "evidence": "under the cap: 40 support set(s), truncated=False; over it: 9, truncated=True. The shipped bound is 4096"
+  },
+  {
+   "id": "QA-PLT-103",
+   "title": "A claim resting on a missing fact under freshness",
+   "verdict": "FAIL",
+   "evidence": "a claim resting on a present fact and a MISSING one answers freshness 1000.0, the same as one resting on that fact and a stale one. FRESHNESS is (max, max) with `zero = 0.0`, so an absent fact contributes 0.0 and `max` discards it \u2014 the answer is the freshness of what is present, and carries nothing saying a term was absent. The Boolean semiring answers the presence question; a reader who asks onl"
+  },
+  {
+   "id": "QA-PLT-104",
+   "title": "A broken chain's report shape",
+   "verdict": "PASS",
+   "evidence": "broken_at 12, reason 'prev_hash mismatch', and no length, head or scope"
+  },
+  {
+   "id": "QA-PLT-105",
+   "title": "The scheduled verification meets a broken chain",
+   "verdict": "PASS",
+   "evidence": "verified false at seq 12, checkpoint held at 11"
+  },
+  {
+   "id": "QA-PLT-106",
+   "title": "The scheduled anchor meets a chain that disagrees",
+   "verdict": "PASS",
+   "evidence": "refused 'chain_broken', 1 anchor(s) preserved: the chain does not verify, so anchoring its head would write the broken state down as the truth"
+  },
+  {
+   "id": "QA-PLT-107",
+   "title": "Tampering below the newest anchor",
+   "verdict": "PASS",
+   "evidence": "the node at seq 1 was rewritten. The full walk catches it at 1 because it RECOMPUTES each content hash; the anchors report agrees=1 over 1 anchor(s), because an anchor names one sequence's stored chain_hash and that column was not touched. Both answers are correct and they answer different questions \u2014 the anchors bound what the chain SAID at a moment, not what it contains. Only the scheduled full "
+  },
+  {
+   "id": "QA-PLT-108",
+   "title": "The `_freeze` chmod fails and the store carries on",
+   "verdict": "PASS",
+   "evidence": "written, and warned: could not make qa-freeze-1789437901275.anchor read-only: this filesystem does not support the permission \u2014 the object is"
+  },
+  {
+   "id": "QA-PLT-109",
+   "title": "A crash part-way through a WORM write",
+   "verdict": "PASS",
+   "evidence": "nothing readable was left behind; 1 staging file(s) on disk and none of them listed"
+  },
+  {
+   "id": "QA-PLT-110",
+   "title": "An unwritable WORM root",
+   "verdict": "FAIL",
+   "evidence": "an unwritable anchor root raises a bare PermissionError with no code, no detail and no remediation \u2014 `put` catches nothing around `write_bytes`, while `get` wraps its OSError as `worm_unreadable` with the note that an object which cannot be read must not be treated as absent. The write path has no equivalent, so the one condition that stops the second medium existing at all arrives as PermissionEr"
+  },
+  {
+   "id": "QA-PLT-1100",
+   "title": "An attachment with no file",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-PLT-1101",
+   "title": "An attachment with no title",
+   "verdict": "PASS",
+   "evidence": "refused 'title_required'"
+  },
+  {
+   "id": "QA-PLT-1102",
+   "title": "An attachment of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind'"
+  },
+  {
+   "id": "QA-PLT-1103",
+   "title": "An attachment against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-PLT-1104",
+   "title": "An uploaded file is addressed by its content",
+   "verdict": "PASS",
+   "evidence": "stored under the digest of its content"
+  },
+  {
+   "id": "QA-PLT-1105",
+   "title": "Review an attachment that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attachment'"
+  },
+  {
+   "id": "QA-PLT-1106",
+   "title": "An artifact digest that is not a digest",
+   "verdict": "PASS",
+   "evidence": "refused 'malformed_digest'"
+  },
+  {
+   "id": "QA-PLT-1107",
+   "title": "An artifact that was never uploaded",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-1108",
+   "title": "A dossier for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 404"
+  },
+  {
+   "id": "QA-PLT-1109",
+   "title": "Artifact provenance is absent, not unverified",
+   "verdict": "PASS",
+   "evidence": "absent and unverified are held apart"
+  },
+  {
+   "id": "QA-PLT-111",
+   "title": "Time-stamping with the authority unconfigured",
+   "verdict": "FAIL",
+   "evidence": "the refusal is correct and its remediation says *configure one under `evidence.timestamps`* \u2014 and nothing reads that key. `ChainTimestamps` is constructed with `authority=None, verifier=None` as literals (chain_timestamps = ChainTimestamps(\u2026), and `cfg.get('evidence.timestamps...')` appears nowhere in the application. A deployer following the remediation sets a key the platform never looks at and "
+  },
+  {
+   "id": "QA-PLT-112",
+   "title": "Time-stamping a head that was never anchored",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_anchored': there is no anchored head to timestamp"
+  },
+  {
+   "id": "QA-PLT-113",
+   "title": "The same head stamped twice",
+   "verdict": "PASS",
+   "evidence": "one object, one request to the authority, written=0 on the second"
+  },
+  {
+   "id": "QA-PLT-114",
+   "title": "Timestamp coverage on an estate with no anchors",
+   "verdict": "PASS",
+   "evidence": "share 0.0 twice, two different sentences: 'nothing is anchored, so there is nothing to timest' then '1 anchored head(s) and no time stamp authority wir'"
+  },
+  {
+   "id": "QA-PLT-115",
+   "title": "Sixteen concurrent version creations against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-117",
+   "title": "A raw `UPDATE` on `evidence_node` against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-1200",
+   "title": "Discovery reads packaging metadata and imports nothing",
+   "verdict": "PASS",
+   "evidence": "discover reads, enable imports, and only enable calls load()"
+  },
+  {
+   "id": "QA-PLT-1201",
+   "title": "Enabling something configuration does not name",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-1202",
+   "title": "Enabling against a closed axis",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' for closed axis connectors"
+  },
+  {
+   "id": "QA-PLT-1203",
+   "title": "The contract says which axes are closed and what each protects",
+   "verdict": "PASS",
+   "evidence": "4 closed axes, each naming what it protects"
+  },
+  {
+   "id": "QA-PLT-1204",
+   "title": "A fibre may add obligations and never remove one",
+   "verdict": "PASS",
+   "evidence": "a narrowing is refused by name at load time"
+  },
+  {
+   "id": "QA-PLT-1205",
+   "title": "Discovery is listable without enabling anything",
+   "verdict": "PASS",
+   "evidence": "listed, nothing enabled"
+  },
+  {
+   "id": "QA-PLT-1206",
+   "title": "An import format that is refused by name",
+   "verdict": "PASS",
+   "evidence": "refused 'drools' by name, with what to do instead"
+  },
+  {
+   "id": "QA-PLT-1207",
+   "title": "An import format nobody has heard of",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_import_format'"
+  },
+  {
+   "id": "QA-PLT-1208",
+   "title": "A row a parser cannot read refuses the whole document",
+   "verdict": "PASS",
+   "evidence": "1 untranslated row(s) named, no importable document"
+  },
+  {
+   "id": "QA-PLT-1209",
+   "title": "A hit policy that does not map is refused, not approximated",
+   "verdict": "PASS",
+   "evidence": "refused 'no_outcome_columns' for hit policy C"
+  },
+  {
+   "id": "QA-PLT-121",
+   "title": "Row-level security asked for on SQLite",
+   "verdict": "PASS",
+   "evidence": "available false, and the reason: row-level security is a PostgreSQL feature and this deployment is on sqlite. There is no database backstop here and ther"
+  },
+  {
+   "id": "QA-PLT-1210",
+   "title": "An import produces a candidate, never a parameter set",
+   "verdict": "PASS",
+   "evidence": "a candidate of 2 rule(s), and nothing written"
+  },
+  {
+   "id": "QA-PLT-1211",
+   "title": "The catch-all is not invented from the last row",
+   "verdict": "PASS",
+   "evidence": "no catch-all invented, and the gap is reported"
+  },
+  {
+   "id": "QA-PLT-1212",
+   "title": "The published formats are the ones actually read",
+   "verdict": "PASS",
+   "evidence": "2 read, 3 refused by name"
+  },
+  {
+   "id": "QA-PLT-122",
+   "title": "A dimension outside `POLICED`",
+   "verdict": "PASS",
+   "evidence": "policed ['legal_entity'], unpoliced ['domain'], both named in `does_not_reach`"
+  },
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile one document twice with nothing changed between",
+   "verdict": "PASS",
+   "evidence": "the same document id and digest sha256:735efd06d"
+  },
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile the same document five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "1 citations, unchanged across five compiles"
+  },
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile a document that has open review comments",
+   "verdict": "PASS",
+   "evidence": "1 open comment(s) still against 01a0a2cf8b58"
+  },
+  {
+   "id": "QA-PLT-126",
+   "title": "The same document through the export packer instead",
+   "verdict": "PASS",
+   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:64689ae6e95f9"
+  },
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "the subject is resolved first \u2014 'registry_refused' 409 for the URN, then 'unknown_document_kind' 422 once the model exists, listing the kinds"
+  },
+  {
+   "id": "QA-PLT-128",
+   "title": "A model with nothing recorded, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "10 of 15 sections unfillable, 10 of them required, complete=False"
+  },
+  {
+   "id": "QA-PLT-129",
+   "title": "A subsystem that throws during compilation",
+   "verdict": "PASS",
+   "evidence": "the compile fails loudly (500) rather than authoring a document with a silent hole; the section is not swallowed"
+  },
+  {
+   "id": "QA-PLT-130",
+   "title": "A pack cut while a subsystem is unreadable",
+   "verdict": "FAIL",
+   "evidence": "the monitoring service raised while this pack was cut and `gaps.md` does not mention it. `ContextBuilder` records what it could not read under `ctx['unreadable']`; `ExportPacker.build` reads `ctx.get('_gaps')`, which nothing writes \u2014 so the loop that turns context failures into gap entries iterates an empty list every time. Keys read by the packer and never written by the context builder: ['_gaps'"
+  },
+  {
+   "id": "QA-PLT-131",
+   "title": "An event recorded at exactly the sequence the document recorded as head",
+   "verdict": "PASS",
+   "evidence": "head 113 carries 1 event(s) and the document is not stale; the boundary is exclusive"
+  },
+  {
+   "id": "QA-PLT-132",
+   "title": "A document row with no `subjects` list",
+   "verdict": "FAIL",
+   "evidence": "a document row whose `subjects` list is empty falls back to the model id alone, so a new version \u2014 the event a document most needs to notice \u2014 leaves it reporting 'nothing has been recorded since it was compiled'; the column reads []. Latent rather than live on a fresh estate: `render` writes `subjects` on every compile, so the `or [doc['model_id']]` fallback is only reached by a row that predates"
+  },
+  {
+   "id": "QA-PLT-133",
+   "title": "A compiled document that cites nothing",
+   "verdict": "PASS",
+   "evidence": "sound over 2 citation(s), count reported"
+  },
+  {
+   "id": "QA-PLT-134",
+   "title": "A citation to an evidence node the reader may not see",
+   "verdict": "FAIL",
+   "evidence": "`GET /api/v1/documents/{document_id}` authorises `document:read` with NO model, while `GET /api/v1/documents?urn=` passes one and refuses this reader 'out_of_scope'. So a principal scoped to LE-XX-99 is served an LE-US-01 model's compiled document by id \u2014 15 sections of its identity, methodology, findings and approvals \u2014 and told its 1 citation(s) are sound. The soundness claim is itself unscoped "
+  },
+  {
+   "id": "QA-PLT-135",
+   "title": "A dossier for a URN that is not registered",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-136",
+   "title": "A dossier for a registered model with nothing filed",
+   "verdict": "PASS",
+   "evidence": "1 gap(s) named"
+  },
+  {
+   "id": "QA-PLT-137",
+   "title": "A dossier for a model with three empty versions",
+   "verdict": "PASS",
+   "evidence": "exactly four gaps: ['model dp-8e2ebc13', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
+  },
+  {
+   "id": "QA-PLT-138",
+   "title": "A dangling featureset pin on a non-fitted parameter set",
+   "verdict": "FAIL",
+   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-61af275c', "
+  },
+  {
+   "id": "QA-PLT-139",
+   "title": "A dangling pin on a fitted set versus no pin at all",
+   "verdict": "FAIL",
+   "evidence": "both states print the same sentence: \"a fitted set that does not name the featureset version it came from \u2014 'what data produced these numbers' has no answer from here\". It is false for the dangling case \u2014 that set DOES name the featureset version it came from, and the register has lost it. The comment above `_pin` states the rule ('a pin that does not resolve is a real gap, and a different one fro"
+  },
+  {
+   "id": "QA-PLT-140",
+   "title": "The attachment register throws while a dossier is built",
+   "verdict": "FAIL",
+   "evidence": "the attachment register raised for every subject and the dossier records 1 gap(s) all saying 'nothing is filed here; expected the methodology, and the literature the approach'. `_attached` catches the exception, logs it and returns `[]`, so `_node` cannot tell 'nothing is filed' from 'the store did not answer' \u2014 and reports the first. A reader sent to file a document that is already filed cannot d"
+  },
+  {
+   "id": "QA-PLT-141",
+   "title": "A dossier over a large featureset estate",
+   "verdict": "PASS",
+   "evidence": "one parameter set, one dossier build, an estate of 21 featureset(s): 1 full scan(s) of the register and 21 version read(s), 5 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
+  },
+  {
+   "id": "QA-PLT-142",
+   "title": "Dossier gaps carried into the pack",
+   "verdict": "PASS",
+   "evidence": "2 dossier gap(s) carried under documentation/, manifest counts 20 (21 listed)"
+  },
+  {
+   "id": "QA-PLT-143",
+   "title": "The `superseded` review state",
+   "verdict": "FAIL",
+   "evidence": "'superseded' is one of the 4 states the review vocabulary publishes at GET /api/v1/document-review/asks, and no code path in `core/docs/review.py` writes it \u2014 `comment` opens, `resolve` writes resolved, `withdraw` writes withdrawn, and nothing writes this. A client filtering or reporting on it filters on a state that cannot occur, which reads as 'none of those' rather than as 'that never happens h"
+  },
+  {
+   "id": "QA-PLT-144",
+   "title": "Withdraw a comment that was already resolved",
+   "verdict": "FAIL",
+   "evidence": "a resolved comment was withdrawn, erasing the answer somebody gave it"
+  },
+  {
+   "id": "QA-PLT-145",
+   "title": "Withdraw with an empty reason",
+   "verdict": "FAIL",
+   "evidence": "a comment was withdrawn with no reason at all and the record now reads state='withdrawn' resolution=''. `resolve` refuses exactly this \u2014 'closing a comment needs a sentence about what was done' \u2014 and `withdraw` writes the same column with no check, so the review history has a closed objection and no account of why it was dropped"
+  },
+  {
+   "id": "QA-PLT-146",
+   "title": "Withdraw under a read-only permission",
+   "verdict": "FAIL",
+   "evidence": "`withdraw_comment` authorises `document:read` where `comment` authorises `document:review`. Somebody else is stopped by the register rather than by the route \u2014 'not_your_comment' \u2014 so the reachable case is narrow and real: a reviewer whose `document:review` has been revoked still holds `document:read`, and can still close the objections they raised while they had it. The permission that gates rais"
+  },
+  {
+   "id": "QA-PLT-147",
+   "title": "Two people resolving one comment",
+   "verdict": "PASS",
+   "evidence": "refused 'comment_closed'"
+  },
+  {
+   "id": "QA-PLT-148",
+   "title": "Resolve citing an `evidence_id` that does not exist",
+   "verdict": "FAIL",
+   "evidence": "a comment was resolved citing 'evidence-node-that-never-existed', which is in no chain, and the act was recorded with `changed_the_record: true` \u2014 it is `bool(evidence_id)` with no existence check. The review history now asserts that a wrong sentence was fixed by fixing the record, and points at nothing; the comment reads state='resolved'. `verify_citations` exists for exactly this question about "
+  },
+  {
+   "id": "QA-PLT-149",
+   "title": "The raiser closing their own point",
+   "verdict": "PASS",
+   "evidence": "refused 'raiser_may_not_close'"
+  },
+  {
+   "id": "QA-PLT-150",
+   "title": "The raiser under a different spelling of their name",
+   "verdict": "PASS",
+   "evidence": "'person/validator' is recognised as 'validator'"
+  },
+  {
+   "id": "QA-PLT-151",
+   "title": "A comment on a section the document does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_section'"
+  },
+  {
+   "id": "QA-PLT-152",
+   "title": "A pack over the size ceiling",
+   "verdict": "FAIL",
+   "evidence": "`pack_too_large` is raised at source line 90 and `self._zip(members)` runs at line 89 \u2014 the whole archive is built, compressed and held in memory before its size is measured against the 2GB ceiling. Every member is already resident as bytes in `members` too, so the peak is the uncompressed content plus the archive. The refusal protects the recipient from an export nobody can open; it does not prot"
+  },
+  {
+   "id": "QA-PLT-153",
+   "title": "A pack requesting a document kind that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 4 kinds"
+  },
+  {
+   "id": "QA-PLT-154",
+   "title": "Two attachments with the same filename and a colliding digest prefix",
+   "verdict": "FAIL",
+   "evidence": "two attachments named 'report.pdf' whose digests agree on bytes 7:15 produced 1 archive member(s) \u2014 ['attachments/AAAAAAAA-report.pdf'] \u2014 while attachments/index.json lists 2. The name is `digest[7:15] + filename`, a dict assignment overwrites, and no gap is recorded: the index says two documents are in this pack and one of them is not. 0 gap(s) recorded"
+  },
+  {
+   "id": "QA-PLT-155",
+   "title": "Two packs of unchanged state",
+   "verdict": "PASS",
+   "evidence": "content sha256:8bb01670e6e6a on both; archive digests differ because the manifest carries the moment"
+  },
+  {
+   "id": "QA-PLT-156",
+   "title": "A pack cut while the evidence chain is broken",
+   "verdict": "PASS",
+   "evidence": "the pack is cut and the manifest reports verified: false"
+  },
+  {
+   "id": "QA-PLT-157",
+   "title": "A share read at exactly its expiry instant",
+   "verdict": "PASS",
+   "evidence": "open at the instant, expired a second later"
+  },
+  {
+   "id": "QA-PLT-158",
+   "title": "A share created with `max_reads: 0`",
+   "verdict": "FAIL",
+   "evidence": "`max_reads: 0` was stored as None: the guard is `if max_reads`, and zero is falsy, so asking for NO permitted reads produces a share with NO LIMIT \u2014 the exact inverse of the request, and the one direction that cannot be noticed by reading the row back"
+  },
+  {
+   "id": "QA-PLT-159",
+   "title": "A share created with `max_reads: -1`",
+   "verdict": "FAIL",
+   "evidence": "`max_reads: -1` was accepted and the share is born exhausted: nothing validates the field, so a typo produces a link that refuses every read and reads on the register as one somebody used up"
+  },
+  {
+   "id": "QA-PLT-160",
+   "title": "Ten concurrent reads of a `max_reads: 1` share",
+   "verdict": "FAIL",
+   "evidence": "a share capped at one read served 5 of ten simultaneous reads at worst across 5 rounds (served [1, 5, 5, 5, 5]). `open_share` reads `share['reads']` before the state check and writes `reads + 1` after serving, with no lock and no conditional update \u2014 racers that read the same count all pass the cap and all serve. `max_reads` is the control a firm relies on when a link has gone somewhere it should "
+  },
+  {
+   "id": "QA-PLT-161",
+   "title": "Revoking a share that has already expired",
+   "verdict": "PASS",
+   "evidence": "an expired share can still be revoked, and the record keeps both the expiry and the revocation"
+  },
+  {
+   "id": "QA-PLT-162",
+   "title": "`days_left` on an expired share",
+   "verdict": "FAIL",
+   "evidence": "an expired share reports -10.0 days left: a negative number sorts on a list as the link with the longest to run"
+  },
+  {
+   "id": "QA-PLT-163",
+   "title": "Redeem a share link end to end",
+   "verdict": "FAIL",
+   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/ZpZ9dqU3RDXlX7ZtvFDEET44XPy_j8U-xGdiS0We6Gc:404, /api/v1/export-shares/ZpZ9dqU3RDXlX7ZtvFDEET44XPy_j8U-xGdiS0We6Gc/open:404, /api/v1/export-shares/ZpZ9dqU3RDXlX7ZtvFDEET44XPy_j8U-xGdiS0We6Gc/pack:404, /"
+  },
+  {
+   "id": "QA-PLT-164",
+   "title": "Recovering a share reference after creation",
+   "verdict": "PASS",
+   "evidence": "found by purpose, with its reference, among 7"
+  },
+  {
+   "id": "QA-PLT-165",
+   "title": "The share window at 90 days and at 91",
+   "verdict": "PASS",
+   "evidence": "90 accepted, 91 refused"
+  },
+  {
+   "id": "QA-PLT-166",
+   "title": "A share created without a purpose or a recipient",
+   "verdict": "PASS",
+   "evidence": "refused 'recipient_required' and 'purpose_required'"
+  },
+  {
+   "id": "QA-PLT-167",
+   "title": "A search whose query is nothing but stop words",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_query' 422 over 17 stop words, and a one-character term too"
+  },
+  {
+   "id": "QA-PLT-168",
+   "title": "Search `limit` at 0, 200, 201, and `abc`",
+   "verdict": "PASS",
+   "evidence": "200 accepted; 0 and 201 refused 'limit_out_of_range'; 'abc' refused 'validation_error' \u2014 every 422 on this parameter carries a code, so one client path reads all three"
+  },
+  {
+   "id": "QA-PLT-169",
+   "title": "Coverage driven to 1.0 by mislabelling one file",
+   "verdict": "FAIL",
+   "evidence": "near-identical binary filed twice \u2014 as `application/pdf` and as `text/plain` \u2014 move coverage from 0.5 to 0.6667, because `text_indexed` is `media_type in TEXT_MEDIA` and the media type is whatever the uploading client declared. The mislabelled copy is now counted as searchable and its bytes are searched as text (1 result(s) for a term inside it). Coverage is the figure a reader is told to check BE"
+  },
+  {
+   "id": "QA-PLT-170",
+   "title": "A genuinely extractable PDF declared honestly",
+   "verdict": "FAIL",
+   "evidence": "a text-bearing PDF filed under its true media type is counted unread and stays unread: `text_indexed` is written once in `attach()` as `media_type in TEXT_MEDIA` and no route in the API writes it again \u2014 there is no re-index, no extract, no correction. The only way to make this document searchable is to file it again declaring a media type it does not have, which is the behaviour the coverage figu"
+  },
+  {
+   "id": "QA-PLT-171",
+   "title": "Coverage on an empty estate versus a principal who can see nothing",
+   "verdict": "FAIL",
+   "evidence": "an estate with nothing filed and a reader who may see nothing both answer coverage 0.0 over 0 document(s) with the identical sentence: 'no document has been filed against any model you can see'. The first is a register with a gap and the second is a scope doing its job; a reader told the first when the truth is the second concludes the bank has filed nothing"
+  },
+  {
+   "id": "QA-PLT-172",
+   "title": "Coverage against a `kind`- or `urn`-filtered search",
+   "verdict": "FAIL",
+   "evidence": "a search narrowed to one model answers 0 match(es) over 0 document(s) searched and 1 unread, while `GET /api/v1/document-search/coverage` \u2014 the figure the search's own detail line tells a reader to check first \u2014 answers 0.5714 over 7 document(s) across the whole estate. `coverage()` takes no `urn` and no `kind`, and the route passes neither, so the two numbers are about different corpora and nothi"
+  },
+  {
+   "id": "QA-PLT-173",
+   "title": "Superseding every unread document with a text note",
+   "verdict": "FAIL",
+   "evidence": "superseding an unread PDF with a 31-byte text note moved coverage from 0.5 to 0.625 (4 unread \u2192 3) while the content it measured became unreachable: a term inside the superseded document now returns 0 result(s). The figure a reader is told to check before trusting an empty answer is improved by removing the documents it was counting"
+  },
+  {
+   "id": "QA-PLT-174",
+   "title": "A quarantined or rejected attachment in the search results",
+   "verdict": "FAIL",
+   "evidence": "a document the register rejected \u2014 state 'rejected', reviewed with 'wrong figure, do not use' \u2014 is returned by search with its text quoted back: 'the rejected figure is 99.9 percent'. `_candidates` yields every current attachment and filters only on `kind`, so none of the 4 states narrows the corpus. The hit carries `state`, which is honest and is not a filter: a reader searching for a figure find"
+  },
+  {
+   "id": "QA-PLT-175",
+   "title": "A search with `limit=1` over many matches",
+   "verdict": "PASS",
+   "evidence": "matches 6 over 6 searched, one row returned"
+  },
+  {
+   "id": "QA-PLT-176",
+   "title": "A search run with no principal while an authoriser is wired",
+   "verdict": "FAIL",
+   "evidence": "`search(principal=None)` with an authoriser wired returned 9 result(s) across 13 document(s) \u2014 `_visible` applies the filter only `if self.authz is not None and principal is not None`, so nothing was filtered \u2014 and the answer reports `scoped: true`, because that flag is `self.authz is not None`. It describes the wiring. A caller reading it concludes the estate was narrowed to them when the whole c"
+  },
+  {
+   "id": "QA-PLT-177",
+   "title": "Two documents, one term, wildly different densities",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised ImportError: cannot import name '_match' from 'core.docs.search' (/home/ashutosh/PycharmProjects/maya/core/docs/search.py) | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-PLT-178",
+   "title": "Search over an estate where nothing is indexed",
+   "verdict": "PASS",
+   "evidence": "0 searched, 1 unread named with their media type, and the detail says so"
+  },
+  {
+   "id": "QA-PLT-179",
+   "title": "A markdown link in the shipped documentation that resolves to a 500",
+   "verdict": "FAIL",
+   "evidence": "`tests/test_documentation_links.py` asks each absolute link for its status and fails only on 404 \u2014 the comment says 3xx means the route exists, which is right, and a 500 is treated the same way. A documentation set every one of whose targets raises would pass this crawler, and the reader following a link gets an error page rather than the page the documentation promised. The check that exists to s"
+  },
+  {
+   "id": "QA-PLT-180",
+   "title": "Register a Tier C capability",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-181",
+   "title": "Register with tier 'c', lower case",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-182",
+   "title": "Tier A registered without an oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required' (422)"
+  },
+  {
+   "id": "QA-PLT-183",
+   "title": "Tier C and a bogus oracle together",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable' (422)"
+  },
+  {
+   "id": "QA-PLT-184",
+   "title": "A capability naming an oracle that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_oracle' (422)"
+  },
+  {
+   "id": "QA-PLT-185",
+   "title": "Use a suspended capability",
+   "verdict": "PASS",
+   "evidence": "refused 'capability_inactive'"
+  },
+  {
+   "id": "QA-PLT-186",
+   "title": "review_sample outside 0..1",
+   "verdict": "PASS",
+   "evidence": "both refused"
+  },
+  {
+   "id": "QA-PLT-187",
+   "title": "A Tier A generation whose grounding rejects **every** claim",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' rather than returning empty prose"
+  },
+  {
+   "id": "QA-PLT-188",
+   "title": "A Tier B generation whose grounding rejects every claim",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded'"
+  },
+  {
+   "id": "QA-PLT-189",
+   "title": "Draft against a subject with no evidence at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-192",
+   "title": "A fabricated citation on the drafting path",
+   "verdict": "PASS",
+   "evidence": "1 kept, 1 rejected"
+  },
+  {
+   "id": "QA-PLT-194",
+   "title": "Attest your own generation",
+   "verdict": "PASS",
+   "evidence": "refused 'self_attestation'"
+  },
+  {
+   "id": "QA-PLT-195",
+   "title": "A generation created by `system`, attested by `system`",
+   "verdict": "PASS",
+   "evidence": "refused 'machine_attestation' \u2192 403: `system` cannot attest its own generation"
+  },
+  {
+   "id": "QA-PLT-196",
+   "title": "Attest the same generation twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_decided'"
+  },
+  {
+   "id": "QA-PLT-197",
+   "title": "The raw ungrounded prose survives in the record",
+   "verdict": "PASS",
+   "evidence": "the rejected claim is kept beside the kept ones"
+  },
+  {
+   "id": "QA-PLT-199",
+   "title": "`unverified_narrative` as a state",
+   "verdict": "PASS",
+   "evidence": "no unverified narrative state; the states are not enumerated"
+  },
+  {
+   "id": "QA-PLT-200",
+   "title": "Zero claims versus every claim rejected",
+   "verdict": "FAIL",
+   "evidence": "both refuse 'nothing_grounded', so a cautious generation and a wholly unsupported one are one fact"
+  },
+  {
+   "id": "QA-PLT-201",
+   "title": "Set a budget of zero",
+   "verdict": "PASS",
+   "evidence": "zero refused on tokens, cost and steps"
+  },
+  {
+   "id": "QA-PLT-202",
+   "title": "Spend exactly the budget, then call once more",
+   "verdict": "PASS",
+   "evidence": "the gate runs before the call; headroom []"
+  },
+  {
+   "id": "QA-PLT-203",
+   "title": "A refused generation still charges the budget",
+   "verdict": "PASS",
+   "evidence": "charged with outcome 'nothing_grounded' and no generation id"
+  },
+  {
+   "id": "QA-PLT-2100",
+   "title": "Writing the same object twice is not an overwrite",
+   "verdict": "PASS",
+   "evidence": "identical content, accepted twice"
+  },
+  {
+   "id": "QA-PLT-2101",
+   "title": "A held object is read-only after writing",
+   "verdict": "PASS",
+   "evidence": "written objects are read-only on disk"
+  },
+  {
+   "id": "QA-PLT-2102",
+   "title": "The store lists nothing when it holds nothing",
+   "verdict": "PASS",
+   "evidence": "empty lists nothing; one write lists one"
+  },
+  {
+   "id": "QA-PLT-2103",
+   "title": "A staging file is not listed as an object",
+   "verdict": "PASS",
+   "evidence": "staging files are not objects"
+  },
+  {
+   "id": "QA-PLT-213",
+   "title": "A capability whose oracle was removed from the code in a release",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_oracle' at registration"
+  },
+  {
+   "id": "QA-PLT-214",
+   "title": "A remote provider on an instance where none is configured",
+   "verdict": "PASS",
+   "evidence": "refused 'provider_unavailable' rather than falling back"
+  },
+  {
+   "id": "QA-PLT-215",
+   "title": "`citation_accuracy` reported as 1.0",
+   "verdict": "PASS",
+   "evidence": "metrics are computed over a stated 30-day window"
+  },
+  {
+   "id": "QA-PLT-216",
+   "title": "A capability with fewer than ten reviews in `never_overridden`",
+   "verdict": "PASS",
+   "evidence": "rates floored at 10 samples and labelled thin below it"
+  },
+  {
+   "id": "QA-PLT-217",
+   "title": "`toxicity` and `personal_data_leakage` on the metric list",
+   "verdict": "PASS",
+   "evidence": "2 of 10 named as not measured, present on the list, each with a reason"
+  },
+  {
+   "id": "QA-PLT-219",
+   "title": "A backup of a broken chain, with and without the flag",
+   "verdict": "PASS",
+   "evidence": "refused by default naming the flag; the forensic copy records verifies=False at seq 4"
+  },
+  {
+   "id": "QA-PLT-222",
+   "title": "Back up an instance on a dialect that is neither",
+   "verdict": "FAIL",
+   "evidence": "the tool branches on `not dialect.startswith('sqlite')` and every non-SQLite dialect is told about `pg_dump` and `pg_basebackup`. An operator on MySQL, Oracle or a typo in the URL is handed PostgreSQL instructions \u2014 the remediation is confident and wrong, which reads as though somebody checked the dialect and did not. The refusal is right; only its addressee is assumed"
+  },
+  {
+   "id": "QA-PLT-223",
+   "title": "Back up an instance with `data/worm/` missing",
+   "verdict": "PASS",
+   "evidence": "absent in the manifest with the path it looked at, and absent again after the restore \u2014 not silently skipped"
+  },
+  {
+   "id": "QA-PLT-225",
+   "title": "A restore over an instance holding evidence, with --force",
+   "verdict": "FAIL",
+   "evidence": "the refusal is right and the tool does not let go. `restore.run` opens the target with `open_database(cfg)` and then raises SystemExit for the evidence it found, with no `dispose()` between the two \u2014 so the connection outlives the refusal. Retrying with `--force` IN THE SAME PROCESS, which is what the refusal's own remediation tells somebody to do, then meets a database this process is still holdi"
+  },
+  {
+   "id": "QA-PLT-226",
+   "title": "A restore whose head disagrees with the manifest",
+   "verdict": "PASS",
+   "evidence": "head_agrees false, exit 1: the restored chain verifies against ITSELF but sits at a different head from the one this backup recorded. Tha"
+  },
+  {
+   "id": "QA-PLT-229",
+   "title": "A manifest from a different build",
+   "verdict": "FAIL",
+   "evidence": "a manifest declaring `manifest_version: 99` \u2014 a version this build does not write (it writes 1) \u2014 was restored without a word, while a manifest missing a SECTION is refused by name. The version field is written into every manifest and read by nothing, so a backup from a future build whose sections have moved is restored optimistically and the parts this build cannot see are silently skipped"
+  },
+  {
+   "id": "QA-PLT-232",
+   "title": "Restore run from a different working directory",
+   "verdict": "PASS",
+   "evidence": "identical restores from two working directories, head 3 against the manifest's 3"
+  },
+  {
+   "id": "QA-PLT-233",
+   "title": "The two ways the restore exits 1",
+   "verdict": "PASS",
+   "evidence": "refused before touching anything with its own message, and exit 1 after restoring with a head that disagrees \u2014 two states, one code, two sentences"
+  },
+  {
+   "id": "QA-PLT-235",
+   "title": "Back up, restore, and verify the chain end to end",
+   "verdict": "PASS",
+   "evidence": "4 node(s) backed up and restored; head agrees, chain verifies, every store digest matches"
+  },
+  {
+   "id": "QA-PLT-237",
+   "title": "Run the whole batch twice",
+   "verdict": "PASS",
+   "evidence": "27 jobs both times, 0 failed"
+  },
+  {
+   "id": "QA-PLT-238",
+   "title": "A manual run inside the in-process loop",
+   "verdict": "PASS",
+   "evidence": "two overlapping runs of 'evidence.verify', both recorded, neither failed"
+  },
+  {
+   "id": "QA-PLT-239",
+   "title": "A job that raises",
+   "verdict": "PASS",
+   "evidence": "27 ran, 0 failed, each result carrying ok and error"
+  },
+  {
+   "id": "QA-PLT-240",
+   "title": "The database locked while a job records its result",
+   "verdict": "FAIL",
+   "evidence": "a lock while RECORDING the second job's result aborted the whole batch with RuntimeError: database is locked. `Scheduler._one` wraps `job.run(context)` in a try \u2014 one job must not stop four \u2014 and then writes the run row and the evidence node outside it. Every job after the second never ran, and the caller gets an exception rather than three results and one failure; the jobs that did run are record"
+  },
+  {
+   "id": "QA-PLT-241",
+   "title": "One valid job name and one invalid",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_job', naming the known jobs"
+  },
+  {
+   "id": "QA-PLT-242",
+   "title": "Run with no body at all",
+   "verdict": "PASS",
+   "evidence": "all 27 jobs ran"
+  },
+  {
+   "id": "QA-PLT-243",
+   "title": "Run the notifications batch with no body",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-244",
+   "title": "The scheduler that has never run",
+   "verdict": "PASS",
+   "evidence": "27 jobs, each stating what and why; health {'jobs': 27, 'ever_run': 27, 'never_run': [], 'last_run_at':"
+  },
+  {
+   "id": "QA-PLT-245",
+   "title": "The scheduler stopped for three hours",
+   "verdict": "PASS",
+   "evidence": "stale past 2 hours with the consequence named, and readiness still 200"
+  },
+  {
+   "id": "QA-PLT-246",
+   "title": "A finding retitled, then the job that raised it run again",
+   "verdict": "FAIL",
+   "evidence": "`_already_raised` matches `f['title'] == title`, so a finding whose title a person edited is no longer recognised as the one the job raised: the check answers False and the next run raises a second copy of the same condition. The model holds 1 open finding(s) now (was 1) and would hold 2 after one more batch. Six job sites call this, all of them nightly, and the register's counts are what the agei"
+  },
+  {
+   "id": "QA-PLT-247",
+   "title": "A subscription to `*`",
+   "verdict": "PASS",
+   "evidence": "refused 'wildcard_refused'; an empty list refuses separately"
+  },
+  {
+   "id": "QA-PLT-248",
+   "title": "A subscription to a plain-HTTP URL",
+   "verdict": "PASS",
+   "evidence": "http refused naming the local exception; file and ftp refused"
+  },
+  {
+   "id": "QA-PLT-249",
+   "title": "A subscription that fails five times in a row",
+   "verdict": "PASS",
+   "evidence": "suspended at 5, cursor kept at 385, and it counted down first"
+  },
+  {
+   "id": "QA-PLT-250",
+   "title": "The subscription secret after creation",
+   "verdict": "PASS",
+   "evidence": "returned once at creation and absent from every read after"
+  },
+  {
+   "id": "QA-PLT-2500",
+   "title": "A flagged row cannot carry the content it flags",
+   "verdict": "PASS",
+   "evidence": "1 flagged table(s) refuse content"
+  },
+  {
+   "id": "QA-PLT-2501",
+   "title": "The same key with a different body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused'"
+  },
+  {
+   "id": "QA-PLT-2502",
+   "title": "The same key with the same body, keys reordered",
+   "verdict": "PASS",
+   "evidence": "reordered keys are the same request"
+  },
+  {
+   "id": "QA-PLT-251",
+   "title": "Two concurrent ingests into the discovery register",
+   "verdict": "FAIL",
+   "evidence": "2 reference(s) are held by more than one row after two concurrent sweeps: ['DISC-0003', 'DISC-0004']. `ingest` mints `DISC-{n:04d}` from a count of the rows already there, so two sweeps that read the same count produce the same reference \u2014 and a triage queue where two candidates answer to one name is one where dismissing a spreadsheet dismisses somebody else's"
+  },
+  {
+   "id": "QA-PLT-252",
+   "title": "A notification channel that is configured and unreachable",
+   "verdict": "PASS",
+   "evidence": "refused 'channel_unavailable', naming the log channel"
+  },
+  {
+   "id": "QA-PLT-253",
+   "title": "The same outstanding work notified twice inside the quiet window",
+   "verdict": "PASS",
+   "evidence": "unchanged is suppressed, changed is not, and the window expires"
+  },
+  {
+   "id": "QA-PLT-254",
+   "title": "A channel failing for a week, then recovering",
+   "verdict": "FAIL",
+   "evidence": "30 failure(s) recorded and summarised, and recovery sends \u2014 all correct. What is not: `_deliver` calls `transport.send` outside any try, and the contract that makes that safe is that a channel reports rather than raises. `WebhookChannel.send` calls `permit(self.url)` BEFORE its own try, so an operator who pastes a `file:` URL \u2014 the case the comment beside it names \u2014 raises out of `send`, out of `_"
+  },
+  {
+   "id": "QA-PLT-255",
+   "title": "Two concurrent notifier runs",
+   "verdict": "PASS",
+   "evidence": "3 sent, 7 suppressed across two runs"
+  },
+  {
+   "id": "QA-PLT-256",
+   "title": "A notification to a principal with no email address",
+   "verdict": "PASS",
+   "evidence": "the username is the fallback, and a failure is on the chain"
+  },
+  {
+   "id": "QA-PLT-2600",
+   "title": "A comment asking for something that is not an ask",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_ask', naming the 5 asks"
+  },
+  {
+   "id": "QA-PLT-2601",
+   "title": "A comment with no body",
+   "verdict": "PASS",
+   "evidence": "refused 'body_required'"
+  },
+  {
+   "id": "QA-PLT-2602",
+   "title": "Somebody else may close it",
+   "verdict": "PASS",
+   "evidence": "somebody other than the raiser closed it"
+  },
+  {
+   "id": "QA-PLT-2603",
+   "title": "A plain comment may be closed by its raiser",
+   "verdict": "PASS",
+   "evidence": "a 'comment' closes without a second person"
+  },
+  {
+   "id": "QA-PLT-2604",
+   "title": "Resolve with no resolution",
+   "verdict": "PASS",
+   "evidence": "refused 'resolution_required'"
+  },
+  {
+   "id": "QA-PLT-266",
+   "title": "One bad row among ninety-nine good ones",
+   "verdict": "PASS",
+   "evidence": "the offending row is named by index"
+  },
+  {
+   "id": "QA-PLT-267",
+   "title": "A sweep reporting confidence 1.0",
+   "verdict": "PASS",
+   "evidence": "refused at 1.0"
+  },
+  {
+   "id": "QA-PLT-268",
+   "title": "A sweep with recall unknown, stated",
+   "verdict": "FAIL",
+   "evidence": "a sweep saying nothing about recall was admitted. The contract tests `\"recall_known\" not in sweep`, and the route model declares it `Optional[bool] = None`, so `model_dump()` always supplies the key and the absence can never be observed over HTTP \u2014 the check fires when the key is genuinely absent, so it is the route that defeats it"
+  },
+  {
+   "id": "QA-PLT-269",
+   "title": "A sweep with several problems",
+   "verdict": "PASS",
+   "evidence": "4 problems reported together"
+  },
+  {
+   "id": "QA-PLT-270",
+   "title": "The same candidate ingested twice",
+   "verdict": "PASS",
+   "evidence": "deduplicated on the fingerprint"
+  },
+  {
+   "id": "QA-PLT-2700",
+   "title": "Every duties comparison asks identity the same way",
+   "verdict": "PASS",
+   "evidence": "every duties comparison in core/ goes through same_person"
+  },
+  {
+   "id": "QA-PLT-2701",
+   "title": "same_person itself is right",
+   "verdict": "PASS",
+   "evidence": "prefix, case and space collapse; different names do not"
+  },
+  {
+   "id": "QA-PLT-2702",
+   "title": "Break-glass dual authorisation under two spellings",
+   "verdict": "PASS",
+   "evidence": "the authorisation check goes through same_person()"
+  },
+  {
+   "id": "QA-PLT-2703",
+   "title": "The refusal codes for one-person duties are distinct",
+   "verdict": "PASS",
+   "evidence": "10 distinct codes: already_signed_personally, author_may_not_approve, not_the_reviewer, proposer_may_not_approve, raiser_may_not_close, reviewed_by_the_user, same_person, self_approval, self_extension, self_suspension"
+  },
+  {
+   "id": "QA-PLT-271",
+   "title": "A candidate with no fingerprint",
+   "verdict": "PASS",
+   "evidence": "refused, naming the fingerprint"
+  },
+  {
+   "id": "QA-PLT-272",
+   "title": "Triage the same candidate twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_triaged'"
+  },
+  {
+   "id": "QA-PLT-273",
+   "title": "Precision on a scanner with too few triaged candidates",
+   "verdict": "PASS",
+   "evidence": "floor 20 published; 1 scanner(s) with triaged output. qa-scanner-1 has fewer than 20 judged candidat"
+  },
+  {
+   "id": "QA-PLT-274",
+   "title": "Recall on any scanner",
+   "verdict": "PASS",
+   "evidence": "no recall is computed anywhere"
+  },
+  {
+   "id": "QA-PLT-2800",
+   "title": "Every refusal code the platform raises has a status",
+   "verdict": "PASS",
+   "evidence": "all 592 refusal codes are mapped to a status"
+  },
+  {
+   "id": "QA-PLT-2801",
+   "title": "Every actionable refusal says what to do instead",
+   "verdict": "FAIL",
+   "evidence": "28 actionable refusal code(s) of 774 raise sites carry an explicitly empty remediation, so a caller who did something they could have done differently is told what and not what instead: already_decided, already_recorded, already_registered, already_revoked, approval_closed, bad_digest, bad_signature, campaign_closed, channel_not_built, different_version, discovery_incomplete, duplicate_capability"
+  },
+  {
+   "id": "QA-PLT-2802",
+   "title": "Every refusal type reaches HTTP as a refusal",
+   "verdict": "PASS",
+   "evidence": "all 48 refusal types reach HTTP as refusals: duck-typed, adapted by `guard`, caught by name in a route, or raised only at start-up"
+  },
+  {
+   "id": "QA-PLT-2803",
+   "title": "No refusal code is raised under two spellings",
+   "verdict": "PASS",
+   "evidence": "codes raised from many modules, each a place the condition must genuinely be the same: reason_required (16), rationale_required (7), note_required (5), owner_required (5)"
+  },
+  {
+   "id": "QA-PLT-310",
+   "title": "Readiness answers and says what it checked",
+   "verdict": "PASS",
+   "evidence": "200, and it names what it checked"
+  },
+  {
+   "id": "QA-PLT-325",
+   "title": "An API route under a session cookie with no CSRF token",
+   "verdict": "PASS",
+   "evidence": "refused 'csrf_token_invalid'"
+  },
+  {
+   "id": "QA-PLT-326",
+   "title": "The same route under HTTP Basic with no CSRF token",
+   "verdict": "PASS",
+   "evidence": "accepted; CSRF is a browser control only"
+  },
+  {
+   "id": "QA-PLT-327",
+   "title": "A CSRF token from one session used with another",
+   "verdict": "PASS",
+   "evidence": "refused (403) across sessions"
+  },
+  {
+   "id": "QA-PLT-328",
+   "title": "A CSRF token replayed after sign-out and back in",
+   "verdict": "PASS",
+   "evidence": "a new token is minted on the new session and the old one is refused 'csrf_token_invalid'"
+  },
+  {
+   "id": "QA-PLT-329",
+   "title": "Two tabs, one form submitted after the other signed out",
+   "verdict": "PASS",
+   "evidence": "the session is gone before the token is looked at, so the refusal is 'unauthenticated'"
+  },
+  {
+   "id": "QA-PLT-330",
+   "title": "Sign in with the wrong password",
+   "verdict": "PASS",
+   "evidence": "refused without saying which half was wrong"
+  },
+  {
+   "id": "QA-PLT-331",
+   "title": "A next= parameter pointing off-site",
+   "verdict": "PASS",
+   "evidence": "the off-site destination is not carried"
+  },
+  {
+   "id": "QA-PLT-332",
+   "title": "A principal suspended mid-session",
+   "verdict": "PASS",
+   "evidence": "refused (401) on the next request"
+  },
+  {
+   "id": "QA-PLT-333",
+   "title": "A session older than its maximum age",
+   "verdict": "PASS",
+   "evidence": "`auth.session_max_age` is read and passed as the cookie's max_age with a shipped default of 28800s (8h); this instance resolves 28800s"
+  },
+  {
+   "id": "QA-PLT-334",
+   "title": "Security headers on every response class",
+   "verdict": "PASS",
+   "evidence": "3 headers present on 200, 404 and 403"
+  },
+  {
+   "id": "QA-PLT-335",
+   "title": "An API key used on an endpoint that takes no permission",
+   "verdict": "FAIL",
+   "evidence": "a key scoped to `model:read` alone read 4 route(s) that take no permission \u2014 ['/api/v1/document-kinds', '/api/v1/document-subjects', '/api/v1/model-relations', '/api/v1/export-packs']. The scope check is inside `Routes.authorise`, and about 78 call sites use `self.principal(request)` instead (against 494 that authorise), so none of those consults `api_key_scopes`. Every one of them is informationa"
+  },
+  {
+   "id": "QA-PLT-336",
+   "title": "A key whose owner loses the role after it was issued",
+   "verdict": "PASS",
+   "evidence": "the same key answers 200 before the role is removed and 403 ('forbidden') after, with nothing revoked"
+  },
+  {
+   "id": "QA-PLT-337",
+   "title": "An API key issued for an impossible lifetime",
+   "verdict": "PASS",
+   "evidence": "0, -1, 366 and 100000 days all refused"
+  },
+  {
+   "id": "QA-PLT-338",
+   "title": "A revoked key, an expired key, and a key whose principal was suspended",
+   "verdict": "PASS",
+   "evidence": "three reasons, three codes: {'revoked': 'key_revoked', 'expired': 'key_expired', 'suspended': 'key_principal_not_active'}"
+  },
+  {
+   "id": "QA-PLT-339",
+   "title": "Revoke an API key twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_revoked'"
+  },
+  {
+   "id": "QA-PLT-341",
+   "title": "Concurrent authentications with one key",
+   "verdict": "PASS",
+   "evidence": "50 concurrent calls, use_count 0 \u2192 50"
+  },
+  {
+   "id": "QA-PLT-342",
+   "title": "An expired key used repeatedly",
+   "verdict": "PASS",
+   "evidence": "twenty calls, all 401 'key_expired' by name, and `last_used_at` unchanged"
+  },
+  {
+   "id": "QA-PLT-343",
+   "title": "A session cookie, HTTP Basic and an API key on one request",
+   "verdict": "PASS",
+   "evidence": "refused 'csrf_token_invalid' \u2014 the request is authorised against one credential"
+  },
+  {
+   "id": "QA-PLT-344",
+   "title": "SSO status on an instance with SSO unconfigured",
+   "verdict": "PASS",
+   "evidence": "answers that SSO is not enabled"
+  },
+  {
+   "id": "QA-PLT-345",
+   "title": "The SSO login door on an instance with SSO unconfigured",
+   "verdict": "PASS",
+   "evidence": "refused (501)"
+  },
+  {
+   "id": "QA-PLT-346",
+   "title": "A mismatched state, an expired pending login, a replayed nonce",
+   "verdict": "PASS",
+   "evidence": "three conditions, three named refusals: {'state': 'state_mismatch', 'expired': 'login_expired', 'no pending': 'no_login_in_progress'}"
+  },
+  {
+   "id": "QA-PLT-348",
+   "title": "An id token dated in the future and one just expired",
+   "verdict": "PASS",
+   "evidence": "both refused by name through the real `_assert`, and both directions of a 120s leeway accepted: {'expired': 'token_expired', 'just expired, inside leeway': 'accepted', 'future': 'token_from_the_future', 'a moment ahead, inside leeway': 'accepted'}"
+  },
+  {
+   "id": "QA-PLT-350",
+   "title": "An unknown SSO identity with provisioning off",
+   "verdict": "PASS",
+   "evidence": "refused 'not_provisioned': stranger-24e504ac authenticated successfully and has no principal here"
+  },
+  {
+   "id": "QA-PLT-351",
+   "title": "Group claims mapping to two incompatible roles",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles' for ['model_developer', 'validator'], nothing created"
+  },
+  {
+   "id": "QA-PLT-352",
+   "title": "`?limit=100000` on the models listing",
+   "verdict": "PASS",
+   "evidence": "clamped to 500, 130 of 130 returned"
+  },
+  {
+   "id": "QA-PLT-353",
+   "title": "`?limit=0` and `?limit=-5`",
+   "verdict": "PASS",
+   "evidence": "0 and -5 both clamp to a limit of 1"
+  },
+  {
+   "id": "QA-PLT-354",
+   "title": "`?offset=9999` on a listing of 120 rows",
+   "verdict": "PASS",
+   "evidence": "empty page, total still 136, has_more false"
+  },
+  {
+   "id": "QA-PLT-355",
+   "title": "`?limit=abc` versus `?limit=100000`",
+   "verdict": "PASS",
+   "evidence": "'abc' refused 422, 100000 clamped to 500"
+  },
+  {
+   "id": "QA-PLT-356",
+   "title": "An unknown field in a request body",
+   "verdict": "PASS",
+   "evidence": "refused 422 `extra_forbidden` naming the field, in the framework's `detail` list shape rather than the platform's error/detail/remediation"
+  },
+  {
+   "id": "QA-PLT-357",
+   "title": "`?fields=` projecting away a partial answer",
+   "verdict": "PASS",
+   "evidence": "all 15 incompleteness field(s) survive a projection that removes everything else, and the answer says `projected_to`"
+  },
+  {
+   "id": "QA-PLT-358",
+   "title": "`?fields=` naming a field that does not exist",
+   "verdict": "FAIL",
+   "evidence": "`?fields=invented_field` answers 2 empty object(s) with 200 and no refusal. The only thing distinguishing it from a listing of rows that genuinely have no values is `projected_to: ['invented_field']` \u2014 which says what was asked for, not that nothing matched it. A client mapping a mistyped field name gets a page of empty rows and a success, and the register looks empty"
+  },
+  {
+   "id": "QA-PLT-359",
+   "title": "A search over the models listing that matches nothing",
+   "verdict": "PASS",
+   "evidence": "total 0, returned 0, detail 'nothing matched' while the unfiltered listing shows 137 model(s)"
+  },
+  {
+   "id": "QA-PLT-360",
+   "title": "The models listing with no ordering parameter",
+   "verdict": "FAIL",
+   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-64b49e8a']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exis"
+  },
+  {
+   "id": "QA-PLT-3600",
+   "title": "A capability of a tier that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'advisory_not_registrable', naming tiers A, B"
+  },
+  {
+   "id": "QA-PLT-3601",
+   "title": "A Tier A capability with no oracle",
+   "verdict": "PASS",
+   "evidence": "refused 'oracle_required'"
+  },
+  {
+   "id": "QA-PLT-361",
+   "title": "A 429 from the quota path",
+   "verdict": "FAIL",
+   "evidence": "4 refusal code(s) map to 429 \u2014 ['budget_exhausted', 'cost_limit_reached', 'quota_limit_reached', 'rate_limit_reached'] \u2014 and no route or service anywhere sets a `Retry-After` header. The status says *come back later*; the header is the only part of that a client can act on, and every one of these limits is a window MAYA knows the length of. A machine told 429 with no interval either retries immedi"
+  },
+  {
+   "id": "QA-PLT-362",
+   "title": "Every refusal carries all three parts",
+   "verdict": "FAIL",
+   "evidence": "1 of 5 coded refusal(s) omit a part: [\"unknown model (not_found): missing ['remediation']\"]"
+  },
+  {
+   "id": "QA-PLT-366",
+   "title": "An answer with no verdict field",
+   "verdict": "PASS",
+   "evidence": "an absent verdict is UNDETERMINED and exits 2"
+  },
+  {
+   "id": "QA-PLT-367",
+   "title": "The three exit codes are three",
+   "verdict": "PASS",
+   "evidence": "0, 1, 2"
+  },
+  {
+   "id": "QA-PLT-368",
+   "title": "A non-verdict command against a refusing platform",
+   "verdict": "PASS",
+   "evidence": "a refusal exits 1 on stderr, verdict or not"
+  },
+  {
+   "id": "QA-PLT-369",
+   "title": "A non-verdict command reporting bad news",
+   "verdict": "PASS",
+   "evidence": "a report exits 0 whatever it says"
+  },
+  {
+   "id": "QA-PLT-370",
+   "title": "An unknown subcommand and a missing positional",
+   "verdict": "PASS",
+   "evidence": "a usage error exits 2"
+  },
+  {
+   "id": "QA-PLT-3700",
+   "title": "Every job says what it does and why",
+   "verdict": "PASS",
+   "evidence": "all 27 jobs state what and why"
+  },
+  {
+   "id": "QA-PLT-3701",
+   "title": "Every run is on the evidence chain",
+   "verdict": "PASS",
+   "evidence": "50 run(s) recorded and appended"
+  },
+  {
+   "id": "QA-PLT-3702",
+   "title": "A job key that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_job'"
+  },
+  {
+   "id": "QA-PLT-371",
+   "title": "No credentials in the environment",
+   "verdict": "PASS",
+   "evidence": "reads MAYA_PASSWORD, MAYA_TOKEN, MAYA_URL, MAYA_USER"
+  },
+  {
+   "id": "QA-PLT-372",
+   "title": "Malformed JSON on the command line",
+   "verdict": "PASS",
+   "evidence": "exits 2"
+  },
+  {
+   "id": "QA-PLT-373",
+   "title": "A flag that suppresses a refusal",
+   "verdict": "PASS",
+   "evidence": "no flag suppresses a refusal"
+  },
+  {
+   "id": "QA-PLT-374",
+   "title": "A password on the command line",
+   "verdict": "PASS",
+   "evidence": "no credential is accepted on the command line"
+  },
+  {
+   "id": "QA-PLT-376",
+   "title": "Answers on stdout, refusals on stderr",
+   "verdict": "PASS",
+   "evidence": "answers to stdout, both failure paths to stderr"
+  },
+  {
+   "id": "QA-PLT-392",
+   "title": "Each appearance choice is served",
+   "verdict": "PASS",
+   "evidence": "4 themes, each defined: ['blue', 'dark', 'light', 'wallstreet']"
+  },
+  {
+   "id": "QA-PLT-393",
+   "title": "A theme value that is not one",
+   "verdict": "PASS",
+   "evidence": "the theme is applied only from a closed list"
+  },
+  {
+   "id": "QA-PLT-395",
+   "title": "A skip link, reachable from the address bar",
+   "verdict": "PASS",
+   "evidence": "skip link to #main, and the target exists"
+  },
+  {
+   "id": "QA-PLT-396",
+   "title": "A visible focus ring",
+   "verdict": "PASS",
+   "evidence": ":focus-visible is styled"
+  },
+  {
+   "id": "QA-PLT-398",
+   "title": "A screen under reduced motion",
+   "verdict": "PASS",
+   "evidence": "animation, transition and scroll behaviour all neutralised"
+  },
+  {
+   "id": "QA-PLT-399",
+   "title": "An outcome announced to a screen reader",
+   "verdict": "PASS",
+   "evidence": "every template that writes a result announces it"
+  },
+  {
+   "id": "QA-PLT-400",
+   "title": "The sign-in page carries the same affordances",
+   "verdict": "PASS",
+   "evidence": "the sign-in page carries the layout's affordances"
+  },
+  {
+   "id": "QA-PLT-4100",
+   "title": "The poor-precision threshold is published",
+   "verdict": "PASS",
+   "evidence": "the 0.3 floor is published"
+  },
+  {
+   "id": "QA-PLT-4101",
+   "title": "Every contract field says why it is required",
+   "verdict": "PASS",
+   "evidence": "5 candidate and 3 sweep fields, each explaining itself"
+  },
+  {
+   "id": "QA-PLT-4200",
+   "title": "The verdict fields are a closed list",
+   "verdict": "PASS",
+   "evidence": "4: ready, permitted, ok, passed"
+  },
+  {
+   "id": "QA-PLT-4201",
+   "title": "Every command declares whether it decides",
+   "verdict": "PASS",
+   "evidence": "8 commands, 1 of them deciding: ready"
+  },
+  {
+   "id": "QA-PLT-4300",
+   "title": "The skip link is hidden until it is focused",
+   "verdict": "PASS",
+   "evidence": "off screen until focused, then in view"
+  },
+  {
+   "id": "QA-PLT-4301",
+   "title": "Every page declares a language",
+   "verdict": "PASS",
+   "evidence": "every page declares a language"
+  },
+  {
+   "id": "QA-PLT-4302",
+   "title": "A page has exactly one main landmark",
+   "verdict": "PASS",
+   "evidence": "exactly one main landmark"
+  },
+  {
+   "id": "QA-PLT-4700",
+   "title": "No control reads a key one edit from the one written",
+   "verdict": "PASS",
+   "evidence": "3 near-miss read(s) outside the foreign-format modules: 'feature_contract' (near 'has_feature_contract') at engine.py:203; 'reached' (near 'breached') at decommission.py:145; 'warrants' (near 'warrant') at engine.py:210"
+  },
+  {
+   "id": "QA-PLT-4701",
+   "title": "The regime state reads only keys the context carries",
+   "verdict": "FAIL",
+   "evidence": "`core_state` reads ['documents'] from the model context, which does not carry it \u2014 the context holds ['alias_history', 'assessment', 'assumptions', 'attachment_status', 'attachments', 'chain']\u2026 \u2014 so every fact derived from that key is permanently False, and this model has a compiled document"
+  },
+  {
+   "id": "QA-PLT-4760",
+   "title": "`recorded_by` rewritten on a node",
+   "verdict": "PASS",
+   "evidence": "broken at seq 11: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-4761",
+   "title": "`trust` re-weighted on a node",
+   "verdict": "PASS",
+   "evidence": "re-weighting trust breaks the chain"
+  },
+  {
+   "id": "QA-PLT-4762",
+   "title": "Anchor the same head twice, then with a different hash",
+   "verdict": "PASS",
+   "evidence": "same hash is a no-op at seq 11; a different one raises 'anchor_disagreement'"
+  },
+  {
+   "id": "QA-PLT-4763",
+   "title": "The evidence table refuses an UPDATE and a DELETE",
+   "verdict": "PASS",
+   "evidence": "both verbs refused as AppendOnlyViolation, row intact"
+  },
+  {
+   "id": "QA-PLT-4770",
+   "title": "A key on a GET",
+   "verdict": "PASS",
+   "evidence": "a GET claims nothing, and the key is free for a write"
+  },
+  {
+   "id": "QA-PLT-4771",
+   "title": "A key released by a failure is usable again",
+   "verdict": "PASS",
+   "evidence": "the failed attempt left no row at all"
+  },
+  {
+   "id": "QA-PLT-4780",
+   "title": "A fresh `If-Match` is accepted",
+   "verdict": "PASS",
+   "evidence": "the current tag satisfies the precondition"
+  },
+  {
+   "id": "QA-PLT-4781",
+   "title": "The ETag is served on a GET and is stable",
+   "verdict": "PASS",
+   "evidence": "stable across reads, moved by a write"
+  },
+  {
+   "id": "QA-PLT-4790",
+   "title": "The default limit when none is asked for",
+   "verdict": "PASS",
+   "evidence": "defaulted to 50, 50 of 154"
+  },
+  {
+   "id": "QA-PLT-4791",
+   "title": "The detail line tells a caller how to ask for more",
+   "verdict": "PASS",
+   "evidence": "'1\u201350 of 120; ask for the next page with \u2026', final page offers nothing, empty says 'nothing matched'"
+  },
+  {
+   "id": "QA-PLT-4792",
+   "title": "A page is a slice of what was already filtered",
+   "verdict": "PASS",
+   "evidence": "total counts the filtered list, slices are contiguous, limit clamps and a negative offset floors at zero"
+  },
+  {
+   "id": "QA-PLT-4910",
+   "title": "Resuming a suspended subscription",
+   "verdict": "PASS",
+   "evidence": "active, failures reset, cursor still 490"
+  },
+  {
+   "id": "QA-PLT-4911",
+   "title": "A new subscription starts at the head",
+   "verdict": "PASS",
+   "evidence": "cursor starts at the head, 493"
+  },
+  {
+   "id": "QA-PLT-4912",
+   "title": "A subscription with no name and one with no owner",
+   "verdict": "PASS",
+   "evidence": "both refused on whitespace, each by its own code"
+  },
+  {
+   "id": "QA-PLT-4913",
+   "title": "The estate view says an instance with no subscriptions is at rest",
+   "verdict": "PASS",
+   "evidence": "no egress reported as the resting state: nothing subscribes to this register's events. Webhooks are an egress and this pl"
+  },
+  {
+   "id": "QA-PLT-4920",
+   "title": "A channel this instance does not have",
+   "verdict": "PASS",
+   "evidence": "unknown, not built and unavailable all refuse apart"
+  },
+  {
+   "id": "QA-PLT-4921",
+   "title": "A previously FAILED delivery does not suppress the next",
+   "verdict": "PASS",
+   "evidence": "only a SENT delivery starts the quiet window"
+  },
+  {
+   "id": "QA-PLT-4922",
+   "title": "A digest is per channel",
+   "verdict": "PASS",
+   "evidence": "'log' quiet, 'webhook' unaffected"
+  },
+  {
+   "id": "QA-PLT-4923",
+   "title": "A dry run sends nothing and records nothing",
+   "verdict": "PASS",
+   "evidence": "39 rows before and after the preview"
+  },
+  {
+   "id": "QA-PLT-4930",
+   "title": "Rendering writes nothing and records nothing",
+   "verdict": "PASS",
+   "evidence": "15 sections, nothing written"
+  },
+  {
+   "id": "QA-PLT-4931",
+   "title": "Two renderings of unchanged state are identical",
+   "verdict": "PASS",
+   "evidence": "identical, digest sha256:7b8f57461710b"
+  },
+  {
+   "id": "QA-PLT-4932",
+   "title": "A citation to an evidence node that does not exist",
+   "verdict": "PASS",
+   "evidence": "not sound, and the dangling citation is named"
+  },
+  {
+   "id": "QA-PLT-4933",
+   "title": "Staleness is measured across the model and its versions",
+   "verdict": "FAIL",
+   "evidence": "a new version left the document reporting that nothing has been recorded since it was compiled. `subjects` is captured AT COMPILE TIME (2 id(s)) and `version_created` is recorded against the NEW version's id, which is not in it \u2014 so the fix that widened staleness from the model alone to the model and its versions still cannot see a version created afterwards, which is the case the defect was repor"
+  },
+  {
+   "id": "QA-PLT-4934",
+   "title": "A document is not made stale by its own compilation",
+   "verdict": "PASS",
+   "evidence": "a compilation does not stale a document, its own or another's"
+  },
+  {
+   "id": "QA-PLT-4935",
+   "title": "A required section nothing can fill",
+   "verdict": "PASS",
+   "evidence": "10 unfilled of 15, each present with a gap note, complete=False"
+  },
+  {
+   "id": "QA-PLT-4936",
+   "title": "Compiling records the act and the chain head it saw",
+   "verdict": "PASS",
+   "evidence": "authored by risk against head 512"
+  },
+  {
+   "id": "QA-PLT-4940",
+   "title": "A capability nobody set a budget for",
+   "verdict": "PASS",
+   "evidence": "10 of 10 capabilities on a default, counted apart"
+  },
+  {
+   "id": "QA-PLT-500",
+   "title": "A self-consistent rewrite is caught only by the anchor",
+   "verdict": "PASS",
+   "evidence": "the walk agrees, as it must: no anchor is written on this instance, so nothing contradicts a self-consistent rewrite"
+  },
+  {
+   "id": "QA-PLT-507",
+   "title": "A Tier B capability registers with an oracle it does not need",
+   "verdict": "PASS",
+   "evidence": "answered 422 (unknown_oracle)"
+  },
+  {
+   "id": "QA-PLT-508",
+   "title": "A valid Tier B capability",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-PLT-509",
+   "title": "A generation whose claims cite nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' (422)"
+  },
+  {
+   "id": "QA-PLT-510",
+   "title": "Use a suspended capability",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_ground' (422)"
+  },
+  {
+   "id": "QA-PLT-511",
+   "title": "The two tiers are the whole vocabulary",
+   "verdict": "PASS",
+   "evidence": "A and B; C is a refusal, not a tier"
+  },
+  {
+   "id": "QA-PLT-512",
+   "title": "Every refusal carries a code, a detail and a remediation",
+   "verdict": "PASS",
+   "evidence": "schema-level refusal, which names the field and why"
+  },
+  {
+   "id": "QA-PLT-513",
+   "title": "An unauthenticated request is refused, not served",
+   "verdict": "PASS",
+   "evidence": "401"
+  },
+  {
+   "id": "QA-PLT-514",
+   "title": "An unknown route answers 404 and not 500",
+   "verdict": "PASS",
+   "evidence": "404"
+  },
+  {
+   "id": "QA-PLT-515",
+   "title": "A method that does not apply answers 405",
+   "verdict": "PASS",
+   "evidence": "405"
+  },
+  {
+   "id": "QA-PLT-516",
+   "title": "A malformed JSON body is refused, not crashed",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-PLT-517",
+   "title": "A listing pages rather than returning everything",
+   "verdict": "PASS",
+   "evidence": "2 row(s) for limit=2"
+  },
+  {
+   "id": "QA-PLT-518",
+   "title": "A negative limit is refused",
+   "verdict": "FAIL",
+   "evidence": "a negative page size was accepted"
+  },
+  {
+   "id": "QA-PLT-519",
+   "title": "A request id travels with the answer",
+   "verdict": "PASS",
+   "evidence": "x-request-id: f68a1867a4026dcd"
+  },
+  {
+   "id": "QA-PLT-520",
+   "title": "Liveness does not require authentication",
+   "verdict": "PASS",
+   "evidence": "200 without credentials"
+  },
+  {
+   "id": "QA-PLT-5200",
+   "title": "The write-once store refuses a second, different write",
+   "verdict": "PASS",
+   "evidence": "the same bytes twice is a no-op, different bytes is 'worm_overwrite_refused', and four path-escaping names are 'worm_bad_name'"
+  },
+  {
+   "id": "QA-PLT-5201",
+   "title": "Every table the cascade calls BLOCKS is one the refusal can see",
+   "verdict": "PASS",
+   "evidence": "24 blocking table(s): 22 asked by hand, 2 answered from the declaration, every query valid against the schema"
+  },
+  {
+   "id": "QA-PLT-5202",
+   "title": "An instance with no identity provider configured",
+   "verdict": "PASS",
+   "evidence": "no provider is built without an issuer; both SSO endpoints refuse 'sso_not_configured' naming local credentials, and the local form still signs in"
+  },
+  {
+   "id": "QA-PLT-5203",
+   "title": "No permission is ever read from a token or its claims",
+   "verdict": "PASS",
+   "evidence": "the authoriser shares no vocabulary with the directory, and claim-shaped fields on a principal grant nothing"
+  },
+  {
+   "id": "QA-PLT-5204",
+   "title": "A directory sign-in overwrites locally granted roles",
+   "verdict": "PASS",
+   "evidence": "the directory is the source of truth for roles while SSO is on: ['model_risk_manager'] \u2192 ['validator'] on sign-in. Authorisation is still the register's \u2014 the roles are WRITTEN to it and read from it \u2014 and the act is recorded with the groups, the mapping and the resulting roles, which is what makes a past grant explainable"
+  },
+  {
+   "id": "QA-PLT-521",
+   "title": "A configuration change is planned before it is applied",
+   "verdict": "PASS",
+   "evidence": "plan answers 422"
+  },
+  {
+   "id": "QA-PLT-522",
+   "title": "The configuration boundary says what it does not control",
+   "verdict": "PASS",
+   "evidence": "published, 1945 bytes"
+  },
+  {
+   "id": "QA-PLT-523",
+   "title": "Configuration does not leak a secret",
+   "verdict": "PASS",
+   "evidence": "no configured secret appears in the answer"
+  },
+  {
+   "id": "QA-PLT-524",
+   "title": "Discovery produces candidates, and registers nothing",
+   "verdict": "PASS",
+   "evidence": "discovery answered 422 and registered nothing"
+  },
+  {
+   "id": "QA-PLT-525",
+   "title": "Triage a discovery reference that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_candidate'"
+  },
+  {
+   "id": "QA-PLT-526",
+   "title": "The scanner contract is published",
+   "verdict": "PASS",
+   "evidence": "published (200)"
+  },
+  {
+   "id": "QA-PLT-527",
+   "title": "A scanner contract check answers without a scanner named",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-PLT-5300",
+   "title": "Two packs of unchanged state share a content digest",
+   "verdict": "PASS",
+   "evidence": "digest stable at sha256:713bab547d5b2 across two cuts at different times"
+  },
+  {
+   "id": "QA-PLT-5301",
+   "title": "The digest moves when the record does",
+   "verdict": "PASS",
+   "evidence": "the digest moves with the record"
+  },
+  {
+   "id": "QA-PLT-5302",
+   "title": "The manifest says it cannot digest itself",
+   "verdict": "PASS",
+   "evidence": "20 digested member(s), manifest excluded"
+  },
+  {
+   "id": "QA-PLT-5303",
+   "title": "Every member carries its own digest",
+   "verdict": "PASS",
+   "evidence": "all 20 members digested"
+  },
+  {
+   "id": "QA-PLT-5304",
+   "title": "Cutting a pack does not change the next pack",
+   "verdict": "PASS",
+   "evidence": "taking a pack leaves the next one identical"
+  },
+  {
+   "id": "QA-PLT-5305",
+   "title": "Personal data is not re-materialised into the pack",
+   "verdict": "PASS",
+   "evidence": "flagged nodes hold no payload at the schema level, and the pack carries the pointer"
+  },
+  {
+   "id": "QA-PLT-5306",
+   "title": "A pack for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused '405'"
+  },
+  {
+   "id": "QA-PLT-5307",
+   "title": "The pack states the chain's condition",
+   "verdict": "PASS",
+   "evidence": "chain pinned at seq 537, verified=True"
+  },
+  {
+   "id": "QA-PLT-5308",
+   "title": "The pack version is stated",
+   "verdict": "PASS",
+   "evidence": "pack version 1.0"
+  },
+  {
+   "id": "QA-PLT-5400",
+   "title": "A share names a digest and never a path",
+   "verdict": "PASS",
+   "evidence": "digest required, no location field among ['content_digest', 'days', 'filename', 'max_reads', 'pack_digest', 'purpose', 'recipient', 'urn']"
+  },
+  {
+   "id": "QA-PLT-5401",
+   "title": "A share with no content digest",
+   "verdict": "PASS",
+   "evidence": "refused 'content_digest_required'"
+  },
+  {
+   "id": "QA-PLT-5402",
+   "title": "A share with no recipient or no purpose",
+   "verdict": "PASS",
+   "evidence": "both recipient and purpose required"
+  },
+  {
+   "id": "QA-PLT-5403",
+   "title": "A share window outside the permitted range",
+   "verdict": "PASS",
+   "evidence": "0, -1, 91.0 and 3650 refused; 90.0 accepted"
+  },
+  {
+   "id": "QA-PLT-5404",
+   "title": "A revoked share stops serving",
+   "verdict": "PASS",
+   "evidence": "a revoked share refuses to serve"
+  },
+  {
+   "id": "QA-PLT-5405",
+   "title": "Revoke a share twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_revoked'"
+  },
+  {
+   "id": "QA-PLT-5406",
+   "title": "Revoke with no reason",
+   "verdict": "FAIL",
+   "evidence": "a share was revoked with no reason recorded \u2014 `revoke` strips the reason and never checks it, so the record says a firm stopped serving a supervisor a copy and not why"
+  },
+  {
+   "id": "QA-PLT-5407",
+   "title": "A read limit is honoured",
+   "verdict": "PASS",
+   "evidence": "a second read of a one-read share is refused"
+  },
+  {
+   "id": "QA-PLT-5408",
+   "title": "The four states are four",
+   "verdict": "PASS",
+   "evidence": "['exhausted', 'expired', 'open', 'revoked'] with a distinct refusal for each"
+  },
+  {
+   "id": "QA-PLT-5409",
+   "title": "The share posture is readable",
+   "verdict": "PASS",
+   "evidence": "an examiner portal authenticates a third party INTO the register, and whatever that session can reac"
+  },
+  {
+   "id": "QA-PLT-5900",
+   "title": "There is no field that takes query text",
+   "verdict": "PASS",
+   "evidence": "structured only: ['descending', 'entity', 'limit', 'order_by', 'select', 'where']"
+  },
+  {
+   "id": "QA-PLT-5901",
+   "title": "An entity that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_entity', naming 8 entities"
+  },
+  {
+   "id": "QA-PLT-5902",
+   "title": "A field the entity does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_field', naming the field"
+  },
+  {
+   "id": "QA-PLT-5903",
+   "title": "An operator that is not one",
+   "verdict": "FAIL",
+   "evidence": "an operator outside the closed set was accepted and behaved as `eq` \u2014 so a caller asking for `like` gets exact match semantics, and a filter that means something different from what was written reads as one that was applied"
+  },
+  {
+   "id": "QA-PLT-5904",
+   "title": "A row limit outside the range",
+   "verdict": "PASS",
+   "evidence": "0, -1 and past 10000 refused; 10000 accepted"
+  },
+  {
+   "id": "QA-PLT-5905",
+   "title": "Ordering by a field the entity does not have",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_field'"
+  },
+  {
+   "id": "QA-PLT-5906",
+   "title": "A query is scoped to the caller",
+   "verdict": "PASS",
+   "evidence": "a scoped reader is refused 'scope_insufficient'"
+  },
+  {
+   "id": "QA-PLT-5907",
+   "title": "Every entity and operator is published",
+   "verdict": "PASS",
+   "evidence": "8 entities, 10 operators and the 10000 cap all published"
+  },
+  {
+   "id": "QA-PLT-5908",
+   "title": "Every field says what it describes",
+   "verdict": "PASS",
+   "evidence": "all 81 fields across 8 entities describe themselves"
+  },
+  {
+   "id": "QA-PLT-5909",
+   "title": "An export carries the query that produced it",
+   "verdict": "PASS",
+   "evidence": "named by its entity: attachment; filename=\"model.csv\""
+  },
+  {
+   "id": "QA-PLT-600",
+   "title": "A principal with no roles",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-PLT-601",
+   "title": "A principal with a role that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_role' (422)"
+  },
+  {
+   "id": "QA-PLT-602",
+   "title": "A principal with incompatible roles",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles'"
+  },
+  {
+   "id": "QA-PLT-603",
+   "title": "A principal with a password below the minimum",
+   "verdict": "PASS",
+   "evidence": "refused 'password_too_short' (422)"
+  },
+  {
+   "id": "QA-PLT-604",
+   "title": "Two principals with the same username",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_principal' (409)"
+  },
+  {
+   "id": "QA-PLT-605",
+   "title": "Suspend a principal, then use their credentials",
+   "verdict": "PASS",
+   "evidence": "refused (401)"
+  },
+  {
+   "id": "QA-PLT-606",
+   "title": "Suspend the last administrator",
+   "verdict": "PASS",
+   "evidence": "refused 'self_suspension'"
+  },
+  {
+   "id": "QA-PLT-610",
+   "title": "A role granting a permission that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_permission' (422)"
+  },
+  {
+   "id": "QA-PLT-611",
+   "title": "A role with no permissions",
+   "verdict": "PASS",
+   "evidence": "answered 422 (role_grants_nothing)"
+  },
+  {
+   "id": "QA-PLT-612",
+   "title": "Redefine a built-in role",
+   "verdict": "PASS",
+   "evidence": "refused 'built_in_role'"
+  },
+  {
+   "id": "QA-PLT-620",
+   "title": "An API key for a principal that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal' (404)"
+  },
+  {
+   "id": "QA-PLT-621",
+   "title": "An API key with a negative lifetime",
+   "verdict": "PASS",
+   "evidence": "refused 'lifetime_refused'"
+  },
+  {
+   "id": "QA-PLT-622",
+   "title": "An API key scoped to a permission its holder lacks",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_exceeds_principal'"
+  },
+  {
+   "id": "QA-PLT-623",
+   "title": "Revoke an API key with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_key' (404)"
+  },
+  {
+   "id": "QA-PLT-630",
+   "title": "A share with no stated purpose",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-PLT-6300",
+   "title": "A full walk detects a sequence gap",
+   "verdict": "PASS",
+   "evidence": "three break reasons, each naming the sequence"
+  },
+  {
+   "id": "QA-PLT-6301",
+   "title": "The repudiation test is contradicted, not un-corroborated",
+   "verdict": "PASS",
+   "evidence": "tested on contradicted, not on the absence of corroboration"
+  },
+  {
+   "id": "QA-PLT-6302",
+   "title": "A read does not advance the checkpoint",
+   "verdict": "PASS",
+   "evidence": "a non-advancing read is repeatable and writes nothing"
+  },
+  {
+   "id": "QA-PLT-6303",
+   "title": "A verification says who performed it",
+   "verdict": "PASS",
+   "evidence": "verified_by=auditor, self_certified=0"
+  },
+  {
+   "id": "QA-PLT-6304",
+   "title": "An empty chain verifies",
+   "verdict": "PASS",
+   "evidence": "an empty chain verifies"
+  },
+  {
+   "id": "QA-PLT-6305",
+   "title": "The genesis constant is not a node",
+   "verdict": "PASS",
+   "evidence": "head at seq 571; genesis is all zeroes"
+  },
+  {
+   "id": "QA-PLT-6306",
+   "title": "The chain report states its scope",
+   "verdict": "PASS",
+   "evidence": "scope 'incremental' from seq 467"
+  },
+  {
+   "id": "QA-PLT-6307",
+   "title": "Appending is what moves the head",
+   "verdict": "PASS",
+   "evidence": "571 -> 572, and the chain still verifies"
+  },
+  {
+   "id": "QA-PLT-631",
+   "title": "A share with no recipient",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-PLT-632",
+   "title": "A share that never expires",
+   "verdict": "PASS",
+   "evidence": "answered 409 (registry_refused)"
+  },
+  {
+   "id": "QA-PLT-700",
+   "title": "The estate reports a count it can justify",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-PLT-701",
+   "title": "A portfolio cut by a dimension that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-PLT-702",
+   "title": "A heatmap of a dimension against itself",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-PLT-710",
+   "title": "A saved view with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'name_required'"
+  },
+  {
+   "id": "QA-PLT-711",
+   "title": "A saved view over an entity that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_entity'"
+  },
+  {
+   "id": "QA-PLT-712",
+   "title": "Read a saved view that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_view' (404)"
+  },
+  {
+   "id": "QA-PLT-713",
+   "title": "Delete a saved view that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_view'"
+  },
+  {
+   "id": "QA-PLT-720",
+   "title": "Search reports what it could not reach",
+   "verdict": "PASS",
+   "evidence": "coverage is reported beside the hits"
+  },
+  {
+   "id": "QA-PLT-721",
+   "title": "Search with an empty query",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-PLT-730",
+   "title": "A regulatory return over an empty estate",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-PLT-731",
+   "title": "A regulatory return that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_return' (404)"
+  },
+  {
+   "id": "QA-PLT-732",
+   "title": "Risk appetite history for a metric that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_metric' (422)"
+  },
+  {
+   "id": "QA-PLT-733",
+   "title": "Policy history for a gate that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_gate' (404)"
+  },
+  {
+   "id": "QA-PLT-734",
+   "title": "Feature view source for a view that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-PLT-735",
+   "title": "Derived feature lineage for a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-PLT-900",
+   "title": "Every navbar entry is reachable by clicking",
+   "verdict": "PASS",
+   "evidence": "42 navbar entries, all reachable"
+  },
+  {
+   "id": "QA-PLT-901",
+   "title": "A refused screen renders a sentence, not a stack trace",
+   "verdict": "PASS",
+   "evidence": "answered 200, no trace in the body"
+  },
+  {
+   "id": "QA-PLT-902",
+   "title": "A screen for a subject that does not exist says so",
+   "verdict": "PASS",
+   "evidence": "answered 404"
+  },
+  {
+   "id": "QA-PLT-903",
+   "title": "No screen prints a configured secret",
+   "verdict": "PASS",
+   "evidence": "no configured secret appears on any screen checked"
+  },
+  {
+   "id": "QA-PLT-904",
+   "title": "Every page carries a CSRF token",
+   "verdict": "PASS",
+   "evidence": "the token is on the page"
+  },
+  {
+   "id": "QA-PLT-905",
+   "title": "A model page shows the state and what may follow it",
+   "verdict": "PASS",
+   "evidence": "state and available transitions are both shown"
+  },
+  {
+   "id": "QA-PLT-906",
+   "title": "The evidence screen renders without walking the chain",
+   "verdict": "PASS",
+   "evidence": "the interface takes the incremental path"
+  },
+  {
+   "id": "QA-PLT-907",
+   "title": "A page renders for a principal with almost no permissions",
+   "verdict": "PASS",
+   "evidence": "answered 404"
+  },
+  {
+   "id": "QA-PLT-908",
+   "title": "Sign in, sign out, and the session is really gone",
+   "verdict": "PASS",
+   "evidence": "signed out, and the page asks for credentials again"
+  }
+ ]
+}

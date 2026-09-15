@@ -72,7 +72,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Sequence
 
-from core.authz.common import AuthzError
+from core.authz.common import AuthzError, same_person
 from core.authz.roles import conflicts
 from core.log import get_logger
 
@@ -222,7 +222,7 @@ class Recertification:
                 f"{principal} is not in this campaign",
                 "review the accounts the campaign was opened over; adding one "
                 "midway would change what the review covered after it started")
-        if actor != campaign["reviewer"]:
+        if not same_person(actor, campaign["reviewer"]):
             raise AuthzError(
                 "not_the_reviewer",
                 f"{reference} names {campaign['reviewer']} as its reviewer, "
@@ -230,7 +230,7 @@ class Recertification:
                 "a campaign that anybody may answer is a campaign whose "
                 "`reviewer` column is decoration. Hand it over deliberately "
                 "with `reassign`, which records who passed it on and why")
-        if actor == principal:
+        if same_person(actor, principal):
             raise AuthzError(
                 "self_recertification",
                 f"{actor} may not recertify their own access",

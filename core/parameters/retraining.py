@@ -45,6 +45,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Sequence
 
+from core.authz.common import same_person
 from core.log import get_logger
 from core.parameters.common import ParameterError
 
@@ -163,7 +164,7 @@ class Retraining:
         """Approve the standing policy. Not by the person who wrote it."""
         model = self.registry.require(urn)
         policy = self._require(model)
-        if policy["declared_by"] == actor:
+        if same_person(policy["declared_by"], actor):
             raise ParameterError(
                 "author_may_not_approve",
                 "the person who wrote a standing approval may not approve it. "

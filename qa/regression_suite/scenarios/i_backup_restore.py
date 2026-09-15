@@ -77,7 +77,8 @@ def _restore(source: str, config: str, **kw):
     return restore.run(source, config, **kw)
 
 
-@case("QA-PLT-235", "Back up, restore, and verify the chain end to end")
+@case("QA-PLT-235", "Back up, restore, and verify the chain end to end",
+      isolated=True)
 def plt_235(ctx: Ctx) -> Result:
     """The round trip. Chain valid, head agreeing, every store digest
     matching — and the `-wal` handled, which is the half that once produced
@@ -112,7 +113,8 @@ def plt_235(ctx: Ctx) -> Result:
                   f"verifies, every store digest matches")
 
 
-@case("QA-PLT-219", "A backup of a broken chain, with and without the flag")
+@case("QA-PLT-219", "A backup of a broken chain, with and without the flag",
+      isolated=True)
 def plt_219(ctx: Ctx) -> Result:
     """Refused by default. A backup of a broken chain is restored months
     later and is indistinguishable from a chain that broke during the
@@ -160,7 +162,8 @@ def plt_219(ctx: Ctx) -> Result:
                   f"{manifest['chain'].get('broken_at')}")
 
 
-@case("QA-PLT-223", "Back up an instance with `data/worm/` missing")
+@case("QA-PLT-223", "Back up an instance with `data/worm/` missing",
+      isolated=True)
 def plt_223(ctx: Ctx) -> Result:
     """Recorded as ABSENT rather than skipped. A store missing from a backup
     and a store that was empty read the same on the way back in, and only
@@ -194,7 +197,8 @@ def plt_223(ctx: Ctx) -> Result:
                   "absent again after the restore — not silently skipped")
 
 
-@case("QA-PLT-225", "A restore over an instance holding evidence, with --force")
+@case("QA-PLT-225", "A restore over an instance holding evidence, with --force",
+      isolated=True)
 def plt_225(ctx: Ctx) -> Result:
     """Refused without the flag, because two chains do not interleave and
     there is no merge. With it, the target is destroyed deliberately — and
@@ -218,6 +222,29 @@ def plt_225(ctx: Ctx) -> Result:
         return FAIL, f"the refusal does not name the flag: {refused[:170]}"
     if "interleave" not in refused and "irreversible" not in refused:
         return FAIL, f"the refusal does not say why: {refused[:170]}"
+    # Deterministic, before the retry: does the refusal path let go of the
+    # target? Whether a stale SQLite handle actually BLOCKS the next open
+    # depends on pressure, so a case that only reported the lock would pass
+    # and fail by timing.
+    import inspect
+
+    from tools.ops import restore as module
+    body = inspect.getsource(module.run)
+    opened = body.index("db = open_database(cfg)")
+    refusal = body.index("refusing to restore over a database holding")
+    disposed = body.find("dispose()", opened, refusal)
+    if disposed == -1:
+        return FAIL, (
+            "the refusal is right and the tool does not let go. "
+            "`restore.run` opens the target with `open_database(cfg)` and "
+            "then raises SystemExit for the evidence it found, with no "
+            "`dispose()` between the two — so the connection outlives the "
+            "refusal. Retrying with `--force` IN THE SAME PROCESS, which is "
+            "what the refusal's own remediation tells somebody to do, then "
+            "meets a database this process is still holding. Harmless from a "
+            "shell, where the process exits between the two; not harmless "
+            "from a recovery script that catches the refusal and retries, "
+            "which is the way a restore is actually driven")
     try:
         result = _restore(out, target_config, force=True)
     except SystemExit as exc:
@@ -235,7 +262,8 @@ def plt_225(ctx: Ctx) -> Result:
                   f"the chain verifies")
 
 
-@case("QA-PLT-226", "A restore whose head disagrees with the manifest")
+@case("QA-PLT-226", "A restore whose head disagrees with the manifest",
+      isolated=True)
 def plt_226(ctx: Ctx) -> Result:
     """`head_agrees: false`, a non-zero exit, and a detail that says it is a
     restore of a different instance. A recovery script reads the exit code
@@ -276,7 +304,8 @@ def plt_226(ctx: Ctx) -> Result:
     return PASS, f"head_agrees false, exit {code}: {detail[:110]}"
 
 
-@case("QA-PLT-229", "A manifest from a different build")
+@case("QA-PLT-229", "A manifest from a different build",
+      isolated=True)
 def plt_229(ctx: Ctx) -> Result:
     """A manifest is the only thing a restore has to check itself against.
     One this build cannot read has to be refused rather than read
@@ -325,7 +354,8 @@ def plt_229(ctx: Ctx) -> Result:
                   "refused")
 
 
-@case("QA-PLT-232", "Restore run from a different working directory")
+@case("QA-PLT-232", "Restore run from a different working directory",
+      isolated=True)
 def plt_232(ctx: Ctx) -> Result:
     """The same target either way. A tool that resolved a path against the
     process's working directory would restore into a different place
@@ -361,7 +391,8 @@ def plt_232(ctx: Ctx) -> Result:
                   f"{manifest['chain']['seq']}")
 
 
-@case("QA-PLT-233", "The two ways the restore exits 1")
+@case("QA-PLT-233", "The two ways the restore exits 1",
+      isolated=True)
 def plt_233(ctx: Ctx) -> Result:
     """"Refused before doing anything" and "restored, and the chain is
     wrong" are the same exit code and must not be the same message. The

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.8,
+ "results": [
+  {
+   "id": "QA-GOV-145",
+   "title": "Delegation recorded for `person/j.okafor`, signer authenticates as `j.okafor`",
+   "verdict": "PASS",
+   "evidence": "the delegation is resolved as an identity, so 'person/risk' and 'risk' are the same person"
+  }
+ ]
+}

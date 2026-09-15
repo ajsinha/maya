@@ -179,6 +179,17 @@ def require_known(permission: str) -> str:
     return permission
 
 
+#: Identities that are not a person.
+#:
+#: `system` is the default `actor` on two hundred service calls — the value a
+#: scheduled job, a migration or an unattributed write records. Somewhere a
+#: control has to say that these cannot stand in for a human, and it has to say
+#: it in one place: a carve-out written per subsystem is one that is written
+#: differently per subsystem, which is how a machine came to attest its own
+#: output.
+MACHINE_IDENTITIES = frozenset({"system", "scheduler", "sso", "migration"})
+
+
 def same_person(a: str, b: str) -> bool:
     """Whether two identities name the same person.
 

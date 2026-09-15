@@ -84,6 +84,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from sqlalchemy.exc import IntegrityError
 
+from core.authz.common import same_person
 from core.lifecycle.common import LifecycleError
 from core.log import get_logger, swallowed
 
@@ -505,10 +506,20 @@ class AuthorityMatrix:
 
     def held_by(self, principal: str, now: Optional[float] = None
                 ) -> List[Dict[str, Any]]:
-        """The live delegations a person holds. An expired one is not one."""
+        """The live delegations a person holds. An expired one is not one.
+
+        Matched with `same_person` rather than on the column, because the
+        register writes an owner as `person/j.okafor` and authenticates the
+        same human as `j.okafor`. Filtering the table by the raw string made
+        the two spellings two people: a delegation recorded in the prefixed
+        form — the form every other register writes, and therefore the form a
+        firm will use — granted nothing at all to the person who held it, and
+        the refusal said they held no live delegated authority.
+        """
         moment = now if now is not None else time.time()
-        return [r for r in self.delegations.many(principal=principal)
-                if (r.get("expires_at") or 0) > moment]
+        return [r for r in self.delegations.many()
+                if same_person(r.get("principal") or "", principal)
+                and (r.get("expires_at") or 0) > moment]
 
     def refuse_beyond_delegation(self, urn: str, principal: Dict[str, Any],
                                  now: Optional[float] = None) -> None:

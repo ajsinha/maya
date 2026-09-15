@@ -467,7 +467,21 @@ def plt_177(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------------------ the share
-@case("QA-PLT-160", "Ten concurrent reads of a `max_reads: 1` share")
+def _fresh_share(ctx: Ctx, sharing, urn: str, attempt: int):
+    """One share per round. A round that reused the previous share would be
+    refused `share_exhausted` by the first round's successful read, which is
+    the cap working and not the race being run."""
+    try:
+        made = sharing.share(urn, recipient=f"an examiner {attempt}",
+                             purpose="review", max_reads=1,
+                             content_digest="sha256:" + "a" * 64, actor="qa")
+    except Exception:
+        return ""
+    return made.get("reference") or (made.get("share") or {}).get("reference")
+
+
+@case("QA-PLT-160", "Ten concurrent reads of a `max_reads: 1` share",
+      isolated=True)
 def plt_160(ctx: Ctx) -> Result:
     """The counter is a read-modify-write with no lock, and a leaked link is
     exactly the condition that produces simultaneous reads. A cap that holds
@@ -492,32 +506,45 @@ def plt_160(ctx: Ctx) -> Result:
     reference = share.get("reference") or (share.get("share") or {}).get("reference")
     if not reference:
         return BLOCKED, f"the share carries no reference: {sorted(share)}"
-    served, refused = [], []
+    # ROUNDS, not one race. Ten threads against an unguarded read-modify-write
+    # win or lose on timing: three runs of this case served 1, then 5, then 2
+    # of ten. A case that reports a control working because the scheduler
+    # happened to serialise it is exactly the false pass this pass exists to
+    # find, so the race is run repeatedly and the WORST round is the answer.
+    rounds, worst, seen = 5, 0, []
+    for attempt in range(rounds):
+        reference = _fresh_share(ctx, sharing, urn, attempt)
+        if not reference:
+            return BLOCKED, "a share could not be created"
+        served, refused = [], []
 
-    def read(_n):
-        try:
-            sharing.open_share(reference, seen_from="qa")
-            served.append(1)
-        except Exception as exc:
-            refused.append(getattr(exc, "code", type(exc).__name__))
+        def read(_n, ref=reference, s=served, r=refused):
+            try:
+                sharing.open_share(ref, seen_from="qa")
+                s.append(1)
+            except Exception as exc:
+                r.append(getattr(exc, "code", type(exc).__name__))
 
-    with ThreadPoolExecutor(max_workers=10) as pool:
-        list(pool.map(read, range(10)))
-    if len(served) <= 1:
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            list(pool.map(read, range(10)))
+        seen.append(len(served))
+        worst = max(worst, len(served))
+    if worst <= 1:
         return PASS, (
-            f"the cap held: {len(served)} read served, {len(refused)} refused "
-            f"{sorted(set(refused))}. Read what held it — `open_share` is "
-            f"still a read-modify-write with no lock and no conditional "
-            f"update, and what serialised these ten was the database's own "
-            f"write lock under one process. ADR-016 chooses that topology, so "
-            f"the cap is safe where MAYA is deployed as specified and rests on "
-            f"the deployment rather than on this code")
+            f"the cap held across {rounds} rounds of ten simultaneous reads "
+            f"(served {seen}). Read what held it — `open_share` is still a "
+            f"read-modify-write with no lock and no conditional update, and "
+            f"what serialised these was the database's own write lock under "
+            f"one process. ADR-016 chooses that topology, so the cap is safe "
+            f"where MAYA is deployed as specified and rests on the deployment "
+            f"rather than on this code")
     return FAIL, (
-        f"a share capped at one read served {len(served)} of ten simultaneous "
-        f"reads ({len(refused)} refused). `open_share` reads `share['reads']` "
+        f"a share capped at one read served {worst} of ten simultaneous reads "
+        f"at worst across {rounds} rounds (served {seen}). "
+        f"`open_share` reads `share['reads']` "
         f"before the state check and writes `reads + 1` after serving, with no "
-        f"lock and no conditional update — every racer reads 0, every racer "
-        f"passes the cap, and the final count is 1. `max_reads` is the control "
+        f"lock and no conditional update — racers that read the same count "
+        f"all pass the cap and all serve. `max_reads` is the control "
         f"a firm relies on when a link has gone somewhere it should not, and "
         f"a leaked link is precisely the condition that produces concurrent "
         f"reads")

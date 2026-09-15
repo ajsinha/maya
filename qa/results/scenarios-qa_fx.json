@@ -1,0 +1,2297 @@
+{
+ "summary": {
+  "total": 381,
+  "pass": 359,
+  "fail": 22,
+  "blocked": 0
+ },
+ "seconds": 54.9,
+ "results": [
+  {
+   "id": "QA-FX-001",
+   "title": "A restatement landing after the label cannot reach the row",
+   "verdict": "PASS",
+   "evidence": "assembled 1.2"
+  },
+  {
+   "id": "QA-FX-002",
+   "title": "Saturation \u2014 moving as_of past the label does not move it",
+   "verdict": "PASS",
+   "evidence": "assembled 1.2"
+  },
+  {
+   "id": "QA-FX-003",
+   "title": "A later label reaches the restatement",
+   "verdict": "PASS",
+   "evidence": "assembled 0.4"
+  },
+  {
+   "id": "QA-FX-004",
+   "title": "A label before any fact was true",
+   "verdict": "PASS",
+   "evidence": "no admissible row, and the column is null"
+  },
+  {
+   "id": "QA-FX-005",
+   "title": "as_of strictly before the label bounds the assembly",
+   "verdict": "PASS",
+   "evidence": "assembled 0.4"
+  },
+  {
+   "id": "QA-FX-006",
+   "title": "Monotone in as_of \u2014 a later cut only ever widens",
+   "verdict": "PASS",
+   "evidence": "admissible sets nest: [1, 1, 2]"
+  },
+  {
+   "id": "QA-FX-007",
+   "title": "Idempotence over the same request",
+   "verdict": "PASS",
+   "evidence": "identical"
+  },
+  {
+   "id": "QA-FX-008",
+   "title": "event_ts exactly equal to label_ts is included",
+   "verdict": "PASS",
+   "evidence": "assembled 1.2"
+  },
+  {
+   "id": "QA-FX-009",
+   "title": "ingest_ts exactly equal to the knowable bound is included",
+   "verdict": "PASS",
+   "evidence": "assembled 0.4"
+  },
+  {
+   "id": "QA-FX-010",
+   "title": "ingest_ts one tick past the label, as_of far ahead",
+   "verdict": "PASS",
+   "evidence": "assembled 1.2"
+  },
+  {
+   "id": "QA-FX-013",
+   "title": "event_ts supplied as an ISO string rather than epoch",
+   "verdict": "PASS",
+   "evidence": "refused (409)"
+  },
+  {
+   "id": "QA-FX-014",
+   "title": "NaN in ingest_ts",
+   "verdict": "PASS",
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a2d36442b012f80352380580\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+  },
+  {
+   "id": "QA-FX-018",
+   "title": "A spine of zero rows",
+   "verdict": "PASS",
+   "evidence": "only 0 rows; below eight a relationship between a column and the label is not evidence of anything"
+  },
+  {
+   "id": "QA-FX-020",
+   "title": "Exactly seven spine rows, then exactly eight",
+   "verdict": "PASS",
+   "evidence": "seven: only 7 rows; below eight a relationship between a column and \u2014 eight: screened"
+  },
+  {
+   "id": "QA-FX-021",
+   "title": "Eight rows, one distinct label value",
+   "verdict": "PASS",
+   "evidence": "every row carries the same 'label', so nothing separates"
+  },
+  {
+   "id": "QA-FX-022",
+   "title": "A continuous label \u2014 a regression training set",
+   "verdict": "PASS",
+   "evidence": "'label' is continuous, and the only screen available for a continuous column is a threshold split, which means nothing unless the label is binary"
+  },
+  {
+   "id": "QA-FX-023",
+   "title": "A column that is a perfect threshold split of the label",
+   "verdict": "PASS",
+   "evidence": "named: ['sale_price']"
+  },
+  {
+   "id": "QA-FX-025",
+   "title": "An ordinary strong predictor that is not leakage",
+   "verdict": "PASS",
+   "evidence": "not flagged; suspects were []"
+  },
+  {
+   "id": "QA-FX-026",
+   "title": "An assembly with no valid-time bound",
+   "verdict": "PASS",
+   "evidence": "assembly lacks a bound on valid_time; without both, leakage cannot be excluded"
+  },
+  {
+   "id": "QA-FX-027",
+   "title": "An assembly with no transaction-time bound",
+   "verdict": "PASS",
+   "evidence": "assembly lacks a bound on transaction_time; without both, leakage cannot be excluded"
+  },
+  {
+   "id": "QA-FX-028",
+   "title": "Both bounds missing",
+   "verdict": "PASS",
+   "evidence": "assembly lacks a bound on valid_time and transaction_time; without both, leakage cannot be excluded"
+  },
+  {
+   "id": "QA-FX-039",
+   "title": "Materialise zero rows",
+   "verdict": "FAIL",
+   "evidence": "an empty version was pinned with nothing marking it empty: whatever assembles from it gets an empty frame, and the refusal lands on somebody who did not send the load"
+  },
+  {
+   "id": "QA-FX-041",
+   "title": "Materialise exactly one row",
+   "verdict": "PASS",
+   "evidence": "version 1, row_count 1"
+  },
+  {
+   "id": "QA-FX-042",
+   "title": "Materialise identical rows twice",
+   "verdict": "PASS",
+   "evidence": "versions 1 and 2, 5 rows each"
+  },
+  {
+   "id": "QA-FX-043",
+   "title": "A row missing `ingest_ts`",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming ingest_ts"
+  },
+  {
+   "id": "QA-FX-044",
+   "title": "A row missing `event_ts`",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming event_ts"
+  },
+  {
+   "id": "QA-FX-045",
+   "title": "A row missing `entity_id`",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming entity_id"
+  },
+  {
+   "id": "QA-FX-046",
+   "title": "One row of a hundred missing a clock",
+   "verdict": "PASS",
+   "evidence": "refused whole, nothing written, a clean load then records 100"
+  },
+  {
+   "id": "QA-FX-047",
+   "title": "A row carrying a column the view does not list",
+   "verdict": "PASS",
+   "evidence": "the extra column is recorded: ['score', 'unlisted']"
+  },
+  {
+   "id": "QA-FX-048",
+   "title": "`feature_names` naming a column no row carries",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' \u2014 a declared column no row carries is rejected at the load"
+  },
+  {
+   "id": "QA-FX-049",
+   "title": "A column that is null in every row",
+   "verdict": "PASS",
+   "evidence": "accepted, and the quality report shows the null rate"
+  },
+  {
+   "id": "QA-FX-090",
+   "title": "Rightmost wins, per member",
+   "verdict": "PASS",
+   "evidence": "later parent wins on 'b' only, 'a' and 'c' both survive"
+  },
+  {
+   "id": "QA-FX-091",
+   "title": "The object's own operations are applied last",
+   "verdict": "PASS",
+   "evidence": "the child's override is applied after the fold"
+  },
+  {
+   "id": "QA-FX-092",
+   "title": "Associativity of the fold",
+   "verdict": "PASS",
+   "evidence": "associative, with {} as identity: {'x': 1, 'y': 2, 'z': 3, 'w': 3}"
+  },
+  {
+   "id": "QA-FX-093",
+   "title": "`drop` of a member no parent has",
+   "verdict": "PASS",
+   "evidence": "refused, naming the operation and its index"
+  },
+  {
+   "id": "QA-FX-094",
+   "title": "`add` of a member a parent already has",
+   "verdict": "PASS",
+   "evidence": "refused, naming 'override' as the way to say it"
+  },
+  {
+   "id": "QA-FX-095",
+   "title": "`override` of a member no parent has",
+   "verdict": "PASS",
+   "evidence": "refused, naming 'add' as the way to say it"
+  },
+  {
+   "id": "QA-FX-096",
+   "title": "An operation naming no member",
+   "verdict": "PASS",
+   "evidence": "unnamed members and unknown operations both refused"
+  },
+  {
+   "id": "QA-FX-097",
+   "title": "An `add` carrying no definition",
+   "verdict": "PASS",
+   "evidence": "add and override both refuse a missing definition"
+  },
+  {
+   "id": "QA-FX-098",
+   "title": "A composition cycle",
+   "verdict": "PASS",
+   "evidence": "refused, printing the chain: composes itself through a \u2192 b \u2192 c \u2192 a; a cycle has no fixed "
+  },
+  {
+   "id": "QA-FX-099",
+   "title": "A chain exactly twelve deep, then thirteen",
+   "verdict": "PASS",
+   "evidence": "12 resolved, 13 refused by name"
+  },
+  {
+   "id": "QA-FX-100",
+   "title": "Composing something that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused, naming the missing parent and its kind"
+  },
+  {
+   "id": "QA-FX-1000",
+   "title": "The compute zones a warrant may name are published",
+   "verdict": "PASS",
+   "evidence": "none configured, and the consequence is stated: no compute zone is configured, so every zone handles no more than 'internal' and a fit ove"
+  },
+  {
+   "id": "QA-FX-1001",
+   "title": "Attest a compute zone for a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-FX-1002",
+   "title": "A grant limit on a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-FX-1003",
+   "title": "A negative rate limit",
+   "verdict": "PASS",
+   "evidence": "answered 404 (no_grant)"
+  },
+  {
+   "id": "QA-FX-1004",
+   "title": "The execution posture names what it cannot observe",
+   "verdict": "PASS",
+   "evidence": "the caveat names the limit"
+  },
+  {
+   "id": "QA-FX-1005",
+   "title": "Unreported execution says what it cannot distinguish",
+   "verdict": "PASS",
+   "evidence": "0 live and silent"
+  },
+  {
+   "id": "QA-FX-1006",
+   "title": "The declared cascade of what a deletion touches",
+   "verdict": "PASS",
+   "evidence": "38 tables, all three dispositions present"
+  },
+  {
+   "id": "QA-FX-1007",
+   "title": "A sandbox refuses to run anything",
+   "verdict": "PASS",
+   "evidence": "no process is spawned"
+  },
+  {
+   "id": "QA-FX-1008",
+   "title": "The captive engine is the only one that has run a warrant",
+   "verdict": "PASS",
+   "evidence": "the engine names itself"
+  },
+  {
+   "id": "QA-FX-101",
+   "title": "Composing an ephemeral parent",
+   "verdict": "PASS",
+   "evidence": "refused, naming the ephemeral parent"
+  },
+  {
+   "id": "QA-FX-104",
+   "title": "Amend a sealed feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-106",
+   "title": "Seal an ephemeral feature",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-107",
+   "title": "Seal a feature that is already sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-108",
+   "title": "Break a seal with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-109",
+   "title": "Break a seal as somebody without the authority",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-FX-110",
+   "title": "Seal, break, amend, re-seal \u2014 and the chain records all four",
+   "verdict": "PASS",
+   "evidence": "four acts, 4 evidence nodes"
+  },
+  {
+   "id": "QA-FX-111",
+   "title": "Transfer ownership of a sealed feature",
+   "verdict": "PASS",
+   "evidence": "answered 409 (feature_refused)"
+  },
+  {
+   "id": "QA-FX-112",
+   "title": "Transfer ownership to the current owner",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-113",
+   "title": "Transfer ownership to an empty name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-114",
+   "title": "created_by survives an ownership transfer",
+   "verdict": "PASS",
+   "evidence": "owner is now 'risk', created_by unchanged"
+  },
+  {
+   "id": "QA-FX-118",
+   "title": "An unsealed feature can still be amended",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-FX-1200",
+   "title": "A profile that selects on a fact nobody derives",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_profile_fact'"
+  },
+  {
+   "id": "QA-FX-1201",
+   "title": "A predicate that allows nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_predicate'"
+  },
+  {
+   "id": "QA-FX-1202",
+   "title": "A profile that supplies no defaults",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_profile'"
+  },
+  {
+   "id": "QA-FX-1203",
+   "title": "Every authority key is refused as a default",
+   "verdict": "PASS",
+   "evidence": "all 15 authority keys refused by the control itself"
+  },
+  {
+   "id": "QA-FX-1204",
+   "title": "A default that is neither authority nor defaultable",
+   "verdict": "PASS",
+   "evidence": "refused 'not_defaultable'"
+  },
+  {
+   "id": "QA-FX-1205",
+   "title": "A profile with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'profile_name_required'"
+  },
+  {
+   "id": "QA-FX-1206",
+   "title": "A profile needs authority over the whole estate",
+   "verdict": "PASS",
+   "evidence": "refused (403)"
+  },
+  {
+   "id": "QA-FX-1207",
+   "title": "Retire a profile that was never registered",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_profile'"
+  },
+  {
+   "id": "QA-FX-1208",
+   "title": "Retiring a profile stops it applying",
+   "verdict": "FAIL",
+   "evidence": "retiring 'prof-f2a64ed8' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+  },
+  {
+   "id": "QA-FX-1209",
+   "title": "A profile never overrides what the caller wrote",
+   "verdict": "PASS",
+   "evidence": "the caller's value stands and is not reported as filled"
+  },
+  {
+   "id": "QA-FX-1210",
+   "title": "Every filled value names the profile it came from",
+   "verdict": "PASS",
+   "evidence": "1 value(s), each naming profile@version"
+  },
+  {
+   "id": "QA-FX-1211",
+   "title": "Preview against a model with no version",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-FX-1212",
+   "title": "The vocabulary is published, not documented",
+   "verdict": "PASS",
+   "evidence": "published lists match the enforced ones"
+  },
+  {
+   "id": "QA-FX-125",
+   "title": "A derived feature computed directly from the label",
+   "verdict": "PASS",
+   "evidence": "the label itself is refused as a feature"
+  },
+  {
+   "id": "QA-FX-126",
+   "title": "A derived feature three hops from the label",
+   "verdict": "PASS",
+   "evidence": "the check runs over the transitive lineage, with a seen set"
+  },
+  {
+   "id": "QA-FX-127",
+   "title": "The same derived feature in a featureset that declares no label",
+   "verdict": "PASS",
+   "evidence": "with no label declared there is nothing to leak"
+  },
+  {
+   "id": "QA-FX-130",
+   "title": "An external derived feature whose expression parses and which declares inputs",
+   "verdict": "PASS",
+   "evidence": "an external feature is not computed and its definition stands"
+  },
+  {
+   "id": "QA-FX-139",
+   "title": "`on_error: null` with a zero denominator",
+   "verdict": "PASS",
+   "evidence": "a zero denominator evaluates to null, an ordinary one does not"
+  },
+  {
+   "id": "QA-FX-140",
+   "title": "`on_error: refuse` with a zero denominator",
+   "verdict": "PASS",
+   "evidence": "the refuse policy is consulted and names the entity"
+  },
+  {
+   "id": "QA-FX-142",
+   "title": "`0 ** -1` and `1e308 * 10`",
+   "verdict": "FAIL",
+   "evidence": "'a * b' over {'a': 1e+308, 'b': 10.0} evaluates to inf. Every other arithmetic failure here answers null or refuses; an infinity is neither, and it propagates through every mean, sum and threshold downstream without any of them noticing \u2014 a monitor over the column reports a breach it cannot explain"
+  },
+  {
+   "id": "QA-FX-145",
+   "title": "The ingest clock of a derived feature is the max of its inputs",
+   "verdict": "PASS",
+   "evidence": "max over the inputs, floored at the row's own stamp"
+  },
+  {
+   "id": "QA-FX-146",
+   "title": "Certification is the meet of the inputs",
+   "verdict": "PASS",
+   "evidence": "the meet lands at deprecated, and an unknown level ranks worst"
+  },
+  {
+   "id": "QA-FX-147",
+   "title": "A featureset plan reports certification as of now, not as pinned",
+   "verdict": "PASS",
+   "evidence": "the meet is recomputed from the inputs' current levels"
+  },
+  {
+   "id": "QA-FX-182",
+   "title": "Exporting CSV",
+   "verdict": "PASS",
+   "evidence": "refused, naming the 4 it will write"
+  },
+  {
+   "id": "QA-FX-183",
+   "title": "Importing CSV",
+   "verdict": "PASS",
+   "evidence": "csv reads and does not write; json writes and does not read"
+  },
+  {
+   "id": "QA-FX-185",
+   "title": "An empty body",
+   "verdict": "PASS",
+   "evidence": "an empty body and a zero-row file refuse apart"
+  },
+  {
+   "id": "QA-FX-186",
+   "title": "A well-formed parquet file holding zero rows",
+   "verdict": "PASS",
+   "evidence": "a zero-row upload is refused at the transfer boundary, unlike the materialise path \u2014 see QA-FX-039"
+  },
+  {
+   "id": "QA-FX-187",
+   "title": "An upload missing `ingest_ts`, checked once against the schema",
+   "verdict": "PASS",
+   "evidence": "the clocks are required and checked against the schema"
+  },
+  {
+   "id": "QA-FX-190",
+   "title": "JSON export at exactly 10,000 rows, then 10,001",
+   "verdict": "PASS",
+   "evidence": "json capped at 10,000 rows"
+  },
+  {
+   "id": "QA-FX-193",
+   "title": "Streaming formats versus the paged one",
+   "verdict": "PASS",
+   "evidence": "parquet's non-streaming nature is stated where it is written"
+  },
+  {
+   "id": "QA-FX-2000",
+   "title": "A warrant the platform issued conforms to its own grammar",
+   "verdict": "PASS",
+   "evidence": "issued and conforming"
+  },
+  {
+   "id": "QA-FX-2001",
+   "title": "A verb that is not a warrant verb",
+   "verdict": "PASS",
+   "evidence": "refused, naming the 10 verbs"
+  },
+  {
+   "id": "QA-FX-2002",
+   "title": "The grammar is published for a reader",
+   "verdict": "PASS",
+   "evidence": "v1.0 published with every verb"
+  },
+  {
+   "id": "QA-FX-2003",
+   "title": "Validate a document that is not a document",
+   "verdict": "PASS",
+   "evidence": "11 problem(s) on an empty document"
+  },
+  {
+   "id": "QA-FX-2004",
+   "title": "A tampered document is still measured against the grammar",
+   "verdict": "PASS",
+   "evidence": "the grammar answers on shape alone (valid=True); the signature is a separate question"
+  },
+  {
+   "id": "QA-FX-228",
+   "title": "A fitted set with no warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'warrant_required'"
+  },
+  {
+   "id": "QA-FX-232",
+   "title": "A `fitted` set against a T0 kernel",
+   "verdict": "PASS",
+   "evidence": "both refusals present on the delivery path, keyed on the derived kind"
+  },
+  {
+   "id": "QA-FX-234",
+   "title": "A fitted set against a kernel data does not produce",
+   "verdict": "PASS",
+   "evidence": "all 3 authored kinds refused as fitted and as calibrated"
+  },
+  {
+   "id": "QA-FX-236",
+   "title": "A `fitted` set with no featureset",
+   "verdict": "PASS",
+   "evidence": "refused for a fitted set, not demanded of a declared one"
+  },
+  {
+   "id": "QA-FX-237",
+   "title": "A `fitted` set naming a snapshot that is not PIT verified",
+   "verdict": "PASS",
+   "evidence": "refused 'snapshot_not_pit_verified', naming the column"
+  },
+  {
+   "id": "QA-FX-238",
+   "title": "A `fitted` set naming an unknown snapshot",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_snapshot', distinguishing it from none"
+  },
+  {
+   "id": "QA-FX-239",
+   "title": "Exactly the inline cap, then one more",
+   "verdict": "PASS",
+   "evidence": "4096 inline, 4097 refused naming values_uri"
+  },
+  {
+   "id": "QA-FX-240",
+   "title": "Past the cap, supplied out of line",
+   "verdict": "PASS",
+   "evidence": "held out of line"
+  },
+  {
+   "id": "QA-FX-2400",
+   "title": "The same kinds are accepted as declared",
+   "verdict": "PASS",
+   "evidence": "all 3 authored kinds accepted as declared"
+  },
+  {
+   "id": "QA-FX-2401",
+   "title": "A fitted set naming a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_warrant'"
+  },
+  {
+   "id": "QA-FX-242",
+   "title": "An empty parameter set",
+   "verdict": "PASS",
+   "evidence": "refused 'no_parameters'"
+  },
+  {
+   "id": "QA-FX-243",
+   "title": "The recorder approving their own set",
+   "verdict": "PASS",
+   "evidence": "the recorder cannot approve their own set"
+  },
+  {
+   "id": "QA-FX-244",
+   "title": "Rejecting a set with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-FX-245",
+   "title": "Reviewing a set that was already reviewed",
+   "verdict": "PASS",
+   "evidence": "refused 'already_reviewed'"
+  },
+  {
+   "id": "QA-FX-249",
+   "title": "A parameter set does not create a model version",
+   "verdict": "PASS",
+   "evidence": "1 version(s) before and after"
+  },
+  {
+   "id": "QA-FX-253",
+   "title": "A fit with no window",
+   "verdict": "PASS",
+   "evidence": "absent, empty, start-only and end-only all refused"
+  },
+  {
+   "id": "QA-FX-254",
+   "title": "An inverted window",
+   "verdict": "PASS",
+   "evidence": "refused 'window_inverted', naming both ends"
+  },
+  {
+   "id": "QA-FX-255",
+   "title": "A window whose `from` equals its `to`",
+   "verdict": "PASS",
+   "evidence": "zero-length refused, the smallest positive window accepted"
+  },
+  {
+   "id": "QA-FX-256",
+   "title": "The window is checked before the data",
+   "verdict": "PASS",
+   "evidence": "window, then snapshot, then warrant, then rows"
+  },
+  {
+   "id": "QA-FX-258",
+   "title": "A snapshot whose Delta table is gone",
+   "verdict": "PASS",
+   "evidence": "refused 'snapshot_storage_missing', naming the table"
+  },
+  {
+   "id": "QA-FX-260",
+   "title": "Exactly one row below the minimum, then the minimum",
+   "verdict": "PASS",
+   "evidence": "29 refused naming the minimum, 30 accepted"
+  },
+  {
+   "id": "QA-FX-261",
+   "title": "Two perfectly collinear regressors",
+   "verdict": "PASS",
+   "evidence": "refused 'collinear_regressors'"
+  },
+  {
+   "id": "QA-FX-262",
+   "title": "Two nearly collinear regressors",
+   "verdict": "PASS",
+   "evidence": "fitted, with a condition number reported"
+  },
+  {
+   "id": "QA-FX-263",
+   "title": "The target appearing as a regressor",
+   "verdict": "PASS",
+   "evidence": "refused 'target_is_a_regressor'"
+  },
+  {
+   "id": "QA-FX-264",
+   "title": "A constant series",
+   "verdict": "PASS",
+   "evidence": "refused 'collinear_regressors'"
+  },
+  {
+   "id": "QA-FX-265",
+   "title": "A non-numeric value in a regressor",
+   "verdict": "PASS",
+   "evidence": "refused 'value_not_numeric'"
+  },
+  {
+   "id": "QA-FX-268",
+   "title": "The same fit run twice",
+   "verdict": "PASS",
+   "evidence": "bit-identical across two runs"
+  },
+  {
+   "id": "QA-FX-270",
+   "title": "The person who ran the fit approving it",
+   "verdict": "PASS",
+   "evidence": "refused 'self_approval', compared as identities"
+  },
+  {
+   "id": "QA-FX-271",
+   "title": "Diagnostics travel with the coefficients",
+   "verdict": "PASS",
+   "evidence": "2 coefficient(s), diagnostics ['adjusted_r_squared', 'condition_number', 'degrees_of_freedom', 'intercept', 'k']"
+  },
+  {
+   "id": "QA-FX-273",
+   "title": "A panel below the minimum",
+   "verdict": "PASS",
+   "evidence": "below 3 refused, exactly 3 accepted"
+  },
+  {
+   "id": "QA-FX-274",
+   "title": "The facilitator on their own panel",
+   "verdict": "PASS",
+   "evidence": "refused 'facilitator_is_a_panellist'"
+  },
+  {
+   "id": "QA-FX-275",
+   "title": "An elicitation with no question",
+   "verdict": "PASS",
+   "evidence": "refused 'question_required' on whitespace"
+  },
+  {
+   "id": "QA-FX-276",
+   "title": "A second response in one round",
+   "verdict": "PASS",
+   "evidence": "refused 'already_answered'"
+  },
+  {
+   "id": "QA-FX-277",
+   "title": "A response from somebody not on the panel",
+   "verdict": "PASS",
+   "evidence": "refused 'not_on_the_panel'"
+  },
+  {
+   "id": "QA-FX-278",
+   "title": "A response after the conclusion",
+   "verdict": "PASS",
+   "evidence": "refused 'elicitation_closed'"
+  },
+  {
+   "id": "QA-FX-279",
+   "title": "Advancing an empty round",
+   "verdict": "PASS",
+   "evidence": "refused 'round_is_empty'"
+  },
+  {
+   "id": "QA-FX-280",
+   "title": "Concluding with no responses at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_conclude'"
+  },
+  {
+   "id": "QA-FX-281",
+   "title": "Concluding with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required' on whitespace"
+  },
+  {
+   "id": "QA-FX-283",
+   "title": "A spread that widens across rounds",
+   "verdict": "PASS",
+   "evidence": "narrowed false, spreads [0.0952, 1.956]"
+  },
+  {
+   "id": "QA-FX-284",
+   "title": "The dissent travels with the conclusion",
+   "verdict": "PASS",
+   "evidence": "dissent ['person/b'] on the chain and in the reading"
+  },
+  {
+   "id": "QA-FX-286",
+   "title": "A rule set with no otherwise",
+   "verdict": "PASS",
+   "evidence": "refused 'otherwise_required'"
+  },
+  {
+   "id": "QA-FX-287",
+   "title": "A rule with no because",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-FX-288",
+   "title": "Exactly the rule limit, then one more",
+   "verdict": "PASS",
+   "evidence": "512 accepted, 513 refused"
+  },
+  {
+   "id": "QA-FX-289",
+   "title": "Nesting exactly the depth limit, then one deeper",
+   "verdict": "PASS",
+   "evidence": "within 6 accepted, past it refused 'condition_too_deep'"
+  },
+  {
+   "id": "QA-FX-290",
+   "title": "Two rules with one id",
+   "verdict": "PASS",
+   "evidence": "refused 'duplicate_rule_id'"
+  },
+  {
+   "id": "QA-FX-291",
+   "title": "Two rules with the same condition and different outcomes",
+   "verdict": "PASS",
+   "evidence": "refused 'rules_contradict'"
+  },
+  {
+   "id": "QA-FX-292",
+   "title": "A rule shadowed by one earlier rule",
+   "verdict": "PASS",
+   "evidence": "refused 'rule_unreachable'"
+  },
+  {
+   "id": "QA-FX-293",
+   "title": "A rule shadowed by two earlier rules together",
+   "verdict": "PASS",
+   "evidence": "the union of a partition covers what neither half does"
+  },
+  {
+   "id": "QA-FX-294",
+   "title": "A condition expanding past 256 disjunctions",
+   "verdict": "PASS",
+   "evidence": "past 256 the expansion refuses, coverage answers a sound negative and satisfiability a sound positive"
+  },
+  {
+   "id": "QA-FX-295",
+   "title": "A between with the bounds the wrong way round",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_range'"
+  },
+  {
+   "id": "QA-FX-296",
+   "title": "The negation of `between`",
+   "verdict": "PASS",
+   "evidence": "treated as opaque: covers nothing rather than guessing"
+  },
+  {
+   "id": "QA-FX-297",
+   "title": "An ordered operator on a categorical field",
+   "verdict": "PASS",
+   "evidence": "refused 'unordered_comparison'"
+  },
+  {
+   "id": "QA-FX-298",
+   "title": "A numeric field compared against text",
+   "verdict": "PASS",
+   "evidence": "refused 'value_wrong_type'"
+  },
+  {
+   "id": "QA-FX-299",
+   "title": "A date field compared against an ISO string and against an epoch",
+   "verdict": "PASS",
+   "evidence": "an ISO date and an epoch are both accepted"
+  },
+  {
+   "id": "QA-FX-300",
+   "title": "A field the version's input schema does not declare",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_field'"
+  },
+  {
+   "id": "QA-FX-301",
+   "title": "Resolving over a model that was never attested",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found' (404)"
+  },
+  {
+   "id": "QA-FX-302",
+   "title": "is_null carrying a value",
+   "verdict": "PASS",
+   "evidence": "refused 'value_not_expected'"
+  },
+  {
+   "id": "QA-FX-303",
+   "title": "A warrant with an undeclared use",
+   "verdict": "PASS",
+   "evidence": "refused 'declared_use_required' (422)"
+  },
+  {
+   "id": "QA-FX-304",
+   "title": "Resolving in an environment with no alias",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found' (404)"
+  },
+  {
+   "id": "QA-FX-306",
+   "title": "A trial records nothing",
+   "verdict": "PASS",
+   "evidence": "the register is unchanged"
+  },
+  {
+   "id": "QA-FX-307",
+   "title": "Checking a draft needs only model:read",
+   "verdict": "PASS",
+   "evidence": "a reader may check (200)"
+  },
+  {
+   "id": "QA-FX-310",
+   "title": "Move an alias to a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-3100",
+   "title": "A warrant stating nothing has nothing unenforceable",
+   "verdict": "PASS",
+   "evidence": "no statement, no gap"
+  },
+  {
+   "id": "QA-FX-3101",
+   "title": "A resource limit of zero is not a limit",
+   "verdict": "PASS",
+   "evidence": "zero falls to 30.0s / 2048MB"
+  },
+  {
+   "id": "QA-FX-3102",
+   "title": "What was applied is reported, not what was intended",
+   "verdict": "PASS",
+   "evidence": "the applied limits are returned for the parent to record"
+  },
+  {
+   "id": "QA-FX-311",
+   "title": "A second alias move where neither version declares a schema",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-312",
+   "title": "A trial row that matches no rule",
+   "verdict": "PASS",
+   "evidence": "matched_rule is null and the otherwise answered"
+  },
+  {
+   "id": "QA-FX-317",
+   "title": "A catch-all row that is not last",
+   "verdict": "PASS",
+   "evidence": "the catch-all covers all 2 rows below it, the disjunctive half through the union pass"
+  },
+  {
+   "id": "QA-FX-318",
+   "title": "A table with no catch-all row",
+   "verdict": "PASS",
+   "evidence": "an otherwise clause is carried, never invented"
+  },
+  {
+   "id": "QA-FX-320",
+   "title": "A warrant missing one of the ten sections",
+   "verdict": "PASS",
+   "evidence": "all 10 sections required and named"
+  },
+  {
+   "id": "QA-FX-321",
+   "title": "A wrong warrant grammar version",
+   "verdict": "PASS",
+   "evidence": "refused, naming v1.0 as expected"
+  },
+  {
+   "id": "QA-FX-322",
+   "title": "Two shape errors at once",
+   "verdict": "PASS",
+   "evidence": "2 problems reported together"
+  },
+  {
+   "id": "QA-FX-323",
+   "title": "A clean shape with three admissibility failures",
+   "verdict": "PASS",
+   "evidence": "5 problems under 5 laws: ['L-W1', 'L-W3', 'L-W4', 'L-W5', 'L-W8']"
+  },
+  {
+   "id": "QA-FX-324",
+   "title": "A trainability class with a trailing space",
+   "verdict": "PASS",
+   "evidence": "'T0 ' refused"
+  },
+  {
+   "id": "QA-FX-325",
+   "title": "L-W1 \u2014 `fit` on a T0",
+   "verdict": "PASS",
+   "evidence": "fit refused on T0, score allowed, fit allowed on T2"
+  },
+  {
+   "id": "QA-FX-326",
+   "title": "L-W2 \u2014 `generate` on `onnx`",
+   "verdict": "PASS",
+   "evidence": "refused on onnx, admissible on ['llm.agent', 'llm.prompt']"
+  },
+  {
+   "id": "QA-FX-327",
+   "title": "L-W3 \u2014 a `fit` reading a `sql_query`",
+   "verdict": "PASS",
+   "evidence": "refused for a fit, admissible for a score and for ['dataset_snapshot', 'feature_namespace', 'featureset']"
+  },
+  {
+   "id": "QA-FX-328",
+   "title": "L-W3 \u2014 a fit with one bitemporal input and one that is not",
+   "verdict": "PASS",
+   "evidence": "one problem, naming inputs[1]: ['data.inputs[1].binding']"
+  },
+  {
+   "id": "QA-FX-329",
+   "title": "L-W4 \u2014 a `fit` with no `parameter_object` sink",
+   "verdict": "PASS",
+   "evidence": "refused without the sink, admissible with it, not on a score"
+  },
+  {
+   "id": "QA-FX-330",
+   "title": "L-W5 \u2014 determinism on `container` with no seed",
+   "verdict": "PASS",
+   "evidence": "unpinned refused across 8 code-running runtimes; a seed or 'stochastic' satisfies it"
+  },
+  {
+   "id": "QA-FX-331",
+   "title": "L-W5 \u2014 determinism on `onnx`, `pmml`, `sql`, `spreadsheet` and `descriptor_only`",
+   "verdict": "PASS",
+   "evidence": "all five may claim determinism with no seed"
+  },
+  {
+   "id": "QA-FX-332",
+   "title": "L-W5 \u2014 determinism on `quantlib` with no seed",
+   "verdict": "PASS",
+   "evidence": "quantlib may claim determinism unseeded, and is named as such"
+  },
+  {
+   "id": "QA-FX-334",
+   "title": "L-W6 \u2014 `fit` on `descriptor_only`",
+   "verdict": "PASS",
+   "evidence": "fit refused, score admitted \u2014 the vendor case still works"
+  },
+  {
+   "id": "QA-FX-336",
+   "title": "L-W8 \u2014 a `fit` bound to `parameter_set`",
+   "verdict": "PASS",
+   "evidence": "fit from a parameter_set refused, 'to_be_fitted' admitted"
+  },
+  {
+   "id": "QA-FX-337",
+   "title": "L-W8 \u2014 a `score` bound to `to_be_fitted`",
+   "verdict": "PASS",
+   "evidence": "refused under L-W8"
+  },
+  {
+   "id": "QA-FX-340",
+   "title": "L-W8 \u2014 a source absent while the kind is not `none`",
+   "verdict": "PASS",
+   "evidence": "omission refused where the object is inhabited, admitted where it is terminal"
+  },
+  {
+   "id": "QA-FX-349",
+   "title": "The grammar is checked before the signature",
+   "verdict": "PASS",
+   "evidence": "validated, then signed \u2014 asserted on the calls, not the words"
+  },
+  {
+   "id": "QA-FX-350",
+   "title": "The published schema agrees with the enforced vocabulary",
+   "verdict": "PASS",
+   "evidence": "10 verbs and 10 sections present"
+  },
+  {
+   "id": "QA-FX-379",
+   "title": "A descriptor stamped below the epoch the engine has seen",
+   "verdict": "PASS",
+   "evidence": "refused 'revoked_epoch' \u2192 410: this descriptor was minted at revocation epoch 5 and this engine has already seen epoch 7, so it predates at l"
+  },
+  {
+   "id": "QA-FX-380",
+   "title": "A descriptor stamped exactly at the epoch seen",
+   "verdict": "PASS",
+   "evidence": "epoch 7 after epoch 7 is accepted; the comparison is `<`"
+  },
+  {
+   "id": "QA-FX-3800",
+   "title": "A three-class label \u2014 neither binary nor continuous",
+   "verdict": "PASS",
+   "evidence": "'label' has 3 classes, and a threshold split says nothing unless the label is binary \u2014 so decoder was not screened"
+  },
+  {
+   "id": "QA-FX-3801",
+   "title": "The screen is run under the column the label occupies",
+   "verdict": "PASS",
+   "evidence": "blind: no 'label' column in the assembled frame \u2014 under 'defaulted_12m': ['sale_price']"
+  },
+  {
+   "id": "QA-FX-3802",
+   "title": "The continuous ratio is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "ratio 0.5, and a class label stays a class"
+  },
+  {
+   "id": "QA-FX-381",
+   "title": "A descriptor stamped above, then one between",
+   "verdict": "PASS",
+   "evidence": "9 accepted and the floor rises; 8 is then stale"
+  },
+  {
+   "id": "QA-FX-382",
+   "title": "A descriptor carrying no epoch at all",
+   "verdict": "FAIL",
+   "evidence": "a descriptor carrying no revocation epoch bypasses the floor entirely: `_refuse_stale_epoch` returns early when `stamped is None`, and all four shapes of absence \u2014 no `authority`, no `revocation`, no `epoch`, a null `epoch` \u2014 take that branch against an engine sitting at epoch 12. The floor's premise is that a descriptor's stamp is trustworthy because the descriptor is signed; the early return is "
+  },
+  {
+   "id": "QA-FX-384",
+   "title": "`note_revocation` with a model URN",
+   "verdict": "PASS",
+   "evidence": "refused 'revoked' on the model URN: maya://model/gx-d964c0be is on the local revocation list"
+  },
+  {
+   "id": "QA-FX-385",
+   "title": "`note_revocation` with a `warrant_id`",
+   "verdict": "FAIL",
+   "evidence": "`note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a2d3a9e36e5b\u2026 and 01a0a2d3a9e71b67\u2026, so an id noted from one never matches the one `execute` checks and the floor cannot fire. An engine told to stop by descriptor id holds a local revocation list that looks enabled and does nothing \u2014 the model URN is the form that works, and both are accepted with "
+  },
+  {
+   "id": "QA-FX-386",
+   "title": "Revocation bumps the epoch by exactly one",
+   "verdict": "FAIL",
+   "evidence": "withdrawing one model's authority moved the estate-wide epoch by 4 (0 \u2192 4), one per grant. `revoke_model` loops `revoke`, and `revoke` does `self.epoch += 1` \u2014 so a model with forty grants advances the floor forty times. Every descriptor outstanding anywhere in the estate is now stale by 4 rather than by one, and an engine refusing them reports `revoked_epoch` \u2014 a withdrawal it was never told abou"
+  },
+  {
+   "id": "QA-FX-387",
+   "title": "Revoking a model with no grants",
+   "verdict": "FAIL",
+   "evidence": "revoking a model nobody holds a grant on reports `revoked: 0` and leaves the epoch at 0. `revoke_model` advances the counter inside the per-grant loop, so an empty withdrawal advances it nothing \u2014 the act is recorded as having happened and the mechanism that carries a withdrawal to an engine does not move. A caller who revokes a model, sees `revoked: 0` and an unchanged epoch has been told two dif"
+  },
+  {
+   "id": "QA-FX-388",
+   "title": "The epoch after a restart",
+   "verdict": "PASS",
+   "evidence": "the epoch resumed at 6 from the register rather than resetting to 0"
+  },
+  {
+   "id": "QA-FX-389",
+   "title": "Exactly the rate limit, then one more",
+   "verdict": "PASS",
+   "evidence": "59 served, the 60th exhausts, and the rate refills a minute later: this grant has reached its rate limit of 60 per minute. calls per minute \u2014 protects the downstream s"
+  },
+  {
+   "id": "QA-FX-390",
+   "title": "The burst across a fixed bucket boundary",
+   "verdict": "PASS",
+   "evidence": "the last minute counts 120 across the boundary and the rate is exhausted: a sliding window"
+  },
+  {
+   "id": "QA-FX-3900",
+   "title": "Both bounds present",
+   "verdict": "PASS",
+   "evidence": "both temporal bounds present"
+  },
+  {
+   "id": "QA-FX-3901",
+   "title": "Layer 2 over nothing is not a verification",
+   "verdict": "PASS",
+   "evidence": "nothing to verify"
+  },
+  {
+   "id": "QA-FX-3902",
+   "title": "Layer 2 catches a row that disagrees",
+   "verdict": "PASS",
+   "evidence": "1 violation(s), naming e7"
+  },
+  {
+   "id": "QA-FX-3903",
+   "title": "Layer 2 reports comparisons, not rows",
+   "verdict": "PASS",
+   "evidence": "10 of 10 rows independently recomputed (30 values compared)"
+  },
+  {
+   "id": "QA-FX-3904",
+   "title": "What layer 2 proves is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "what it proves, and what it does not, are both written down"
+  },
+  {
+   "id": "QA-FX-3905",
+   "title": "The sample size and the strata are stated",
+   "verdict": "PASS",
+   "evidence": "200 comparison(s) over 500 rows"
+  },
+  {
+   "id": "QA-FX-391",
+   "title": "A refused call does not consume quota",
+   "verdict": "PASS",
+   "evidence": "100 refusals counted and charged nothing; the first served call is the first unit of spend"
+  },
+  {
+   "id": "QA-FX-392",
+   "title": "Exactly the quota, then one more",
+   "verdict": "PASS",
+   "evidence": "nine served, ten exhausts: this grant has reached its quota limit of 10 per 24h. calls per window \u2014 protects the authorisation from being"
+  },
+  {
+   "id": "QA-FX-393",
+   "title": "The cost budget on a token-metered model",
+   "verdict": "PASS",
+   "evidence": "5 call(s) against a quota of 1000 and a budget of 5.0 \u2014 refused 'cost_limit_reached' with the call count nowhere near: this grant has reached its cost limit of 5 per 24h. money per window \u2014 the only one whose unit is no"
+  },
+  {
+   "id": "QA-FX-394",
+   "title": "A limit of zero",
+   "verdict": "PASS",
+   "evidence": "rate, quota, cost and a negative all refused 'limit_not_positive', naming revocation as the act meant"
+  },
+  {
+   "id": "QA-FX-395",
+   "title": "A window of zero hours",
+   "verdict": "PASS",
+   "evidence": "refused 'window_not_positive', and nothing was written"
+  },
+  {
+   "id": "QA-FX-396",
+   "title": "Setting no limit at all",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_set', nothing appended to the chain"
+  },
+  {
+   "id": "QA-FX-397",
+   "title": "Limits are per grant, not per principal",
+   "verdict": "PASS",
+   "evidence": "one of 4 grants on one principal is exhausted and the other 3 still resolve"
+  },
+  {
+   "id": "QA-FX-398",
+   "title": "A grant with no limits",
+   "verdict": "PASS",
+   "evidence": "rate, quota and cost all unlimited, named as an untaken decision, and carried onto the estate view"
+  },
+  {
+   "id": "QA-FX-401",
+   "title": "The same input under `clamp`",
+   "verdict": "FAIL",
+   "evidence": "`clamp` is one of the 3 policies a version may declare (['clamp', 'flag', 'reject']) and it is accepted at registration, and the word does not appear anywhere in the execution engine. The boundary check refuses only when the policy is `reject`, so a version declaring `clamp` runs the model on the value it was sent \u2014 unclamped and unrefused \u2014 and reports `boundary_ok: false` afterwards. A caller re"
+  },
+  {
+   "id": "QA-FX-402",
+   "title": "Exactly at the minimum and exactly at the maximum",
+   "verdict": "PASS",
+   "evidence": "0 and 20 are inside; one epsilon either side is not"
+  },
+  {
+   "id": "QA-FX-403",
+   "title": "One epsilon below the minimum",
+   "verdict": "PASS",
+   "evidence": "-1e-9 violates and 0 does not; the refusal maps to 422"
+  },
+  {
+   "id": "QA-FX-404",
+   "title": "An `allowed` list with the value present, then absent",
+   "verdict": "PASS",
+   "evidence": "categories match by membership and numbers are not coerced into them, either way round"
+  },
+  {
+   "id": "QA-FX-405",
+   "title": "An assumption whose key no input supplies",
+   "verdict": "FAIL",
+   "evidence": "a contract clause whose key no input supplies is correctly not a violation, and `Contract.unchecked_inputs` names it \u2014 ['ltv'] \u2014 but the engine only LOGS it. `ExecutionResult` carries `boundary_ok` and `boundary_violations` and nothing about what was never checked, so a caller cannot tell a boundary that held from one that never applied. A contract on `ltv` against a runtime that is never sent `lt"
+  },
+  {
+   "id": "QA-FX-406",
+   "title": "A contract section spelled `assumption`",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the known keys"
+  },
+  {
+   "id": "QA-FX-407",
+   "title": "`min` and `max` instead of `minimum` and `maximum`",
+   "verdict": "PASS",
+   "evidence": "refused, naming the clause and the right spelling"
+  },
+  {
+   "id": "QA-FX-408",
+   "title": "A minimum above the maximum",
+   "verdict": "PASS",
+   "evidence": "refused, naming the inverted bound and what it admits"
+  },
+  {
+   "id": "QA-FX-409",
+   "title": "A clause with no `key`",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' at 409, naming the clause"
+  },
+  {
+   "id": "QA-FX-410",
+   "title": "An unknown `on_boundary_violation` value",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 3 policies: ['clamp', 'flag', 'reject']"
+  },
+  {
+   "id": "QA-FX-412",
+   "title": "A runtime the captive engine never implemented",
+   "verdict": "PASS",
+   "evidence": "refused 'no_runtime', naming 8 it has"
+  },
+  {
+   "id": "QA-FX-414",
+   "title": "An artifact whose digest does not match the warrant",
+   "verdict": "PASS",
+   "evidence": "mismatch and absence refused apart, both before the load"
+  },
+  {
+   "id": "QA-FX-415",
+   "title": "A featureset with no features at all",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-416",
+   "title": "An artifact path resolving outside the configured root",
+   "verdict": "PASS",
+   "evidence": "traversal refused 'artifact_outside_root'; a real path inside the root refused 'artifact_missing'"
+  },
+  {
+   "id": "QA-FX-417",
+   "title": "Read a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (405)"
+  },
+  {
+   "id": "QA-FX-418",
+   "title": "No artifact root configured at all",
+   "verdict": "PASS",
+   "evidence": "refused 'no_artifact_root', naming the setting"
+  },
+  {
+   "id": "QA-FX-419",
+   "title": "Trial an expression that divides by zero",
+   "verdict": "PASS",
+   "evidence": "answered 200 (accepted)"
+  },
+  {
+   "id": "QA-FX-420",
+   "title": "Trial an expression that is not an expression",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-421",
+   "title": "A memory limit stated in the warrant",
+   "verdict": "PASS",
+   "evidence": "a default and a signed-for figure are held apart in `declared_by_the_warrant`"
+  },
+  {
+   "id": "QA-FX-422",
+   "title": "A limit the platform cannot enforce is named",
+   "verdict": "PASS",
+   "evidence": "rlimits available; both stated limits are enforceable"
+  },
+  {
+   "id": "QA-FX-423",
+   "title": "The CPU cap is the process's usage plus the budget",
+   "verdict": "PASS",
+   "evidence": "cumulative: soft_cpu = already + max(1, int(limits.seconds))"
+  },
+  {
+   "id": "QA-FX-424",
+   "title": "A callable runtime is not sandboxed, and says so",
+   "verdict": "PASS",
+   "evidence": "an in-process callable is stated to be unsandboxed"
+  },
+  {
+   "id": "QA-FX-425",
+   "title": "`GET /api/v1/engine` with the captive engine disabled",
+   "verdict": "PASS",
+   "evidence": "reports its state: {'captive_engine': 'enabled', 'sandbox': 'subprocess', 'isolates': True, 'resource_limits'"
+  },
+  {
+   "id": "QA-FX-426",
+   "title": "Executing with the captive engine disabled",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-FX-427",
+   "title": "The engine holds no reference to the registry or the feature store",
+   "verdict": "PASS",
+   "evidence": "holds ['_callables', '_revoked_locally', '_seen_epoch', 'artifact_dir', 'invocations', 'max_seconds', 'parameters', 'runtimes', 'sandbox', 'warrants'] and nothing that reads the register"
+  },
+  {
+   "id": "QA-FX-438",
+   "title": "A tampered signature",
+   "verdict": "PASS",
+   "evidence": "rewriting warrant_id, subject, signature breaks the seal"
+  },
+  {
+   "id": "QA-FX-439",
+   "title": "The signing key rotated between issue and execution",
+   "verdict": "PASS",
+   "evidence": "refused under the rotated key, accepted under its own"
+  },
+  {
+   "id": "QA-FX-441",
+   "title": "The order of the six pre-artifact checks",
+   "verdict": "PASS",
+   "evidence": "six checks, all before dispatch: resolve, signature, revocation, epoch, expiry, boundary"
+  },
+  {
+   "id": "QA-FX-446",
+   "title": "A profile supplying `principal`",
+   "verdict": "PASS",
+   "evidence": "refused 'authority_not_defaultable', naming the gate"
+  },
+  {
+   "id": "QA-FX-447",
+   "title": "A profile supplying the TTL or the grace",
+   "verdict": "PASS",
+   "evidence": "both the ttl and the grace are refused as authority"
+  },
+  {
+   "id": "QA-FX-448",
+   "title": "A profile with no defaults",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_profile'"
+  },
+  {
+   "id": "QA-FX-449",
+   "title": "A profile selecting on a fact outside the nine",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_profile_fact', naming all 9 derived facts"
+  },
+  {
+   "id": "QA-FX-450",
+   "title": "A predicate that allows nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_predicate', naming the alternative"
+  },
+  {
+   "id": "QA-FX-451",
+   "title": "Two matching profiles fold rightmost-wins per key",
+   "verdict": "PASS",
+   "evidence": "the general supplies what the specific is silent about, the specific wins where they overlap"
+  },
+  {
+   "id": "QA-FX-453",
+   "title": "A profile default identical to the caller's value",
+   "verdict": "PASS",
+   "evidence": "the caller's value stands and the profile claims nothing"
+  },
+  {
+   "id": "QA-FX-456",
+   "title": "Every filled value names its origin",
+   "verdict": "PASS",
+   "evidence": "both keys attributed to ['shape@7']"
+  },
+  {
+   "id": "QA-FX-4800",
+   "title": "Every admissibility law is reachable from the validator",
+   "verdict": "PASS",
+   "evidence": "all 13 check_ functions are called by the validator"
+  },
+  {
+   "id": "QA-FX-4810",
+   "title": "`fitted` is refused for every kind that nothing fits",
+   "verdict": "PASS",
+   "evidence": "3 kinds refused `fitted`: ['elicited_weights', 'llm_configuration', 'rule_set']"
+  },
+  {
+   "id": "QA-FX-4820",
+   "title": "Independent edits commute",
+   "verdict": "PASS",
+   "evidence": "independent edits commute to {'a': 10, 'b': 20}; dependent ones do not"
+  },
+  {
+   "id": "QA-FX-4821",
+   "title": "merge is not mutation",
+   "verdict": "PASS",
+   "evidence": "merge, apply and fold all leave their inputs alone"
+  },
+  {
+   "id": "QA-FX-4830",
+   "title": "Contradictions are reported before shadowing",
+   "verdict": "PASS",
+   "evidence": "contradictions raised before shadowing"
+  },
+  {
+   "id": "QA-FX-4831",
+   "title": "An undecided rule is reported, never counted as clean",
+   "verdict": "PASS",
+   "evidence": "Undecided is caught, recorded, and kept apart from shadowed"
+  },
+  {
+   "id": "QA-FX-4832",
+   "title": "A condition no input can satisfy",
+   "verdict": "PASS",
+   "evidence": "the impossible interval is caught, the ordinary one is not"
+  },
+  {
+   "id": "QA-FX-4833",
+   "title": "A condition nested past the depth bound",
+   "verdict": "PASS",
+   "evidence": "refused past 6 levels, naming the path"
+  },
+  {
+   "id": "QA-FX-4834",
+   "title": "A condition naming no field, and an unknown operator",
+   "verdict": "PASS",
+   "evidence": "no field, unknown operator and empty group all refused by path"
+  },
+  {
+   "id": "QA-FX-4835",
+   "title": "The rule count bound",
+   "verdict": "PASS",
+   "evidence": "bounded at 512 rules"
+  },
+  {
+   "id": "QA-FX-4840",
+   "title": "A clock that is a string rather than a number",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming the row and the clock"
+  },
+  {
+   "id": "QA-FX-4841",
+   "title": "A clock that is a boolean",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming the type"
+  },
+  {
+   "id": "QA-FX-4850",
+   "title": "The upload extensions and the media types agree",
+   "verdict": "FAIL",
+   "evidence": "the browser upload control offers '.json' and the API will not read 'json': `accept_attribute` builds its list from a hand-written tuple rather than from UPLOAD_FORMATS, so the two vocabularies have drifted again \u2014 this time in the direction where a picker accepts a file the upload then refuses. The comment above SUFFIXES records the same defect in the other direction"
+  },
+  {
+   "id": "QA-FX-4851",
+   "title": "The read batch is sized by cells, not by rows",
+   "verdict": "PASS",
+   "evidence": "6 columns -> 16384 rows, 2,000 -> 524, floored at 512"
+  },
+  {
+   "id": "QA-FX-4852",
+   "title": "The format is chosen from Accept when none is given",
+   "verdict": "PASS",
+   "evidence": "explicit wins, Accept resolves, json is the fallback"
+  },
+  {
+   "id": "QA-FX-4860",
+   "title": "A panel with the same person listed twice",
+   "verdict": "PASS",
+   "evidence": "three entries naming two people is refused as a panel of two, so a name cannot be repeated to meet the floor"
+  },
+  {
+   "id": "QA-FX-4870",
+   "title": "Every authority key is refused, and only those",
+   "verdict": "PASS",
+   "evidence": "15 authority keys refused, 5 defaultable keys accepted, no overlap"
+  },
+  {
+   "id": "QA-FX-4871",
+   "title": "A single value is accepted where a list is expected",
+   "verdict": "PASS",
+   "evidence": "a scalar is normalised to a one-element list"
+  },
+  {
+   "id": "QA-FX-4872",
+   "title": "No matching profile leaves the request untouched",
+   "verdict": "PASS",
+   "evidence": "unchanged, nothing applied, and it says so"
+  },
+  {
+   "id": "QA-FX-4900",
+   "title": "A boolean is not a number",
+   "verdict": "PASS",
+   "evidence": "refused 'value_not_numeric'"
+  },
+  {
+   "id": "QA-FX-4901",
+   "title": "A column the rows do not have",
+   "verdict": "PASS",
+   "evidence": "refused 'column_missing', naming the column"
+  },
+  {
+   "id": "QA-FX-4902",
+   "title": "A fit with no target or no regressors",
+   "verdict": "PASS",
+   "evidence": "both underspecified forms refused"
+  },
+  {
+   "id": "QA-FX-5100",
+   "title": "A weaker bound admits everything the stronger one does",
+   "verdict": "PASS",
+   "evidence": "wider is weaker, and unbounded is weakest"
+  },
+  {
+   "id": "QA-FX-5101",
+   "title": "A refinement that weakens an assumption holds",
+   "verdict": "PASS",
+   "evidence": "wider assumptions and stronger guarantees refine"
+  },
+  {
+   "id": "QA-FX-5102",
+   "title": "A refinement that narrows an assumption does not",
+   "verdict": "PASS",
+   "evidence": "refused, naming ('x',)"
+  },
+  {
+   "id": "QA-FX-5103",
+   "title": "A guarantee withdrawn is not a refinement",
+   "verdict": "PASS",
+   "evidence": "an absent guarantee fails refinement"
+  },
+  {
+   "id": "QA-FX-5104",
+   "title": "An absent assumption is the weakest, not a failure",
+   "verdict": "PASS",
+   "evidence": "an absent assumption refines a bounded one"
+  },
+  {
+   "id": "QA-FX-5105",
+   "title": "Composition discharges what the upstream guarantees",
+   "verdict": "PASS",
+   "evidence": "assumptions {'raw'}, guarantees {'decision', 'score'}"
+  },
+  {
+   "id": "QA-FX-5106",
+   "title": "Composition does not discharge a weaker guarantee",
+   "verdict": "PASS",
+   "evidence": "the stricter assumption survives as the caller's"
+  },
+  {
+   "id": "QA-FX-5107",
+   "title": "The working is shown",
+   "verdict": "PASS",
+   "evidence": "discharged {'score'}, still the caller's {'tenure'}"
+  },
+  {
+   "id": "QA-FX-5108",
+   "title": "The three operations are not one operation",
+   "verdict": "PASS",
+   "evidence": "three distinct answers: {'compose': (('raw',), ('decision', 'score')), 'conjoin': ((), ('decision', 'score')), 'quotient': (('decision', 'raw'), ('score',))}"
+  },
+  {
+   "id": "QA-FX-5109",
+   "title": "A lattice operation that does not exist is refused",
+   "verdict": "PASS",
+   "evidence": "disjoint bands have no meet; overlapping ones do"
+  },
+  {
+   "id": "QA-FX-5600",
+   "title": "Every write verb is refused",
+   "verdict": "PASS",
+   "evidence": "all 15 write verbs refused"
+  },
+  {
+   "id": "QA-FX-5601",
+   "title": "A read whose table is named after a write verb",
+   "verdict": "PASS",
+   "evidence": "four reads mentioning write verbs all accepted"
+  },
+  {
+   "id": "QA-FX-5602",
+   "title": "Leading whitespace and case do not hide a write",
+   "verdict": "PASS",
+   "evidence": "whitespace and case do not disguise a write"
+  },
+  {
+   "id": "QA-FX-5603",
+   "title": "A second statement appended to a read",
+   "verdict": "PASS",
+   "evidence": "an appended statement is refused"
+  },
+  {
+   "id": "QA-FX-5604",
+   "title": "A trailing semicolon is not a second statement",
+   "verdict": "PASS",
+   "evidence": "a trailing semicolon is accepted"
+  },
+  {
+   "id": "QA-FX-5605",
+   "title": "An empty statement",
+   "verdict": "PASS",
+   "evidence": "an empty statement is refused"
+  },
+  {
+   "id": "QA-FX-5606",
+   "title": "A format that is not one",
+   "verdict": "PASS",
+   "evidence": "no separate format check to call; the vocabulary is ['arrow', 'csv', 'jsonl', 'parquet']"
+  },
+  {
+   "id": "QA-FX-5607",
+   "title": "The write check is anchored, not a substring search",
+   "verdict": "PASS",
+   "evidence": "anchored with word boundaries: ^\\s*(INSERT|UPDATE|DELETE|DROP|TRUNCATE|\u2026"
+  },
+  {
+   "id": "QA-FX-5608",
+   "title": "SQL is not the only source kind",
+   "verdict": "PASS",
+   "evidence": "4 file formats, SQL handled separately"
+  },
+  {
+   "id": "QA-FX-5700",
+   "title": "A policy with no trigger",
+   "verdict": "PASS",
+   "evidence": "refused 'trigger_required'"
+  },
+  {
+   "id": "QA-FX-5701",
+   "title": "A trigger that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_trigger', naming 5 triggers"
+  },
+  {
+   "id": "QA-FX-5702",
+   "title": "A policy with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required'"
+  },
+  {
+   "id": "QA-FX-5703",
+   "title": "Automatic acceptance with no tolerance",
+   "verdict": "PASS",
+   "evidence": "refused 'tolerance_required'"
+  },
+  {
+   "id": "QA-FX-5704",
+   "title": "Automatic acceptance on a high tier",
+   "verdict": "PASS",
+   "evidence": "refused 'tier_not_eligible' on a high tier"
+  },
+  {
+   "id": "QA-FX-5705",
+   "title": "Automatic acceptance on an untiered model",
+   "verdict": "PASS",
+   "evidence": "refused 'tier_not_eligible'"
+  },
+  {
+   "id": "QA-FX-5706",
+   "title": "The author approves their own policy",
+   "verdict": "PASS",
+   "evidence": "the author cannot approve their own standing policy"
+  },
+  {
+   "id": "QA-FX-5707",
+   "title": "Somebody else may approve it",
+   "verdict": "PASS",
+   "evidence": "declared by one person, approved by another"
+  },
+  {
+   "id": "QA-FX-5708",
+   "title": "Every trigger says what it is",
+   "verdict": "PASS",
+   "evidence": "5 triggers published"
+  },
+  {
+   "id": "QA-FX-5709",
+   "title": "A policy can be revoked",
+   "verdict": "PASS",
+   "evidence": "revoked"
+  },
+  {
+   "id": "QA-FX-600",
+   "title": "An as_of before the view existed",
+   "verdict": "PASS",
+   "evidence": "no admissible row, and the column is null"
+  },
+  {
+   "id": "QA-FX-601",
+   "title": "A negative as_of",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-FX-602",
+   "title": "An entity that has no rows",
+   "verdict": "PASS",
+   "evidence": "no admissible facts for an unknown entity"
+  },
+  {
+   "id": "QA-FX-603",
+   "title": "An assembly on a view version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (409)"
+  },
+  {
+   "id": "QA-FX-604",
+   "title": "Seal a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-605",
+   "title": "Break a seal on a feature that was never sealed",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-606",
+   "title": "A warrant over an attested model with an alias",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-607",
+   "title": "A warrant over a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-608",
+   "title": "Resolve a warrant after it is revoked",
+   "verdict": "PASS",
+   "evidence": "refused 'revoked' (410)"
+  },
+  {
+   "id": "QA-FX-609",
+   "title": "Revoking a warrant that was never issued",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-610",
+   "title": "Revoking with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-FX-6100",
+   "title": "A shadow under a production declared use",
+   "verdict": "PASS",
+   "evidence": "refused 'shadow_use_is_a_production_use'"
+  },
+  {
+   "id": "QA-FX-6101",
+   "title": "A shadow under its own declared use",
+   "verdict": "PASS",
+   "evidence": "a distinct declared use is accepted"
+  },
+  {
+   "id": "QA-FX-6102",
+   "title": "A shadow that mirrors nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'mirrors_required'"
+  },
+  {
+   "id": "QA-FX-6103",
+   "title": "A share outside the unit interval",
+   "verdict": "PASS",
+   "evidence": "0, -0.1, 1.5 and 100 refused; 1.0 accepted"
+  },
+  {
+   "id": "QA-FX-6104",
+   "title": "The share is an attestation, not a control",
+   "verdict": "PASS",
+   "evidence": "the share is stated to be an attestation"
+  },
+  {
+   "id": "QA-FX-6105",
+   "title": "A shadow grant has an end",
+   "verdict": "PASS",
+   "evidence": "bounded by default at 90 days"
+  },
+  {
+   "id": "QA-FX-6106",
+   "title": "An overstaying shadow is reported",
+   "verdict": "PASS",
+   "evidence": "an overstay past 90 days is reported"
+  },
+  {
+   "id": "QA-FX-6107",
+   "title": "The shadow posture is readable",
+   "verdict": "PASS",
+   "evidence": "MAYA does not mirror traffic and cannot see the router. What it does is authorise the mirror as advi"
+  },
+  {
+   "id": "QA-FX-6108",
+   "title": "A shadow against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-611",
+   "title": "An alias on a model that is not in force",
+   "verdict": "PASS",
+   "evidence": "answered 403 (refused)"
+  },
+  {
+   "id": "QA-FX-612",
+   "title": "The published cascade of what a warrant carries",
+   "verdict": "PASS",
+   "evidence": "the descriptor is signed and time-bounded"
+  },
+  {
+   "id": "QA-FX-613",
+   "title": "A warrant states what it does NOT prove",
+   "verdict": "PASS",
+   "evidence": "that any engine behaved. MAYA does not run models, so nothing here observes an engine honouring or ignoring th"
+  },
+  {
+   "id": "QA-FX-614",
+   "title": "Unreported execution is visible",
+   "verdict": "PASS",
+   "evidence": "17 live and silent"
+  },
+  {
+   "id": "QA-FX-622",
+   "title": "A well-formed feature is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-623",
+   "title": "The same feature name twice",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-624",
+   "title": "A feature declared as personal data",
+   "verdict": "PASS",
+   "evidence": "accepted and flagged"
+  },
+  {
+   "id": "QA-FX-625",
+   "title": "A feature naming a protected basis",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-626",
+   "title": "A featureset over a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-627",
+   "title": "Retire a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_subject'"
+  },
+  {
+   "id": "QA-FX-628",
+   "title": "A feature expression that references itself",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-700",
+   "title": "Define a feature with no name",
+   "verdict": "FAIL",
+   "evidence": "a feature with no name was accepted, and a feature nobody can name is one nobody can cite"
+  },
+  {
+   "id": "QA-FX-701",
+   "title": "Define a feature with no owner",
+   "verdict": "FAIL",
+   "evidence": "a feature with no owner was accepted, and an unowned feature is one nobody maintains"
+  },
+  {
+   "id": "QA-FX-702",
+   "title": "Define a feature of an unknown dtype",
+   "verdict": "FAIL",
+   "evidence": "a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves"
+  },
+  {
+   "id": "QA-FX-703",
+   "title": "Define a feature with no entity",
+   "verdict": "FAIL",
+   "evidence": "a feature with no entity was accepted, and the entity is what a row is keyed on"
+  },
+  {
+   "id": "QA-FX-704",
+   "title": "Define a feature with no description",
+   "verdict": "FAIL",
+   "evidence": "a feature with no description was accepted, and a business definition is what stops two teams meaning different things by one name"
+  },
+  {
+   "id": "QA-FX-705",
+   "title": "Define a negative ttl",
+   "verdict": "FAIL",
+   "evidence": "a negative ttl was accepted, and a negative lifetime is a row that expired before it arrived"
+  },
+  {
+   "id": "QA-FX-706",
+   "title": "Define a shape that is not a shape",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-800",
+   "title": "A parameter set with no name",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a2d42a460e6bd52abee709bc\",\"model_id\":\"01a0a2d42a2cccbc055749829283\",\"model_version_id\":\"01a0a2d42a37284b0b36b3ec6f38\",\"name\":\"   \",\"version\":1,\"kind\""
+  },
+  {
+   "id": "QA-FX-801",
+   "title": "A parameter set whose provenance is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_provenance' (422)"
+  },
+  {
+   "id": "QA-FX-802",
+   "title": "A parameter set against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_version' (404)"
+  },
+  {
+   "id": "QA-FX-803",
+   "title": "A parameter set with neither values nor a uri",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-804",
+   "title": "A well-formed parameter set is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-805",
+   "title": "A fitted set naming no warrant",
+   "verdict": "PASS",
+   "evidence": "refused 'warrant_required'"
+  },
+  {
+   "id": "QA-FX-806",
+   "title": "A fitted set naming a warrant that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_warrant'"
+  },
+  {
+   "id": "QA-FX-807",
+   "title": "Review a parameter set that does not exist",
+   "verdict": "FAIL",
+   "evidence": "500 \u2014 an unknown id crashed the review"
+  },
+  {
+   "id": "QA-FX-808",
+   "title": "The person who proposed a set reviews it themselves",
+   "verdict": "PASS",
+   "evidence": "refused 'self_approval'"
+  },
+  {
+   "id": "QA-FX-820",
+   "title": "A rule set with an empty document",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-821",
+   "title": "A rule set that does not parse",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-822",
+   "title": "Check a rule set without recording it",
+   "verdict": "PASS",
+   "evidence": "check answered 422 and recorded nothing"
+  },
+  {
+   "id": "QA-FX-823",
+   "title": "Trial a rule set against rows",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-FX-840",
+   "title": "A retraining policy with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-FX-841",
+   "title": "A retraining policy that never expires",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-900",
+   "title": "A featureset with no name",
+   "verdict": "FAIL",
+   "evidence": "a featureset nobody can name was created"
+  },
+  {
+   "id": "QA-FX-901",
+   "title": "A featureset with no entity",
+   "verdict": "FAIL",
+   "evidence": "a featureset was created with nothing to key rows on"
+  },
+  {
+   "id": "QA-FX-902",
+   "title": "A well-formed featureset is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-903",
+   "title": "Two featuresets with the same name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-904",
+   "title": "A negative outcome window",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-905",
+   "title": "Retire a featureset with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-906",
+   "title": "Publish a version with no bindings",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-920",
+   "title": "An assumption with no statement",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-921",
+   "title": "An assumption of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-922",
+   "title": "An assumption against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-923",
+   "title": "Withdraw an assumption with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-924",
+   "title": "A well-formed assumption is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-940",
+   "title": "An elicitation with no question",
+   "verdict": "PASS",
+   "evidence": "refused 'question_required'"
+  },
+  {
+   "id": "QA-FX-941",
+   "title": "An elicitation with no facilitator",
+   "verdict": "FAIL",
+   "evidence": "an elicitation with no facilitator; the one role that makes a panel's answer attributable"
+  },
+  {
+   "id": "QA-FX-942",
+   "title": "Respond to an elicitation that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_elicitation'"
+  },
+  {
+   "id": "QA-FX-943",
+   "title": "Conclude an elicitation with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_elicitation'"
+  },
+  {
+   "id": "QA-FX-944",
+   "title": "A well-formed elicitation opens",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-FX-950",
+   "title": "A source of a kind the platform cannot read",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused' (409)"
+  },
+  {
+   "id": "QA-FX-951",
+   "title": "A source with no locator",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-952",
+   "title": "A source on a view that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-953",
+   "title": "A pull from a source that was never configured",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-954",
+   "title": "Retire a source with no reason",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a2d42f2f67dc53389336a7e6\",\"view_name\":\"tv-331dd06c\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
+  },
+  {
+   "id": "QA-FX-955",
+   "title": "A configured source reports where it reads from",
+   "verdict": "PASS",
+   "evidence": "readable, and it names where it reads from"
+  },
+  {
+   "id": "QA-FX-960",
+   "title": "Export a feature view version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (409)"
+  },
+  {
+   "id": "QA-FX-961",
+   "title": "Export from a view that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (409)"
+  },
+  {
+   "id": "QA-FX-962",
+   "title": "A retirable check names what still depends on a version",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-FX-963",
+   "title": "The perimeter says what the platform does not control",
+   "verdict": "PASS",
+   "evidence": "published, 1945 bytes"
+  }
+ ]
+}

@@ -1,0 +1,2441 @@
+{
+ "summary": {
+  "total": 405,
+  "pass": 369,
+  "fail": 27,
+  "blocked": 9
+ },
+ "seconds": 170.9,
+ "results": [
+  {
+   "id": "QA-GOV-001",
+   "title": "Register the same URN twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-002",
+   "title": "Two URNs differing only in letter case",
+   "verdict": "PASS",
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-eb5bad99\",\"name\":\"gov-eb5bad99-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+  },
+  {
+   "id": "QA-GOV-003",
+   "title": "A URN that is a strict prefix of an existing one",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-GOV-004",
+   "title": "Submit with no version and no tier",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_approve' (409)"
+  },
+  {
+   "id": "QA-GOV-005",
+   "title": "Submit with a version but no assessment",
+   "verdict": "PASS",
+   "evidence": "refused 'not_tiered' (409)"
+  },
+  {
+   "id": "QA-GOV-006",
+   "title": "The full ordered path: register, version, assess, submit",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-007",
+   "title": "PATCH an editable field on a draft",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-008",
+   "title": "PATCH the urn on a draft",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-009",
+   "title": "PATCH status directly, bypassing the state machine",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-010",
+   "title": "PATCH tier directly",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-011",
+   "title": "PATCH with an empty body",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-012",
+   "title": "PATCH the same field to the same value twice",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-013",
+   "title": "Set designations on an attested record",
+   "verdict": "PASS",
+   "evidence": "accepted on an attested record \u2014 a designation is treated as a fact ABOUT the record rather than a change to what it says"
+  },
+  {
+   "id": "QA-GOV-015",
+   "title": "Designations back to empty after being populated",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-016",
+   "title": "Designations containing the same value twice",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-017",
+   "title": "A model registered with no legal entity",
+   "verdict": "FAIL",
+   "evidence": "a model was registered belonging to no legal entity, so no entity-scoped principal can reach it and nobody is accountable for it"
+  },
+  {
+   "id": "QA-GOV-018",
+   "title": "Register a proposal before it has been triaged",
+   "verdict": "PASS",
+   "evidence": "refused 'not_triaged'"
+  },
+  {
+   "id": "QA-GOV-019",
+   "title": "Triage out of scope, then try to register",
+   "verdict": "PASS",
+   "evidence": "refused 'proposal_declined'"
+  },
+  {
+   "id": "QA-GOV-020",
+   "title": "Register the same proposal twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_triaged'"
+  },
+  {
+   "id": "QA-GOV-021",
+   "title": "Re-triage a proposal already triaged",
+   "verdict": "PASS",
+   "evidence": "revised; the chain holds both determinations ['build', 'buy']"
+  },
+  {
+   "id": "QA-GOV-022",
+   "title": "Register a proposal onto a URN already in the register",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', proposal still triaged"
+  },
+  {
+   "id": "QA-GOV-023",
+   "title": "Triage with an empty rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-GOV-024",
+   "title": "Amend a baselined record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition'"
+  },
+  {
+   "id": "QA-GOV-025",
+   "title": "Retire a baselined record with open debt",
+   "verdict": "PASS",
+   "evidence": "retired; 0 debt item(s) still recorded"
+  },
+  {
+   "id": "QA-GOV-026",
+   "title": "Submit a baselined record with open debt",
+   "verdict": "PASS",
+   "evidence": "submitted from baselined with 0 debt item(s) still open \u2014 the debt is governance owed, not a gate on the path"
+  },
+  {
+   "id": "QA-GOV-027",
+   "title": "Import the same legacy model twice",
+   "verdict": "PASS",
+   "evidence": "0 imported, 1 skipped, each naming the reason"
+  },
+  {
+   "id": "QA-GOV-028",
+   "title": "Record the same debt gap twice against one model",
+   "verdict": "PASS",
+   "evidence": "refused 'already_recorded' for gap 'version'"
+  },
+  {
+   "id": "QA-GOV-029",
+   "title": "Submit twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-030",
+   "title": "Approve a draft record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-031",
+   "title": "Attest a submitted record",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open' (409)"
+  },
+  {
+   "id": "QA-GOV-032",
+   "title": "Return a draft record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-033",
+   "title": "Return with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-034",
+   "title": "Retire a submitted record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-035",
+   "title": "Retire an amending record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition'"
+  },
+  {
+   "id": "QA-GOV-036",
+   "title": "Retire twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-037",
+   "title": "Add a version to a retired record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-038",
+   "title": "PATCH a retired record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-039",
+   "title": "Approve twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition', exactly one attestation open"
+  },
+  {
+   "id": "QA-GOV-041",
+   "title": "Sign an attestation before approval",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open'"
+  },
+  {
+   "id": "QA-GOV-042",
+   "title": "The last signature lands after the record was retired",
+   "verdict": "PASS",
+   "evidence": "the last signature was refused 'illegal_transition'; the record stands at retired"
+  },
+  {
+   "id": "QA-GOV-043",
+   "title": "Decline an initial attestation",
+   "verdict": "PASS",
+   "evidence": "declined, and the record is back at draft"
+  },
+  {
+   "id": "QA-GOV-044",
+   "title": "Decline an amendment attestation",
+   "verdict": "PASS",
+   "evidence": "back at amending, amendment still open"
+  },
+  {
+   "id": "QA-GOV-045",
+   "title": "The decline edge against the published machine",
+   "verdict": "FAIL",
+   "evidence": "a declined attestation moves the record approved -> draft and approved -> amending, and the published machine names no such edge. An examiner reading GET /lifecycle cannot see that declining sends the record back, or where to"
+  },
+  {
+   "id": "QA-GOV-046",
+   "title": "Sign again after a decline closed the attestation",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open'"
+  },
+  {
+   "id": "QA-GOV-047",
+   "title": "Walk the whole path twice on one model",
+   "verdict": "PASS",
+   "evidence": "two full cycles, one amendment on the record"
+  },
+  {
+   "id": "QA-GOV-048",
+   "title": "Walk the path as one account throughout",
+   "verdict": "PASS",
+   "evidence": "refused at grant time: 'incompatible_roles'"
+  },
+  {
+   "id": "QA-GOV-050",
+   "title": "Submit from amending",
+   "verdict": "PASS",
+   "evidence": "submitted from amending, now submitted"
+  },
+  {
+   "id": "QA-GOV-051",
+   "title": "Open two amendments against one model",
+   "verdict": "PASS",
+   "evidence": "refused 'amendment_open'"
+  },
+  {
+   "id": "QA-GOV-052",
+   "title": "Open an amendment with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-053",
+   "title": "Amendment references after two full cycles",
+   "verdict": "PASS",
+   "evidence": "AMD-001 then AMD-002"
+  },
+  {
+   "id": "QA-GOV-055",
+   "title": "What an amendment's scope records",
+   "verdict": "PASS",
+   "evidence": "scope recorded as given; a change outside it was ACCEPTED \u2014 the scope is a statement on the record, not a constraint"
+  },
+  {
+   "id": "QA-GOV-056",
+   "title": "Amend, add a version, then attest again",
+   "verdict": "PASS",
+   "evidence": "amended, versioned, attested again"
+  },
+  {
+   "id": "QA-GOV-060",
+   "title": "Submit a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-062",
+   "title": "Two different people sign the same role",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed'"
+  },
+  {
+   "id": "QA-GOV-065",
+   "title": "Sign with a decision that is neither attest nor decline",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_decision'"
+  },
+  {
+   "id": "QA-GOV-067",
+   "title": "An attestation is not expired the moment it is signed",
+   "verdict": "PASS",
+   "evidence": "attested, and reported as not expired"
+  },
+  {
+   "id": "QA-GOV-069",
+   "title": "Amend a model whose attestation has expired",
+   "verdict": "PASS",
+   "evidence": "amendment is available from the attested state"
+  },
+  {
+   "id": "QA-GOV-070",
+   "title": "A second attestation after a completed cycle",
+   "verdict": "PASS",
+   "evidence": "a completed attestation does not block the next"
+  },
+  {
+   "id": "QA-GOV-071",
+   "title": "Create the same semver twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-072",
+   "title": "Create a version on an attested record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the amendment route"
+  },
+  {
+   "id": "QA-GOV-073",
+   "title": "Create a version on a `submitted` record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-074",
+   "title": "A version with a malformed artifact digest",
+   "verdict": "PASS",
+   "evidence": "five malformed digests refused"
+  },
+  {
+   "id": "QA-GOV-075",
+   "title": "Create a version with a digest of exactly 63 hex characters",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the length"
+  },
+  {
+   "id": "QA-GOV-076",
+   "title": "A version with no digest at all",
+   "verdict": "PASS",
+   "evidence": "a version may have no artifact"
+  },
+  {
+   "id": "QA-GOV-077",
+   "title": "Declared `artifact_format` disagrees with the stored artifact",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the stored format"
+  },
+  {
+   "id": "QA-GOV-079",
+   "title": "Semver ordering across a ten boundary",
+   "verdict": "PASS",
+   "evidence": "0.10.0 is later than 0.9.0"
+  },
+  {
+   "id": "QA-GOV-080",
+   "title": "A semver that is not three numeric parts",
+   "verdict": "FAIL",
+   "evidence": "these are not semvers and were accepted: ['1.0', 'v1.0.0', '1.0.0.0', 'one.two.three', '', '1.0.x']"
+  },
+  {
+   "id": "QA-GOV-081",
+   "title": "Approve a tier 1 version directly",
+   "verdict": "PASS",
+   "evidence": "refused 'quorum_required', naming the quorum endpoint"
+  },
+  {
+   "id": "QA-GOV-082",
+   "title": "Approve a version whose model has no tier",
+   "verdict": "PASS",
+   "evidence": "refused 'no_tier'"
+  },
+  {
+   "id": "QA-GOV-083",
+   "title": "Approve an already-approved tier 4 version",
+   "verdict": "FAIL",
+   "evidence": "approving an approved version wrote a second `version_approved` node: the chain now says this version was approved 2 times, and an examiner counting approvals counts decisions that were never taken"
+  },
+  {
+   "id": "QA-GOV-084",
+   "title": "Approve a version of a model with an open blocking finding",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-085",
+   "title": "The version's creator approves it",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-GOV-086",
+   "title": "The creator is recorded `person/a.dev` and approves as `a.dev`",
+   "verdict": "PASS",
+   "evidence": "the creator is on the chain as 'developer', and the policy resolves both spellings to one person"
+  },
+  {
+   "id": "QA-GOV-087",
+   "title": "Move an alias to a version that is not approved",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-090",
+   "title": "Move an alias to the version it already points at",
+   "verdict": "PASS",
+   "evidence": "a repeat move is refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-091",
+   "title": "Roll an alias back to the previous version",
+   "verdict": "PASS",
+   "evidence": "a rollback is refused 'registry_refused' \u2014 an amendment is the route back"
+  },
+  {
+   "id": "QA-GOV-094",
+   "title": "The version's creator moves the alias",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-GOV-096",
+   "title": "Move an alias in an environment nobody configured",
+   "verdict": "PASS",
+   "evidence": "accepted: environments are not a closed list, so a firm may add one without a code change"
+  },
+  {
+   "id": "QA-GOV-098",
+   "title": "Move an alias as a principal scoped to another entity",
+   "verdict": "PASS",
+   "evidence": "refused 'out_of_scope'"
+  },
+  {
+   "id": "QA-GOV-099",
+   "title": "Open a quorum for a tier 3 version",
+   "verdict": "PASS",
+   "evidence": "refused 'no_quorum_required'"
+  },
+  {
+   "id": "QA-GOV-100",
+   "title": "Open two quorums for one version",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_open'"
+  },
+  {
+   "id": "QA-GOV-1000",
+   "title": "A proposal with no title",
+   "verdict": "PASS",
+   "evidence": "refused 'description_required'"
+  },
+  {
+   "id": "QA-GOV-1001",
+   "title": "Register a proposal before it has been triaged",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1002",
+   "title": "Triage with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1003",
+   "title": "Register a proposal triaged out of scope",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1004",
+   "title": "Triage a proposal that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-1005",
+   "title": "Re-triage a proposal already triaged",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-GOV-101",
+   "title": "Open a quorum for a version already approved",
+   "verdict": "PASS",
+   "evidence": "refused 'already_approved'"
+  },
+  {
+   "id": "QA-GOV-1010",
+   "title": "The baseline burn-down is computed, not declared",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-GOV-1011",
+   "title": "Debt and breach are reported separately",
+   "verdict": "PASS",
+   "evidence": "answered 200"
+  },
+  {
+   "id": "QA-GOV-1012",
+   "title": "Reconcile debt against a register with nothing in it",
+   "verdict": "PASS",
+   "evidence": "answered 422"
+  },
+  {
+   "id": "QA-GOV-102",
+   "title": "POST /api/v1/models with a blank `name`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-103",
+   "title": "Complete a two-role quorum with two distinct people",
+   "verdict": "PASS",
+   "evidence": "two people, two roles, and the version is approved"
+  },
+  {
+   "id": "QA-GOV-104",
+   "title": "One person holding both quorum roles signs twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed_personally'"
+  },
+  {
+   "id": "QA-GOV-105",
+   "title": "Race two signatures from one dual-hatted principal",
+   "verdict": "PASS",
+   "evidence": "one signature stood, the other refused 'already_signed_personally'"
+  },
+  {
+   "id": "QA-GOV-106",
+   "title": "The version's creator signs the quorum",
+   "verdict": "PASS",
+   "evidence": "the pairing is refused at the role store ('incompatible_roles'), before any version exists to sign"
+  },
+  {
+   "id": "QA-GOV-107",
+   "title": "Decline one signature of a two-role quorum",
+   "verdict": "PASS",
+   "evidence": "declined, and the version is not approved"
+  },
+  {
+   "id": "QA-GOV-108",
+   "title": "Sign after a decline closed the approval",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_closed'"
+  },
+  {
+   "id": "QA-GOV-109",
+   "title": "Open a new quorum after one was declined",
+   "verdict": "PASS",
+   "evidence": "a second approval, distinct from the declined one"
+  },
+  {
+   "id": "QA-GOV-110",
+   "title": "Withdraw an open approval, then open another",
+   "verdict": "PASS",
+   "evidence": "withdrawn, and a fresh approval opens"
+  },
+  {
+   "id": "QA-GOV-111",
+   "title": "Withdraw an approval that is already withdrawn",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_closed'"
+  },
+  {
+   "id": "QA-GOV-112",
+   "title": "A UK-scoped validator signs half a US model's tier 2 quorum",
+   "verdict": "PASS",
+   "evidence": "refused 'out_of_scope'"
+  },
+  {
+   "id": "QA-GOV-113",
+   "title": "Raise the tier after a version was approved on one signature",
+   "verdict": "PASS",
+   "evidence": "reported ['1.0.0'] and raised a blocking High finding"
+  },
+  {
+   "id": "QA-GOV-114",
+   "title": "Lower the tier after a quorum-approved version",
+   "verdict": "PASS",
+   "evidence": "tier 2 to tier 3, nothing below quorum and no finding"
+  },
+  {
+   "id": "QA-GOV-115",
+   "title": "Raise the tier twice in a row",
+   "verdict": "PASS",
+   "evidence": "2 findings, one per rise, each naming its own tier: ['tier raised to 1; 1 approved version were approved under tier 2', 'tier raised to 2; 1 approved version were approved under tier 3']"
+  },
+  {
+   "id": "QA-GOV-117",
+   "title": "Publish a band with no stages",
+   "verdict": "PASS",
+   "evidence": "refused 'stages_required'"
+  },
+  {
+   "id": "QA-GOV-118",
+   "title": "Publish a band with a stage that is an empty list",
+   "verdict": "FAIL",
+   "evidence": "a band was published with an empty stage, so one step of the sequence is satisfied by nobody"
+  },
+  {
+   "id": "QA-GOV-119",
+   "title": "Publish a band naming a tier that does not exist",
+   "verdict": "PASS",
+   "evidence": "tiers 0, 5, -1 and 99 all refused"
+  },
+  {
+   "id": "QA-GOV-120",
+   "title": "Publish a band with tier 0",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_tier'"
+  },
+  {
+   "id": "QA-GOV-121",
+   "title": "Publish a band with a negative amount floor",
+   "verdict": "PASS",
+   "evidence": "refused 'negative_floor'"
+  },
+  {
+   "id": "QA-GOV-122",
+   "title": "Publish the same band name twice",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists'"
+  },
+  {
+   "id": "QA-GOV-123",
+   "title": "Race two publications of the same band name",
+   "verdict": "PASS",
+   "evidence": "one published, the other refused 'band_exists'"
+  },
+  {
+   "id": "QA-GOV-124",
+   "title": "Withdraw a band nobody published",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_band'"
+  },
+  {
+   "id": "QA-GOV-125",
+   "title": "Withdraw a band and read the matrix",
+   "verdict": "PASS",
+   "evidence": "withdrawn from the live matrix"
+  },
+  {
+   "id": "QA-GOV-126",
+   "title": "Publish the first band at all \u2014 every tier 3 model now falls under a matrix",
+   "verdict": "FAIL",
+   "evidence": "publishing one tier 3 band removed the shipped bands ['tier-1', 'tier-2'] from the matrix: the matrix is `published or DEFAULT_BANDS`, so the first band a firm publishes silently drops the tier-1 sequencing \u2014 the only place the platform requires the second line to sign before the validator"
+  },
+  {
+   "id": "QA-GOV-127",
+   "title": "Publish a matrix that reaches no tier 1 model",
+   "verdict": "FAIL",
+   "evidence": "a tier 1 version was approved by ONE person. `banded()` returns `required_for(urn)` whenever ANY matrix is published, and that answer carries `required_roles: []` for a model no band reaches \u2014 so `roles_for` reports no quorum and `refuse_without_quorum` returns silently. Publishing one tier 3 band therefore removes the quorum from every tier 1 and tier 2 model in the estate, and QA-GOV-126 is why "
+  },
+  {
+   "id": "QA-GOV-128",
+   "title": "An amount exactly equal to a band's floor",
+   "verdict": "PASS",
+   "evidence": "the floor is stored as given, and named at_or_above"
+  },
+  {
+   "id": "QA-GOV-129",
+   "title": "Amount one unit below the floor",
+   "verdict": "PASS",
+   "evidence": "999,999 -> 'bd-0af6c6ac', the band below the floor"
+  },
+  {
+   "id": "QA-GOV-130",
+   "title": "No sourced exposure at all",
+   "verdict": "PASS",
+   "evidence": "deepest band 'bd-14bde422', reached_by 'deepest_band_because_the_amount_is_unknown'"
+  },
+  {
+   "id": "QA-GOV-131",
+   "title": "Sourced exposure recorded as a non-numeric string",
+   "verdict": "PASS",
+   "evidence": "unparseable, so the deepest band 'bd-3a31ad06' \u2014 and the attested row is still on the record to be corrected"
+  },
+  {
+   "id": "QA-GOV-132",
+   "title": "Two exposure facts, the later one dated in the future",
+   "verdict": "FAIL",
+   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-ef6eba4d'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
+  },
+  {
+   "id": "QA-GOV-133",
+   "title": "Sourced exposure of exactly 0",
+   "verdict": "PASS",
+   "evidence": "0 -> 'bd-383d9b9c', matched rather than reached by absence"
+  },
+  {
+   "id": "QA-GOV-134",
+   "title": "Sign out of stage order",
+   "verdict": "PASS",
+   "evidence": "the second stage cannot sign before the first"
+  },
+  {
+   "id": "QA-GOV-135",
+   "title": "Sign in stage order",
+   "verdict": "PASS",
+   "evidence": "first stage, then second"
+  },
+  {
+   "id": "QA-GOV-136",
+   "title": "A single-stage band with two roles signs either way",
+   "verdict": "PASS",
+   "evidence": "either order within one stage"
+  },
+  {
+   "id": "QA-GOV-137",
+   "title": "Delegate with a ceiling of zero",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_required'"
+  },
+  {
+   "id": "QA-GOV-138",
+   "title": "Delegate with a ceiling that is not a number",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-GOV-139",
+   "title": "Delegate with no instrument",
+   "verdict": "PASS",
+   "evidence": "refused 'instrument_required'"
+  },
+  {
+   "id": "QA-GOV-140",
+   "title": "Record delegations but publish no band",
+   "verdict": "FAIL",
+   "evidence": "a 1 USD ceiling signed off a 250,000,000 exposure because no band is published: `refuse_beyond_delegation` runs only inside `if approval.get('band')`, and nothing in the estate view says the recorded ceilings are deciding nothing"
+  },
+  {
+   "id": "QA-GOV-1400",
+   "title": "The sourcing vocabulary is closed",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_sourcing', naming the 4 members"
+  },
+  {
+   "id": "QA-GOV-1401",
+   "title": "The assessment is a reading, never a determination",
+   "verdict": "PASS",
+   "evidence": "5 questions, each naming the words it turned on, and the proposal untouched"
+  },
+  {
+   "id": "QA-GOV-1402",
+   "title": "One bad row does not stop the batch",
+   "verdict": "PASS",
+   "evidence": "1 imported, 1 skipped, batch completed"
+  },
+  {
+   "id": "QA-GOV-1403",
+   "title": "An import of nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_to_import'"
+  },
+  {
+   "id": "QA-GOV-1404",
+   "title": "A baselined record is not a draft",
+   "verdict": "PASS",
+   "evidence": "baselined: imported from an existing estate; governed going forward, carrying explicit debt"
+  },
+  {
+   "id": "QA-GOV-1405",
+   "title": "Every baselined model carries its debt",
+   "verdict": "PASS",
+   "evidence": "10 debt item(s) against 13 named gaps"
+  },
+  {
+   "id": "QA-GOV-141",
+   "title": "Sign a tier 3 version while holding no delegation",
+   "verdict": "PASS",
+   "evidence": "a tier 3 version is approved without a delegation: the check lives in the quorum signing path and a tier 3 version never enters it. Pinned as a known edge"
+  },
+  {
+   "id": "QA-GOV-142",
+   "title": "Signer holds no live delegation while others do",
+   "verdict": "PASS",
+   "evidence": "refused 'no_delegated_authority'"
+  },
+  {
+   "id": "QA-GOV-143",
+   "title": "Signer's delegation expired yesterday",
+   "verdict": "PASS",
+   "evidence": "refused 'no_delegated_authority' on an expired delegation"
+  },
+  {
+   "id": "QA-GOV-144",
+   "title": "Delegation expiring in one second",
+   "verdict": "PASS",
+   "evidence": "live with a second left, not live five seconds later"
+  },
+  {
+   "id": "QA-GOV-145",
+   "title": "Delegation recorded for `person/j.okafor`, signer authenticates as `j.okafor`",
+   "verdict": "PASS",
+   "evidence": "the delegation is resolved as an identity, so 'person/risk' and 'risk' are the same person"
+  },
+  {
+   "id": "QA-GOV-146",
+   "title": "Delegation in JPY against a USD-read exposure",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_not_comparable'"
+  },
+  {
+   "id": "QA-GOV-147",
+   "title": "Two delegations, one JPY one USD",
+   "verdict": "PASS",
+   "evidence": "the comparable ceiling decides and the JPY row is ignored"
+  },
+  {
+   "id": "QA-GOV-148",
+   "title": "Two USD delegations of different sizes",
+   "verdict": "PASS",
+   "evidence": "the larger of two live ceilings decides"
+  },
+  {
+   "id": "QA-GOV-149",
+   "title": "Exposure exactly equal to the ceiling",
+   "verdict": "PASS",
+   "evidence": "an exposure of exactly 250,000,000 is within the ceiling"
+  },
+  {
+   "id": "QA-GOV-150",
+   "title": "Delegation scoped to LE-UK, model in LE-US",
+   "verdict": "PASS",
+   "evidence": "refused 'entity_out_of_delegation'"
+  },
+  {
+   "id": "QA-GOV-151",
+   "title": "Delegation with no entity, model in any entity",
+   "verdict": "PASS",
+   "evidence": "an unscoped delegation reaches the entity"
+  },
+  {
+   "id": "QA-GOV-152",
+   "title": "Impose a condition running 0 days",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range'"
+  },
+  {
+   "id": "QA-GOV-153",
+   "title": "Impose a condition running exactly 183 days",
+   "verdict": "PASS",
+   "evidence": "183 days accepted"
+  },
+  {
+   "id": "QA-GOV-154",
+   "title": "Impose a condition running 183.5 days",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range' at half a day over"
+  },
+  {
+   "id": "QA-GOV-155",
+   "title": "Impose an `exposure_cap` with an amount and no currency",
+   "verdict": "PASS",
+   "evidence": "refused 'condition_incomplete', naming currency"
+  },
+  {
+   "id": "QA-GOV-156",
+   "title": "Impose a `usage_cap` before any warrant exists",
+   "verdict": "PASS",
+   "evidence": "no quota register is wired, so the cap is recorded and not enforced \u2014 which is QA-GOV-157"
+  },
+  {
+   "id": "QA-GOV-158",
+   "title": "Impose a condition naming a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_version'"
+  },
+  {
+   "id": "QA-GOV-159",
+   "title": "Impose a condition with no `semver`",
+   "verdict": "PASS",
+   "evidence": "accepted with model_version_id null"
+  },
+  {
+   "id": "QA-GOV-160",
+   "title": "Confirm an *enforced* condition",
+   "verdict": "PASS",
+   "evidence": "refused 'not_attested'"
+  },
+  {
+   "id": "QA-GOV-161",
+   "title": "Confirm an attested condition twice",
+   "verdict": "PASS",
+   "evidence": "confirmed twice, and the clock moved both times"
+  },
+  {
+   "id": "QA-GOV-162",
+   "title": "Confirm a discharged condition",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active'"
+  },
+  {
+   "id": "QA-GOV-163",
+   "title": "Discharge twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active', first reason intact"
+  },
+  {
+   "id": "QA-GOV-164",
+   "title": "Discharge with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-165",
+   "title": "Two `expires` conditions with different windows on one model",
+   "verdict": "FAIL",
+   "evidence": "`conditions` reads 2, an integer. `for_model` builds `{\"conditions\": rows, ...}` and then spreads `**self.evaluate(urn)` over it, and `evaluate` answers `conditions: len(rows)` \u2014 so the spread overwrites the rows with a count, and the rationale, the imposer and the discharge reason never reach a caller of GET /approval-conditions?urn="
+  },
+  {
+   "id": "QA-GOV-166",
+   "title": "Resolve after the condition's expiry",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_condition_broken', naming COND-0001"
+  },
+  {
+   "id": "QA-GOV-167",
+   "title": "Resolve in an environment the condition excludes",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_condition_broken', naming uat"
+  },
+  {
+   "id": "QA-GOV-168",
+   "title": "Assess with only exposure and purpose supplied",
+   "verdict": "PASS",
+   "evidence": "refused 'fact_not_supplied'"
+  },
+  {
+   "id": "QA-GOV-169",
+   "title": "Assess before any version exists",
+   "verdict": "PASS",
+   "evidence": "refused 'fact_not_supplied', naming the version"
+  },
+  {
+   "id": "QA-GOV-170",
+   "title": "Assess, add a version, assess again",
+   "verdict": "PASS",
+   "evidence": "changed facts need no note"
+  },
+  {
+   "id": "QA-GOV-171",
+   "title": "Assess twice with identical facts and no note",
+   "verdict": "PASS",
+   "evidence": "refused 'review_says_nothing'"
+  },
+  {
+   "id": "QA-GOV-172",
+   "title": "Assess twice with identical facts and a real note",
+   "verdict": "PASS",
+   "evidence": "an unchanged model can be re-reviewed with a note"
+  },
+  {
+   "id": "QA-GOV-173",
+   "title": "Assess twice with a whitespace-only review note",
+   "verdict": "FAIL",
+   "evidence": "three spaces discharged a periodic review: the same numbers, re-POSTed, moved the next review date with nothing examined \u2014 and `review_note` is stored inside `facts`, so the note is compared as though it were a fact about the model"
+  },
+  {
+   "id": "QA-GOV-174",
+   "title": "Assess with a purpose class outside the vocabulary",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_purpose_class', naming the vocabulary"
+  },
+  {
+   "id": "QA-GOV-175",
+   "title": "Feature count at the complexity boundary",
+   "verdict": "PASS",
+   "evidence": "50 -> simple, 51 -> moderate"
+  },
+  {
+   "id": "QA-GOV-176",
+   "title": "Assess with `feature_count: 51`",
+   "verdict": "PASS",
+   "evidence": "50 -> 'simple', 51 -> 'moderate'"
+  },
+  {
+   "id": "QA-GOV-177",
+   "title": "Assess with `exposure` exactly at a configured band floor",
+   "verdict": "PASS",
+   "evidence": "1,000,000 -> 'low', one less -> 'negligible'"
+  },
+  {
+   "id": "QA-GOV-178",
+   "title": "Assess with an exposure of zero",
+   "verdict": "PASS",
+   "evidence": "tier 3 from the purpose alone"
+  },
+  {
+   "id": "QA-GOV-179",
+   "title": "Assess with a negative exposure",
+   "verdict": "PASS",
+   "evidence": "accepted at tier 3, no weaker than zero's 3"
+  },
+  {
+   "id": "QA-GOV-180",
+   "title": "Assess a model whose materiality is `critical` and complexity `simple`",
+   "verdict": "PASS",
+   "evidence": "critical materiality is tier 1 at every complexity"
+  },
+  {
+   "id": "QA-GOV-181",
+   "title": "Assess at the tau score boundary 5",
+   "verdict": "PASS",
+   "evidence": "tau(low,advanced)=2 and score 4 is tier 3"
+  },
+  {
+   "id": "QA-GOV-182",
+   "title": "Assess at the tau score boundary 2",
+   "verdict": "PASS",
+   "evidence": "tau(negligible,complex)=3 and score 1 is tier 4"
+  },
+  {
+   "id": "QA-GOV-183",
+   "title": "Assess at the tau score boundary 1",
+   "verdict": "PASS",
+   "evidence": "tau(negligible,moderate)=4, owing identification, condition_monitoring"
+  },
+  {
+   "id": "QA-GOV-184",
+   "title": "supports_tier over an empty control list",
+   "verdict": "PASS",
+   "evidence": "no controls supports tier 4"
+  },
+  {
+   "id": "QA-GOV-185",
+   "title": "supports_tier over tier 1's controls minus one",
+   "verdict": "PASS",
+   "evidence": "all 6 tier 1 controls are necessary"
+  },
+  {
+   "id": "QA-GOV-186",
+   "title": "Required controls at tier 1 with a `sox_relevant` designation",
+   "verdict": "PASS",
+   "evidence": "tier 1 controls plus ['access_review', 'change_control_evidence'], and the adjoint still says 1"
+  },
+  {
+   "id": "QA-GOV-187",
+   "title": "Assess an attested model",
+   "verdict": "PASS",
+   "evidence": "accepted on an attested record: the tier is a fact about the record rather than part of what it says (now tier 2)"
+  },
+  {
+   "id": "QA-GOV-188",
+   "title": "Assess a `retired` model",
+   "verdict": "PASS",
+   "evidence": "accepted and re-tiered to 1: a retired model's tier can be re-read, which is how an estate answers what it was running"
+  },
+  {
+   "id": "QA-GOV-189",
+   "title": "Assess on an estate with no models at all",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-190",
+   "title": "Regulatory-change trigger against a regime activated *before* the assessment",
+   "verdict": "PASS",
+   "evidence": "1 regime(s) active, all activated before this assessment, and the trigger does not fire"
+  },
+  {
+   "id": "QA-GOV-191",
+   "title": "Exposure trigger with no fact-sourcing wired",
+   "verdict": "PASS",
+   "evidence": "reported 'cannot_check' with no sourced exposure"
+  },
+  {
+   "id": "QA-GOV-192",
+   "title": "New-use trigger with no use register wired",
+   "verdict": "FAIL",
+   "evidence": "with no use register wired the trigger answers None, which the reading renders as *did not fire* \u2014 indistinguishable from a model nobody added a use to. `_cannot_check` exists for exactly this and is not used"
+  },
+  {
+   "id": "QA-GOV-193",
+   "title": "Monitoring-breach trigger with no breach register wired",
+   "verdict": "FAIL",
+   "evidence": "with no breach register wired the trigger answers None, which reads as *no breach since the assessment* \u2014 the one answer a monitoring-off estate must not be given"
+  },
+  {
+   "id": "QA-GOV-194",
+   "title": "Exposure moved exactly 25%",
+   "verdict": "PASS",
+   "evidence": "fired at exactly 25%"
+  },
+  {
+   "id": "QA-GOV-195",
+   "title": "Exposure moved 24.9%",
+   "verdict": "PASS",
+   "evidence": "24.9% does not fire"
+  },
+  {
+   "id": "QA-GOV-196",
+   "title": "Exposure moved downward by 40%",
+   "verdict": "PASS",
+   "evidence": "a 40% fall fires"
+  },
+  {
+   "id": "QA-GOV-197",
+   "title": "Assessment exposure of 0, current exposure of 5,000,000",
+   "verdict": "PASS",
+   "evidence": "a move from zero does not fire"
+  },
+  {
+   "id": "QA-GOV-198",
+   "title": "A Medium-severity breach after the assessment",
+   "verdict": "PASS",
+   "evidence": "fires on High, Critical and nothing below"
+  },
+  {
+   "id": "QA-GOV-199",
+   "title": "Elapsed-time trigger exactly at `next_review_due`",
+   "verdict": "PASS",
+   "evidence": "not at the date, fired a day after it"
+  },
+  {
+   "id": "QA-GOV-200",
+   "title": "Run the sweep twice",
+   "verdict": "FAIL",
+   "evidence": "the sweep found the stale assessment and raised no finding. `_raise` calls `raise_finding(model_id=..., title=..., severity=..., source=..., detail=..., actor=...)` and the register's signature is `(model_id, severity, title, owner, description=...)` \u2014 `owner` is missing and `detail` is not a parameter, so every call raises TypeError into the bare `except Exception` that exists to stop ONE bad fin"
+  },
+  {
+   "id": "QA-GOV-201",
+   "title": "A band with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_name_required' (422)"
+  },
+  {
+   "id": "QA-GOV-202",
+   "title": "Sweep an estate with no assessments at all",
+   "verdict": "PASS",
+   "evidence": "swept 3 stale assessment(s), no roots"
+  },
+  {
+   "id": "QA-GOV-203",
+   "title": "Sweep where one trigger fired on fifty models",
+   "verdict": "FAIL",
+   "evidence": "4 models share a cause and the sweep raised nothing, so there is nothing to correlate \u2014 see QA-GOV-200 for why"
+  },
+  {
+   "id": "QA-GOV-216",
+   "title": "Grant `model_owner` and `model_risk_manager` to one principal",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles'"
+  },
+  {
+   "id": "QA-GOV-217",
+   "title": "Grant the same pair with `allow_conflicts: true`",
+   "verdict": "FAIL",
+   "evidence": "the override was accepted and no route that lists principals says an exception was made: `conflicts_allowed` goes onto the evidence chain payload and onto no column, so listing who holds separated duties in one pair of hands means walking the chain \u2014 which is the thing the comment beside it says an exception must not require"
+  },
+  {
+   "id": "QA-GOV-218",
+   "title": "Grant `model_developer` and `validator`",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles'"
+  },
+  {
+   "id": "QA-GOV-219",
+   "title": "Grant a conflicting pair to a principal who also holds `admin`",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles' with a third role in the set"
+  },
+  {
+   "id": "QA-GOV-220",
+   "title": "Define a custom role holding `version:create` and `version:approve`",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_permissions'"
+  },
+  {
+   "id": "QA-GOV-2200",
+   "title": "A delegation names a currency",
+   "verdict": "FAIL",
+   "evidence": "a ceiling was recorded with no currency, so the number means whatever the reader assumes"
+  },
+  {
+   "id": "QA-GOV-221",
+   "title": "Amend a role so an existing holder gains both halves",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_permissions' on the amendment"
+  },
+  {
+   "id": "QA-GOV-222",
+   "title": "Review a break-glass with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required' (422)"
+  },
+  {
+   "id": "QA-GOV-223",
+   "title": "Delete a role somebody holds",
+   "verdict": "PASS",
+   "evidence": "refused 'role_in_use'"
+  },
+  {
+   "id": "QA-GOV-225",
+   "title": "Delete a role named in a published authority band",
+   "verdict": "FAIL",
+   "evidence": "the role 'role-413b4afb' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
+  },
+  {
+   "id": "QA-GOV-227",
+   "title": "Delete a built-in role",
+   "verdict": "PASS",
+   "evidence": "refused 'built_in_role'"
+  },
+  {
+   "id": "QA-GOV-228",
+   "title": "Define a role granting no permissions",
+   "verdict": "PASS",
+   "evidence": "refused 'role_grants_nothing'"
+  },
+  {
+   "id": "QA-GOV-229",
+   "title": "Define a role with a misspelled permission",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_permission'"
+  },
+  {
+   "id": "QA-GOV-230",
+   "title": "A recertification campaign with no reviewer",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal' (404)"
+  },
+  {
+   "id": "QA-GOV-2300",
+   "title": "tau is monotone in both arguments",
+   "verdict": "PASS",
+   "evidence": "monotone over all 5x4 cells"
+  },
+  {
+   "id": "QA-GOV-2301",
+   "title": "Materiality dominates: a critical model is never below tier 2",
+   "verdict": "PASS",
+   "evidence": "every critical model is tier 1 or 2"
+  },
+  {
+   "id": "QA-GOV-2302",
+   "title": "The adjoint reads tier controls and only tier controls",
+   "verdict": "PASS",
+   "evidence": "controls outside the tier lattice do not move the answer"
+  },
+  {
+   "id": "QA-GOV-232",
+   "title": "Two campaigns with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-236",
+   "title": "Authorise your own request",
+   "verdict": "PASS",
+   "evidence": "the requester cannot authorise their own elevation"
+  },
+  {
+   "id": "QA-GOV-237",
+   "title": "Authorise your own request unilaterally",
+   "verdict": "PASS",
+   "evidence": "a unilateral self-authorisation is permitted and flagged: the shorter window and the flag are the whole difference"
+  },
+  {
+   "id": "QA-GOV-240",
+   "title": "Authorise twice",
+   "verdict": "PASS",
+   "evidence": "a grant is authorised once"
+  },
+  {
+   "id": "QA-GOV-243",
+   "title": "Review a grant that is still open",
+   "verdict": "PASS",
+   "evidence": "refused 'still_open' while the grant is live"
+  },
+  {
+   "id": "QA-GOV-244",
+   "title": "The elevated principal reviews their own grant",
+   "verdict": "PASS",
+   "evidence": "the elevated principal cannot review their own grant"
+  },
+  {
+   "id": "QA-GOV-245",
+   "title": "Review twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_reviewed'"
+  },
+  {
+   "id": "QA-GOV-246",
+   "title": "Review with an empty note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required'"
+  },
+  {
+   "id": "QA-GOV-247",
+   "title": "Review with an outcome outside the closed set",
+   "verdict": "PASS",
+   "evidence": "refused, naming appropriate, excessive, unwarranted"
+  },
+  {
+   "id": "QA-GOV-248",
+   "title": "Run the expiry sweep twice",
+   "verdict": "PASS",
+   "evidence": "first sweep [], second []"
+  },
+  {
+   "id": "QA-GOV-250",
+   "title": "Request for a principal who does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal'"
+  },
+  {
+   "id": "QA-GOV-251",
+   "title": "Request with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-252",
+   "title": "Open a campaign over an explicitly empty population",
+   "verdict": "PASS",
+   "evidence": "a blank population means everybody active: 37 subject(s)"
+  },
+  {
+   "id": "QA-GOV-253",
+   "title": "Open a campaign on an estate with no active principals",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population' over an estate with nobody in it"
+  },
+  {
+   "id": "QA-GOV-254",
+   "title": "Open a campaign whose only subject is the reviewer",
+   "verdict": "PASS",
+   "evidence": "refused 'self_recertification', and the row stands as unreviewed rather than as answered"
+  },
+  {
+   "id": "QA-GOV-255",
+   "title": "Reviewer answers their own row after a reassignment",
+   "verdict": "PASS",
+   "evidence": "the new reviewer answers the row the old one could not"
+  },
+  {
+   "id": "QA-GOV-256",
+   "title": "A reviewer spelled person/r against a campaign naming r",
+   "verdict": "PASS",
+   "evidence": "a prefixed name is refused at the door, so the `==` reviewer check never sees two spellings"
+  },
+  {
+   "id": "QA-GOV-257",
+   "title": "A reviewer answering their own row",
+   "verdict": "PASS",
+   "evidence": "refused 'self_recertification'"
+  },
+  {
+   "id": "QA-GOV-258",
+   "title": "Answer the same person twice with different answers",
+   "verdict": "FAIL",
+   "evidence": "a confirmed item was answered again as revoked and only the last answer is reported (0 confirmed, 1 revoked): nothing refuses re-answering an item, so what a reviewer first said is not on the record they signed"
+  },
+  {
+   "id": "QA-GOV-259",
+   "title": "Answer somebody who is not in the campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'not_in_population'"
+  },
+  {
+   "id": "QA-GOV-260",
+   "title": "Answer with a third state",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_answer', naming confirmed and revoked"
+  },
+  {
+   "id": "QA-GOV-261",
+   "title": "Revoke with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-262",
+   "title": "Revoke the last administrator's access",
+   "verdict": "PASS",
+   "evidence": "refused 'last_administrator'"
+  },
+  {
+   "id": "QA-GOV-263",
+   "title": "Revoke somebody, then read the answer's wording",
+   "verdict": "PASS",
+   "evidence": "the answer scopes the removal to this register, in words"
+  },
+  {
+   "id": "QA-GOV-264",
+   "title": "Close a campaign with items still unreviewed",
+   "verdict": "PASS",
+   "evidence": "closed with 1 unreviewed, named, and said out loud"
+  },
+  {
+   "id": "QA-GOV-265",
+   "title": "Answer after the campaign is closed",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-266",
+   "title": "Close a campaign twice",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-267",
+   "title": "Reuse the reference of a closed campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists'"
+  },
+  {
+   "id": "QA-GOV-268",
+   "title": "Reassign with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-269",
+   "title": "Reassign to a principal who does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal'"
+  },
+  {
+   "id": "QA-GOV-270",
+   "title": "Reassign a closed campaign",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-271",
+   "title": "Open a campaign naming a suspended principal explicitly",
+   "verdict": "PASS",
+   "evidence": "REC-c00728c9 reviews the suspended account by name, and a blank population does not sweep it in"
+  },
+  {
+   "id": "QA-GOV-272",
+   "title": "An account not seen for exactly 90 days",
+   "verdict": "PASS",
+   "evidence": "not at 90 days, flagged an hour later"
+  },
+  {
+   "id": "QA-GOV-273",
+   "title": "An account with no `last_seen_at` at all",
+   "verdict": "PASS",
+   "evidence": "'this account has never signed in', in its own words"
+  },
+  {
+   "id": "QA-GOV-274",
+   "title": "Open two campaigns covering the same people at once",
+   "verdict": "PASS",
+   "evidence": "answered in REC-ec44037d, still unreviewed in REC-41ca405d"
+  },
+  {
+   "id": "QA-GOV-275",
+   "title": "Decommission a `submitted` model",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition', and nothing was written"
+  },
+  {
+   "id": "QA-GOV-277",
+   "title": "Decommission twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_decommissioned', first rationale intact"
+  },
+  {
+   "id": "QA-GOV-278",
+   "title": "Rationale of exactly ten characters",
+   "verdict": "PASS",
+   "evidence": "ten characters accepted"
+  },
+  {
+   "id": "QA-GOV-279",
+   "title": "Rationale of nine characters",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' at nine"
+  },
+  {
+   "id": "QA-GOV-280",
+   "title": "Replacement naming the model's own URN",
+   "verdict": "FAIL",
+   "evidence": "a model was recorded as its own replacement: the replacement check asks only whether the URN is registered, and the model being retired always is, so the record names a retired model as the thing doing the job now"
+  },
+  {
+   "id": "QA-GOV-281",
+   "title": "Replacement naming an unregistered URN",
+   "verdict": "PASS",
+   "evidence": "refused 'replacement_not_registered'"
+  },
+  {
+   "id": "QA-GOV-282",
+   "title": "Replacement naming a model that is itself retired",
+   "verdict": "FAIL",
+   "evidence": "'maya://model/dc-1b3bfd30' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
+  },
+  {
+   "id": "QA-GOV-283",
+   "title": "Replacement recorded as the literal `none`",
+   "verdict": "PASS",
+   "evidence": "accepted, detail says: maya://model/dc-cc833044 is decommissioned, kept under the 'artifact' class, wit"
+  },
+  {
+   "id": "QA-GOV-284",
+   "title": "Replacement recorded as `None` with a capital N",
+   "verdict": "PASS",
+   "evidence": "refused 'replacement_not_registered' \u2014 the sentinel is exact, so 'None' is read as a URN"
+  },
+  {
+   "id": "QA-GOV-285",
+   "title": "Unknown retention class",
+   "verdict": "PASS",
+   "evidence": "refused, naming all 7 classes"
+  },
+  {
+   "id": "QA-GOV-287",
+   "title": "Live consumers, all listed in `notified`",
+   "verdict": "BLOCKED",
+   "evidence": "the consumer reading does not see the edge, so passing through the gate proves nothing about it \u2014 see QA-GOV-4605"
+  },
+  {
+   "id": "QA-GOV-289",
+   "title": "Only *retired* models downstream",
+   "verdict": "BLOCKED",
+   "evidence": "the consumer reading does not see the edge while the downstream model is still live, so retiring it changes nothing observable \u2014 see QA-GOV-4605"
+  },
+  {
+   "id": "QA-GOV-291",
+   "title": "Decommission a model that was already retired the old way",
+   "verdict": "PASS",
+   "evidence": "a bare retirement acquired its record"
+  },
+  {
+   "id": "QA-GOV-292",
+   "title": "Estate view after one proper and one bare retirement",
+   "verdict": "PASS",
+   "evidence": "the bare retirement is named and the proper one is not"
+  },
+  {
+   "id": "QA-GOV-293",
+   "title": "Delete a model as a principal holding `model:delete` but not the admin",
+   "verdict": "PASS",
+   "evidence": "refused 'deletion_refused', naming retirement"
+  },
+  {
+   "id": "QA-GOV-294",
+   "title": "Delete with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-295",
+   "title": "Delete under an estate-wide legal hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold', naming HOLD-0001"
+  },
+  {
+   "id": "QA-GOV-296",
+   "title": "Delete under a hold scoped to the model by **URN** rather than internal id",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' on a URN-scoped hold"
+  },
+  {
+   "id": "QA-GOV-298",
+   "title": "Delete under a hold whose `classes` do not include `model_record`",
+   "verdict": "PASS",
+   "evidence": "a class-narrowed hold does not cover the model record"
+  },
+  {
+   "id": "QA-GOV-299",
+   "title": "Delete under a hold with an empty `classes` list",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' \u2014 an empty class list is all of them"
+  },
+  {
+   "id": "QA-GOV-301",
+   "title": "Delete, then check the evidence chain",
+   "verdict": "PASS",
+   "evidence": "1 model_deleted node(s), chain verifies, the urn is not reusable"
+  },
+  {
+   "id": "QA-GOV-302",
+   "title": "Refused deletion leaves no `model_deleted` node",
+   "verdict": "PASS",
+   "evidence": "no model_deleted node; the chain moved 0 node(s) and the model is still there"
+  },
+  {
+   "id": "QA-GOV-303",
+   "title": "Delete the same model twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', one tombstone"
+  },
+  {
+   "id": "QA-GOV-304",
+   "title": "Delete a model with an alias pointing into production",
+   "verdict": "BLOCKED",
+   "evidence": "setup: could not approve the version: {\"error\":\"quorum_required\",\"detail\":\"a tier 3 version is approved by a quorum of model_owner, model_risk_manager, not by one signature\",\"remediation\":\"open an approval at POST /api"
+  },
+  {
+   "id": "QA-GOV-305",
+   "title": "Read `GET /as-at` over a window containing a deleted model",
+   "verdict": "PASS",
+   "evidence": "the deleted model is still in the history that contained it"
+  },
+  {
+   "id": "QA-GOV-306",
+   "title": "Place a hold with an empty matter",
+   "verdict": "PASS",
+   "evidence": "refused 'matter_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-307",
+   "title": "Place a hold with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-GOV-308",
+   "title": "Place a model-scoped hold with no `scope_id`",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_required'"
+  },
+  {
+   "id": "QA-GOV-309",
+   "title": "Place a hold with an unrecognised scope kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope', naming all 3"
+  },
+  {
+   "id": "QA-GOV-310",
+   "title": "Place two overlapping holds, lift one, then delete",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' with HOLD-0002 still in force"
+  },
+  {
+   "id": "QA-GOV-311",
+   "title": "Lift the last hold, then delete",
+   "verdict": "PASS",
+   "evidence": "the last hold lifted and the deletion proceeded"
+  },
+  {
+   "id": "QA-GOV-312",
+   "title": "Lift a hold twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active', first reason intact"
+  },
+  {
+   "id": "QA-GOV-313",
+   "title": "Lift with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-314",
+   "title": "Lift a hold that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_hold'"
+  },
+  {
+   "id": "QA-GOV-315",
+   "title": "A hold is placed while a deletion is in flight",
+   "verdict": "PASS",
+   "evidence": "a hold over a model that has been deleted is refused 'unknown_scope_id', so nobody is told material is held that is gone"
+  },
+  {
+   "id": "QA-GOV-316",
+   "title": "Place the first hold on an estate with no models",
+   "verdict": "PASS",
+   "evidence": "HOLD-0001 placed over the estate"
+  },
+  {
+   "id": "QA-GOV-3400",
+   "title": "Somebody else may move the alias",
+   "verdict": "PASS",
+   "evidence": "approved by one person, promoted by another"
+  },
+  {
+   "id": "QA-GOV-3500",
+   "title": "A reviewer answering their own row, spelled differently",
+   "verdict": "PASS",
+   "evidence": "a prefixed name cannot enter a population, so the `==` self-review check never sees two spellings"
+  },
+  {
+   "id": "QA-GOV-3501",
+   "title": "Revoking removes roles here and says so",
+   "verdict": "PASS",
+   "evidence": "the wording is bounded to what the platform can see"
+  },
+  {
+   "id": "QA-GOV-4400",
+   "title": "Every review outcome means something specific",
+   "verdict": "PASS",
+   "evidence": "appropriate (the elevation was warranted ), excessive (the elevation was warranted ), unwarranted (the elevation should not hav)"
+  },
+  {
+   "id": "QA-GOV-4500",
+   "title": "A condition of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_condition', naming 6 kinds"
+  },
+  {
+   "id": "QA-GOV-4501",
+   "title": "A condition with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required'"
+  },
+  {
+   "id": "QA-GOV-4502",
+   "title": "A condition window outside the permitted range",
+   "verdict": "PASS",
+   "evidence": "0, -1, 184.0 and 3650 refused; 183.0 accepted"
+  },
+  {
+   "id": "QA-GOV-4503",
+   "title": "A condition missing the parameters its kind needs",
+   "verdict": "PASS",
+   "evidence": "every required parameter of 4 kind(s) refused by name when absent"
+  },
+  {
+   "id": "QA-GOV-4504",
+   "title": "An enforced condition cannot be confirmed",
+   "verdict": "BLOCKED",
+   "evidence": "Internal Server Error"
+  },
+  {
+   "id": "QA-GOV-4505",
+   "title": "An attested condition can be confirmed",
+   "verdict": "BLOCKED",
+   "evidence": "Internal Server Error"
+  },
+  {
+   "id": "QA-GOV-4506",
+   "title": "Discharge with no reason",
+   "verdict": "BLOCKED",
+   "evidence": "Internal Server Error"
+  },
+  {
+   "id": "QA-GOV-4507",
+   "title": "Discharge twice",
+   "verdict": "BLOCKED",
+   "evidence": "Internal Server Error"
+  },
+  {
+   "id": "QA-GOV-4508",
+   "title": "Confirm a discharged condition",
+   "verdict": "BLOCKED",
+   "evidence": "Internal Server Error"
+  },
+  {
+   "id": "QA-GOV-4509",
+   "title": "Every kind declares how it is enforced",
+   "verdict": "PASS",
+   "evidence": "6 kinds published, each naming its enforcement"
+  },
+  {
+   "id": "QA-GOV-4600",
+   "title": "A decommission with a one-word rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required'"
+  },
+  {
+   "id": "QA-GOV-4601",
+   "title": "A decommission with a blank replacement",
+   "verdict": "PASS",
+   "evidence": "refused 'replacement_required', naming 'none'"
+  },
+  {
+   "id": "QA-GOV-4602",
+   "title": "A replacement that is not registered",
+   "verdict": "PASS",
+   "evidence": "refused 'replacement_not_registered'"
+  },
+  {
+   "id": "QA-GOV-4603",
+   "title": "A retention class that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_retention_class', naming 7 classes"
+  },
+  {
+   "id": "QA-GOV-4604",
+   "title": "A decommission recorded twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_decommissioned'"
+  },
+  {
+   "id": "QA-GOV-4605",
+   "title": "A model something else reads",
+   "verdict": "FAIL",
+   "evidence": "a model another one reads was decommissioned with its consumers neither notified nor acknowledged \u2014 `blast_radius` answers `reaches` and `consumers()` reads `reached`, so the list is always empty and the `consumers_not_notified` refusal can never fire"
+  },
+  {
+   "id": "QA-GOV-4606",
+   "title": "Notified and acknowledged are different facts",
+   "verdict": "PASS",
+   "evidence": "both proceed and the record distinguishes them; note the consumer list is empty either way, so this shows the fields are recorded rather than that the gate was passed"
+  },
+  {
+   "id": "QA-GOV-4607",
+   "title": "Every required field says why it is required",
+   "verdict": "PASS",
+   "evidence": "3 required fields, each published with a reason"
+  },
+  {
+   "id": "QA-GOV-4608",
+   "title": "The consumer reading is available before deciding",
+   "verdict": "FAIL",
+   "evidence": "the consumer reading reports nothing downstream for a model that is read by another \u2014 the graph reaches 1 model(s) under the key `reaches`, and `consumers()` reads `reached`"
+  },
+  {
+   "id": "QA-GOV-4620",
+   "title": "A second model in the estate receives its first condition",
+   "verdict": "FAIL",
+   "evidence": "the second model in the estate to be approved on terms crashes with 500: the reference is numbered per model and the unique index is over the whole table, so COND-0001 can exist once. Conditional approval works for exactly one model, and it fails as an unhandled error rather than a refusal"
+  },
+  {
+   "id": "QA-GOV-4630",
+   "title": "Place a model-scoped hold naming a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "the URN resolves, and an identifier that resolves to nothing is refused 'unknown_scope_id'"
+  },
+  {
+   "id": "QA-GOV-4640",
+   "title": "tau is monotone in both arguments (L-4)",
+   "verdict": "PASS",
+   "evidence": "monotone over all 20 cells, in both arguments"
+  },
+  {
+   "id": "QA-GOV-4650",
+   "title": "Create a version with a digest nothing has stored",
+   "verdict": "PASS",
+   "evidence": "a well-formed unresolvable digest is accepted and kept"
+  },
+  {
+   "id": "QA-GOV-4651",
+   "title": "Declare no `artifact_format` over a stored artifact",
+   "verdict": "PASS",
+   "evidence": "the store filled in 'onnx' where the kernel was silent"
+  },
+  {
+   "id": "QA-GOV-4800",
+   "title": "An overlay of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind', naming 4 kinds"
+  },
+  {
+   "id": "QA-GOV-4801",
+   "title": "An overlay direction that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_direction', naming ('increase', 'decrease', 'either')"
+  },
+  {
+   "id": "QA-GOV-4802",
+   "title": "An overlay with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required'"
+  },
+  {
+   "id": "QA-GOV-4803",
+   "title": "An overlay window past the limit",
+   "verdict": "PASS",
+   "evidence": "180 accepted, 181 refused 'window_too_long'"
+  },
+  {
+   "id": "QA-GOV-4804",
+   "title": "An overlay is not active until it is approved",
+   "verdict": "PASS",
+   "evidence": "proposed, not in force"
+  },
+  {
+   "id": "QA-GOV-4805",
+   "title": "The proposer approves their own overlay",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-GOV-4806",
+   "title": "Measure an overlay that was never approved",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-GOV-4807",
+   "title": "An approved overlay that is never measured",
+   "verdict": "PASS",
+   "evidence": "an unmeasured overlay is reported as unmeasured"
+  },
+  {
+   "id": "QA-GOV-4808",
+   "title": "Close an overlay with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-4809",
+   "title": "Close an overlay into a status that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_closure'"
+  },
+  {
+   "id": "QA-GOV-4810",
+   "title": "Every overlay kind says what it means",
+   "verdict": "PASS",
+   "evidence": "4 kinds, each published with its meaning"
+  },
+  {
+   "id": "QA-GOV-4811",
+   "title": "The status vocabulary distinguishes absorbed from withdrawn",
+   "verdict": "PASS",
+   "evidence": "5 statuses: proposed, active, expired, withdrawn, absorbed"
+  },
+  {
+   "id": "QA-GOV-500",
+   "title": "Retire a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-501",
+   "title": "Assess a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-502",
+   "title": "Approve a submitted record",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-512",
+   "title": "Every stated-ground field this pass has fixed stays fixed",
+   "verdict": "PASS",
+   "evidence": "all four still strip before checking"
+  },
+  {
+   "id": "QA-GOV-513",
+   "title": "A band with no stages",
+   "verdict": "PASS",
+   "evidence": "refused 'stages_required' (422)"
+  },
+  {
+   "id": "QA-GOV-514",
+   "title": "A band naming a role that does not exist",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a0a2d321d73a61f00665784d7c\",\"name\":\"band-4a5587d1\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+  },
+  {
+   "id": "QA-GOV-515",
+   "title": "A well-formed band is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-GOV-516",
+   "title": "Two bands with the same name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_exists' (409)"
+  },
+  {
+   "id": "QA-GOV-517",
+   "title": "A delegation with no ceiling",
+   "verdict": "PASS",
+   "evidence": "answered 422 (ceiling_required)"
+  },
+  {
+   "id": "QA-GOV-518",
+   "title": "A delegation with a negative ceiling",
+   "verdict": "PASS",
+   "evidence": "refused 'ceiling_required'"
+  },
+  {
+   "id": "QA-GOV-519",
+   "title": "A delegation with no instrument",
+   "verdict": "PASS",
+   "evidence": "refused 'instrument_required' (422)"
+  },
+  {
+   "id": "QA-GOV-520",
+   "title": "A delegation with a blank currency",
+   "verdict": "FAIL",
+   "evidence": "a ceiling was accepted with no currency; the comparison it governs is then between a number and an amount"
+  },
+  {
+   "id": "QA-GOV-521",
+   "title": "A delegation to a principal that does not exist",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-GOV-522",
+   "title": "Break-glass with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-523",
+   "title": "Break-glass is opened, and it is reviewable",
+   "verdict": "PASS",
+   "evidence": "opened as BG-0001"
+  },
+  {
+   "id": "QA-GOV-524",
+   "title": "Review a break-glass with an outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_outcome' (422)"
+  },
+  {
+   "id": "QA-GOV-525",
+   "title": "A campaign over an empty population",
+   "verdict": "FAIL",
+   "evidence": "a campaign opened over nobody; it completes immediately and reads as a clean recertification"
+  },
+  {
+   "id": "QA-GOV-526",
+   "title": "An approval condition with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' (422)"
+  },
+  {
+   "id": "QA-GOV-527",
+   "title": "A condition with a negative window",
+   "verdict": "PASS",
+   "evidence": "refused 'window_out_of_range'"
+  },
+  {
+   "id": "QA-GOV-528",
+   "title": "Discharge a condition with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'no_condition' (404)"
+  },
+  {
+   "id": "QA-GOV-5800",
+   "title": "Every regime carries its own sentences",
+   "verdict": "PASS",
+   "evidence": "3 regimes, each with sentences, a title and a named authority"
+  },
+  {
+   "id": "QA-GOV-5801",
+   "title": "Every term a signature declares has a translation",
+   "verdict": "PASS",
+   "evidence": "29 terms across 3 regimes, all translated"
+  },
+  {
+   "id": "QA-GOV-5802",
+   "title": "No translation reads a fact the state does not carry",
+   "verdict": "PASS",
+   "evidence": "every predicate reads a fact the state carries"
+  },
+  {
+   "id": "QA-GOV-5803",
+   "title": "Activate a regime that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_regime'"
+  },
+  {
+   "id": "QA-GOV-5804",
+   "title": "A regime is not in force until it is activated",
+   "verdict": "PASS",
+   "evidence": "3 regimes listed with their state"
+  },
+  {
+   "id": "QA-GOV-5805",
+   "title": "Satisfaction for a regime nobody activated",
+   "verdict": "PASS",
+   "evidence": "truth is invariant under translation across 30 sentence-state pairs"
+  },
+  {
+   "id": "QA-GOV-5806",
+   "title": "The encoding language is published for a reader",
+   "verdict": "PASS",
+   "evidence": "3 forms and 12 modal phrases published; 3 regimes listed"
+  },
+  {
+   "id": "QA-GOV-5807",
+   "title": "Two regimes do not share one term's meaning by accident",
+   "verdict": "PASS",
+   "evidence": "0 term(s) shared across regimes, each with one meaning: []"
+  },
+  {
+   "id": "QA-GOV-6000",
+   "title": "A use with no declared_use",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-6001",
+   "title": "A use with no name or no owner",
+   "verdict": "PASS",
+   "evidence": "both name and owner required"
+  },
+  {
+   "id": "QA-GOV-6002",
+   "title": "A use whose window ends before it starts",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-6003",
+   "title": "The business vocabulary is deliberately open",
+   "verdict": "PASS",
+   "evidence": "the firm's own vocabulary is accepted"
+  },
+  {
+   "id": "QA-GOV-6004",
+   "title": "A use against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-6005",
+   "title": "Retire a use with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-6006",
+   "title": "Retire a use twice",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-GOV-6007",
+   "title": "A lapsed use is reported, not deleted",
+   "verdict": "PASS",
+   "evidence": "0 lapsed use(s) reported"
+  },
+  {
+   "id": "QA-GOV-6008",
+   "title": "A use and a grant are reconcilable",
+   "verdict": "PASS",
+   "evidence": "no invocations in the window, so nothing can be said about actual use \u2014 which is itself worth knowin"
+  },
+  {
+   "id": "QA-GOV-6009",
+   "title": "A use is separate from the model's own purpose",
+   "verdict": "PASS",
+   "evidence": "3 uses of one model"
+  },
+  {
+   "id": "QA-GOV-6200",
+   "title": "A run comparing a version against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-GOV-6201",
+   "title": "A run with no stated purpose",
+   "verdict": "PASS",
+   "evidence": "refused 'purpose_required'"
+  },
+  {
+   "id": "QA-GOV-6202",
+   "title": "Two runs open on one model",
+   "verdict": "PASS",
+   "evidence": "refused 'run_already_open'"
+  },
+  {
+   "id": "QA-GOV-6203",
+   "title": "An observation with no input key",
+   "verdict": "PASS",
+   "evidence": "refused 'input_key_required'"
+  },
+  {
+   "id": "QA-GOV-6204",
+   "title": "A half-formed pair is not a pair",
+   "verdict": "PASS",
+   "evidence": "5 unpaired, 0 paired"
+  },
+  {
+   "id": "QA-GOV-6205",
+   "title": "A pair completed by a second observation",
+   "verdict": "PASS",
+   "evidence": "the two sides joined under one key"
+  },
+  {
+   "id": "QA-GOV-6206",
+   "title": "Fewer pairs than a rate can be read over",
+   "verdict": "PASS",
+   "evidence": "four pairs, enough_to_read false, 30 named"
+  },
+  {
+   "id": "QA-GOV-6207",
+   "title": "A run with nothing paired at all",
+   "verdict": "PASS",
+   "evidence": "nothing has been paired yet, so there is nothing to compare. This says nothing about eithe"
+  },
+  {
+   "id": "QA-GOV-6208",
+   "title": "Observe after the run concluded",
+   "verdict": "PASS",
+   "evidence": "refused 'run_concluded'"
+  },
+  {
+   "id": "QA-GOV-6209",
+   "title": "Outcome coverage is reported",
+   "verdict": "PASS",
+   "evidence": "outcome coverage reported; minimum 0.1"
+  },
+  {
+   "id": "QA-GOV-700",
+   "title": "POST /api/v1/models with a blank `owner`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-701",
+   "title": "POST /api/v1/models with a blank `urn`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-702",
+   "title": "POST /api/v1/models with a blank `legal_entity`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-703",
+   "title": "POST /api/v1/models with a blank `purpose`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-704",
+   "title": "POST /api/v1/legal-holds with a blank `matter`",
+   "verdict": "PASS",
+   "evidence": "refused 'matter_required'"
+  },
+  {
+   "id": "QA-GOV-705",
+   "title": "POST /api/v1/legal-holds with a blank `owner`",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-GOV-706",
+   "title": "POST /api/v1/intake with a blank `title`",
+   "verdict": "PASS",
+   "evidence": "refused 'description_required'"
+  },
+  {
+   "id": "QA-GOV-707",
+   "title": "POST /api/v1/finding-roots with a blank `title`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind'"
+  },
+  {
+   "id": "QA-GOV-708",
+   "title": "POST /api/v1/finding-roots with a blank `detail`",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind'"
+  },
+  {
+   "id": "QA-GOV-800",
+   "title": "Change an attested record without an amendment",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-801",
+   "title": "Open an amendment with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-802",
+   "title": "Open two amendments against one model",
+   "verdict": "PASS",
+   "evidence": "refused 'amendment_open' (409)"
+  },
+  {
+   "id": "QA-GOV-803",
+   "title": "Amend a model that was never attested",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-804",
+   "title": "An amendment makes the record mutable again",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-810",
+   "title": "Decommission with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused ''"
+  },
+  {
+   "id": "QA-GOV-811",
+   "title": "Decommission naming a replacement that is not registered",
+   "verdict": "PASS",
+   "evidence": "refused ''"
+  },
+  {
+   "id": "QA-GOV-812",
+   "title": "Decommission with a retention class that is not one",
+   "verdict": "PASS",
+   "evidence": "refused ''"
+  },
+  {
+   "id": "QA-GOV-813",
+   "title": "Decommission a model that is not in force",
+   "verdict": "PASS",
+   "evidence": "answered 405 (accepted)"
+  },
+  {
+   "id": "QA-GOV-820",
+   "title": "Assess with an exposure that is not a number",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-GOV-821",
+   "title": "Assess with a negative exposure",
+   "verdict": "PASS",
+   "evidence": "refused 'fact_not_supplied'"
+  },
+  {
+   "id": "QA-GOV-822",
+   "title": "Assess with a purpose class that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_purpose_class' (422)"
+  },
+  {
+   "id": "QA-GOV-823",
+   "title": "Re-assess a model and the tier moves with the facts",
+   "verdict": "PASS",
+   "evidence": "tier 3 -> 1 as exposure rose"
+  },
+  {
+   "id": "QA-GOV-900",
+   "title": "One person signs both required roles",
+   "verdict": "PASS",
+   "evidence": "refused 'role_not_held'"
+  },
+  {
+   "id": "QA-GOV-901",
+   "title": "The same person signs the same role twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed'"
+  },
+  {
+   "id": "QA-GOV-902",
+   "title": "Sign for a role you do not hold",
+   "verdict": "PASS",
+   "evidence": "refused 'role_not_held' (403)"
+  },
+  {
+   "id": "QA-GOV-903",
+   "title": "Sign for a role the attestation does not require",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-GOV-904",
+   "title": "Decline an attestation and the record does not advance",
+   "verdict": "PASS",
+   "evidence": "the record is None after a decline"
+  },
+  {
+   "id": "QA-GOV-905",
+   "title": "Approve a model that was never submitted",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-906",
+   "title": "The submitter approves their own submission",
+   "verdict": "PASS",
+   "evidence": "answered 403 (forbidden)"
+  },
+  {
+   "id": "QA-GOV-910",
+   "title": "Approve a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-GOV-911",
+   "title": "The person who created a version approves it",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-GOV-912",
+   "title": "An approved version is what an alias may point at",
+   "verdict": "BLOCKED",
+   "evidence": "could not approve: {\"error\":\"quorum_required\",\"detail\":\"a tier 3 version is approved by a quorum of model_owner, model_risk_manager, not by one signature\",\"remediation\":"
+  }
+ ]
+}
