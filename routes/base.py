@@ -459,7 +459,12 @@ STATUS: Dict[str, int] = {
     # installed, what a source exported, what a scanner swept, and a
     # pack handed to somebody with no login
     # 501 rather than 500: nothing is broken, the authority was never wired.
-    "no_timestamp_authority": 501, "nothing_anchored": 409,
+    "no_timestamp_authority": 501,
+    # A token MAYA can see is impossible without deciding whom to trust:
+    # dated after the request it answers, or already expired. 502,
+    # because the authority is an upstream and the caller did nothing
+    # wrong — the same status a malformed token already answers.
+    "token_ahead_of_the_request": 502, "token_already_expired": 502, "nothing_anchored": 409,
     # `not_enabled` is 403 and `not_installed` is 404 deliberately: the
     # first is a decision this firm has not taken and the second is a
     # package that is not there, and they need different fixes.

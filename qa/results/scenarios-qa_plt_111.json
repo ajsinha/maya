@@ -5,13 +5,13 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 1.0,
+ "seconds": 1.8,
  "results": [
   {
    "id": "QA-PLT-111",
    "title": "Time-stamping with the authority unconfigured",
    "verdict": "PASS",
-   "evidence": "the remediation names what actually supplies an authority and the posture it points at answers 200: supply one to `ChainTimestamps(authority=...)` where this instance is constructed \u2014 MAYA s"
+   "evidence": "the remediation names what actually supplies an authority and the posture it points at answers 200: install a time stamping authority and name it under `evidence.timestamps.authority` \u2014 it i"
   }
  ]
 }

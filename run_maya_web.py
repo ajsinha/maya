@@ -1325,8 +1325,19 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # trust, which is a decision this firm's security function has already
     # made differently. Three states, and `unverified` never collapses into
     # either neighbour.
+    # An authority comes from the `timestamp_authority` extension axis, and
+    # MAYA ships none: one it both supplied and trusted would be the
+    # arrangement the control exists to replace. Resolved by NAME from
+    # configuration, so a firm plugs in the time stamping authority it already
+    # runs — and a token is still only HELD, never believed, until a verifier
+    # is supplied beside it.
     chain_timestamps = ChainTimestamps(
-        anchors, authority=None, verifier=None, evidence=evidence)
+        anchors,
+        authority=_extension(extensions, "timestamp_authority",
+                             cfg.get("evidence.timestamps.authority")),
+        verifier=_extension(extensions, "timestamp_authority",
+                            cfg.get("evidence.timestamps.verifier")),
+        evidence=evidence)
 
     # What a firm has installed, read from packaging metadata without importing
     # any of it. Installing makes an extension AVAILABLE; configuration makes
@@ -1742,6 +1753,27 @@ def _ago(epoch: Any, absent: str = "—") -> str:
             return (f"in {n} {unit}{'s' if n != 1 else ''}" if future
                     else f"{n} {unit}{'s' if n != 1 else ''} ago")
     return "just now"
+
+
+def _extension(points, axis: str, name: Optional[str]):
+    """One registered extension, by name, or None.
+
+    Configuration names it and the registry holds it; nothing here imports
+    anything. A name that resolves to nothing is REPORTED rather than ignored,
+    because a firm that configured an authority and got silence would believe
+    its chain was time-stamped when every date in it is still the firm's own
+    clock.
+    """
+    if not name:
+        return None
+    found = points.get(axis, name) if points is not None else None
+    if found is None:
+        logger.error(
+            "configuration names '%s:%s' and nothing is registered under that "
+            "name, so it is NOT in use. Install the package that provides it "
+            "and add it to `plugins.enabled`; until then this instance "
+            "behaves as though the setting were absent", axis, name)
+    return found
 
 
 def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:

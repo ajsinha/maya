@@ -433,5 +433,39 @@ inference:
   # are digests under a different key — so change it deliberately.
   digest_key: ""
 
+# ---------------------------------------------------------------------------
+# The evidence chain's relationship with time.
+#
+# Every date in this register is otherwise the firm's own clock. The anchors
+# prove the chain agrees with heads written outside the database; they prove
+# nothing at all about WHEN, and a firm arguing with a supervisor about the
+# order of events is arguing from a clock it controls.
+#
+# MAYA ships no time stamping authority and will not: one it both supplied and
+# trusted would be the arrangement the control exists to replace. Name an
+# extension registered on the `timestamp_authority` axis — the authority the
+# firm already runs for document signing is usually the right one — and add it
+# to `plugins.enabled` as well, because installing a package makes an
+# extension available and a person naming it makes it used.
+#
+# A name here that resolves to nothing is REPORTED at start-up, not ignored: a
+# firm that configured an authority and got silence would believe its chain
+# was time-stamped when it was not.
+#
+# `verifier` is separate on purpose. Checking an RFC 3161 token means holding
+# a certificate chain and deciding which roots to trust, which is a decision
+# this firm's security function has already made — so without one a held token
+# reads `unverified`, which is a weaker claim than `verified` and a much
+# stronger one than `absent`.
+evidence:
+  timestamps:
+    authority: ""
+    verifier: ""
+
+# Extensions a person has decided to use. Installing makes one AVAILABLE;
+# naming it here makes it USED.
+plugins:
+  enabled: []
+
 assist:
   provider: mock

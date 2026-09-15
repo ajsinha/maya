@@ -215,10 +215,18 @@ class PluginDiscovery:
         if axis == FIBRES:
             self._check_fibre(name, loaded)
         elif self.extensions is not None:
+            # `implementation=`, which is what `ExtensionPoints.register`
+            # takes. This passed `fn=`, so the one line that hands a loaded
+            # plugin to the registry raised `TypeError: unexpected keyword
+            # argument 'fn'` — and nothing could be enabled on ANY open axis.
+            # The discovery report, the axis table and the refusals around them
+            # all worked; the single call that makes an extension usable did
+            # not, and a keyword mismatch does not show up until somebody
+            # installs a plugin and turns it on.
             self.extensions.register(
                 axis, name, owner=_distribution(point) or "unknown",
                 does=getattr(loaded, "__doc__", "") or "",
-                fn=loaded, actor=actor)
+                implementation=loaded, actor=actor)
         if self.evidence is not None:
             self.evidence.append(
                 "plugin_enabled", "platform", f"{axis}:{name}",

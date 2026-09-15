@@ -3176,6 +3176,10 @@ The requirement asks for a plugin architecture across eight axes. Built as eight
 the fastest way to remove every control here, so the answer is not eight sockets — it is a **statement of
 which axes are open and why the others are not**, with the open ones genuinely open.
 
+There are **nine** now. `timestamp_authority` was added after the eight, because nothing could supply a
+token when that list was written: `ChainTimestamps` held them, reported three states and had no way to
+obtain one, so every date in the register was the firm's own clock.
+
 **The dividing line is whether the extension changes a governance answer.**
 
 | Open | Why it is safe |
@@ -3183,6 +3187,7 @@ which axes are open and why the others are not**, with the open ones genuinely o
 | `test_types`, `metric_types` | the extension sits **inside** a control rather than around it: the result carries its own digest, a person reviews it, a validator challenges it. A firm's own discrimination measure is exactly what it should be able to add |
 | `templates` | a template decides what a document *says*, and every claim in it is still assembled from evidence the register holds. A template cannot make the platform believe anything |
 | `notification_channels` | it changes how somebody is told and nothing else — the one axis where a plugin has no governance meaning at all |
+| `timestamp_authority` | it **supplies** a claim and MAYA never vouches for it. The anchors prove the chain agrees with something written outside the database and prove nothing about *when*; an authority MAYA both supplied and trusted would be the arrangement the control exists to replace. A token is held rather than believed, and `unverified` stays a distinct state from `verified` until a verifier is supplied beside it |
 
 | Closed | What the closure protects |
 |---|---|
