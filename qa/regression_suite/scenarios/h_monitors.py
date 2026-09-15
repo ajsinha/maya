@@ -79,7 +79,7 @@ def am_210(ctx: Ctx) -> Result:
                   f"({code_of(got) or 'accepted'})")
 
 
-@case("QA-AM-211", "Define a monitor of an unknown kind")
+@case("QA-AM-5207", "Define a monitor of an unknown kind")
 def am_211(ctx: Ctx) -> Result:
     return expect_refused(_define(ctx, _model(ctx), kind="vibes"),
                           "unknown_kind", "validation_error",
@@ -99,7 +99,7 @@ def am_213(ctx: Ctx) -> Result:
                           "validation_refused", "monitor_refused")
 
 
-@case("QA-AM-214", "A valid monitor is accepted")
+@case("QA-AM-5208", "A valid monitor is accepted")
 def am_214(ctx: Ctx) -> Result:
     return expect_accepted(_define(ctx, _model(ctx)), status=201)
 
@@ -132,7 +132,7 @@ def am_216(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-AM-217", "Ingest against a monitor that does not exist")
+@case("QA-AM-5209", "Ingest against a monitor that does not exist")
 def am_217(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/monitors/qa-never/ingest",

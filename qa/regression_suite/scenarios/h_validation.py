@@ -64,7 +64,7 @@ def am_300(ctx: Ctx) -> Result:
                           "validation_error")
 
 
-@case("QA-AM-301", "Open a validation against a version that does not exist")
+@case("QA-AM-5210", "Open a validation against a version that does not exist")
 def am_301(ctx: Ctx) -> Result:
     return expect_refused(_open(ctx, semver="9.9.9"),
                           "registry_refused", "not_found",
@@ -148,7 +148,7 @@ def am_306(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-AM-307", "Record a result with no test key")
+@case("QA-AM-5211", "Record a result with no test key")
 def am_307(ctx: Ctx) -> Result:
     opened = _open(ctx)
     if opened.status_code >= 400:

@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 381,
-  "pass": 362,
+  "total": 405,
+  "pass": 386,
   "fail": 19,
   "blocked": 0
  },
- "seconds": 18.2,
+ "seconds": 13.9,
  "results": [
   {
    "id": "QA-FX-001",
@@ -77,7 +77,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a6fd2d6a4f957c1c922263be\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a7390039df3afe6ef6db4884\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-018",
@@ -356,6 +356,66 @@
    "evidence": "four acts, 4 evidence nodes"
   },
   {
+   "id": "QA-FX-1100",
+   "title": "An edge from a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1101",
+   "title": "An edge of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the 5 kinds"
+  },
+  {
+   "id": "QA-FX-1102",
+   "title": "A model composed with itself",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1103",
+   "title": "A cycle across two models",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1104",
+   "title": "Blast radius with no urn",
+   "verdict": "PASS",
+   "evidence": "refused 'urn_required', showing the shape"
+  },
+  {
+   "id": "QA-FX-1105",
+   "title": "Blast radius over a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1106",
+   "title": "Blast radius follows only propagating relations",
+   "verdict": "PASS",
+   "evidence": "the downstream model is reached and the challenger is not; 1 model(s) in the radius"
+  },
+  {
+   "id": "QA-FX-1107",
+   "title": "Shared dependencies over an empty list",
+   "verdict": "PASS",
+   "evidence": "empty, and says so: the 0 models named have no upstream in common, so their risks do not interact through a sh"
+  },
+  {
+   "id": "QA-FX-1108",
+   "title": "A composite refuses if any node refuses",
+   "verdict": "PASS",
+   "evidence": "`resolves: false`, naming the blocked node and 'composite_refused'"
+  },
+  {
+   "id": "QA-FX-1109",
+   "title": "A composite has no single signed descriptor",
+   "verdict": "PASS",
+   "evidence": "the chain does not resolve here ('composite_refused') and publishes no composite signature"
+  },
+  {
    "id": "QA-FX-111",
    "title": "Transfer ownership of a sealed feature",
    "verdict": "PASS",
@@ -378,12 +438,6 @@
    "title": "created_by survives an ownership transfer",
    "verdict": "PASS",
    "evidence": "owner is now 'risk', created_by unchanged"
-  },
-  {
-   "id": "QA-FX-118",
-   "title": "An unsealed feature can still be amended",
-   "verdict": "PASS",
-   "evidence": "accepted (200)"
   },
   {
    "id": "QA-FX-1200",
@@ -437,7 +491,7 @@
    "id": "QA-FX-1208",
    "title": "Retiring a profile stops it applying",
    "verdict": "FAIL",
-   "evidence": "retiring 'prof-7726a307' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+   "evidence": "retiring 'prof-7f99152a' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
   },
   {
    "id": "QA-FX-1209",
@@ -926,28 +980,16 @@
    "evidence": "refused 'unknown_field'"
   },
   {
-   "id": "QA-FX-301",
-   "title": "Resolving over a model that was never attested",
+   "id": "QA-FX-3000",
+   "title": "The evaluator and on_error vocabularies are closed",
    "verdict": "PASS",
-   "evidence": "refused 'not_found' (404)"
+   "evidence": "both closed: evaluator in ('internal', 'external'), on_error in ('null', 'refuse'), each refusal naming its set"
   },
   {
    "id": "QA-FX-302",
    "title": "is_null carrying a value",
    "verdict": "PASS",
    "evidence": "refused 'value_not_expected'"
-  },
-  {
-   "id": "QA-FX-303",
-   "title": "A warrant with an undeclared use",
-   "verdict": "PASS",
-   "evidence": "refused 'declared_use_required' (422)"
-  },
-  {
-   "id": "QA-FX-304",
-   "title": "Resolving in an environment with no alias",
-   "verdict": "PASS",
-   "evidence": "refused 'not_found' (404)"
   },
   {
    "id": "QA-FX-306",
@@ -960,12 +1002,6 @@
    "title": "Checking a draft needs only model:read",
    "verdict": "PASS",
    "evidence": "a reader may check (200)"
-  },
-  {
-   "id": "QA-FX-310",
-   "title": "Move an alias to a version that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
   },
   {
    "id": "QA-FX-3100",
@@ -984,12 +1020,6 @@
    "title": "What was applied is reported, not what was intended",
    "verdict": "PASS",
    "evidence": "the applied limits are returned for the parent to record"
-  },
-  {
-   "id": "QA-FX-311",
-   "title": "A second alias move where neither version declares a schema",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
   },
   {
    "id": "QA-FX-312",
@@ -1169,7 +1199,7 @@
    "id": "QA-FX-384",
    "title": "`note_revocation` with a model URN",
    "verdict": "PASS",
-   "evidence": "refused 'revoked' on the model URN: maya://model/gx-98e3103a is on the local revocation list"
+   "evidence": "refused 'revoked' on the model URN: maya://model/gx-7c457e83 is on the local revocation list"
   },
   {
    "id": "QA-FX-385",
@@ -1364,40 +1394,16 @@
    "evidence": "mismatch and absence refused apart, both before the load"
   },
   {
-   "id": "QA-FX-415",
-   "title": "A featureset with no features at all",
-   "verdict": "PASS",
-   "evidence": "answered 422 (validation_error)"
-  },
-  {
    "id": "QA-FX-416",
    "title": "An artifact path resolving outside the configured root",
    "verdict": "PASS",
    "evidence": "traversal refused 'artifact_outside_root'; a real path inside the root refused 'artifact_missing'"
   },
   {
-   "id": "QA-FX-417",
-   "title": "Read a feature that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused (405)"
-  },
-  {
    "id": "QA-FX-418",
    "title": "No artifact root configured at all",
    "verdict": "PASS",
    "evidence": "refused 'no_artifact_root', naming the setting"
-  },
-  {
-   "id": "QA-FX-419",
-   "title": "Trial an expression that divides by zero",
-   "verdict": "PASS",
-   "evidence": "answered 200 (accepted)"
-  },
-  {
-   "id": "QA-FX-420",
-   "title": "Trial an expression that is not an expression",
-   "verdict": "PASS",
-   "evidence": "refused 'feature_refused'"
   },
   {
    "id": "QA-FX-421",
@@ -1410,12 +1416,6 @@
    "title": "A limit the platform cannot enforce is named",
    "verdict": "PASS",
    "evidence": "rlimits available; both stated limits are enforceable"
-  },
-  {
-   "id": "QA-FX-423",
-   "title": "The CPU cap is the process's usage plus the budget",
-   "verdict": "PASS",
-   "evidence": "cumulative: soft_cpu = already + max(1, int(limits.seconds))"
   },
   {
    "id": "QA-FX-424",
@@ -1640,6 +1640,54 @@
    "evidence": "both underspecified forms refused"
   },
   {
+   "id": "QA-FX-5000",
+   "title": "An assumption on a nested input",
+   "verdict": "PASS",
+   "evidence": "the nested value is checked exactly as the flat one is"
+  },
+  {
+   "id": "QA-FX-5001",
+   "title": "One level down and no more",
+   "verdict": "PASS",
+   "evidence": "not matched two levels down, and reported as unchecked"
+  },
+  {
+   "id": "QA-FX-5002",
+   "title": "The top level wins a collision",
+   "verdict": "PASS",
+   "evidence": "the top-level value decides, in both directions"
+  },
+  {
+   "id": "QA-FX-5003",
+   "title": "A value outside a closed vocabulary",
+   "verdict": "PASS",
+   "evidence": "refused, and not clamped \u2014 there is no nearest category"
+  },
+  {
+   "id": "QA-FX-5004",
+   "title": "A non-numeric value where a number was declared",
+   "verdict": "PASS",
+   "evidence": "outside the boundary, not raised, and not clamped"
+  },
+  {
+   "id": "QA-FX-5005",
+   "title": "An absent value is not a violation",
+   "verdict": "PASS",
+   "evidence": "the supplied value is checked and the absent one is not"
+  },
+  {
+   "id": "QA-FX-5006",
+   "title": "An absent value IS reported as unchecked",
+   "verdict": "PASS",
+   "evidence": "the assumption that found no value is named"
+  },
+  {
+   "id": "QA-FX-5007",
+   "title": "A contract that checked nothing at all",
+   "verdict": "PASS",
+   "evidence": "every assumption is named as unchecked, so a boundary that applied to nothing says so"
+  },
+  {
    "id": "QA-FX-5100",
    "title": "A weaker bound admits everything the stronger one does",
    "verdict": "PASS",
@@ -1673,7 +1721,7 @@
    "id": "QA-FX-5105",
    "title": "Composition discharges what the upstream guarantees",
    "verdict": "PASS",
-   "evidence": "assumptions {'raw'}, guarantees {'score', 'decision'}"
+   "evidence": "assumptions {'raw'}, guarantees {'decision', 'score'}"
   },
   {
    "id": "QA-FX-5106",
@@ -1698,6 +1746,36 @@
    "title": "A lattice operation that does not exist is refused",
    "verdict": "PASS",
    "evidence": "disjoint bands have no meet; overlapping ones do"
+  },
+  {
+   "id": "QA-FX-5503",
+   "title": "A method that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_method', naming the methods"
+  },
+  {
+   "id": "QA-FX-5504",
+   "title": "A second elicitation under one reference",
+   "verdict": "PASS",
+   "evidence": "refused 'elicitation_already_open'"
+  },
+  {
+   "id": "QA-FX-5508",
+   "title": "Independence is recorded, not required",
+   "verdict": "PASS",
+   "evidence": "accepted, and the claim travels with the response"
+  },
+  {
+   "id": "QA-FX-5509",
+   "title": "Convergence is readable before concluding",
+   "verdict": "PASS",
+   "evidence": "readable while open: {\"reference\":\"ELI-4d419739\",\"method\":\"delphi\",\"rounds\":1,\"spreads\":[1.3333],\"narrowed\":false,\"still_wide\":true"
+  },
+  {
+   "id": "QA-FX-5510",
+   "title": "Every method says how it differs",
+   "verdict": "PASS",
+   "evidence": "3 method(s), each saying what the number it produces means"
   },
   {
    "id": "QA-FX-5600",
@@ -1934,10 +2012,76 @@
    "evidence": "refused 'registry_refused'"
   },
   {
+   "id": "QA-FX-6109",
+   "title": "An unsealed feature can still be amended",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
    "id": "QA-FX-611",
    "title": "An alias on a model that is not in force",
    "verdict": "PASS",
    "evidence": "answered 403 (refused)"
+  },
+  {
+   "id": "QA-FX-6110",
+   "title": "Resolving over a model that was never attested",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found' (404)"
+  },
+  {
+   "id": "QA-FX-6111",
+   "title": "A warrant with an undeclared use",
+   "verdict": "PASS",
+   "evidence": "refused 'declared_use_required' (422)"
+  },
+  {
+   "id": "QA-FX-6112",
+   "title": "Resolving in an environment with no alias",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found' (404)"
+  },
+  {
+   "id": "QA-FX-6113",
+   "title": "Move an alias to a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-6114",
+   "title": "A second alias move where neither version declares a schema",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-FX-6115",
+   "title": "A featureset with no features at all",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-6116",
+   "title": "Read a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (405)"
+  },
+  {
+   "id": "QA-FX-6117",
+   "title": "Trial an expression that divides by zero",
+   "verdict": "PASS",
+   "evidence": "answered 200 (accepted)"
+  },
+  {
+   "id": "QA-FX-6118",
+   "title": "Trial an expression that is not an expression",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-6119",
+   "title": "The CPU cap is the process's usage plus the budget",
+   "verdict": "PASS",
+   "evidence": "cumulative: soft_cpu = already + max(1, int(limits.seconds))"
   },
   {
    "id": "QA-FX-612",
@@ -2045,7 +2189,7 @@
    "id": "QA-FX-800",
    "title": "A parameter set with no name",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a6fd6fa3da7e853dfdb106aa\",\"model_id\":\"01a0a6fd6f9efcb8c71dd57095a1\",\"model_version_id\":\"01a0a6fd6fa13ea4824aee408ab7\",\"name\":\"   \",\"version\":1,\"kind\""
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a73932f36b6e6b9e4fbd5141\",\"model_id\":\"01a0a73932edbef8063827d2d022\",\"model_version_id\":\"01a0a73932ef84d63d834b1b23fb\",\"name\":\"   \",\"version\":1,\"kind\""
   },
   {
    "id": "QA-FX-801",
@@ -2261,7 +2405,7 @@
    "id": "QA-FX-954",
    "title": "Retire a source with no reason",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a6fd707d1a4b877a08035abf\",\"view_name\":\"tv-5d459cee\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
+   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a73933cc6cfc124966622a04\",\"view_name\":\"tv-9c5e4258\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
   },
   {
    "id": "QA-FX-955",

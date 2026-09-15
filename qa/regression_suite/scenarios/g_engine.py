@@ -147,7 +147,7 @@ def fx_424(ctx: Ctx) -> Result:
     return PASS, "an in-process callable is stated to be unsandboxed"
 
 
-@case("QA-FX-423", "The CPU cap is the process's usage plus the budget")
+@case("QA-FX-6119", "The CPU cap is the process's usage plus the budget")
 def fx_423(ctx: Ctx) -> Result:
     """A measured defect worth a permanent case. `RLIMIT_CPU` is CUMULATIVE
     from process start, and setting it to the budget flat spent the

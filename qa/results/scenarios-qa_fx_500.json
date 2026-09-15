@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-5000",
+   "title": "An assumption on a nested input",
+   "verdict": "PASS",
+   "evidence": "the nested value is checked exactly as the flat one is"
+  },
+  {
+   "id": "QA-FX-5001",
+   "title": "One level down and no more",
+   "verdict": "PASS",
+   "evidence": "not matched two levels down, and reported as unchecked"
+  },
+  {
+   "id": "QA-FX-5002",
+   "title": "The top level wins a collision",
+   "verdict": "PASS",
+   "evidence": "the top-level value decides, in both directions"
+  },
+  {
+   "id": "QA-FX-5003",
+   "title": "A value outside a closed vocabulary",
+   "verdict": "PASS",
+   "evidence": "refused, and not clamped \u2014 there is no nearest category"
+  },
+  {
+   "id": "QA-FX-5004",
+   "title": "A non-numeric value where a number was declared",
+   "verdict": "PASS",
+   "evidence": "outside the boundary, not raised, and not clamped"
+  },
+  {
+   "id": "QA-FX-5005",
+   "title": "An absent value is not a violation",
+   "verdict": "PASS",
+   "evidence": "the supplied value is checked and the absent one is not"
+  },
+  {
+   "id": "QA-FX-5006",
+   "title": "An absent value IS reported as unchecked",
+   "verdict": "PASS",
+   "evidence": "the assumption that found no value is named"
+  },
+  {
+   "id": "QA-FX-5007",
+   "title": "A contract that checked nothing at all",
+   "verdict": "PASS",
+   "evidence": "every assumption is named as unchecked, so a boundary that applied to nothing says so"
+  }
+ ]
+}

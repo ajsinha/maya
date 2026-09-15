@@ -126,7 +126,7 @@ def am_082(ctx: Ctx) -> Result:
                      auth=ctx.people["owner"]))
 
 
-@case("QA-AM-083", "Acknowledge with a date already in the past")
+@case("QA-AM-5203", "Acknowledge with a date already in the past")
 def am_083(ctx: Ctx) -> Result:
     """A commitment to have finished yesterday is not a commitment."""
     return expect_refused(
@@ -173,7 +173,7 @@ def am_086(ctx: Ctx) -> Result:
                   "themselves")
 
 
-@case("QA-AM-087", "Extend with no reason")
+@case("QA-AM-5204", "Extend with no reason")
 def am_087(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(f"/api/v1/findings/{_raised(ctx)}/extend",
@@ -191,7 +191,7 @@ def am_088(ctx: Ctx) -> Result:
         "validation_refused")
 
 
-@case("QA-AM-090", "Act on a finding that does not exist")
+@case("QA-AM-5205", "Act on a finding that does not exist")
 def am_090(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/findings/qa-never/acknowledge",
@@ -217,7 +217,7 @@ def am_131(ctx: Ctx) -> Result:
         "root_detail_required")
 
 
-@case("QA-AM-132", "A root of an unknown kind")
+@case("QA-AM-5206", "A root of an unknown kind")
 def am_132(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post("/api/v1/finding-roots",

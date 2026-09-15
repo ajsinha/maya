@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 6,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-801",
+   "title": "A campaign with no reference",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population'"
+  },
+  {
+   "id": "QA-AM-804",
+   "title": "Respond with a state that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_response', naming 4 state(s)"
+  },
+  {
+   "id": "QA-AM-806",
+   "title": "Reassign a campaign item to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'assignee_required'"
+  },
+  {
+   "id": "QA-AM-807",
+   "title": "A campaign's population is frozen at launch",
+   "verdict": "PASS",
+   "evidence": "the population stayed at 3 across a registration made after launch"
+  },
+  {
+   "id": "QA-AM-808",
+   "title": "The kinds a campaign may be for are published",
+   "verdict": "PASS",
+   "evidence": "6 kind(s), each saying what it asks, and completion measured against the frozen population"
+  },
+  {
+   "id": "QA-AM-809",
+   "title": "Read a campaign that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_campaign' (404)"
+  }
+ ]
+}

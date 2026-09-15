@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-640",
+   "title": "A challenger that is the same version as the champion",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-AM-641",
+   "title": "Conclude a parallel run with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required'"
+  },
+  {
+   "id": "QA-AM-642",
+   "title": "A regulatory approval with no regulator",
+   "verdict": "PASS",
+   "evidence": "refused 'regulator_required'"
+  },
+  {
+   "id": "QA-AM-643",
+   "title": "A regulatory approval with no scope",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_required'"
+  },
+  {
+   "id": "QA-AM-644",
+   "title": "Withdraw a regulatory approval with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-645",
+   "title": "A board pack preview does not create a pack",
+   "verdict": "PASS",
+   "evidence": "the preview showed the pack and the history stayed at 0"
+  },
+  {
+   "id": "QA-AM-646",
+   "title": "A board pack with no period",
+   "verdict": "PASS",
+   "evidence": "refused 'period_required'"
+  }
+ ]
+}

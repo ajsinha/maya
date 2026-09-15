@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-330",
+   "title": "Trend with `points: 1`",
+   "verdict": "PASS",
+   "evidence": "one point, and no division by zero"
+  },
+  {
+   "id": "QA-AM-3300",
+   "title": "The weights are data, and they sum to one",
+   "verdict": "PASS",
+   "evidence": "6 component(s) published with weights summing to 1.0, each saying what it asks and when it is absent"
+  },
+  {
+   "id": "QA-AM-3301",
+   "title": "The bands are ordered and the thresholds are stated",
+   "verdict": "PASS",
+   "evidence": "good at 0.8, watch at 0.55, both published with the band vocabulary"
+  },
+  {
+   "id": "QA-AM-3302",
+   "title": "A cap never improves the band",
+   "verdict": "PASS",
+   "evidence": "score 100.0 reads 'good' and the band is 'good', uncapped"
+  },
+  {
+   "id": "QA-AM-3303",
+   "title": "Nothing is stored, so the score cannot go stale",
+   "verdict": "PASS",
+   "evidence": "no table holds it, and the answer moved when the register under it moved"
+  },
+  {
+   "id": "QA-AM-3304",
+   "title": "The verdict wins over the arithmetic",
+   "verdict": "PASS",
+   "evidence": "mean 60.0 reads 'good', the band is 'watch', and the answer says why: 60 over 2 of 6 components, which is 25% of the weight. The band is watch rather than watch"
+  },
+  {
+   "id": "QA-AM-3305",
+   "title": "The estate view separates a poor score from a thin one",
+   "verdict": "PASS",
+   "evidence": "4 row(s), every one carrying its coverage beside its score"
+  }
+ ]
+}

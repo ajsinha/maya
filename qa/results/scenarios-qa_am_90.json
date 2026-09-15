@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-900",
+   "title": "An unacknowledged finding is reported as unacknowledged",
+   "verdict": "PASS",
+   "evidence": "unacknowledged on the row and visible in the estate view"
+  },
+  {
+   "id": "QA-AM-901",
+   "title": "A handover records who it moved from and to",
+   "verdict": "PASS",
+   "evidence": "the act names the previous owner, the new one and the reason"
+  },
+  {
+   "id": "QA-AM-902",
+   "title": "Assign to the person who already owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned' as a no-op"
+  },
+  {
+   "id": "QA-AM-903",
+   "title": "Assign with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-904",
+   "title": "Extend a due date into the past",
+   "verdict": "PASS",
+   "evidence": "refused 'not_acknowledged'"
+  },
+  {
+   "id": "QA-AM-905",
+   "title": "The owner extends their own due date",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' \u2014 the owner does not hold the permission, which is the same answer by another route"
+  },
+  {
+   "id": "QA-AM-906",
+   "title": "The worklist is derived, not assigned",
+   "verdict": "PASS",
+   "evidence": "the finding appeared without anybody assigning a list (0 -> 1 item(s))"
+  },
+  {
+   "id": "QA-AM-907",
+   "title": "A closed finding leaves the worklist",
+   "verdict": "PASS",
+   "evidence": "the closed finding left the list without anybody removing it"
+  },
+  {
+   "id": "QA-AM-908",
+   "title": "A digest is not sent twice for an unchanged worklist",
+   "verdict": "PASS",
+   "evidence": "the first run would send 0, the second 0 with nothing changed"
+  }
+ ]
+}

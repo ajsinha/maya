@@ -142,7 +142,14 @@ class Decommissioning:
                                "say who depends on this. That is not the same "
                                "as nobody depending on it")}
         radius = self.composition.blast_radius(model["urn"])
-        downstream = [m for m in (radius.get("reached") or [])
+        # `reaches`, which is the key `blast_radius` returns. This read
+        # `reached`, so it always found nothing: every decommission check
+        # reported that no model read the one being retired, which is the
+        # single answer this control exists to disprove. A key nobody writes,
+        # read by the one place that matters — and the failure is silent
+        # because "nobody depends on this" is exactly what a retirement wants
+        # to hear.
+        downstream = [m for m in (radius.get("reaches") or [])
                       if m.get("urn") != model["urn"]]
         live = [m for m in downstream
                 if m.get("status") not in ("retired", "deleted")]

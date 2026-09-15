@@ -268,3 +268,42 @@ def fx_130(ctx: Ctx) -> Result:
             return FAIL, ("the refusal does not say the definition is kept, so "
                           "a reader takes it for an unknown feature")
     return PASS, "an external feature is not computed and its definition stands"
+
+
+@case("QA-FX-3000", "The evaluator and on_error vocabularies are closed")
+def fx_3000(ctx: Ctx) -> Result:
+    """Two small closed sets, and neither is cosmetic.
+
+    `evaluator` decides whether MAYA parses the expression or takes the
+    author's declared inputs on trust, so an unrecognised value stored as
+    itself would leave a feature that is neither parsed nor declared — and the
+    leakage check, which walks the parse, would find nothing to walk and pass.
+
+    `on_error` decides what a row with no arithmetic answer becomes. `null` and
+    `refuse` are opposite answers to *is a missing value a value*, and anything
+    else stored between them would be read as one of the two by whichever code
+    path got there first.
+    """
+    from core.features.derived import EVALUATORS
+
+    engine = _engine(ctx)
+    if engine is None:
+        return BLOCKED, "no derived feature engine is wired"
+    slipped = []
+    for field, allowed in (("evaluator", EVALUATORS), ("on_error", ON_ERROR)):
+        try:
+            engine.define(ctx.unique("dv"), "1 + 1", "numeric", "qa",
+                          owner="person/owner", **{field: "sideways"})
+        except FeatureError as refused:
+            if not any(v in str(refused) for v in allowed):
+                slipped.append(f"{field}: refused without naming {allowed}")
+        except Exception as other:
+            slipped.append(f"{field}: {type(other).__name__} rather than a "
+                           f"FeatureError")
+        else:
+            slipped.append(f"{field}: 'sideways' was accepted")
+    if slipped:
+        return FAIL, ("a closed vocabulary admitted a value outside it — "
+                      + "; ".join(slipped))
+    return PASS, (f"both closed: evaluator in {EVALUATORS}, on_error in "
+                  f"{ON_ERROR}, each refusal naming its set")

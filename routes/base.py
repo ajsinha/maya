@@ -127,6 +127,9 @@ STATUS: Dict[str, int] = {
     # a model safely. Not the caller's fault and not fixable by retrying, which
     # is what separates this from every 4xx above it.
     "no_tombstone_register": 501, "no_tombstones": 501,
+    # 422: reassigning a campaign item to a blank. The request is well formed
+    # and names nobody, which is not a destination.
+    "assignee_required": 422,
     "revoked": 410, "revoked_epoch": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
     # 422: the engine was handed an identifier its local revocation floor
     # cannot key on — a per-descriptor `warrant_id` rather than a model URN.
@@ -158,6 +161,12 @@ STATUS: Dict[str, int] = {
     # that is a fault in something upstream of this request.
     "outbound_scheme_refused": 502, "outbound_not_encrypted": 502,
     "outbound_host_missing": 502, "outbound_url_missing": 502,
+    # 422 rather than the 502 above, and the difference is the provenance
+    # rather than the fault: a subscription's url arrives in the body of the
+    # request being answered, so the caller CAN fix it — and 5xx is the class a
+    # well-behaved client retries, which would mean retrying a url that will
+    # never be accepted.
+    "subscription_url_refused": 422,
     "unknown_permission": 422,
     # lifecycle
     "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,

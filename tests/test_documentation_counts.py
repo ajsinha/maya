@@ -92,7 +92,11 @@ def _truth():
                      if d.is_dir() and re.match(r"^\d\d_", d.name))
     from core.validation.catalogue import TESTS
 
+    cases = len(re.findall(r"^\|\s*QA-[A-Z]+-\d+\s*\|",
+                           (ROOT / "qa" / "QA-CASES.md").read_text(
+                               encoding="utf-8"), re.M))
     return {
+        "qa cases": cases,
         "catalogue tests": len(TESTS),
         "case studies": len(studies),
         "tutorials": len(list((ROOT / "content" / "tutorials").glob("*.md"))),
@@ -200,6 +204,11 @@ CLAIMS = {
     # and nothing here read it — so when the ninth test landed, the drift was
     # caught by a QA case about a refusal that could not fire, two removes from
     # the sentence that was wrong. It is a number the code knows exactly.
+    # The published case list, which had drifted from 4,108 to 4,122 with
+    # nothing reading it — found while fixing the coverage claim rather than by
+    # any check. Two spellings: the status table and the layout tree.
+    "qa cases": [r"\*\*([\d,]+) published cases\*\*",
+                 r"QA-CASES\.md\s+([\d,]+) cases"],
     "catalogue tests": [r"validation catalogue holds \*\*(\w+)\*\* tests",
                         r"test catalogue holds (\w+) tests",
                         r"(\w+) tests of the sixteen families"],
@@ -320,7 +329,7 @@ def _collected_tests() -> int:
 
 
 def _as_number(token: str):
-    """A claimed count, from digits or from the word.
+    r"""A claimed count, from digits or from the word.
 
     **Commas are stripped, and that was a real hole.** Every pattern for a
     four-figure count captures `[\d,]+`, and `"4,800".isdigit()` is False — so

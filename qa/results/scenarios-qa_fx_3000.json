@@ -5,13 +5,13 @@
   "fail": 0,
   "blocked": 0
  },
- "seconds": 0.8,
+ "seconds": 0.5,
  "results": [
   {
    "id": "QA-FX-3000",
    "title": "The evaluator and on_error vocabularies are closed",
    "verdict": "PASS",
-   "evidence": "both vocabularies closed and named in their refusals"
+   "evidence": "both closed: evaluator in ('internal', 'external'), on_error in ('null', 'refuse'), each refusal naming its set"
   }
  ]
 }

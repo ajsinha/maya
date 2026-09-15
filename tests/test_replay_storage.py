@@ -174,3 +174,29 @@ class TestTheReportDistinguishesCheckedFromUncheckable:
         assert report["episodes"] == 1 and report["with_snapshot"] == 0
         assert report["coverage"] == 0.0
         assert "without asking anyone for the data" in report["detail"]
+
+
+class TestAnEpisodeThatDoesNotExist:
+    """`reproducible: false` is the strongest sentence this register produces
+    about a validation, and it was produced about episodes that were never
+    opened: `replay` read `results_for(id)`, which answers an empty list for an
+    unknown id, and reported `total: 0, reproducible: false`.
+
+    Somebody checking whether a validation replays, who mistyped the id, was
+    told the validation did not reproduce. `from_storage` required the episode;
+    the caller-supplied path — the one a person uses by hand — did not.
+    """
+
+    def test_replay_refuses_rather_than_reporting_irreproducible(
+            self, replayer, validation, approved_version):
+        with pytest.raises(ValidationError):
+            replayer.replay("no-such-episode", lambda _k, _s: None)
+
+    def test_an_episode_with_no_results_still_replays_and_says_so(
+            self, replayer, validation, approved_version):
+        """The distinction the refusal exists to preserve: an episode that IS
+        there and holds nothing reports honestly rather than being refused."""
+        episode = validation.open(URN, "3.2.1", "periodic", ["person/a.mehta"])
+        report = replayer.replay(episode["id"], lambda _k, _s: None)
+        assert report["total"] == 0
+        assert report["detail"] == "no results to replay"

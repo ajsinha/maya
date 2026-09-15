@@ -122,6 +122,31 @@ class TestAssignmentIsDerived:
             campaigns.reassign("Q9", URN, "person/s.iqbal", "  ")
         assert e.value.code == "reason_required"
 
+    def test_reassignment_to_nobody_is_refused(self, campaigns, two_models):
+        """The half that was not checked. `reason` was required and `to` was
+        not, so an item could be moved to a blank — leaving it outstanding
+        while `campaign_item_reassigned` recorded that somebody had taken it
+        on. That is the one outcome the act exists to prevent."""
+        campaigns.open("Q9b", kind="attestation", title="t")
+        with pytest.raises(LifecycleError) as e:
+            campaigns.reassign("Q9b", URN, "   ", "the reviewer has left")
+        assert e.value.code == "assignee_required"
+        assert "outstanding" in e.value.detail
+        assert "leave it where it is" in e.value.remediation
+
+    def test_an_outstanding_item_is_preferred_to_a_blank_assignee(
+            self, campaigns, two_models):
+        """The remediation is followable: leaving the item alone keeps it
+        counted, which is what the refusal tells the caller to do."""
+        campaigns.open("Q9c", kind="attestation", title="t")
+        try:
+            campaigns.reassign("Q9c", URN, "", "nobody will take it")
+        except LifecycleError:
+            pass
+        item = [i for i in campaigns.status("Q9c")["items"] if i["urn"] == URN]
+        assert item and item[0]["assignee"].strip(), (
+            "the refused reassignment left the item with no assignee anyway")
+
 
 class TestAnswering:
     def test_answering_moves_completion(self, campaigns, two_models):

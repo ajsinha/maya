@@ -90,7 +90,7 @@ def fx_300(ctx: Ctx) -> Result:
     return expect_accepted(_issue(ctx, governed(ctx)["urn"]))
 
 
-@case("QA-FX-301", "Resolving over a model that was never attested")
+@case("QA-FX-6110", "Resolving over a model that was never attested")
 def fx_301(ctx: Ctx) -> Result:
     """Asserted on RESOLUTION, not on issue.
 
@@ -121,7 +121,7 @@ def fx_302(ctx: Ctx) -> Result:
                           "registry_refused", "not_found")
 
 
-@case("QA-FX-303", "A warrant with an undeclared use")
+@case("QA-FX-6111", "A warrant with an undeclared use")
 def fx_303(ctx: Ctx) -> Result:
     return expect_refused(
         _issue(ctx, governed(ctx)["urn"], declared_use=""),
@@ -129,7 +129,7 @@ def fx_303(ctx: Ctx) -> Result:
         "use_not_declared")
 
 
-@case("QA-FX-304", "Resolving in an environment with no alias")
+@case("QA-FX-6112", "Resolving in an environment with no alias")
 def fx_304(ctx: Ctx) -> Result:
     """An alias is what an environment binds to. Without one there is nothing
     to point at, and guessing a version would be the register choosing what
@@ -181,7 +181,7 @@ def fx_307(ctx: Ctx) -> Result:
 
 
 # -------------------------------------------------------------------- aliases
-@case("QA-FX-310", "Move an alias to a version that does not exist")
+@case("QA-FX-6113", "Move an alias to a version that does not exist")
 def fx_310(ctx: Ctx) -> Result:
     made = governed(ctx)
     return expect_refused(
@@ -191,7 +191,7 @@ def fx_310(ctx: Ctx) -> Result:
         "registry_refused", "not_found", "unknown_version")
 
 
-@case("QA-FX-311", "A second alias move where neither version declares a schema")
+@case("QA-FX-6114", "A second alias move where neither version declares a schema")
 def fx_311(ctx: Ctx) -> Result:
     """Refused, and deliberately.
 

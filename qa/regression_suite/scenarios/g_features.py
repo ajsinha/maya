@@ -137,7 +137,7 @@ def fx_414(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-FX-415", "A featureset with no features at all")
+@case("QA-FX-6115", "A featureset with no features at all")
 def fx_415(ctx: Ctx) -> Result:
     body = valid_body(ctx, "POST", FEATURESET, name=ctx.unique("fs"),
                       entity="borrower", owner="owner", features=[])
@@ -157,7 +157,7 @@ def fx_416(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-FX-417", "Read a feature that does not exist")
+@case("QA-FX-6116", "Read a feature that does not exist")
 def fx_417(ctx: Ctx) -> Result:
     got = ctx.api.get(f"{FEATURE}/qa-never")
     if got.status_code >= 500:
@@ -179,7 +179,7 @@ def fx_418(ctx: Ctx) -> Result:
     return PASS, f"answered {got.status_code} ({code_of(got) or 'accepted'})"
 
 
-@case("QA-FX-419", "Trial an expression that divides by zero")
+@case("QA-FX-6117", "Trial an expression that divides by zero")
 def fx_419(ctx: Ctx) -> Result:
     """An arithmetic error in somebody's draft expression must be a refusal,
     not a 500 — this is the endpoint people iterate on."""
@@ -190,7 +190,7 @@ def fx_419(ctx: Ctx) -> Result:
     return PASS, f"answered {got.status_code} ({code_of(got) or 'accepted'})"
 
 
-@case("QA-FX-420", "Trial an expression that is not an expression")
+@case("QA-FX-6118", "Trial an expression that is not an expression")
 def fx_420(ctx: Ctx) -> Result:
     got = ctx.api.post(f"{FEATURE}/trial",
                        json={"expression": "import os; os.system('id')",

@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 5,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-720",
+   "title": "A waiver with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'no_rationale'"
+  },
+  {
+   "id": "QA-AM-721",
+   "title": "A waiver with no compensating control",
+   "verdict": "PASS",
+   "evidence": "refused 'no_compensating_control'"
+  },
+  {
+   "id": "QA-AM-722",
+   "title": "A waiver that never expires",
+   "verdict": "PASS",
+   "evidence": "all three refused (0:no_expiry, -1:no_expiry, 100000:window_too_long)"
+  },
+  {
+   "id": "QA-AM-723",
+   "title": "A waiver over a control that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_control', naming the 21 controls"
+  },
+  {
+   "id": "QA-AM-724",
+   "title": "A well-formed waiver is granted",
+   "verdict": "PASS",
+   "evidence": "proposed as 'proposed', expiring at 1792102177.9527106, awaiting somebody else"
+  }
+ ]
+}

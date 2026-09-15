@@ -67,7 +67,7 @@ def gov_200(ctx: Ctx) -> Result:
                           "authority_refused", "lifecycle_refused")
 
 
-@case("QA-GOV-201", "A band with no name")
+@case("QA-GOV-6212", "A band with no name")
 def gov_201(ctx: Ctx) -> Result:
     return expect_refused(_band(ctx, name="   "), "band_name_required")
 
@@ -187,7 +187,7 @@ def _closed_glass(ctx: Ctx) -> str:
     return reference
 
 
-@case("QA-GOV-222", "Review a break-glass with no note", isolated=True)
+@case("QA-GOV-6213", "Review a break-glass with no note", isolated=True)
 def gov_222(ctx: Ctx) -> Result:
     reference = _closed_glass(ctx)
     return expect_refused(
@@ -207,7 +207,7 @@ def gov_223(ctx: Ctx) -> Result:
 
 
 # ------------------------------------------------------- recertification
-@case("QA-GOV-230", "A recertification campaign with no reviewer")
+@case("QA-GOV-6214", "A recertification campaign with no reviewer")
 def gov_230(ctx: Ctx) -> Result:
     return expect_refused(
         ctx.api.post(RECERT, json={"reference": ctx.unique("rc"),
@@ -230,7 +230,7 @@ def gov_231(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-GOV-232", "Two campaigns with the same reference")
+@case("QA-GOV-6215", "Two campaigns with the same reference")
 def gov_232(ctx: Ctx) -> Result:
     reference = ctx.unique("rc")
     body = {"reference": reference, "reviewer": "risk", "title": "QA",

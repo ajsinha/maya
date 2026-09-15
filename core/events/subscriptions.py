@@ -108,8 +108,23 @@ class Subscriptions:
             checked = permit(url, what="the subscription url")
         except OutboundError as refused:
             logger.warning("subscription to %s refused: %s", url, refused.code)
-            raise EventError(refused.code, refused.detail,
-                             refused.remediation) from refused
+            # Re-coded, not passed through. The outbound codes are mapped to
+            # **502** on the stated ground that "the caller did nothing wrong —
+            # an identity provider named an address MAYA refuses to open". That
+            # is true of OIDC discovery, where the address comes from a
+            # configured provider, and false here: this url arrived in the body
+            # of this request. One code was covering two provenances.
+            #
+            # The cost is not cosmetic. 5xx is the class a well-behaved client
+            # RETRIES, so a subscriber that sent an http url would retry it
+            # indefinitely and be told each time that the server was broken,
+            # when the one thing that would fix it is a change to their own
+            # request. The original code is kept in the detail, because what
+            # was wrong with the address is still the useful half.
+            raise EventError(
+                "subscription_url_refused",
+                f"{refused.detail} ({refused.code})",
+                refused.remediation) from refused
 
         rows = self.repo.many()
         secret = secrets.token_urlsafe(32)
