@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 1.4,
+ "seconds": 5.2,
  "results": [
   {
    "id": "QA-PLT-034",
    "title": "A token dated after the moment it was requested",
-   "verdict": "FAIL",
-   "evidence": "an authority returned a token dated a year ahead of the request and it was stored and read back with state 'unverified' and no remark. `stamp` records `requested_at` alongside the token and the module says exactly why \u2014 *the gap between them is the only thing a reader can use to notice a token that was issued somewhere else* \u2014 and nothing computes that gap. Not verifying an RFC 3161 token is a sta"
+   "verdict": "PASS",
+   "evidence": "refused 'token_ahead_of_the_request': the authority returned a token dated 2027-09-15T05:11:19Z, which is after the moment this instance asked for it (2026-09"
   }
  ]
 }

@@ -79,6 +79,21 @@ AXES: Dict[str, Dict[str, Any]] = {
         "why": "it changes how somebody is told and nothing else. The one axis "
                "where a plugin has no governance meaning at all",
     },
+    "timestamp_authority": {
+        "state": OPEN,
+        "is": "something that will attest to when a chain head existed",
+        "why": "it SUPPLIES a claim and MAYA never vouches for it. Every date "
+               "in this register is otherwise the firm's own clock, and a firm "
+               "arguing with a supervisor about the order of events is arguing "
+               "from a clock it controls — the anchors prove the chain agrees "
+               "with something written outside the database, and prove nothing "
+               "at all about when. An authority MAYA both supplied and trusted "
+               "would be the arrangement the control exists to replace, so the "
+               "extension is the only honest way to have one: the firm plugs "
+               "in the time stamping authority it already runs, the token is "
+               "held rather than believed, and `unverified` stays a distinct "
+               "state from `verified` until a verifier is supplied too",
+    },
     "connectors": {
         "state": CLOSED,
         "is": "a source the register will believe about data it did not see",

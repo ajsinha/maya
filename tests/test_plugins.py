@@ -17,9 +17,17 @@ def points(evidence):
 
 
 class TestTheDividingLine:
-    def test_all_eight_axes_the_requirement_names_are_addressed(self):
+    def test_every_axis_the_requirement_names_is_addressed(self):
+        """Eight from the requirement, and one added since.
+
+        `timestamp_authority` is not in `docs/03` because nothing could supply
+        a token when that list was written: `ChainTimestamps` held them,
+        reported three states and had no way to obtain one, so every date in
+        the register was the firm's own clock.
+        """
         assert set(AXES) == {"test_types", "metric_types", "templates",
-                             "notification_channels", "connectors", "formats",
+                             "notification_channels", "timestamp_authority",
+                             "connectors", "formats",
                              "policy_evaluators", "runtime_adapters"}
 
     def test_the_open_ones_do_not_change_a_governance_answer(self):
@@ -27,7 +35,13 @@ class TestTheDividingLine:
         adapter changes what may execute."""
         out = describe()
         assert set(out["open"]) == {"test_types", "metric_types", "templates",
-                                    "notification_channels"}
+                                    "notification_channels",
+                                    # Supplies a CLAIM and is never vouched
+                                    # for: a held token reads `unverified`
+                                    # until a verifier is supplied too, so an
+                                    # authority cannot make MAYA believe
+                                    # anything it would not otherwise.
+                                    "timestamp_authority"}
         assert "changes a governance ANSWER" in out["detail"]
 
     def test_every_closed_axis_says_what_the_closure_protects(self):
@@ -182,3 +196,45 @@ class TestOverHttp:
         body = client.get("/admin/runtimes").text
         assert "changes a governance" in body
         assert "not a missing feature; it is the feature" in body
+
+
+class TestEnablingActuallyHandsTheCodeOver:
+    """The one line that makes an extension usable.
+
+    `enable()` imports the entry point and gives it to the registry. It passed
+    `fn=` where `register` takes `implementation=`, so every enable raised
+    `TypeError: unexpected keyword argument 'fn'` — the discovery report, the
+    axis table and every refusal around them worked, and the single call that
+    makes a plugin do anything did not. A keyword mismatch on a path nothing
+    exercises does not surface until a firm installs a plugin and turns it on.
+    """
+
+    def test_the_registry_takes_what_discovery_passes(self):
+        import inspect
+
+        from core.plugins.discovery import PluginDiscovery
+        from core.plugins.registry import ExtensionPoints
+        accepted = set(inspect.signature(ExtensionPoints.register).parameters)
+        source = inspect.getsource(PluginDiscovery.enable)
+        call = source[source.index("self.extensions.register("):]
+        call = call[:call.index(")") + 1]
+        passed = {part.split("=")[0].strip()
+                  for part in call.split("(", 1)[1].split(",")
+                  if "=" in part}
+        assert passed <= accepted, (
+            f"`enable()` passes {sorted(passed - accepted)} and `register()` "
+            f"takes {sorted(accepted)}. Enabling any plugin on any open axis "
+            f"raises TypeError, and nothing else in the mechanism can tell.")
+
+    def test_an_enabled_extension_is_retrievable(self, tmp_path):
+        """Registered is not enough: something has to be able to GET it."""
+        from core.plugins.registry import ExtensionPoints
+
+        def measure():
+            """a QA measurement"""
+
+        points = ExtensionPoints()
+        points.register("test_types", "qa_measure", owner="qa",
+                        does="a QA measurement", implementation=measure)
+        assert points.get("test_types", "qa_measure") is measure
+        assert points.names("test_types") == ["qa_measure"]

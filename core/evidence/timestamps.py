@@ -50,7 +50,7 @@ import json
 import time
 from typing import Any, Dict, Optional, Protocol, runtime_checkable
 
-from core.log import get_logger
+from core.log import get_logger, swallowed
 
 logger = get_logger(__name__)
 
@@ -60,6 +60,13 @@ STATES = (VERIFIED, UNVERIFIED, ABSENT)
 #: The hash a token covers. SHA-256 because the chain is SHA-256 and a token
 #: over a different digest would be a token over a different thing.
 ALGORITHM = "sha256"
+
+#: How far an authority's clock may differ from this one before a
+#: token reads as impossible rather than as ordinary drift. Two
+#: minutes, the same leeway the OIDC layer allows an id token — a
+#: bound tighter than the drift a real estate shows is one somebody
+#: widens to hours the first time sign-in gets flaky.
+CLOCK_LEEWAY_SECONDS = 120.0
 
 
 @runtime_checkable
@@ -98,6 +105,31 @@ class TimestampError(RuntimeError):
                 "remediation": self.remediation}
 
 
+def _as_moment(token: Any, field: str) -> Optional[float]:
+    """One of a token's times, as a number, or None.
+
+    A token is somebody else's document and this platform does not parse it —
+    so a field that is absent, or is a string, or is a structure MAYA has no
+    view on, means *nothing to compare*, which is the honest answer and not a
+    failure. Logged rather than swallowed, because a field that is present and
+    unreadable is different from one that is absent, and only the first says
+    the authority is sending something this instance cannot check.
+    """
+    if not isinstance(token, dict) or field not in token:
+        return None
+    value = token.get(field)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        swallowed(logger, exc,
+                  f"read '{field}' from a time stamp token",
+                  detail=f"value={value!r}; treated as nothing to compare "
+                         f"against, so this check does not fire on it")
+        return None
+
+
 class ChainTimestamps:
     """Holds tokens over anchored chain heads, and never mints or trusts one."""
 
@@ -128,20 +160,22 @@ class ChainTimestamps:
                 "no_timestamp_authority",
                 "no time stamp authority is wired, so nothing here can attest "
                 "to when this chain head existed",
-                # NOT a configuration key. This said *configure one under
-                # `evidence.timestamps`*, and nothing reads that key — so a
-                # deployer following the instruction set something the platform
-                # never looks at and got the same refusal, having been told what
-                # to do by the thing refusing. MAYA ships no authority on
-                # purpose: an RFC 3161 client that MAYA both supplied and
-                # trusted would be the arrangement this exists to replace. One
-                # is passed in by whoever builds the instance.
-                "supply one to `ChainTimestamps(authority=...)` where this "
-                "instance is constructed — MAYA ships none, because an "
-                "authority it minted and trusted itself would prove nothing. "
-                "Until then the chain's times are the firm's own clock, and "
+                # This said *configure one under `evidence.timestamps`* while
+                # nothing read that key, so a deployer following the
+                # instruction set something the platform never looked at and
+                # got the same refusal — told what to do by the thing refusing.
+                # The key is real now: it names an extension registered on the
+                # `timestamp_authority` axis, and MAYA still ships none,
+                # because an authority it supplied and trusted itself would
+                # prove nothing.
+                "install a time stamping authority and name it under "
+                "`evidence.timestamps.authority` — it is an extension on the "
+                "`timestamp_authority` axis, which is open precisely because "
+                "MAYA must not be the one attesting. Until then the chain's "
+                "times are the firm's own clock, and "
                 "`GET /api/v1/evidence/timestamps/posture` reports that rather "
                 "than assuming it")
+
         anchored = self.anchor.latest() if seq is None \
             else next((a for a in self.anchor.anchors() if a["seq"] == seq),
                       None)
@@ -160,8 +194,9 @@ class ChainTimestamps:
             return {**self.read(anchored["seq"]), "written": 0}
 
         digest = anchored["chain_hash"]
-        token = self.authority.stamp(digest)
         moment = now if now is not None else time.time()
+        token = self.authority.stamp(digest)
+        self._refuse_implausible(token, moment)
         record = {
             "seq": anchored["seq"], "chain_hash": digest,
             "algorithm": ALGORITHM,
@@ -183,6 +218,45 @@ class ChainTimestamps:
         logger.info("chain head at seq %d timestamped by %s", anchored["seq"],
                     record["authority"])
         return {**self.read(anchored["seq"]), "written": 1}
+
+    @staticmethod
+    def _refuse_implausible(token: Dict[str, Any], requested_at: float) -> None:
+        """The two checks MAYA can make without deciding whom to trust.
+
+        Verifying an RFC 3161 token means holding a certificate chain and
+        deciding which roots to trust, and that decision belongs to the firm's
+        security function — so this does not do it, and `unverified` remains a
+        state distinct from `verified`.
+
+        These are different. `requested_at` is a moment MAYA WROTE ITSELF, and
+        the module keeps it beside the token because "the gap between them is
+        the only thing a reader can use to notice a token that was issued
+        somewhere else". Nothing computed that gap: an authority returning a
+        token dated a year ahead of the request had it stored and read back
+        with no remark, and one whose validity ended nine years ago was stored
+        and COUNTED as coverage — the one figure a supervisor is shown about
+        the chain's age. Comparing two numbers is not the decision MAYA
+        declines to make.
+        """
+        genuine = _as_moment(token, "genTime")
+        if genuine is not None and genuine > requested_at + CLOCK_LEEWAY_SECONDS:
+            raise TimestampError(
+                "token_ahead_of_the_request",
+                f"the authority returned a token dated "
+                f"{_when(genuine)}, which is after the moment this instance "
+                f"asked for it ({_when(requested_at)})",
+                "a token cannot attest to a head before it was shown one. "
+                "Check the authority's clock, and check that this token was "
+                "minted for this request rather than replayed from another")
+        expires = _as_moment(token, "notAfter")
+        if expires is not None and expires < requested_at:
+            raise TimestampError(
+                "token_already_expired",
+                f"the authority returned a token whose validity ended "
+                f"{_when(expires)}",
+                "an expired token accepted here is counted as coverage, and "
+                "coverage is the figure somebody reads before trusting a date "
+                "in this register; ask the authority for a current one")
 
     # ------------------------------------------------------------------- read
     def read(self, seq: int) -> Dict[str, Any]:

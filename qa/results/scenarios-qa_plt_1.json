@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 70,
-  "pass": 59,
-  "fail": 10,
-  "blocked": 1
+  "total": 123,
+  "pass": 96,
+  "fail": 25,
+  "blocked": 2
  },
- "seconds": 21.0,
+ "seconds": 33.7,
  "results": [
   {
    "id": "QA-PLT-100",
@@ -60,6 +60,66 @@
    "title": "A node carrying personal data stores an empty payload",
    "verdict": "PASS",
    "evidence": "enforced at the storage layer, in both dialects"
+  },
+  {
+   "id": "QA-PLT-101",
+   "title": "A node recorded with `contains_personal_data`",
+   "verdict": "PASS",
+   "evidence": "the payload is empty, the flag is kept, and the chain still verifies over the node"
+  },
+  {
+   "id": "QA-PLT-102",
+   "title": "The `WHY` semiring past its term cap",
+   "verdict": "PASS",
+   "evidence": "under the cap: 40 support set(s), truncated=False; over it: 9, truncated=True. The shipped bound is 4096"
+  },
+  {
+   "id": "QA-PLT-103",
+   "title": "A claim resting on a missing fact under freshness",
+   "verdict": "FAIL",
+   "evidence": "a claim resting on a present fact and a MISSING one answers freshness 1000.0, the same as one resting on that fact and a stale one. FRESHNESS is (max, max) with `zero = 0.0`, so an absent fact contributes 0.0 and `max` discards it \u2014 the answer is the freshness of what is present, and carries nothing saying a term was absent. The Boolean semiring answers the presence question; a reader who asks onl"
+  },
+  {
+   "id": "QA-PLT-104",
+   "title": "A broken chain's report shape",
+   "verdict": "PASS",
+   "evidence": "broken_at 12, reason 'prev_hash mismatch', and no length, head or scope"
+  },
+  {
+   "id": "QA-PLT-105",
+   "title": "The scheduled verification meets a broken chain",
+   "verdict": "PASS",
+   "evidence": "verified false at seq 12, checkpoint held at 11"
+  },
+  {
+   "id": "QA-PLT-106",
+   "title": "The scheduled anchor meets a chain that disagrees",
+   "verdict": "PASS",
+   "evidence": "refused 'chain_broken', 1 anchor(s) preserved: the chain does not verify, so anchoring its head would write the broken state down as the truth"
+  },
+  {
+   "id": "QA-PLT-107",
+   "title": "Tampering below the newest anchor",
+   "verdict": "PASS",
+   "evidence": "the node at seq 1 was rewritten. The full walk catches it at 1 because it RECOMPUTES each content hash; the anchors report agrees=1 over 1 anchor(s), because an anchor names one sequence's stored chain_hash and that column was not touched. Both answers are correct and they answer different questions \u2014 the anchors bound what the chain SAID at a moment, not what it contains. Only the scheduled full "
+  },
+  {
+   "id": "QA-PLT-108",
+   "title": "The `_freeze` chmod fails and the store carries on",
+   "verdict": "PASS",
+   "evidence": "written, and warned: could not make qa-freeze-1789450065249.anchor read-only: this filesystem does not support the permission \u2014 the object is"
+  },
+  {
+   "id": "QA-PLT-109",
+   "title": "A crash part-way through a WORM write",
+   "verdict": "PASS",
+   "evidence": "nothing readable was left behind; 1 staging file(s) on disk and none of them listed"
+  },
+  {
+   "id": "QA-PLT-110",
+   "title": "An unwritable WORM root",
+   "verdict": "PASS",
+   "evidence": "refused 'worm_unwritable': 'qa-unwritable-1789450070070.anchor' could not be written to /tmp/maya-qa-fpuc0mhp/data/worm: [Errno 13] Permi"
   },
   {
    "id": "QA-PLT-1100",
@@ -122,16 +182,40 @@
    "evidence": "absent and unverified are held apart"
   },
   {
+   "id": "QA-PLT-111",
+   "title": "Time-stamping with the authority unconfigured",
+   "verdict": "PASS",
+   "evidence": "the remediation names what actually supplies an authority and the posture it points at answers 200: install a time stamping authority and name it under `evidence.timestamps.authority` \u2014 it i"
+  },
+  {
+   "id": "QA-PLT-112",
+   "title": "Time-stamping a head that was never anchored",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_anchored': there is no anchored head to timestamp"
+  },
+  {
+   "id": "QA-PLT-113",
+   "title": "The same head stamped twice",
+   "verdict": "PASS",
+   "evidence": "one object, one request to the authority, written=0 on the second"
+  },
+  {
+   "id": "QA-PLT-114",
+   "title": "Timestamp coverage on an estate with no anchors",
+   "verdict": "PASS",
+   "evidence": "share 0.0 twice, two different sentences: 'nothing is anchored, so there is nothing to timest' then '1 anchored head(s) and no time stamp authority wir'"
+  },
+  {
    "id": "QA-PLT-115",
    "title": "Sixteen concurrent version creations against PostgreSQL",
    "verdict": "BLOCKED",
-   "evidence": "the scenario harness serves one app over a TestClient and cannot drive sixteen simultaneous requests against a second dialect; run the concurrency suite with MAYA_TEST_POSTGRES set"
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
   },
   {
    "id": "QA-PLT-117",
    "title": "A raw `UPDATE` on `evidence_node` against PostgreSQL",
-   "verdict": "FAIL",
-   "evidence": "the trigger refuses the raw UPDATE, which is correct \u2014 and `tests/test_postgres_dialect.py::test_a_tampered_payload_breaks_the_chain_on_postgres_too` performs exactly that UPDATE through `db.execute` before asserting `verify_chain()['valid'] is False`. The trigger now raises there, so the test ERRORS and the only assertion that the chain DETECTS tampering on PostgreSQL never runs. The guard that w"
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
   },
   {
    "id": "QA-PLT-1200",
@@ -220,14 +304,80 @@
   {
    "id": "QA-PLT-122",
    "title": "A dimension outside `POLICED`",
+   "verdict": "PASS",
+   "evidence": "policed ['legal_entity'], unpoliced ['domain'], both named in `does_not_reach`"
+  },
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile one document twice with nothing changed between",
+   "verdict": "PASS",
+   "evidence": "the same document id and digest sha256:03735c314"
+  },
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile the same document five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "1 citations, unchanged across five compiles"
+  },
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile a document that has open review comments",
+   "verdict": "PASS",
+   "evidence": "1 open comment(s) still against 01a0a38944c7"
+  },
+  {
+   "id": "QA-PLT-126",
+   "title": "The same document through the export packer instead",
+   "verdict": "PASS",
+   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:83056439e9b1e"
+  },
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "the subject is resolved first \u2014 'registry_refused' 409 for the URN, then 'unknown_document_kind' 422 once the model exists, listing the kinds"
+  },
+  {
+   "id": "QA-PLT-128",
+   "title": "A model with nothing recorded, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "10 of 15 sections unfillable, 10 of them required, complete=False"
+  },
+  {
+   "id": "QA-PLT-129",
+   "title": "A subsystem that throws during compilation",
+   "verdict": "PASS",
+   "evidence": "the compile fails loudly (500) rather than authoring a document with a silent hole; the section is not swallowed"
+  },
+  {
+   "id": "QA-PLT-130",
+   "title": "A pack cut while a subsystem is unreadable",
    "verdict": "FAIL",
-   "evidence": "the report names the dimensions and not the rows \u2014 a version's entity is its model's, and no policy here expresses that"
+   "evidence": "the monitoring service raised while this pack was cut and `gaps.md` does not mention it. `ContextBuilder` records what it could not read under `ctx['unreadable']`; `ExportPacker.build` reads `ctx.get('_gaps')`, which nothing writes \u2014 so the loop that turns context failures into gap entries iterates an empty list every time. Keys read by the packer and never written by the context builder: ['_gaps'"
+  },
+  {
+   "id": "QA-PLT-131",
+   "title": "An event recorded at exactly the sequence the document recorded as head",
+   "verdict": "PASS",
+   "evidence": "head 35 carries 1 event(s) and the document is not stale; the boundary is exclusive"
+  },
+  {
+   "id": "QA-PLT-132",
+   "title": "A document row with no `subjects` list",
+   "verdict": "FAIL",
+   "evidence": "a document row whose `subjects` list is empty falls back to the model id alone, so a new version \u2014 the event a document most needs to notice \u2014 leaves it reporting 'nothing has been recorded since it was compiled'; the column reads []. Latent rather than live on a fresh estate: `render` writes `subjects` on every compile, so the `or [doc['model_id']]` fallback is only reached by a row that predates"
   },
   {
    "id": "QA-PLT-133",
    "title": "A compiled document that cites nothing",
    "verdict": "PASS",
    "evidence": "sound over 2 citation(s), count reported"
+  },
+  {
+   "id": "QA-PLT-134",
+   "title": "A citation to an evidence node the reader may not see",
+   "verdict": "PASS",
+   "evidence": "the document itself is refused to an out-of-scope reader ('out_of_scope'), so the citation claim never reaches them"
   },
   {
    "id": "QA-PLT-135",
@@ -242,16 +392,76 @@
    "evidence": "1 gap(s) named"
   },
   {
+   "id": "QA-PLT-137",
+   "title": "A dossier for a model with three empty versions",
+   "verdict": "PASS",
+   "evidence": "exactly four gaps: ['model dp-026f26ae', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
+  },
+  {
+   "id": "QA-PLT-138",
+   "title": "A dangling featureset pin on a non-fitted parameter set",
+   "verdict": "FAIL",
+   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-c32f6ce3', "
+  },
+  {
+   "id": "QA-PLT-139",
+   "title": "A dangling pin on a fitted set versus no pin at all",
+   "verdict": "FAIL",
+   "evidence": "both states print the same sentence: \"a fitted set that does not name the featureset version it came from \u2014 'what data produced these numbers' has no answer from here\". It is false for the dangling case \u2014 that set DOES name the featureset version it came from, and the register has lost it. The comment above `_pin` states the rule ('a pin that does not resolve is a real gap, and a different one fro"
+  },
+  {
+   "id": "QA-PLT-140",
+   "title": "The attachment register throws while a dossier is built",
+   "verdict": "FAIL",
+   "evidence": "the attachment register raised for every subject and the dossier records 1 gap(s) all saying 'nothing is filed here; expected the methodology, and the literature the approach'. `_attached` catches the exception, logs it and returns `[]`, so `_node` cannot tell 'nothing is filed' from 'the store did not answer' \u2014 and reports the first. A reader sent to file a document that is already filed cannot d"
+  },
+  {
+   "id": "QA-PLT-141",
+   "title": "A dossier over a large featureset estate",
+   "verdict": "PASS",
+   "evidence": "one parameter set, one dossier build, an estate of 20 featureset(s): 1 full scan(s) of the register and 20 version read(s), 14 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
+  },
+  {
+   "id": "QA-PLT-142",
+   "title": "Dossier gaps carried into the pack",
+   "verdict": "PASS",
+   "evidence": "2 dossier gap(s) carried under documentation/, manifest counts 20 (21 listed)"
+  },
+  {
+   "id": "QA-PLT-143",
+   "title": "The `superseded` review state",
+   "verdict": "FAIL",
+   "evidence": "'superseded' is one of the 4 states the review vocabulary publishes at GET /api/v1/document-review/asks, and no code path in `core/docs/review.py` writes it \u2014 `comment` opens, `resolve` writes resolved, `withdraw` writes withdrawn, and nothing writes this. A client filtering or reporting on it filters on a state that cannot occur, which reads as 'none of those' rather than as 'that never happens h"
+  },
+  {
    "id": "QA-PLT-144",
    "title": "Withdraw a comment that was already resolved",
    "verdict": "FAIL",
    "evidence": "a resolved comment was withdrawn, erasing the answer somebody gave it"
   },
   {
+   "id": "QA-PLT-145",
+   "title": "Withdraw with an empty reason",
+   "verdict": "FAIL",
+   "evidence": "a comment was withdrawn with no reason at all and the record now reads state='withdrawn' resolution=''. `resolve` refuses exactly this \u2014 'closing a comment needs a sentence about what was done' \u2014 and `withdraw` writes the same column with no check, so the review history has a closed objection and no account of why it was dropped"
+  },
+  {
+   "id": "QA-PLT-146",
+   "title": "Withdraw under a read-only permission",
+   "verdict": "FAIL",
+   "evidence": "`withdraw_comment` authorises `document:read` where `comment` authorises `document:review`. Somebody else is stopped by the register rather than by the route \u2014 'not_your_comment' \u2014 so the reachable case is narrow and real: a reviewer whose `document:review` has been revoked still holds `document:read`, and can still close the objections they raised while they had it. The permission that gates rais"
+  },
+  {
    "id": "QA-PLT-147",
    "title": "Two people resolving one comment",
    "verdict": "PASS",
    "evidence": "refused 'comment_closed'"
+  },
+  {
+   "id": "QA-PLT-148",
+   "title": "Resolve citing an `evidence_id` that does not exist",
+   "verdict": "FAIL",
+   "evidence": "a comment was resolved citing 'evidence-node-that-never-existed', which is in no chain, and the act was recorded with `changed_the_record: true` \u2014 it is `bool(evidence_id)` with no existence check. The review history now asserts that a wrong sentence was fixed by fixing the record, and points at nothing; the comment reads state='resolved'. `verify_citations` exists for exactly this question about "
   },
   {
    "id": "QA-PLT-149",
@@ -262,8 +472,8 @@
   {
    "id": "QA-PLT-150",
    "title": "The raiser under a different spelling of their name",
-   "verdict": "FAIL",
-   "evidence": "the raiser closed their own factual objection by writing their name as 'person/validator' instead of 'validator'. The check is `raised_by == actor`, not `same_person`, so seven characters step around it \u2014 the same failure the register already fixed for validation independence and for the finding workflow"
+   "verdict": "PASS",
+   "evidence": "'person/validator' is recognised as 'validator'"
   },
   {
    "id": "QA-PLT-151",
@@ -272,10 +482,34 @@
    "evidence": "refused 'unknown_section'"
   },
   {
+   "id": "QA-PLT-152",
+   "title": "A pack over the size ceiling",
+   "verdict": "FAIL",
+   "evidence": "`pack_too_large` is raised at source line 90 and `self._zip(members)` runs at line 89 \u2014 the whole archive is built, compressed and held in memory before its size is measured against the 2GB ceiling. Every member is already resident as bytes in `members` too, so the peak is the uncompressed content plus the archive. The refusal protects the recipient from an export nobody can open; it does not prot"
+  },
+  {
    "id": "QA-PLT-153",
    "title": "A pack requesting a document kind that does not exist",
    "verdict": "PASS",
    "evidence": "refused, naming all 4 kinds"
+  },
+  {
+   "id": "QA-PLT-154",
+   "title": "Two attachments with the same filename and a colliding digest prefix",
+   "verdict": "FAIL",
+   "evidence": "two attachments named 'report.pdf' whose digests agree on bytes 7:15 produced 1 archive member(s) \u2014 ['attachments/AAAAAAAA-report.pdf'] \u2014 while attachments/index.json lists 2. The name is `digest[7:15] + filename`, a dict assignment overwrites, and no gap is recorded: the index says two documents are in this pack and one of them is not. 0 gap(s) recorded"
+  },
+  {
+   "id": "QA-PLT-155",
+   "title": "Two packs of unchanged state",
+   "verdict": "PASS",
+   "evidence": "content sha256:639dc993d8cde on both; archive digests differ because the manifest carries the moment"
+  },
+  {
+   "id": "QA-PLT-156",
+   "title": "A pack cut while the evidence chain is broken",
+   "verdict": "PASS",
+   "evidence": "the pack is cut and the manifest reports verified: false"
   },
   {
    "id": "QA-PLT-157",
@@ -296,6 +530,12 @@
    "evidence": "`max_reads: -1` was accepted and the share is born exhausted: nothing validates the field, so a typo produces a link that refuses every read and reads on the register as one somebody used up"
   },
   {
+   "id": "QA-PLT-160",
+   "title": "Ten concurrent reads of a `max_reads: 1` share",
+   "verdict": "FAIL",
+   "evidence": "a share capped at one read served 3 of ten simultaneous reads at worst across 5 rounds (served [1, 1, 3, 2, 1]). `open_share` reads `share['reads']` before the state check and writes `reads + 1` after serving, with no lock and no conditional update \u2014 racers that read the same count all pass the cap and all serve. `max_reads` is the control a firm relies on when a link has gone somewhere it should "
+  },
+  {
    "id": "QA-PLT-161",
    "title": "Revoking a share that has already expired",
    "verdict": "PASS",
@@ -311,7 +551,7 @@
    "id": "QA-PLT-163",
    "title": "Redeem a share link end to end",
    "verdict": "FAIL",
-   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/Be9c7NTiit_RBUOYVx4IcCsXj3DntQE7z33B2PsTTWA:404, /api/v1/export-shares/Be9c7NTiit_RBUOYVx4IcCsXj3DntQE7z33B2PsTTWA/open:404, /api/v1/export-shares/Be9c7NTiit_RBUOYVx4IcCsXj3DntQE7z33B2PsTTWA/pack:404, /"
+   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/QDo3mAazDRyFQus4pPK43naxp2RrbyqHmh0ycjrfZM4:404, /api/v1/export-shares/QDo3mAazDRyFQus4pPK43naxp2RrbyqHmh0ycjrfZM4/open:404, /api/v1/export-shares/QDo3mAazDRyFQus4pPK43naxp2RrbyqHmh0ycjrfZM4/pack:404, /"
   },
   {
    "id": "QA-PLT-164",
@@ -330,6 +570,84 @@
    "title": "A share created without a purpose or a recipient",
    "verdict": "PASS",
    "evidence": "refused 'recipient_required' and 'purpose_required'"
+  },
+  {
+   "id": "QA-PLT-167",
+   "title": "A search whose query is nothing but stop words",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_query' 422 over 17 stop words, and a one-character term too"
+  },
+  {
+   "id": "QA-PLT-168",
+   "title": "Search `limit` at 0, 200, 201, and `abc`",
+   "verdict": "PASS",
+   "evidence": "200 accepted; 0 and 201 refused 'limit_out_of_range'; 'abc' refused 'validation_error' \u2014 every 422 on this parameter carries a code, so one client path reads all three"
+  },
+  {
+   "id": "QA-PLT-169",
+   "title": "Coverage driven to 1.0 by mislabelling one file",
+   "verdict": "FAIL",
+   "evidence": "near-identical binary filed twice \u2014 as `application/pdf` and as `text/plain` \u2014 move coverage from 0.5 to 0.6667, because `text_indexed` is `media_type in TEXT_MEDIA` and the media type is whatever the uploading client declared. The mislabelled copy is now counted as searchable and its bytes are searched as text (1 result(s) for a term inside it). Coverage is the figure a reader is told to check BE"
+  },
+  {
+   "id": "QA-PLT-170",
+   "title": "A genuinely extractable PDF declared honestly",
+   "verdict": "FAIL",
+   "evidence": "a text-bearing PDF filed under its true media type is counted unread and stays unread: `text_indexed` is written once in `attach()` as `media_type in TEXT_MEDIA` and no route in the API writes it again \u2014 there is no re-index, no extract, no correction. The only way to make this document searchable is to file it again declaring a media type it does not have, which is the behaviour the coverage figu"
+  },
+  {
+   "id": "QA-PLT-171",
+   "title": "Coverage on an empty estate versus a principal who can see nothing",
+   "verdict": "PASS",
+   "evidence": "distinguishable: 'you can see none of the 47 model(s) in this register, so thi' against 'nothing is filed because nothing is registered: this estate '"
+  },
+  {
+   "id": "QA-PLT-172",
+   "title": "Coverage against a `kind`- or `urn`-filtered search",
+   "verdict": "PASS",
+   "evidence": "coverage narrows by ['urn', 'kind']"
+  },
+  {
+   "id": "QA-PLT-173",
+   "title": "Superseding every unread document with a text note",
+   "verdict": "FAIL",
+   "evidence": "superseding an unread PDF with a 31-byte text note moved coverage from 0.5 to 0.625 (4 unread \u2192 3) while the content it measured became unreachable: a term inside the superseded document now returns 0 result(s). The figure a reader is told to check before trusting an empty answer is improved by removing the documents it was counting"
+  },
+  {
+   "id": "QA-PLT-174",
+   "title": "A quarantined or rejected attachment in the search results",
+   "verdict": "FAIL",
+   "evidence": "a document the register rejected \u2014 state 'rejected', reviewed with 'wrong figure, do not use' \u2014 is returned by search with its text quoted back: 'the rejected figure is 99.9 percent'. `_candidates` yields every current attachment and filters only on `kind`, so none of the 4 states narrows the corpus. The hit carries `state`, which is honest and is not a filter: a reader searching for a figure find"
+  },
+  {
+   "id": "QA-PLT-175",
+   "title": "A search with `limit=1` over many matches",
+   "verdict": "PASS",
+   "evidence": "matches 6 over 6 searched, one row returned"
+  },
+  {
+   "id": "QA-PLT-176",
+   "title": "A search run with no principal while an authoriser is wired",
+   "verdict": "PASS",
+   "evidence": "`scoped` is false when no principal was applied, so it reports the filtering rather than the wiring"
+  },
+  {
+   "id": "QA-PLT-177",
+   "title": "Two documents, one term, wildly different densities",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised ImportError: cannot import name '_match' from 'core.docs.search' (/home/ashutosh/PycharmProjects/maya/core/docs/search.py) | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-PLT-178",
+   "title": "Search over an estate where nothing is indexed",
+   "verdict": "PASS",
+   "evidence": "0 searched, 1 unread named with their media type, and the detail says so"
+  },
+  {
+   "id": "QA-PLT-179",
+   "title": "A markdown link in the shipped documentation that resolves to a 500",
+   "verdict": "FAIL",
+   "evidence": "`tests/test_documentation_links.py` asks each absolute link for its status and fails only on 404 \u2014 the comment says 3xx means the route exists, which is right, and a 500 is treated the same way. A documentation set every one of whose targets raises would pass this crawler, and the reader following a link gets an error page rather than the page the documentation promised. The check that exists to s"
   },
   {
    "id": "QA-PLT-180",
@@ -406,8 +724,8 @@
   {
    "id": "QA-PLT-195",
    "title": "A generation created by `system`, attested by `system`",
-   "verdict": "FAIL",
-   "evidence": "a generation created by `system` was attested by `system`. Attestation is a person taking responsibility for machine output, and the `created_by` is-not-system carve-out \u2014 which exists so a human can attest a scheduled job's output \u2014 also lets the machine sign for itself"
+   "verdict": "PASS",
+   "evidence": "refused 'machine_attestation' \u2192 403: `system` cannot attest its own generation"
   },
   {
    "id": "QA-PLT-196",

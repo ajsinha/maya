@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 479,
-  "pass": 417,
+  "total": 483,
+  "pass": 421,
   "fail": 57,
   "blocked": 5
  },
- "seconds": 124.8,
+ "seconds": 224.3,
  "results": [
   {
    "id": "QA-PLT-001",
@@ -59,13 +59,13 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:e80243c8e091b"
+   "evidence": "a fresh chain of 8 verifies, head sha256:b19835e72ab4d"
   },
   {
    "id": "QA-PLT-010",
    "title": "Two full verifications running at once",
    "verdict": "PASS",
-   "evidence": "two full walks, both valid, one head sha256:9493a406c9cf8"
+   "evidence": "two full walks, both valid, one head sha256:4a987003f3319"
   },
   {
    "id": "QA-PLT-011",
@@ -161,13 +161,13 @@
    "id": "QA-PLT-026",
    "title": "The anchor files deleted from the WORM root",
    "verdict": "FAIL",
-   "evidence": "1 anchor(s) were deleted from /tmp/maya-qa-4hfjtjic/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothing here contradicts it'. That is word for word the answer a fresh instance gives. Nothing records that anchors ONCE existed \u2014 the store is the only register of itself \u2014 so an estate whose anchors were cleared is in"
+   "evidence": "1 anchor(s) were deleted from /tmp/maya-qa-tbmd8ffp/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothing here contradicts it'. That is word for word the answer a fresh instance gives. Nothing records that anchors ONCE existed \u2014 the store is the only register of itself \u2014 so an estate whose anchors were cleared is in"
   },
   {
    "id": "QA-PLT-027",
    "title": "The whole WORM directory removed while the instance runs",
    "verdict": "FAIL",
-   "evidence": "the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-qln0qmo3/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.mkdir(parents=True, exist_ok=True)`, so a store that has vanished is repaired rather than reported. Every earlier anchor is gone, the new one agrees with the chain, and `verify_against_anchors` now reports a chain"
+   "evidence": "the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-ec2zlez5/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.mkdir(parents=True, exist_ok=True)`, so a store that has vanished is repaired rather than reported. Every earlier anchor is gone, the new one agrees with the chain, and `verify_against_anchors` now reports a chain"
   },
   {
    "id": "QA-PLT-028",
@@ -208,8 +208,14 @@
   {
    "id": "QA-PLT-034",
    "title": "A token dated after the moment it was requested",
-   "verdict": "FAIL",
-   "evidence": "an authority returned a token dated a year ahead of the request and it was stored and read back with state 'unverified' and no remark. `stamp` records `requested_at` alongside the token and the module says exactly why \u2014 *the gap between them is the only thing a reader can use to notice a token that was issued somewhere else* \u2014 and nothing computes that gap. Not verifying an RFC 3161 token is a sta"
+   "verdict": "PASS",
+   "evidence": "refused 'token_ahead_of_the_request': the authority returned a token dated 2027-09-15T05:28:58Z, which is after the moment this instance asked for it (2026-09"
+  },
+  {
+   "id": "QA-PLT-035",
+   "title": "A token past its validity",
+   "verdict": "PASS",
+   "evidence": "refused 'token_already_expired': the authority returned a token whose validity ended 2016-09-18T05:28:59Z"
   },
   {
    "id": "QA-PLT-036",
@@ -222,6 +228,24 @@
    "title": "The period before the first token is explicitly uncovered",
    "verdict": "PASS",
    "evidence": "the uncovered period is named"
+  },
+  {
+   "id": "QA-PLT-038",
+   "title": "An artifact digest in the register that resolves to nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'artifact_not_stored' at 404"
+  },
+  {
+   "id": "QA-PLT-039",
+   "title": "An artifact whose bytes changed under a stable digest",
+   "verdict": "FAIL",
+   "evidence": "the bytes under sha256:4cadb37ba59f5b2b\u2026 were replaced. `GET /api/v1/artifacts/{digest}/verify` re-hashes and reports intact=False with recomputed sha256:c6b2fe0c1ae01eb7\u2026, and `GET /api/v1/artifacts/{digest}` serves the substituted bytes with 200. That separation is deliberate and documented \u2014 re-hashing a multi-gigabyte file on every read is not free \u2014 so the control rests entirely on somebody C"
+  },
+  {
+   "id": "QA-PLT-040",
+   "title": "An artifact path pointed outside the artifact root",
+   "verdict": "PASS",
+   "evidence": "5 malformed addresses refused 'malformed_digest' at the store, and 404 over HTTP"
   },
   {
    "id": "QA-PLT-041",
@@ -335,7 +359,7 @@
    "id": "QA-PLT-059",
    "title": "The ETag does not move when nothing changed",
    "verdict": "PASS",
-   "evidence": "stable across three reads: W/\"sha256:7c2f9a86ac31b8"
+   "evidence": "stable across three reads: W/\"sha256:d27fe76dea4c18"
   },
   {
    "id": "QA-PLT-060",
@@ -359,7 +383,7 @@
    "id": "QA-PLT-063",
    "title": "A read-then-write check under concurrency",
    "verdict": "FAIL",
-   "evidence": "5 of 24 racing writes across 6 rounds answered 500 with no code: Internal Server Error"
+   "evidence": "12 of 24 racing writes across 6 rounds answered 500 with no code: Internal Server Error"
   },
   {
    "id": "QA-PLT-064",
@@ -419,13 +443,13 @@
    "id": "QA-PLT-075",
    "title": "A hard delete and what still names the model",
    "verdict": "PASS",
-   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a0a36104c8"
+   "evidence": "38 model-bearing tables, every one disposed; destroyed {}, kept ['model_tombstone'], tombstone 01a0a38a59d3"
   },
   {
    "id": "QA-PLT-076",
    "title": "A deletion refused because something still refers to it",
    "verdict": "PASS",
-   "evidence": "refused 'still_referenced', naming fs-33fefb31"
+   "evidence": "refused 'still_referenced', naming fs-3bdfc58d"
   },
   {
    "id": "QA-PLT-077",
@@ -497,7 +521,7 @@
    "id": "QA-PLT-091",
    "title": "A JSON response that will not parse gets no ETag",
    "verdict": "PASS",
-   "evidence": "no tag, and a warning: a response from /api/v1/qa-unparseable-1789447442700 declares JSON and does not parse; serving it without an ETag"
+   "evidence": "no tag, and a warning: a response from /api/v1/qa-unparseable-1789450156553 declares JSON and does not parse; serving it without an ETag"
   },
   {
    "id": "QA-PLT-092",
@@ -509,7 +533,7 @@
    "id": "QA-PLT-093",
    "title": "A write during a fold that does not go through a repository",
    "verdict": "FAIL",
-   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-68a99b89' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
+   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-24e77ac6' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
   },
   {
    "id": "QA-PLT-094",
@@ -527,7 +551,7 @@
    "id": "QA-PLT-096",
    "title": "A table outside the folded fourteen read during a fold",
    "verdict": "PASS",
-   "evidence": "evidence_node is outside the fourteen and reads fresh: 93 \u2192 94 during the fold"
+   "evidence": "evidence_node is outside the fourteen and reads fresh: 95 \u2192 96 during the fold"
   },
   {
    "id": "QA-PLT-097",
@@ -587,7 +611,7 @@
    "id": "QA-PLT-1005",
    "title": "The chain head is readable and stable",
    "verdict": "PASS",
-   "evidence": "head stable at length 94"
+   "evidence": "head stable at length 96"
   },
   {
    "id": "QA-PLT-1006",
@@ -647,7 +671,7 @@
    "id": "QA-PLT-108",
    "title": "The `_freeze` chmod fails and the store carries on",
    "verdict": "PASS",
-   "evidence": "written, and warned: could not make qa-freeze-1789447450691.anchor read-only: this filesystem does not support the permission \u2014 the object is"
+   "evidence": "written, and warned: could not make qa-freeze-1789450173395.anchor read-only: this filesystem does not support the permission \u2014 the object is"
   },
   {
    "id": "QA-PLT-109",
@@ -659,7 +683,7 @@
    "id": "QA-PLT-110",
    "title": "An unwritable WORM root",
    "verdict": "PASS",
-   "evidence": "refused 'worm_unwritable': 'qa-unwritable-1789447453612.anchor' could not be written to /tmp/maya-qa-ygiz7kcd/data/worm: [Errno 13] Permi"
+   "evidence": "refused 'worm_unwritable': 'qa-unwritable-1789450177947.anchor' could not be written to /tmp/maya-qa-yeabdty2/data/worm: [Errno 13] Permi"
   },
   {
    "id": "QA-PLT-1100",
@@ -725,7 +749,7 @@
    "id": "QA-PLT-111",
    "title": "Time-stamping with the authority unconfigured",
    "verdict": "PASS",
-   "evidence": "the remediation names what actually supplies an authority and the posture it points at answers 200: supply one to `ChainTimestamps(authority=...)` where this instance is constructed \u2014 MAYA s"
+   "evidence": "the remediation names what actually supplies an authority and the posture it points at answers 200: install a time stamping authority and name it under `evidence.timestamps.authority` \u2014 it i"
   },
   {
    "id": "QA-PLT-112",
@@ -851,7 +875,7 @@
    "id": "QA-PLT-123",
    "title": "Compile one document twice with nothing changed between",
    "verdict": "PASS",
-   "evidence": "the same document id and digest sha256:a11cba927"
+   "evidence": "the same document id and digest sha256:29d500edb"
   },
   {
    "id": "QA-PLT-124",
@@ -863,13 +887,13 @@
    "id": "QA-PLT-125",
    "title": "Recompile a document that has open review comments",
    "verdict": "PASS",
-   "evidence": "1 open comment(s) still against 01a0a361547c"
+   "evidence": "1 open comment(s) still against 01a0a38aecb5"
   },
   {
    "id": "QA-PLT-126",
    "title": "The same document through the export packer instead",
    "verdict": "PASS",
-   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:baa570475f66a"
+   "evidence": "the pack renders without authoring, and the rendered document carries the compiler's digest sha256:d61ebb1cce190"
   },
   {
    "id": "QA-PLT-127",
@@ -899,7 +923,7 @@
    "id": "QA-PLT-131",
    "title": "An event recorded at exactly the sequence the document recorded as head",
    "verdict": "PASS",
-   "evidence": "head 121 carries 1 event(s) and the document is not stale; the boundary is exclusive"
+   "evidence": "head 123 carries 1 event(s) and the document is not stale; the boundary is exclusive"
   },
   {
    "id": "QA-PLT-132",
@@ -935,13 +959,13 @@
    "id": "QA-PLT-137",
    "title": "A dossier for a model with three empty versions",
    "verdict": "PASS",
-   "evidence": "exactly four gaps: ['model dp-d217547e', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
+   "evidence": "exactly four gaps: ['model dp-c4bddd7b', 'model_version version 1.0.0', 'model_version version 1.1.0', 'model_version version 1.2.0']"
   },
   {
    "id": "QA-PLT-138",
    "title": "A dangling featureset pin on a non-fitted parameter set",
    "verdict": "FAIL",
-   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-a6cb3c32', "
+   "evidence": "a 'declared' parameter set names a featureset version the register cannot resolve, and the dossier records no gap for it. `_pin` returns (None, None) for an unresolvable id \u2014 the same value it returns for no pin at all \u2014 and the gap branch below it is guarded on `provenance == 'fitted'`, so for every other provenance the dangling pin is dropped without a word. Gaps recorded: ['model dp-d87b9175', "
   },
   {
    "id": "QA-PLT-139",
@@ -959,7 +983,7 @@
    "id": "QA-PLT-141",
    "title": "A dossier over a large featureset estate",
    "verdict": "PASS",
-   "evidence": "one parameter set, one dossier build, an estate of 21 featureset(s): 1 full scan(s) of the register and 21 version read(s), 7 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
+   "evidence": "one parameter set, one dossier build, an estate of 21 featureset(s): 1 full scan(s) of the register and 21 version read(s), 11 ms. The cost is O(parameter sets x featuresets x versions) per build, with the register read whole each time and no index on `featureset_version.id` being used \u2014 a screen that is quick here and is not on a bank's estate"
   },
   {
    "id": "QA-PLT-142",
@@ -1043,7 +1067,7 @@
    "id": "QA-PLT-155",
    "title": "Two packs of unchanged state",
    "verdict": "PASS",
-   "evidence": "content sha256:df362f633b8de on both; archive digests differ because the manifest carries the moment"
+   "evidence": "content sha256:a0cd189d9988a on both; archive digests differ because the manifest carries the moment"
   },
   {
    "id": "QA-PLT-156",
@@ -1073,7 +1097,7 @@
    "id": "QA-PLT-160",
    "title": "Ten concurrent reads of a `max_reads: 1` share",
    "verdict": "FAIL",
-   "evidence": "a share capped at one read served 5 of ten simultaneous reads at worst across 5 rounds (served [1, 5, 5, 5, 5]). `open_share` reads `share['reads']` before the state check and writes `reads + 1` after serving, with no lock and no conditional update \u2014 racers that read the same count all pass the cap and all serve. `max_reads` is the control a firm relies on when a link has gone somewhere it should "
+   "evidence": "a share capped at one read served 2 of ten simultaneous reads at worst across 5 rounds (served [1, 2, 1, 1, 2]). `open_share` reads `share['reads']` before the state check and writes `reads + 1` after serving, with no lock and no conditional update \u2014 racers that read the same count all pass the cap and all serve. `max_reads` is the control a firm relies on when a link has gone somewhere it should "
   },
   {
    "id": "QA-PLT-161",
@@ -1091,7 +1115,7 @@
    "id": "QA-PLT-163",
    "title": "Redeem a share link end to end",
    "verdict": "FAIL",
-   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/weNlWmH0d3EskBCoKrfd-84mD3nC9JlZwDr66a271vM:404, /api/v1/export-shares/weNlWmH0d3EskBCoKrfd-84mD3nC9JlZwDr66a271vM/open:404, /api/v1/export-shares/weNlWmH0d3EskBCoKrfd-84mD3nC9JlZwDr66a271vM/pack:404, /"
+   "evidence": "the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/export-shares/-kAehWuzaVJoJkG-0z8r7F97gE0tDL8Htbx-ztpnx1A:404, /api/v1/export-shares/-kAehWuzaVJoJkG-0z8r7F97gE0tDL8Htbx-ztpnx1A/open:404, /api/v1/export-shares/-kAehWuzaVJoJkG-0z8r7F97gE0tDL8Htbx-ztpnx1A/pack:404, /"
   },
   {
    "id": "QA-PLT-164",
@@ -1493,7 +1517,7 @@
    "id": "QA-PLT-249",
    "title": "A subscription that fails five times in a row",
    "verdict": "PASS",
-   "evidence": "suspended at 5, cursor kept at 393, and it counted down first"
+   "evidence": "suspended at 5, cursor kept at 395, and it counted down first"
   },
   {
    "id": "QA-PLT-250",
@@ -1667,13 +1691,13 @@
    "id": "QA-PLT-2800",
    "title": "Every refusal code the platform raises has a status",
    "verdict": "PASS",
-   "evidence": "all 593 refusal codes are mapped to a status"
+   "evidence": "all 595 refusal codes are mapped to a status"
   },
   {
    "id": "QA-PLT-2801",
    "title": "Every actionable refusal says what to do instead",
    "verdict": "FAIL",
-   "evidence": "28 actionable refusal code(s) of 775 raise sites carry an explicitly empty remediation, so a caller who did something they could have done differently is told what and not what instead: already_decided, already_recorded, already_registered, already_revoked, approval_closed, bad_digest, bad_signature, campaign_closed, channel_not_built, different_version, discovery_incomplete, duplicate_capability"
+   "evidence": "28 actionable refusal code(s) of 777 raise sites carry an explicitly empty remediation, so a caller who did something they could have done differently is told what and not what instead: already_decided, already_recorded, already_registered, already_revoked, approval_closed, bad_digest, bad_signature, campaign_closed, channel_not_built, different_version, discovery_incomplete, duplicate_capability"
   },
   {
    "id": "QA-PLT-2802",
@@ -1829,7 +1853,7 @@
    "id": "QA-PLT-350",
    "title": "An unknown SSO identity with provisioning off",
    "verdict": "PASS",
-   "evidence": "refused 'not_provisioned': stranger-650477de authenticated successfully and has no principal here"
+   "evidence": "refused 'not_provisioned': stranger-386e0488 authenticated successfully and has no principal here"
   },
   {
    "id": "QA-PLT-351",
@@ -1889,7 +1913,7 @@
    "id": "QA-PLT-360",
    "title": "The models listing with no ordering parameter",
    "verdict": "FAIL",
-   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-faba2d92']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exis"
+   "evidence": "page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-25d0ed6d']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the boundary shifts every later row down and the last row of page one arrives again as the first of page two \u2014 the reader sees it twice and, symmetrically, a delete makes them miss one. `core/http/conventions.page` exis"
   },
   {
    "id": "QA-PLT-3600",
@@ -2159,13 +2183,13 @@
    "id": "QA-PLT-4910",
    "title": "Resuming a suspended subscription",
    "verdict": "PASS",
-   "evidence": "active, failures reset, cursor still 498"
+   "evidence": "active, failures reset, cursor still 500"
   },
   {
    "id": "QA-PLT-4911",
    "title": "A new subscription starts at the head",
    "verdict": "PASS",
-   "evidence": "cursor starts at the head, 501"
+   "evidence": "cursor starts at the head, 503"
   },
   {
    "id": "QA-PLT-4912",
@@ -2213,7 +2237,7 @@
    "id": "QA-PLT-4931",
    "title": "Two renderings of unchanged state are identical",
    "verdict": "PASS",
-   "evidence": "identical, digest sha256:5fe0b72d20ae8"
+   "evidence": "identical, digest sha256:7430b06ab45b5"
   },
   {
    "id": "QA-PLT-4932",
@@ -2243,7 +2267,7 @@
    "id": "QA-PLT-4936",
    "title": "Compiling records the act and the chain head it saw",
    "verdict": "PASS",
-   "evidence": "authored by risk against head 520"
+   "evidence": "authored by risk against head 522"
   },
   {
    "id": "QA-PLT-4940",
@@ -2333,7 +2357,7 @@
    "id": "QA-PLT-519",
    "title": "A request id travels with the answer",
    "verdict": "PASS",
-   "evidence": "x-request-id: 8f2e01f1492cbb91"
+   "evidence": "x-request-id: e9804af5f08ef18f"
   },
   {
    "id": "QA-PLT-520",
@@ -2417,7 +2441,7 @@
    "id": "QA-PLT-5300",
    "title": "Two packs of unchanged state share a content digest",
    "verdict": "PASS",
-   "evidence": "digest stable at sha256:d2e64c7475ea9 across two cuts at different times"
+   "evidence": "digest stable at sha256:7f67f439a81e1 across two cuts at different times"
   },
   {
    "id": "QA-PLT-5301",
@@ -2459,7 +2483,7 @@
    "id": "QA-PLT-5307",
    "title": "The pack states the chain's condition",
    "verdict": "PASS",
-   "evidence": "chain pinned at seq 545, verified=True"
+   "evidence": "chain pinned at seq 547, verified=True"
   },
   {
    "id": "QA-PLT-5308",
@@ -2711,19 +2735,19 @@
    "id": "QA-PLT-6305",
    "title": "The genesis constant is not a node",
    "verdict": "PASS",
-   "evidence": "head at seq 579; genesis is all zeroes"
+   "evidence": "head at seq 581; genesis is all zeroes"
   },
   {
    "id": "QA-PLT-6306",
    "title": "The chain report states its scope",
    "verdict": "PASS",
-   "evidence": "scope 'incremental' from seq 475"
+   "evidence": "scope 'incremental' from seq 477"
   },
   {
    "id": "QA-PLT-6307",
    "title": "Appending is what moves the head",
    "verdict": "PASS",
-   "evidence": "579 -> 580, and the chain still verifies"
+   "evidence": "581 -> 582, and the chain still verifies"
   },
   {
    "id": "QA-PLT-631",

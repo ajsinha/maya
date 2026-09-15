@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 1.8,
+ "seconds": 2.2,
  "results": [
   {
    "id": "QA-PLT-035",
    "title": "A token past its validity",
-   "verdict": "FAIL",
-   "evidence": "a token whose validity ended nine years ago was stored and is counted in coverage: 1 of 1 anchored head(s) 'carry a token'. Nothing in `stamp` looks at the token at all \u2014 not `genTime`, not `notAfter` \u2014 because verification is delegated to a verifier that is not wired, and coverage counts `state != absent`. So the number a supervisor is shown about the chain's age counts an attestation nobody woul"
+   "verdict": "PASS",
+   "evidence": "refused 'token_already_expired': the authority returned a token whose validity ended 2016-09-18T05:13:34Z"
   }
  ]
 }
