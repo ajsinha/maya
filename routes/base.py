@@ -697,6 +697,10 @@ STATUS: Dict[str, int] = {
     "oracle_failed": 422, "nothing_grounded": 422,
     # `already_decided` is shared with policy above and mapped there.
     "self_attestation": 403,
+    # A machine signing for its own output. 403 beside `self_attestation`
+    # because it is the same control: attestation is a person taking
+    # responsibility, and neither the requester nor a scheduled job is one.
+    "machine_attestation": 403,
     "no_capability": 404, "no_generation": 404,
     # baseline import
     "unknown_gap": 422, "plan_required": 422, "nothing_to_import": 422,

@@ -1,8 +1,8 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
  "seconds": 1.0,
@@ -10,8 +10,8 @@
   {
    "id": "QA-PLT-150",
    "title": "The raiser under a different spelling of their name",
-   "verdict": "FAIL",
-   "evidence": "the raiser closed their own factual objection by writing their name as 'person/validator' instead of 'validator'. The check is `raised_by == actor`, not `same_person`, so seven characters step around it \u2014 the same failure the register already fixed for validation independence and for the finding workflow"
+   "verdict": "PASS",
+   "evidence": "'person/validator' is recognised as 'validator'"
   }
  ]
 }

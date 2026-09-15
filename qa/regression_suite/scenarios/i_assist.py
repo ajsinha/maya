@@ -175,9 +175,24 @@ def plt_195(ctx: Ctx) -> Result:
         generations.attest(made["id"], accept=True, final_text="",
                            actor="system")
     except AssistError as exc:
-        if exc.code != "self_attestation":
-            return FAIL, f"refused '{exc.code}', not self_attestation"
-        return PASS, "`system` cannot attest its own generation"
+        # Either code is a correct answer to this. `self_attestation` says the
+        # requester cannot also sign; `machine_attestation` says the signer is
+        # not a person, which is the narrower and more accurate statement of
+        # what is wrong here — and the one that still refuses when a DIFFERENT
+        # machine identity attests a human's request. What the case is for is
+        # that the refusal happens and says which.
+        if exc.code not in ("self_attestation", "machine_attestation"):
+            return FAIL, (f"refused '{exc.code}', naming neither "
+                          f"self_attestation nor machine_attestation")
+        from routes.base import STATUS
+        if exc.code not in STATUS:
+            return FAIL, (f"refused '{exc.code}', which is in no status map, "
+                          f"so a caller reaching this gets an unmapped error")
+        if "person" not in str(exc) + str(getattr(exc, "remediation", "")):
+            return FAIL, (f"the refusal does not say attestation is a person "
+                          f"taking responsibility: {str(exc)[:130]}")
+        return PASS, (f"refused '{exc.code}' → {STATUS[exc.code]}: "
+                      f"`system` cannot attest its own generation")
     return FAIL, (
         "a generation created by `system` was attested by `system`. "
         "Attestation is a person taking responsibility for machine output, "

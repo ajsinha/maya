@@ -199,7 +199,8 @@ def plt_342(ctx: Ctx) -> Result:
                   "`last_used_at` unchanged")
 
 
-@case("QA-PLT-341", "Concurrent authentications with one key")
+@case("QA-PLT-341", "Concurrent authentications with one key",
+      isolated=True)
 def plt_341(ctx: Ctx) -> Result:
     """`use_count = use_count + 1` in SQL rather than read-then-write in
     Python. A key is authenticated on every request a service makes, so this

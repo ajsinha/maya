@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from core.assist import grounding, oracles
 from core.assist.common import TIER_A, AssistError
 from core.evidence import EvidenceEngine
-from core.authz.common import same_person
+from core.authz.common import MACHINE_IDENTITIES, bare_name, same_person
 from core.log import get_logger
 from db import GenerationRepository
 
@@ -150,7 +150,24 @@ class GenerationLog:
         if row["state"] != "drafted":
             raise AssistError("already_decided",
                               f"this generation is already '{row['state']}'", "")
-        if same_person(actor, row["created_by"]) and row["created_by"] != "system":
+        # A PERSON, first. The carve-out below exists so somebody can attest a
+        # scheduled job's output — the job asked for it and no human did — and
+        # for a while it also let the machine sign for itself: a generation
+        # created by `system` and attested by `system` satisfied both halves,
+        # because the exemption was written against the CREATOR and the actor
+        # was never looked at. Attestation is the only transition that gives a
+        # generation any weight anywhere in the platform, and a machine
+        # attesting its own output gives it that weight with nobody behind it.
+        if bare_name(actor) in MACHINE_IDENTITIES:
+            raise AssistError(
+                "machine_attestation",
+                f"'{actor}' is not a person, and attestation is a person "
+                f"taking responsibility for machine output",
+                "have whoever is accountable for this document attest it; a "
+                "scheduled job may REQUEST a generation and cannot sign for "
+                "what it asked for")
+        if same_person(actor, row["created_by"]) \
+                and bare_name(row["created_by"]) not in MACHINE_IDENTITIES:
             raise AssistError(
                 "self_attestation",
                 f"{actor} requested this generation and cannot also attest it",

@@ -1,8 +1,8 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
  "seconds": 0.8,
@@ -10,8 +10,8 @@
   {
    "id": "QA-PLT-2702",
    "title": "Break-glass dual authorisation under two spellings",
-   "verdict": "FAIL",
-   "evidence": "the person who asked for a break-glass elevation authorised it by writing their name as 'person/risk' instead of 'risk'. Dual authorisation with one person is one person, and the check is `==`"
+   "verdict": "PASS",
+   "evidence": "the authorisation check goes through same_person()"
   }
  ]
 }

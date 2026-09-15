@@ -44,6 +44,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, Optional
 
+from core.authz.common import same_person
 from core.docs.common import DocumentError
 from core.log import get_logger
 
@@ -156,7 +157,7 @@ class DocumentReview:
                 "second is a legitimate resolution and an invisible one if it "
                 "is not written down")
         if comment["asks_for"] in NEEDS_SOMEBODY_ELSE \
-                and comment["raised_by"] == actor:
+                and same_person(comment["raised_by"], actor):
             raise DocumentError(
                 "raiser_may_not_close",
                 f"a '{comment['asks_for']}' comment may not be closed by the "
@@ -187,7 +188,7 @@ class DocumentReview:
                  now: Optional[float] = None) -> Dict[str, Any]:
         """Take a comment back. Recorded as what it is, never deleted."""
         comment = self.require(comment_id)
-        if comment["raised_by"] != actor:
+        if not same_person(comment["raised_by"], actor):
             raise DocumentError(
                 "not_your_comment",
                 f"this comment is {comment['raised_by']}'s",

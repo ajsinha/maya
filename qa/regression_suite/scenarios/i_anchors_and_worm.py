@@ -301,7 +301,8 @@ def plt_098(ctx: Ctx) -> Result:
         f"act on")
 
 
-@case("QA-PLT-108", "The `_freeze` chmod fails and the store carries on")
+@case("QA-PLT-108", "The `_freeze` chmod fails and the store carries on",
+      isolated=True)
 def plt_108(ctx: Ctx) -> Result:
     """Read-only after writing stops an accident, not an adversary — worth
     doing and worth not overstating. A root that cannot hold the permission
@@ -344,7 +345,8 @@ def plt_108(ctx: Ctx) -> Result:
     return PASS, f"written, and warned: {warned[0][:120]}"
 
 
-@case("QA-PLT-109", "A crash part-way through a WORM write")
+@case("QA-PLT-109", "A crash part-way through a WORM write",
+      isolated=True)
 def plt_109(ctx: Ctx) -> Result:
     """A short object must never be readable as an anchor. The write goes to
     a staging name and is replaced into place, and `names()` never lists the
@@ -382,7 +384,8 @@ def plt_109(ctx: Ctx) -> Result:
     return FAIL, f"{name} exists after an interrupted write"
 
 
-@case("QA-PLT-110", "An unwritable WORM root")
+@case("QA-PLT-110", "An unwritable WORM root",
+      isolated=True)
 def plt_110(ctx: Ctx) -> Result:
     """Everything above this store rests on `put`. A root that cannot be
     written to is the same class of fact as an object that changed, and it
@@ -419,7 +422,8 @@ def plt_110(ctx: Ctx) -> Result:
     return FAIL, "an unwritable root accepted the write"
 
 
-@case("QA-PLT-5200", "The write-once store refuses a second, different write")
+@case("QA-PLT-5200", "The write-once store refuses a second, different write",
+      isolated=True)
 def plt_5200(ctx: Ctx) -> Result:
     """The refusal IS the guarantee. Same bytes twice is idempotent, so the
     anchor job can run twice without being an incident; different bytes

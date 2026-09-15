@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 1,
-  "fail": 0,
+  "pass": 0,
+  "fail": 1,
   "blocked": 0
  },
- "seconds": 2.1,
+ "seconds": 3.2,
  "results": [
   {
    "id": "QA-PLT-225",
    "title": "A restore over an instance holding evidence, with --force",
-   "verdict": "PASS",
-   "evidence": "refused naming --force; with it the target's 7 acts are replaced by the backup's 4 and the chain verifies"
+   "verdict": "FAIL",
+   "evidence": "the refusal is right and the tool does not let go. `restore.run` opens the target with `open_database(cfg)` and then raises SystemExit for the evidence it found, with no `dispose()` between the two \u2014 so the connection outlives the refusal. Retrying with `--force` IN THE SAME PROCESS, which is what the refusal's own remediation tells somebody to do, then meets a database this process is still holdi"
   }
  ]
 }

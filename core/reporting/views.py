@@ -37,6 +37,7 @@ import json
 import time
 from typing import Any, Dict, Optional, Sequence
 
+from core.authz.common import same_person
 from core.log import get_logger
 from core.reporting.semantics import MAX_ROWS, QueryError
 
@@ -105,7 +106,7 @@ class SavedViews:
 
     def delete(self, view_id: str, actor: str) -> Dict[str, Any]:
         view = self.require(view_id)
-        if view["owner"] != actor:
+        if not same_person(view["owner"], actor):
             raise QueryError(
                 "not_your_view",
                 f"'{view['name']}' belongs to {view['owner']}",
