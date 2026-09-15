@@ -285,9 +285,12 @@ class Recertification:
         """
         campaign = self.require(reference)
         if campaign["status"] != "open":
-            raise AuthzError("campaign_closed",
-                             f"'{reference}' is already {campaign['status']}",
-                             "")
+            raise AuthzError(
+                "campaign_closed",
+                f"'{reference}' is already {campaign['status']}",
+                "a closed campaign is not reassigned — what it did not answer "
+                "is on its record. Open a new campaign over whatever is still "
+                "uncertified")
         if not str(reason).strip():
             raise AuthzError(
                 "reason_required", "a reassignment needs a reason",
@@ -315,9 +318,11 @@ class Recertification:
         moment = now if now is not None else time.time()
         campaign = self.require(reference)
         if campaign["status"] != "open":
-            raise AuthzError("campaign_closed",
-                             f"'{reference}' is already {campaign['status']}",
-                             "")
+            raise AuthzError(
+                "campaign_closed",
+                f"'{reference}' is already {campaign['status']}",
+                "nothing further is needed; it is closed and its unreviewed "
+                "count is recorded. Open a new campaign for the next round")
         self.campaigns.set({"status": "closed", "closed_at": moment},
                            id=campaign["id"])
         out = self.status(reference, now=moment)

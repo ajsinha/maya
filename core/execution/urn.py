@@ -27,8 +27,11 @@ def build_urn(name: str, semver: Optional[str] = None,
               alias: Optional[str] = None) -> str:
     """The inverse of parse_urn. A pinned version and an alias are exclusive."""
     if semver and alias:
-        raise WarrantError("validation_failed",
-                        "a URN pins a version or names an alias, never both", "")
+        raise WarrantError(
+            "validation_failed",
+            "a URN pins a version or names an alias, never both",
+            "pass one: `@1.2.0` to run exactly that version, or `#champion` "
+            "to run whatever the alias points at today")
     return f"{PREFIX}{name}" + (f"@{semver}" if semver else "") + (f"#{alias}" if alias else "")
 
 
@@ -70,5 +73,7 @@ def parse_urn(urn: str) -> Tuple[str, Optional[str], Optional[str]]:
     if "@" in body:
         body, semver = body.split("@", 1)
     if not body:
-        raise WarrantError("validation_failed", f"empty model name in {urn}", "")
+        raise WarrantError(
+            "validation_failed", f"empty model name in {urn}",
+            "the name goes between `maya://model/` and any `@` or `#`")
     return body, semver, aliasname

@@ -44,7 +44,8 @@ ADMISSIBLE_TESTS: Dict[str, Tuple[str, ...]] = {
     SCORE_DRIFT: ("stability.psi",),
     PERFORMANCE: ("discrimination.auc", "discrimination.gini", "discrimination.ks",
                   "accuracy.rmse", "accuracy.mae"),
-    CALIBRATION: ("calibration.brier", "calibration.expected_vs_actual"),
+    CALIBRATION: ("calibration.brier", "calibration.expected_vs_actual",
+                  "calibration.hosmer_lemeshow"),
 }
 
 STATUSES: Tuple[str, ...] = ("active", "paused", "retired")

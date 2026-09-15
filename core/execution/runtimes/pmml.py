@@ -104,8 +104,12 @@ class PmmlRuntime:
     def _regression(node, ns) -> Dict[str, Any]:
         table = node.find("p:RegressionTable", ns)
         if table is None:
-            raise WarrantError("pmml_malformed",
-                               "the RegressionModel has no RegressionTable", "")
+            raise WarrantError(
+                "pmml_malformed",
+                "the RegressionModel has no RegressionTable",
+                "export the model again — a RegressionModel without a "
+                "RegressionTable carries no coefficients, so there is nothing "
+                "here to evaluate")
         return {
             "intercept": float(table.get("intercept", "0")),
             "coefficients": {p.get("name"): float(p.get("coefficient"))

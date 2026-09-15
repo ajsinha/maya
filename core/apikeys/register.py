@@ -326,7 +326,9 @@ class ApiKeyRegister:
                 f"'{row['name']}' was revoked "
                 f"{'by ' + row['revoked_by'] if row.get('revoked_by') else ''}"
                 f" already",
-                "")
+                "nothing further is needed — it stopped authenticating when "
+                "it was revoked. Issue a new key if somebody still needs "
+                "access")
         if not (reason or "").strip():
             raise ApiKeyError(
                 "reason_required",

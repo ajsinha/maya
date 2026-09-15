@@ -340,6 +340,26 @@ class TestCaptiveEngine:
         engine.note_revocation("maya://model/some.other.thing")
         assert self.run(engine, dscr=1.2) is not None
 
+    def test_a_warrant_id_is_refused_rather_than_quietly_noted(
+            self, engine, warrants):
+        """The half of the original defect that survived the fix.
+
+        Keying the floor on the URN made the URN work; passing a `warrant_id`
+        went on being accepted, recorded, and never matched. An operator who
+        did that held a revocation list that looked enabled and stopped
+        nothing — which is worse than no floor, because no floor gets
+        compensated for.
+        """
+        fresh = warrants.resolve(f"{URN}#champion", "prod", "svc/origination",
+                                 "origination_decision")
+        with pytest.raises(WarrantError) as e:
+            engine.note_revocation(fresh["warrant_id"])
+        assert e.value.code == "not_a_revocable_subject"
+        assert "minted fresh" in e.value.detail
+        assert "model URN" in e.value.remediation
+        assert not engine._revoked_locally, "it was recorded anyway"
+        assert self.run(engine, dscr=1.2) is not None
+
     def test_missing_runtime_is_reported_not_guessed(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")
         warrants.issue(f"{URN}#champion", "prod", "svc/o", "origination_decision")

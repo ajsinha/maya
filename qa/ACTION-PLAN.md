@@ -27,52 +27,20 @@ the two batches that need the most care come last. Drill once per batch.
 
 | | Batch | Findings | Why here |
 |---|---|---|---|
-| **1** | **B** — A control that is built, wired, documented and never fires | 20 | the recurring defect; every fix is connect-or-delete |
-| **2** | **A** — A required field accepted blank, absent or impossible | 37 | one pattern, 37 sites, mechanical once the first is written |
-| **3** | **F** — Authority bands, delegation, quorum and conditions | 9 | a tier 1 version was approved by one person |
-| **4** | **E** — The evidence chain's edges: checkpoint, anchor, timestamp | 13 | what an investigation rests on |
-| **5** | **H** — HTTP conventions: paging, projection, headers, refusal shape | 6 | one adoption problem behind six symptoms |
-| **6** | **I** — Concurrency, the scheduled batch and delivery | 8 | a half-run batch is worse than no batch |
-| **7** | **G** — Documents: compile, dossier, pack, review, search | 18 | the pack is what leaves the building |
-| **8** | **K** — Deletion, compaction and the operational tools | 5 | the reclaim path is unreachable today |
-| **9** | **L** — Distributed evaluation, monitoring and parameter provenance | 6 | narrower blast radius, needs the most care |
-| **10** | **J** — Lifecycle and workflow correctness | 24 | largest, most independent, safest to do last |
+| ~~1~~ | ~~**B** — A control that is built, wired, documented and never fires~~ | ~~21~~ | **closed** — the recurring defect; every fix was connect-or-delete |
+| **1** | **A** — A required field accepted blank, absent or impossible | 37 | one pattern, 37 sites, mechanical once the first is written |
+| **2** | **F** — Authority bands, delegation, quorum and conditions | 9 | a tier 1 version was approved by one person |
+| **3** | **E** — The evidence chain's edges: checkpoint, anchor, timestamp | 13 | what an investigation rests on |
+| **4** | **H** — HTTP conventions: paging, projection, headers, refusal shape | 6 | one adoption problem behind six symptoms |
+| **5** | **I** — Concurrency, the scheduled batch and delivery | 8 | a half-run batch is worse than no batch |
+| **6** | **G** — Documents: compile, dossier, pack, review, search | 18 | the pack is what leaves the building |
+| **7** | **K** — Deletion, compaction and the operational tools | 5 | the reclaim path is unreachable today |
+| **8** | **L** — Distributed evaluation, monitoring and parameter provenance | 6 | narrower blast radius, needs the most care |
+| **9** | **J** — Lifecycle and workflow correctness | 24 | largest, most independent, safest to do last |
 
 ---
 
-## 1. Batch B — A control that is built, wired, documented and never fires
-
-The recurring defect of this codebase, at **21** instances. A control exists,
-is wired, is documented, and never runs: no route reaches it, the code it
-raises is in no status map, the vocabulary offers a state nothing writes, or a
-key is read that nothing writes. Fix each by either connecting it or deleting
-it — a control nobody can reach is worse than an absent one, because the
-documentation says it is there.
-
-| Case | What it found |
-|---|---|
-| `QA-AM-1314` | published as not-distributable but absent from the test catalogue, so no monitor can ever carry it and the refusal can never fire: calibration.hosmer_lemeshow |
-| `QA-AM-4720` | no route binds a monitor to a version: `MonitorIn` has no version field, the create route never passes `model_version_id`, and seeding the defaults created 0 monitor(s) with none either. … |
-| `QA-FX-385` | `note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a320de594281… and 01a0a320de5e5b42…, so an id noted from one never matches the one `exe… |
-| `QA-FX-401` | `clamp` is one of the 3 policies a version may declare (['clamp', 'flag', 'reject']) and it is accepted at registration, and the word does not appear anywhere in the execution engine. The… |
-| `QA-FX-405` | a contract clause whose key no input supplies is correctly not a violation, and `Contract.unchecked_inputs` names it — ['ltv'] — but the engine only LOGS it. `ExecutionResult` carries `bo… |
-| `QA-GOV-192` | with no use register wired the trigger answers None, which the reading renders as *did not fire* — indistinguishable from a model nobody added a use to. `_cannot_check` exists for exactly… |
-| `QA-GOV-193` | with no breach register wired the trigger answers None, which reads as *no breach since the assessment* — the one answer a monitoring-off estate must not be given |
-| `QA-GOV-200` | the sweep found the stale assessment and raised no finding. `_raise` calls `raise_finding(model_id=..., title=..., severity=..., source=..., detail=..., actor=...)` and the register's sig… |
-| `QA-GOV-4608` | the consumer reading reports nothing downstream for a model that is read by another — the graph reaches 1 model(s) under the key `reaches`, and `consumers()` reads `reached` |
-| `QA-PLT-092` | refused with a bare RuntimeError carrying no code, no detail and no remediation, so `Routes.guard` cannot map it and a route reaching it answers 500. Latent rather than live: the folded t… |
-| `QA-PLT-097` | the repository refuses 'append_only' with a detail and a remediation, and neither half of the taxonomy receives it: NOT in STATUS, NOT caught by Routes.guard. It is a bare RuntimeError, s… |
-| `QA-PLT-098` | 7 anchor and WORM refusal codes are mapped in STATUS — ['anchor_disagreement', 'anchor_unreadable', 'chain_broken', 'nothing_to_anchor', 'worm_overwrite_refused', 'worm_unreadable', 'worm… |
-| `QA-PLT-110` | an unwritable anchor root raises a bare PermissionError with no code, no detail and no remediation — `put` catches nothing around `write_bytes`, while `get` wraps its OSError as `worm_unr… |
-| `QA-PLT-111` | the refusal is correct and its remediation says *configure one under `evidence.timestamps`* — and nothing reads that key. `ChainTimestamps` is constructed with `authority=None, verifier=N… |
-| `QA-PLT-143` | 'superseded' is one of the 4 states the review vocabulary publishes at GET /api/v1/document-review/asks, and no code path in `core/docs/review.py` writes it — `comment` opens, `resolve` w… |
-| `QA-PLT-163` | the service serves the pack and NO ROUTE reaches it: `open_share` is called from nowhere but a unit test, so a share can be created, listed and revoked and never opened. Tried /api/v1/exp… |
-| `QA-PLT-229` | a manifest declaring `manifest_version: 99` — a version this build does not write (it writes 1) — was restored without a word, while a manifest missing a SECTION is refused by name. The v… |
-| `QA-PLT-268` | a sweep saying nothing about recall was admitted. The contract tests `"recall_known" not in sweep`, and the route model declares it `Optional[bool] = None`, so `model_dump()` always suppl… |
-| `QA-PLT-2801` | 28 actionable refusal code(s) of 774 raise sites carry an explicitly empty remediation, so a caller who did something they could have done differently is told what and not what instead: a… |
-| `QA-PLT-4701` | `core_state` reads ['documents'] from the model context, which does not carry it — the context holds ['alias_history', 'assessment', 'assumptions', 'attachment_status', 'attachments', 'ch… |
-
-## 2. Batch A — A required field accepted blank, absent or impossible
+## 1. Batch A — A required field accepted blank, absent or impossible
 
 Fix at the SERVICE, not the route. A body model can only refuse a field that
 is absent; `"   "` is present. Every one of these is a required value the
@@ -120,7 +88,7 @@ down in `raise_finding`: strip, then refuse, naming what the field is for.
 | `QA-PLT-5406` | a share was revoked with no reason recorded — `revoke` strips the reason and never checks it, so the record says a firm stopped serving a supervisor a copy and not why |
 | `QA-PLT-5903` | an operator outside the closed set was accepted and behaved as `eq` — so a caller asking for `like` gets exact match semantics, and a filter that means something different from what was w… |
 
-## 3. Batch F — Authority bands, delegation, quorum and conditions
+## 2. Batch F — Authority bands, delegation, quorum and conditions
 
 Publishing one authority band replaces the shipped rows, so every tier the
 matrix does not reach loses its quorum — a tier 1 version was approved by one
@@ -140,7 +108,7 @@ estate-wide but numbered per model.
 | `QA-GOV-225` | the role 'role-2f0a37b7' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the ma… |
 | `QA-GOV-4620` | the second model in the estate to be approved on terms crashes with 500: the reference is numbered per model and the unique index is over the whole table, so COND-0001 can exist once. Con… |
 
-## 4. Batch E — The evidence chain's edges: checkpoint, anchor, timestamp
+## 3. Batch E — The evidence chain's edges: checkpoint, anchor, timestamp
 
 The checkpoint loses touch with the chain four ways, the anchors bound it from
 below and nothing bounds it from above, and two node columns sit outside the
@@ -163,7 +131,7 @@ them are what an investigation would rest on.
 | `QA-PLT-100` | 'contains_personal_data' was flipped on a node and the chain still verifies: it sits outside the content hash, so the chain hash does not move and the anchors cannot see it either. The fl… |
 | `QA-PLT-103` | a claim resting on a present fact and a MISSING one answers freshness 1000.0, the same as one resting on that fact and a stale one. FRESHNESS is (max, max) with `zero = 0.0`, so an absent… |
 
-## 5. Batch H — HTTP conventions: paging, projection, headers, refusal shape
+## 4. Batch H — HTTP conventions: paging, projection, headers, refusal shape
 
 One root: the conventions were built and almost nothing adopted them.
 `conventions.page` has one caller, `project()` empties every listing that does
@@ -179,7 +147,7 @@ not name its rows `rows`, nothing sets `Retry-After`, and the most-used
 | `QA-PLT-361` | 4 refusal code(s) map to 429 — ['budget_exhausted', 'cost_limit_reached', 'quota_limit_reached', 'rate_limit_reached'] — and no route or service anywhere sets a `Retry-After` header. The … |
 | `QA-PLT-362` | 1 of 5 coded refusal(s) omit a part: ["unknown model (not_found): missing ['remediation']"] |
 
-## 6. Batch I — Concurrency, the scheduled batch and delivery
+## 5. Batch I — Concurrency, the scheduled batch and delivery
 
 Races and the batch that turns derived conditions into records. A lock while
 RECORDING a job's result aborts the whole pass; deduplication is keyed on a
@@ -196,7 +164,7 @@ title somebody edits; two sweeps mint one reference.
 | `QA-PLT-251` | 2 reference(s) are held by more than one row after two concurrent sweeps: ['DISC-0003', 'DISC-0004']. `ingest` mints `DISC-{n:04d}` from a count of the rows already there, so two sweeps t… |
 | `QA-PLT-254` | 30 failure(s) recorded and summarised, and recovery sends — all correct. What is not: `_deliver` calls `transport.send` outside any try, and the contract that makes that safe is that a ch… |
 
-## 7. Batch G — Documents: compile, dossier, pack, review, search
+## 6. Batch G — Documents: compile, dossier, pack, review, search
 
 `gaps.md` reads a key nothing writes, an unreadable source is reported as an
 absence, and the coverage figure a reader is told to check first can be moved
@@ -224,7 +192,7 @@ what leaves the building.
 | `QA-PLT-179` | `tests/test_documentation_links.py` asks each absolute link for its status and fails only on 404 — the comment says 3xx means the route exists, which is right, and a 500 is treated the sa… |
 | `QA-PLT-4933` | a new version left the document reporting that nothing has been recorded since it was compiled. `subjects` is captured AT COMPILE TIME (2 id(s)) and `version_created` is recorded against … |
 
-## 8. Batch K — Deletion, compaction and the operational tools
+## 7. Batch K — Deletion, compaction and the operational tools
 
 Compaction cannot complete on any store that has ever held an artifact, a GOES
 disposition cannot fire, and every non-SQLite dialect is handed PostgreSQL
@@ -238,7 +206,7 @@ instructions.
 | `QA-PLT-222` | the tool branches on `not dialect.startswith('sqlite')` and every non-SQLite dialect is told about `pg_dump` and `pg_basebackup`. An operator on MySQL, Oracle or a typo in the URL is hand… |
 | `QA-PLT-225` | the refusal is right and the tool does not let go. `restore.run` opens the target with `open_database(cfg)` and then raises SystemExit for the evidence it found, with no `dispose()` betwe… |
 
-## 9. Batch L — Distributed evaluation, monitoring and parameter provenance
+## 8. Batch L — Distributed evaluation, monitoring and parameter provenance
 
 The distributed and monitoring edges, plus parameter provenance: a submission
 that is computed and not judged, an evaluation that leaves no trace, an epoch
@@ -253,7 +221,7 @@ that moves once per grant.
 | `QA-FX-386` | withdrawing one model's authority moved the estate-wide epoch by 4 (0 → 4), one per grant. `revoke_model` loops `revoke`, and `revoke` does `self.epoch += 1` — so a model with forty grant… |
 | `QA-FX-387` | revoking a model nobody holds a grant on reports `revoked: 0` and leaves the epoch at 0. `revoke_model` advances the counter inside the per-grant loop, so an empty withdrawal advances it … |
 
-## 10. Batch J — Lifecycle and workflow correctness
+## 9. Batch J — Lifecycle and workflow correctness
 
 Ordinary workflow correctness — an episode, a waiver, a decommission, a
 recertification behaving wrongly at an edge. Individually small, collectively
@@ -287,6 +255,52 @@ the largest group, and the one a user meets.
 | `QA-PLT-200` | both refuse 'nothing_grounded', so a cautious generation and a wholly unsupported one are one fact |
 
 ---
+
+## Batch B — closed
+
+**Twenty-one controls that were built, wired, documented and never fired.** The
+recurring defect of this codebase, taken out in three passes.
+
+The first pass reached the refusals nothing could translate — a bare
+`RuntimeError` from the folded database, `append_only` in neither half of the
+taxonomy, three anchor and WORM codes in `STATUS` and not in `guard`, an
+unwritable WORM root raising `PermissionError` — and the vocabulary states
+nothing wrote (`superseded`), the context key nothing supplied (`documents`),
+and the timestamp authority whose remediation named a configuration key no code
+read. That last one became its own product batch: the **ninth plugin axis**,
+and building it found that `enable()` passed `fn=` where `register()` takes
+`implementation=`, so **no plugin could be enabled on any axis**.
+
+The second pass reached the controls defeated by a signature: `clamp` accepted
+at registration and absent from the engine, `unchecked_inputs` computed and only
+logged, two trigger registers answering `None` where `_cannot_check` existed,
+and `_raise` calling `raise_finding` with four wrong keyword names — so the
+retiering sweep found the stale assessment and raised nothing.
+
+The third pass reached the two routes that did not exist. `open_share` was
+called from nowhere but a unit test, so a share could be created, listed,
+revoked and never opened; building `GET /share/{reference}` found that
+`export_shared` recorded against the MODEL, whose evidence segment the pack
+carries — so creating a share changed the pack and the digest it was created
+over could never be produced again. And `MonitorIn` carried no version, so
+every monitor in every estate had a null `model_version_id` and
+`evaluate_from_telemetry` refused all of them.
+
+The fourth pass closed the remainder. `manifest_version` was written into every
+backup and read by nothing, so a manifest from a later build restored
+optimistically and skipped what it could not see; `READABLE_MANIFEST_VERSIONS`
+is now the list this build can read. `note_revocation` accepted a `warrant_id`
+that every re-resolve mints fresh, so an engine told to stop by descriptor id
+held a revocation list that looked enabled and stopped nothing — refused now,
+naming the form that survives. `calibration.hosmer_lemeshow` was published as
+not-distributable and was absent from the test catalogue, so the refusal could
+never fire — the test is now implemented, p-value and all, against a
+chi-square survival function written out here for the same reason every other
+statistic is. The sweep contract tested `"recall_known" not in sweep` while the
+route model declared it `Optional[bool] = None`, so `model_dump()` always
+supplied the key and the route defeated the control. And **28 actionable
+refusal codes across 39 raise sites carried an explicitly empty remediation** —
+every one now says what to do instead.
 
 ## Batches C and D — closed
 

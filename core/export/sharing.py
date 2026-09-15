@@ -228,8 +228,10 @@ class ExportSharing:
         """Stop it serving. Keeps everything it served."""
         share = self.require(reference)
         if share["status"] == REVOKED:
-            raise ExportError("already_revoked", "this share is already revoked",
-                              "")
+            raise ExportError(
+                "already_revoked", "this share is already revoked",
+                "nothing further is needed — it serves nothing, and what it "
+                "did serve is kept on its read record")
         moment = now if now is not None else time.time()
         with self.evidence.recording():
             self.shares.set({"status": REVOKED, "revoked_at": moment,

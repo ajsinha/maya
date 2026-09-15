@@ -184,9 +184,8 @@ class CaptiveEngine:
     def note_revocation(self, subject: str) -> None:
         """The revocation floor: honoured regardless of grace state.
 
-        `subject` is either a **model URN** or a single `warrant_id`. Both are
-        accepted because both are things an engine gets told, but the model URN
-        is the one that works, and for a while it was not accepted at all.
+        `subject` is a **model URN**, and anything else is refused here rather
+        than accepted and never matched.
 
         This took a `descriptor_id`, and `execute` re-resolves before checking —
         and every `builder.build` mints a **fresh** `warrant_id`. So the noted id
@@ -195,11 +194,30 @@ class CaptiveEngine:
         identifier stayed stable while its contents moved; here, an identifier
         moves while the thing it names stays exactly the same.
 
+        That was fixed by keying on the URN, and a `warrant_id` went on being
+        **accepted silently** — which leaves the defect intact for the operator
+        who passes one. An engine holding a local revocation list that looks
+        enabled and stops nothing is worse than an engine with no floor at all:
+        the second gets compensated for. So the argument is checked, and the
+        refusal names the form that works.
+
         The floor exists for the case where an engine has been told to stop and
         cannot reach MAYA to have that confirmed, so it must key on something
         that survives a re-resolve. `subject.model_urn` does; a per-descriptor id
         is minted fresh each time, by design.
         """
+        subject = (subject or "").strip()
+        if not subject.startswith("maya://"):
+            raise WarrantError(
+                "not_a_revocable_subject",
+                f"{subject!r} is not a model URN, and a local revocation floor "
+                f"can only key on something that survives a re-resolve. A "
+                f"descriptor's `warrant_id` is minted fresh by every resolve, "
+                f"so noting one would be recorded, would look enabled, and "
+                f"would never match anything this engine goes on to check",
+                "note the model URN instead — `subject.model_urn` from any "
+                "descriptor you hold. To withdraw one grant rather than a "
+                "model, revoke it in MAYA, which is where grants live")
         self._revoked_locally.add(subject)
 
     def _refuse_stale_epoch(self, warrant: Dict[str, Any]) -> None:
@@ -271,8 +289,11 @@ class CaptiveEngine:
         if not self.warrants.verify(warrant):
             raise WarrantError("signature_invalid", "warrant signature does not verify",
                             "discard it and raise a security incident")
+        # URNs only, and `warrant_id` is deliberately not among them: it is
+        # minted fresh by every resolve, so a comparison against it can never
+        # be true and reads as a check that is being made. `note_revocation`
+        # refuses to record one for the same reason.
         revoked = self._revoked_locally & {
-            warrant["warrant_id"],
             (warrant.get("subject") or {}).get("model_urn"),
             (warrant.get("subject") or {}).get("urn"),
         }

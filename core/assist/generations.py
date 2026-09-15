@@ -148,8 +148,12 @@ class GenerationLog:
         """
         row = self.require(generation_id)
         if row["state"] != "drafted":
-            raise AssistError("already_decided",
-                              f"this generation is already '{row['state']}'", "")
+            raise AssistError(
+                "already_decided",
+                f"this generation is already '{row['state']}'",
+                "attestation happens once, because it is the moment a person "
+                "takes responsibility. If the decision was wrong, generate "
+                "again and attest that — do not re-decide this one")
         # A PERSON, first. The carve-out below exists so somebody can attest a
         # scheduled job's output — the job asked for it and no human did — and
         # for a while it also let the machine sign for itself: a generation

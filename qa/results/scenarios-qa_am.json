@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 392,
-  "pass": 368,
-  "fail": 24,
+  "pass": 369,
+  "fail": 23,
   "blocked": 0
  },
- "seconds": 30.1,
+ "seconds": 33.1,
  "results": [
   {
    "id": "QA-AM-001",
@@ -724,8 +724,8 @@
   {
    "id": "QA-AM-1314",
    "title": "Every test refused by name can actually be defined",
-   "verdict": "FAIL",
-   "evidence": "published as not-distributable but absent from the test catalogue, so no monitor can ever carry it and the refusal can never fire: calibration.hosmer_lemeshow"
+   "verdict": "PASS",
+   "evidence": "all 2 are definable tests"
   },
   {
    "id": "QA-AM-1315",
@@ -761,7 +761,7 @@
    "id": "QA-AM-138",
    "title": "Attach a finding that is already attached to a *different* root",
    "verdict": "FAIL",
-   "evidence": "a finding under root 01a0a67720098b96758013096d00 was moved to root 01a0a677200cb67ab54f42b332fa by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+   "evidence": "a finding under root 01a0a6fcae09d1c8b4a4dddbe4f6 was moved to root 01a0a6fcae0e9db7ef5f9bcf6c08 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
   },
   {
    "id": "QA-AM-139",
@@ -1457,7 +1457,7 @@
    "id": "QA-AM-270",
    "title": "Compare the `plan_digest` in a submission against the plan that was issued",
    "verdict": "FAIL",
-   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:95e8af7bcd23b3d51b50fd2222b35ed52c3f5cdd036e443fba564bd5198ef0b7 against the issued sha256:72315fedca51e28051f287dd8d6730ec932ba463f21b89e54861cd835c29beff. The digest exists to tie a submiss"
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:8a256cf4b56bc0a433897b9fbaa59c3831d71f993faba80e286fb99c2c70098d against the issued sha256:ea553bdde9ba7afcba57aacd1119652785ea92c5a67b14668527e37b08e2580f. The digest exists to tie a submiss"
   },
   {
    "id": "QA-AM-272",
@@ -1841,7 +1841,7 @@
    "id": "QA-AM-370",
    "title": "A model with no purpose class at all",
    "verdict": "PASS",
-   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-52bfecad', 'why': 'neither designated consumer_impactin"
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-00bfcc38', 'why': 'neither designated consumer_impactin"
   },
   {
    "id": "QA-AM-372",
@@ -2045,7 +2045,7 @@
    "id": "QA-AM-4720",
    "title": "Bind a monitor to a model version through the API",
    "verdict": "PASS",
-   "evidence": "the monitor is bound to version 01a0a6777ab3360ce94e3e0d3c26, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
+   "evidence": "the monitor is bound to version 01a0a6fd163cfd67bb07d8d17b58, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
   },
   {
    "id": "QA-AM-4730",
@@ -2309,7 +2309,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a6777cc0ab0ef2d02e559bef\",\"model_id\":\"01a0a6777cbc131d40248dcbfe2c\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-c3bea08a\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a6fd19e41de2f7c8d43d6280\",\"model_id\":\"01a0a6fd19dbc98b522805a43e40\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-b1f8ceb7\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -2339,13 +2339,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6777ce29830ef3bd62d68ee\",\"reference\":\"SUP-a8ab065d\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6fd1a3494f87ebacae481de\",\"reference\":\"SUP-782a1f62\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6777ce8a63b860c125d151b\",\"reference\":\"SUP-abc92997\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6fd1a499f9086d9cc1c5b2c\",\"reference\":\"SUP-a4a11444\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",

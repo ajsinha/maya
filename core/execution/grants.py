@@ -108,7 +108,10 @@ class WarrantGrants:
         if semver:
             v = self.registry.version(m["urn"], semver)
             if not v:
-                raise WarrantError("validation_failed", f"no version {semver} for {m['urn']}", "")
+                raise WarrantError(
+                    "validation_failed", f"no version {semver} for {m['urn']}",
+                    "issue against a version that exists, or leave the semver "
+                    "out to bind the grant to the alias and follow it")
             row["version_id"] = v["id"]
         with self.evidence.recording():
             self.repo.add(row)

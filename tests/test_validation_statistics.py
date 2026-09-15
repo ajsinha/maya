@@ -11,7 +11,8 @@ import math
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from core.validation.statistics import (_ranks, auc, brier, expected_vs_actual, gini,
+from core.validation.statistics import (_chi_square_survival, _ranks, auc, brier,
+                                        expected_vs_actual, gini, hosmer_lemeshow,
                                         ks, mae, psi, rmse)
 
 
@@ -163,6 +164,79 @@ class TestPsi:
         were dropped the score would fall exactly when it should rise."""
         value = psi(list(range(100)), [99.0] * 100)
         assert value is not None and value > 1.0
+
+
+class TestChiSquareSurvival:
+    """Against published critical values, not against a run of this code.
+
+    These are the 5% points every statistical table prints, which is the only
+    check worth making on a function written out by hand: if it agrees with the
+    table at the point every threshold is set, it agrees where it is used.
+    """
+
+    def test_it_matches_the_five_percent_points(self):
+        for statistic, df in ((3.841, 1), (11.070, 5), (12.592, 6), (15.507, 8)):
+            assert math.isclose(_chi_square_survival(statistic, df), 0.05,
+                                abs_tol=0.0005), f"df={df}"
+
+    def test_it_matches_the_far_tail_and_the_near_one(self):
+        assert math.isclose(_chi_square_survival(23.209, 8), 0.003, abs_tol=5e-4)
+        assert math.isclose(_chi_square_survival(0.004, 1), 0.95, abs_tol=1e-3)
+        assert math.isclose(_chi_square_survival(2.706, 1), 0.10, abs_tol=5e-4)
+
+    def test_it_is_monotone_and_bounded(self):
+        previous = 1.0
+        for statistic in (0.0, 0.5, 2.0, 8.0, 20.0, 60.0, 500.0):
+            here = _chi_square_survival(statistic, 8)
+            assert 0.0 <= here <= 1.0 and here <= previous
+            previous = here
+
+    def test_no_degrees_of_freedom_is_not_computable(self):
+        assert _chi_square_survival(5.0, 0) is None
+        assert _chi_square_survival(-1.0, 8) is None
+
+
+class TestHosmerLemeshow:
+    @staticmethod
+    def _sample(n=2000, shift=0.0):
+        """Labels generated FROM the scores, so the null is true by construction
+        when shift is 0 — the one sample where the p-value has a known meaning."""
+        scores, labels = [], []
+        for i in range(n):
+            s = (i % 97 + 0.5) / 97.0
+            scores.append(s)
+            # Deterministic: every 1/p-th observation in a band is a one. No
+            # random seed, because a statistic that is only right for one seed
+            # is not right.
+            labels.append(1 if (i * 7919) % 1000 < (s + shift) * 1000 else 0)
+        return labels, scores
+
+    def test_a_calibrated_sample_is_not_rejected(self):
+        labels, scores = self._sample()
+        assert hosmer_lemeshow(labels, scores) > 0.05
+
+    def test_a_shifted_forecast_is_rejected(self):
+        """Every score understated by 0.2 — the model the test exists to find."""
+        labels, scores = self._sample()
+        understated = [max(s - 0.2, 0.001) for s in scores]
+        assert hosmer_lemeshow(labels, understated) < 0.01
+
+    def test_it_is_a_probability(self):
+        labels, scores = self._sample()
+        assert 0.0 <= hosmer_lemeshow(labels, scores) <= 1.0
+
+    def test_a_sample_too_small_for_the_bands_is_not_computable(self):
+        assert hosmer_lemeshow([1, 0, 1], [0.5, 0.4, 0.6]) is None
+
+    def test_a_band_with_no_predicted_mass_is_not_computable(self):
+        """The denominator is E(1 - E/n), which is zero when nothing is
+        predicted — a fact about the sample, not a number to report."""
+        assert hosmer_lemeshow([0] * 100, [0.0] * 100) is None
+        assert hosmer_lemeshow([1] * 100, [1.0] * 100) is None
+
+    def test_fewer_than_three_groups_has_no_degrees_of_freedom(self):
+        labels, scores = self._sample(200)
+        assert hosmer_lemeshow(labels, scores, groups=2) is None
 
 
 class TestRegressionMetrics:

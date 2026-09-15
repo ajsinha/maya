@@ -27,13 +27,14 @@ what this file exists to stop.
 """
 from __future__ import annotations
 
+import json
 import pathlib
 import sqlite3
 
 import pytest
 
 from tools.ops import backup, restore
-from tools.ops.common import read_manifest
+from tools.ops.common import READABLE_MANIFEST_VERSIONS, read_manifest
 
 CONFIG = """\
 app: {{name: MAYA, version: "0.1.0", tagline: t, slogan: s, principle: p}}
@@ -204,6 +205,39 @@ class TestWhatItRefuses:
         assert out["chain"]["head_agrees"]
 
 
+class TestAManifestFromADifferentBuild:
+    """The version was written into every manifest and read by nothing, so a
+    backup from a later build restored optimistically: the sections this build
+    knows about came back, the ones it has never heard of were skipped without a
+    word, and the restore reported success."""
+
+    def test_a_later_version_is_refused_and_says_which_way_to_go(
+            self, instance, elsewhere, tmp_path):
+        backup.run(instance["config"], str(tmp_path / "copy"))
+        _rewrite_version(tmp_path / "copy", 99)
+        with pytest.raises(SystemExit) as refusal:
+            restore.run(str(tmp_path / "copy"), elsewhere)
+        message = str(refusal.value)
+        assert "manifest_version 99" in message
+        assert "LATER build" in message and "at least as new" in message
+        assert "Nothing has been restored" in message
+
+    def test_a_shape_this_build_does_not_recognise_is_refused(
+            self, instance, elsewhere, tmp_path):
+        """Including a version that is not an integer at all — the manifest may
+        have been edited, and a hand-edited manifest cannot be trusted."""
+        backup.run(instance["config"], str(tmp_path / "copy"))
+        _rewrite_version(tmp_path / "copy", "1")
+        with pytest.raises(SystemExit) as refusal:
+            restore.run(str(tmp_path / "copy"), elsewhere)
+        assert "shape this build recognises" in str(refusal.value)
+
+    def test_what_this_build_writes_is_what_it_reads(self, instance, tmp_path):
+        backup.run(instance["config"], str(tmp_path / "copy"))
+        held = read_manifest(tmp_path / "copy")
+        assert held["manifest_version"] in READABLE_MANIFEST_VERSIONS
+
+
 class TestItDoesNotPretendToDoPostgres:
     def test_backup_refuses_and_names_the_command(self, tmp_path):
         config = tmp_path / "pg.yaml"
@@ -267,3 +301,10 @@ class TestEveryRemediationNamesSomethingThatExists:
             body = (self.OPS / f"{source}.py").read_text(encoding="utf-8")
             assert "pg_dump" in body or "pg_restore" in body
             assert "chain" in body
+
+
+def _rewrite_version(copy: pathlib.Path, version) -> None:
+    path = copy / "maya-backup.json"
+    held = json.loads(path.read_text(encoding="utf-8"))
+    held["manifest_version"] = version
+    path.write_text(json.dumps(held), encoding="utf-8")

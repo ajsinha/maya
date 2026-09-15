@@ -120,10 +120,10 @@ field. Demanding an AUC from a T5 is the same error in the other direction.
 | **T7** | panel composition, the questions asked, and the dissent | outcome analysis against the judgment, and inter-rater consistency | override rate, and whether the judgment is being overridden in one direction |
 | **T8** | the rule read against the policy it implements | above-the-line and below-the-line testing | rule-fire distribution and exception rate |
 
-**What the platform actually computes today.** The validation catalogue holds **eight** tests
+**What the platform actually computes today.** The validation catalogue holds **nine** tests
 — `discrimination.auc`, `discrimination.gini`, `discrimination.ks`, `calibration.brier`,
-`calibration.expected_vs_actual`, `stability.psi`, `accuracy.rmse`, `accuracy.mae` — computed from
-first definitions rather than pulled from a library. Monitors come in **four** kinds: `input_drift`,
+`calibration.expected_vs_actual`, `calibration.hosmer_lemeshow`, `stability.psi`, `accuracy.rmse`,
+`accuracy.mae` — computed from first definitions rather than pulled from a library. Monitors come in **four** kinds: `input_drift`,
 `score_drift`, `performance` and `calibration`, and each admits only the tests that can answer it,
 checked at definition time.
 

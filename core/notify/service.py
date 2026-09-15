@@ -101,7 +101,11 @@ class NotificationService:
         if transport is None:
             raise NotifyError(
                 "channel_not_built",
-                f"the '{name}' channel is not present on this instance", "")
+                f"the '{name}' channel is not present on this instance",
+                f"wire a transport for '{name}' at start-up, or send on a "
+                f"channel this instance has. Nothing is queued for a channel "
+                f"that is not there — a notification nobody built is not a "
+                f"notification that is late")
         if (why := transport.available()):
             raise NotifyError(
                 "channel_unavailable", why,

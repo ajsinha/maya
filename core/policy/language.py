@@ -120,9 +120,13 @@ class Rule:
                         f"functions this language provides",
                         f"it provides {', '.join(sorted(FUNCTIONS))}")
             if isinstance(node, ast.Name) and node.id.startswith("_"):
-                raise PolicyError("reserved_name",
-                                  f"'{node.id}' is not a fact; names beginning "
-                                  f"with an underscore are reserved", "")
+                raise PolicyError(
+                    "reserved_name",
+                    f"'{node.id}' is not a fact; names beginning "
+                    f"with an underscore are reserved",
+                    "use a fact this gate publishes — GET "
+                    "/api/v1/policies/facts/{gate} lists them, and a policy "
+                    "may read nothing else")
         return tree
 
     @staticmethod

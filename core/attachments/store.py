@@ -89,5 +89,8 @@ class DocumentStore:
         # hundred thousand documents is a directory nothing enumerates quickly.
         bare = digest.split(":", 1)[-1]
         if len(bare) != 64 or not all(c in "0123456789abcdef" for c in bare):
-            raise AttachmentError("bad_digest", f"'{digest}' is not a sha256 digest", "")
+            raise AttachmentError(
+                "bad_digest", f"'{digest}' is not a sha256 digest",
+                "pass the sha256 of the content: 64 hexadecimal characters, "
+                "optionally prefixed 'sha256:'")
         return self.root / bare[:2] / bare

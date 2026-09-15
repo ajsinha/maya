@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-2800",
+   "title": "Every refusal code the platform raises has a status",
+   "verdict": "PASS",
+   "evidence": "all 596 refusal codes are mapped to a status"
+  },
+  {
+   "id": "QA-PLT-2801",
+   "title": "Every actionable refusal says what to do instead",
+   "verdict": "PASS",
+   "evidence": "every actionable refusal of 779 names a remedy"
+  },
+  {
+   "id": "QA-PLT-2802",
+   "title": "Every refusal type reaches HTTP as a refusal",
+   "verdict": "PASS",
+   "evidence": "all 48 refusal types reach HTTP as refusals: duck-typed, adapted by `guard`, caught by name in a route, or raised only at start-up"
+  },
+  {
+   "id": "QA-PLT-2803",
+   "title": "No refusal code is raised under two spellings",
+   "verdict": "PASS",
+   "evidence": "codes raised from many modules, each a place the condition must genuinely be the same: reason_required (16), rationale_required (7), note_required (5), owner_required (5)"
+  }
+ ]
+}

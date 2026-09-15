@@ -90,7 +90,10 @@ def _truth():
     # answers, so the count and the number NOT designed to fit both matter.
     studies = sorted(d for d in (ROOT / "case_studies").iterdir()
                      if d.is_dir() and re.match(r"^\d\d_", d.name))
+    from core.validation.catalogue import TESTS
+
     return {
+        "catalogue tests": len(TESTS),
         "case studies": len(studies),
         "tutorials": len(list((ROOT / "content" / "tutorials").glob("*.md"))),
         # The twelve edges, counted from the sections that state them rather
@@ -193,6 +196,13 @@ CLAIMS = {
                      r"the objection above applies to the worked examples as "
                      r"much as to the modules: (\w+) demonstrations"],
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
+    # The catalogue sat on "eight" across three documents while it held eight,
+    # and nothing here read it — so when the ninth test landed, the drift was
+    # caught by a QA case about a refusal that could not fire, two removes from
+    # the sentence that was wrong. It is a number the code knows exactly.
+    "catalogue tests": [r"validation catalogue holds \*\*(\w+)\*\* tests",
+                        r"test catalogue holds (\w+) tests",
+                        r"(\w+) tests of the sixteen families"],
     # Counted from the table itself, so the prose around it cannot drift from
     # the rows. This is the claim a reader is most likely to take on trust.
     # Two patterns were not enough, and the gap was not subtle: this pair
