@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 71,
-  "pass": 68,
+  "pass": 69,
   "fail": 2,
-  "blocked": 1
+  "blocked": 0
  },
- "seconds": 4.1,
+ "seconds": 2.6,
  "results": [
   {
    "id": "QA-AM-200",
@@ -124,8 +124,8 @@
   {
    "id": "QA-AM-223",
    "title": "Evaluate from telemetry with no rows in the window",
-   "verdict": "BLOCKED",
-   "evidence": "the monitor names no version, so the read never reaches the window at all \u2014 nothing binds one through the API, see QA-AM-4720"
+   "verdict": "PASS",
+   "evidence": "refused 'no_telemetry_in_window'"
   },
   {
    "id": "QA-AM-227",
@@ -317,7 +317,7 @@
    "id": "QA-AM-270",
    "title": "Compare the `plan_digest` in a submission against the plan that was issued",
    "verdict": "FAIL",
-   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:0cb28c90401f466743ff658f600b310f2c5149e4421e872b12f81dbbfef998a3 against the issued sha256:cc1ceb2d39c39506be10d37afd200d3b2a9d7cd46c6b0a7d0176918be4b37512. The digest exists to tie a submiss"
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:7808c26707d4e13f92fc54365223a6c58137c499d76afb88d863821bf017af3c against the issued sha256:3acd2bc07f1d3939f0f0a3105c58e414e89e60c286cda07dd3c282dbf31cdc23. The digest exists to tie a submiss"
   },
   {
    "id": "QA-AM-272",

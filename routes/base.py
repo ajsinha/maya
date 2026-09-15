@@ -560,6 +560,10 @@ STATUS: Dict[str, int] = {
     # look the same from outside, so this says nothing about what does.
     "unknown_share": 404, "share_expired": 410, "share_revoked": 410,
     "share_exhausted": 410,
+    # The register has moved since the link was created, so the pack it
+    # named no longer exists. 409: the request is well formed and the
+    # conflict is with the register's own history, which no retry fixes.
+    "share_content_moved": 409,
     "format_not_produced": 422,
     # the platform configuring itself, and a document under review
     "not_configurable": 403, "empty_configuration": 422,
@@ -1130,7 +1134,29 @@ class Routes:
 
     @staticmethod
     def not_found(detail: str) -> HTTPException:
-        return HTTPException(404, {"error": "not_found", "detail": detail})
+        # A remediation, like every other refusal in this taxonomy. There are
+        # two `not_found` builders in this file and only one carried it, and
+        # fifteen call sites across ten route modules used the one that did
+        # not — so the most common refusal in the API told somebody they had
+        # asked for something absent and nothing about what to do next.
+        return HTTPException(404, {
+            "error": "not_found", "detail": detail,
+            "remediation": "check the identifier; a listing on the same "
+                           "resource shows what this instance actually holds"})
+
+    @staticmethod
+    def refusal(code: str, status: int, detail: str,
+                remediation: str) -> HTTPException:
+        """A coded refusal raised BY a route rather than translated from a
+        service.
+
+        Rare on purpose — almost every refusal here belongs to a service, and
+        one invented at the route layer is a governance rule nobody can find
+        by reading `core/`. It exists for the handful of facts only the
+        transport knows.
+        """
+        return HTTPException(status, {"error": code, "detail": detail,
+                                      "remediation": remediation})
 
     # ------------------------------------------------------------------- view
     def brand(self, request: Optional[Request] = None) -> Dict[str, Any]:

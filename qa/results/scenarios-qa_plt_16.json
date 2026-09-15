@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 7,
+  "fail": 3,
+  "blocked": 0
+ },
+ "seconds": 1.9,
+ "results": [
+  {
+   "id": "QA-PLT-160",
+   "title": "Ten concurrent reads of a `max_reads: 1` share",
+   "verdict": "FAIL",
+   "evidence": "a share capped at one read served 5 of ten simultaneous reads at worst across 5 rounds (served [1, 5, 4, 5, 5]). `open_share` reads `share['reads']` before the state check and writes `reads + 1` after serving, with no lock and no conditional update \u2014 racers that read the same count all pass the cap and all serve. `max_reads` is the control a firm relies on when a link has gone somewhere it should "
+  },
+  {
+   "id": "QA-PLT-161",
+   "title": "Revoking a share that has already expired",
+   "verdict": "PASS",
+   "evidence": "an expired share can still be revoked, and the record keeps both the expiry and the revocation"
+  },
+  {
+   "id": "QA-PLT-162",
+   "title": "`days_left` on an expired share",
+   "verdict": "FAIL",
+   "evidence": "an expired share reports -10.0 days left: a negative number sorts on a list as the link with the longest to run"
+  },
+  {
+   "id": "QA-PLT-163",
+   "title": "Redeem a share link end to end",
+   "verdict": "PASS",
+   "evidence": "the pack is served at /share/7l4Vc6iToYYMPSYTm-pugya71-LOo1Ri85loxN_FS4g to a caller with no session, the read is recorded as 'served', and no identity is claimed"
+  },
+  {
+   "id": "QA-PLT-164",
+   "title": "Recovering a share reference after creation",
+   "verdict": "PASS",
+   "evidence": "found by purpose, with its reference, among 4"
+  },
+  {
+   "id": "QA-PLT-165",
+   "title": "The share window at 90 days and at 91",
+   "verdict": "PASS",
+   "evidence": "90 accepted, 91 refused"
+  },
+  {
+   "id": "QA-PLT-166",
+   "title": "A share created without a purpose or a recipient",
+   "verdict": "PASS",
+   "evidence": "refused 'recipient_required' and 'purpose_required'"
+  },
+  {
+   "id": "QA-PLT-167",
+   "title": "A search whose query is nothing but stop words",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_query' 422 over 17 stop words, and a one-character term too"
+  },
+  {
+   "id": "QA-PLT-168",
+   "title": "Search `limit` at 0, 200, 201, and `abc`",
+   "verdict": "PASS",
+   "evidence": "200 accepted; 0 and 201 refused 'limit_out_of_range'; 'abc' refused 'validation_error' \u2014 every 422 on this parameter carries a code, so one client path reads all three"
+  },
+  {
+   "id": "QA-PLT-169",
+   "title": "Coverage driven to 1.0 by mislabelling one file",
+   "verdict": "FAIL",
+   "evidence": "near-identical binary filed twice \u2014 as `application/pdf` and as `text/plain` \u2014 move coverage from 0.0 to 0.5, because `text_indexed` is `media_type in TEXT_MEDIA` and the media type is whatever the uploading client declared. The mislabelled copy is now counted as searchable and its bytes are searched as text (1 result(s) for a term inside it). Coverage is the figure a reader is told to check BEFOR"
+  }
+ ]
+}

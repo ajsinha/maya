@@ -255,15 +255,47 @@ def plt_163(ctx: Ctx) -> Result:
     reference = _reference(_share(ctx, urn, digest))
     if not reference:
         return BLOCKED, "the share could not be created"
+    service = _service(ctx)
+    if service is None:
+        return BLOCKED, "no sharing service is wired"
+    before = len(service.reads.many())
     tried = []
-    for path in (f"{S}/{reference}", f"{S}/{reference}/open",
-                 f"{S}/{reference}/pack", f"/api/v1/shared/{reference}",
-                 f"/shared/{reference}", f"/s/{reference}"):
+    for path in (f"/share/{reference}", f"{S}/{reference}",
+                 f"{S}/{reference}/open", f"{S}/{reference}/pack",
+                 f"/api/v1/shared/{reference}", f"/shared/{reference}",
+                 f"/s/{reference}"):
         got = ctx.ui.get(path)
         tried.append(f"{path}:{got.status_code}")
-        if got.status_code < 400:
-            return PASS, f"the pack is served at {path}"
-    service = _service(ctx)
+        if got.status_code >= 400:
+            continue
+        # Served — now the three things that make it a share rather than a
+        # download: the bytes are a pack, the read is on the record, and no
+        # identity is claimed for whoever opened it.
+        if not got.content.startswith(b"PK"):
+            return FAIL, (f"{path} answered {got.status_code} and the body is "
+                          f"not an archive: {got.content[:40]!r}")
+        after = service.reads.many()
+        if len(after) <= before:
+            return FAIL, (f"the pack was served at {path} and no read was "
+                          f"recorded; a link whose use leaves no trace is one "
+                          f"nobody can answer for")
+        newest = max(after, key=lambda r: r.get("at") or 0)
+        if newest.get("outcome") != "served":
+            return FAIL, f"the read was recorded as {newest.get('outcome')!r}"
+        # Unauthenticated ON PURPOSE: a share exists for somebody who will
+        # never be given a login. What must NOT happen is the platform
+        # claiming to know who they were.
+        from fastapi.testclient import TestClient
+        with TestClient(ctx.ui.app, raise_server_exceptions=False) as stranger:
+            anonymous = stranger.get(path)
+        if anonymous.status_code >= 400:
+            return FAIL, (f"the link needs a session ({anonymous.status_code}); "
+                          f"a share is for somebody outside the firm and "
+                          f"issuing them a credential is what it exists to "
+                          f"avoid")
+        return PASS, (f"the pack is served at {path} to a caller with no "
+                      f"session, the read is recorded as "
+                      f"'{newest.get('outcome')}', and no identity is claimed")
     if service is None:
         return BLOCKED, "no sharing service is wired"
     served = service.open_share(reference, seen_from="qa")

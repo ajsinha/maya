@@ -58,6 +58,19 @@ class MonitorIn(Body):
     label_delay_days: float = 0.0
     breach_severity: str = "Medium"
     escalate_after: int = 3
+    #: The version this monitor watches.
+    #:
+    #: `MonitorRegistry.define` has always taken it and no route passed one, so
+    #: every monitor in every estate carried a null `model_version_id` — and
+    #: `evaluate_from_telemetry` reads that column to find the stream, so it
+    #: refused `monitor_has_no_version` for every monitor there was and the
+    #: telemetry-driven evaluation path could not be reached at all.
+    #:
+    #: Optional, because a monitor on the MODEL rather than on one version is
+    #: the ordinary case — drift in the population does not belong to a
+    #: version — and making it required would be a migration for every monitor
+    #: already defined. A monitor that wants telemetry names one.
+    semver: str = ""
 
 
 class EvaluateIn(Body):
@@ -161,9 +174,18 @@ class MonitoringRoutes(Routes):
         def define(request: Request, body: MonitorIn):
             model = self.guard(lambda: registry.require(body.urn))
             who = self.authorise(request, "monitor:define", model=model)
+            version = self.guard(
+                lambda: registry.version(body.urn, body.semver)) \
+                if body.semver else None
+            if body.semver and version is None:
+                raise self.not_found(
+                    f"{body.urn} has no version {body.semver}, so a monitor "
+                    f"cannot be bound to it")
             return self.guard(lambda: monitors.define(
                 model["id"], body.name, body.kind, body.test_key, body.threshold,
-                body.owner, reference=body.reference, slice_=body.slice,
+                body.owner,
+                model_version_id=version["id"] if version else None,
+                reference=body.reference, slice_=body.slice,
                 cadence_days=body.cadence_days, label_delay_days=body.label_delay_days,
                 breach_severity=body.breach_severity, escalate_after=body.escalate_after,
                 actor=self.actor(who)))

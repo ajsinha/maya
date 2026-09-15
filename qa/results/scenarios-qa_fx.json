@@ -5,7 +5,7 @@
   "fail": 20,
   "blocked": 0
  },
- "seconds": 15.6,
+ "seconds": 21.6,
  "results": [
   {
    "id": "QA-FX-001",
@@ -77,7 +77,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a4ce6d61765673146ba80329\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a0a67850f3ed18d1ca1f06dd94\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-018",
@@ -437,7 +437,7 @@
    "id": "QA-FX-1208",
    "title": "Retiring a profile stops it applying",
    "verdict": "FAIL",
-   "evidence": "retiring 'prof-bab1df77' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
+   "evidence": "retiring 'prof-635c290e' left version 1 live \u2014 retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register reports as withdrawn"
   },
   {
    "id": "QA-FX-1209",
@@ -1169,13 +1169,13 @@
    "id": "QA-FX-384",
    "title": "`note_revocation` with a model URN",
    "verdict": "PASS",
-   "evidence": "refused 'revoked' on the model URN: maya://model/gx-cf291c43 is on the local revocation list"
+   "evidence": "refused 'revoked' on the model URN: maya://model/gx-cdbbdfaf is on the local revocation list"
   },
   {
    "id": "QA-FX-385",
    "title": "`note_revocation` with a `warrant_id`",
    "verdict": "FAIL",
-   "evidence": "`note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a4ce7e2a5617\u2026 and 01a0a4ce7e2c2fb5\u2026, so an id noted from one never matches the one `execute` checks and the floor cannot fire. An engine told to stop by descriptor id holds a local revocation list that looks enabled and does nothing \u2014 the model URN is the form that works, and both are accepted with "
+   "evidence": "`note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a678678fb03f\u2026 and 01a0a67867913f16\u2026, so an id noted from one never matches the one `execute` checks and the floor cannot fire. An engine told to stop by descriptor id holds a local revocation list that looks enabled and does nothing \u2014 the model URN is the form that works, and both are accepted with "
   },
   {
    "id": "QA-FX-386",
@@ -1673,7 +1673,7 @@
    "id": "QA-FX-5105",
    "title": "Composition discharges what the upstream guarantees",
    "verdict": "PASS",
-   "evidence": "assumptions {'raw'}, guarantees {'decision', 'score'}"
+   "evidence": "assumptions {'raw'}, guarantees {'score', 'decision'}"
   },
   {
    "id": "QA-FX-5106",
@@ -2045,7 +2045,7 @@
    "id": "QA-FX-800",
    "title": "A parameter set with no name",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a4cea6828e89094c93bd3654\",\"model_id\":\"01a0a4cea67cdbcf826c0751a1ce\",\"model_version_id\":\"01a0a4cea67fe25cf9aad69134ed\",\"name\":\"   \",\"version\":1,\"kind\""
+   "evidence": "expected a refusal (validation_error/parameter_refused/name_required) and the answer carried no error code: 201 {\"id\":\"01a0a678a0632f16272f702bac84\",\"model_id\":\"01a0a678a05a23a2dc26cae7b02b\",\"model_version_id\":\"01a0a678a05fcd7c6e517604baa6\",\"name\":\"   \",\"version\":1,\"kind\""
   },
   {
    "id": "QA-FX-801",
@@ -2261,7 +2261,7 @@
    "id": "QA-FX-954",
    "title": "Retire a source with no reason",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a4cea74d097da8727beb6e96\",\"view_name\":\"tv-7e045e7d\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
+   "evidence": "expected a refusal (feature_refused/reason_required/validation_error/discovery_refused) and the answer carried no error code: 200 {\"id\":\"01a0a678a2141b223cb5c4958cb7\",\"view_name\":\"tv-926eb3da\",\"kind\":\"s3\",\"locator\":\"s3://qa-bucket/table\",\"statement\":\"\",\"format\":\"parquet\",\"options\":{},\"cred"
   },
   {
    "id": "QA-FX-955",

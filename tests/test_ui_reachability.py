@@ -45,8 +45,17 @@ SCRIPTS = ROOT / "web" / "static" / "js"
 #: reports is the deployment's transport configuration, which is a question an
 #: operator's monitoring asks and a governance reader cannot act on. Putting it
 #: in the navbar would suggest somebody inside the register can fix it.
+#: Paths that are deliberately reachable only by being handed to somebody.
+#:
+#: The health probes are for an orchestrator, not a person. `/share/{reference}`
+#: is the redemption end of an export share: it exists for a recipient OUTSIDE
+#: the firm who will never see this interface at all, and a link to it from a
+#: page inside would be a link nobody signed in has any use for. The reference
+#: is the credential — minted with `secrets`, bound to one recipient and one
+#: purpose, expiring, revocable, and recording every read and every refused
+#: read — so being unlinked is the design rather than an omission.
 UNLINKED_ON_PURPOSE = {"/health", "/health/live", "/health/ready",
-                       "/health/encryption"}
+                       "/health/encryption", "/share/{reference}"}
 
 
 def _blob() -> str:
