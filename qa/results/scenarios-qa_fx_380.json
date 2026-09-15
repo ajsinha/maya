@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-380",
+   "title": "A descriptor stamped exactly at the epoch seen",
+   "verdict": "PASS",
+   "evidence": "epoch 7 after epoch 7 is accepted; the comparison is `<`"
+  },
+  {
+   "id": "QA-FX-3800",
+   "title": "A three-class label \u2014 neither binary nor continuous",
+   "verdict": "PASS",
+   "evidence": "'label' has 3 classes, and a threshold split says nothing unless the label is binary \u2014 so decoder was not screened"
+  },
+  {
+   "id": "QA-FX-3801",
+   "title": "The screen is run under the column the label occupies",
+   "verdict": "PASS",
+   "evidence": "blind: no 'label' column in the assembled frame \u2014 under 'defaulted_12m': ['sale_price']"
+  },
+  {
+   "id": "QA-FX-3802",
+   "title": "The continuous ratio is stated, not implied",
+   "verdict": "PASS",
+   "evidence": "ratio 0.5, and a class label stays a class"
+  }
+ ]
+}

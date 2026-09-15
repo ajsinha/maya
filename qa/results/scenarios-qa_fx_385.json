@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-FX-385",
+   "title": "`note_revocation` with a `warrant_id`",
+   "verdict": "FAIL",
+   "evidence": "`note_revocation` accepts a `warrant_id`, and the id moves: two resolutions of one grant minted 01a0a27c618aeb7e\u2026 and 01a0a27c618b5977\u2026, so an id noted from one never matches the one `execute` checks and the floor cannot fire. An engine told to stop by descriptor id holds a local revocation list that looks enabled and does nothing \u2014 the model URN is the form that works, and both are accepted with "
+  }
+ ]
+}
