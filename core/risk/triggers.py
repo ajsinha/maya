@@ -320,7 +320,17 @@ class RetierTriggers:
     def _new_use(self, model: Dict[str, Any],
                  assessment: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if self.uses is None:
-            return None
+            # `cannot_check`, not None. None is rendered as *did not fire*, and
+            # a trigger that could not run looks exactly like one that ran and
+            # found nothing — which is the failure this whole codebase is
+            # arranged against, and `_cannot_check` exists for it.
+            return self._cannot_check(
+                "new_use", {},
+                "this deployment has no register of approved uses wired, so "
+                "whether a use was added after the assessment cannot be "
+                "answered here. **That is not the same as no use having been "
+                "added.** Purpose class drives materiality directly, so this "
+                "is the trigger most able to move a tier on its own")
         since = assessment.get("assessed_at") or 0
         added = [u for u in self.uses.many(model_id=model["id"])
                  if (u.get("created_at") or 0) > since]
@@ -367,7 +377,16 @@ class RetierTriggers:
     def _breach(self, model: Dict[str, Any],
                 assessment: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if self.breaches is None:
-            return None
+            # The one answer a monitoring-off estate must not be given is *no
+            # breach since the assessment*. Silence from an absent register is
+            # not evidence of quiet.
+            return self._cannot_check(
+                "monitoring_breach", {},
+                "this deployment has no breach register wired, so whether "
+                "monitoring has breached since the assessment cannot be "
+                "answered here. **That is not the same as no breach having "
+                "happened** — an estate with monitoring switched off would "
+                "otherwise read exactly like one where nothing has gone wrong")
         since = assessment.get("assessed_at") or 0
         hits = [b for b in self.breaches.many(model_id=model["id"])
                 if (b.get("opened_at") or 0) > since
@@ -544,12 +563,44 @@ class RetierTriggers:
                now: float) -> Optional[str]:
         try:
             model = self.registry.require(row["urn"])
+            # Once per model, not once per sweep. This runs on a schedule, so
+            # without it a stale assessment collects a finding every night and
+            # the ageing profile counts one problem as thirty.
+            #
+            # Keyed on the CATEGORY rather than the title. A title is prose and
+            # gets edited, and a guard that stops recognising its own finding
+            # the moment somebody rewords it is a guard that starts
+            # duplicating — the register already holds `category='tiering'`,
+            # which is what this sweep raises and nothing else does.
+            if any(f.get("category") == "tiering"
+                   for f in self.findings.open_for(model["id"])):
+                return None
+            # The register's own signature: (model_id, severity, title,
+            # owner, description=...). This called it with `detail=` and no
+            # `owner`, so every call raised `TypeError` — straight into the
+            # `except Exception` below, which exists so that one finding
+            # failing does not lose the rest of the sweep. The sweep therefore
+            # detected stale assessments correctly, raised NOTHING, and said
+            # so only in a warning nobody reads. A bare `except` around a call
+            # whose signature is wrong turns a permanent defect into a log
+            # line.
             finding = self.findings.raise_finding(
-                model_id=model["id"],
-                title=f"tier {row['tier']} assessment is out of date",
-                severity="Medium", source="tiering",
-                detail=("fired: " + ", ".join(row["triggers"])
-                        + ". The tier has NOT been changed — re-assess"),
+                model["id"], "Medium",
+                f"tier {row['tier']} assessment is out of date",
+                self._owner(model),
+                description=("fired: " + ", ".join(row["triggers"])
+                             + ". The tier has NOT been changed — re-assess it, "
+                               "because a trigger says the facts the tier was "
+                               "derived from have moved and not what the tier "
+                               "should now be"),
+                # `self_identified`, which is what the sibling sweep in
+                # `immaterial.py` uses and the only one of the five that fits:
+                # nobody reported this, the platform noticed it. `tiering` is
+                # not a finding source and `raise_finding` refuses one outside
+                # the closed set — so this was the SECOND refusal waiting
+                # behind the wrong signature, and the bare `except` below would
+                # have swallowed it just as quietly.
+                category="tiering", source="self_identified", blocking=False,
                 actor=actor)
             return finding.get("id")
         except Exception as exc:
@@ -558,6 +609,13 @@ class RetierTriggers:
             logger.warning("could not raise a re-tiering finding for %s: %s",
                            row["urn"], exc)
             return None
+
+    @staticmethod
+    def _owner(model: Dict[str, Any]) -> str:
+        """Who the finding is for. A finding with no owner is refused by the
+        register, and a sweep that raised one nobody owns would be a sweep
+        whose findings nobody clears."""
+        return model.get("owner") or "person/unknown"
 
     def _correlate(self, trigger: str, urns: Sequence[str],
                    raised: Sequence[str], actor: str) -> Optional[str]:

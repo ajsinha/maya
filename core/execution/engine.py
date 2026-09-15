@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -51,6 +51,17 @@ class ExecutionResult:
     boundary_ok: bool
     boundary_violations: List[str]
     latency_ms: float
+    #: Assumptions no supplied value reached. NOT a violation — an assumption
+    #: constrains a value that was supplied — but "the boundary held" and "the
+    #: boundary never applied" are different facts and were indistinguishable
+    #: from `boundary_ok` alone. A contract on a key the runtime is never sent
+    #: reported `boundary_ok: true` on every call, which is exactly what a
+    #: silently unenforced contract looks like from outside.
+    boundary_unchecked: List[str] = field(default_factory=list)
+    #: What `on_boundary_violation: clamp` moved, per key: what was sent and
+    #: what the model actually ran on. A prediction made on numbers the caller
+    #: did not send is one the caller has to be told about.
+    clamped: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class CaptiveEngine:
@@ -287,10 +298,34 @@ class CaptiveEngine:
                         "and were not checked: %s",
                         len(unchecked), ", ".join(unchecked))
         policy = (warrant.get("constraints") or {}).get("on_boundary_violation", "reject")
+        clamped: List[Dict[str, Any]] = []
         if violations and policy == "reject":
             raise WarrantError("boundary_violation",
                             f"inputs outside the operating boundary: {', '.join(violations)}",
                             "the guarantee is void outside the assumption; refer or widen it")
+        if violations and policy == "clamp":
+            # `clamp` is one of the three policies a version may declare, and
+            # the word appeared nowhere here: the check refused under `reject`
+            # and otherwise ran the model on whatever it was sent. A reader of
+            # the contract saw a value that would be brought inside the
+            # assumption; what happened was that the assumption was ignored.
+            inputs, clamped = contract.clamp_inputs(inputs)
+            still = contract.check_inputs(inputs)
+            if still:
+                # A categorical bound has no nearest edge, so a violation of
+                # one survives clamping. Refused rather than run: guessing a
+                # category would be the engine deciding what the model was
+                # asked about.
+                raise WarrantError(
+                    "boundary_violation",
+                    f"inputs outside the operating boundary and not clampable: "
+                    f"{', '.join(still)}",
+                    "a categorical assumption has no nearest edge to move to; "
+                    "send a value the contract admits, or widen it")
+            logger.info("operating boundary: clamped %d input(s) for %s: %s",
+                        len(clamped), warrant["subject"]["model_urn"],
+                        ", ".join(c["key"] for c in clamped))
+            violations = []
 
         # Dispatch on the warrant's declared runtime. Everything above this line
         # is checked without touching an artifact, which is the order that makes
@@ -317,7 +352,9 @@ class CaptiveEngine:
             version=warrant["subject"]["version"],
             prediction=prediction, boundary_ok=not violations,
             boundary_violations=violations,
-            latency_ms=latency_ms)
+            latency_ms=latency_ms,
+            boundary_unchecked=list(unchecked),
+            clamped=clamped)
 
     # ------------------------------------------------------------------- log
     def _log(self, warrant: Dict[str, Any], outcome: str, **fields) -> None:

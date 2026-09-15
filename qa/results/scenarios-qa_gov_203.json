@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-203",
+   "title": "Sweep where one trigger fired on fifty models",
+   "verdict": "PASS",
+   "evidence": "4 findings under 1 root(s)"
+  }
+ ]
+}

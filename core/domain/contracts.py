@@ -156,6 +156,73 @@ class Contract:
         return [b.key for b in self.assumptions
                 if b.key in seen and not b.contains(seen[b.key])]
 
+    def clamp_inputs(self, values: Dict[str, Any]) -> Tuple[Dict[str, Any],
+                                                            List[Dict[str, Any]]]:
+        """Bring violating values to the nearest edge of their assumption.
+
+        For `on_boundary_violation: clamp`, which a version may declare and
+        which the engine did not act on — it refused only under `reject`, so a
+        version declaring `clamp` ran the model on the value it was sent,
+        unclamped and unrefused, and reported `boundary_ok: false` afterwards.
+        A reader of that contract saw a value that would be brought inside the
+        assumption; what happened was that the assumption was ignored.
+
+        Numeric bands only. A CATEGORICAL bound has no nearest edge — there is
+        no value between `mtg` and `btl` — so a violation of one is returned
+        unclamped and the caller refuses on it. Guessing a category would be
+        the engine choosing what the model was asked about.
+
+        Returns the values to run on and a record of every change, because a
+        prediction made on numbers the caller did not send is one the caller
+        has to be told about.
+        """
+        clamped = dict(values)
+        changes: List[Dict[str, Any]] = []
+        flat = self._flatten(values)
+        for bound in self.assumptions:
+            if bound.key not in flat or bound.contains(flat[bound.key]):
+                continue
+            if bound.allowed:
+                continue                     # no nearest edge to move to
+            try:
+                value = float(flat[bound.key])
+            except (TypeError, ValueError) as exc:
+                # Not a number, so there is no nearest edge. The caller refuses
+                # on it a moment later — `check_inputs` already counts a
+                # non-numeric value against a numeric band as outside the
+                # assumption — and this is logged because a contract declaring
+                # a band on a key the runtime sends as text is a mismatch
+                # somebody should see rather than a value quietly skipped.
+                swallowed(logger, exc,
+                          f"clamp the value of '{bound.key}' to its band",
+                          detail=f"value={flat[bound.key]!r} is not a number, "
+                                 f"so it has no nearest edge; the boundary "
+                                 f"check refuses it instead")
+                continue
+            edge = value
+            if bound.minimum is not None and value < bound.minimum:
+                edge = float(bound.minimum)
+            elif bound.maximum is not None and value > bound.maximum:
+                edge = float(bound.maximum)
+            if edge == value:
+                continue
+            changes.append({"key": bound.key, "sent": value, "ran_on": edge,
+                            "minimum": bound.minimum, "maximum": bound.maximum})
+            self._set(clamped, bound.key, edge)
+        return clamped, changes
+
+    @staticmethod
+    def _set(values: Dict[str, Any], key: str, value: float) -> None:
+        """Write a value back where `_flatten` found it — top level, or one down."""
+        if key in values:
+            values[key] = value
+            return
+        for name, nested in values.items():
+            if isinstance(nested, dict) and key in nested:
+                values[name] = {**nested, key: value}
+                return
+        values[key] = value
+
     def unchecked_inputs(self, values: Dict[str, Any]) -> List[str]:
         """Assumption keys no supplied value reached.
 
