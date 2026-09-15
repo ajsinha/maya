@@ -5,7 +5,7 @@
   "fail": 25,
   "blocked": 1
  },
- "seconds": 82.8,
+ "seconds": 38.6,
  "results": [
   {
    "id": "QA-AM-001",
@@ -761,7 +761,7 @@
    "id": "QA-AM-138",
    "title": "Attach a finding that is already attached to a *different* root",
    "verdict": "FAIL",
-   "evidence": "a finding under root 01a0a327d26a6a79af8206070813 was moved to root 01a0a327d27581741a4772f63f5e by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+   "evidence": "a finding under root 01a0a362bcb3f25ae630cb4d467e was moved to root 01a0a362bcb6dd34bda804493b50 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
   },
   {
    "id": "QA-AM-139",
@@ -1457,7 +1457,7 @@
    "id": "QA-AM-270",
    "title": "Compare the `plan_digest` in a submission against the plan that was issued",
    "verdict": "FAIL",
-   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:e0d21c1a8bbbf9569ffba768750506bc97bd3f87838a2438f2cbb671c762d037 against the issued sha256:91fd302d3293088d6edc77f8ee2c96589fd39a38c4ffbfabee0c9d0632765f0e. The digest exists to tie a submiss"
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:d69374a2a713a4b3d70df2647ed29de28cf5526cdad27c80e00069260c7aeb36 against the issued sha256:9a9f93547912dedbddcc2d758020327ab265cda05eec104df5b4fc384d8031c5. The digest exists to tie a submiss"
   },
   {
    "id": "QA-AM-272",
@@ -1841,7 +1841,7 @@
    "id": "QA-AM-370",
    "title": "A model with no purpose class at all",
    "verdict": "PASS",
-   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-354144ee', 'why': 'neither designated consumer_impactin"
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-e9d6f293', 'why': 'neither designated consumer_impactin"
   },
   {
    "id": "QA-AM-372",
@@ -2309,7 +2309,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a328e969b74a537b22c8c2fe\",\"model_id\":\"01a0a328e9433699dfd7645ca52d\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-27e8b8a2\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a3633f265bd7103f82af9000\",\"model_id\":\"01a0a3633f1b44da28e32b1c057e\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-0a7dcf90\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -2339,13 +2339,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a328ea59341a50d617cf63ab\",\"reference\":\"SUP-7ba888fc\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a3633f73a7e8839ab6b3fe1d\",\"reference\":\"SUP-9907b4f8\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a328ea800431d367c4e86474\",\"reference\":\"SUP-e48f31f7\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a3633f84b7f9067dff4e3cbc\",\"reference\":\"SUP-8cce6bda\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",

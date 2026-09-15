@@ -31,7 +31,12 @@ from core.assist import AssistError
 from core.classification import ClassificationError
 from core.estate.common import EstateError
 from core.events.common import EventError
+from core.evidence.anchor import AnchorError
 from core.evidence.timestamps import TimestampError
+from core.evidence.worm import WormError
+from db.database import FoldViolation
+from core.references.index import NoSuchSubject
+from db.repositories import AppendOnlyViolation
 from core.http.conventions import CursorError
 from core.discovery.common import DiscoveryError
 from core.plugins.common import PluginError
@@ -270,6 +275,17 @@ STATUS: Dict[str, int] = {
     "anchor_disagreement": 409, "anchor_unreadable": 409, "chain_broken": 409,
     "nothing_to_anchor": 409, "worm_overwrite_refused": 409,
     "worm_unreadable": 409, "worm_bad_name": 422,
+    # A root that will not take a write. 409 beside `worm_unreadable`:
+    # nothing about the request is wrong, and the second medium is the
+    # one thing a rewritten database cannot satisfy — so this is a
+    # conflict with the deployment, not a fault in the call.
+    "worm_unwritable": 409,
+    # An UPDATE or DELETE against a table that only takes inserts. The
+    # refusal carried a code, a detail and a remediation and reached
+    # nothing: not this map, and not `Routes.guard`.
+    "append_only": 409,
+    # A write to a table an estate fold is serving reads from.
+    "written_during_a_fold": 409,
     # The contract algebra. All 409: nothing is wrong with the request, and
     # sending it again differently will not help. Two contracts genuinely
     # cannot be combined — a band with a gap in it has no join, and two
@@ -373,6 +389,11 @@ STATUS: Dict[str, int] = {
     # the request is well formed and the register is in a state that
     # forbids it, which is exactly what a conflict is.
     "still_referenced": 409,
+    # 404, and held apart from `still_referenced` on purpose: "there is no
+    # such thing" and "nothing refers to it" are opposite answers, and
+    # conflating them is how the dependency screen told somebody a name
+    # they had mistyped was safe to delete.
+    "no_such_subject": 404,
     # An API key presented for something its scope excludes. 403,
     # not 401: the credential is valid and the act is not permitted
     # to it, which is a different thing from not being signed in.
@@ -859,7 +880,13 @@ class Routes:
                 ReferencedError, ApiKeyError,
                 ClassificationError, EstateError,
                 EventError, RetentionError, PluginError,
-                TimestampError, CursorError, DiscoveryError) as exc:
+                TimestampError, CursorError, DiscoveryError,
+                # Every one of these already carried error/detail/
+                # remediation and had its codes in the map above, and
+                # none of them was caught here — so a refusal built to
+                # be delivered reached a caller as an unmapped 500.
+                AnchorError, WormError, AppendOnlyViolation,
+                FoldViolation, NoSuchSubject) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

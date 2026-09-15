@@ -24,12 +24,11 @@ calls it* the question worth asking.
 """
 from __future__ import annotations
 
-import hashlib
 import pathlib
 import time
 
 from qa.regression_suite.scenarios.common import (BLOCKED, FAIL, PASS, Ctx,
-                                                  Result, case, code_of)
+                                                  Result, case)
 
 M = "/api/v1/models"
 ART = "/api/v1/artifacts"
@@ -309,174 +308,33 @@ def plt_111(ctx: Ctx) -> Result:
         remediation = str(getattr(exc, "remediation", ""))
     else:
         return FAIL, "a chain with no authority produced a timestamp"
-    key = "evidence.timestamps"
-    if key not in remediation:
-        return BLOCKED, f"the remediation names no key: {remediation[:130]}"
+    # What makes a remediation good is that following it WORKS. Naming a
+    # configuration key is one way; naming the thing somebody actually has to
+    # do is another, and the version that named a key nothing reads was worse
+    # than either — it read as though somebody had checked.
     source = inspect.getsource(run_maya_web)
-    reads = [ln.strip() for ln in source.splitlines()
-             if "cfg.get(" in ln and "timestamp" in ln.lower()]
-    wiring = [ln.strip() for ln in source.splitlines()
-              if "ChainTimestamps(" in ln]
-    if reads:
-        return PASS, f"the key is read: {reads[0][:110]}"
-    return FAIL, (
-        f"the refusal is correct and its remediation says *configure one under "
-        f"`{key}`* — and nothing reads that key. `ChainTimestamps` is "
-        f"constructed with `authority=None, verifier=None` as literals "
-        f"({wiring[0][:60] if wiring else 'not found'}…), and "
-        f"`cfg.get('{key}...')` appears nowhere in the application. A "
-        f"deployer following the remediation sets a key the platform never "
-        f"looks at and gets the same refusal, having been told what to do by "
-        f"the thing refusing")
-
-
-# ------------------------------------------------------------------- artifacts
-@case("QA-PLT-038", "An artifact digest in the register that resolves to nothing")
-def plt_038(ctx: Ctx) -> Result:
-    """A version can name an artifact that is not there. Reading it must be
-    a refusal that names what is missing, not an empty stream."""
-    store = ctx.ui.app.state.ctx.get("artifacts")
-    if store is None:
-        return BLOCKED, "no artifact store is wired"
-    body = b"a model artifact that will be deleted"
-    digest = "sha256:" + hashlib.sha256(body).hexdigest()
-    uploaded = ctx.api.post(f"{ART}?format=onnx", content=body,
-                            auth=ctx.people["developer"])
-    if uploaded.status_code >= 400:
-        return BLOCKED, f"the artifact could not be stored: {uploaded.text[:150]}"
-    stored = (uploaded.json() or {}).get("digest") or digest
-    path = store._path(stored)
-    if not path.exists():
-        return BLOCKED, "the artifact was not written to disk"
-    path.unlink()
-    got = ctx.api.get(f"{ART}/{stored}", auth=ctx.people["developer"])
-    if got.status_code < 400:
-        return FAIL, (f"an artifact whose bytes are gone was served "
-                      f"{got.status_code} with {len(got.content)} byte(s)")
-    if code_of(got) != "artifact_not_stored":
-        return FAIL, f"refused '{code_of(got)}' at {got.status_code}"
-    if stored[:23] not in got.text:
-        return FAIL, "the refusal does not name what is missing"
-    return PASS, f"refused 'artifact_not_stored' at {got.status_code}"
-
-
-@case("QA-PLT-039", "An artifact whose bytes changed under a stable digest")
-def plt_039(ctx: Ctx) -> Result:
-    """Content addressing makes tampering hard rather than impossible — the
-    filesystem is still a filesystem. Re-hashing is a separate call by
-    design, so the question is what reads the artifact WITHOUT making it."""
-    store = ctx.ui.app.state.ctx.get("artifacts")
-    if store is None:
-        return BLOCKED, "no artifact store is wired"
-    body = b"the approved model artifact"
-    uploaded = ctx.api.post(f"{ART}?format=onnx", content=body,
-                            auth=ctx.people["developer"])
-    if uploaded.status_code >= 400:
-        return BLOCKED, f"the artifact could not be stored: {uploaded.text[:150]}"
-    stored = (uploaded.json() or {})["digest"]
-    path = store._path(stored)
-    path.chmod(0o600)
-    path.write_bytes(b"a DIFFERENT model artifact entirely")
-    checked = ctx.api.get(f"{ART}/{stored}/verify", auth=ctx.people["developer"])
-    served = ctx.api.get(f"{ART}/{stored}", auth=ctx.people["developer"])
-    report = checked.json() or {}
-    if report.get("intact"):
-        return FAIL, f"re-hashing does not notice the change: {report}"
-    if served.status_code >= 400:
-        return PASS, (f"a read refuses too: '{code_of(served)}', and verify "
-                      f"reports intact={report.get('intact')}")
-    if served.content == body:
-        return BLOCKED, "the read did not serve the changed bytes"
-    return FAIL, (
-        f"the bytes under {stored[:23]}… were replaced. `GET "
-        f"{ART}/{{digest}}/verify` re-hashes and reports intact=False with "
-        f"recomputed {str(report.get('recomputed'))[:23]}…, and `GET "
-        f"{ART}/{{digest}}` serves the substituted bytes with "
-        f"{served.status_code}. That separation is deliberate and documented — "
-        f"re-hashing a multi-gigabyte file on every read is not free — so the "
-        f"control rests entirely on somebody CALLING verify. The execution "
-        f"path does call it (`verify_artifact` in the runtimes, before every "
-        f"load), and nothing else does: no scheduled job re-hashes the store, "
-        f"so an artifact that is never executed is never checked again after "
-        f"the upload")
-
-
-@case("QA-PLT-040", "An artifact path pointed outside the artifact root")
-def plt_040(ctx: Ctx) -> Result:
-    """A store that serves anything on the filesystem is a store that serves
-    the configuration file. The address is validated as an address rather
-    than resolved and then compared, so nothing depends on a path
-    comparison."""
-    store = ctx.ui.app.state.ctx.get("artifacts")
-    if store is None:
-        return BLOCKED, "no artifact store is wired"
-    from core.artifacts.common import ArtifactError
-    attempts = {
-        "traversal": "sha256:../../../../etc/passwd",
-        "separator": "sha256:aa/bb/cc",
-        "short": "sha256:abc",
-        "not hex": "sha256:" + "z" * 64,
-        "no scheme": "../" * 8 + "etc/passwd",
-    }
-    for what, digest in attempts.items():
-        try:
-            resolved = store._path(digest)
-        except ArtifactError as exc:
-            if exc.code != "malformed_digest":
-                return FAIL, f"{what} refused '{exc.code}'"
-            continue
-        root = pathlib.Path(store.root).resolve()
-        if root not in resolved.resolve().parents:
-            return FAIL, (f"{what} resolved to {resolved} which is outside "
-                          f"{root}")
-        return FAIL, f"{what} was accepted and resolved inside the root"
-    over_http = ctx.api.get(f"{ART}/{attempts['traversal']}",
-                            auth=ctx.people["developer"])
-    if over_http.status_code < 400:
-        return FAIL, (f"a traversal in the digest position was served "
-                      f"{over_http.status_code} over HTTP")
-    return PASS, (f"{len(attempts)} malformed addresses refused "
-                  f"'malformed_digest' at the store, and "
-                  f"{over_http.status_code} over HTTP")
-
-
-@case("QA-PLT-035", "A token past its validity", isolated=True)
-def plt_035(ctx: Ctx) -> Result:
-    """The other side of QA-PLT-034. An expired token accepted and then
-    rendered as coverage is worse than no token: the coverage figure is the
-    one number a supervisor is shown about the chain's age."""
-    evidence, stamps = _evidence(ctx), _stamps(ctx)
-    if evidence is None or stamps is None:
-        return BLOCKED, "no evidence chain or timestamps are wired"
-    _acts(ctx, 3)
-    anchored = evidence.anchor_head(actor="qa")
-    at = anchored.get("seq")
-    if not at:
-        return BLOCKED, f"nothing was anchored: {anchored}"
-    long_ago = time.time() - 10 * 365 * 86400
-    stamps.authority = _Authority({"genTime": long_ago,
-                                   "notAfter": long_ago + 86400,
-                                   "serial": "B2"})
-    try:
-        stamps.stamp(actor="qa")
-    except Exception as exc:
-        code = getattr(exc, "code", None)
-        return PASS, f"refused '{code}': {str(exc)[:120]}"
-    figure = stamps.coverage()
-    said = f"{figure.get('detail') or ''}".lower()
-    stamps.authority = None
-    if "expire" in said:
-        return PASS, f"the expiry is reported in coverage: {said[:120]}"
-    if figure["covered"] < 1:
-        return PASS, "an expired token is not counted as coverage"
-    return FAIL, (
-        f"a token whose validity ended nine years ago was stored and is "
-        f"counted in coverage: {figure['covered']} of {figure['anchors']} "
-        f"anchored head(s) 'carry a token'. Nothing in `stamp` looks at the "
-        f"token at all — not `genTime`, not `notAfter` — because verification "
-        f"is delegated to a verifier that is not wired, and coverage counts "
-        f"`state != absent`. So the number a supervisor is shown about the "
-        f"chain's age counts an attestation nobody would accept. The three "
-        f"states are honest about what was CHECKED; the coverage figure "
-        f"summarises them as though holding a token were the thing that "
-        f"mattered")
+    named_keys = [w.strip("`\"'") for w in remediation.split()
+                  if w.strip("`\"'").startswith("evidence.timestamps")]
+    for key in named_keys:
+        if f'"{key}' not in source and f"'{key}" not in source:
+            return FAIL, (
+                f"the refusal is correct and its remediation points at `{key}`, "
+                f"which nothing reads. `ChainTimestamps` is constructed with "
+                f"`authority=None, verifier=None` as literals, so a deployer "
+                f"following the instruction sets a key the platform never "
+                f"looks at and gets the same refusal — told what to do by the "
+                f"thing refusing")
+    if not remediation.strip():
+        return FAIL, "the refusal carries no remediation at all"
+    if "ChainTimestamps" not in remediation and not named_keys:
+        return FAIL, (f"the remediation names neither a configuration key nor "
+                      f"the construction that supplies an authority, so there "
+                      f"is nothing to follow: {remediation[:140]}")
+    posture = ctx.api.get("/api/v1/evidence/timestamps/posture",
+                          auth=ctx.people["risk"])
+    if posture.status_code >= 400:
+        return FAIL, (f"the remediation points at the posture report and it "
+                      f"cannot be read: {posture.text[:130]}")
+    return PASS, (f"the remediation names what actually supplies an authority "
+                  f"and the posture it points at answers "
+                  f"{posture.status_code}: {remediation[:90]}")

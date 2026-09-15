@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 1.9,
+ "seconds": 1.2,
  "results": [
   {
    "id": "QA-PLT-098",
    "title": "An anchor or WORM refusal reaching HTTP",
-   "verdict": "FAIL",
-   "evidence": "7 anchor and WORM refusal codes are mapped in STATUS \u2014 ['anchor_disagreement', 'anchor_unreadable', 'chain_broken', 'nothing_to_anchor', 'worm_overwrite_refused', 'worm_unreadable', 'worm_bad_name'] \u2014 and `Routes.guard` catches neither AnchorError nor WormError (it caught neither). Both carry error, detail and remediation, so the taxonomy is half-built: the status map knows these codes and nothing"
+   "verdict": "PASS",
+   "evidence": "both are caught and 7 code(s) are mapped"
   }
  ]
 }

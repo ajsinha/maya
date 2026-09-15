@@ -35,7 +35,7 @@ class ContextBuilder:
     def __init__(self, registry, evidence, risk_repo=None, features=None,
                  validation=None, findings=None, monitoring=None, lifecycle=None,
                  warrants=None, overlays=None, regimes=None, attachments=None,
-                 limitations=None, assumptions=None):
+                 limitations=None, assumptions=None, documents=None):
         self.registry, self.evidence = registry, evidence
         self.risk_repo, self.features = risk_repo, features
         self.validation, self.findings = validation, findings
@@ -49,6 +49,12 @@ class ContextBuilder:
         # statements a person had taken the trouble to record sat in a register
         # the document could not see.
         self.limitations, self.assumptions = limitations, assumptions
+        # The register of what has already been COMPILED about a model.
+        # Optional and set after construction in the application, because the
+        # compiler is built FROM this context and owns the register this needs
+        # to read. Absent, `has_documentation` is simply False, which is the
+        # honest answer for a builder wired without one.
+        self.documents = documents
 
     def __call__(self, urn: str) -> Dict[str, Any]:
         # Which sections could not be READ, as distinct from which had nothing
@@ -132,6 +138,20 @@ class ContextBuilder:
             lambda: self.attachments.for_model(model["id"]), "attachments", default=[])
         ctx["attachment_status"] = self._optional(
             lambda: self.attachments.status(model["id"]), "attachment status", default={})
+        # What has already been COMPILED about this model.
+        #
+        # `RegimeEngine.core_state` reads `state["documents"]` for
+        # `has_documentation`, and nothing put it here — so the fact was
+        # permanently False and every regime obligation conditioned on
+        # documentation existing could never be satisfied, on models carrying a
+        # compiled document. The docstring beside `core_state` says the point
+        # of reading THIS state is that the compiler, the gap detector and the
+        # regime engine agree about what a model has; they cannot agree about a
+        # key only one of them reads.
+        ctx["documents"] = self._optional(
+            (lambda: self.documents.for_model(model["id"]))
+            if self.documents is not None else None,
+            "compiled documents", default=[])
         # Regime determinations read the same context, so this is computed last
         # from what the rest of it found.
         ctx["regimes"] = self._optional(

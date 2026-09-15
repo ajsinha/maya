@@ -132,6 +132,24 @@ def _family(sa_type: Any) -> str:
     return "text"
 
 
+class FoldViolation(RuntimeError):
+    """A write to a table an estate fold is serving reads from.
+
+    Coded, because it can reach HTTP: a request that opens a fold and then
+    writes gets this, and a refusal with no code arrives as a 500 with nothing
+    a caller can act on.
+    """
+
+    def __init__(self, detail: str, remediation: str = ""):
+        super().__init__(detail)
+        self.code = "written_during_a_fold"
+        self.detail, self.remediation = detail, remediation
+
+    def as_problem(self) -> Dict[str, str]:
+        return {"error": self.code, "detail": self.detail,
+                "remediation": self.remediation}
+
+
 class Database:
     """Owns the engine and applies the schema for the configured dialect."""
 
@@ -843,12 +861,19 @@ class Database:
 
     def _refuse_write_while_folding(self, table: str) -> None:
         if self._fold is not None and table in self._fold:
-            raise RuntimeError(
+            # A CODED refusal, not a bare RuntimeError. `Routes.guard` maps a
+            # refusal onto the taxonomy by reading `code`; one without it
+            # reaches a caller as an unmapped 500, which is the one outcome
+            # DR-6 forbids — and it would arrive from the code that exists to
+            # keep a governance read consistent.
+            raise FoldViolation(
                 f"'{table}' was written during an estate fold. A fold serves "
                 f"reads from an index built once; writing to a folded table "
                 f"would make the rest of the fold answer from before the "
                 f"write, and a governance read that is half-stale is worse "
-                f"than a slow one")
+                f"than a slow one",
+                "do the write outside the fold — a read that folds is a read, "
+                "and a request that needs to write should not be holding one")
 
     def execute(self, sql: str, params: Optional[Dict[str, Any]] = None) -> int:
         conn = _CONNECTION.get()

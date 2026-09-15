@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-092",
+   "title": "A write through a repository during a fold",
+   "verdict": "PASS",
+   "evidence": "refused 'written_during_a_fold': 'model' was written during an estate fold. A fold serves reads from an index built once; writing to a folded t"
+  }
+ ]
+}

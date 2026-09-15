@@ -128,9 +128,20 @@ class ChainTimestamps:
                 "no_timestamp_authority",
                 "no time stamp authority is wired, so nothing here can attest "
                 "to when this chain head existed",
-                "configure one under `evidence.timestamps` — and until then "
-                "the chain's timestamps are the firm's own clock, which is "
-                "reported rather than assumed")
+                # NOT a configuration key. This said *configure one under
+                # `evidence.timestamps`*, and nothing reads that key — so a
+                # deployer following the instruction set something the platform
+                # never looks at and got the same refusal, having been told what
+                # to do by the thing refusing. MAYA ships no authority on
+                # purpose: an RFC 3161 client that MAYA both supplied and
+                # trusted would be the arrangement this exists to replace. One
+                # is passed in by whoever builds the instance.
+                "supply one to `ChainTimestamps(authority=...)` where this "
+                "instance is constructed — MAYA ships none, because an "
+                "authority it minted and trusted itself would prove nothing. "
+                "Until then the chain's times are the firm's own clock, and "
+                "`GET /api/v1/evidence/timestamps/posture` reports that rather "
+                "than assuming it")
         anchored = self.anchor.latest() if seq is None \
             else next((a for a in self.anchor.anchors() if a["seq"] == seq),
                       None)
