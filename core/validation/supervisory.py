@@ -101,6 +101,17 @@ class SupervisoryMatters:
                 "it is how the firm and the supervisor talk about the same "
                 "thing, and a matter tracked under an internal id only is one "
                 "nobody can reconcile against the letter")
+        if not (supervisor or "").strip():
+            raise ValidationError(
+                "a supervisory matter needs the supervisor who raised it. "
+                "Which authority wrote the letter decides what the firm owes "
+                "and by when — a matter attributed to nobody is one every "
+                "regime report has to guess about")
+        if not (owner or "").strip():
+            raise ValidationError(
+                "a supervisory matter needs an owner. This is the one finding "
+                "an outside body will ask about by name, and an unowned matter "
+                "is one with no answer to 'who is dealing with it'")
         if self.matters.one(reference=reference):
             raise ValidationError(
                 f"matter '{reference}' is already recorded; a second row under "

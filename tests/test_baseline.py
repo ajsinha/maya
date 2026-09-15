@@ -16,6 +16,7 @@ import time
 import pytest
 
 from core.baseline import BASELINED, BaselineError, gaps
+from core.registry import RegistryError
 
 DAY = 86400.0
 
@@ -47,7 +48,8 @@ class TestGapsAreComputed:
 
     def test_a_fully_governed_model_has_no_gaps(self):
         state = {
-            "model": {"owner": "o", "purpose": "p", "tier": 1},
+            "model": {"owner": "o", "purpose": "p", "tier": 1,
+                      "legal_entity": "LE-US-01"},
             "versions": [{"artifact_digest": "sha256:" + "8" * 64, "contract": {"assumptions": []}}],
             "feature_contract": {"items": []}, "validations": [{"id": "v"}],
             "monitoring": {"monitors": 1}, "documents": [{"id": "d"}],
@@ -109,6 +111,53 @@ class TestImporting:
 
 
 # ============================================================ debt != breach
+class TestTheCarveOutIsNarrowAndDeliberate:
+    """`admitting_gaps` exists for this importer and nowhere else.
+
+    An ordinary registration refuses a model with no owner, no purpose, no
+    name or no legal entity — a blank `"   "` satisfies the route's own
+    validation, so the check is at the service. The baseline register is the
+    opposite case: a model that arrived from a spreadsheet without its
+    evidence, whose missing owner is a **tracked gap** carrying a Critical
+    debt item with an expiry date.
+
+    Refusing those rows would leave the models off the register entirely,
+    which is strictly worse — an ungoverned model that is recorded can be
+    found and fixed; one that was never admitted cannot. So the flag moves
+    where the absence is recorded, from a refusal to a dated obligation, and
+    it does not skip a control.
+    """
+
+    def test_an_ordinary_registration_refuses_a_blank_stated_ground(
+            self, registry):
+        for field in ("owner", "legal_entity", "purpose", "name"):
+            body = {"urn": f"maya://model/plain.{field}", "name": "N",
+                    "model_class": "c", "domain": "credit", "owner": "person/x",
+                    "legal_entity": "LE-1", "purpose": "p", "actor": "admin"}
+            body[field] = "   "
+            with pytest.raises(RegistryError, match=f"needs a {field}"):
+                registry.register(**body)
+
+    def test_the_importer_admits_them_and_records_the_debt(self, baseline,
+                                                            debts, registry):
+        out = baseline.import_models("csv", [{"urn": "maya://model/bare.one",
+                                              "tier": 1}])
+        assert out["models"] == 1, out.get("skipped")
+        model = registry.get("maya://model/bare.one")
+        assert model is not None, "the row was refused rather than admitted"
+        keys = {d["gap_key"] for d in debts.open_for(model["id"])}
+        assert {"owner", "purpose", "legal_entity"} <= keys, (
+            f"admitted without recording the absence as debt: {sorted(keys)}")
+
+    def test_a_missing_legal_entity_is_critical(self):
+        """Not paperwork. Scope is applied by entity, so a model belonging to
+        none is absent from every entity-scoped reader's estate, worklist and
+        board pack — visible only to the unscoped."""
+        found = gaps.find({"model": {"owner": "o", "purpose": "p", "tier": 1}})
+        entity = [g for g in found if g.key == "legal_entity"]
+        assert entity and entity[0].materiality == "Critical"
+
+
 class TestDebtIsNotBreach:
     @pytest.fixture
     def imported(self, baseline, registry):

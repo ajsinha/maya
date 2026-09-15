@@ -119,6 +119,16 @@ class Elicitations:
                 "assumption — and the assumption register is where an "
                 "assumption belongs, with a materiality, an owner and "
                 "something watching it")
+        if not (facilitator or "").strip():
+            raise ParameterError(
+                "facilitator_required",
+                "an elicitation with no facilitator is a set of numbers "
+                "somebody collected. The facilitator is the one role that "
+                "makes the panel's answer attributable: they set the "
+                "question, they see the responses before the panel does, and "
+                "they are who is asked how the number was arrived at",
+                "name who is running it — and not somebody on the panel, "
+                "which is refused separately")
         if facilitator in members:
             raise ParameterError(
                 "facilitator_is_a_panellist",

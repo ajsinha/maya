@@ -42,6 +42,16 @@ GAPS: Sequence[Gap] = (
         lambda s: bool((s["model"] or {}).get("owner"))),
     Gap("purpose", "no declared purpose, so no approved use to check against",
         "High", lambda s: bool((s["model"] or {}).get("purpose"))),
+    # Critical, and the reason is not paperwork. Scope is applied by legal
+    # entity, so a model belonging to none is absent from every entity-scoped
+    # principal's estate, worklist and board pack — visible only to the
+    # unscoped, which is nobody whose job is to be accountable for it. A
+    # baseline import that quietly produced those would be an import that hid
+    # its own output.
+    Gap("legal_entity",
+        "no legal entity, so the model is invisible to every entity-scoped "
+        "reader — including the people accountable for it",
+        "Critical", lambda s: bool((s["model"] or {}).get("legal_entity"))),
     Gap("version", "no version, so nothing is pinned and nothing is digested",
         "Critical", lambda s: bool(s.get("versions"))),
     Gap("artifact_digest",

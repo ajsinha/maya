@@ -101,6 +101,20 @@ class OverlayRegister:
             raise OverlayError("unknown_direction",
                                f"unknown direction '{direction}'",
                                f"expected one of {', '.join(DIRECTIONS)}")
+        if not str(owner or "").strip():
+            raise OverlayError(
+                "owner_required",
+                "an overlay is somebody adjusting a model's answer by hand, "
+                "and an unowned one is an adjustment with nobody to renew it, "
+                "measure it or absorb it — so it runs until somebody notices",
+                "name who is accountable for the adjustment; they are who the "
+                "renewal and the measurement will be asked of")
+        if not str(name or "").strip():
+            raise OverlayError(
+                "name_required",
+                "an overlay with no name appears on every reading of the "
+                "model as an unlabelled adjustment to its output",
+                "name what it corrects, in the words a reader would use")
         if not rationale.strip():
             raise OverlayError(
                 "rationale_required",

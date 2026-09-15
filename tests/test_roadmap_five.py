@@ -325,6 +325,48 @@ class TestAShareIsNotAPortal:
                                       "content_digest": "sha256:aa", **kwargs})
             assert e.value.code == code
 
+    def test_a_read_cap_of_zero_is_not_no_limit(self, sharing):
+        """`"max_reads": int(max_reads) if max_reads else None` — zero is
+        falsy, so asking for NO permitted reads produced a share with NO
+        LIMIT. The exact inverse of the request, stored silently."""
+        with pytest.raises(ExportError) as e:
+            sharing.share(URN, recipient="PRA", purpose="exam",
+                          content_digest="sha256:aa", max_reads=0)
+        assert e.value.code == "max_reads_refused"
+        assert "the exact inverse" in e.value.remediation
+
+    def test_a_negative_read_cap_is_refused(self, sharing):
+        """A share born exhausted, which reads on the register as a link
+        somebody used up."""
+        with pytest.raises(ExportError) as e:
+            sharing.share(URN, recipient="PRA", purpose="exam",
+                          content_digest="sha256:aa", max_reads=-1)
+        assert e.value.code == "max_reads_refused"
+
+    def test_a_cap_of_one_is_stored_as_one(self, sharing):
+        made = sharing.share(URN, recipient="PRA", purpose="exam",
+                             content_digest="sha256:aa", max_reads=1)
+        assert sharing.status(made["reference"])["max_reads"] == 1
+
+    def test_revoking_needs_a_reason(self, sharing):
+        made = sharing.share(URN, recipient="PRA", purpose="exam",
+                             content_digest="sha256:aa")
+        with pytest.raises(ExportError) as e:
+            sharing.revoke(made["reference"], "  ")
+        assert e.value.code == "reason_required"
+        assert "end of engagement" in e.value.detail
+
+    def test_days_left_never_goes_negative(self, sharing):
+        """An expired share reported -10.0, and a negative number sorts FIRST
+        on a list ordered by time remaining — so the links furthest past their
+        end read as the ones with longest to run."""
+        made = sharing.share(URN, recipient="PRA", purpose="exam",
+                             content_digest="sha256:aa", days=1.0, now=0.0)
+        out = sharing.status(made["reference"], now=11 * 86400.0)
+        assert out["days_left"] == 0.0
+        assert out["days_past_expiry"] == 10.0
+        assert out["state"] == "expired"
+
     def test_the_window_is_bounded(self, sharing):
         with pytest.raises(ExportError) as e:
             sharing.share(URN, recipient="PRA", purpose="exam",

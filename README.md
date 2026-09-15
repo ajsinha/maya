@@ -320,7 +320,7 @@ current there:
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
 | Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **93 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
 | Row-level security | Built, and a **backstop** rather than the control. It needs three deployment facts to be true, and `GET /api/v1/row-level-security` reports all three rather than assuming them — including whether the connecting role is a superuser, which bypasses every policy |
-| QA | **4,122 published cases** in [`qa/QA-CASES.md`](qa/QA-CASES.md), half of them generated from `openapi.lock.json`, the refusal map and the navbar so the list cannot quietly stop covering the system. The judgement cases are hand-written in `qa/cases/`, and a growing number are **runnable**: `python -m qa.regression_suite.scenario_run`. A scenario answering an id whose published subject is different fails the build |
+| QA | **4,124 published cases** in [`qa/QA-CASES.md`](qa/QA-CASES.md), half of them generated from `openapi.lock.json`, the refusal map and the navbar so the list cannot quietly stop covering the system. The judgement cases are hand-written in `qa/cases/`, and a growing number are **runnable**: `python -m qa.regression_suite.scenario_run`. A scenario answering an id whose published subject is different fails the build |
 | The CLI | `maya`, installed with the SDK. **Three** exit codes: 0 answered yes, 1 MAYA refused, 2 MAYA was not reached — separated because a pipeline that collapses them goes green whenever the governance platform is down, which is worse than no gate at all. No flag suppresses a refusal |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped. The Java SDK holds the same line: `java.net.http` and two hundred lines of JSON |
 
@@ -516,7 +516,7 @@ maya/
 │                                    the public record, and their closing sections list
 │                                    what MAYA does not reach
 ├── qa/                              the test plan and the suite that runs it
-│   ├── QA-CASES.md                  4,122 cases; half generated from source, so the
+│   ├── QA-CASES.md                  4,124 cases; half generated from source, so the
 │   │                                list cannot quietly stop covering the system
 │   ├── cases/                       sections F–J: the judgement cases a generator
 │   │                                cannot see — sequences and cross-object state

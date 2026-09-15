@@ -218,7 +218,16 @@ def gov_230(ctx: Ctx) -> Result:
 @case("QA-GOV-525", "A campaign over an empty population")
 def gov_231(ctx: Ctx) -> Result:
     """A campaign nobody is in completes the moment it opens, and reports as
-    a clean recertification of nothing."""
+    a clean recertification of nothing.
+
+    The defect behind this was not the missing refusal — `empty_population`
+    existed — but that `[]` never reached it. `population` defaulted to `[]` on
+    the body model and `_population` tested it for TRUTH, so an explicitly
+    empty list was indistinguishable from an omitted field and fell through to
+    "everybody active". A caller who computed a population, got nothing back
+    and sent it opened a review over the WHOLE ESTATE: the exact inverse of
+    what they asked for, and nobody would have been told.
+    """
     got = ctx.api.post(RECERT, json={"reference": ctx.unique("rc"),
                                      "reviewer": "risk", "title": "QA",
                                      "population": []})

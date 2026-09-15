@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.6,
+ "results": [
+  {
+   "id": "QA-FX-702",
+   "title": "Define a feature of an unknown dtype",
+   "verdict": "PASS",
+   "evidence": "open by design, blank refused 'feature_refused', and 7 dtype(s) suggested in source"
+  }
+ ]
+}

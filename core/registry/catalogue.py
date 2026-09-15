@@ -46,7 +46,52 @@ class ModelCatalogue:
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
                  origin: str = "internal", actor: str = "system",
-                 attributes: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                 attributes: Optional[Dict[str, Any]] = None,
+                 admitting_gaps: bool = False) -> Dict[str, Any]:
+        """Put a model on the register.
+
+        `admitting_gaps` is for the BASELINE IMPORT and nothing else. The
+        stated grounds below are refused for an ordinary registration, and the
+        baseline register exists for the opposite case — models that arrived
+        from a spreadsheet without their evidence, whose missing owner and
+        missing purpose are TRACKED GAPS carrying a Critical and a High debt
+        item with an expiry. Refusing those rows would leave the models off the
+        register entirely, which is strictly worse: an ungoverned model that is
+        recorded can be found and fixed, and one that was never admitted cannot.
+
+        So the flag does not skip a control; it moves where the absence is
+        recorded, from a refusal to a debt somebody owns with a date on it.
+        """
+        # The stated grounds, stripped and then checked HERE rather than on
+        # the body model: a route can refuse a field that is absent, and
+        # `"   "` is present.
+        #
+        # `legal_entity` is the sharpest of them. Scope is applied by entity,
+        # so a model belonging to none is reachable by no entity-scoped
+        # principal — it does not appear on their estate, in their worklist or
+        # in their board pack, and the only people who can see it are the
+        # unscoped. A model nobody is accountable for, invisible to everybody
+        # whose job is to be accountable.
+        for field, value, why in (
+                ("name", name, "a model nobody can name is one nobody cites"),
+                ("owner", owner,
+                 "an unowned model is one with no answer to every question "
+                 "this register will ask about it"),
+                ("legal_entity", legal_entity,
+                 "scope is applied by entity, so a model belonging to none is "
+                 "invisible to every entity-scoped principal — including the "
+                 "ones whose job is to be accountable for it"),
+                ("purpose", purpose,
+                 "the purpose decides the tier, and a model with none tiers "
+                 "on exposure alone")):
+            if str(value or "").strip():
+                continue
+            if admitting_gaps:
+                # Recorded as debt by the baseline register rather than
+                # refused. See the docstring — and `core/baseline/gaps.py`,
+                # which is where each of these becomes a dated obligation.
+                continue
+            raise RegistryError(f"a model needs a {field}: {why}")
         if self.models.one(urn=urn):
             raise RegistryError(f"a model is already registered with urn {urn}")
         # A URN that is free because nobody has used it and one that is free

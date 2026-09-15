@@ -1,8 +1,8 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
  "seconds": 0.7,
@@ -10,8 +10,8 @@
   {
    "id": "QA-PLT-5406",
    "title": "Revoke with no reason",
-   "verdict": "FAIL",
-   "evidence": "a share was revoked with no reason recorded \u2014 `revoke` strips the reason and never checks it, so the record says a firm stopped serving a supervisor a copy and not why"
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
   }
  ]
 }

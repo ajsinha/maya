@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 6,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 3.1,
+ "results": [
+  {
+   "id": "QA-FX-700",
+   "title": "Define a feature with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-701",
+   "title": "Define a feature with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-702",
+   "title": "Define a feature of an unknown dtype",
+   "verdict": "FAIL",
+   "evidence": "a feature of an unknown dtype was accepted, and the dtype decides how every later comparison behaves"
+  },
+  {
+   "id": "QA-FX-703",
+   "title": "Define a feature with no entity",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-704",
+   "title": "Define a feature with no description",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-705",
+   "title": "Define a negative ttl",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-706",
+   "title": "Define a shape that is not a shape",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  }
+ ]
+}

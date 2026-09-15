@@ -8,10 +8,10 @@
  "seconds": 0.6,
  "results": [
   {
-   "id": "QA-GOV-080",
-   "title": "A semver that is not three numeric parts",
+   "id": "QA-GOV-017",
+   "title": "A model registered with no legal entity",
    "verdict": "PASS",
-   "evidence": "six malformed semvers refused"
+   "evidence": "refused 'registry_refused'"
   }
  ]
 }

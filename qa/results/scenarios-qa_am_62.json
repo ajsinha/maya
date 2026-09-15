@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.9,
+ "results": [
+  {
+   "id": "QA-AM-620",
+   "title": "Open a validation against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-621",
+   "title": "A well-formed validation opens",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-622",
+   "title": "Conclude a validation with an outcome that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-623",
+   "title": "Conclude a validation twice",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-624",
+   "title": "Conclude a validation you are not a validator on",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden'"
+  },
+  {
+   "id": "QA-AM-625",
+   "title": "An overlay with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'rationale_required' (422)"
+  },
+  {
+   "id": "QA-AM-626",
+   "title": "An overlay with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required' (422)"
+  },
+  {
+   "id": "QA-AM-627",
+   "title": "An overlay of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-628",
+   "title": "An overlay with no expiry",
+   "verdict": "PASS",
+   "evidence": "answered 201 (accepted)"
+  },
+  {
+   "id": "QA-AM-629",
+   "title": "Close an overlay with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  }
+ ]
+}

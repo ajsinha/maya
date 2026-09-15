@@ -17,7 +17,7 @@ the artifact instead of an opinion about it.
 from __future__ import annotations
 
 import logging
-
+import re
 import time
 from typing import Any, Dict, List, Optional
 
@@ -56,6 +56,22 @@ def _one_of(enum, value: Any, field: str):
         raise RegistryError(
             f"'{value}' is not a {field}; expected one of {allowed}",
         ) from exc
+
+
+#: What a version may be CALLED, checked when one is created.
+#:
+#: Deliberately narrower than `semver_key`, which parses tolerantly and sorts
+#: anything unparseable below everything else. The two are doing different
+#: jobs: reading has to cope with whatever is already stored, and creating is
+#: the moment the register can still say no. `1.0`, `v1.0.0`, `1.0.0.0` and
+#: `1.0.x` were all accepted and all sort as something other than what their
+#: author meant — `1.0` keys as `(1, 0)`, which sorts BELOW `1.0.0`, so a
+#: version somebody thought they were cutting first came out last.
+#:
+#: A pre-release suffix is allowed because it is real semver and a bank writes
+#: it: `2.0.0-rc.1` is a version, and refusing it would push people to `2.0.0`
+#: for a candidate and leave no way to name the final.
+SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
 
 
 def semver_key(semver: str):
@@ -397,6 +413,15 @@ class VersionService:
         # record without an amendment is how the record quietly stops describing
         # what runs.
         self._check_open(m)
+        if not SEMVER.match(str(semver or "")):
+            raise RegistryError(
+                f"'{semver}' is not a version number. A version is three "
+                f"numbers separated by dots, optionally with a pre-release "
+                f"suffix — 1.0.0, 2.3.11, 2.0.0-rc.1. Anything else sorts as "
+                f"something other than what its author meant: '1.0' orders "
+                f"BELOW '1.0.0', so a version cut first comes out last, and "
+                f"every 'which version is live' answer is then about a "
+                f"different one")
         if self.versions.one(model_id=m["id"], semver=semver):
             raise RegistryError(
                 f"version {semver} already exists for {urn}; versions are immutable")

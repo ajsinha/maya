@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-800",
+   "title": "A parameter set with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'name_required' (422)"
+  }
+ ]
+}
