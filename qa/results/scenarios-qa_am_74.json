@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-740",
+   "title": "The test catalogue is published",
+   "verdict": "PASS",
+   "evidence": "9 test(s), each with its direction"
+  },
+  {
+   "id": "QA-AM-741",
+   "title": "A result naming a test that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', listing the catalogue"
+  },
+  {
+   "id": "QA-AM-742",
+   "title": "A result whose two series are different lengths",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the pairing"
+  },
+  {
+   "id": "QA-AM-743",
+   "title": "A result with empty series",
+   "verdict": "PASS",
+   "evidence": "recorded as not computable: not computable on this sample \u2014 a class may be absent, or the sample too small f"
+  }
+ ]
+}

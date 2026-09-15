@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-PLT-800",
+   "title": "The job catalogue publishes what each job is for",
+   "verdict": "PASS",
+   "evidence": "27 job(s), each saying what it is for"
+  },
+  {
+   "id": "QA-PLT-801",
+   "title": "Run a job that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_job', naming what can be run"
+  },
+  {
+   "id": "QA-PLT-802",
+   "title": "Run the whole pass twice and nothing doubles",
+   "verdict": "PASS",
+   "evidence": "27 job(s) ran twice; the first pass acted on 0 thing(s) and the second on 0, and the already-anchored head was not anchored again"
+  },
+  {
+   "id": "QA-PLT-803",
+   "title": "A job that raises does not stop the pass",
+   "verdict": "PASS",
+   "evidence": "27 job(s) reported, the raising one carrying its error and the rest having run"
+  },
+  {
+   "id": "QA-PLT-804",
+   "title": "The run history records what happened",
+   "verdict": "PASS",
+   "evidence": "23 row(s) added, the newest naming immaterial.conditions, when it ran, who ran it and whether it succeeded"
+  },
+  {
+   "id": "QA-PLT-805",
+   "title": "The scheduler reports when it last ran",
+   "verdict": "PASS",
+   "evidence": "health reports detail=last ran 0.0 hours ago ever_run=27 expected_every_hours=1.0 failing=[] hours_since=0.0 jobs=27 last_run_at=178950"
+  },
+  {
+   "id": "QA-PLT-810",
+   "title": "A subscription to an event that does not exist",
+   "verdict": "PASS",
+   "evidence": "accepted \u2014 kinds are derived, not declared \u2014 and the listing carries its position, so a receiver that never fires is visible"
+  },
+  {
+   "id": "QA-PLT-811",
+   "title": "A subscription with no kinds at all",
+   "verdict": "PASS",
+   "evidence": "refused 'kinds_required' (422)"
+  },
+  {
+   "id": "QA-PLT-812",
+   "title": "A subscription to a plaintext endpoint",
+   "verdict": "PASS",
+   "evidence": "refused 'subscription_url_refused' (422)"
+  },
+  {
+   "id": "QA-PLT-813",
+   "title": "A subscription with a wildcard over every event",
+   "verdict": "PASS",
+   "evidence": "refused 'wildcard_refused', naming the decision nobody made"
+  }
+ ]
+}

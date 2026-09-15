@@ -195,7 +195,7 @@ sequence("QA-GOV-041", "Sign an attestation before approval",
           "validation_error"), setup=fresh)
 
 # ---------------------------------------------------------------- unknown ids
-sequence("QA-GOV-060", "Submit a model that does not exist",
+sequence("QA-GOV-6210", "Submit a model that does not exist",
          [("POST", M + "/{name}/submit", {})],
          ("refused", "registry_refused", "not_found"), setup=unregistered)
 

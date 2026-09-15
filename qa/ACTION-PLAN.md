@@ -58,9 +58,6 @@ down in `raise_finding`: strip, then refuse, naming what the field is for.
 | `QA-AM-626` | expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {"id":"01a0a328e969b74a537b22c8c2fe","model_id":"01a0a328e9433699dfd7645ca52… |
 | `QA-AM-631` | expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {"id":"01a0a328ea59341a50d617cf63ab","reference":"SUP-7ba… |
 | `QA-AM-632` | expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {"id":"01a0a328ea800431d367c4e86474","reference":"SUP-e48f31f7… |
-| `QA-AM-646` | a board pack was cut with no period; the figures in it describe no stated span of time |
-| `QA-AM-701` | a replay ran against no episode |
-| `QA-AM-743` | a test reported over no observations at all; a metric computed from nothing reads as a metric |
 | `QA-AM-801` | a campaign was opened with nothing to cite it by |
 | `QA-FX-4850` | the browser upload control offers '.json' and the API will not read 'json': `accept_attribute` builds its list from a hand-written tuple rather than from UPLOAD_FORMATS, so the two vocabu… |
 | `QA-FX-700` | a feature with no name was accepted, and a feature nobody can name is one nobody can cite |
@@ -124,8 +121,6 @@ them are what an investigation would rest on.
 | `QA-PLT-025` | 4 node(s) appended above the newest anchor (seq 12) were deleted, and nothing notices: the full walk is valid over 12 node(s) and the anchors agree over 1 of them. An anchor bounds the ch… |
 | `QA-PLT-026` | 1 anchor(s) were deleted from /tmp/maya-qa-swooc_0n/data/worm and `verify_against_anchors` answers anchored=0, agrees=1: 'no anchors written yet, so the chain is self-certified and nothin… |
 | `QA-PLT-027` | the entire anchor root was removed and the next anchor recreated it (/tmp/maya-qa-wa153h58/data/worm) and wrote seq 13 into it, reporting written=1. `FilesystemWORM.put` opens with `root.… |
-| `QA-PLT-034` | an authority returned a token dated a year ahead of the request and it was stored and read back with state 'unverified' and no remark. `stamp` records `requested_at` alongside the token a… |
-| `QA-PLT-035` | a token whose validity ended nine years ago was stored and is counted in coverage: 1 of 1 anchored head(s) 'carry a token'. Nothing in `stamp` looks at the token at all — not `genTime`, n… |
 | `QA-PLT-039` | the bytes under sha256:4cadb37ba59f5b2b… were replaced. `GET /api/v1/artifacts/{digest}/verify` re-hashes and reports intact=False with recomputed sha256:c6b2fe0c1ae01eb7…, and `GET /api/… |
 | `QA-PLT-099` | a node's `recorded_at` was moved by 9,999 seconds and the chain still verifies: the timestamp is outside the content hash, so WHEN a governance act was recorded can be rewritten with a si… |
 | `QA-PLT-100` | 'contains_personal_data' was flipped on a node and the chain still verifies: it sits outside the content hash, so the chain hash does not move and the anchors cannot see it either. The fl… |
@@ -145,7 +140,6 @@ not name its rows `rows`, nothing sets `Retry-After`, and the most-used
 | `QA-PLT-358` | `?fields=invented_field` answers 2 empty object(s) with 200 and no refusal. The only thing distinguishing it from a listing of rows that genuinely have no values is `projected_to: ['inven… |
 | `QA-PLT-360` | page one and page two share 1 row(s) after one registration between the two reads: ['maya://model/2-rc-9fba8527']. `/models` pages with LIMIT/OFFSET, so an insert that sorts before the bo… |
 | `QA-PLT-361` | 4 refusal code(s) map to 429 — ['budget_exhausted', 'cost_limit_reached', 'quota_limit_reached', 'rate_limit_reached'] — and no route or service anywhere sets a `Retry-After` header. The … |
-| `QA-PLT-362` | 1 of 5 coded refusal(s) omit a part: ["unknown model (not_found): missing ['remediation']"] |
 
 ## 5. Batch I — Concurrency, the scheduled batch and delivery
 
@@ -243,16 +237,64 @@ the largest group, and the one a user meets.
 | `QA-AM-407` | a monitor evaluated exactly 3 cadences ago is already reported stalled. `overdue_by` is 3 - 1 = 2 cadences and the guard is `overdue_by < cadence * (MULTIPLE - 1)`, so the boundary itself… |
 | `QA-FX-039` | an empty version was pinned with nothing marking it empty: whatever assembles from it gets an empty frame, and the refusal lands on somebody who did not send the load |
 | `QA-FX-1208` | retiring 'prof-c58fbef8' left version 1 live — retire marks the current version, so the previous one is uncovered and the profile goes on filling in defaults under a name the register rep… |
-| `QA-FX-135` | a lineage 14 deep was defined, past the stated 12 limit. The limit is enforced only inside `provenance`, the recursive walk — which does refuse it, so the chain exists and the question th… |
 | `QA-FX-142` | 'a * b' over {'a': 1e+308, 'b': 10.0} evaluates to inf. Every other arithmetic failure here answers null or refuses; an infinity is neither, and it propagates through every mean, sum and … |
 | `QA-GOV-045` | a declined attestation moves the record approved -> draft and approved -> amending, and the published machine names no such edge. An examiner reading GET /lifecycle cannot see that declin… |
 | `QA-GOV-173` | three spaces discharged a periodic review: the same numbers, re-POSTed, moved the next review date with nothing examined — and `review_note` is stored inside `facts`, so the note is compa… |
-| `QA-GOV-203` | 4 models share a cause and the sweep raised nothing, so there is nothing to correlate — see QA-GOV-200 for why |
 | `QA-GOV-258` | a confirmed item was answered again as revoked and only the last answer is reported (0 confirmed, 1 revoked): nothing refuses re-answering an item, so what a reviewer first said is not on… |
 | `QA-GOV-280` | a model was recorded as its own replacement: the replacement check asks only whether the URN is registered, and the model being retired always is, so the record names a retired model as t… |
 | `QA-GOV-282` | 'maya://model/dc-1f915f91' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points a… |
-| `QA-GOV-4605` | a model another one reads was decommissioned with its consumers neither notified nor acknowledged — `blast_radius` answers `reaches` and `consumers()` reads `reached`, so the list is alwa… |
 | `QA-PLT-200` | both refuse 'nothing_grounded', so a cautious generation and a wholly unsupported one are one fact |
+
+---
+
+## The harness itself — closed
+
+**Before the next fix batch, the list had to be true about its own coverage.**
+Reconciling a section run against the plan surfaced four published cases that
+no scenario answered, and pulling that thread found the size of it: **114
+published rows said *reported by the suite* and `--only <id>` matched
+nothing**, and **26 scenarios answered an id whose published subject is a
+different test**. Roughly one in five of the 741 rows claiming the suite runs
+them was wrong in one direction or the other.
+
+Both are residue from the commit that re-pointed 138 mis-registered scenarios
+to correct ids: the rows they were re-pointed AWAY from kept their claim, and
+nothing ever looked the other way down the link.
+
+**The drift guard existed and could not see it.** It compared the scenario's
+title to the published subject with `difflib.SequenceMatcher` and accepted
+anything above 0.35 — a CHARACTER-run ratio, which two unrelated English
+sentences of similar length clear routinely. "Two campaigns with the same
+reference" scored 0.44 against "A principal scoped to a domain the estate does
+not contain", so a recertification scenario sat on a scoping case and the list
+reported that case as covered. The check that exists to find *a test passing
+for a reason other than its name* was passing for a reason other than its name.
+
+It now asks about SUBJECT — two content words in common, with the ratio kept
+only as a second way through for short titles — and the 23 genuine paraphrases
+are an explicit `AGREED` set, each with the reason it is one. The reverse
+check, which had never existed, fails the build when a published row claims a
+scenario that is not registered.
+
+**Then the coverage was made real**: 26 strays re-homed onto rows describing
+what they actually test, 22 duplicated rows removed, and **92 scenarios
+written** for behaviour nothing exercised — the scheduler catalogue and run
+history, subscriptions, finding ownership and due dates, campaign edges, the
+health scorecard, waivers, recorded test results, replay, telemetry, parallel
+runs, regulatory approvals, board packs, model relations and blast radius,
+where an operating boundary looks for its value, and the elicitation panel.
+
+Five platform defects came out of writing them, each in the batch-B shape:
+
+| | |
+|---|---|
+| `consumers()` read **`reached`** and `blast_radius` answers **`reaches`** | every decommission check reported that nothing downstream read the model — the one answer the control exists to disprove. **The test stub answered under the wrong key too**, so the whole file agreed with the defect; the stub now takes the key from the real method |
+| `replay()` never required its episode | `results_for` on an unknown id answers an empty list, so a mistyped id reported `reproducible: false` — the strongest sentence this register produces, about a validation that was never opened |
+| a board pack's period defaulted to `time.strftime("%Y-Q%m")` | wrong twice: it filled a blank silently, and `%m` is the MONTH, so a pack cut in September was labelled **`2026-Q09`** |
+| campaign reassignment required a `reason` and not a `to` | an item moved to a blank stays outstanding while `campaign_item_reassigned` records that somebody took it on |
+| a subscription url refused with **502** | the outbound codes are 502 on the ground that *the caller did nothing wrong* — true of OIDC discovery, false of a url in this request body, and 5xx is the class a client retries forever |
+
+**117 findings open.**
 
 ---
 

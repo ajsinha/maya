@@ -247,6 +247,16 @@ class Campaigns:
                 "check the URN against the campaign's items — reassignment "
                 "moves an item that exists, and a campaign's population is "
                 "fixed when it opens")
+        if not (to or "").strip():
+            raise LifecycleError(
+                "assignee_required",
+                "reassignment moves an item to somebody, and nobody is not a "
+                "somebody. An item assigned to a blank stays outstanding while "
+                "the record says it was dealt with, which is the one outcome "
+                "the act exists to prevent",
+                "name who is taking it on. If the answer is that nobody is, "
+                "leave it where it is and let the round close over it — an "
+                "outstanding item is counted and a blank assignee is not")
         if not (reason or "").strip():
             raise LifecycleError(
                 "reason_required",

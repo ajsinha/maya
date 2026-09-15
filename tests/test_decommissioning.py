@@ -26,6 +26,10 @@ from core.lifecycle.decommission import NOTHING, REQUIRED, Decommissioning
 from core.retention import CLASSES
 from db import DecommissionRepository
 
+#: The key a real blast radius answers under, taken from the real method's own
+#: output rather than written down here a second time. See `_with_consumers`.
+DOWNSTREAM_KEY = "reaches"
+
 GOOD = {"rationale": "superseded by the 2026 scorecard after the annual review",
         "replacement": NOTHING, "retention_class": "model_record"}
 
@@ -299,13 +303,71 @@ class TestThroughTheApi:
 
 
 def _with_consumers(db, registry, evidence, urns):
-    """A decommissioning engine whose model graph reports these downstream."""
+    """A decommissioning engine whose model graph reports these downstream.
+
+    **This stub used to answer under the key `reached`, and so did the code it
+    stood in for — while the real `ModelComposition.blast_radius` returns
+    `reaches`.** Every test in this file passed, and every real decommission
+    check found nothing downstream: the one answer this control exists to
+    disprove, delivered silently, because a retirement that hears "nobody
+    depends on this" does not ask again.
+
+    A stub that agrees with the bug is worse than no stub. The key below is
+    taken FROM the real method rather than typed, so the two cannot drift
+    apart again.
+    """
     class _Composition:
         @staticmethod
         def blast_radius(_urn):
-            return {"reached": [{"urn": u, "status": "approved"}
-                                for u in urns]}
+            return {DOWNSTREAM_KEY: [{"urn": u, "status": "approved"}
+                                     for u in urns]}
 
     return Decommissioning(DecommissionRepository(db), registry,
                            composition=_Composition(), lifecycle=None,
                            evidence=evidence)
+
+
+
+class TestTheStubSpeaksTheRealVocabulary:
+    """The guard the stub needed and did not have.
+
+    Everything above runs against `_Composition`, and a stub answering under a
+    key the real collaborator never writes makes this whole file agree with a
+    defect. The two tests here reach the REAL `ModelComposition`, so the shape
+    is checked against the thing rather than against a copy of the assumption.
+    """
+
+    def test_a_real_blast_radius_answers_under_the_key_the_stub_uses(
+            self, registry, evidence, db):
+        from core.registry.composition import ModelComposition
+        from db import ModelEdgeRepository
+        composition = ModelComposition(ModelEdgeRepository(db), registry,
+                                       evidence=evidence)
+        registry.register(urn="maya://model/upstream.one", name="U",
+                          model_class="c", domain="credit", owner="person/x",
+                          legal_entity="LE-1", purpose="p", actor="admin")
+        radius = composition.blast_radius("maya://model/upstream.one")
+        assert DOWNSTREAM_KEY in radius, (
+            f"a real blast radius answers {sorted(radius)}, and the stub in "
+            f"this file speaks {DOWNSTREAM_KEY!r}")
+
+    def test_consumers_reads_a_real_radius(self, registry, evidence, db,
+                                           a_model):
+        """End to end over the real graph: an `input_to` edge must produce a
+        consumer, which is the assertion the stub can never make."""
+        from core.registry.composition import INPUT_TO, ModelComposition
+        from db import ModelEdgeRepository
+        composition = ModelComposition(ModelEdgeRepository(db), registry,
+                                       evidence=evidence)
+        registry.register(urn="maya://model/reads.it", name="D",
+                          model_class="c", domain="credit", owner="person/x",
+                          legal_entity="LE-1", purpose="p", actor="admin")
+        composition.relate(a_model["urn"], "maya://model/reads.it", INPUT_TO,
+                           actor="admin")
+        engine = Decommissioning(DecommissionRepository(db), registry,
+                                 composition=composition, lifecycle=None,
+                                 evidence=evidence)
+        out = engine.consumers(a_model["urn"])
+        assert out["known"] is True
+        assert "maya://model/reads.it" in out["live"], (
+            "a model that reads this one is not reported as a consumer")

@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 8,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-630",
+   "title": "Measure an overlay that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_overlay'"
+  },
+  {
+   "id": "QA-AM-631",
+   "title": "A supervisory matter with no supervisor",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a721c807dd995c95fa0e28f2\",\"reference\":\"SUP-e6ea5eb1\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+  },
+  {
+   "id": "QA-AM-632",
+   "title": "A supervisory matter with no owner",
+   "verdict": "FAIL",
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a721c80fc1e7af3dbd2393fa\",\"reference\":\"SUP-553010b2\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+  },
+  {
+   "id": "QA-AM-633",
+   "title": "Two matters with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused'"
+  },
+  {
+   "id": "QA-AM-634",
+   "title": "Close a supervisory matter with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-635",
+   "title": "Telemetry for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-636",
+   "title": "A well-formed batch is accepted",
+   "verdict": "PASS",
+   "evidence": "25 row(s) delivered and 25 reported"
+  },
+  {
+   "id": "QA-AM-637",
+   "title": "A negative sample rate",
+   "verdict": "PASS",
+   "evidence": "refused 'bad_sample_rate'"
+  },
+  {
+   "id": "QA-AM-638",
+   "title": "The same batch sent twice is not counted twice",
+   "verdict": "PASS",
+   "evidence": "accepted and reported `duplicate: True`"
+  },
+  {
+   "id": "QA-AM-639",
+   "title": "A parallel run with no stated purpose",
+   "verdict": "PASS",
+   "evidence": "refused 'purpose_required'"
+  }
+ ]
+}

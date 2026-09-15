@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 392,
-  "pass": 369,
-  "fail": 23,
+  "total": 440,
+  "pass": 416,
+  "fail": 24,
   "blocked": 0
  },
- "seconds": 33.1,
+ "seconds": 47.4,
  "results": [
   {
    "id": "QA-AM-001",
@@ -410,12 +410,6 @@
    "evidence": "refused 'already_owned'"
   },
   {
-   "id": "QA-AM-083",
-   "title": "Acknowledge with a date already in the past",
-   "verdict": "PASS",
-   "evidence": "refused 'date_in_the_past' (422)"
-  },
-  {
    "id": "QA-AM-084",
    "title": "Assign with an empty reason",
    "verdict": "PASS",
@@ -434,12 +428,6 @@
    "evidence": "refused 'not_the_owner'"
   },
   {
-   "id": "QA-AM-087",
-   "title": "Extend with no reason",
-   "verdict": "PASS",
-   "evidence": "refused 'reason_required' (422)"
-  },
-  {
    "id": "QA-AM-088",
    "title": "Acknowledge to a date after the finding's due date",
    "verdict": "PASS",
@@ -450,12 +438,6 @@
    "title": "Immediately re-attempt QA-AM-088 with no plan at all",
    "verdict": "FAIL",
    "evidence": "an acknowledgement refused `beyond_the_due_date` still recorded its plan \u2014 `plan_for` runs before the date check \u2014 so acknowledging again with NO plan is accepted. A refused act left a durable write behind, and the plan requirement is satisfied by a call that failed"
-  },
-  {
-   "id": "QA-AM-090",
-   "title": "Act on a finding that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'no_finding' (404)"
   },
   {
    "id": "QA-AM-091",
@@ -734,12 +716,6 @@
    "evidence": "all 4 are definable tests"
   },
   {
-   "id": "QA-AM-132",
-   "title": "A root of an unknown kind",
-   "verdict": "PASS",
-   "evidence": "refused 'unknown_root_kind' (422)"
-  },
-  {
    "id": "QA-AM-135",
    "title": "A root counts an acknowledged child as still owed",
    "verdict": "PASS",
@@ -761,7 +737,7 @@
    "id": "QA-AM-138",
    "title": "Attach a finding that is already attached to a *different* root",
    "verdict": "FAIL",
-   "evidence": "a finding under root 01a0a6fcae09d1c8b4a4dddbe4f6 was moved to root 01a0a6fcae0e9db7ef5f9bcf6c08 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+   "evidence": "a finding under root 01a0a738460007ca55ce604f5a3d was moved to root 01a0a738460236225381f262f1d9 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
   },
   {
    "id": "QA-AM-139",
@@ -1100,6 +1076,18 @@
    "evidence": "refused 'test_not_admissible', naming what does answer it"
   },
   {
+   "id": "QA-AM-1900",
+   "title": "Replay with data that is not the data",
+   "verdict": "PASS",
+   "evidence": "the reversed scores are reported as not matching"
+  },
+  {
+   "id": "QA-AM-1901",
+   "title": "Replay data for a test the episode never recorded",
+   "verdict": "PASS",
+   "evidence": "only the recorded test was compared"
+  },
+  {
    "id": "QA-AM-191",
    "title": "Define a `performance` monitor with no `label_delay_days`",
    "verdict": "PASS",
@@ -1196,12 +1184,6 @@
    "evidence": "value null, passed false"
   },
   {
-   "id": "QA-AM-211",
-   "title": "Define a monitor of an unknown kind",
-   "verdict": "PASS",
-   "evidence": "refused 'unknown_kind' (422)"
-  },
-  {
    "id": "QA-AM-212",
    "title": "Evaluate a drift monitor with no reference anywhere",
    "verdict": "PASS",
@@ -1214,12 +1196,6 @@
    "evidence": "refused 'monitor_inactive'"
   },
   {
-   "id": "QA-AM-214",
-   "title": "A valid monitor is accepted",
-   "verdict": "PASS",
-   "evidence": "accepted (201)"
-  },
-  {
    "id": "QA-AM-215",
    "title": "The third consecutive breach with escalate_after 3",
    "verdict": "PASS",
@@ -1230,12 +1206,6 @@
    "title": "The sixth consecutive breach",
    "verdict": "PASS",
    "evidence": "sixth consecutive breach at Critical"
-  },
-  {
-   "id": "QA-AM-217",
-   "title": "Ingest against a monitor that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'no_monitor' (404)"
   },
   {
    "id": "QA-AM-218",
@@ -1457,7 +1427,7 @@
    "id": "QA-AM-270",
    "title": "Compare the `plan_digest` in a submission against the plan that was issued",
    "verdict": "FAIL",
-   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:8a256cf4b56bc0a433897b9fbaa59c3831d71f993faba80e286fb99c2c70098d against the issued sha256:ea553bdde9ba7afcba57aacd1119652785ea92c5a67b14668527e37b08e2580f. The digest exists to tie a submiss"
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:4a635af83ce112ff254f5c2a57e55014a057a47d2f7cc1552ca3b79f1c055608 against the issued sha256:763b98f03de805885fd3d1118b1cbedad581884ae6c3d1f23848fb5276b5b40d. The digest exists to tie a submiss"
   },
   {
    "id": "QA-AM-272",
@@ -1574,18 +1544,6 @@
    "evidence": "no models, and the detail reads: 0 model(s): "
   },
   {
-   "id": "QA-AM-301",
-   "title": "Open a validation against a version that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_refused' (409)"
-  },
-  {
-   "id": "QA-AM-307",
-   "title": "Record a result with no test key",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_refused' (409)"
-  },
-  {
    "id": "QA-AM-311",
    "title": "A model owner who owns a blocking finding sees it on their list",
    "verdict": "PASS",
@@ -1667,19 +1625,19 @@
    "id": "QA-AM-323",
    "title": "A heatmap over an empty estate",
    "verdict": "PASS",
-   "evidence": "238 model(s) across 2 domain and 1 legal_entity. Shaded by what is OWED and not by count: "
+   "evidence": "234 model(s) across 2 domain and 1 legal_entity. Shaded by what is OWED and not by count: "
   },
   {
    "id": "QA-AM-327",
    "title": "Aggregate exposure where no model records one",
    "verdict": "PASS",
-   "evidence": "exposure reported with its coverage: 152 of 238 model(s) have something outstanding, carrying 82% of the exposure the"
+   "evidence": "exposure reported with its coverage: 148 of 234 model(s) have something outstanding, carrying 82% of the exposure the"
   },
   {
    "id": "QA-AM-328",
    "title": "Aggregate exposure where one of forty models records one",
    "verdict": "PASS",
-   "evidence": "coverage 10% stated beside the figure: 152 of 242 model(s) have something outstanding, carrying 82% of the exposure the"
+   "evidence": "coverage 10% stated beside the figure: 148 of 238 model(s) have something outstanding, carrying 82% of the exposure the"
   },
   {
    "id": "QA-AM-329",
@@ -1692,6 +1650,42 @@
    "title": "Trend with `points: 1`",
    "verdict": "PASS",
    "evidence": "one point, and no division by zero"
+  },
+  {
+   "id": "QA-AM-3300",
+   "title": "The weights are data, and they sum to one",
+   "verdict": "PASS",
+   "evidence": "6 component(s) published with weights summing to 1.0, each saying what it asks and when it is absent"
+  },
+  {
+   "id": "QA-AM-3301",
+   "title": "The bands are ordered and the thresholds are stated",
+   "verdict": "PASS",
+   "evidence": "good at 0.8, watch at 0.55, both published with the band vocabulary"
+  },
+  {
+   "id": "QA-AM-3302",
+   "title": "A cap never improves the band",
+   "verdict": "PASS",
+   "evidence": "score 100.0 reads 'good' and the band is 'good', uncapped"
+  },
+  {
+   "id": "QA-AM-3303",
+   "title": "Nothing is stored, so the score cannot go stale",
+   "verdict": "PASS",
+   "evidence": "no table holds it, and the answer moved when the register under it moved"
+  },
+  {
+   "id": "QA-AM-3304",
+   "title": "The verdict wins over the arithmetic",
+   "verdict": "PASS",
+   "evidence": "mean 60.0 reads 'good', the band is 'watch', and the answer says why: 60 over 2 of 6 components, which is 25% of the weight. The band is watch rather than watch"
+  },
+  {
+   "id": "QA-AM-3305",
+   "title": "The estate view separates a poor score from a thin one",
+   "verdict": "PASS",
+   "evidence": "242 row(s), every one carrying its coverage beside its score"
   },
   {
    "id": "QA-AM-331",
@@ -1841,7 +1835,7 @@
    "id": "QA-AM-370",
    "title": "A model with no purpose class at all",
    "verdict": "PASS",
-   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-00bfcc38', 'why': 'neither designated consumer_impactin"
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-6c48683f', 'why': 'neither designated consumer_impactin"
   },
   {
    "id": "QA-AM-372",
@@ -2045,7 +2039,7 @@
    "id": "QA-AM-4720",
    "title": "Bind a monitor to a model version through the API",
    "verdict": "PASS",
-   "evidence": "the monitor is bound to version 01a0a6fd163cfd67bb07d8d17b58, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
+   "evidence": "the monitor is bound to version 01a0a738988e539d4a5fe67c2304, and a semver that does not exist is refused at definition rather than discovered when telemetry is read"
   },
   {
    "id": "QA-AM-4730",
@@ -2148,6 +2142,60 @@
    "title": "Every portfolio dimension says what it is",
    "verdict": "PASS",
    "evidence": "7 dimensions, each published with a meaning"
+  },
+  {
+   "id": "QA-AM-5203",
+   "title": "Acknowledge with a date already in the past",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past' (422)"
+  },
+  {
+   "id": "QA-AM-5204",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-AM-5205",
+   "title": "Act on a finding that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_finding' (404)"
+  },
+  {
+   "id": "QA-AM-5206",
+   "title": "A root of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind' (422)"
+  },
+  {
+   "id": "QA-AM-5207",
+   "title": "Define a monitor of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_kind' (422)"
+  },
+  {
+   "id": "QA-AM-5208",
+   "title": "A valid monitor is accepted",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-AM-5209",
+   "title": "Ingest against a monitor that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_monitor' (404)"
+  },
+  {
+   "id": "QA-AM-5210",
+   "title": "Open a validation against a version that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-5211",
+   "title": "Record a result with no test key",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
   },
   {
    "id": "QA-AM-600",
@@ -2309,7 +2357,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a6fd19e41de2f7c8d43d6280\",\"model_id\":\"01a0a6fd19dbc98b522805a43e40\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-b1f8ceb7\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a7389ad01250866b70870e68\",\"model_id\":\"01a0a7389acbd8a05f9642b9d43c\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-bc0d75ff\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -2339,13 +2387,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6fd1a3494f87ebacae481de\",\"reference\":\"SUP-782a1f62\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a7389aedec314a6d587fbca3\",\"reference\":\"SUP-90ec9a2b\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6fd1a499f9086d9cc1c5b2c\",\"reference\":\"SUP-a4a11444\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a7389af5d47da9d13442b519\",\"reference\":\"SUP-31f8d947\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",
@@ -2358,6 +2406,246 @@
    "title": "Close a supervisory matter with no note",
    "verdict": "PASS",
    "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-635",
+   "title": "Telemetry for a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-AM-636",
+   "title": "A well-formed batch is accepted",
+   "verdict": "PASS",
+   "evidence": "25 row(s) delivered and 25 reported"
+  },
+  {
+   "id": "QA-AM-637",
+   "title": "A negative sample rate",
+   "verdict": "PASS",
+   "evidence": "refused 'bad_sample_rate'"
+  },
+  {
+   "id": "QA-AM-638",
+   "title": "The same batch sent twice is not counted twice",
+   "verdict": "PASS",
+   "evidence": "accepted and reported `duplicate: True`"
+  },
+  {
+   "id": "QA-AM-639",
+   "title": "A parallel run with no stated purpose",
+   "verdict": "PASS",
+   "evidence": "refused 'purpose_required'"
+  },
+  {
+   "id": "QA-AM-640",
+   "title": "A challenger that is the same version as the champion",
+   "verdict": "PASS",
+   "evidence": "refused 'same_version'"
+  },
+  {
+   "id": "QA-AM-641",
+   "title": "Conclude a parallel run with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required'"
+  },
+  {
+   "id": "QA-AM-642",
+   "title": "A regulatory approval with no regulator",
+   "verdict": "PASS",
+   "evidence": "refused 'regulator_required'"
+  },
+  {
+   "id": "QA-AM-643",
+   "title": "A regulatory approval with no scope",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_required'"
+  },
+  {
+   "id": "QA-AM-644",
+   "title": "Withdraw a regulatory approval with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-645",
+   "title": "A board pack preview does not create a pack",
+   "verdict": "PASS",
+   "evidence": "the preview showed the pack and the history stayed at 1"
+  },
+  {
+   "id": "QA-AM-646",
+   "title": "A board pack with no period",
+   "verdict": "PASS",
+   "evidence": "refused 'period_required'"
+  },
+  {
+   "id": "QA-AM-700",
+   "title": "Replay a validation that has no results",
+   "verdict": "PASS",
+   "evidence": "0 test(s) compared; no results to replay"
+  },
+  {
+   "id": "QA-AM-701",
+   "title": "Replay a validation that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-702",
+   "title": "Replay the same episode twice gives the same report",
+   "verdict": "PASS",
+   "evidence": "identical over ['detail', 'mismatched', 'reproduced', 'reproducible', 'skipped']"
+  },
+  {
+   "id": "QA-AM-703",
+   "title": "Replay from storage with no snapshot pinned",
+   "verdict": "PASS",
+   "evidence": "every test reported skipped, naming the absent snapshot"
+  },
+  {
+   "id": "QA-AM-720",
+   "title": "A waiver with no rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'no_rationale'"
+  },
+  {
+   "id": "QA-AM-721",
+   "title": "A waiver with no compensating control",
+   "verdict": "PASS",
+   "evidence": "refused 'no_compensating_control'"
+  },
+  {
+   "id": "QA-AM-722",
+   "title": "A waiver that never expires",
+   "verdict": "PASS",
+   "evidence": "all three refused (0:no_expiry, -1:no_expiry, 100000:window_too_long)"
+  },
+  {
+   "id": "QA-AM-723",
+   "title": "A waiver over a control that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_control', naming the 21 controls"
+  },
+  {
+   "id": "QA-AM-724",
+   "title": "A well-formed waiver is granted",
+   "verdict": "PASS",
+   "evidence": "proposed as 'proposed', expiring at 1792103900.2643974, awaiting somebody else"
+  },
+  {
+   "id": "QA-AM-740",
+   "title": "The test catalogue is published",
+   "verdict": "PASS",
+   "evidence": "9 test(s), each with its direction"
+  },
+  {
+   "id": "QA-AM-741",
+   "title": "A result naming a test that is not in the catalogue",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', listing the catalogue"
+  },
+  {
+   "id": "QA-AM-742",
+   "title": "A result whose two series are different lengths",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the pairing"
+  },
+  {
+   "id": "QA-AM-743",
+   "title": "A result with empty series",
+   "verdict": "PASS",
+   "evidence": "recorded as not computable: not computable on this sample \u2014 a class may be absent, or the sample too small f"
+  },
+  {
+   "id": "QA-AM-801",
+   "title": "A campaign with no reference",
+   "verdict": "FAIL",
+   "evidence": "a recertification round opened with nothing to cite it by, so what it produced belongs to no identifiable exercise"
+  },
+  {
+   "id": "QA-AM-804",
+   "title": "Respond with a state that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_response', naming 4 state(s)"
+  },
+  {
+   "id": "QA-AM-806",
+   "title": "Reassign a campaign item to nobody",
+   "verdict": "PASS",
+   "evidence": "refused 'assignee_required'"
+  },
+  {
+   "id": "QA-AM-807",
+   "title": "A campaign's population is frozen at launch",
+   "verdict": "PASS",
+   "evidence": "the population stayed at 332 across a registration made after launch"
+  },
+  {
+   "id": "QA-AM-808",
+   "title": "The kinds a campaign may be for are published",
+   "verdict": "PASS",
+   "evidence": "6 kind(s), each saying what it asks, and completion measured against the frozen population"
+  },
+  {
+   "id": "QA-AM-809",
+   "title": "Read a campaign that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_campaign' (404)"
+  },
+  {
+   "id": "QA-AM-900",
+   "title": "An unacknowledged finding is reported as unacknowledged",
+   "verdict": "PASS",
+   "evidence": "unacknowledged on the row and visible in the estate view"
+  },
+  {
+   "id": "QA-AM-901",
+   "title": "A handover records who it moved from and to",
+   "verdict": "PASS",
+   "evidence": "the act names the previous owner, the new one and the reason"
+  },
+  {
+   "id": "QA-AM-902",
+   "title": "Assign to the person who already owns it",
+   "verdict": "PASS",
+   "evidence": "refused 'already_owned' as a no-op"
+  },
+  {
+   "id": "QA-AM-903",
+   "title": "Assign with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-904",
+   "title": "Extend a due date into the past",
+   "verdict": "PASS",
+   "evidence": "refused 'not_acknowledged'"
+  },
+  {
+   "id": "QA-AM-905",
+   "title": "The owner extends their own due date",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' \u2014 the owner does not hold the permission, which is the same answer by another route"
+  },
+  {
+   "id": "QA-AM-906",
+   "title": "The worklist is derived, not assigned",
+   "verdict": "PASS",
+   "evidence": "the finding appeared without anybody assigning a list (20 -> 21 item(s))"
+  },
+  {
+   "id": "QA-AM-907",
+   "title": "A closed finding leaves the worklist",
+   "verdict": "PASS",
+   "evidence": "the closed finding left the list without anybody removing it"
+  },
+  {
+   "id": "QA-AM-908",
+   "title": "A digest is not sent twice for an unchanged worklist",
+   "verdict": "PASS",
+   "evidence": "the first run would send 0, the second 0 with nothing changed"
   }
  ]
 }

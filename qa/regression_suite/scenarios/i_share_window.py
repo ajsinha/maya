@@ -258,7 +258,20 @@ def plt_163(ctx: Ctx) -> Result:
     service = _service(ctx)
     if service is None:
         return BLOCKED, "no sharing service is wired"
-    before = len(service.reads.many())
+    # Scoped to THIS share. `reads.many()` is every read in the estate, and
+    # `max(..., key="at")` over it picked up a refused read another case in
+    # this section had just recorded against a revoked share — so a correct
+    # redemption reported itself as refused, and only when run beside its
+    # neighbours.
+    mine = service.shares.one(reference=reference) or {}
+    share_id = mine.get("id")
+    if not share_id:
+        return BLOCKED, "the share row could not be found by its reference"
+
+    def reads():
+        return [r for r in service.reads.many() if r.get("share_id") == share_id]
+
+    before = len(reads())
     tried = []
     for path in (f"/share/{reference}", f"{S}/{reference}",
                  f"{S}/{reference}/open", f"{S}/{reference}/pack",
@@ -274,7 +287,7 @@ def plt_163(ctx: Ctx) -> Result:
         if not got.content.startswith(b"PK"):
             return FAIL, (f"{path} answered {got.status_code} and the body is "
                           f"not an archive: {got.content[:40]!r}")
-        after = service.reads.many()
+        after = reads()
         if len(after) <= before:
             return FAIL, (f"the pack was served at {path} and no read was "
                           f"recorded; a link whose use leaves no trace is one "

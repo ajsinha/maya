@@ -240,6 +240,32 @@ class TestThereIsNoCompositeScore:
         assert not {"model_risk_score", "composite", "overall"} & keys
 
 
+class TestAPackSaysWhatItIsAbout:
+    """`period or time.strftime("%Y-Q%m")` was the default, and it was wrong
+    twice: it filled a blank silently, and `%m` is the MONTH — so a pack cut in
+    September was labelled `2026-Q09`, a quarter that does not exist. A label
+    nobody can parse is worse than an empty one, because it looks like an
+    answer."""
+
+    def test_a_pack_with_no_period_is_refused(self, packs):
+        with pytest.raises(ReportingError) as refusal:
+            packs.cut(period="  ")
+        assert refusal.value.code == "period_required"
+        assert "any other quarter" in refusal.value.detail
+        assert "2026-Q1" in refusal.value.remediation
+
+    def test_the_period_is_recorded_as_given(self, packs):
+        assert packs.cut(period=" 2026-Q1 ")["period"] == "2026-Q1"
+
+    def test_no_pack_anywhere_carries_a_quarter_that_does_not_exist(self,
+                                                                    packs):
+        packs.cut(period="2026-Q1")
+        for row in packs.history(limit=50):
+            quarter = row["period"].split("Q")[-1] if "Q" in row["period"] else ""
+            assert not quarter.isdigit() or 1 <= int(quarter) <= 4, (
+                f"{row['period']} names a quarter that does not exist")
+
+
 class TestMovement:
     def test_the_first_pack_has_nothing_to_move_from(self, packs):
         pack = packs.build(models=[a_model()])

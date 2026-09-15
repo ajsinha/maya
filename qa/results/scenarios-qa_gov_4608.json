@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.7,
+ "seconds": 4.4,
  "results": [
   {
    "id": "QA-GOV-4608",
    "title": "The consumer reading is available before deciding",
-   "verdict": "FAIL",
-   "evidence": "the consumer reading reports nothing downstream for a model that is read by another \u2014 the graph reaches 1 model(s) under the key `reaches`, and `consumers()` reads `reached`"
+   "verdict": "PASS",
+   "evidence": "the consumers are readable before the decision"
   }
  ]
 }

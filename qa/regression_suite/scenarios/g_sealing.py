@@ -199,7 +199,7 @@ def fx_117(ctx: Ctx) -> Result:
     return PASS, f"refused '{code_of(got)}'"
 
 
-@case("QA-FX-118", "An unsealed feature can still be amended")
+@case("QA-FX-6109", "An unsealed feature can still be amended")
 def fx_118(ctx: Ctx) -> Result:
     """The control has to be narrow. If nothing can be amended, the seal is
     not doing the work — the platform is."""

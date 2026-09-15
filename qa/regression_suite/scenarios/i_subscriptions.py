@@ -73,8 +73,18 @@ def plt_248(ctx: Ctx) -> Result:
     if got.status_code < 400:
         return FAIL, ("a plain-HTTP subscription was accepted, so the payload "
                       "leaves the institution in clear")
-    if code_of(got) != "outbound_not_encrypted":
+    # `subscription_url_refused` since the caller-supplied url stopped
+    # sharing a code with the ones MAYA is configured to fetch: those are
+    # mapped to 502 on the ground that the caller did nothing wrong, which is
+    # false of a url that arrived in this request body. The original code is
+    # kept in the detail.
+    if code_of(got) not in ("subscription_url_refused",
+                            "outbound_not_encrypted"):
         return FAIL, f"refused '{code_of(got)}'"
+    if got.status_code >= 500:
+        return FAIL, (f"refused correctly and with {got.status_code}, which is "
+                      f"the class a client retries — and retrying will never "
+                      f"make an http url acceptable")
     if "localhost" not in got.text and "local machine" not in got.text:
         return FAIL, ("the refusal does not name the local exception, so a "
                       "developer cannot run a receiver at all")
@@ -84,7 +94,8 @@ def plt_248(ctx: Ctx) -> Result:
         if refused.status_code < 400:
             return FAIL, (f"{why} was accepted, so the platform reads its own "
                           f"host on behalf of whoever supplied the address")
-        if code_of(refused) != "outbound_scheme_refused":
+        if code_of(refused) not in ("subscription_url_refused",
+                                    "outbound_scheme_refused"):
             return FAIL, f"{why} refused '{code_of(refused)}'"
     return PASS, "http refused naming the local exception; file and ftp refused"
 

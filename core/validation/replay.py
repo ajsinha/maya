@@ -44,6 +44,18 @@ class Replayer:
         self.storage = storage
 
     def replay(self, validation_id: str, provider: DataProvider) -> Dict[str, Any]:
+        # The episode first, and the reason is the shape of the answer rather
+        # than tidiness. `results_for` on an id that does not exist returns an
+        # empty list, so an unknown episode reported `reproducible: false,
+        # total: 0` — and "this validation is NOT REPRODUCIBLE" is a much
+        # stronger and entirely wrong statement than "no such episode". Somebody
+        # checking whether a validation replays, who mistyped the id, was handed
+        # the most alarming sentence this register can produce about a thing
+        # that does not exist.
+        #
+        # `from_storage` already required it; the caller-supplied path did not,
+        # which is the path a person uses by hand.
+        self.validations.require(validation_id)
         stored = self.validations.results_for(validation_id)
         reproduced: List[Dict[str, Any]] = []
         mismatched: List[Dict[str, Any]] = []

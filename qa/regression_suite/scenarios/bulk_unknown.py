@@ -38,7 +38,7 @@ BLANK_GROUNDS: List[Tuple[str, str, str, str, str]] = [
      "a model with no owner is a model nobody answers for"),
     ("QA-GOV-701", "POST", "/api/v1/models", "urn",
      "the identifier everything else cites"),
-    ("QA-GOV-102", "POST", "/api/v1/models", "name",
+    ("QA-GOV-6211", "POST", "/api/v1/models", "name",
      "what every screen calls it"),
     ("QA-GOV-702", "POST", "/api/v1/models", "legal_entity",
      "which entity's regulator is interested"),

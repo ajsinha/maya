@@ -1,0 +1,77 @@
+{
+ "summary": {
+  "total": 11,
+  "pass": 11,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-110",
+   "title": "Seal, break, amend, re-seal \u2014 and the chain records all four",
+   "verdict": "PASS",
+   "evidence": "four acts, 4 evidence nodes"
+  },
+  {
+   "id": "QA-FX-1100",
+   "title": "An edge from a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1101",
+   "title": "An edge of a kind that is not one",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', naming the 5 kinds"
+  },
+  {
+   "id": "QA-FX-1102",
+   "title": "A model composed with itself",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1103",
+   "title": "A cycle across two models",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1104",
+   "title": "Blast radius with no urn",
+   "verdict": "PASS",
+   "evidence": "refused 'urn_required', showing the shape"
+  },
+  {
+   "id": "QA-FX-1105",
+   "title": "Blast radius over a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  },
+  {
+   "id": "QA-FX-1106",
+   "title": "Blast radius follows only propagating relations",
+   "verdict": "PASS",
+   "evidence": "the downstream model is reached and the challenger is not; 1 model(s) in the radius"
+  },
+  {
+   "id": "QA-FX-1107",
+   "title": "Shared dependencies over an empty list",
+   "verdict": "PASS",
+   "evidence": "empty, and says so: the 0 models named have no upstream in common, so their risks do not interact through a sh"
+  },
+  {
+   "id": "QA-FX-1108",
+   "title": "A composite refuses if any node refuses",
+   "verdict": "PASS",
+   "evidence": "`resolves: false`, naming the blocked node and 'composite_refused'"
+  },
+  {
+   "id": "QA-FX-1109",
+   "title": "A composite has no single signed descriptor",
+   "verdict": "PASS",
+   "evidence": "the chain does not resolve here ('composite_refused') and publishes no composite signature"
+  }
+ ]
+}

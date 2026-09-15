@@ -102,9 +102,28 @@ class BoardPackBuilder:
 
     def cut(self, *, period: str = "", scope: Optional[Dict[str, Any]] = None,
             note: str = "", actor: str = "system") -> Dict[str, Any]:
-        """Record a pack. This is the one a committee refers to afterwards."""
+        """Record a pack. This is the one a committee refers to afterwards.
+
+        The period is required, and it used to have a default that was wrong
+        twice over. `period or time.strftime("%Y-Q%m")` filled a blank in
+        silently — and the format is the MONTH, so a pack cut in September was
+        labelled `2026-Q09`, a quarter that does not exist. A pack is a set of
+        figures and a statement of what span they describe; without the second
+        it is indistinguishable, a year later, from a pack about any other
+        quarter, and a label nobody can parse is worse than an empty one
+        because it looks like an answer.
+        """
+        if not (period or "").strip():
+            raise ReportingError(
+                "period_required",
+                "a board pack states what span of time its figures describe, "
+                "and this one names none. A pack with no period cannot be told "
+                "apart from a pack about any other quarter by anybody reading "
+                "it later",
+                "name the period the committee is meeting about, in the form "
+                "the minutes use — '2026-Q1', '2026-H1', 'March 2026'")
         pack = self.build(period=period, scope=scope)
-        row = {"period": period or time.strftime("%Y-Q%m", time.gmtime()),
+        row = {"period": period.strip(),
                "scope": pack["scope"], "as_at": pack["as_at"],
                "models": pack["models"],
                "indicators": pack["indicators"],

@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 405,
-  "pass": 373,
-  "fail": 23,
-  "blocked": 9
+  "pass": 377,
+  "fail": 21,
+  "blocked": 7
  },
- "seconds": 68.6,
+ "seconds": 55.3,
  "results": [
   {
    "id": "QA-GOV-001",
@@ -17,7 +17,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-bd57b800\",\"name\":\"gov-bd57b800-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-c73cf466\",\"name\":\"gov-c73cf466-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -320,12 +320,6 @@
    "evidence": "amended, versioned, attested again"
   },
   {
-   "id": "QA-GOV-060",
-   "title": "Submit a model that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused 'registry_refused' (409)"
-  },
-  {
    "id": "QA-GOV-062",
    "title": "Two different people sign the same role",
    "verdict": "PASS",
@@ -554,12 +548,6 @@
    "evidence": "answered 422"
   },
   {
-   "id": "QA-GOV-102",
-   "title": "POST /api/v1/models with a blank `name`",
-   "verdict": "PASS",
-   "evidence": "refused 'validation_failed'"
-  },
-  {
    "id": "QA-GOV-103",
    "title": "Complete a two-role quorum with two distinct people",
    "verdict": "PASS",
@@ -713,31 +701,31 @@
    "id": "QA-GOV-129",
    "title": "Amount one unit below the floor",
    "verdict": "PASS",
-   "evidence": "999,999 -> 'bd-84caade0', the band below the floor"
+   "evidence": "999,999 -> 'bd-5594fac0', the band below the floor"
   },
   {
    "id": "QA-GOV-130",
    "title": "No sourced exposure at all",
    "verdict": "PASS",
-   "evidence": "deepest band 'bd-1d899781', reached_by 'deepest_band_because_the_amount_is_unknown'"
+   "evidence": "deepest band 'bd-3f6382d7', reached_by 'deepest_band_because_the_amount_is_unknown'"
   },
   {
    "id": "QA-GOV-131",
    "title": "Sourced exposure recorded as a non-numeric string",
    "verdict": "PASS",
-   "evidence": "unparseable, so the deepest band 'bd-3cae1157' \u2014 and the attested row is still on the record to be corrected"
+   "evidence": "unparseable, so the deepest band 'bd-f615b20a' \u2014 and the attested row is still on the record to be corrected"
   },
   {
    "id": "QA-GOV-132",
    "title": "Two exposure facts, the later one dated in the future",
    "verdict": "FAIL",
-   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-f5412bd3'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
+   "evidence": "a figure attested as at a date a year away decides today's band: the amount reads 1000.0 and the band is 'bd-f69dee5d'. `amount_for` takes the greatest `as_at` and nothing refuses one in the future, so the number that sets the approval depth is chosen by whoever types the later date"
   },
   {
    "id": "QA-GOV-133",
    "title": "Sourced exposure of exactly 0",
    "verdict": "PASS",
-   "evidence": "0 -> 'bd-f81348ce', matched rather than reached by absence"
+   "evidence": "0 -> 'bd-045ae112', matched rather than reached by absence"
   },
   {
    "id": "QA-GOV-134",
@@ -1172,12 +1160,6 @@
    "evidence": "3 raised on the first sweep, none on the second"
   },
   {
-   "id": "QA-GOV-201",
-   "title": "A band with no name",
-   "verdict": "PASS",
-   "evidence": "refused 'band_name_required' (422)"
-  },
-  {
    "id": "QA-GOV-202",
    "title": "Sweep an estate with no assessments at all",
    "verdict": "PASS",
@@ -1232,12 +1214,6 @@
    "evidence": "refused 'incompatible_permissions' on the amendment"
   },
   {
-   "id": "QA-GOV-222",
-   "title": "Review a break-glass with no note",
-   "verdict": "PASS",
-   "evidence": "refused 'note_required' (422)"
-  },
-  {
    "id": "QA-GOV-223",
    "title": "Delete a role somebody holds",
    "verdict": "PASS",
@@ -1247,7 +1223,7 @@
    "id": "QA-GOV-225",
    "title": "Delete a role named in a published authority band",
    "verdict": "FAIL",
-   "evidence": "the role 'role-6973967d' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
+   "evidence": "the role 'role-c7e43e13' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
   },
   {
    "id": "QA-GOV-227",
@@ -1268,12 +1244,6 @@
    "evidence": "refused 'unknown_permission'"
   },
   {
-   "id": "QA-GOV-230",
-   "title": "A recertification campaign with no reviewer",
-   "verdict": "PASS",
-   "evidence": "refused 'no_such_principal' (404)"
-  },
-  {
    "id": "QA-GOV-2300",
    "title": "tau is monotone in both arguments",
    "verdict": "PASS",
@@ -1290,12 +1260,6 @@
    "title": "The adjoint reads tier controls and only tier controls",
    "verdict": "PASS",
    "evidence": "controls outside the tier lattice do not move the answer"
-  },
-  {
-   "id": "QA-GOV-232",
-   "title": "Two campaigns with the same reference",
-   "verdict": "PASS",
-   "evidence": "refused 'campaign_exists' (409)"
   },
   {
    "id": "QA-GOV-236",
@@ -1481,7 +1445,7 @@
    "id": "QA-GOV-271",
    "title": "Open a campaign naming a suspended principal explicitly",
    "verdict": "PASS",
-   "evidence": "REC-c38b3bbc reviews the suspended account by name, and a blank population does not sweep it in"
+   "evidence": "REC-a3495de8 reviews the suspended account by name, and a blank population does not sweep it in"
   },
   {
    "id": "QA-GOV-272",
@@ -1499,7 +1463,7 @@
    "id": "QA-GOV-274",
    "title": "Open two campaigns covering the same people at once",
    "verdict": "PASS",
-   "evidence": "answered in REC-e118cf1f, still unreviewed in REC-39d739a8"
+   "evidence": "answered in REC-d484418c, still unreviewed in REC-84b3125b"
   },
   {
    "id": "QA-GOV-275",
@@ -1541,13 +1505,13 @@
    "id": "QA-GOV-282",
    "title": "Replacement naming a model that is itself retired",
    "verdict": "FAIL",
-   "evidence": "'maya://model/dc-28b42156' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
+   "evidence": "'maya://model/dc-ecf74c7f' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
   },
   {
    "id": "QA-GOV-283",
    "title": "Replacement recorded as the literal `none`",
    "verdict": "PASS",
-   "evidence": "accepted, detail says: maya://model/dc-3833226c is decommissioned, kept under the 'artifact' class, wit"
+   "evidence": "accepted, detail says: maya://model/dc-47d5780a is decommissioned, kept under the 'artifact' class, wit"
   },
   {
    "id": "QA-GOV-284",
@@ -1564,14 +1528,14 @@
   {
    "id": "QA-GOV-287",
    "title": "Live consumers, all listed in `notified`",
-   "verdict": "BLOCKED",
-   "evidence": "the consumer reading does not see the edge, so passing through the gate proves nothing about it \u2014 see QA-GOV-4605"
+   "verdict": "PASS",
+   "evidence": "accepted, the consumer recorded as notified"
   },
   {
    "id": "QA-GOV-289",
    "title": "Only *retired* models downstream",
-   "verdict": "BLOCKED",
-   "evidence": "the consumer reading does not see the edge while the downstream model is still live, so retiring it changes nothing observable \u2014 see QA-GOV-4605"
+   "verdict": "PASS",
+   "evidence": "accepted, and the retired consumer is not counted"
   },
   {
    "id": "QA-GOV-291",
@@ -1834,8 +1798,8 @@
   {
    "id": "QA-GOV-4605",
    "title": "A model something else reads",
-   "verdict": "FAIL",
-   "evidence": "a model another one reads was decommissioned with its consumers neither notified nor acknowledged \u2014 `blast_radius` answers `reaches` and `consumers()` reads `reached`, so the list is always empty and the `consumers_not_notified` refusal can never fire"
+   "verdict": "PASS",
+   "evidence": "refused 'consumers_not_notified', naming the consumer"
   },
   {
    "id": "QA-GOV-4606",
@@ -1852,8 +1816,8 @@
   {
    "id": "QA-GOV-4608",
    "title": "The consumer reading is available before deciding",
-   "verdict": "FAIL",
-   "evidence": "the consumer reading reports nothing downstream for a model that is read by another \u2014 the graph reaches 1 model(s) under the key `reaches`, and `consumers()` reads `reached`"
+   "verdict": "PASS",
+   "evidence": "the consumers are readable before the decision"
   },
   {
    "id": "QA-GOV-4620",
@@ -1991,7 +1955,7 @@
    "id": "QA-GOV-514",
    "title": "A band naming a role that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a0a6fe7829e218d5b4f2e3010a\",\"name\":\"band-45d5a3d2\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a0a73a08f1bd34bbb0d7f2178c\",\"name\":\"band-66087f20\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
   },
   {
    "id": "QA-GOV-515",
@@ -2244,6 +2208,42 @@
    "title": "Outcome coverage is reported",
    "verdict": "PASS",
    "evidence": "outcome coverage reported; minimum 0.1"
+  },
+  {
+   "id": "QA-GOV-6210",
+   "title": "Submit a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-6211",
+   "title": "POST /api/v1/models with a blank `name`",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_failed'"
+  },
+  {
+   "id": "QA-GOV-6212",
+   "title": "A band with no name",
+   "verdict": "PASS",
+   "evidence": "refused 'band_name_required' (422)"
+  },
+  {
+   "id": "QA-GOV-6213",
+   "title": "Review a break-glass with no note",
+   "verdict": "PASS",
+   "evidence": "refused 'note_required' (422)"
+  },
+  {
+   "id": "QA-GOV-6214",
+   "title": "A recertification campaign with no reviewer",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_principal' (404)"
+  },
+  {
+   "id": "QA-GOV-6215",
+   "title": "Two campaigns with the same reference",
+   "verdict": "PASS",
+   "evidence": "refused 'campaign_exists' (409)"
   },
   {
    "id": "QA-GOV-700",

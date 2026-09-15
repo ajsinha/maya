@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-700",
+   "title": "Replay a validation that has no results",
+   "verdict": "PASS",
+   "evidence": "0 test(s) compared; no results to replay"
+  },
+  {
+   "id": "QA-AM-701",
+   "title": "Replay a validation that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-702",
+   "title": "Replay the same episode twice gives the same report",
+   "verdict": "PASS",
+   "evidence": "identical over ['detail', 'mismatched', 'reproduced', 'reproducible', 'skipped']"
+  },
+  {
+   "id": "QA-AM-703",
+   "title": "Replay from storage with no snapshot pinned",
+   "verdict": "PASS",
+   "evidence": "every test reported skipped, naming the absent snapshot"
+  }
+ ]
+}

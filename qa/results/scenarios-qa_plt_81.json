@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.4,
+ "results": [
+  {
+   "id": "QA-PLT-810",
+   "title": "A subscription to an event that does not exist",
+   "verdict": "PASS",
+   "evidence": "accepted \u2014 kinds are derived, not declared \u2014 and the listing carries its position, so a receiver that never fires is visible"
+  },
+  {
+   "id": "QA-PLT-811",
+   "title": "A subscription with no kinds at all",
+   "verdict": "PASS",
+   "evidence": "refused 'kinds_required' (422)"
+  },
+  {
+   "id": "QA-PLT-812",
+   "title": "A subscription to a plaintext endpoint",
+   "verdict": "PASS",
+   "evidence": "refused 'subscription_url_refused' (422)"
+  },
+  {
+   "id": "QA-PLT-813",
+   "title": "A subscription with a wildcard over every event",
+   "verdict": "PASS",
+   "evidence": "refused 'wildcard_refused', naming the decision nobody made"
+  }
+ ]
+}

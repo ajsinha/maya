@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 5,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-PLT-500",
+   "title": "A self-consistent rewrite is caught only by the anchor",
+   "verdict": "PASS",
+   "evidence": "the walk agrees, as it must: no anchor is written on this instance, so nothing contradicts a self-consistent rewrite"
+  },
+  {
+   "id": "QA-PLT-505",
+   "title": "Compile against a model that does not exist",
+   "verdict": "BLOCKED",
+   "evidence": "no document kind is published"
+  },
+  {
+   "id": "QA-PLT-506",
+   "title": "Read a document that does not exist",
+   "verdict": "PASS",
+   "evidence": "both refused (no-such-document-8e2f624d=404, markdown=404)"
+  },
+  {
+   "id": "QA-PLT-507",
+   "title": "A Tier B capability registers with an oracle it does not need",
+   "verdict": "PASS",
+   "evidence": "answered 422 (unknown_oracle)"
+  },
+  {
+   "id": "QA-PLT-508",
+   "title": "A valid Tier B capability",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-PLT-509",
+   "title": "A generation whose claims cite nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'nothing_grounded' (422)"
+  }
+ ]
+}
