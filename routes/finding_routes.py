@@ -121,8 +121,19 @@ class FindingWorkflowRoutes(Routes):
 
         @self.app.get(f"{api}/findings/{{finding_id}}", tags=["findings"])
         def read(request: Request, finding_id: str):
-            """One finding and everything derived from what has happened to it."""
-            self.authorise(request, "finding:read")
+            """One finding and everything derived from what has happened to it.
+
+            Loaded BEFORE it is authorised, so the scope has a model to apply
+            itself to. `GET /findings?urn=` passed one and this did not, so a
+            reader restricted to one legal entity was refused the listing and
+            served any single row in it by id — severity, owner and title of
+            another entity's failed challenge. Finding ids travel in
+            notifications, worklists and board packs, which makes the
+            identifier one such a reader is routinely handed.
+            """
+            finding = self.guard(lambda: workflow.require(finding_id))
+            self.authorise(request, "finding:read",
+                           model=self.model_of(finding["model_id"]))
             return self.guard(lambda: workflow.reading(finding_id))
 
         @self.app.post(f"{api}/findings/{{finding_id}}/assign", tags=["findings"])

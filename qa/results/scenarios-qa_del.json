@@ -5,7 +5,7 @@
   "fail": 2,
   "blocked": 0
  },
- "seconds": 43.8,
+ "seconds": 20.5,
  "results": [
   {
    "id": "QA-DEL-001",
@@ -263,7 +263,7 @@
    "id": "QA-DEL-080",
    "title": "Mark a tombstone compacted twice",
    "verdict": "PASS",
-   "evidence": "refused 'already_compacted': maya://model/tmb-b80d4de2 was compacted on 2026-09-15 by qa"
+   "evidence": "refused 'already_compacted': maya://model/tmb-8b40c8a8 was compacted on 2026-09-15 by qa"
   },
   {
    "id": "QA-DEL-081",

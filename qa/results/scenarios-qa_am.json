@@ -1,11 +1,11 @@
 {
  "summary": {
   "total": 392,
-  "pass": 364,
-  "fail": 27,
+  "pass": 366,
+  "fail": 25,
   "blocked": 1
  },
- "seconds": 82.6,
+ "seconds": 82.8,
  "results": [
   {
    "id": "QA-AM-001",
@@ -388,14 +388,14 @@
   {
    "id": "QA-AM-079",
    "title": "Estate-wide open findings under a scoped reader",
-   "verdict": "FAIL",
-   "evidence": "the answer is short by 12 and says nothing about it: no count of what scope removed, and no `detail` saying the total is partial \u2014 so a reader reconciling against an estate-wide pack sees a discrepancy and reads it as a defect in the register"
+   "verdict": "PASS",
+   "evidence": "short by 12; the answer carries ['models_withheld_by_scope'] and says so: 0 open finding(s) across 0 of 0 model(s) you can see; 58 more model(s) are outside your sc"
   },
   {
    "id": "QA-AM-080",
    "title": "Read a finding by id that belongs to a model out of scope",
-   "verdict": "FAIL",
-   "evidence": "the urn path refused 'out_of_scope' and the id path answered 200 with the finding \u2014 severity 'High', owner 'person/owner', 'The other entity's model failed challenge'. The route authorises `finding:read` with no model, so any finding id reads across every entity"
+   "verdict": "PASS",
+   "evidence": "the id path is scoped too: refused 'out_of_scope'"
   },
   {
    "id": "QA-AM-081",
@@ -761,7 +761,7 @@
    "id": "QA-AM-138",
    "title": "Attach a finding that is already attached to a *different* root",
    "verdict": "FAIL",
-   "evidence": "a finding under root 01a0a2d47400fe3eeb5cd2e6a0c6 was moved to root 01a0a2d474113bdfc61c97bc4888 by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
+   "evidence": "a finding under root 01a0a327d26a6a79af8206070813 was moved to root 01a0a327d27581741a4772f63f5e by a call that never mentioned the first: `attach` writes `root_id` without asking whether one is set, so the first cause silently stops covering it and its reading shrinks with nothing recorded about why"
   },
   {
    "id": "QA-AM-139",
@@ -1457,7 +1457,7 @@
    "id": "QA-AM-270",
    "title": "Compare the `plan_digest` in a submission against the plan that was issued",
    "verdict": "FAIL",
-   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:c150a00b69e2849e6a92f5828f51651a76d5048b1baacf152fa03aa93a1a057a against the issued sha256:42d6186b02348c54b384594c7a329b5b772c0a8c9a3ac147157b4d036205af1a. The digest exists to tie a submiss"
+   "evidence": "the plan digest is recomputed at submit time and the SUBMISSION's partition count is inside the digested plan, so a job that splits its scan differently from the 64 the plan defaulted to records digest sha256:e0d21c1a8bbbf9569ffba768750506bc97bd3f87838a2438f2cbb671c762d037 against the issued sha256:91fd302d3293088d6edc77f8ee2c96589fd39a38c4ffbfabee0c9d0632765f0e. The digest exists to tie a submiss"
   },
   {
    "id": "QA-AM-272",
@@ -1841,7 +1841,7 @@
    "id": "QA-AM-370",
    "title": "A model with no purpose class at all",
    "verdict": "PASS",
-   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-2a48e802', 'why': 'neither designated consumer_impactin"
+   "evidence": "excluded, with the reason: {'urn': 'maya://model/rr-354144ee', 'why': 'neither designated consumer_impactin"
   },
   {
    "id": "QA-AM-372",
@@ -2309,7 +2309,7 @@
    "id": "QA-AM-626",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a2d58c57af018e94d55764af\",\"model_id\":\"01a0a2d58c3c591233e3355a3758\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-89dfffe6\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a0a328e969b74a537b22c8c2fe\",\"model_id\":\"01a0a328e9433699dfd7645ca52d\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-27e8b8a2\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-627",
@@ -2339,13 +2339,13 @@
    "id": "QA-AM-631",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a2d58d3be4d86680b144d069\",\"reference\":\"SUP-b4d1811b\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a328ea59341a50d617cf63ab\",\"reference\":\"SUP-7ba888fc\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-632",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a2d58d6e4888951588c31ce9\",\"reference\":\"SUP-6d408ceb\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a0a328ea800431d367c4e86474\",\"reference\":\"SUP-e48f31f7\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-633",

@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.7,
+ "seconds": 1.7,
  "results": [
   {
    "id": "QA-PLT-172",
    "title": "Coverage against a `kind`- or `urn`-filtered search",
-   "verdict": "FAIL",
-   "evidence": "a search narrowed to one model answers 0 match(es) over 0 document(s) searched and 1 unread, while `GET /api/v1/document-search/coverage` \u2014 the figure the search's own detail line tells a reader to check first \u2014 answers 0.5 over 2 document(s) across the whole estate. `coverage()` takes no `urn` and no `kind`, and the route passes neither, so the two numbers are about different corpora and nothing "
+   "verdict": "PASS",
+   "evidence": "coverage narrows by ['urn', 'kind']"
   }
  ]
 }

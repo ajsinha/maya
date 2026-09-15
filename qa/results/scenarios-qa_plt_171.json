@@ -1,17 +1,17 @@
 {
  "summary": {
   "total": 1,
-  "pass": 0,
-  "fail": 1,
+  "pass": 1,
+  "fail": 0,
   "blocked": 0
  },
- "seconds": 0.7,
+ "seconds": 3.1,
  "results": [
   {
    "id": "QA-PLT-171",
    "title": "Coverage on an empty estate versus a principal who can see nothing",
-   "verdict": "FAIL",
-   "evidence": "an estate with nothing filed and a reader who may see nothing both answer coverage 0.0 over 0 document(s) with the identical sentence: 'no document has been filed against any model you can see'. The first is a register with a gap and the second is a scope doing its job; a reader told the first when the truth is the second concludes the bank has filed nothing"
+   "verdict": "PASS",
+   "evidence": "distinguishable: 'you can see none of the 1 model(s) in this register, so this' against 'nothing is filed because nothing is registered: this estate '"
   }
  ]
 }
