@@ -1,0 +1,91 @@
+MAYA — where the work is, and how to pick it up
+Written 2026-09-16. Branch: develop (merged and pushed to main at every step).
+
+
+WHAT IS IN FLIGHT
+-----------------
+QA pass 1, phase 4: working through the findings batch by batch.
+
+  83 findings open.
+  Closed: batch C, batch D, batch B, batch A, and the QA harness itself.
+  Next:   batch F — authority bands, delegation, quorum, conditions (9).
+  Then:   E, H, I, G, K, L, J.
+
+Everything is in qa/ACTION-PLAN.md. Read the "Where this stands" section at
+the top of it first — it is the real handover, and it is in the repository
+rather than in a note, so it cannot go stale in a drawer.
+
+
+FIRST FIVE MINUTES AFTER A REBOOT
+---------------------------------
+  cd /home/ashutosh/PycharmProjects/maya
+  git status                    # expect: clean, on develop
+  git log --oneline -1          # expect: the last batch commit
+
+  bash tools/ci/gates.sh                         # ~1 min, must say ALL GATES PASS
+  .venv/bin/python -m pytest -q -p no:randomly   # ~3.5 min, must be green
+
+If both are green, nothing was lost.
+
+
+TO SEE WHERE THE FINDINGS ARE
+-----------------------------
+  for s in QA-AM QA-FX QA-GOV QA-PLT QA-DEL; do
+      .venv/bin/python -m qa.regression_suite.scenario_run --only $s
+  done
+  .venv/bin/python -m qa.regression_suite.reconcile
+
+That last command compares qa/ACTION-PLAN.md against the runs and reports
+both directions of drift. It should say "the plan and the newest section runs
+agree". Takes about 3.5 minutes for the five sections.
+
+To reproduce one finding:
+  .venv/bin/python -m qa.regression_suite.scenario_run --only QA-GOV-126
+
+
+THE LOOP, PER BATCH
+-------------------
+  1. Read the batch's rows in qa/ACTION-PLAN.md.
+  2. Fix at the SERVICE, not the route. A body model can only refuse a field
+     that is ABSENT; "   " is present and satisfies it.
+  3. A new refusal code needs an entry in routes/base.py::STATUS, or the
+     discipline test fails the build.
+  4. A platform fix gets a unit test in tests/ saying what was wrong.
+  5. Re-run the SECTION, not the case. A verdict from a single-case run has
+     been wrong in both directions.
+  6. Run gates.sh and the full suite. Both green.
+  7. Update qa/ACTION-PLAN.md: move the batch into a "closed" section that
+     says what it FOUND, and drop the rows that now pass.
+  8. Drill: commit on develop -> push develop -> checkout main -> merge
+     develop -> push main -> checkout develop.
+
+Re-run before writing the summary. Batch B was written up as closed with one
+of its findings still failing, because the summary was assembled from what had
+been fixed rather than from what was still failing.
+
+
+THINGS THAT WILL BITE
+---------------------
+- Documentation rot is part of every batch: README counts, docs/, the two
+  decks, the research paper. tests/test_documentation_counts.py pins most of
+  the numbers now, but only the ones with a pattern in CLAIMS.
+- Do not hand-edit qa/QA-CASES.md. It is generated:
+  .venv/bin/python -m qa.regression_suite.verify
+- Do not hand-edit db/schema/*.sql. Also generated, from db/schema/*.py.
+- Do not reopen the refusals. docs/10 §8 and docs/11 record what this
+  platform deliberately will not do. Several findings look like gaps and are
+  decisions; the ones that are genuinely open say so.
+- MAYA neither trains nor runs models. It is a register. If a fix starts to
+  look like execution, it is the wrong fix.
+
+
+WHERE THINGS ARE
+----------------
+  qa/ACTION-PLAN.md            the backlog, and the handover
+  qa/QA-CASES.md               4,134 published cases (generated)
+  qa/cases/*.md                the hand-written half
+  qa/regression_suite/         1,819 runnable scenarios
+  qa/results/                  the newest run per section
+  tools/ci/gates.sh            the five preflight gates
+  CONTRIBUTING.md              what each gate is for, and when to pass a flag
+  docs/11                      the adversarial review and its dispositions

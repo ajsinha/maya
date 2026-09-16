@@ -1782,9 +1782,13 @@
     "/api/v1/document-search/coverage": {
       "get": {
         "body": [],
-        "parameters": [],
+        "parameters": [
+          "query:kind",
+          "query:urn"
+        ],
         "responses": [
-          "200"
+          "200",
+          "422"
         ]
       }
     },
@@ -4215,6 +4219,7 @@
           "name!",
           "owner!",
           "reference",
+          "semver",
           "slice",
           "test_key!",
           "threshold!",
@@ -7551,6 +7556,18 @@
         "body": [],
         "parameters": [
           "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/share/{reference}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
         ],
         "responses": [
           "200",

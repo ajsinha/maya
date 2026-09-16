@@ -6,6 +6,49 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 # QA pass 1 — the action plan
 
+## Where this stands
+
+**83 findings open.** Batches **C**, **D**, **B**, **A** and **the harness
+itself** are closed; **F** is next. Each closed batch is written up below,
+under its own heading, with what it found rather than what it touched.
+
+**To pick this up:**
+
+```bash
+bash tools/ci/gates.sh                      # the five preflight gates
+.venv/bin/python -m pytest -q -p no:randomly   # ~3.5 min, must be green
+
+for s in QA-AM QA-FX QA-GOV QA-PLT QA-DEL; do          # ~3.5 min
+  .venv/bin/python -m qa.regression_suite.scenario_run --only $s
+done
+.venv/bin/python -m qa.regression_suite.reconcile      # plan vs. the runs
+```
+
+`reconcile` is the one that matters between batches. It reports a row in the
+plan that no longer fails (work already done, re-read as outstanding) and a
+failing case with no row (work that will never be scheduled, because the plan
+is what gets worked through). The second is how `QA-GOV-4608` survived batch B
+being written up as closed.
+
+**Three rules this pass has paid for:**
+
+- **A verdict only counts from a full-section run.** A case can pass alone and
+  fail beside its neighbours — `QA-PLT-163` read `reads.many()` across the
+  estate and `max(..., "at")` picked up a refused read another case had just
+  written — and it can fail alone and pass in a section. `reconcile` reads only
+  `scenarios-qa_<section>.json` for that reason.
+- **Fix at the SERVICE, not the route.** A body model can only refuse a field
+  that is ABSENT, and `"   "` is present.
+- **Re-run before writing the summary.** Batch B was written up as closed with
+  one of its findings still failing, because the summary was assembled from
+  what had been fixed rather than from what was still failing.
+
+**Do not reopen the refusals.** `docs/10 §8` and `docs/11` record what this
+platform deliberately will not do; several of these findings look like gaps and
+are decisions.
+
+---
+
 **146 findings, grouped into twelve batches by what has to change rather than by
 where it was found.** A batch is a coherent edit: one decision, one pattern, one
 sweep, one re-run. Several findings in different sections turn out to be the

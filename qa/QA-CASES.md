@@ -1,6 +1,6 @@
 # MAYA — QA case list
 
-**1680 generated cases across 5 sections**, derived from the source
+**1682 generated cases across 5 sections**, derived from the source
 by `qa/regression_suite/enumerate.py` rather than written from memory. Re-run it after any
 wave that adds a route or a refusal; a case list that does not move when the
 system does is a case list nobody should trust.
@@ -17,12 +17,12 @@ ones.
 
 | Section | Cases |
 |---|---|
-| A. Every operation, once | 612 |
+| A. Every operation, once | 613 |
 | B. Required fields | 158 |
-| C. Unknown identifiers | 203 |
+| C. Unknown identifiers | 204 |
 | D. Every refusal code | 623 |
 | E. Screens | 84 |
-| **Generated total** | **1680** |
+| **Generated total** | **1682** |
 
 
 ## A. Every operation, once
@@ -177,7 +177,7 @@ ones.
 | QA-DOCUMENTREVIEW-004 | `document-review` | `POST /api/v1/document-review/{comment_id}/resolve` answers on the happy path | **accepted (200)** | POST /api/v1/document-review/{comment_id}/resolve — query: path:comment_id!; body: evidence_id, resolution! | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-DOCUMENTREVIEW-005 | `document-review` | `POST /api/v1/document-review/{comment_id}/withdraw` answers on the happy path | **accepted (200)** | POST /api/v1/document-review/{comment_id}/withdraw — query: path:comment_id!, query:reason; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-DOCUMENTSEARCH-001 | `document-search` | `GET /api/v1/document-search` answers on the happy path | **accepted (200)** | GET /api/v1/document-search — query: query:kind, query:limit, query:q!, query:urn; body: none | an operation nobody has called once is an operation nobody knows the shape of |
-| QA-DOCUMENTSEARCH-002 | `document-search` | `GET /api/v1/document-search/coverage` answers on the happy path | **accepted (200)** | GET /api/v1/document-search/coverage — query: none; body: none | an operation nobody has called once is an operation nobody knows the shape of |
+| QA-DOCUMENTSEARCH-002 | `document-search` | `GET /api/v1/document-search/coverage` answers on the happy path | **accepted (200)** | GET /api/v1/document-search/coverage — query: query:kind, query:urn; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-DOCUMENTSUBJECTS-001 | `document-subjects` | `GET /api/v1/document-subjects` answers on the happy path | **accepted (200)** | GET /api/v1/document-subjects — query: none; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-DOCUMENTS-001 | `documents` | `GET /api/v1/documents` answers on the happy path | **accepted (200)** | GET /api/v1/documents — query: query:urn!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-DOCUMENTS-002 | `documents` | `POST /api/v1/documents` answers on the happy path | **accepted (201)** | POST /api/v1/documents — query: query:kind!, query:urn!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
@@ -360,7 +360,7 @@ ones.
 | QA-MONITORINGPLANS-003 | `monitoring-plans` | `POST /api/v1/monitoring-plans/inherit` answers on the happy path | **accepted (200)** | POST /api/v1/monitoring-plans/inherit — query: query:owner, query:semver!, query:urn!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-MONITORINGPROVENANCE-001 | `monitoring-provenance` | `GET /api/v1/monitoring-provenance` answers on the happy path | **accepted (200)** | GET /api/v1/monitoring-provenance — query: query:monitor_id; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-MONITORS-001 | `monitors` | `GET /api/v1/monitors` answers on the happy path | **accepted (200)** | GET /api/v1/monitors — query: query:urn!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
-| QA-MONITORS-002 | `monitors` | `POST /api/v1/monitors` answers on the happy path | **accepted (201)** | POST /api/v1/monitors — query: none; body: breach_severity, cadence_days, escalate_after, kind!, label_delay_days, name!, owner!, reference, slice, test_key!, threshold!, urn! | an operation nobody has called once is an operation nobody knows the shape of |
+| QA-MONITORS-002 | `monitors` | `POST /api/v1/monitors` answers on the happy path | **accepted (201)** | POST /api/v1/monitors — query: none; body: breach_severity, cadence_days, escalate_after, kind!, label_delay_days, name!, owner!, reference, semver, slice, test_key!, threshold!, urn! | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-MONITORS-003 | `monitors` | `GET /api/v1/monitors/{monitor_id}/distributed-plan` answers on the happy path | **accepted (200)** | GET /api/v1/monitors/{monitor_id}/distributed-plan — query: path:monitor_id!, query:partitions, query:since, query:until; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-MONITORS-004 | `monitors` | `POST /api/v1/monitors/{monitor_id}/distributed-submit` answers on the happy path | **accepted (200)** | POST /api/v1/monitors/{monitor_id}/distributed-submit — query: path:monitor_id!; body: engine, now, partitions, predicate, ranked_globally, reference_digest, window | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-MONITORS-005 | `monitors` | `POST /api/v1/monitors/{monitor_id}/evaluate` answers on the happy path | **accepted (200)** | POST /api/v1/monitors/{monitor_id}/evaluate — query: path:monitor_id!; body: now, reference, rows | an operation nobody has called once is an operation nobody knows the shape of |
@@ -632,6 +632,7 @@ ones.
 | QA-UIQUERY-001 | `ui:query` | `GET /query` answers on the happy path | **accepted (200)** | GET /query — query: query:entity, query:field, query:operator, query:question, query:value; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-UIRULES-001 | `ui:rules` | `GET /rules/{name}/{semver}` answers on the happy path | **accepted (200)** | GET /rules/{name}/{semver} — query: path:name!, path:semver!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-UIRULESETS-001 | `ui:rulesets` | `GET /rulesets/{parameter_set_id}` answers on the happy path | **accepted (200)** | GET /rulesets/{parameter_set_id} — query: path:parameter_set_id!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
+| QA-UISHARE-001 | `ui:share` | `GET /share/{reference}` answers on the happy path | **accepted (200)** | GET /share/{reference} — query: path:reference!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-UISUPERVISORY-001 | `ui:supervisory` | `GET /supervisory` answers on the happy path | **accepted (200)** | GET /supervisory — query: none; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-UITELEMETRY-001 | `ui:telemetry` | `GET /telemetry` answers on the happy path | **accepted (200)** | GET /telemetry — query: none; body: none | an operation nobody has called once is an operation nobody knows the shape of |
 | QA-UITELEMETRY-002 | `ui:telemetry` | `GET /telemetry/{semver}/{name}` answers on the happy path | **accepted (200)** | GET /telemetry/{semver}/{name} — query: path:name!, path:semver!; body: none | an operation nobody has called once is an operation nobody knows the shape of |
@@ -1010,6 +1011,7 @@ ones.
 | QA-UIPARAMETERS-002 | `ui:parameters` | `GET /parameters/{semver}/{name}` with a semver that does not exist | **refused (404)** | GET /parameters/{semver}/{name} with semver=does-not-exist | a 500 on an unknown id is the commonest defect in a register, and it leaks whether the id exists |
 | QA-UIRULES-002 | `ui:rules` | `GET /rules/{name}/{semver}` with a name that does not exist | **refused (404)** | GET /rules/{name}/{semver} with name=does-not-exist | a 500 on an unknown id is the commonest defect in a register, and it leaks whether the id exists |
 | QA-UIRULESETS-002 | `ui:rulesets` | `GET /rulesets/{parameter_set_id}` with a parameter_set_id that does not exist | **refused (404)** | GET /rulesets/{parameter_set_id} with parameter_set_id=does-not-exist | a 500 on an unknown id is the commonest defect in a register, and it leaks whether the id exists |
+| QA-UISHARE-002 | `ui:share` | `GET /share/{reference}` with a reference that does not exist | **refused (404)** | GET /share/{reference} with reference=does-not-exist | a 500 on an unknown id is the commonest defect in a register, and it leaks whether the id exists |
 | QA-UITELEMETRY-003 | `ui:telemetry` | `GET /telemetry/{semver}/{name}` with a semver that does not exist | **refused (404)** | GET /telemetry/{semver}/{name} with semver=does-not-exist | a 500 on an unknown id is the commonest defect in a register, and it leaks whether the id exists |
 | QA-UITUTORIALS-003 | `ui:tutorials` | `GET /tutorials/{slug}` with a slug that does not exist | **refused (404)** | GET /tutorials/{slug} with slug=does-not-exist | a 500 on an unknown id is the commonest defect in a register, and it leaks whether the id exists |
 
