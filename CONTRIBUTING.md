@@ -22,6 +22,16 @@ the same five CI runs.
 .venv/bin/python tools/ci/scan_secrets.py        # 5. nothing committed that should not be
 ```
 
+`bash tools/ci/gates.sh` runs 2 to 5 together, plus the two QA guards, and
+stops at the first failure naming it. The suite stays separate because it is
+the slow one and you will want its output.
+
+**Run the script rather than the lines you remember.** A working copy of this
+list kept in a scratch file ran four of the five for a whole working session —
+`spec_lock` was the one missing — and three route changes went unlocked. A
+checklist that lives anywhere but in the repository is a checklist with no
+guard on it.
+
 Two of these need a flag when you meant to change what they check:
 
 | | When |
