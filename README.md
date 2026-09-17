@@ -1,571 +1,211 @@
-![MAYA — Model & AI Lifecycle Assurance](assets/logo/maya-lockup.png)
+<p align="center">
+  <img src="assets/logo/maya-lockup.svg" alt="MAYA" height="72">
+</p>
 
-# MAYA
+# MAYA — Model &amp; AI Lifecycle Assurance
 
-**Evidence, not assertion.**
+## © 2026 Ashutosh Sinha
 
-*One system of record for every model a bank runs — statistical, machine-learned, generative,
-calibrated, vendor-supplied, expert-judgment, rule-based, and end-user-computed.*
+> ### *Evidence, not assertion.*
 
-[The idea](#the-idea) · [What is built](#what-is-built) · [Try it](#try-it) ·
-[Documentation](#documentation) · [Research](#research) · [Layout](#repository-layout)
+**MAYA** is the system of record for quantitative **features**, **feature sets**, **models**, and the **warrants** that license a model to be trained or run. Definition, data, documentation, approval and evidence live in one place, so any number a model produced can be rebuilt exactly, years later, by someone who was not there.
+
+It exists because four things are true in almost every quantitative shop, and each of them is a reproducibility failure waiting to be discovered by someone who is not on your side:
+
+1. Feature logic lives in notebooks and SQL snippets, so two teams compute "adjusted close" differently and neither is wrong.
+2. Training data is a file on a share drive. When results are challenged, nobody can produce the exact rows used.
+3. A model's mathematics lives in a PDF, its code in a repo, its parameters in a spreadsheet, and the three drift apart.
+4. Nothing binds *this model version* + *this data version* + *these parameters* into one auditable, transferable object.
+
+The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes a model version against a feature set version and receives the parameters that training produced. An *execution warrant* packages a model, its parameters and its input contract into a licence that can be handed to a downstream system or a regulator — and, because it is a live instrument rather than a document, withdrawn on a Friday afternoon when the model is found to be wrong. Warrants make *who was allowed to run what, on which data, with whose approval* a query rather than an archaeology project.
+
+[![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/MAYA_Requirements_and_Design.md)
+[![Implementation](https://img.shields.io/badge/implementation-not%20started-lightgrey.svg)](docs/IMPLEMENTATION_PLAN.md)
+[![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
 ---
 
-## The name
+## Status — read this first
 
-**māyā** (माया) — in Indian philosophy, *māyā* is **appearance**: the representation that stands in
-for reality and is so easily mistaken for it. The usual translation, "illusion", is too strong. Māyā
-is not falsehood. It is a *rendering* of the world — useful, often necessary, and dangerous only when
-you forget that it is a rendering.
+**This repository currently contains a specification and a brand, and no product.**
 
-That is exactly what a model is. The supervisory guidance says so in almost the same words:
-
-> *"Models are simplified representations of real-world relationships… based on assumptions that make
-> them useful in estimating values and predicting events, but which also can have limitations and
-> create model risk."*
-> — SR 26-2, §III
-
-Model risk is what happens when an organisation forgets the difference between the map and the
-territory. The platform is named for the thing it governs, and for the discipline of never mistaking
-it for the world.
+On 2026-09-17 the previous build of MAYA was deleted in full and the platform restarted from the specification up. What survived is deliberate and small: the logo set in `assets/logo/`, the name, the tagline and the slogan (`assets/BRAND.md`), and the legal files. Everything else — every module, test, template, deck and paper — was removed.
 
 | | |
 |---|---|
-| **Name** | MAYA — from Sanskrit *māyā* (माया), *appearance*, *representation* |
-| **Tagline** | Model & AI Lifecycle Assurance |
-| **Slogan** | **Evidence, not assertion.** |
-| **Principle** | A model is a representation of the world. Governance is knowing the difference. |
+| **Specification** | Complete. [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — 30 sections, also published as `.docx` and `.pdf` |
+| **Implementation plan** | Complete. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — milestones M0–M7, gates, and the decisions that block Phase 1 |
+| **Code** | None yet. There is no package, no test suite, no server to run |
+| **Blocked on** | Eight open decisions (spec §26.3, restated in the plan). They are cheap to answer now and expensive to answer after Phase 1 code exists |
 
-### The mark
-
-![The MAYA mark — a square inscribed in a circle](assets/logo/maya-mark-128.png)
-
-A **square inscribed in a circle** — the oldest model there is. Archimedes estimated π by inscribing
-and circumscribing polygons and tightening the bound as the sides multiplied: a tractable figure
-standing in for one that cannot be computed directly.
-
-The **gap** between the square and the circle is the model error. The **four points** are where the
-model and the world agree. Add sides and the gap closes but never vanishes — no model becomes the
-thing it represents.
-
-That is māyā, and it is model risk, in one figure.
+Nothing below describes behaviour that exists today. Where this README states a capability, it is stating a **commitment made by the specification**, and the section it comes from is cited so the claim can be checked against its source rather than believed. When a capability ships, its row moves from the plan into a *What's shipped* section and acquires a test that proves it. That order — spec, then plan, then code, then a test, then the claim — is not ceremony; it is the same discipline MAYA sells.
 
 ---
 
-## The problem
+## What makes it different
 
-A bank's model estate is not one kind of thing. It is a pricing library with no parameters to fit, a
-scorecard estimated on eight thousand rows, a term-structure model recalibrated every morning, a
-network with twenty million weights, a language model somebody else hosts, a vendor black box under
-licence, and four thousand spreadsheets. Model risk management is expected to cover all of it with
-one process.
+No product occupies this position today (spec §27 compares MAYA head-to-head against feature stores, lakehouse versioning, ML registries, catalogs and model-risk tools). Five things are the reason.
 
-So the tooling asks *is it AI?* — and that question separates nothing useful. It puts a Black–Scholes
-pricer and a linear regression in different buckets while putting a regression and a large language
-model in the same one. Everything downstream inherits the confusion: a validation checklist with
-fields that make no sense for half the estate, an inventory whose categories nobody can apply
-consistently, and controls that are ceremony for some models and absent for others.
-
-The deeper failure is that **governance is asserted rather than evidenced**. A spreadsheet says a
-model was validated. A ticket says a finding was closed. Nothing connects the assertion to the
-artefact, so an examiner is shown a claim and asked to believe it, and the organisation's own risk
-committee is in the same position.
+- **Definitions are code; data is a consequence.** MAYA stores *how* a number is produced and materialises values only when asked. A **version** freezes *how*; a **pin** freezes *what*. A version resolved a hundred times may return different values as its source moves; a pin returns the same bytes forever. *(§4)*
+- **A closed algebra over features and feature sets.** `union`, `intersect`, `compose`, `coalesce`, `extend`, `override`, `project`, `aggregate` — every operator takes features and yields a *feature definition*, not a one-off result, so a derived object is an ordinary object: named, versioned, pinnable, permissioned, and visible in lineage. Inheritance stores a **diff, not a copy**, so a fix to a parent reaches every child. *(§5.8, §6.8)*
+- **Model mathematics as structured data.** A model's formula is a typed **expression tree**, not a LaTeX string and not prose. From it MAYA type-checks inputs against the bound feature set, renders the specification document, emits a reference implementation, and **diffs two model versions mathematically** — telling a reviewer *"the discount factor changed from continuous to simple compounding"* rather than showing a text diff. Where a model genuinely has no closed form, it is recorded as a **declared black box** rather than pretended otherwise. *(§8.1)*
+- **Bitemporality from the first migration.** Every row carries an *event time* and a *knowledge time*. A vendor restatement is a new knowledge-time row, never an overwrite, so *"what did we know on 31 March"* stays answerable and a backtest cannot silently consume restated values. MAYA can then **prove** the absence of look-ahead and issue a signed **leakage certificate** against the warrant. Point-in-time correctness exists elsewhere as a join semantic; nobody issues a certificate. *(§5.1, §29.1)*
+- **Evidence that survives leaving the building.** A pin's content hash is computed over a *canonical* Arrow representation, not over file bytes, so two pins of the same data hash identically even across engine versions. `maya export bundle` produces a signed archive — warrant, model, formula IR, code, parameters, every member pin, the pinned environment — with a `verify.py` that recomputes every hash **and re-executes**, on a machine with no MAYA access at all. *(§7.2, §18.4, §28.7)*
 
 ---
 
-## The idea
-
-**A model is a parametric kernel:**
+## The shape of the thing
 
 ```
-f : P ⊗ X → D(Y)
+Source ──▶ Feature ──▶ FeatureSet ──▶ ⟨pin⟩ ──┐
+  sql        definition   attribute            ├──▶ Training Warrant ──▶ Parameter Set
+  csv        + versions   mapping              │         │                      │
+  parquet        │        + alignment          │         ▼                      ▼
+  json           ▼                             │    (train offline,      Execution Warrant
+  delta      Feature Pin ──────────────────────┘     upload params)       ── the licence
+  derived    (materialised,                                                  you hand to
+  python      content-addressed)        Model ──▶ Composite Model         a downstream
+                                        formula · code · LaTeX             system, or
+                                                                          to a regulator
 ```
 
-Parameters, tensored with inputs, mapping to a *distribution* over outputs. That is the whole
-definition, and everything else in the platform is derived from it.
-
-Three consequences, and each one dissolves a problem rather than managing it.
-
-**Trainability is derived, never declared.** Ask not *is it AI* but *how is `P` inhabited?* — from
-theory (nothing to fit), from a solver against market quotes, from a statistical estimator, from a
-training run, from a configuration, from a room full of people, or from inside a vendor's binary.
-That question sorts the estate correctly, and the class **T0–T8** falls out of the answer. Nobody
-self-reports it, so asking a closed-form pricer for its training set is a *type error* rather than an
-empty field.
-
-**Parameters are not versions.** A version is the kernel; a parameter set is a point of `P`.
-Refitting produces a new point, not a new kernel — which is what lets a daily recalibration procedure
-be approved once instead of pretending a committee meets every morning.
-
-**A model's inputs are half of it.** `X` is a **featureset**: a schema of named slots, each version
-of it binding every slot to an exact feature and an exact pinned view version. A model is defined
-over the *slots*, so swapping what fills one does not change the model's input space — it changes
-what the model was fitted on, which is a different event with a different control.
+Features and feature sets are **closed under their operators**, so the algebra loops back into the same flow: a derived feature re-enters as an ordinary feature. A composite model is an ordinary model and takes **one** warrant over **one** feature set, however many members it has.
 
 ---
 
-## What MAYA does differently
+## Ten innovations, and what each costs
 
-| | |
-|---|---|
-| **It does not run models.** | It issues a signed, expiring, entitlement-bound **warrant**, and an execution engine acts on it. Governance is therefore never in the serving path, and a governed version move requires no consumer to redeploy. |
-| **Evidence, not assertion.** | Every governance claim is bound to the artefact it rests on, in an append-only hash-chained record. There is no separate audit log: two records of who did what are two records that can disagree, and segregation of duties is decided by reading the chain. |
-| **Refusals are the product.** | Every refusal names what was violated and what to do about it. The interesting behaviour of this platform is what it *will not* do. |
-| **Laws, not conventions.** | Twenty-one foundational laws are stated; **eighteen run in the test suite** and a failing one fails the build. The three that do not run are named, with the reason. |
-| **Derived, not entered.** | The tier, the worklist, the estate summary, the documentation, the board pack: computed from the register. Nothing that can be derived is stored, because a stored derivation is one that can go stale. |
+Specification §29 states each of these precisely enough to build, and honestly about its price. They are listed here because they are the reason MAYA is worth building rather than buying.
 
----
-
-## The five pillars
-
-| | Pillar | What it means |
+| # | Innovation | Cost, stated |
 |---|---|---|
-| **1** | **Inventory** | Every model, with an owner, a purpose, a tier and a lifecycle state — and a dependency graph in which `input_to` is a **typed composition** rather than a drawing |
-| **2** | **Data** | Features and featuresets as governed objects on **two clocks**, with a point-in-time read whose reproducibility is a law rather than a convention |
-| **3** | **Execution** | Warrants: a four-axis grammar with fourteen admissibility laws, checked before the signature |
-| **4** | **Assurance** | Validation, findings, monitoring with delayed labels, overlays, and supervisory regimes encoded as institutions |
-| **5** | **Documentation** | Compiled from the register, filed against what it is *about*, and walkable as a **graph** rather than a list |
+| 29.1 | **Bitemporal features + leakage certificate** — signed proof a training set has no look-ahead | Two columns everywhere, a second index dimension, ~20–30% storage. Phase 1 or never |
+| 29.2 | **Shadow replay** — re-run every dependent model on the proposed change and report the *numeric* shift, not a list of names | Compute, and a sampling strategy honest about coverage |
+| 29.3 | **Content-addressed materialization** — a pin is a manifest of shared fragments; a month-end pin costs its delta | A fragment index and a GC provably safe against sealed pins. Phase 1 or never |
+| 29.4 | **Escrowed holdout and blind scoring** — the developer never receives the test partition; MAYA scores and counts the attempts | MAYA must execute scoring — a narrow, bounded step into runtime |
+| 29.5 | **Warrants with covenants** — machine-checked bounds whose breach *suspends* the warrant and fails every consuming call closed | A monitoring loop and a clear false-positive story |
+| 29.6 | **Licence algebra + tamper-evident custody** — vendor terms propagate as the most restrictive of a derivation's operands; the audit chain anchors externally | Legal input on vocabulary; one external dependency |
+| 29.7 | **Spec–code conformance testing** — differentially test the uploaded Python against a reference generated from the documented mathematics | An IR interpreter, and honesty that sampled agreement is not proof |
+| 29.8 | **The assistant as a recorded challenger** — never approves, never blocks, never writes to a sealed object; its memo is attached and the human records whether they agreed | Prompt and output governance, and a strict no-write boundary |
+| 29.9 | **Spreadsheets as first-class models** — lift an Excel formula graph into the IR and govern it like anything else | Scope v1 narrowly and refuse the rest loudly |
+| 29.10 | **Vendor models under the same wrapper** — register the black box, mark what cannot be verified as unverifiable rather than omitting it | Low to build, high in value: completeness is what an examiner asks for |
 
 ---
 
-## Some models are never trained — and that is a design decision, not a footnote
+## Deliberate non-goals
 
-Most of what a bank runs is not learned from data. A discount factor, a swaption price, a bond's
-accrued interest: these come from theory. There is nothing to fit, no training set, no drift in the
-usual sense — and a platform that assumes otherwise makes its users write "N/A" in fields until they
-stop reading the fields at all.
+Stated because a design without stated losses is a sales pitch. MAYA **does not train models and does not serve predictions** (§2). It will be beaten on online serving latency, streaming freshness, raw scale, connector breadth and out-of-the-box regulatory report templates (§27.4). Where a firm needs sub-10 ms serving, the right answer is MAYA governing the definition and a serving layer consuming a sealed execution warrant — not MAYA growing a serving tier.
 
-MAYA treats that case as first-class. `parameter_kind: none` means `P` is the terminal object; the
-class is **T0**; and a fit warrant is **refused**, naming the fact about the kernel that made the
-request incoherent:
-
-```json
-{"error": "nothing_to_fit",
- "detail": "markets.pricing.vanilla 1.0.0 is T0: its parameter object is the terminal
-            object, so there is no point of P to move to",
- "remediation": "if this model does have parameters, the kernel declares the wrong
-                 parameter_kind; fix the version rather than the warrant"}
-```
-
-What is governed instead moves to where the risk actually is: the conventions, the curve, the
-valuation date, the library version, and the **domain of applicability** the model was benchmarked
-in. The fibre table in [02 §4](docs/02-model-taxonomy.md) gives the same treatment to every
-class: what inhabits `P`, what fits it, what runs it, and what evidence it owes.
+Four risks have no clean fix and are accepted with mitigation rather than waved away: two-store consistency on pin, Python's concurrency ceiling, execution that happens outside MAYA, and the fact that a catalog nobody seeds is an empty shop (§28.11).
 
 ---
 
-## And some models are just rules somebody wrote
+## Intended stack
 
-The class a bank has most of by count is **T8** — a rule set: eligibility criteria, exclusion lists,
-limit checks, the band assignment on the end of a scorecard. In practice it is a spreadsheet, a
-stored procedure, or a paragraph of policy transcribed into code once, and no tool says anything
-about it.
-
-MAYA always held these as `P` — versioned, digested, approved by a second person — and held them as
-an opaque JSON blob, which meant it could tell you a rule set had changed and nothing about what it
-said. A rule set now has a **structure**: ordered rules, first match wins, a required `otherwise`, a
-required `because` per rule, and conditions that are trees of `field op value` with no arithmetic.
-The restriction is the point. Four questions become decidable that are undecidable over a free
-expression:
-
-| | |
-|---|---|
-| **Totality** | `otherwise` is required, so no input falls through — by construction, not by analysis |
-| **Reachability** | a rule an earlier rule already covers can never fire, and nothing about reading the document tells you so. A rule that never fires also never produces a wrong answer, so it survives every review while somebody believes it is in force |
-| **Contradiction** | the same condition reaching two different outcomes |
-| **Conformance** | every field a rule reads is declared on the version, no ordered comparison is asked of a field that has no order, and no field is compared against a value of the wrong kind |
-
-The reachability analysis is **sound and incomplete**, and the honest statement of it is the
-promise: *no rule is shadowed by any single earlier rule.* Two earlier rules that between them cover
-a third are **not** detected — that is satisfiability over the whole set, which is a solver, and a
-solver here is a dependency whose failure modes nobody in the bank can debug.
-
-This is also the one place MAYA edits a model, and the boundary is intact rather than bent. **MAYA
-does not become the authoring tool; it becomes an editor for a parameter set it already held.**
-Publishing is the ordinary parameter-set record — the set lands `proposed`, and self-approval is
-still refused. There is deliberately no ONNX or PMML editor: those serialize a *fitted* map, and
-hand-authoring one would mint an artifact indistinguishable in the register from a trained one. A
-rule set has no training run to be indistinguishable from — authorship *is* its provenance.
-
-And the `rules` runtime, named by the grammar since the first milestone and implemented by nothing
-until now, means a rule set is finally run by the platform that governs it rather than by a stored
-procedure nobody compared it against. Every decision names the rule that made it, because a bank
-that cannot attribute a refusal cannot explain it — and under most consumer-credit regimes the
-explanation is the obligation, not the decision.
-
----
-
-## Built on stated mathematics
-
-| Question | Structure | What it buys |
+| Concern | Choice | Why |
 |---|---|---|
-| What *is* a model? | `Para(Stoch)` — parametric maps into distributions | One definition covering every family; trainability derived rather than declared |
-| When may one replace another? | **Contract refinement** and **schema variance** | An alias move is a proof obligation, not a deployment |
-| Does this fit where that fitted? | A **lattice** on schemas (`L-20`) | One order answering four questions that previously had four implementations |
-| How do models compose? | Typed composition (`L-21`); symmetric monoidal structure | A `input_to` edge that does not type-check is refused; a composite has a *derived* schema |
-| What supports a claim? | **Provenance semirings**, including the universal `ℕ[X]` | Six questions from one traversal — sufficiency, minimal support, corroboration, trust, cost, currency — and the law that makes that a theorem (`L-9`) |
-| Was a training set honest? | **Bitemporal** algebra with a named `AsOf` operator | Reproducibility as a *saturation law*: every read at or after the label gives the same answer |
-| How do regulators differ? | **Institutions** and comorphisms | A regime is a signature, some sentences and a translation; adding one needs no core change |
-| Is an obligation set coherent? | Deontic consistency (`L-16`) | A regime that obliges and forbids the same term cannot be activated |
-| Can aggregate risk be one number? | **Lax** monoidality | No — and the board pack says so rather than producing one |
+| Language | Python 3.13 (`.python-version`) | Matches the estate; `.venv` is git-ignored |
+| API | FastAPI + Pydantic v2, OpenAPI 3.1 | Typed contracts, generated spec, async where it helps |
+| ORM | SQLAlchemy 2.0 typed, Alembic | Confined to one package, enforced by import-linter |
+| Database | PostgreSQL 14+ in production, SQLite for laptop and dev | Full suite green on both, or the build fails |
+| Compute | Apache Arrow + Polars in process, DuckDB for pushdown | Columnar, zero-copy, releases the GIL |
+| Lakehouse | `delta-rs` | ACID and time travel with no JVM and no Spark |
+| UI | Jinja2 templates, **vendored JS, no build pipeline** | The DishtaYantra grammar, so a developer moves between the two codebases without relearning |
+| LaTeX | Tectonic in a sandboxed worker | Deterministic PDFs, no system TeX |
+| Observability | OpenTelemetry, Prometheus, structured JSON logs | Vendor-neutral |
 
-Full treatment: [00 — Mathematical Foundations](docs/00-mathematical-foundations.md). The law table
-in §12 states each law, whether it runs, and where.
-
----
-
-## Regulatory grounding
-
-Encoded as **institutions** — a signature, obligations in that vocabulary, and a translation into the
-core — so that a regime's determinations are made in *its* terms and can be defended in them.
-
-| Regime | Encoded |
-|---|---|
-| **SR 26-2** (Federal Reserve / OCC) | Model definition, effective challenge, tiering, use-test |
-| **PRA SS1/23** (Bank of England) | Principles 1–5, model families, senior-manager accountability |
-| **EU AI Act** | High-risk classification, Annex IV technical documentation, human oversight |
-| **SOX / SS3/18 / TRIM** | Documented as design targets rather than encoded |
-
-The **satisfaction condition** — truth invariant under change of notation — is *checked* against probe
-states before a regime can be activated, and a regime whose encoding fails it cannot be turned on.
-Regimes that disagree are reported as disagreeing rather than merged.
-
----
-
-## Warrants — running a model on demand
-
-A consumer holds a **URN**, never a version:
-
-```
-maya://model/credit.pd.smallbiz#champion
-```
-
-Everything else resolves at the moment of use, against the policy in force at that moment. Promoting
-a version requires no consumer to redeploy; revocation takes effect in under sixty seconds; an open
-blocking finding stops resolution, so a validation finding actually stops the model rather than
-generating an email.
-
-A warrant is the product of **four independent vocabularies** — how `P` is inhabited × how the kernel
-is realised (**nineteen runtimes**) × what is asked of it (**ten verbs**) × where its data comes from
-(**twelve bindings**). `descriptor_only` is one of the nineteen and matters most in a bank: much of
-the estate already runs inside engines nobody is going to replace.
-
-**Warrants differ by kind of model as refusals over one document, never as different documents.**
-Fourteen admissibility laws are checked before the signature. The last three quantify over facts the
-platform *derives* rather than a category anybody attached: a calibration must state its `as_of`
-(**L-W11**) or staleness is silent; parameters living inside an artifact need that artifact digested
-(**L-W12**); a generative runtime must pin the build rather than the model family (**L-W13**).
-
-What *is* templated is the **request**. A warrant profile fills holes in it, selected by the same
-derived facts, folded by the `L-19` monoid, and refused at creation if it reaches for authority.
-
-```bash
-# Pin exactly, to reproduce a decision made months ago
-maya://model/credit.pd.smallbiz@3.2.1
-```
-
-Full protocol: [06 — Warrants & Execution](docs/06-warrants-and-execution.md).
-
----
-
-## Compiled documentation
-
-Documentation arrives at **five moments about five objects**, and it is filed against what it is
-*about*: a methodology paper about the **model**, a specification about the **version**, a training
-record about one **parameter set**, a data dictionary about one **featureset version**, an
-independent recode about a **validation**.
-
-A subject is always **pinned** — `featureset_version`, never `featureset` — because a document filed
-against the set would describe something that has since moved.
-
-Four kinds are **compiled** from the register and the evidence graph by fifteen lenses, so they cannot
-drift from what they describe. A fifth, the **training record**, is compiled per parameter set: a
-model recalibrated every morning produces two hundred and fifty governed acts a year, and until now
-none of them had a record anybody could read.
-
-The **dossier** walks the whole graph from a model — versions, their parameter sets, the featureset
-versions those were fitted from, and the features in them — and every node with nothing filed is a
-**named gap** rather than a blank, because a page that silently omits what it could not find reads as
-complete.
-
-An **export pack** carries the same graph, digested member by member, to somebody who will never be
-given a login.
-
----
-
-## What is built
-
-**Specification complete and adversarially reviewed. Every planned component is built.**
-
-The register, the feature platform, warrants and their grammar, validation and findings, the record
-lifecycle with quorum attestation, authorisation with segregation of duties read from the evidence
-chain, monitoring with delayed labels, compiled documentation and the documentation graph, the
-overlay register, supervisory regimes as institutions, machine assistance, baseline import with
-compliance debt, the content-addressed artifact store, export packs, risk appetite with the board
-pack, rule sets for the T8 estate with the runtime that executes them, dependency-free Python **and
-Java** SDKs with a **CLI whose exit codes separate *refused* from *not reached***, and **the
-register's edges** — the twelve places where the record is not MAYA's own, each
-defined by what it declines to claim ([18](docs/18-the-registers-edges.md)).
-
-Build status, what is genuinely working, and the honest gaps are recorded in one place and kept
-current there:
-
-### → [12 — Implementation Plan §0, Build status](docs/12-implementation-plan.md#0-build-status)
-
-| | |
-|---|---|
-| Tests | **over 5,300 passing**, and more again once parametrised cases are counted one by one — plus a scale suite excluded by default, a real PostgreSQL and a container build behind opt-in variables. Both of those **skip loudly**, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to. The number is recounted from the source by `test_documentation_counts`, which now refuses a bound that is true and stale as well as one that is false |
-| Foundational laws executable | **18 of 21** — the three that are not are named with the reason, and each is a refusal rather than a gap |
-| Warrant admissibility laws | **14 of 14**, checked before every signature |
-| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **93 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
-| Row-level security | Built, and a **backstop** rather than the control. It needs three deployment facts to be true, and `GET /api/v1/row-level-security` reports all three rather than assuming them — including whether the connecting role is a superuser, which bypasses every policy |
-| QA | **4,134 published cases** in [`qa/QA-CASES.md`](qa/QA-CASES.md), half of them generated from `openapi.lock.json`, the refusal map and the navbar so the list cannot quietly stop covering the system. The judgement cases are hand-written in `qa/cases/`, and a growing number are **runnable**: `python -m qa.regression_suite.scenario_run`. A scenario answering an id whose published subject is different fails the build |
-| The CLI | `maya`, installed with the SDK. **Three** exit codes: 0 answered yes, 1 MAYA refused, 2 MAYA was not reached — separated because a pipeline that collapses them goes green whenever the governance platform is down, which is worse than no gate at all. No flag suppresses a refusal |
-| Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped. The Java SDK holds the same line: `java.net.http` and two hundred lines of JSON |
-
----
-
-## Try it
-
-**Python 3.13**, which is what `.python-version`, the linter's `target-version`
-and CI all say. It is one number in three places and they are kept in step
-deliberately: a linter targeting one version while CI runs another is a
-disagreement that surfaces as a surprise in somebody's pull request.
-
-```bash
-python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python run_maya_web.py
-```
-
-> **If your `python3` is managed by uv or pyenv**, point the venv at that
-> interpreter explicitly rather than at `/usr/bin/python3` —
-> `~/.local/share/uv/python/cpython-3.13.15-*/bin/python3.13 -m venv .venv`. A
-> venv built from `/usr/bin/python3` records that path in `pyvenv.cfg` and
-> **breaks the day the distribution upgrades it underneath you**: the
-> interpreter moves to a new minor version, `lib/python3.<old>/site-packages`
-> stops being on its path, and every import fails at once with nothing having
-> changed in the repository.
-
-Then <http://localhost:5006> — sign in as `admin` / `maya-admin-dev`, and change that before anybody else
-can reach it.
-
-**With something in it.** An empty register is a poor way to judge a register, so there is a script
-that builds a demonstration estate — five models across five trainability classes, a typed
-`input_to` edge, features in a materialised view of bitemporal rows, a published featureset,
-warrants, documents, telemetry and an open finding. Everything goes through the HTTP API as a client
-would; nothing is inserted, because an estate assembled by writing rows would show screens in states
-the platform cannot actually reach.
-
-```bash
-.venv/bin/python tools/demo/seed_estate.py --data ./data/demo
-.venv/bin/python run_maya_web.py --config ./data/demo/application.yaml
-```
-
-The server takes `--config`, then `MAYA_CONFIG`, then the file in the repository. A second instance
-should never require editing a tracked file.
-
-Or from Python, with no dependencies at all:
-
-```python
-from maya_sdk import Maya, Blocked
-
-maya = Maya("http://localhost:5006", "d.raman", "…")
-maya.models.register(urn="maya://model/credit.pd.smallbiz", name="SB PD",
-                     model_class="credit.pd.scorecard", domain="credit",
-                     owner="person/j.okafor", legal_entity="LE-US-01",
-                     purpose="12-month PD at origination")
-
-try:
-    maya.versions.promote("maya://model/credit.pd.smallbiz", semver="3.3.0")
-except Blocked as refusal:
-    print(refusal.detail)        # an open blocking finding stands against it
-    print(refusal.remediation)   # close it, or ask the validator to downgrade it
-```
-
-The **compliant path is the fast path**, deliberately: if registering a model properly took forty
-lines of HTTP plumbing and getting it wrong took four, the register would fill with models nobody
-registered properly.
-
----
-
-## Documentation
-
-### Learning it
-
-| | |
-|---|---|
-| [**Help**](content/help/) | Twenty topics in seven sections, rendered in the interface at `/help` |
-| [**Tutorials**](content/tutorials/) | Eight walkthroughs, rendered at `/tutorials`. One per subsystem — defining a model, features, featuresets, warrants and training, the model package — one end to end, one on **governing what you cannot see**, and one on **what MAYA refuses to do**, which is the argument this whole platform rests on. Each shows the **UI, the SDK and curl** for every step, and every command in them was executed against a running instance before it was written down |
-
-### Specifying it
-
-| # | Document | Covers |
-|---|---|---|
-| **00** | [Mathematical Foundations](docs/00-mathematical-foundations.md) ★ | The definitions, the theorems, and the law table with what runs |
-| **01** | [Industry Research](docs/01-industry-research.md) | The estate as it is, and what the incumbent tools do |
-| **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | Families, fibres, and what each needs as evidence |
-| **03** | [Requirements](docs/03-requirements.md) | ~300 numbered requirements with regulatory traceability |
-| **04** | [Architecture](docs/04-architecture.md) | Containers, bounded contexts, extension points, failure modes |
-| **05** | [Data Model](docs/05-data-model.md) | One typed schema rendered to both dialects, the evidence graph, the data-plane layout |
-| **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, the grammar, resolution, revocation, composites |
-| **07** | [Feature Platform](docs/07-feature-platform.md) | Two clocks, point-in-time assembly, contracts, transfer, Delta or Iceberg |
-| **08** | [UI & UX](docs/08-ui-ux.md) | The interface, and the tense warning on what is designed versus built |
-| **09** | [Security & Compliance](docs/09-security-compliance.md) | Threat model, sandbox, identity, ambient authority, audit |
-| **10** | [What Is Left](docs/10-roadmap.md) | What remains, why each thing is not built, and the order it should be done in |
-| **11** | [Adversarial Review](docs/11-adversarial-review.md) | 27 findings; 17 required redesign, and what each cost |
-| **12** | [The Build](docs/12-implementation-plan.md) ★ | **The authoritative record of what exists** — and what the build taught: five ways a control can be green and inert |
-| **13** | [AI in the Platform](docs/13-ai-in-the-platform.md) | Where machine assistance may act, and the oracle criterion |
-| **14** | [Detailed Design](docs/14-detailed-design.md) ★ | Interfaces, algorithms, transaction boundaries, SLOs, capacity |
-| **15** | [X and P](docs/15-featuresets-and-parameters.md) | The two letters that are not the kernel: featuresets, derived features on the provenance polynomial, and the parameter object |
-| **16** | [Five Things a Feature Is Not](docs/16-features-composed-and-shaped.md) | Not a number, not defined in one place, not mutable, not permanent, not its author's — and what happens between the store and the model |
-| **17** | [The Algebra](docs/17-feature-and-model-algebra.md) | One order for four questions; the `AsOf` operator and its saturation law; derived features on the provenance polynomial; typed composition; the documentation graph |
-| **18** | [The Register's Edges](docs/18-the-registers-edges.md) | The twelve places the record is not MAYA's own, and the one rule under all of them: at a boundary, widen a type rather than add a caveat |
-| **19** | [Deploying MAYA](docs/19-deploying-maya.md) | The image, the two database roles, the chart's refusals, the batch — and the five things that must be true, in order |
-| — | [ADRs](docs/adr/INDEX.md) | Sixteen architecture decision records |
-| — | [CONTRIBUTING](CONTRIBUTING.md) | The five preflight gates, the discipline tests that walk the source, and the two mistakes this repository keeps making |
-
----
-
-## Research
-
-| Artefact | Audience |
-|---|---|
-| [**Models as Parametric Kernels, Governance as Verified Automation**](docs/research/models-as-parametric-kernels.pdf) — 34-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** |
-| [**The same argument in prose**](docs/research/models-as-parametric-kernels-article.md) | General technical readers. The definition and what it dissolves, why aggregate risk cannot compose, the two clocks and what a leak looks like, featuresets and the fold that composes them, artefacts that remember, and the oracle criterion |
-| [**Models as Parametric Kernels**](docs/Models-as-Parametric-Kernels.pptx) — 27 slides | A conversation-starter deck mirroring the paper |
-
-The paper, the article and the research deck are deliberately **product-neutral** — no MAYA name, no
-branding — so the ideas can be judged on their own.
-
-| Engineering artefact | Audience |
-|---|---|
-| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 128 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, the five positions this platform takes, and what the decision costs against each alternative by name. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file**, and **chapter 26: the fifteen case studies** in `case_studies/`, each runnable against a live instance in about a minute |
-| [**MAYA — Executive Briefing**](docs/MAYA-Executive-Briefing.pptx) — 20 slides | A CIO and business heads. The exposure in the language of loss, the four failures behind it, what MAYA is in one sentence, what it would cost against buy-and-do-nothing, what is honestly *not* built, the risks including key-person concentration, the first ninety days, and the one policy decision the rest depends on. Every figure is either measured or explicitly marked an estimate |
-| [**MAYA — Concepts and Formalism**](docs/MAYA-Concepts-and-Formalism.pptx) — 20 slides | An architect or a quantitative head of model risk. Only the ideas: the definition `f : P ⊗ X → D(Y)`, the trainability classes it derives, what the definition *forces* before anybody designs anything, the two clocks and the point-in-time operator, the warrant, the shape of the system, the shape of the data — and how to tell if the whole thing is wrong. No roadmap, no business case, no screenshots |
-
-| [**MAYA — The Feature Platform**](docs/MAYA-Feature-Platform.pptx) — 20 slides | A data or feature-platform engineer, and whoever signs off on what a model was fitted on. What a feature store answers and what a register must; a feature as an object with a retrieval policy; the two clocks and the point-in-time operator; views and view versions; derived features and their lineage; featuresets, **inheritance and composition** as a left-to-right fold with totality; the schema lattice; restatement reported rather than absorbed; training sets as snapshots; **retrieval through the SDK**, write path and read path; bulk transfer; sources pulled rather than read through; and what it deliberately is not |
-
-Four decks, four audiences, one source. All are generated from `tools/deck/`
-rather than edited, so a number in a slide and a number in the code cannot
-drift apart, and a geometry audit fails the build on any slide whose text
-overflows what it is drawn in.
-
-*Ashutosh Sinha, Independent Researcher.*
+Full rationale in spec §13.1; deployment topologies — laptop, single node, clustered, air-gapped — in §24.1, all four from one artifact with only configuration differing.
 
 ---
 
 ## Repository layout
 
+What exists today:
+
 ```
 maya/
-├── README.md                        ← the only README; this file
-├── core/                            the platform, split by responsibility
-│   ├── domain/                      the algebra: kernels, schemas, contracts, the lattice
-│   ├── registry/                    models, immutable versions, governed aliases, typed composition
-│   ├── features/                    features, views, featuresets, shapes, composition,
-│   │                                lifecycle, retrieval policy, alignment, bulk transfer
-│   ├── parameters/                  inhabitants of P: fitted, calibrated, declared
-│   ├── rules/                       the T8 parameter object with a shape: conditions, the
-│   │                                reachability analysis, the editor that mints no authority
-│   ├── execution/                   warrants, the grammar, profiles, the runtimes, the sandbox
-│   ├── artifacts/                   the content-addressed store: a file's name is its own hash
-│   ├── validation/  monitoring/     tests and findings; drift and delayed labels
-│   ├── telemetry/                   two bitemporal streams, idempotent ingestion
-│   ├── lifecycle/                   version approval by quorum, attestation, amendment
-│   ├── authz/                       roles, scope, segregation of duties, OIDC, RS256, CSRF
-│   ├── policy/                      versioned gates: a rule is a predicate, with its cases
-│   ├── docs/                        documents compiled; subjects, training records, the dossier
-│   ├── attachments/                 documents filed, content-addressed
-│   ├── export/                      export packs: digested, self-contained, gaps named
-│   ├── reporting/                   risk appetite as a computable limit; the board pack
-│   ├── overlays/                    post-model adjustments, time-boxed
-│   ├── regimes/                     supervisory regimes as institutions
-│   ├── assist/  baseline/           machine assistance; cold-start import
-│   ├── scheduler/  notify/          idempotent jobs; digests, not a message per item
-│   ├── estate/                      the worklist and the summary, derived not assigned
-│   ├── retention/                   legal holds, deletion, tombstones, compaction: what a
-│   │                                register may destroy, and what it must refuse to
-│   ├── security/                    the row-level-security backstop, and what it does NOT reach
-│   ├── waivers/  limitations/       a control waived on the record; a model's stated limits
-│   │   assumptions/  references/    and assumptions; and what still refers to it
-│   ├── events/  plugins/            subscriptions and delivery; discovery that imports nothing
-│   │   discovery/
-│   ├── apikeys/  http/              service credentials; ETags, preconditions and the locks
-│   │   concurrency/
-│   ├── classification/  fibres/     purpose and personal data; the taxonomy's fibres
-│   ├── scanning/  platform/         secret scanning; the platform's own posture; properties
-│   │   config/
-│   └── evidence/  risk/  content/   the chain and its semirings; tiering; rendered help
-├── db/                              the only package that knows about storage
-│   └── schema/                      tables.py — 93 typed tables; the .sql files are generated from it
-├── maya_deltalake/                  the Delta subset MAYA uses, in pure Python — used where
-│                                    binary wheels are forbidden and `deltalake` cannot install
-│                                    (Iceberg is the other table format, by configuration)
-├── routes/  web/                    the HTTP surface and the vendored interface
-├── sdk/                             clients, one folder per language
-│   ├── python/                      maya_sdk — standard library only, no dependencies
-│   └── java/                        java.net.http and about two hundred lines of JSON; no
-│                                    dependencies either, and the same three exit codes
-├── content/                         help and tutorials, rendered at request time
-├── examples/warrants/               thirteen worked warrants across the model estate
-├── case_studies/                    fifteen models registered end to end, with scripts
-│                                    that fit OUTSIDE MAYA and READMEs written to be
-│                                    talked through. Thirteen were designed to exercise
-│                                    the platform; TWO were not — they are failures from
-│                                    the public record, and their closing sections list
-│                                    what MAYA does not reach
-├── qa/                              the test plan and the suite that runs it
-│   ├── QA-CASES.md                  4,134 cases; half generated from source, so the
-│   │                                list cannot quietly stop covering the system
-│   ├── cases/                       sections F–J: the judgement cases a generator
-│   │                                cannot see — sequences and cross-object state
-│   └── regression_suite/            the runnable ones, and the results they produce
-├── docs/                            20 specification documents + 16 ADRs
-├── config/  deploy/                 the shipped configuration; the image, the compose
-│                                    file with its two database roles, and the chart
-├── tools/                           deck/ the decks generated from source, ci/ the five
-│                                    preflight gates, demo/ the estate seeder, ops/,
-│                                    scanner/, soak/
-└── tests/                           the law suite and the discipline walkers
+├── assets/
+│   ├── logo/                 # the mark, lockup, mono and white variants, raster fallbacks
+│   └── BRAND.md              # name, tagline, slogan, and which mark to use where
+├── docs/
+│   ├── MAYA_Requirements_and_Design.md   # the specification — 30 sections
+│   ├── MAYA_Requirements_and_Design.pdf  #   and .docx, same content
+│   ├── IMPLEMENTATION_PLAN.md            # milestones, gates, blocking decisions
+│   └── README.md
+├── LICENSE · NOTICE · README.md
+└── .gitignore · .python-version
 ```
 
-### The discipline walkers
+The target layout, once M0 lands (spec §22.3, §14, §16, §18.2.6 — reproduced with its rationale in the implementation plan):
 
-Several tests do not test a feature. They walk the source and hold a rule that would otherwise rot:
+```
+maya/
+├── maya/
+│   ├── domain/        # entities, value objects, policies, state machines — no I/O
+│   ├── ports/         # protocols the domain requires
+│   ├── services/      # use cases, transactions, orchestration
+│   ├── resolution/    # planner, kernels, rules, shape handling
+│   ├── storage/       # delta, object store, cache adapters
+│   ├── persistence/   # SQLAlchemy, and nowhere else — CI enforced
+│   ├── workflow/      # engine, policies, checks
+│   ├── security/      # authn providers, authz evaluator, sandbox
+│   ├── api/           # FastAPI routers, schemas
+│   ├── web/           # templates, static, routes — imports maya.sdk and nothing deeper
+│   ├── jobs/          # queue, workers, handlers
+│   ├── sdk/  cli/     # client surfaces
+│   └── config/  observability/  core/version.py
+├── config/            # application.yaml (+ .local.yaml overlay, git-ignored)
+├── tests/             # unit, property, repository × both backends, authz matrix, e2e
+├── tools/             # CI gates, build scripts
+└── docs/              # spec, plan, ADRs, design notes, runbooks, research
+```
 
-| | |
-|---|---|
-| `test_logging_discipline` | No exception is ignored. Every `except` logs; none is bare; none is only `pass` |
-| `test_refusal_discipline` | Every coded refusal maps to a status that says who must act, and no code is mapped twice |
-| `test_schema_discipline` | One typed declaration renders identically to both dialects; the checked-in `.sql` is not stale; a truth value is a `Boolean` and a count is not |
-| `test_size_discipline` | No source file over 1,500 lines |
-| `test_atomicity_discipline` | A governed act and the record of it commit together, or neither does |
-| `test_import_discipline` | The layering rule, made mechanical — a rule stated in prose is enforced by nobody |
-| `test_scope_discipline` | Every model-scoped permission is checked **against a model**, including on a route no test has walked yet |
-| `test_documentation_counts` | Every number claimed in prose is recounted from the code |
-| `test_deck_geometry` | No slide has overlapping or escaping content |
-| `test_ui_tables` | Every HTML table has a header, and pagination where it needs one |
-| `test_laws` | The foundational laws, run as tests |
+Two structural rules are worth stating in the README because they are load-bearing and non-negotiable (§14, §13, §16):
+
+- **One door to the database.** Any module outside `maya.persistence` importing `sqlalchemy` fails the build.
+- **The UI is an SDK client, with no private path to the backend.** Nothing under `maya.web` imports anything but `maya.sdk`. Any screen we can build, a customer can script, because the screen used the same methods — and a capability missing from the SDK cannot be quietly special-cased into the UI to hit a deadline.
+
+Both are checked by a non-overridable CI gate, not by review discipline.
 
 ---
 
-## Licence
+## Getting started
 
-**Proprietary and confidential.** Copyright © 2026 Ashutosh Sinha. All rights reserved.
+There is nothing to run yet. The productive thing to do today is read, in this order:
 
-No part of this repository may be copied, modified, distributed or used without prior written
-permission. See [LICENCE](LICENSE) and [NOTICE](NOTICE).
+1. **[`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md)** — §1–§4 for the vision, the personas and the domain language; §5–§9 for the four subsystems; §28 for the design read adversarially; §29 for what is genuinely new.
+2. **[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)** — the sequence, the gates, and the eight decisions that block Phase 1.
+3. **[`assets/BRAND.md`](assets/BRAND.md)** — the name, the slogan, and which mark to use where.
 
-The research paper, its article and the research deck are product-neutral and may be shared for
-academic discussion, with attribution.
+When M0 lands, this section becomes an installation and a first-run walkthrough, and the specification's §2 success criteria start appearing as measured numbers rather than targets.
 
 ---
 
-## Contributing
+## Security posture
 
-This is a single-author research and engineering project. Issues and discussion are welcome;
-pull requests are not accepted at this time.
+Specified before it is built, which is the only order that works (§12, §21):
 
-If you are reading this because you run a model estate and something here describes a problem you
-have — that is the most useful feedback there is.
+- **No silent defaults.** Where a value materially changes behaviour — authentication mode, database URL, storage root, sandbox enablement — there is no default at all outside dev, and MAYA fails at startup naming the setting.
+- **Secrets never in a tracked file.** `config/application.yaml` is tracked and carries no secret; `config/application.local.yaml` is git-ignored and is where a real one belongs.
+- **The default admin password is a speed bump, not a door.** MAYA refuses to start with it outside dev unless explicitly allowed.
+- **User Python is hostile until proved otherwise.** Static validation, import allowlist, a sandboxed subprocess as a separate OS user with seccomp, no network, no credentials, resource caps — and a determinism probe, because non-determinism undermines every reproducibility claim MAYA makes.
+- **The audit log cannot be edited.** Append-only, hash-chained, with the chain head anchored externally. Nothing in MAYA — not an administrator, not a migration — can alter an entry.
+
+---
+
+## Legal
+
+© 2026 Ashutosh Sinha. All rights reserved. MAYA — including all source code, specification and design documents, data models, algorithms, build tooling, brand assets, the MAYA name and the MAYA mark — is the exclusive property of Ashutosh Sinha. This software is **proprietary and confidential**; unauthorized copying, modification, distribution, or use, in whole or in part, is strictly prohibited without express written permission. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
+
+---
+
+## Contact
+
+**Ashutosh Sinha** · ajsinha@gmail.com · https://github.com/ajsinha/maya
+
+---
+
+**MAYA** — Model &amp; AI Lifecycle Assurance · *Evidence, not assertion.* · © 2026 Ashutosh Sinha
