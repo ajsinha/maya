@@ -2,6 +2,16 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.1 — 2026-09-17.** The eight open decisions of §26.3 are closed and that
+> section now records them as taken. Six further calls are folded in throughout:
+> **no database migrations** (§14.3), **`maya_delta`** as the lakehouse layer in place of
+> a direct `delta-rs` dependency (§7.4, §13.1), **Windows, Linux and macOS as equal
+> first-class platforms** (§24.5), **Bootstrap 5 and jQuery with a Harvard Crimson
+> visual system** (§16.6), **a universal table contract** — every table paginated,
+> searchable and sortable (§16.7) — and **workflow policy authored and managed in the
+> UI** (§10.6). The `.docx` and `.pdf` beside this file were exported before revision
+> 2.1 and are behind it; this Markdown is the authority.
+
 ## 1. Executive summary and vision
 
 MAYA is the system of record for quantitative **features**, **feature sets**, **models** and the **warrants** that license a model to be trained or run. Definition, data, documentation, approval and evidence live in one place, so any number a model produced can be rebuilt exactly, years later, by someone who was not there.
@@ -74,6 +84,10 @@ MAYA governs the definition, materialization, documentation and approval of feat
 | SC-11 | Point-in-time reconstruction: a feature resolved as of a past knowledge instant, after a restatement | exact, with the pre-restatement values |
 | SC-12 | Marginal storage of a monthly pin whose history did not change | the delta only, under 5% of full pin size |
 | SC-13 | UI actions reachable through the public SDK, and SDK methods backed by a public endpoint | 100% both ways, checked in CI |
+| SC-14 | Platform parity: the full suite green on Windows, Linux and macOS | all three |
+| SC-15 | Drift between the two shipped schema files and the SQLAlchemy metadata they are generated from | zero, regenerated and diffed in CI |
+| SC-16 | `maya_delta` backend equivalence: the same operation on the native and fallback backends | byte-identical results, and each backend reads the other's tables |
+| SC-17 | Tables in the UI that are paginated, searchable and sortable | 100%, enforced by a template crawler |
 
 ## 3. Personas and roles
 
@@ -399,6 +413,49 @@ CSV never gets an undeclared array. A user who picks CSV for a feature with tens
 
 A pin's storage footprint is estimated before it is created and charged against a namespace quota. Retention policy is per namespace: pins are never auto-deleted, but cold pins move to an infrequent-access tier after a configurable age, and retired pins can be archived to a compressed bundle with their manifest. An administrator can run **integrity verification** on demand: re-read every pin, recompute its hash, and report drift. Drift is a serious incident and raises a system alert.
 
+### 7.4 `maya_delta` — the lakehouse layer
+
+MAYA does not depend directly on a Delta implementation. It depends on **`maya_delta`**,
+a package of MAYA's own that presents one API over two interchangeable backends.
+
+| Backend | Selected when | What it is |
+| --- | --- | --- |
+| `native` | the `deltalake` wheel imports and passes the self-check | The Rust `delta-rs` bindings. Fast, battle-tested, and the default wherever a wheel exists |
+| `pure` | the native import fails, the self-check fails, or configuration pins it | MAYA's own pure-Python implementation of the Delta transaction-log protocol over Arrow and Parquet |
+
+The backend is chosen once at startup, is **named on the health page and in every pin's
+provenance record**, and can be pinned by configuration — because "it worked on my
+machine" is usually a backend difference nobody logged. Selection is never silent.
+
+**Why a fallback exists at all.** MAYA is specified to run on Windows, Linux and macOS
+(§24.5) and in air-gapped sites that install from a local mirror. A native wheel is a
+dependency on someone else's build matrix: a new Python, an unusual architecture, a
+locked-down site with no compiler, and the platform that was supposed to be portable is
+not. The pure backend costs throughput and costs nothing else — it is the difference
+between MAYA being slower somewhere and MAYA being unavailable there.
+
+**What the pure backend implements.** A declared subset of the Delta protocol, stated
+rather than implied: the `metaData`, `protocol`, `add`, `remove` and `commitInfo`
+actions; Parquet checkpoints; optimistic concurrency by exclusive create
+(`O_CREAT|O_EXCL`) of the next log entry, which is atomic on NTFS, ext4 and APFS alike
+and needs no lock daemon; partition pruning; per-file min/max statistics for file
+skipping; a space-filling-curve sort on write where §7.1 asks for Z-ordering; and time
+travel by version. It does **not** implement deletion vectors, column mapping, change
+data feed or liquid clustering, and it **refuses loudly** on a table that requires a
+reader or writer feature it does not have rather than approximating one. The refusal
+names the feature.
+
+**How the two are kept honest.** One conformance suite, run twice — once per backend —
+asserting identical results, plus a cross-backend round trip in both directions: a table
+written by `native` is read by `pure` and vice versa, with the bytes compared. This is
+the only thing that makes the fallback trustworthy, and it is why the suite is a release
+gate rather than a nice-to-have. Protocol version numbers are read from the log and
+asserted as ranges, never as literals; a test that hard-codes a specific version number
+passes for the wrong reason the moment the writer is upgraded.
+
+`maya_delta` ships as its own top-level package with no MAYA domain knowledge in it, so
+it is independently testable and swappable behind the `LakeStore` port of §25.
+
 ## 8. Model subsystem
 
 A model is a compute kernel `Y = f(a, b, c; θ)` with four faces, versioned together: its **mathematics**, its **code**, its **parameters**, and its **specification document**. A model version is the tuple of all four plus its input contract.
@@ -611,6 +668,39 @@ Delegation: any approver can delegate to a named person for a date range; delega
 
 Quarter-end work is bulk work. MAYA supports **campaigns**: a named set of objects moved through a transition together — pin these forty features as of 31 March, re-approve every model touching a changed feature — with one approval covering the campaign, per-item status, partial failure handling and a single audit record that expands to its items.
 
+### 10.6 Workflow is authored and managed in the UI
+
+§10.2 shows a policy as YAML because that is the clearest way to write one down. It is
+not how a policy is *maintained*. Everything in this section is visible and editable
+from the web UI, by people who will never open a YAML file.
+
+**Viewing.** Each object type's state machine renders as a diagram with the live
+population on it — how many objects sit in each state, how long they have been there,
+and which transitions are currently blocked and by which check. A reviewer sees the
+policy that governs the item in front of them, on the review screen, including which
+SoD strictness is in force (§28.9) and which approvals are still outstanding and from
+whom. An instance view shows one object's path so far: every transition, actor,
+rationale and timestamp, in order.
+
+**Managing.** The policy editor is a first-class admin screen, not a text box holding
+YAML. Transitions, required approvals and their conditions, named checks, SLAs and
+notification routing are edited as structured controls with validation as you type: an
+unreachable state, a transition with no approver who could ever satisfy it, a check that
+does not exist, or a policy that would make some object permanently unapprovable are all
+refused at edit time with the reason. The editor previews the change against the live
+population — *"this would block 14 objects currently in review"* — before it is saved.
+
+**The policy is itself governed.** A policy edit is a versioned change that goes through
+the workflow engine: drafted, diffed against the active version, approved, published,
+and audited, with the previous version retained and the effective policy for any past
+decision recoverable. A governance system whose own rules can be changed silently by an
+administrator does not govern anything.
+
+**YAML remains, as a projection.** The stored policy record is the authority; YAML is
+its import and export format, for GitOps, for review in a pull request, and for moving a
+policy between environments. Round-trip fidelity is tested in both directions. There are
+not two sources of truth — there is one record with a text representation.
+
 ## 11. Authorization: roles plus object ACLs
 
 Access is decided by a single function evaluated on every request: `can(principal, action, object) -> Decision`. Nothing in the UI, API, SDK or CLI bypasses it, and the decision — allow or deny, and the rule that decided — is logged for sensitive actions.
@@ -713,14 +803,14 @@ flowchart TD
 
 | Concern | Choice | Why |
 | --- | --- | --- |
-| API | Python 3.12, FastAPI, Pydantic v2 | Typed contracts, automatic OpenAPI, async I/O where it helps |
+| API | Python 3.13, FastAPI, Pydantic v2 | Typed contracts, automatic OpenAPI, async I/O where it helps. 3.13 matches the estate and is pinned in `.python-version` |
 | ORM | SQLAlchemy 2.0 (typed, `Mapped[...]`) | Required by the brief; 2.0 style keeps sessions explicit |
-| Migrations | Alembic | Reviewable, reversible, tested on both backends |
+| Schema | Two generated DDL files — `schema/postgresql.sql`, `schema/sqlite.sql` — **no migration framework** | One typed SQLAlchemy metadata is the source; both files are generated from it and CI fails on drift (§14.3) |
 | Compute | Apache Arrow + Polars for in-process resolution; DuckDB for pushdown SQL over Parquet/Delta | Columnar, zero-copy, releases the GIL during heavy kernels |
-| Lakehouse | `delta-rs` (Rust, no JVM) | ACID, time travel, no Spark dependency |
+| Lakehouse | **`maya_delta`** — a wrapper that prefers the native `deltalake` wheel and falls back to MAYA's own pure-Python Delta implementation | ACID and time travel with no JVM and no Spark, and no hard dependency on a native wheel existing for the platform in front of us (§7.4) |
 | Job queue | Postgres-backed queue (`SKIP LOCKED`); APScheduler for cron; SQLite mode uses an in-process queue | One fewer service to run; Redis/Celery is a pluggable driver |
 | Cache | In-process LRU + optional Redis | Metadata and resolved-plan caching |
-| UI | Matches DishtaYantra — same component library, layout grammar, routing and build pipeline | Consistency and code reuse across the estate |
+| UI | Jinja2 + **Bootstrap 5** + **jQuery**, all vendored, no build pipeline; Harvard Crimson visual system (§16.6) | Server-rendered and progressively enhanced; renders air-gapped; a developer moves between MAYA and DishtaYantra without relearning the layout grammar |
 | LaTeX | Tectonic (self-contained TeX) in a sandboxed worker | Deterministic PDFs, no system TeX install |
 | Auth | Authlib (OIDC) + python3-saml | Standards-compliant, well-audited |
 | Observability | OpenTelemetry traces, Prometheus metrics, structured JSON logs | Vendor-neutral |
@@ -746,7 +836,7 @@ maya/persistence/
   mappers/           # ORM row <-> domain entity translation
   types.py           # portable column types (JSONB/JSON, UUID, decimal, tz-aware)
   locks.py           # advisory locks (PG) / mutex fallback (SQLite)
-  migrations/        # Alembic, tested against both backends
+  schema/            # postgresql.sql, sqlite.sql — GENERATED, never hand-edited
   seed.py            # bootstrap admin, default roles, default policies
 ```
 
@@ -772,9 +862,56 @@ SQLite is supported for single-node, small-team and development use, and MAYA sa
 
 Surrogate UUID primary keys; natural keys enforced by unique constraints (`(feature_id, version_no)`, `(feature_id, pin_name, as_of_date)`). Soft delete only where a real use case exists — most objects are retired, not deleted. Optimistic concurrency via a `row_version` column on every mutable aggregate, so two users editing one draft produce a clear conflict rather than a lost update. Every table carries `created_at`, `created_by`, `updated_at`, `updated_by`. Audit and lineage tables are append-only, enforced by a database rule where the backend supports it.
 
-### 14.3 Migrations
+### 14.3 Schema, and why there is no migration framework
 
-Every migration is reviewed, reversible where possible, and run in CI against both dialects with a representative dataset. Destructive migrations require an explicit `--i-know` flag and a backup confirmation. MAYA refuses to start if the schema version does not match the code, with a message naming the command to run.
+**MAYA ships no migration tool and no migration history.** There is no Alembic, no
+revision graph, no `upgrade()`/`downgrade()` pair to get wrong. The schema is created
+whole, from a file, and a database whose schema does not match the code is not
+upgraded in place — it is rebuilt.
+
+Two files are shipped, one per supported dialect:
+
+```
+maya/persistence/schema/postgresql.sql
+maya/persistence/schema/sqlite.sql
+```
+
+**Both are generated, and neither is ever hand-edited.** The single source of truth is
+the typed SQLAlchemy metadata in `maya/persistence/models/`; `tools/ci/gen_schema.py`
+emits each file with `CreateTable` under the matching dialect, and a CI gate
+regenerates both and fails the build on any diff (SC-15). This is the only arrangement
+in which "two consistent schema files" stays true: two files maintained by hand are two
+files that will disagree, and the disagreement will be found by a user rather than by
+the build. Generating them also means dialect differences are resolved once, in
+`types.py`, rather than twice in prose.
+
+Everything above the file is SQLAlchemy. Repositories, the unit of work, portable
+types and locks are unchanged from §14.1–§14.2; the `.sql` files exist so that creating
+a database is a reviewable, diffable, auditable artifact rather than the side effect of
+importing a package.
+
+**Schema identity.** The generated DDL is hashed, and the hash is written into a
+`schema_meta` row at creation. On startup MAYA compares the stored hash with the hash
+of the DDL the running code generates; on mismatch it **refuses to start** and names the
+command to run. A schema that has silently drifted is the one failure mode a
+migration-free design must not permit.
+
+**Evolution, stated honestly.** Without migrations there is no in-place `ALTER`
+pathway, and pretending otherwise would be the exact dishonesty this platform exists to
+remove. Schema change is therefore export → recreate → import:
+
+```
+maya admin export-estate   --out estate.mayabundle   # dialect-neutral, versioned, hashed
+maya admin init-db         --force                   # drops and recreates from the .sql file
+maya admin import-estate   --in  estate.mayabundle   # re-materialises, verifying every hash
+```
+
+The cost is a maintenance window proportional to estate size, and the benefit is that
+there is exactly one way a database can be shaped and it is a file you can read. Because
+this path is the *only* upgrade path, it is built in Phase 0 and exercised on every
+release, not written when it is first needed — an export/import cycle that has never
+been run is not an upgrade path, it is a hope. Feature data in Delta is unaffected: pins
+are immutable, content-addressed and independent of the metadata schema.
 
 ## 15. Concurrency, compute and job orchestration
 
@@ -812,16 +949,33 @@ When the queue exceeds a configured depth or memory pressure crosses a threshold
 
 ## 16. Web UI
 
-The UI follows DishtaYantra's design and code structure: FastAPI serving Jinja2 templates from `web/templates/`, vendored JavaScript with **no build pipeline**, progressive enhancement over server-rendered HTML, SSE for live progress, and the same layout grammar, navigation chrome, colour tokens, table and form components, and help-page structure. A developer moving between the two codebases should find the same file layout and the same idioms.
+The UI follows DishtaYantra's code structure: FastAPI serving Jinja2 templates from `web/templates/`, **vendored JavaScript with no build pipeline**, progressive enhancement over server-rendered HTML, SSE for live progress, and the same layout grammar, navigation chrome, form components and help-page structure. A developer moving between the two codebases should find the same file layout and the same idioms.
+
+The client stack is **Bootstrap 5 and jQuery**, both vendored and pinned under
+`static/vendor/`. No bundler, no node toolchain, no CDN — the application renders with
+its network cable unplugged, which is a hard requirement for the air-gapped topology of
+§24.1 and a useful discipline everywhere else. Bootstrap is themed through CSS custom
+properties rather than a recompiled Sass build, which is what keeps "no build pipeline"
+true rather than aspirational (§16.6). Where a richer surface is genuinely needed —
+the algebra canvas (§16.3), the editors (§17) — the library is vendored on the same
+terms and nothing about the build changes.
 
 ```
 maya/web/
   templates/
-    base.html  nav.html  _macros/   # shared chrome and component macros
+    base.html  nav.html
+    _macros/
+      table.html                    # THE table macro — every table in the product
+      form.html  status.html  diff.html  job.html
     features/  featuresets/  models/  warrants/  workflow/  admin/  help/
-  static/vendor/                    # vendored, pinned, no bundler
-  static/css/  static/js/
-  routes/                           # thin: parse, authorize, call service, render
+  static/vendor/                    # bootstrap 5, jquery, cytoscape, codemirror,
+                                    #   katex — vendored, pinned, no bundler, no CDN
+  static/css/
+    tokens.css                      # the Harvard Crimson token set (§16.6)
+    theme.css                       # Bootstrap variable overrides + MAYA components
+  static/js/
+    table.js                        # search, sort, paging behaviour for the macro
+  routes/                           # thin: parse, call the SDK, render
 ```
 
 Parity rules carried over: no silent config defaults; client-side computation for UI-only metrics; help pages and `about.html` generated from the version module, never hand-edited; and `core/version.py` as the single source of version truth.
@@ -881,6 +1035,69 @@ The algebra of sections 5.8, 6.8 and 8.7 is only as useful as it is visible, so 
 
 WCAG 2.1 AA: keyboard navigation for every action, visible focus, labelled form controls, live regions for job progress, contrast-checked tokens, and no meaning carried by colour alone (status pills carry a glyph and a word). Tables support keyboard paging and column-level sort and filter. Supported browsers: current and previous major of Chrome, Edge, Firefox, Safari. The UI is responsive to 1280 px and usable to 1024 px; it is not a mobile product, and MAYA says so rather than pretending.
 
+### 16.6 Visual system — Harvard Crimson
+
+MAYA's identity is **Harvard Crimson**, `#A51C30`, and the palette is built outward from
+it rather than decorated with it. The full set lives in `static/css/tokens.css` as CSS
+custom properties on `:root`, redefined under a dark scheme; no component hard-codes a
+colour, and Bootstrap's own variables (`--bs-primary` and the rest) are re-pointed at
+these tokens so the framework and the product cannot disagree.
+
+| Token | Light | Dark | Role |
+| --- | --- | --- | --- |
+| `--maya-crimson` | `#A51C30` | `#DE6B81` | Primary action, active nav, focus ring, chart series 1 |
+| `--maya-crimson-strong` | `#8A1626` | `#D4526A` | Hover and pressed states |
+| `--maya-crimson-deep` | `#6E1120` | `#A51C30` | Headings that carry the brand, table header rules |
+| `--maya-crimson-tint` | `#FBEEF0` | `#2A1A1E` | Selected row, callout background |
+| `--maya-ink` | `#1A1A1A` | `#ECECEF` | Body text |
+| `--maya-slate` | `#6B7480` | `#8996A0` | Secondary text, muted labels, axis lines |
+| `--maya-surface` | `#FFFFFF` | `#1F1F23` | Cards, tables, panels |
+| `--maya-canvas` | `#F7F5F2` | `#151517` | Page background — parchment, not grey |
+| `--maya-indigo` | `#293352` | `#A9B6D6` | Informational accent, second chart series |
+
+**Contrast is checked, not asserted.** Crimson on white measures **7.48:1** and white on
+crimson the same, which clears WCAG AA and AAA for body text; the same crimson on the
+dark canvas measures **2.44:1**, which is why dark mode uses a lightened token at
+**5.67:1** rather than reusing the brand value. A CI gate recomputes every
+foreground/background pair in `tokens.css` and fails the build below 4.5:1 for text or
+3:1 for non-text, because a palette checked once by hand is a palette that drifts on the
+next well-meaning tweak.
+
+**Restraint is the point.** Crimson is a signal, not a wash: it marks the primary action,
+the active location, focus, and brand-bearing headings. Status is never carried by colour
+alone — every pill carries a glyph and a word (§16.5) — and destructive actions are
+distinguished by confirmation and copy rather than by being a slightly different red
+than the brand. Density is deliberate: this is a professional tool read for hours, so
+the base is 14px with a compact table row, generous line height, and a single accent.
+
+### 16.7 The universal table contract
+
+MAYA is a catalog, and a catalog is tables. **Every table in the product is paginated,
+searchable and sortable** — no exceptions, and not as a per-screen decision.
+
+There is exactly one table macro, `_macros/table.html`, and every table in every template
+is produced by it. It provides, uniformly:
+
+- **Pagination** with a rows-per-page dropdown offering 25 / 50 / 100 / 250 / All, the
+  choice remembered per table per user, and a clear statement of what is shown and out of
+  how many. Beyond a configurable threshold the macro switches from client-side paging to
+  the cursor pagination of §18.1 without changing how it looks or behaves.
+- **Search** across the visible columns, debounced, with the matched term highlighted and
+  a stated count of what the filter removed. Server-side beyond the threshold, in which
+  case it becomes the catalog's own `q=` parameter, so a large table searches the whole
+  result set rather than the loaded page.
+- **Sort** on every column that has a meaningful order, multi-column with a modifier,
+  ascending and descending, with the active sort shown in the header and — this being the
+  point — applied to the *whole* result set, never only to the visible page.
+- Column show/hide with the choice remembered, CSV and Arrow export of the current view
+  honouring the active filter and sort, keyboard paging and sorting for accessibility
+  (§16.5), and an empty state that says why it is empty and what to do next.
+
+**Enforced, not encouraged.** A template crawler in CI parses every file under
+`maya/web/templates/` and fails the build on any `<table>` element not emitted by the
+macro (SC-17). This is deliberately the same shape of check as the navigation crawler:
+a rule that is merely written down is a rule that holds until the first deadline.
+
 ## 17. Embedded editors
 
 Both editors use CodeMirror 6, vendored, no build step, consistent with the UI rules above.
@@ -904,7 +1121,22 @@ For model code artifacts and for `python` feature transforms. Syntax highlightin
 5. Smoke run in a sandboxed subprocess against a sample from the declared feature set, with CPU, memory, wall-clock and output-size caps, no network, and a read-only filesystem.
 6. Determinism probe: the smoke run is executed twice and the outputs compared; a mismatch is reported as a warning with the seed used, since non-determinism undermines every reproducibility claim MAYA makes.
 
-The sandbox runs as a separate OS user in a container with seccomp restrictions and no credentials mounted. Artifacts that pass are content-hashed and stored immutably; the validation report is attached to the version and shown to reviewers.
+**The sandbox is per-platform, and its tier is declared.** MAYA runs on three operating
+systems (§24.5) whose isolation primitives are not equivalent, and pretending otherwise
+would be the most dangerous silent default in the product.
+
+| Platform | Mechanism | Tier |
+| --- | --- | --- |
+| Linux | Separate OS user, seccomp-bpf syscall filter, cgroup v2 CPU/memory caps, no network namespace, read-only mount | `strong` |
+| macOS | Separate user, `sandbox-exec` profile, `setrlimit` caps, no network | `moderate` |
+| Windows | Restricted token, Job Object CPU/memory/process caps, separate desktop, no network | `moderate` |
+| Any, misconfigured | Subprocess with `setrlimit`/Job Object caps only | `minimal` |
+
+The active tier is resolved at startup, shown on the health page, and recorded on every
+validation report and every warrant that depended on one. MAYA **refuses to start** in a
+non-dev environment at a tier below the configured minimum, which defaults to `strong`.
+A model artifact validated under `minimal` carries that fact permanently, so a reviewer
+knows what the green tick was worth. Artifacts that pass are content-hashed and stored immutably; the validation report is attached to the version and shown to reviewers.
 
 ### 17.3 Expression editor
 
@@ -1184,25 +1416,43 @@ Full type annotations, `mypy --strict` on the domain and service layers. Errors 
 ### 22.3 Package layout
 
 ```
-maya/
-  domain/        # entities, value objects, policies, state machines — no I/O
-  ports/         # protocols the domain requires
-  services/      # use cases, transactions, orchestration
-  resolution/    # planner, kernels, rules, shape handling
-  storage/       # delta, object store, cache adapters
-  persistence/   # SQLAlchemy only (section 14)
-  workflow/      # engine, policies, checks
-  security/      # authn providers, authz evaluator, sandbox
-  api/           # FastAPI routers, schemas
-  web/           # templates, static, routes (section 16)
-  jobs/          # queue, workers, handlers
-  sdk/  cli/     # client surfaces
-  config/  observability/  core/version.py
+<repo root>/
+  run_maya_web.py    # the startup script — the one supported way to start MAYA
+  maya/
+    domain/          # entities, value objects, policies, state machines — no I/O
+    ports/           # protocols the domain requires
+    services/        # use cases, transactions, orchestration
+    resolution/      # planner, kernels, rules, shape handling
+    storage/         # lake (via maya_delta), object store, cache adapters
+    persistence/     # SQLAlchemy only (section 14), incl. the generated schema/
+    workflow/        # engine, policies, checks, the UI-facing policy editor model
+    security/        # authn providers, authz evaluator, per-platform sandbox
+    api/             # FastAPI routers, schemas
+    web/             # templates, static, routes (section 16)
+    jobs/            # queue, workers, handlers
+    sdk/  cli/       # client surfaces
+    config/  observability/  core/version.py
+  maya_delta/        # the lakehouse layer (section 7.4) — its own top-level package
+    native.py        #   the deltalake-backed backend
+    pure/            #   MAYA's own Delta protocol implementation
+    conformance/     #   the suite both backends must pass identically
+  config/            # application.yaml (tracked) + application.local.yaml (ignored)
+  tools/ci/          # the gate scripts — Python, so they run on all three platforms
+  tests/  docs/  assets/
 ```
+
+`maya_delta` sits beside `maya` rather than inside it because it holds no MAYA domain
+knowledge: it is a general Delta Lake implementation, reachable only through the
+`LakeStore` port of §25, independently testable, and swappable for something better
+without touching a line of MAYA.
 
 ### 22.4 Conventions
 
-Additive, backward-compatible changes by default. Semantic versioning. Every release bumps the version across the same file set by the established ritual and prepends to `docs/CHANGELOG.md`. Docstrings on every public class and method. Architecture decisions recorded as numbered ADRs in `docs/adr/`, referenced from the code they govern. Shell scripts stay `sh`-compatible.
+Additive, backward-compatible changes by default. Semantic versioning. Every release bumps the version across the same file set by the established ritual and prepends to `docs/CHANGELOG.md`. Docstrings on every public class and method. Architecture decisions recorded as numbered ADRs in `docs/adr/`, referenced from the code they govern. Scripts that must run on all three platforms are **Python, not shell** — `python
+tools/ci/gates.py`, not `bash gates.sh` — because a POSIX shell is not a thing Windows
+has. Shell wrappers may exist for muscle memory, but they delegate and never hold logic.
+Paths are `pathlib` throughout; no string concatenation of separators, and no POSIX
+separator baked into anything stored or compared.
 
 ## 23. Testing and release engineering
 
@@ -1277,6 +1527,38 @@ Every client is remote (§18.2.3), so the deployment has to account for callers 
 | Air-gapped sites | The SDK installs from a local mirror; offline bundles cover the case where there is no route to a server at all |
 | Latency | The client is chatty only where a human is waiting; list, get and diff are single round trips, and bulk paths stream |
 
+### 24.5 Platform support
+
+**Windows, Linux and macOS are equal first-class platforms.** Not "Linux, and it
+probably works elsewhere" — the full test suite runs on all three in CI and all three
+must be green to release (SC-14). Server deployments will overwhelmingly be Linux; the
+laptop topology of §24.1 will overwhelmingly not be, and a platform that a quant cannot
+run on their own machine is a platform they will route around (§28.1).
+
+What that costs, and where it is paid:
+
+| Concern | Position |
+| --- | --- |
+| Process model | `multiprocessing` start method is **`spawn`** everywhere, never `fork`. Worker entry points are importable module-level functions and the startup script carries a `__main__` guard, because `spawn` re-imports |
+| Paths | `pathlib` throughout. Delta log paths are stored POSIX-style per the protocol and translated on use — never the reverse |
+| Atomicity | Commits use exclusive create (`O_CREAT|O_EXCL`); file replacement uses `os.replace`. Both are atomic on NTFS, ext4 and APFS. No `flock`, no advisory-lock dependency in the data path |
+| Case sensitivity | Identifiers are compared case-sensitively in the domain and stored case-preserved; a test asserts that two objects differing only in case cannot collide on a case-insensitive filesystem |
+| Sandbox | Three mechanisms, one declared tier, stated on the health page (§17.2) |
+| Native wheels | Every native dependency must have a wheel for all three, or a pure-Python fallback. This is exactly why `maya_delta` exists (§7.4) |
+| Line endings | `.gitattributes` normalises; content hashes are computed over canonical Arrow bytes, never over text files, so CRLF cannot alter a pin |
+| Scripts and gates | Python, not shell (§22.4) |
+| PostgreSQL in CI | Mandatory on Linux; run on Windows and macOS where a server is available. SQLite runs everywhere, always |
+
+**Starting MAYA.** There is one supported entry point, `run_maya_web.py` at the
+repository root, in the shape DishtaYantra uses: a `__main__` guard that sets the
+multiprocessing start method before anything else imports, a banner naming
+`VERSION`, `BUILD_DATE`, the Python and platform in use, the resolved database dialect,
+the `maya_delta` backend and the sandbox tier, then logging configuration, signal and
+`atexit` handlers for a clean drain, and the server. It takes the configuration path and
+`--key=value` overrides (§24.2). `python run_maya_web.py` is the documented command on
+all three platforms, and nothing else is supported — a second way to start a server is a
+second set of startup invariants to get wrong.
+
 ## 25. Extensibility and integrations
 
 Every axis of variation is a registered plugin implementing a declared protocol, discovered by entry point, configured by name. Adding one never edits core code.
@@ -1328,18 +1610,36 @@ Phases 1 and 2 are the product's spine; everything after is faster because the r
 | Workflow policy too rigid or too loose | Either drives people around the system or fails governance | Policy as configuration per namespace, with break-glass that is loud and audited |
 | SQLite mistaken for a production backend | Concurrency ceiling will be discovered under load | UI banner, documented limits, PostgreSQL required when `environment: prod` |
 
-### 26.3 Open decisions
+### 26.3 Decisions taken
 
-These need a call before Phase 1 code starts; my recommendation is given, but each is yours:
+All eight open decisions were closed on **2026-09-17**, before any Phase 1 code. Each
+becomes a numbered ADR in `docs/adr/` during Phase 0; this table is the register.
 
-1. **Feature set pin materialization default** — always materialize (recommended: reproducibility over disk) versus replay from member pins.
-2. **Pin uniqueness** — the notes specify `(name, pin_name, date)`. Should a second pin with the same name and a different date be a new pin or a new *version of a pin series*? Recommended: a pin series, so "the month-end series" is a browsable object.
-3. **Non-causal fill inside training sets** — hard block versus justified override. Recommended: override with written justification surfaced on the warrant.
-4. **Model runtime in v2.0** — I have scoped execution out. If MAYA should actually *run* execution warrants, that changes the worker fleet and the sandbox design materially and should be decided now, not later.
-5. **Namespace granularity** — per desk, per asset class, or per team; it determines quota, recertification and export controls.
-6. **Delta engine** — `delta-rs` only (no JVM, recommended) versus optional Spark for very large pins.
+| # | Decision | Taken | Consequence carried into the design |
+| --- | --- | --- | --- |
+| D-1 | Feature set pin materialization default | **Always materialize** the resolved frame | Reproducibility over disk. `featureset.pin.materialize` remains per-namespace, but the default is `always` (§6.6) |
+| D-2 | Pin uniqueness | **A pin series.** `(feature, pin_name)` is the series; `as_of_date` selects within it | "The month-end series" is a browsable, subscribable object. Fixes the `feature_pins` key and the `#` URI form before any pin exists (§4, §30 A) |
+| D-3 | Non-causal fill inside a training set | **Override with written justification**, never a silent allow and never a bare block | The justification is surfaced on the warrant *and* recorded as an exception on the leakage certificate (§5.3, §29.1) |
+| D-4 | Model runtime in v2.0 | **Out of scope**, with exactly one conceded exception: blind scoring against an escrowed holdout | The warrant boundary is what keeps MAYA coherent. The exception is narrow, bounded, and runs in the same sandbox as §17.2 (§2, §29.4) |
+| D-5 | Namespace granularity | **Per team**, nesting one level | Determines quota, recertification scope and export control (§4, §11) |
+| D-6 | Lakehouse engine | **`maya_delta`** — native `deltalake` preferred, MAYA's own pure-Python Delta as fallback. **No Spark, no JVM** | Supersedes the original "delta-rs only" framing: portability to Windows, macOS and air-gapped sites is the binding constraint, not JVM avoidance alone (§7.4) |
+| D-7 | Default parent binding for `extends` | **`pinned`** by default; `tracking` opt-in per object and **blocked outright in production namespaces** | A child's behaviour never changes without the child being touched — which is the drift MAYA exists to remove (§5.8, §6.8) |
+| D-8 | Composite parameter granularity | **One parameter set per composite**, namespaced by member alias | The composite reproduces as a single unit (§8.7, §9.5) |
 
-Two more arrive with the algebra. **Default parent binding for `extends`**: `pinned` is safe and predictable, `tracking` propagates upstream fixes automatically but means a child's behaviour can change without the child being touched — recommended `pinned` by default, `tracking` opt-in per object and blocked outright in production namespaces. **Composite parameter granularity**: one parameter set per composite, namespaced by member alias (recommended, since it makes the composite reproducible as one unit), versus independently versioned per-member sets rolled up at seal time.
+Six further calls were taken at the same time and are folded into the sections they
+govern rather than listed only here: **no migrations** (§14.3), **cross-platform parity**
+(§24.5), **Bootstrap 5 + jQuery with the Harvard Crimson system** (§16.6), **the
+universal table contract** (§16.7), **workflow authored and managed in the UI** (§10.6),
+and **one startup script** (§24.5).
+
+Two questions remain genuinely open, and neither blocks code:
+
+- **SoD preset for the first namespaces** — *Small team* (3 roles), *Standard* (6) or
+  *Regulated* (all 8, strict) (§28.9). All three ship; the question is what the seeded
+  namespaces get.
+- **Who seeds the first two namespaces** (§28.11). The platform cannot create its own
+  critical mass of curated features. This is a sponsorship question, not an engineering
+  one, and it decides whether the finished platform lands into use or into silence.
 
 ## 27. Competitive analysis
 

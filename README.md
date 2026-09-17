@@ -35,9 +35,10 @@ On 2026-09-17 the previous build of MAYA was deleted in full and the platform re
 | | |
 |---|---|
 | **Specification** | Complete. [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — 30 sections, also published as `.docx` and `.pdf` |
-| **Implementation plan** | Complete. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — milestones M0–M7, gates, and the decisions that block Phase 1 |
+| **Implementation plan** | Complete. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — milestones M0–M8, the 26-rung CI gate ladder, the six one-way doors, and the decision register |
 | **Code** | None yet. There is no package, no test suite, no server to run |
-| **Blocked on** | Eight open decisions (spec §26.3, restated in the plan). They are cheap to answer now and expensive to answer after Phase 1 code exists |
+| **Decisions** | **All closed**, 2026-09-17 (spec §26.3, plan §4). Fourteen calls taken before any code: pin series, always-materialize, no database migrations, `maya_delta`, three-platform parity, Bootstrap + Harvard Crimson, the table contract, workflow managed in the UI, and the rest |
+| **Deferred** | The research paper and the presentation decks, to be rewritten against this specification |
 
 Nothing below describes behaviour that exists today. Where this README states a capability, it is stating a **commitment made by the specification**, and the section it comes from is cited so the claim can be checked against its source rather than believed. When a capability ships, its row moves from the plan into a *What's shipped* section and acquires a test that proves it. That order — spec, then plan, then code, then a test, then the claim — is not ceremony; it is the same discipline MAYA sells.
 
@@ -107,11 +108,14 @@ Four risks have no clean fix and are accepted with mitigation rather than waved 
 |---|---|---|
 | Language | Python 3.13 (`.python-version`) | Matches the estate; `.venv` is git-ignored |
 | API | FastAPI + Pydantic v2, OpenAPI 3.1 | Typed contracts, generated spec, async where it helps |
-| ORM | SQLAlchemy 2.0 typed, Alembic | Confined to one package, enforced by import-linter |
+| Platforms | **Windows, Linux and macOS, equally first-class** | Not "Linux, and it probably works elsewhere" — all three green in CI or it does not release (SC-14) |
+| ORM | SQLAlchemy 2.0, typed | Confined to one package, enforced by import-linter |
+| Schema | **Two generated DDL files, no migration framework** | One typed metadata is the source; `schema/postgresql.sql` and `schema/sqlite.sql` are generated from it and CI fails on drift. Two files maintained by hand are two files that will disagree |
 | Database | PostgreSQL 14+ in production, SQLite for laptop and dev | Full suite green on both, or the build fails |
 | Compute | Apache Arrow + Polars in process, DuckDB for pushdown | Columnar, zero-copy, releases the GIL |
-| Lakehouse | `delta-rs` | ACID and time travel with no JVM and no Spark |
-| UI | Jinja2 templates, **vendored JS, no build pipeline** | The DishtaYantra grammar, so a developer moves between the two codebases without relearning |
+| Lakehouse | **`maya_delta`** — native `deltalake` preferred, MAYA's own pure-Python Delta as fallback | ACID and time travel with no JVM and no Spark, and no hard dependency on someone else's build matrix having a wheel for the platform in front of us |
+| UI | Jinja2 + **Bootstrap 5** + **jQuery**, vendored, **no build pipeline**, Harvard Crimson | Renders air-gapped. A developer moves between MAYA and DishtaYantra without relearning the layout grammar |
+| Startup | One entry point: `python run_maya_web.py` | A second way to start a server is a second set of startup invariants to get wrong |
 | LaTeX | Tectonic in a sandboxed worker | Deterministic PDFs, no system TeX |
 | Observability | OpenTelemetry, Prometheus, structured JSON logs | Vendor-neutral |
 
@@ -141,24 +145,31 @@ The target layout, once M0 lands (spec §22.3, §14, §16, §18.2.6 — reproduc
 
 ```
 maya/
+├── run_maya_web.py        # the one supported way to start MAYA
 ├── maya/
-│   ├── domain/        # entities, value objects, policies, state machines — no I/O
-│   ├── ports/         # protocols the domain requires
-│   ├── services/      # use cases, transactions, orchestration
-│   ├── resolution/    # planner, kernels, rules, shape handling
-│   ├── storage/       # delta, object store, cache adapters
-│   ├── persistence/   # SQLAlchemy, and nowhere else — CI enforced
-│   ├── workflow/      # engine, policies, checks
-│   ├── security/      # authn providers, authz evaluator, sandbox
-│   ├── api/           # FastAPI routers, schemas
-│   ├── web/           # templates, static, routes — imports maya.sdk and nothing deeper
-│   ├── jobs/          # queue, workers, handlers
-│   ├── sdk/  cli/     # client surfaces
-│   └── config/  observability/  core/version.py
-├── config/            # application.yaml (+ .local.yaml overlay, git-ignored)
-├── tests/             # unit, property, repository × both backends, authz matrix, e2e
-├── tools/             # CI gates, build scripts
-└── docs/              # spec, plan, ADRs, design notes, runbooks, research
+│   ├── core/version.py    # VERSION, BUILD_DATE, APP_NAME — the only authority
+│   ├── domain/            # entities, value objects, policies, state machines — no I/O
+│   ├── ports/             # protocols the domain requires
+│   ├── services/          # use cases, transactions, orchestration
+│   ├── resolution/        # planner, kernels, rules, shape handling
+│   ├── storage/           # lake (via maya_delta), object store, cache adapters
+│   ├── persistence/       # SQLAlchemy and nowhere else; schema/ holds the two
+│   │                      #   GENERATED .sql files — never hand-edited
+│   ├── workflow/          # engine, policies, checks, the policy editor's model
+│   ├── security/          # authn providers, authz evaluator, per-platform sandbox
+│   ├── api/               # FastAPI routers, schemas
+│   ├── web/               # templates, static, routes — imports maya.sdk, nothing deeper
+│   ├── jobs/              # queue, workers, handlers
+│   ├── sdk/  cli/         # client surfaces
+│   └── config/  observability/
+├── maya_delta/            # the lakehouse layer — its own top-level package
+│   ├── native.py          #   deltalake-backed
+│   ├── pure/              #   MAYA's own Delta protocol implementation
+│   └── conformance/       #   the suite both backends must pass identically
+├── config/                # application.yaml (+ .local.yaml overlay, git-ignored)
+├── tests/                 # unit, property, repository × both backends, authz matrix, e2e
+├── tools/ci/              # the gates — Python, not shell, so they run on all three OSes
+└── docs/                  # spec, plan, ADRs, design notes, runbooks
 ```
 
 Two structural rules are worth stating in the README because they are load-bearing and non-negotiable (§14, §13, §16):
@@ -166,7 +177,46 @@ Two structural rules are worth stating in the README because they are load-beari
 - **One door to the database.** Any module outside `maya.persistence` importing `sqlalchemy` fails the build.
 - **The UI is an SDK client, with no private path to the backend.** Nothing under `maya.web` imports anything but `maya.sdk`. Any screen we can build, a customer can script, because the screen used the same methods — and a capability missing from the SDK cannot be quietly special-cased into the UI to hit a deadline.
 
-Both are checked by a non-overridable CI gate, not by review discipline.
+- **Every table is paginated, searchable and sortable.** One macro produces every table in the product, and a template crawler fails the build on any `<table>` that did not come from it.
+- **Nothing in `maya/` imports a Delta library directly.** The lakehouse is reached through one port, so which backend is running is a configuration fact rather than an import.
+
+All four are checked by non-overridable CI gates, not by review discipline. A gate that exists only in a review checklist has already been skipped.
+
+---
+
+## The interface
+
+A governance platform lives or dies on whether people would rather use it than a
+notebook (§28.1), so the UI is a first-class deliverable rather than a skin over the API.
+
+**Harvard Crimson, used as a signal rather than a wash.** `#A51C30` is the primary —
+measured at **7.48:1** against white, which clears WCAG AAA for body text — over a
+parchment canvas, with a lightened crimson in dark mode at **5.67:1** because the brand
+value itself measures only 2.44:1 on a dark background. The full token set is in spec
+§16.6; a CI gate recomputes every foreground/background pair and fails below AA, because
+a palette checked once by hand is a palette that drifts on the next well-meaning tweak.
+Crimson marks the primary action, the active location, focus, and brand-bearing
+headings — nothing else. Status is never carried by colour alone: every pill has a glyph
+and a word.
+
+**Every table, without exception, paginates, searches and sorts.** Rows-per-page
+dropdown at 25 / 50 / 100 / 250 / All, remembered per table per user; search across
+visible columns with the removed count stated; sort on every ordered column, applied to
+the *whole result set* rather than the visible page; column show/hide; export of the
+current view honouring the active filter and sort; keyboard paging for accessibility.
+Past a threshold the macro switches to server-side cursor pagination without changing how
+it looks or behaves. Spec §16.7 — and a crawler gate, because a rule that is merely
+written down is a rule that holds until the first deadline.
+
+**Workflow is something you operate, not something you configure in a file.** State
+machines render with the live population on them — how many objects sit in each state,
+how long they have been there, which transitions are blocked and by which check.
+Policies are authored in a structured editor that refuses an unreachable state, an
+unsatisfiable approval or an unknown check *at edit time*, and previews the change
+against the live population before it is saved. The policy is itself versioned, diffed,
+approved and audited, because a governance system whose own rules can be changed
+silently does not govern anything. YAML remains — as an import/export projection for
+GitOps, not as a second authority. Spec §10.6.
 
 ---
 
@@ -178,7 +228,10 @@ There is nothing to run yet. The productive thing to do today is read, in this o
 2. **[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)** — the sequence, the gates, and the eight decisions that block Phase 1.
 3. **[`assets/BRAND.md`](assets/BRAND.md)** — the name, the slogan, and which mark to use where.
 
-When M0 lands, this section becomes an installation and a first-run walkthrough, and the specification's §2 success criteria start appearing as measured numbers rather than targets.
+When M0 lands, this section becomes an installation and a first-run walkthrough —
+`pip install -r requirements.txt -r requirements-dev.txt` then `python run_maya_web.py`,
+identically on Windows, Linux and macOS — and the specification's §2 success criteria
+start appearing as measured numbers rather than targets.
 
 ---
 
@@ -189,7 +242,8 @@ Specified before it is built, which is the only order that works (§12, §21):
 - **No silent defaults.** Where a value materially changes behaviour — authentication mode, database URL, storage root, sandbox enablement — there is no default at all outside dev, and MAYA fails at startup naming the setting.
 - **Secrets never in a tracked file.** `config/application.yaml` is tracked and carries no secret; `config/application.local.yaml` is git-ignored and is where a real one belongs.
 - **The default admin password is a speed bump, not a door.** MAYA refuses to start with it outside dev unless explicitly allowed.
-- **User Python is hostile until proved otherwise.** Static validation, import allowlist, a sandboxed subprocess as a separate OS user with seccomp, no network, no credentials, resource caps — and a determinism probe, because non-determinism undermines every reproducibility claim MAYA makes.
+- **User Python is hostile until proved otherwise.** Static validation, import allowlist, a sandboxed subprocess with no network, no credentials and resource caps — and a determinism probe, because non-determinism undermines every reproducibility claim MAYA makes.
+- **The sandbox tier is declared, not assumed.** Three operating systems do not have equivalent isolation primitives, so MAYA resolves a tier at startup — `strong` on Linux (separate user, seccomp, cgroups), `moderate` on macOS and Windows (`sandbox-exec` / restricted token and Job Objects), `minimal` if misconfigured — names it on the health page, refuses to start below the configured minimum outside dev, and records it permanently on every artifact validated under it. A reviewer needs to know what the green tick was worth.
 - **The audit log cannot be edited.** Append-only, hash-chained, with the chain head anchored externally. Nothing in MAYA — not an administrator, not a migration — can alter an entry.
 
 ---
