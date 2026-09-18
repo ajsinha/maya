@@ -88,6 +88,7 @@ MAYA governs the definition, materialization, documentation and approval of feat
 | SC-15 | Drift between the two shipped schema files and the SQLAlchemy metadata they are generated from | zero, regenerated and diffed in CI |
 | SC-16 | `maya_delta` backend equivalence: the same operation on the native and fallback backends | byte-identical results, and each backend reads the other's tables |
 | SC-17 | Tables in the UI that are paginated, searchable and sortable | 100%, enforced by a template crawler |
+| SC-18 | Dependency seams (§13.4): Type A suites run on both backends, Type B output compared across accelerators | 100% of seams exercised both ways; Type B byte-identical on every platform |
 
 ## 3. Personas and roles
 
@@ -456,6 +457,12 @@ passes for the wrong reason the moment the writer is upgraded.
 `maya_delta` ships as its own top-level package with no MAYA domain knowledge in it, so
 it is independently testable and swappable behind the `LakeStore` port of §25.
 
+It is also the first instance of a general policy rather than a special case: **§13.4**
+states the rule for every dependency seam in MAYA, classifies each one by which side is
+authoritative, and lists what is deliberately *not* proxied. `maya_delta` is a Type A
+seam — native preferred, pure fallback — and, because its output feeds a content hash, it
+carries the byte-comparison obligation that §13.4.1 puts on anything near the hash path.
+
 ## 8. Model subsystem
 
 A model is a compute kernel `Y = f(a, b, c; θ)` with four faces, versioned together: its **mathematics**, its **code**, its **parameters**, and its **specification document**. A model version is the tuple of all four plus its input contract.
@@ -763,7 +770,15 @@ auth:
 
 **Passwords** are hashed with Argon2id (memory 64 MB, time 3, parallelism 4), never logged, never returned by any API. Password reset uses single-use, time-limited tokens; an administrator reset forces a change at next login.
 
-**SSO details.** OIDC authorization code flow with PKCE; SAML 2.0 with signed assertions and clock-skew tolerance. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
+**SSO details.** OIDC authorization code flow with PKCE; SAML 2.0 with signed assertions
+and clock-skew tolerance. The two are not equally portable: OIDC needs nothing beyond
+pure-Python HTTP and JWT handling and is therefore the floor, always available on every
+platform. SAML 2.0 signature verification needs `xmlsec`, a native C library that is a
+routine install failure on Windows and macOS. MAYA treats SAML as a **declared
+capability** (§13.4, Type C): its availability is resolved at startup, and a deployment
+configured for SAML on a host without `xmlsec` **fails to start** with the missing
+package named — rather than starting cleanly and failing at the first person's login,
+which is how this dependency is usually discovered. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
 
 **Service principals.** API keys and OAuth2 client credentials, scoped to roles and namespaces, with mandatory expiry, last-used tracking, one-click revocation and a rotation reminder. Keys are shown once at creation and stored only as hashes.
 
@@ -814,6 +829,7 @@ flowchart TD
 | LaTeX | Tectonic (self-contained TeX) in a sandboxed worker | Deterministic PDFs, no system TeX install |
 | Auth | Authlib (OIDC) + python3-saml | Standards-compliant, well-audited |
 | Observability | OpenTelemetry traces, Prometheus metrics, structured JSON logs | Vendor-neutral |
+| Dependency seams | Every optional or native component sits behind a named MAYA seam, resolved once at startup and reported (§13.4) | A capability must not vanish because a wheel does not exist for the interpreter in front of us |
 
 ### 13.2 Request and data paths
 
@@ -822,6 +838,122 @@ Three paths matter and they are deliberately different. **Metadata reads** (brow
 ### 13.3 Failure posture
 
 Every external dependency has a declared behaviour when absent: object store down → uploads and pins fail fast with a clear message, browsing still works; Delta unavailable → resolution fails, metadata and workflow still work; IdP unreachable → existing sessions continue, new logins fail with a break-glass path for administrators; a worker dies mid-pin → the pin is left in `Materializing`, the orphan partition is garbage-collected by a reaper, and the job is retried idempotently. MAYA degrades in named ways rather than in surprising ones.
+
+### 13.4 Proxied dependencies
+
+`maya_delta` (§7.4) is not a one-off. It is the first instance of a policy that applies
+across the stack: **where a capability MAYA needs is supplied by a component that may not
+be present, MAYA depends on its own named seam and never on the component directly.**
+One resolver (`maya/core/backends.py`) settles every such choice at startup, and the
+resolved set is reported, recorded and pinnable.
+
+The reason is not elegance. MAYA must run on Windows, Linux and macOS (§24.5) and in
+air-gapped sites installing from a local mirror, and every native wheel is a dependency
+on somebody else's build matrix. A capability that vanishes because a wheel does not
+exist for the interpreter in front of us is an outage we chose in advance.
+
+#### 13.4.1 Three polarities, and why the distinction matters more than the list
+
+A proxy has a direction, and choosing the wrong one is how this pattern causes the
+failure it was meant to prevent.
+
+**Type A — native preferred, pure fallback.** The third-party implementation is faster;
+MAYA's own guarantees the capability exists. Correctness is defined by the *contract*,
+and both sides are tested against it. Absence costs throughput and nothing else.
+
+**Type B — MAYA's implementation is authoritative, native is an accelerator.** Used
+wherever the output feeds a **content hash, a definition hash or a signature**. Here the
+pure implementation *is* the specification, and any accelerator must agree with it
+**bit for bit** or it is a defect in the accelerator. This inversion is the single most
+important rule in this section: a proxy on the hash path whose two sides can disagree
+does not degrade gracefully, it silently destroys every reproducibility claim MAYA makes
+— two pins of identical data would hash differently depending on which machine wrote
+them, and SC-1 would pass on each machine separately while being false across them.
+
+**Type C — substitutable, never downgraded.** One API over several *real* backends,
+where a weaker fallback would be worse than an outage. Cryptography is the case that
+matters: a hand-rolled fallback signer is how a governance platform ships a
+vulnerability. Absence here is a **refusal with a named reason**, never a quiet
+substitution.
+
+#### 13.4.2 The register
+
+| Seam | Type | Preferred | Fallback / alternatives | If it is missing |
+| --- | --- | --- | --- | --- |
+| `maya_delta` (§7.4) | **A** | `deltalake` (delta-rs) | MAYA's pure-Python Delta protocol subset | Slower writes and reads; declared protocol subset; unsupported features refused by name |
+| `maya/core/djson` | **A** | `orjson` | stdlib `json` | Slower encode. Same bytes — this seam is on the hash path for definition JSON, so it is tested as Type B even though the fallback is stdlib |
+| `maya/core/frames` | **A** | `polars` | Arrow compute kernels via `pyarrow` | Slower resolution. The expression compiler already targets Arrow kernels (§5.4), so this is an accelerator, not a second engine |
+| `maya/core/pushdown` | **A** | `duckdb` | MAYA's own predicate and projection pushdown over Parquet statistics | Wider scans. Plans state which path ran |
+| PostgreSQL driver | **A** | `psycopg` (v3) | `pg8000`, pure Python | Slower; no binary COPY. SQLAlchemy dialect selection only — no MAYA code changes |
+| `maya/core/search` | **A** | PostgreSQL `tsvector`; SQLite **FTS5** | MAYA's own inverted index over the metadata store | Slower catalog search. FTS5 is **not compiled into every Python's bundled SQLite**, so this is detected at startup, not assumed |
+| `maya/core/compress` | **A** | `zstandard` / Arrow's zstd | stdlib `zlib` | Larger wire payloads. Already negotiated by content encoding (§18.2.3) |
+| `maya/core/tzdb` | **A** | system tz database via `zoneinfo` | the `tzdata` wheel | **Windows ships no system tz database at all.** A bitemporal platform with tz-aware timestamps everywhere cannot treat this as optional; `tzdata` is a hard requirement on Windows and the startup check says so |
+| `maya/core/procstat` | **A** | `psutil` | per-platform `/proc`, `sysctl`, Job Object queries | Coarser resource accounting. The sandbox's *caps* never depend on it — only its *reporting* does |
+| `maya/core/typeset` (§17.1) | **A**, *labelled* | Tectonic | MAYA's own structural PDF renderer | A **draft render**, watermarked as such, refused for any sealed or exported artifact. See §13.4.3 |
+| `maya/core/chunker` (§29.3) | **B** | optional native rolling hash | **MAYA's pure-Python rolling hash — authoritative** | Nothing. The pure implementation defines fragment boundaries; an accelerator that disagrees on one boundary is a defect |
+| `maya/core/canonical` (§7.2 Rule 4) | **B** | — | **MAYA's own canonicalizer — authoritative** | Nothing. Canonical ordering, float encoding and nested-value order are MAYA's definition and are never delegated |
+| `maya/core/kdf` | **A**, *recorded* | `argon2-cffi` (Argon2id) | stdlib `hashlib.scrypt`; PBKDF2-HMAC-SHA512 as the floor | A weaker but still standard KDF. **The algorithm and its parameters are stored alongside every hash**, never assumed globally, so verification keeps working across a change and a login transparently rehashes to the strongest available. A password store that assumes one KDF cannot ever change it |
+| `maya/core/crypto` | **C** | `cryptography` | PKCS#11 / HSM, cloud KMS | **Refusal.** Signing, sealing, warrant tokens and audit anchoring are unavailable and MAYA says which backend it wanted. No pure-Python signer, ever |
+| `maya/security/sandbox` (§17.2) | **C**, *tiered* | seccomp + cgroups (Linux) | `sandbox-exec` (macOS), Job Objects + restricted token (Windows), rlimits only | Not a fallback but a **declared tier**, named on the health page and recorded permanently on every artifact validated under it. Below the configured minimum, MAYA refuses to start outside dev |
+| `maya/security/sso` | **C** | OIDC via `authlib` (pure) | SAML 2.0 via `python3-saml` + `xmlsec` (native C) | OIDC is the floor and always available. SAML is a **declared capability**: absent `xmlsec`, MAYA refuses SAML configuration at startup with the package named, rather than failing at someone's first login |
+| `maya/storage/blob` (§25) | **C** | S3 / Azure Blob / GCS | local filesystem | Configuration, not fallback. Already a `BlobStore` port |
+| `maya/jobs/queue` (§15.2) | **C** | PostgreSQL `SKIP LOCKED` | SQLite in-process; Redis driver | Configuration, not fallback |
+| `maya/core/calendars` (§25) | **A** | a market-calendar library, if configured | **MAYA's own shipped calendar data** | Nothing. MAYA ships NYSE, LSE, TARGET and ISO business-day calendars as data, on DishtaYantra's precedent. A calendar is governance input; it is not something to discover at runtime from a package that may be a version behind |
+| Event loop | **A**, *declared* | `uvloop` + `httptools` | stdlib `asyncio` | **Neither has a Windows wheel**, so Windows always runs the stdlib loop. This is stated on the health page rather than left as an unexplained performance difference between platforms |
+
+#### 13.4.3 Rules that apply to every seam
+
+1. **One resolver, one report.** `maya/core/backends.py` resolves every seam once at
+   startup. The result appears on the system health page, in the startup banner
+   (§24.5), and in `/readyz`. There is no second place a backend can be chosen, and no
+   `try: import X except ImportError` scattered through the codebase.
+2. **Selection is never silent.** A fallback that engages without saying so is how
+   "it works on my machine" becomes a week of debugging. Every fallback logs at
+   startup, names what it wanted, and says what it costs.
+3. **Any seam may be pinned by configuration.** `lake.backend: pure`,
+   `json.backend: stdlib`, and so on — so a site can force the portable path and the
+   CI matrix can exercise it deliberately rather than only by accident of what happens
+   to be installed.
+4. **The resolved backend set is provenance.** It is written into every pin's
+   provenance record (§19), every warrant, and every reproducibility bundle (§18.4).
+   A result that cannot be reproduced because a different backend was resolved is a
+   result whose backend set was not recorded.
+5. **Type B seams are byte-compared in CI, on every platform.** Not "tested" — compared.
+   The pure implementation's output is the fixture.
+6. **A Type A seam's suite runs twice**, once per backend, exactly as `maya_delta`'s
+   conformance suite does. A fallback nobody exercises is a fallback that does not work.
+7. **No new seam without a stated cost.** The register above names what is lost in every
+   row. A proxy introduced without an answer to "and what is worse now" is usually a
+   proxy that should have been a hard dependency.
+
+**The labelled fallback, and why typesetting is the interesting case.** §17.1 promises
+that a specification document's PDF is a *true LaTeX build rather than an approximation
+of one*, and a silent fallback would make that promise false while the artifact still
+looked right — the exact failure this platform exists to remove. So `maya/core/typeset`
+is Type A with a condition: without Tectonic, MAYA renders a structurally faithful draft
+that is **watermarked on every page**, marked `draft_render` in its metadata, and
+**refused** wherever the PDF is evidence — a sealed model version, an execution manifest,
+an export bundle. A model cannot reach `approved` on a draft render. The capability
+degrades; the guarantee does not.
+
+#### 13.4.4 What is deliberately not proxied
+
+Stating this matters as much as the register, because a pattern applied everywhere stops
+being a decision.
+
+- **Apache Arrow (`pyarrow`).** It is not a dependency, it is MAYA's memory format, its
+  type system and its wire format. There is nothing to fall back *to*, and a
+  pure-Python re-implementation of Arrow would be a different product. It is a hard
+  floor, has wheels everywhere MAYA claims to run, and its absence is an install error
+  rather than a degraded mode.
+- **SQLAlchemy.** The persistence package is defined in terms of it (§14) and the two
+  shipped schema files are generated from its metadata (§14.3). A second ORM behind a
+  seam would be a second schema.
+- **FastAPI, Pydantic, Jinja2, `httpx`.** Pure Python, universally installable, and
+  structurally load-bearing. A seam here would buy nothing.
+- **The database engines themselves.** SQLite and PostgreSQL are both first-class and
+  both tested; that is parity (§14.1), not a proxy. MAYA does not silently substitute
+  one for the other, ever.
 
 ## 14. Persistence layer
 
@@ -1104,7 +1236,15 @@ Both editors use CodeMirror 6, vendored, no build step, consistent with the UI r
 
 ### 17.1 LaTeX editor
 
-Split pane: source on the left, rendered preview on the right. Preview uses KaTeX for formulas and a client-side renderer for structure, updating within ~200 ms of a keystroke — fast feedback without a server round-trip. **Export to PDF** compiles the real document with Tectonic in a sandboxed worker, which guarantees the PDF is a true LaTeX build rather than an approximation of one.
+Split pane: source on the left, rendered preview on the right. Preview uses KaTeX for formulas and a client-side renderer for structure, updating within ~200 ms of a keystroke — fast feedback without a server round-trip. **Export to PDF** compiles the real document with Tectonic in a sandboxed worker, which
+guarantees the PDF is a true LaTeX build rather than an approximation of one. Where
+Tectonic is unavailable — an air-gapped site, a platform with no build, an installation
+that declined the download — MAYA does **not** silently produce something that looks like
+a LaTeX build. It renders a structurally faithful **draft**, watermarked on every page and
+marked `draft_render` in its metadata, and refuses it anywhere the PDF is evidence: a
+sealed model version, an execution manifest, an export bundle. A model version cannot
+reach `approved` on a draft render. The capability degrades; the guarantee does not
+(§13.4.3).
 
 Features: firm templates with required sections; a section outline with completeness indicators; `\mayaformula{...}` and `\mayaref{maya://...}` macros that pull live content from the formula IR and the object catalog, so numbers and references cannot go stale; figure and table upload; BibTeX bibliography; spell check; find and replace; full version history with side-by-side diff; comments anchored to line ranges; and a compile log surfaced in readable form when a build fails. Compilation is capped (time, memory, output size), runs with no network and no shell escape, and a failed build never blocks editing.
 
@@ -1337,7 +1477,7 @@ Lineage is not a reporting afterthought; it is written by the same transaction t
 
 Impact analysis runs **before** a change is submitted, not after it lands, and the review screen shows it to the approver.
 
-**Provenance record.** Every materialization stores: the definition hash, the resolved policy, the source watermark (max source timestamp or Delta version read), the engine version, the library versions, the wall-clock time, the actor, the fill report, the quality-check results, and the content hash. That record is what makes SC-1 and SC-2 testable rather than aspirational.
+**Provenance record.** Every materialization stores: the definition hash, the resolved policy, the source watermark (max source timestamp or Delta version read), the engine version, the library versions, **the resolved backend set for every seam of §13.4**, the wall-clock time, the actor, the fill report, the quality-check results, and the content hash. The backend set is there because a result nobody can reproduce for want of knowing which implementation produced it is not evidence. That record is what makes SC-1 and SC-2 testable rather than aspirational.
 
 **Audit log.** Append-only, in its own table with insert-only permissions, covering every state change, permission change, download, export, login, break-glass and administrative action. Each entry carries actor, principal type, timestamp with timezone, object reference, action, before/after summary, request id, trace id and source IP. Entries are chained with a running hash (each row includes the hash of the previous), so tampering is detectable; the chain head is periodically written to an external append-only sink. Audit is queryable in the UI with saved views, exportable as CSV or JSON, and retained per policy (default seven years for governance objects). Nothing in MAYA — not an administrator, not a migration — can edit or delete an audit entry.
 
@@ -1431,7 +1571,11 @@ Full type annotations, `mypy --strict` on the domain and service layers. Errors 
     web/             # templates, static, routes (section 16)
     jobs/            # queue, workers, handlers
     sdk/  cli/       # client surfaces
-    config/  observability/  core/version.py
+    config/  observability/
+    core/            # version.py, and the dependency seams of section 13.4:
+                     #   backends.py (the one resolver), djson, frames, pushdown,
+                     #   search, compress, tzdb, procstat, typeset, crypto,
+                     #   chunker, canonical, calendars/
   maya_delta/        # the lakehouse layer (section 7.4) — its own top-level package
     native.py        #   the deltalake-backed backend
     pure/            #   MAYA's own Delta protocol implementation
@@ -1544,7 +1688,10 @@ What that costs, and where it is paid:
 | Atomicity | Commits use exclusive create (`O_CREAT|O_EXCL`); file replacement uses `os.replace`. Both are atomic on NTFS, ext4 and APFS. No `flock`, no advisory-lock dependency in the data path |
 | Case sensitivity | Identifiers are compared case-sensitively in the domain and stored case-preserved; a test asserts that two objects differing only in case cannot collide on a case-insensitive filesystem |
 | Sandbox | Three mechanisms, one declared tier, stated on the health page (§17.2) |
-| Native wheels | Every native dependency must have a wheel for all three, or a pure-Python fallback. This is exactly why `maya_delta` exists (§7.4) |
+| Native wheels | Every native dependency must have a wheel for all three, or sit behind a seam with a fallback (§13.4). This is exactly why `maya_delta` exists (§7.4) |
+| Time zones | **Windows ships no system tz database.** `zoneinfo` therefore needs the `tzdata` wheel, which is a hard requirement on Windows rather than an optional extra — a bitemporal platform whose timestamps are all tz-aware cannot treat it as one. Checked at startup |
+| Event loop | `uvloop` and `httptools` have **no Windows wheels**, so Windows always runs the stdlib `asyncio` loop. Stated on the health page rather than left as an unexplained cross-platform performance difference |
+| Full-text search | SQLite **FTS5 is not compiled into every Python's bundled SQLite**. Detected at startup; MAYA's own inverted index is the fallback (§13.4) |
 | Line endings | `.gitattributes` normalises; content hashes are computed over canonical Arrow bytes, never over text files, so CRLF cannot alter a pin |
 | Scripts and gates | Python, not shell (§22.4) |
 | PostgreSQL in CI | Mandatory on Linux; run on Windows and macOS where a server is available. SQLite runs everywhere, always |

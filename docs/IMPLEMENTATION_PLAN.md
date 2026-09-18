@@ -8,6 +8,10 @@ Version 1.1 · 2026-09-17 · Ashutosh Sinha
 > parity, Bootstrap 5 + jQuery on a Harvard Crimson system, the universal table contract,
 > and workflow managed in the UI. `maya_delta` is now a milestone of its own (M2) and the
 > milestones after it are renumbered.
+>
+> **Revision 1.2.** `maya_delta` generalised: specification §13.4 now states the dependency-seam
+> policy for the whole stack — twenty seams, three polarities, and the list of what is
+> deliberately *not* proxied. The seam resolver lands in M0 and SC-18 is added.
 
 ---
 
@@ -76,6 +80,8 @@ Four habits, applied to every milestone below:
 | The two `.sql` files match the ORM metadata exactly | §14.3 | `tools/ci/gen_schema.py --check`, non-overridable |
 | Every `<table>` comes from the table macro | §16.7 | `tools/ci/table_contract.py`, non-overridable |
 | Every colour pair in `tokens.css` clears WCAG AA | §16.6 | `tools/ci/contrast.py` |
+| A proxied package is imported only inside its own seam | §13.4.3 | `tools/ci/seam_imports.py`, non-overridable |
+| Every Type A seam's suite runs on both backends; every Type B seam is byte-compared | §13.4.3, SC-18 | CI matrix |
 | Scripts are Python, not shell | §22.4 | Reviewed; `gates.py` is the entry point |
 | `mypy --strict` on `domain/` and `services/` | §22.2 | CI |
 | Functions under 50 lines, complexity under 10 | §22.1 | `ruff` |
@@ -191,10 +197,13 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 - Package skeleton: every directory in plan §3 with an `__init__.py` and a module docstring stating what belongs in it **and what does not**.
 - **`run_maya_web.py`** — the startup script, complete before there is a server to start: `__main__` guard, `multiprocessing.set_start_method('spawn', force=True)` at module level, the banner (version, build date, Python, platform, DB dialect, `maya_delta` backend, sandbox tier), logging configuration, signal and `atexit` drain handlers, config path and `--key=value` overrides.
 - **Configuration**, DishtaYantra-style: `config/application.yaml` with `app`, `server`, `logging`, `db`, `storage`, `auth`, `sandbox`, `lake` sections and no secret; `${VAR:default}` substitution; `config/application.local.yaml` git-ignored and loaded straight after.
+- **`maya/core/backends.py` — the one seam resolver** (§13.4). Every dependency seam is settled here, once, at startup; the result is reported in the banner, on the health page and in `/readyz`, and any seam can be pinned by configuration so CI can exercise the portable path deliberately rather than by accident of what happens to be installed. There is no `try: import X except ImportError` anywhere else in the codebase, and a gate enforces that.
+- **The cheap seams, complete in M0** because they are load-bearing everywhere and trivial to build: `core/djson` (orjson → stdlib), `core/tzdb` (system → `tzdata`, a **hard requirement on Windows**), `core/compress` (zstd → zlib), `core/procstat` (psutil → per-platform). Each with its suite run twice, once per backend.
+- **The Type B seams, authoritative from the first line**: `core/canonical` (§7.2 Rule 4) and `core/chunker` (§29.3). These define content hashes, so MAYA's pure implementation *is* the specification and any accelerator must match it byte for byte. Building them first — before anything hashes — is what keeps that inversion true.
 - **`maya_delta/` skeleton**: the public API surface, backend detection, the self-check, the configuration pin, and startup reporting. The implementations come in M2; what lands here is the *seam*, so nothing above it ever imports `deltalake` directly.
 - **Vendored UI shell**: Bootstrap 5, jQuery, Cytoscape.js, CodeMirror 6, KaTeX, pinned under `static/vendor/`. `static/css/tokens.css` with the Harvard Crimson set of §16.6. `_macros/table.html` and `static/js/table.js`.
 - `.githooks/commit-msg` refusing assistant attribution trailers; `.githooks/pre-commit` running the fast gates.
-- **`tools/ci/`** — `gates.py` as the single entry point (**Python, not shell**, so it runs on all three platforms), plus `file_size.py`, `import_boundaries.py`, `public_symbols.py`, `cycle_check.py`, `gen_schema.py`, `table_contract.py`, `contrast.py`, `version_single_source.py`, `no_secrets.py`.
+- **`tools/ci/`** — `gates.py` as the single entry point (**Python, not shell**, so it runs on all three platforms), plus `file_size.py`, `import_boundaries.py`, `seam_imports.py`, `public_symbols.py`, `cycle_check.py`, `gen_schema.py`, `table_contract.py`, `contrast.py`, `version_single_source.py`, `no_secrets.py`.
 - **CI on three operating systems from the first commit** — Windows, Linux, macOS — with SQLite everywhere and PostgreSQL at least on Linux.
 - `docs/adr/` — ADR-001 package layout, ADR-002 branch and release workflow, ADR-003 `maya_delta` placement, and ADR-004…ADR-011 recording the eight decisions of §4.1.
 - A rewritten `.gitignore`: the retained one still encodes the old build's rules and should be pruned to what MAYA actually produces. `.gitattributes` normalising line endings.
@@ -206,6 +215,9 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 - `python run_maya_web.py --help` runs and prints the banner on all three platforms.
 - `git commit` with a `Co-Authored-By: Claude` trailer is refused by the hook.
 - Starting with a secret in `config/application.yaml` fails a test.
+- **The seam resolver reports every seam** in the banner and on `/readyz`, and each seam can be forced to its fallback by configuration — proved by a CI job that pins every Type A seam to its fallback and runs the suite green.
+- **Type B is byte-compared, not merely tested**: `core/canonical` and `core/chunker` produce identical output on Windows, Linux and macOS, with the pure implementation's output committed as the fixture.
+- An `import orjson` outside `core/djson` fails the seam-import gate.
 
 ---
 
@@ -218,7 +230,11 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 - **The schema, generated** (§14.3): typed SQLAlchemy metadata in `models/` as the single source; `tools/ci/gen_schema.py` emitting `schema/postgresql.sql` and `schema/sqlite.sql`; the drift gate; the schema-hash stamp and the startup refusal on mismatch.
 - **`maya admin init-db` / `export-estate` / `import-estate`** — the *only* upgrade path (§4.3), built now and exercised from now on.
 - Schema for `users`, `roles`, `user_roles`, `groups`, `group_members`, `namespaces`, `grants`, `audit_events`, `jobs`, `schema_meta`.
-- `maya/security/`: `AuthProvider` with DB and OIDC/SAML2 implementations behind one config switch; Argon2id; sessions with `HttpOnly`/`Secure`/`SameSite=Lax` and CSRF; API keys shaped `maya_<env>_<key_id>_<secret>`, stored hashed, shown once.
+- `maya/security/`: `AuthProvider` with DB and OIDC/SAML2 implementations behind one config switch; sessions with `HttpOnly`/`Secure`/`SameSite=Lax` and CSRF; API keys shaped `maya_<env>_<key_id>_<secret>`, stored hashed, shown once.
+- **`core/kdf`** (§13.4): Argon2id preferred, `hashlib.scrypt` then PBKDF2-HMAC-SHA512 as fallbacks, with **the algorithm and its parameters stored alongside every hash** rather than assumed globally — so verification survives a change and a login transparently rehashes to the strongest available. A password store that assumes one KDF can never change it.
+- **`core/crypto`** (Type C): one API over `cryptography`, PKCS#11/HSM or cloud KMS, and a **refusal** naming the wanted backend when none is present. There is no pure-Python signer and there will not be one.
+- **`core/search`**: PostgreSQL `tsvector` / SQLite FTS5, detected at startup — **FTS5 is not compiled into every Python's bundled SQLite** — with MAYA's own inverted index as the fallback.
+- **SAML as a declared capability**: a deployment configured for SAML on a host without `xmlsec` fails at *startup* with the package named, not at the first person's login.
 - `can(principal, action, object) -> Decision` — the **single** authorization function with the §11.2 resolution order and the role ceiling. Nothing in the UI, API, SDK or CLI bypasses it.
 - Append-only, hash-chained audit (§19), each row carrying the previous row's hash.
 - `maya/jobs/`: queue (PG `SKIP LOCKED`; SQLite in-process behind the same interface), worker loop on `spawn`, idempotency keys, cooperative cancellation, retry with backoff, dead-letter, the orphan reaper.
@@ -236,6 +252,9 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 - The hash chain is verified by a test that **tampers with a row and proves detection** — the negative case, not just the positive one.
 - **SC-17**: every table on every shipped screen paginates with a working rows dropdown, searches, and sorts across the whole result set rather than the visible page. The crawler gate is green and has been seen to fail.
 - Contrast gate green; dark mode verified by computed ratio, not by eye.
+- A password hashed under Argon2id verifies after the seam is forced to scrypt, and logging in rehashes it — proved in one test, because this is the migration that a stored-KDF design exists to make possible.
+- Removing the crypto backend produces a **named refusal at startup**, not a traceback at the first seal.
+- The full M1 suite runs green with **every Type A seam pinned to its fallback**.
 - `/healthz`, `/readyz`, and a system health page naming every dependency, the schema hash, the `maya_delta` backend and the sandbox tier.
 
 ---
@@ -404,7 +423,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 
 **Exit criteria**
 
-- **All seventeen success criteria measured and met**, each by a named test or benchmark (plan §8).
+- **All eighteen success criteria measured and met**, each by a named test or benchmark (plan §8).
 - The restore drill has been performed and its result recorded and visible.
 - No unresolved high findings from the external review.
 
@@ -429,12 +448,14 @@ One entry point — `python tools/ci/gates.py` — run locally and in CI, on all
 | 3 | File size — 1,500 hard, 1,200 note, 800 warn | M0 | **no** |
 | 4 | Import boundary: no `sqlalchemy` outside `maya.persistence` | M0 | **no** |
 | 5 | Import boundary: nothing under `maya.web` imports deeper than `maya.sdk` | M0 | **no** |
-| 6 | Import boundary: nothing in `maya/` imports `deltalake` directly | M0 | **no** |
+| 6 | **Seam imports** — a proxied package is imported only inside its own seam | M0 | **no** |
 | 7 | Public-symbol count per module, dependency-cycle check | M0 | no |
 | 8 | Version single-source grep | M0 | no |
 | 9 | No secret in `config/application.yaml` | M0 | no |
 | 10 | **Table contract** — every `<table>` from the macro | M0 | **no** |
 | 11 | **Colour contrast** — every token pair ≥ 4.5:1 text, 3:1 non-text | M0 | no |
+| 11b | **Fallback matrix** — the suite with every Type A seam pinned to its fallback | M0 | **no** |
+| 11c | **Type B byte-comparison** — canonical and chunker output identical across platforms | M0 | **no** |
 | 12 | **Three-platform matrix** — Windows, Linux, macOS | M0 | **no** |
 | 13 | **Schema drift** — regenerate both `.sql` files and diff | M1 | **no** |
 | 14 | Estate export → recreate → import round trip | M1 | no |
@@ -461,7 +482,7 @@ One entry point — `python tools/ci/gates.py` — run locally and in CI, on all
 
 ## 8. Success criteria, mapped
 
-Specification §2 states seventeen. Each is met by a named test at a named milestone. A criterion with no test is a wish.
+Specification §2 states eighteen. Each is met by a named test at a named milestone. A criterion with no test is a wish.
 
 | # | Criterion | Met at | Proved by |
 |---|---|---|---|
@@ -482,6 +503,7 @@ Specification §2 states seventeen. Each is met by a named test at a named miles
 | SC-15 | Zero drift between the `.sql` files and the ORM metadata | M1 | Gate 13, continuously |
 | SC-16 | `maya_delta` backend equivalence and cross-backend reads | M2 | Gate 20 |
 | SC-17 | 100% of tables paginated, searchable, sortable | M0/M1 | Gate 10, continuously |
+| SC-18 | Seam equivalence — Type A both ways, Type B byte-identical | M0 | Gates 11b and 11c, continuously |
 
 ---
 
@@ -491,6 +513,8 @@ Specification §2 states seventeen. Each is met by a named test at a named miles
 |---|---|
 | **Resolution semantics are silently wrong** (§26.2) | Property-based tests over every logical type; the synthetic *messy* dataset from M3; fill reports on every run; the winning policy layer displayed per attribute (M4 exit criterion) |
 | **Nested/tensor fidelity leaks** (§26.2) | Native Arrow types, axis manifests, round-trip tests for every type × every format × **both `maya_delta` backends** — M3 exit criteria |
+| **A seam's two sides silently disagree** *(new)* | The polarity rule of §13.4.1: anything near a hash is Type B, where MAYA's own implementation is authoritative and an accelerator that differs is a defect, byte-compared in CI on every platform. A seam on the hash path whose sides can disagree does not degrade gracefully — it makes SC-1 pass on each machine separately while being false across them |
+| **A fallback path nobody ever runs** *(new)* | Gate 11b runs the whole suite with every Type A seam pinned to its fallback. A fallback exercised only when a wheel happens to be missing is a fallback discovered broken by a customer |
 | **The pure Delta backend is subtly wrong** *(new)* | It is never trusted on its own: one conformance suite run twice, a cross-backend round trip in both directions, loud refusal of unsupported features, and version ranges rather than literals. M2 exists as a milestone so this is not done in the margins of M3 |
 | **"No migrations" bites once there is data** *(new)* | The export/recreate/import path is the *only* upgrade path, is built in M1 rather than when first needed, and is exercised every release. The schema-hash startup check makes a mismatch loud. Feature data is untouched because pins are immutable |
 | **Three platforms discovered late** *(new)* | Three-OS CI on an empty repository in M0. `spawn` everywhere, `pathlib` everywhere, no `flock`, and a sandbox whose tier is declared rather than assumed |

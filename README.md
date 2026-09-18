@@ -35,7 +35,7 @@ On 2026-09-17 the previous build of MAYA was deleted in full and the platform re
 | | |
 |---|---|
 | **Specification** | Complete. [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — 30 sections, also published as `.docx` and `.pdf` |
-| **Implementation plan** | Complete. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — milestones M0–M8, the 26-rung CI gate ladder, the six one-way doors, and the decision register |
+| **Implementation plan** | Complete. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — milestones M0–M8, the 28-rung CI gate ladder, the six one-way doors, and the decision register |
 | **Code** | None yet. There is no package, no test suite, no server to run |
 | **Decisions** | **All closed**, 2026-09-17 (spec §26.3, plan §4). Fourteen calls taken before any code: pin series, always-materialize, no database migrations, `maya_delta`, three-platform parity, Bootstrap + Harvard Crimson, the table contract, workflow managed in the UI, and the rest |
 | **Deferred** | The research paper and the presentation decks, to be rewritten against this specification |
@@ -116,10 +116,40 @@ Four risks have no clean fix and are accepted with mitigation rather than waved 
 | Lakehouse | **`maya_delta`** — native `deltalake` preferred, MAYA's own pure-Python Delta as fallback | ACID and time travel with no JVM and no Spark, and no hard dependency on someone else's build matrix having a wheel for the platform in front of us |
 | UI | Jinja2 + **Bootstrap 5** + **jQuery**, vendored, **no build pipeline**, Harvard Crimson | Renders air-gapped. A developer moves between MAYA and DishtaYantra without relearning the layout grammar |
 | Startup | One entry point: `python run_maya_web.py` | A second way to start a server is a second set of startup invariants to get wrong |
+| Dependency seams | **Twenty** optional or native components sit behind named MAYA seams, resolved once at startup and reported | A capability must not vanish because a wheel does not exist for the interpreter in front of us |
 | LaTeX | Tectonic in a sandboxed worker | Deterministic PDFs, no system TeX |
 | Observability | OpenTelemetry, Prometheus, structured JSON logs | Vendor-neutral |
 
 Full rationale in spec §13.1; deployment topologies — laptop, single node, clustered, air-gapped — in §24.1, all four from one artifact with only configuration differing.
+
+### Dependency seams
+
+`maya_delta` is not a special case. Spec **§13.4** states the rule for the whole stack:
+where a capability comes from something that might not be installed, MAYA depends on its
+own named seam and never on the component directly — one resolver, resolved once at
+startup, reported in the banner and on the health page, pinnable by configuration, and
+**recorded in every pin's provenance** so a result nobody can reproduce for want of
+knowing which implementation produced it never happens.
+
+The part that matters is not the list but the **polarity** — which side is authoritative:
+
+- **Type A — native preferred, pure fallback.** `maya_delta`, JSON, frames, pushdown, the
+  PostgreSQL driver, full-text search, compression, the tz database. Absence costs
+  throughput, not capability.
+- **Type B — MAYA's implementation is authoritative; a native one is only an
+  accelerator.** Everything feeding a content hash: the canonicalizer and the fragment
+  chunker. Here an accelerator that disagrees is a *defect in the accelerator*, and CI
+  byte-compares rather than tests. Get this polarity backwards and two pins of identical
+  data hash differently depending on which machine wrote them — SC-1 passes on each
+  machine separately while being false across them.
+- **Type C — substitutable, never downgraded.** Signing, the sandbox, SSO, object store,
+  job queue. A hand-rolled fallback signer is how a governance platform ships a
+  vulnerability, so absence here is a **refusal with a named reason**, not a quiet
+  substitution. SAML without `xmlsec` fails at *startup* with the package named, rather
+  than at the first person's login.
+
+§13.4.4 lists what is deliberately **not** proxied — Arrow, SQLAlchemy, FastAPI, the
+database engines — and why, because a pattern applied everywhere stops being a decision.
 
 ---
 
@@ -178,7 +208,7 @@ Two structural rules are worth stating in the README because they are load-beari
 - **The UI is an SDK client, with no private path to the backend.** Nothing under `maya.web` imports anything but `maya.sdk`. Any screen we can build, a customer can script, because the screen used the same methods — and a capability missing from the SDK cannot be quietly special-cased into the UI to hit a deadline.
 
 - **Every table is paginated, searchable and sortable.** One macro produces every table in the product, and a template crawler fails the build on any `<table>` that did not come from it.
-- **Nothing in `maya/` imports a Delta library directly.** The lakehouse is reached through one port, so which backend is running is a configuration fact rather than an import.
+- **A proxied package is imported only inside its own seam.** No `deltalake` import outside `maya_delta`, no `orjson` outside `core/djson`. Which backend is running is a configuration fact reported at startup, never a scattered `try: import`.
 
 All four are checked by non-overridable CI gates, not by review discipline. A gate that exists only in a review checklist has already been skipped.
 

@@ -6,7 +6,7 @@ Read in this order.
 | Document | What it is |
 |---|---|
 | [`MAYA_Requirements_and_Design.md`](MAYA_Requirements_and_Design.md) | **The specification**, revision 2.1. 30 sections: vision, personas, domain model, the four subsystems (features, feature sets, models, warrants), `maya_delta` and physical storage, authz, architecture, the UI, the API and SDK, engineering standards, the design read adversarially (§28), and the ten innovations (§29) |
-| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, the 26-rung CI gate ladder, the six one-way doors, and the decision register |
+| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, the 28-rung CI gate ladder, the six one-way doors, and the decision register |
 
 ## Revision 2.1 — what changed, 2026-09-17
 
