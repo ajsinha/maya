@@ -1,0 +1,116 @@
+/*
+ * MAYA theme: Bootstrap 5 re-pointed at the Harvard Crimson tokens through CSS
+ * custom properties (no Sass rebuild, so "no build pipeline" stays true).
+ * Crimson is a signal: primary action, active location, focus, brand headings.
+ * Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+ */
+:root, :root[data-theme] {
+  --bs-body-font-size: 14px;
+  --bs-body-color: var(--maya-ink);
+  --bs-body-bg: var(--maya-canvas);
+  --bs-emphasis-color: var(--maya-ink);
+  --bs-secondary-color: var(--maya-slate);
+  --bs-tertiary-bg: var(--maya-crimson-tint);
+  --bs-border-color: var(--maya-border);
+  --bs-primary: var(--maya-crimson);
+  --bs-link-color: var(--maya-crimson);
+  --bs-link-hover-color: var(--maya-crimson-strong);
+  --bs-link-color-rgb: 165, 28, 48;
+  --bs-focus-ring-color: color-mix(in srgb, var(--maya-crimson) 40%, transparent);
+  --bs-card-bg: var(--maya-surface);
+  --maya-rail: 212px;
+}
+html { font-size: 14px; }
+body { background: var(--maya-canvas); color: var(--maya-ink); line-height: 1.55;
+       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--maya-crimson); }
+a:hover { color: var(--maya-crimson-strong); }
+:focus-visible { outline: 2px solid var(--maya-crimson) !important; outline-offset: 2px; }
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+pre { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; padding: .6rem .8rem; color: var(--maya-ink); max-height: 480px; overflow: auto; }
+
+/* Buttons: one primary action per surface */
+.btn-primary { --bs-btn-bg: var(--maya-crimson); --bs-btn-border-color: var(--maya-crimson);
+  --bs-btn-hover-bg: var(--maya-crimson-strong); --bs-btn-hover-border-color: var(--maya-crimson-strong);
+  --bs-btn-active-bg: var(--maya-crimson-deep); --bs-btn-color: var(--maya-on-crimson);
+  --bs-btn-hover-color: var(--maya-on-crimson); --bs-btn-active-color: var(--maya-on-crimson);
+  --bs-btn-disabled-bg: var(--maya-slate); --bs-btn-disabled-border-color: var(--maya-slate); }
+.btn-outline-primary { --bs-btn-color: var(--maya-crimson); --bs-btn-border-color: var(--maya-crimson);
+  --bs-btn-hover-bg: var(--maya-crimson); --bs-btn-hover-border-color: var(--maya-crimson);
+  --bs-btn-hover-color: var(--maya-on-crimson); --bs-btn-active-bg: var(--maya-crimson-strong); }
+.btn-outline-secondary { --bs-btn-color: var(--maya-ink); --bs-btn-border-color: var(--maya-border);
+  --bs-btn-hover-bg: var(--maya-crimson-tint); --bs-btn-hover-color: var(--maya-ink);
+  --bs-btn-hover-border-color: var(--maya-slate); }
+
+/* Chrome: left rail + top bar */
+.maya-rail { position: fixed; inset: 0 auto 0 0; width: var(--maya-rail); background: var(--maya-surface);
+  border-right: 1px solid var(--maya-border); overflow-y: auto; z-index: 20; }
+.maya-rail .brand { display: flex; align-items: center; gap: .5rem; padding: .9rem 1rem; border-bottom: 1px solid var(--maya-border); text-decoration: none; }
+.maya-rail .brand img { height: 30px; }
+.maya-rail .brand .name { font-weight: 700; color: var(--maya-heading); letter-spacing: .08em; }
+.maya-rail .brand small { display: block; color: var(--maya-slate); font-size: 10.5px; letter-spacing: 0; }
+.maya-rail .area { padding: .4rem 0; border-bottom: 1px solid var(--maya-border); }
+.maya-rail .area-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--maya-slate); padding: .35rem 1rem .15rem; }
+.maya-rail a.nav-item { display: flex; gap: .5rem; align-items: center; padding: .28rem 1rem; color: var(--maya-ink); text-decoration: none; border-left: 3px solid transparent; }
+.maya-rail a.nav-item:hover { background: var(--maya-crimson-tint); }
+.maya-rail a.nav-item.active { border-left-color: var(--maya-crimson); color: var(--maya-crimson); font-weight: 600; background: var(--maya-crimson-tint); }
+.maya-main { margin-left: var(--maya-rail); min-height: 100vh; }
+.maya-top { position: sticky; top: 0; z-index: 10; display: flex; gap: .75rem; align-items: center; padding: .5rem 1.25rem;
+  background: var(--maya-surface); border-bottom: 1px solid var(--maya-border); }
+.maya-top .search { flex: 1; max-width: 520px; }
+.maya-content { padding: 1.1rem 1.4rem 3rem; max-width: 1500px; }
+.maya-banner { padding: .35rem 1.25rem; font-size: 13px; border-bottom: 1px solid var(--maya-border); }
+.maya-banner.warn { background: var(--maya-crimson-tint); color: var(--maya-ink); }
+.maya-banner.info { background: var(--maya-surface); color: var(--maya-slate); }
+h1, .h1 { font-size: 1.55rem; color: var(--maya-heading); font-weight: 650; }
+h2, .h2 { font-size: 1.2rem; font-weight: 650; }
+h3, .h3 { font-size: 1.02rem; font-weight: 650; }
+.lead-slate { color: var(--maya-slate); }
+.card { background: var(--maya-surface); border-color: var(--maya-border); }
+.card-header { background: transparent; font-weight: 650; }
+.form-control, .form-select { background: var(--maya-surface); color: var(--maya-ink); border-color: var(--maya-border); font-size: 13.5px; }
+.form-label { font-weight: 600; font-size: 12.5px; color: var(--maya-ink); margin-bottom: .2rem; }
+.nav-tabs .nav-link { color: var(--maya-ink); }
+.nav-tabs .nav-link.active { color: var(--maya-crimson); border-bottom-color: var(--maya-surface); font-weight: 600; background: var(--maya-surface); }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: .2rem 1rem; }
+.kv dt { color: var(--maya-slate); font-weight: 500; }
+.kv dd { margin: 0; word-break: break-all; }
+
+/* Status pills: glyph + word, never colour alone (§16.5) */
+.pill { display: inline-flex; align-items: center; gap: .25rem; padding: .05rem .5rem; border-radius: 999px; font-size: 12px;
+  border: 1px solid var(--maya-border); background: var(--maya-surface); color: var(--maya-ink); white-space: nowrap; }
+.pill.ok { border-color: var(--maya-ok); color: var(--maya-ok); }
+.pill.warn { border-color: var(--maya-warn); color: var(--maya-warn); }
+.pill.bad { border-color: var(--maya-bad); color: var(--maya-bad); }
+.pill.brand { border-color: var(--maya-crimson); color: var(--maya-crimson); }
+
+/* The universal table (§16.7) */
+.mt-wrap { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; }
+.mt-tools { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .45rem .6rem; border-bottom: 1px solid var(--maya-border); }
+.mt-tools .mt-search { max-width: 260px; }
+.mt-tools .mt-note { color: var(--maya-slate); font-size: 12px; }
+.mt-scroll { overflow-x: auto; }
+table.maya-table { width: 100%; margin: 0; font-size: 13px; color: var(--maya-ink); border-collapse: collapse; }
+table.maya-table th { position: sticky; top: 0; background: var(--maya-surface); border-bottom: 2px solid var(--maya-crimson-deep);
+  padding: .35rem .55rem; font-weight: 650; text-align: left; white-space: nowrap; user-select: none; }
+table.maya-table th[data-sortable] { cursor: pointer; }
+table.maya-table th .mt-dir { color: var(--maya-crimson); font-size: 11px; }
+table.maya-table td { padding: .28rem .55rem; border-bottom: 1px solid var(--maya-border); vertical-align: top; }
+table.maya-table tbody tr:hover { background: var(--maya-crimson-tint); }
+table.maya-table mark { background: var(--maya-highlight); color: var(--maya-ink); padding: 0; }
+.mt-foot { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; padding: .4rem .6rem; font-size: 12.5px; color: var(--maya-slate); }
+.mt-empty { padding: 1.2rem; text-align: center; color: var(--maya-slate); }
+.mt-cols { max-height: 280px; overflow-y: auto; }
+
+/* Editors */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.split > div { min-width: 0; }
+.CodeMirror { border: 1px solid var(--maya-border); border-radius: 6px; height: 460px; font-size: 13px; }
+.spec-preview { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; padding: 1rem; height: 460px; overflow: auto; }
+.spec-preview h4 { color: var(--maya-heading); font-size: 1.05rem; margin-top: .8rem; }
+.formula-box { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; padding: .8rem; overflow-x: auto; }
+#cy { height: 620px; background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; }
+.state-diagram svg text { fill: var(--maya-ink); font-size: 12px; }
+.small-muted { color: var(--maya-slate); font-size: 12px; }
+.maya-hero img { height: 54px; }
+@media (max-width: 1100px) { :root { --maya-rail: 170px; } .split { grid-template-columns: 1fr; } }

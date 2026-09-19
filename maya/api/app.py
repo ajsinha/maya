@@ -1,0 +1,89 @@
+"""
+The API application (§18.1): versioned at ``/api/v1``, OpenAPI generated from
+the Pydantic models, RFC 9457 problem documents for every error, and
+unauthenticated ``/healthz`` and ``/readyz``.
+
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+"""
+from __future__ import annotations
+
+import logging
+import secrets
+from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+from maya.api.deps import ok, problem_response
+from maya.api.routers import admin, catalog, registry, workflow
+from maya.core.errors import MayaError
+from maya.core.version import API_VERSION, APP_NAME, VERSION
+
+logger = logging.getLogger(__name__)
+PREFIX = f"/api/{API_VERSION}"
+MIN_CLIENT = (0, 1)
+
+
+def create_api(platform: Any) -> FastAPI:
+    app = FastAPI(title=f"{APP_NAME} API", version=VERSION,
+                  description="Model & AI Lifecycle Assurance — the public API. "
+                              "The web UI and the SDK use exactly these endpoints.",
+                  openapi_url=f"{PREFIX}/openapi.json", docs_url=f"{PREFIX}/docs",
+                  redoc_url=None)
+    app.state.platform = platform
+    for r in (admin.router, catalog.router, registry.router, workflow.router):
+        app.include_router(r, prefix=PREFIX)
+    install_handlers(app)
+
+    @app.get("/healthz", tags=["ops"])
+    def healthz() -> Any:
+        return ok({"alive": True, "version": VERSION})
+
+    @app.get("/readyz", tags=["ops"])
+    def readyz() -> Any:
+        state = platform.ops.ready()
+        return ok(state, 200 if state["ready"] else 503)
+
+    return app
+
+
+def install_handlers(app: FastAPI) -> None:
+    @app.exception_handler(MayaError)
+    async def maya_error(_: Request, exc: MayaError) -> JSONResponse:
+        return problem_response(exc)
+
+    @app.exception_handler(RequestValidationError)
+    async def bad_request(_: Request, exc: RequestValidationError) -> JSONResponse:
+        problem = {"type": "validation_failed", "title": "ValidationFailed", "status": 422,
+                   "detail": "; ".join(f"{'.'.join(str(x) for x in e['loc'])}: {e['msg']}"
+                                       for e in exc.errors()), "context": {}}
+        return JSONResponse(problem, status_code=422, media_type="application/problem+json")
+
+    @app.middleware("http")
+    async def request_context(request: Request, call_next: Any) -> Any:
+        request.state.request_id = request.headers.get("x-request-id") or secrets.token_hex(8)
+        client = request.headers.get("x-maya-client", "")
+        if client.startswith("python/") and _too_old(client[7:]):
+            return JSONResponse({"type": "client_too_old", "status": 426,
+                                 "detail": "This SDK is older than the server supports. "
+                                           "Upgrade with: pip install -U maya-sdk"},
+                                status_code=426)
+        response = await call_next(request)
+        response.headers["X-Request-Id"] = request.state.request_id
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "same-origin"
+        if not request.url.path.startswith(f"{PREFIX}/docs"):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+                "script-src 'self'; font-src 'self' data:; frame-ancestors 'none'")
+        return response
+
+
+def _too_old(version: str) -> bool:
+    try:
+        parts = tuple(int(x) for x in version.split(".")[:2])
+    except ValueError:
+        return False
+    return parts < MIN_CLIENT

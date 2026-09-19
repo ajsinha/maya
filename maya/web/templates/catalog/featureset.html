@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv, tabs, json_block %}
+{% block title %}{{ fs.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ fs.name }}</h1><div class="small-muted mono">{{ fs.ref }}</div></div>
+{% if fs.can_edit %}<form method="post" action="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Edit draft</button></form>{% endif %}</div>
+{% include "_job.html" %}
+{{ tabs([('overview','Overview'),('definition','Definition'),('data','Data'),('pins','Pins'),('lineage','Lineage'),('history','History & Comments')], tab) }}
+<div class="tab-content">
+<div class="tab-pane {% if tab == 'overview' %}show active{% endif %}" id="tab-overview" role="tabpanel">
+  {{ kv([('Namespace', fs.namespace), ('Status', pill(fs.status)), ('Description', fs.description), ('Updated', fs.updated_at|dt)]) }}
+  {% call(v) table("versions", ["Version", "State", "Definition hash", "!Actions"], fs.versions, empty="No versions.") %}
+    <td>v{{ v.version_no }}</td><td>{{ pill(v.state) }}</td><td class="mono">{{ v.definition_hash|short }}</td>
+    <td><form method="post" action="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}/transition" class="d-flex gap-1 flex-wrap">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version_no" value="{{ v.version_no }}">
+      <input class="form-control form-control-sm" name="rationale" placeholder="rationale" aria-label="Rationale" style="max-width:130px">
+      {% for t in v.transitions %}<button class="btn btn-sm {% if t in ('approve','submit') %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ t }}" type="submit">{{ t.replace('_',' ') }}</button>{% endfor %}
+      {% if is_admin and v.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass</label>{% endif %}
+    </form></td>
+  {% endcall %}
+  {% if latest %}<h3>Attribute mapping (effective, v{{ latest.version_no }})</h3>
+  {% set members = latest.effective.get('members', []) %}
+  {% call(m) table("members", ["Attribute", "Member reference", "Source attribute", "Cast", "Rule override"], members, empty="No members mapped.") %}
+    <td>{{ m.attr }}</td><td class="mono">{{ m.ref }}</td><td>{{ m.source_attr }}</td><td>{{ m.cast or '' }}</td><td class="mono">{{ m.rule or '' }}</td>
+  {% endcall %}
+  {% if latest.inherited %}<h3>Inherited policy chain (nearest ancestor first)</h3>{{ json_block(latest.inherited) }}{% endif %}{% endif %}
+</div>
+<div class="tab-pane {% if tab == 'definition' %}show active{% endif %}" id="tab-definition" role="tabpanel">
+  {% for v in fs.versions %}<h3>v{{ v.version_no }} — {{ pill(v.state) }}</h3>{{ json_block(v.definition) }}{% endfor %}
+</div>
+<div class="tab-pane {% if tab == 'data' %}show active{% endif %}" id="tab-data" role="tabpanel">
+  <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="tab" value="data">
+    <div class="col-md-8"><label class="form-label" for="dref">Version or pin</label><select class="form-select mono" id="dref" name="ref">
+    {% for v in fs.versions if v.state in ('approved','published') %}<option value="{{ fs.ref }}@v{{ v.version_no }}">{{ fs.ref }}@v{{ v.version_no }} (live)</option>{% endfor %}
+    {% for p in fs.pins if p.state == 'sealed' %}<option value="{{ p.ref }}" {% if data_ref == p.ref %}selected{% endif %}>{{ p.ref }} (sealed pin)</option>{% endfor %}</select></div>
+    <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Resolve</button></div></form>
+  {% set kind = 'featureset' %}{% include "_download.html" %}
+  {% include "_preview.html" %}
+</div>
+<div class="tab-pane {% if tab == 'pins' %}show active{% endif %}" id="tab-pins" role="tabpanel">
+  {% call(p) table("pins", ["Series", "As of", "Version", "State", "Rows", "Content hash", "Member pins", "New bytes"], fs.pins, empty="No pins. A feature set pins only when every member is pinned — or use cascade.") %}
+    <td>{{ p.pin_name }}</td><td>{{ p.as_of_date }}</td><td>v{{ p.version_no }}</td><td>{{ pill(p.state) }}{% if p.failure %}<div class="small-muted">{{ p.failure }}</div>{% endif %}</td>
+    <td>{{ p.row_count }}</td><td class="mono">{{ p.content_hash|short }}</td><td>{{ p.member_pin_ids|length }}</td><td>{{ p.bytes_new }} / {{ p.bytes_total }}</td>
+  {% endcall %}
+  <form method="post" action="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}/pin" class="card card-body">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Pin the feature set</h3>
+    <div class="row g-2">
+      <div class="col-md-2"><label class="form-label" for="fpv">Version</label><select class="form-select" id="fpv" name="version_no">{% for v in fs.versions if v.state in ('approved','published') %}<option value="{{ v.version_no }}">v{{ v.version_no }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label" for="fpn">Pin series name</label><input class="form-control" id="fpn" name="pin_name" required></div>
+      <div class="col-md-2"><label class="form-label" for="fpa">As of date</label><input class="form-control" id="fpa" name="as_of" type="date" required></div>
+      <div class="col-md-3 form-check mt-4"><input class="form-check-input" type="checkbox" name="cascade" value="1" id="fpc" checked><label class="form-check-label" for="fpc">Cascade: pin unpinned members under the same name and date, all or nothing</label></div>
+      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Pin</button></div>
+    </div></form>
+</div>
+<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{% include "_lineage_canvas.html" %}</div>
+<div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
+  {% set object_type = 'featureset_version' %}{% set object_id = latest.id if latest else '' %}{% include "_history.html" %}
+</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}

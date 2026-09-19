@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Conformance{% endblock %}
+{% block content %}
+<h1>Spec–code conformance — {{ name }} v{{ version_no }}</h1>
+{% if result.skipped %}<div class="alert alert-info">{{ result.statement }}</div>{% else %}
+<p>{{ pill('ok' if result.agreed == result.total else 'bad', result.agreed ~ ' of ' ~ result.total ~ ' sampled inputs agree') }}</p>
+<p class="small-muted">{{ result.statement }}</p>
+{% set rows = result.counterexamples or [] %}
+{% call(r) table("counter", ["Counterexample"], rows, empty="No counterexamples: the code agrees with the documented mathematics on every sampled input.") %}<td class="mono">{{ r|tojson }}</td>{% endcall %}
+{% endif %}
+<a href="/models/{{ ns }}/{{ name }}?tab=code">Back to the model</a>
+{% endblock %}

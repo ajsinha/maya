@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}Storage{% endblock %}
+{% block content %}
+<h1>Storage and integrity</h1>
+<div class="row g-3"><div class="col-lg-6"><div class="card card-body"><h3>Content-addressed fragments</h3>
+{{ kv([('Sealed pins', r.pins), ('Fragments stored', r.fragments), ('Logical bytes (sum of pins)', r.logical_bytes), ('Bytes actually stored', r.stored_bytes), ('Saved by sharing', '%.1f%%'|format(r.saved_ratio * 100)), ('Orphan fragments', r.orphan_fragments ~ ' (' ~ r.orphan_bytes ~ ' bytes)')]) }}
+<p class="small-muted mb-0">{{ r.gc_note }}</p></div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Integrity verification</h3>
+<p>Re-read every sealed pin and recompute its content hash; verify the audit chain. Drift is an incident and raises an alert.</p>
+<form method="post" action="/admin/integrity"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-primary" type="submit">Verify integrity now</button></form>
+{% if integrity %}<p class="mt-2">{{ pill('ok' if not integrity.drift else 'bad', integrity.checked ~ ' pins checked, ' ~ integrity.drift|length ~ ' drifted') }} {{ pill('ok' if integrity.audit_chain.ok else 'bad', 'audit chain ' ~ ('verified' if integrity.audit_chain.ok else 'broken')) }}</p>
+{% call(d) table("drift", ["Pin", "Expected", "Actual"], integrity.drift, empty="No drift.") %}<td>{{ d.pin }}</td><td class="mono">{{ d.expected }}</td><td class="mono">{{ d.actual or d.error }}</td>{% endcall %}{% endif %}
+</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Estate export</h3>
+<p>MAYA has no migrations. A schema change is export → <code>init-db --force</code> → import, verifying every hash.</p>
+<a class="btn btn-outline-primary" href="/admin/estate"><i class="bi bi-download" aria-hidden="true"></i> Download estate.mayabundle</a></div></div></div>
+{% endblock %}

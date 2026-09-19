@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Workbench{% endblock %}
+{% block content %}
+<h1>Workbench</h1>
+<p class="lead-slate">Where definitions are drafted. Nothing here is visible to consumers until it is submitted, reviewed and approved — except in your scratch namespace, which has no ceremony at all.</p>
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><a class="card card-body h-100 text-decoration-none" href="/workbench/quick"><strong><i class="bi bi-lightning" aria-hidden="true"></i> Quick feature</strong><span class="small-muted">One CSV → a typed, resolvable feature in your scratch namespace.</span></a></div>
+  <div class="col-md-3"><a class="card card-body h-100 text-decoration-none" href="/workbench/upload"><strong><i class="bi bi-cloud-upload" aria-hidden="true"></i> Upload wizard</strong><span class="small-muted">Upload, confirm the inferred schema, create and ingest.</span></a></div>
+  <div class="col-md-3"><a class="card card-body h-100 text-decoration-none" href="/workbench/features/new"><strong><i class="bi bi-pencil-square" aria-hidden="true"></i> Feature designer</strong><span class="small-muted">Schema, source, resolution, transforms, quality, algebra, inheritance.</span></a></div>
+  <div class="col-md-3"><a class="card card-body h-100 text-decoration-none" href="/workbench/featuresets/new"><strong><i class="bi bi-grid-1x2" aria-hidden="true"></i> Feature set builder</strong><span class="small-muted">Map attributes, align members, set policy precedence.</span></a></div>
+</div>
+<h2>Feature drafts</h2>
+{% call(f) table("drafts", ["Feature", "Namespace", "Version", "State", "!Actions"], drafts, empty="No feature drafts in flight.") %}
+  <td>{{ f.name }}</td><td>{{ f.namespace }}</td><td>v{{ f.latest_version }}</td><td>{{ pill(f.latest_state) }}</td>
+  <td><a href="/workbench/features/{{ f.namespace }}/{{ f.name }}/edit">Edit</a> · <a href="/workbench/features/{{ f.namespace }}/{{ f.name }}/preview">Preview</a> · <a href="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest">Ingest</a></td>
+{% endcall %}
+<h2>Feature set drafts</h2>
+{% call(s) table("setdrafts", ["Feature set", "Namespace", "Version", "State", "!Actions"], sets, empty="No feature set drafts in flight.") %}
+  <td>{{ s.name }}</td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td><td>{{ pill(s.latest_state) }}</td>
+  <td><a href="/workbench/featuresets/{{ s.namespace }}/{{ s.name }}/edit">Edit</a> · <a href="/workbench/featuresets/{{ s.namespace }}/{{ s.name }}/preview">Preview</a></td>
+{% endcall %}
+{% endblock %}

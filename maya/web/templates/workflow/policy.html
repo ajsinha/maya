@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Policy {{ p.object_type }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-2"><h1 class="me-auto mb-0">{{ p.object_type }} <small class="small-muted">v{{ p.version_no }} · {{ p.scope }}</small> {{ pill(p.state) }}</h1>
+{% if p.state == 'draft' %}<form method="post" action="/workflow/policies/{{ p.id }}/activate" data-confirm="Activate this policy? The current active version is retained as superseded."><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-primary btn-sm" type="submit">Activate (second administrator)</button></form>{% endif %}</div>
+{% if p.errors %}<div class="alert alert-danger">This stored policy has problems: {{ p.errors|join('; ') }}</div>{% endif %}
+<h2>State machine with its live population</h2>
+<div class="state-diagram card card-body mb-3" id="state-diagram" aria-label="State diagram"></div>
+<h2>Edit — structured controls</h2>
+<p class="small-muted">Every change is validated against the known states, roles and checks, and previewed against the objects currently in flight, before it can be saved as a new draft version.</p>
+<div id="policy-editor"></div>
+<div class="d-flex gap-2 my-2">
+  <button class="btn btn-outline-primary" type="button" id="policy-validate">Validate and preview impact</button>
+  <input class="form-control" id="policy-note" placeholder="What changed and why" style="max-width:360px" aria-label="Change note">
+  <button class="btn btn-primary" type="button" id="policy-save">Save as new draft version</button>
+</div>
+<div id="policy-result" aria-live="polite"></div>
+<h2 class="mt-3">YAML projection</h2><pre>{{ p.yaml }}</pre>
+<script type="application/json" id="policy-data">{{ editor_json|safe }}</script>
+{% endblock %}
+{% block scripts %}<script src="/static/js/policy.js"></script>{% endblock %}

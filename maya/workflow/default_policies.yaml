@@ -1,0 +1,110 @@
+# MAYA default workflow policies (spec §10). Seeded once into the database,
+# where the stored record becomes the authority (§10.6). This file is only
+# the initial projection; edit policies in the UI (Workflow -> Policies).
+_common_states: &states [draft, in_review, changes_requested, approved, published, deprecated, retired, withdrawn]
+
+feature_version:
+  states: *states
+  transitions:
+    submit: {from: [draft, changes_requested], to: in_review, capability: U, checks: [definition_valid]}
+    request_changes: {from: [in_review], to: changes_requested, capability: A}
+    approve:
+      from: [in_review]
+      to: approved
+      capability: A
+      approvals: [{role: feature_manager, count: 1}]
+      checks: [definition_valid, quality_passes, no_open_blocking_comments]
+    withdraw: {from: [in_review], to: withdrawn, capability: U}
+    publish: {from: [approved], to: published, capability: A}
+    deprecate: {from: [approved, published], to: deprecated, capability: A}
+    retire: {from: [deprecated], to: retired, roles: [admin]}
+  sla_days: {in_review: 5}
+  notify: {in_review: [feature_manager], approved: [owner], changes_requested: [owner]}
+
+featureset_version:
+  states: *states
+  transitions:
+    submit: {from: [draft, changes_requested], to: in_review, capability: U, checks: [definition_valid]}
+    request_changes: {from: [in_review], to: changes_requested, capability: A}
+    approve:
+      from: [in_review]
+      to: approved
+      capability: A
+      approvals: [{role: feature_manager, count: 1}]
+      checks: [definition_valid, members_approved, no_open_blocking_comments]
+    withdraw: {from: [in_review], to: withdrawn, capability: U}
+    publish: {from: [approved], to: published, capability: A}
+    deprecate: {from: [approved, published], to: deprecated, capability: A}
+    retire: {from: [deprecated], to: retired, roles: [admin]}
+  sla_days: {in_review: 5}
+  notify: {in_review: [feature_manager], approved: [owner]}
+
+model_version:
+  states: *states
+  transitions:
+    submit:
+      from: [draft, changes_requested]
+      to: in_review
+      capability: U
+      checks: [formula_typechecks, spec_document_complete, code_artifact_validated]
+    request_changes: {from: [in_review], to: changes_requested, capability: A}
+    approve:
+      from: [in_review]
+      to: approved
+      capability: A
+      approvals: [{role: model_manager, count: 1}]
+      checks: [formula_typechecks, spec_document_complete, code_artifact_validated,
+               spec_true_build, composite_members_mature, no_open_blocking_comments]
+    withdraw: {from: [in_review], to: withdrawn, capability: U}
+    publish: {from: [approved], to: published, capability: A}
+    deprecate: {from: [approved, published], to: deprecated, capability: A}
+    retire: {from: [deprecated], to: retired, roles: [admin]}
+  sla_days: {in_review: 5}
+  notify: {in_review: [model_manager], approved: [owner], changes_requested: [owner]}
+
+parameter_set:
+  states: *states
+  transitions:
+    submit: {from: [draft, changes_requested], to: in_review, capability: C, checks: [parameters_within_bounds]}
+    request_changes: {from: [in_review], to: changes_requested, capability: A}
+    approve:
+      from: [in_review]
+      to: approved
+      capability: A
+      approvals: [{role: model_manager, count: 1}]
+      checks: [parameters_within_bounds, data_verified_or_justified, no_open_blocking_comments]
+    withdraw: {from: [in_review], to: withdrawn, capability: U}
+    retire: {from: [approved], to: retired, roles: [admin]}
+  notify: {in_review: [model_manager]}
+
+training_warrant:
+  states: *states
+  transitions:
+    submit: {from: [draft, changes_requested], to: in_review, capability: U, checks: [contract_valid, leakage_certified]}
+    request_changes: {from: [in_review], to: changes_requested, capability: A}
+    approve:
+      from: [in_review]
+      to: approved
+      capability: A
+      approvals: [{role: model_manager, count: 1}]
+      checks: [contract_valid, leakage_certified, no_open_blocking_comments]
+    withdraw: {from: [in_review], to: withdrawn, capability: U}
+    retire: {from: [approved, published], to: retired, roles: [admin]}
+  notify: {in_review: [model_manager], approved: [owner]}
+
+execution_warrant:
+  states: *states
+  transitions:
+    submit: {from: [draft, changes_requested], to: in_review, capability: C, checks: [parameters_approved]}
+    request_changes: {from: [in_review], to: changes_requested, capability: A}
+    approve:
+      from: [in_review]
+      to: approved
+      capability: A
+      approvals:
+        - {role: model_manager, count: 1}
+        - {role: model_owner, count: 1, when: "prod"}
+      checks: [parameters_approved, no_open_blocking_comments]
+    withdraw: {from: [in_review], to: withdrawn, capability: C}
+    retire: {from: [approved, published], to: retired, roles: [admin]}
+  notify: {in_review: [model_manager, model_owner], approved: [owner]}

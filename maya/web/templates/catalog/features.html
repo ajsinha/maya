@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Features{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Features</h1>
+  <a class="btn btn-sm btn-outline-secondary me-2" href="/workbench/quick">Quick feature</a>
+  <a class="btn btn-sm btn-primary" href="/workbench/features/new">New feature</a></div>
+<form class="d-flex gap-2 mb-2" method="get"><label class="visually-hidden" for="nsf">Namespace</label>
+  <select class="form-select form-select-sm" id="nsf" name="namespace" style="max-width:260px"><option value="">All namespaces</option>
+  {% for n in namespaces %}<option {% if n.name == ns %}selected{% endif %}>{{ n.name }}</option>{% endfor %}</select>
+  <button class="btn btn-sm btn-outline-secondary" type="submit">Filter</button></form>
+{% call(f) table("features", ["Name", "Namespace", "Owner", "Latest", "State", "Sealed pins", "Tags", "Updated"], rows, empty="No features you can read. Create one with the Feature designer or Quick feature.") %}
+  <td><a href="/catalog/features/{{ f.namespace }}/{{ f.name }}">{{ f.name }}</a>{% if f.ungoverned %} <span class="pill warn">ungoverned</span>{% endif %}</td>
+  <td>{{ f.namespace }}</td><td>{{ f.owner }}</td><td data-sort="{{ f.latest_version }}">v{{ f.latest_version }}</td>
+  <td>{{ pill(f.latest_state) }}</td><td>{{ f.pins }}</td><td>{{ f.tags|join(', ') }}</td><td>{{ f.updated_at|dt }}</td>
+{% endcall %}
+{% endblock %}

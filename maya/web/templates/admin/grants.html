@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Grants{% endblock %}
+{% block content %}
+<h1>Grants</h1>
+<p class="lead-slate">Per-object ACL: deny wins, then the most specific grant. A grant beyond the holder's role ceiling is recorded as <em>inert</em>, and MAYA says so.</p>
+<form method="get" class="row g-2 align-items-end mb-2">
+  <div class="col-md-3"><label class="form-label" for="gk">Object kind</label><select class="form-select" id="gk" name="kind">{% for k in kinds %}<option {% if k == kind %}selected{% endif %}>{{ k }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label" for="gref">Reference (ns/name, maya://…, namespace name, or warrant id)</label><input class="form-control mono" id="gref" name="ref" value="{{ ref }}"></div>
+  <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="submit">Show grants</button></div></form>
+{% if ref %}
+{% call(g) table("grants", ["Principal", "Level", "Deny", "Expires", "Inert", "Granted by", "!Revoke"], rows, empty="No explicit grants: the namespace default applies.") %}
+  <td>{{ g.principal_type }}:{{ g.principal_id }}</td><td>{{ g.level }}</td><td>{{ pill('bad', 'deny') if g.deny else '' }}</td><td>{{ g.expires_at|dt or 'never' }}</td><td>{{ g.inert_reason or '' }}</td><td>{{ g.created_by }}</td>
+  <td><form method="post" action="/admin/grants/{{ g.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form></td>
+{% endcall %}
+<form method="post" action="/admin/grants" class="card card-body mb-3"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="ref" value="{{ ref }}">
+  <h3>Grant on {{ kind }} {{ ref }}</h3>
+  <div class="row g-2"><div class="col-md-2"><label class="form-label" for="pt">Principal type</label><select class="form-select" id="pt" name="principal_type"><option>user</option><option>group</option><option>role</option><option>everyone</option></select></div>
+  <div class="col-md-3"><label class="form-label" for="pid">Principal (user id or name, group, role)</label><input class="form-control" id="pid" name="principal_id"></div>
+  <div class="col-md-2"><label class="form-label" for="lv">Level</label><select class="form-select" id="lv" name="level">{% for l in levels %}<option>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label" for="gd">Days (blank = no expiry)</label><input class="form-control" id="gd" name="days" type="number" value="90"></div>
+  <div class="col-md-1 form-check mt-4"><input class="form-check-input" type="checkbox" name="deny" value="1" id="gdeny"><label class="form-check-label" for="gdeny">Deny</label></div>
+  <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Grant</button></div></div></form>
+{% endif %}
+<h2>Access recertification — grants on objects you own</h2>
+{% call(g) table("recert", ["Object", "Kind", "Principal", "Level", "Expires", "!Revoke"], recert, empty="No grants on objects you own.") %}
+  <td>{{ g.object_name }}</td><td>{{ g.object_type }}</td><td>{{ g.principal_type }}:{{ g.principal_id }}</td><td>{{ g.level }}</td><td>{{ g.expires_at|dt or 'never' }}</td>
+  <td><form method="post" action="/admin/grants/{{ g.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form></td>
+{% endcall %}
+{% endblock %}

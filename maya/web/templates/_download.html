@@ -1,0 +1,23 @@
+{# Download dialog. Needs: data_ref, kind #}
+<form method="get" action="/catalog/download" class="card card-body mb-3">
+  <input type="hidden" name="ref" value="{{ data_ref }}"><input type="hidden" name="kind" value="{{ kind }}">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label" for="dl-format">Format</label>
+      <select class="form-select" id="dl-format" name="format" data-toggle-show="dlfmt">
+        <option value="parquet">Parquet — native nested types, lossless</option>
+        <option value="arrow">Arrow IPC — native, lossless, preferred</option>
+        <option value="json">JSON — arrays native, shape in header</option>
+        <option value="ndjson">NDJSON</option>
+        <option value="csv">CSV — arrays need an encoding</option></select></div>
+    <div class="col-md-4" data-show-group="dlfmt" data-show-when="csv"><label class="form-label" for="dl-enc">CSV array encoding</label>
+      <select class="form-select" id="dl-enc" name="csv_encoding">
+        <option value="">none (only for flat data)</option>
+        <option value="wide">wide — exploded suffixed columns + axis header; readable</option>
+        <option value="packed">packed — base64 little-endian + dtype/shape; compact, not readable</option>
+        <option value="json">json — one JSON text column; readable, slower</option></select></div>
+    {% if kind == 'featureset' %}<div class="col-md-2"><label class="form-label" for="dl-shape">Shape</label>
+      <select class="form-select" id="dl-shape" name="shape"><option>tabular</option><option>wide</option></select></div>{% endif %}
+    <div class="col-md-3"><button class="btn btn-outline-primary" type="submit" {% if not data_ref %}disabled{% endif %}><i class="bi bi-download" aria-hidden="true"></i> Download {{ data_ref|short(40) }}</button></div>
+  </div>
+  <p class="small-muted mb-0 mt-1">The manifest (reference, content hash, time, format and encoding) travels in the <code>X-Maya-Manifest</code> header. Every download is audited.</p>
+</form>

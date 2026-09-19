@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv, tabs, json_block %}
+{% block title %}{{ w.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ w.name }}@v{{ w.version_no }} {{ pill(w.status) }}</h1><div class="small-muted mono">{{ w.uri }}</div></div>
+<a class="btn btn-sm btn-outline-primary" href="/warrants/training/{{ w.id }}/data"><i class="bi bi-download" aria-hidden="true"></i> Download training data</a>
+<form method="post" action="/warrants/training/{{ w.id }}/bundle"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Export bundle</button></form></div>
+{% if bundle %}<div class="alert alert-success">Bundle ready ({{ bundle.size }} bytes): <a href="/warrants/bundles/{{ bundle.blob }}">download maya-bundle-{{ bundle.blob[:12] }}.zip</a>. {% if bundle.reexecutable %}Its verify.py re-executes the model and compares outputs.{% else %}Re-execution is not possible: {{ bundle.reason }}{% endif %}</div>{% endif %}
+{% if w.revoked_at %}<div class="alert alert-danger">Revoked: {{ w.revoke_reason }}</div>{% endif %}
+{{ tabs([('overview','Overview'),('definition','Definition'),('params','Parameters'),('holdout','Holdout'),('lineage','Lineage'),('history','History & Comments')], tab) }}
+<div class="tab-content">
+<div class="tab-pane {% if tab == 'overview' %}show active{% endif %}" id="tab-overview" role="tabpanel">
+<div class="row g-3"><div class="col-lg-6">
+  {{ kv([('Namespace', w.namespace), ('Model', w.model.name ~ ' v' ~ w.model.version_no), ('IR hash', w.model.ir_hash|short(16)), ('Artifact hash', w.model.artifact_hash|short(16) if w.model.artifact_hash else 'none'), ('Feature set', w.featureset_ref), ('Split', w.spec.split|tojson), ('Seed', w.spec.seed), ('Target', w.spec.target), ('Holdout', w.spec.holdout), ('Expires', w.expires_at|dt), ('Sealed', w.sealed_at|dt), ('Clone of', w.clone_of)]) }}
+  <h3>Workflow</h3>
+  <form method="post" action="/warrants/training/{{ w.id }}/transition" class="d-flex flex-wrap gap-1 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="rationale" placeholder="rationale" aria-label="Rationale" style="max-width:200px">
+    {% for t in w.transitions %}<button class="btn btn-sm {% if t in ('approve','submit') %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ t }}" type="submit">{{ t.replace('_',' ') }}</button>{% else %}<span class="small-muted">No transition available.</span>{% endfor %}
+    {% if is_admin and w.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass</label>{% endif %}</form>
+  <div class="d-flex flex-wrap gap-2 mt-2">
+    {% if w.state in ('approved','published') and not w.sealed_at %}<form method="post" action="/warrants/training/{{ w.id }}/seal" data-confirm="Seal? The warrant becomes immutable."><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-primary" type="submit">Seal</button></form>{% endif %}
+    {% if not w.revoked_at %}<form method="post" action="/warrants/training/{{ w.id }}/revoke" class="d-flex gap-1" data-confirm="Revoke this warrant and every execution warrant built on it?"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="reason" placeholder="reason (required)" aria-label="Revocation reason" required><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form>{% endif %}
+    <form method="post" action="/warrants/training/{{ w.id }}/clone" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm mono" name="changes" placeholder='{"seed": 7}' aria-label="Changes for the clone"><button class="btn btn-sm btn-outline-secondary" type="submit">Clone</button></form>
+    <a class="btn btn-sm btn-outline-secondary" href="/warrants/execution/new?training_warrant_id={{ w.id }}">Draw execution warrant</a>
+  </div>
+</div><div class="col-lg-6">
+  <h3>Contract {{ pill('ok' if w.contract_report.ok else 'bad', 'satisfied' if w.contract_report.ok else 'mismatch') }}</h3>
+  {% if w.contract_report.problems %}<ul>{% for p in w.contract_report.problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+  <p class="small-muted">Mapping: <code>{{ w.contract_report.mapping|tojson }}</code></p>
+  {% set c = w.leakage_certificate %}
+  <h3>Leakage certificate {{ pill(c.status) }}</h3>
+  {{ kv([('Rule', c.rule), ('Rows examined', c.rows_examined), ('Violations', c.violations), ('Issued', c.issued_at)]) }}
+  {% if c.exceptions %}<h4 class="h6">Exceptions</h4>{% call(e) table("exceptions", ["Rule", "Scope", "Justification"], c.exceptions, empty="None.") %}<td>{{ e.rule }}</td><td>{{ e.attributes or e.rows or '' }}</td><td>{{ e.justification or 'NONE — unjustified' }}</td>{% endcall %}{% endif %}
+  {% if c.examples %}<details><summary>Offending rows (first 20)</summary>{{ json_block(c.examples) }}</details>{% endif %}
+  {% if c.signature %}<p class="small-muted">Signed {{ c.signature.algorithm }} · key {{ c.signature.key_id }} · <span class="mono">{{ c.signature.signature|short(24) }}</span></p>{% else %}<p class="small-muted">Unsigned: {{ c.unsigned_reason }}</p>{% endif %}
+</div></div>
+<h3>Chain of custody</h3>
+{% call(e) table("custody", ["When", "Event", "Actor", "Checksum", "Detail"], w.custody, empty="No custody events.") %}
+  <td>{{ e.created_at|dt }}</td><td>{{ e.event }}</td><td>{{ e.actor }}</td><td class="mono">{{ e.checksum|short(16) if e.checksum else '' }}</td><td class="mono">{{ e.detail|tojson }}</td>
+{% endcall %}
+</div>
+<div class="tab-pane {% if tab == 'definition' %}show active{% endif %}" id="tab-definition" role="tabpanel">{{ json_block(w.spec) }}<h3>Backends at issuance</h3>{{ json_block(w.backends) }}</div>
+<div class="tab-pane {% if tab == 'params' %}show active{% endif %}" id="tab-params" role="tabpanel">
+  {% call(p) table("psets", ["Name", "State", "Data", "Values", "Metrics", "!Workflow"], w.parameter_sets, empty="No parameters uploaded yet. Train offline on the downloaded data, then upload with its checksum.") %}
+    <td>{{ p.name }}</td><td>{{ pill(p.state) }}</td><td>{{ pill('ok' if p.verified_data else 'bad', 'verified' if p.verified_data else 'unverified_data') }}{% if p.unverified_justification %}<div class="small-muted">override: {{ p.unverified_justification }}</div>{% endif %}</td>
+    <td class="mono">{{ p['values']|tojson }}</td><td class="mono">{{ p.metrics|tojson }}</td>
+    <td><form method="post" action="/warrants/parameters/{{ p.id }}/transition" class="d-flex gap-1 flex-wrap"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input class="form-control form-control-sm" name="justification" placeholder="justification (unverified)" aria-label="Justification">
+      {% for t in ['submit','approve','request_changes','withdraw'] %}<button class="btn btn-sm btn-outline-secondary" name="transition" value="{{ t }}" type="submit">{{ t.replace('_',' ') }}</button>{% endfor %}</form></td>
+  {% endcall %}
+  {% if not w.sealed_at %}
+  <form method="post" action="/warrants/training/{{ w.id }}/parameters" class="card card-body">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Upload parameters</h3>
+    <div class="row g-2">
+      <div class="col-md-4"><label class="form-label" for="pvals">Values (JSON)</label><textarea class="form-control mono" id="pvals" name="values" rows="3" data-json required placeholder='{"sigma": 0.2}'></textarea></div>
+      <div class="col-md-4"><label class="form-label" for="pmet">Metrics (JSON)</label><textarea class="form-control mono" id="pmet" name="metrics" rows="3" data-json placeholder='{"rmse": 0.012}'></textarea></div>
+      <div class="col-md-4"><label class="form-label" for="pck">Data checksum you trained on</label><input class="form-control mono" id="pck" name="data_checksum" placeholder="from the X-Maya-Checksum header">
+        <label class="form-label mt-1" for="palias">Member alias (composites)</label><input class="form-control" id="palias" name="member_alias">
+        <label class="form-label mt-1" for="pnotes">Notes</label><input class="form-control" id="pnotes" name="notes"></div>
+    </div><div class="mt-2"><button class="btn btn-primary" type="submit">Upload</button></div>
+  </form>{% endif %}
+</div>
+<div class="tab-pane {% if tab == 'holdout' %}show active{% endif %}" id="tab-holdout" role="tabpanel">
+  <p>Attempts so far: <strong>{{ w.holdout_attempts }}</strong>. Every attempt is counted and shown, because twenty attempts against a holdout is itself overfitting.</p>
+  {% call(s) table("scores", ["Attempt", "When", "Metrics"], w.holdout_scores, empty="No blind scoring attempts yet.") %}<td>{{ s.attempt_no }}</td><td>{{ s.created_at|dt }}</td><td class="mono">{{ s.metrics|tojson }}</td>{% endcall %}
+  <form method="post" action="/warrants/training/{{ w.id }}/score" class="card card-body">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Score against the escrowed holdout</h3>
+    <div class="row g-2"><div class="col-md-6"><label class="form-label" for="sps">Parameter set</label><select class="form-select" id="sps" name="parameter_set_id"><option value="">— use values below —</option>{% for p in w.parameter_sets %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="form-label" for="svals">Or values (JSON)</label><input class="form-control mono" id="svals" name="values"></div></div>
+    <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Score (metrics only; rows never leave)</button></div>
+  </form>
+</div>
+<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{% include "_lineage_canvas.html" %}</div>
+<div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">{% set object_type = 'training_warrant' %}{% set object_id = w.id %}{% include "_history.html" %}</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}

@@ -1,0 +1,25 @@
+{# Workflow history + comments for one object. Needs: history, comments, object_type, object_id #}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+<h3>Workflow history</h3>
+{% call(e) table("history-" ~ object_type, ["When", "Transition", "From", "To", "Actor", "Rationale", "Forced"], history, empty="No transitions yet: the object is still a draft.") %}
+  <td>{{ e.created_at|dt }}</td><td>{{ e.transition }}</td><td>{{ e.from_state }}</td><td>{{ e.to_state }}</td>
+  <td>{{ e.actor }}</td><td>{{ e.rationale or '' }}</td><td>{% if e.forced %}{{ pill('bad', 'BREAK-GLASS') }}{% endif %}</td>
+{% endcall %}
+<h3>Comments</h3>
+{% call(c) table("comments-" ~ object_type, ["When", "Author", "Comment", "Blocking", "!Resolve"], comments, empty="No comments. Reviewers can comment here; a blocking comment prevents approval until resolved.") %}
+  <td>{{ c.created_at|dt }}</td><td>{{ c.author }}</td><td>{{ c.body }}</td>
+  <td>{% if c.blocking %}{{ pill('resolved' if c.resolved else 'bad', 'resolved' if c.resolved else 'blocking') }}{% else %}—{% endif %}</td>
+  <td>{% if not c.resolved and c.author == user %}<form method="post" action="/catalog/comments/{{ c.id }}/resolve"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Resolve</button></form>{% endif %}</td>
+{% endcall %}
+{% if object_id %}
+<form method="post" action="/catalog/comment" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <input type="hidden" name="object_type" value="{{ object_type }}"><input type="hidden" name="object_id" value="{{ object_id }}">
+  <label class="form-label" for="cbody-{{ object_type }}">Add a comment</label>
+  <textarea class="form-control mb-2" id="cbody-{{ object_type }}" name="body" rows="2" required></textarea>
+  <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="blocking" value="1" id="cblock-{{ object_type }}">
+    <label class="form-check-label" for="cblock-{{ object_type }}">Blocking — approval is refused while this is open</label></div>
+  <div><button class="btn btn-sm btn-outline-primary" type="submit">Comment</button></div>
+</form>
+{% endif %}

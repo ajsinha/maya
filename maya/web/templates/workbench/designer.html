@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Feature designer{% endblock %}
+{% block content %}
+{% if f %}
+<div class="d-flex align-items-center gap-2 mb-2"><h1 class="me-auto mb-0">Edit {{ f.name }} <small class="small-muted">v{{ draft.version_no }} {{ pill(draft.state) }}</small></h1>
+  <a class="btn btn-sm btn-outline-secondary" href="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest">Ingest data</a>
+  <a class="btn btn-sm btn-outline-secondary" href="/workbench/features/{{ f.namespace }}/{{ f.name }}/preview">Preview draft</a>
+  <a class="btn btn-sm btn-outline-secondary" href="/catalog/features/{{ f.namespace }}/{{ f.name }}">Open in catalog</a></div>
+{% if draft.state not in ('draft', 'changes_requested') %}<div class="alert alert-info">v{{ draft.version_no }} is {{ draft.state }} and immutable. Use "Edit draft" on the catalog page to open a new draft.</div>{% endif %}
+<form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/edit">
+  <input type="hidden" name="row_version" value="{{ draft.row_version }}">
+{% else %}
+<h1>Feature designer</h1>
+<form method="post" action="/workbench/features/new">
+{% endif %}
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="row g-2 mb-3">
+    <div class="col-md-3"><label class="form-label" for="namespace">Namespace</label>
+      {% if f %}<input class="form-control" id="namespace" value="{{ f.namespace }}" disabled>{% else %}
+      <select class="form-select" id="namespace" name="namespace" required>{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select>{% endif %}</div>
+    <div class="col-md-3"><label class="form-label" for="name">Name</label><input class="form-control" id="name" name="name" value="{{ f.name if f else '' }}" {% if f %}disabled{% else %}required pattern="[A-Za-z0-9_]+"{% endif %}></div>
+    <div class="col-md-4"><label class="form-label" for="description">Description</label><input class="form-control" id="description" name="description" value="{{ f.description if f else '' }}"></div>
+    <div class="col-md-2"><label class="form-label" for="tags">Tags</label><input class="form-control" id="tags" name="tags" value="{{ f.tags|join(', ') if f else '' }}"></div>
+  </div>
+  {% include "workbench/_feature_fields.html" %}
+  <div class="d-flex gap-2 mt-3">
+    <button class="btn btn-primary" type="submit">{{ 'Save draft' if f else 'Create draft' }}</button>
+    {% if f %}<button class="btn btn-outline-primary" type="submit" name="then" value="submit">Save and submit for review</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

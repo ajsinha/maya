@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Workflow policies{% endblock %}
+{% block content %}
+<h1>Workflow policies</h1>
+<p class="lead-slate">The stored record is the authority; YAML is only its import/export projection. A policy you draft is activated by another administrator — the rules of governance are governed too.</p>
+{% call(p) table("policies", ["Object type", "Scope", "Version", "State", "Note", "Approved by", "Activated"], rows, empty="No policies.") %}
+  <td><a href="/workflow/policies/{{ p.id }}">{{ p.object_type }}</a></td><td>{{ p.scope }}</td><td>v{{ p.version_no }}</td><td>{{ pill(p.state) }}</td><td>{{ p.note or '' }}</td><td>{{ p.approved_by or '' }}</td><td>{{ p.activated_at|dt }}</td>
+{% endcall %}
+<form method="post" action="/workflow/policies/import" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Import a policy from YAML</h3>
+  <div class="row g-2"><div class="col-md-4"><label class="form-label" for="iot">Object type</label><select class="form-select" id="iot" name="object_type">{% for t in object_types %}<option>{{ t }}</option>{% endfor %}</select></div>
+  <div class="col-md-4"><label class="form-label" for="isc">Scope (namespace or *)</label><input class="form-control" id="isc" name="scope" value="*"></div></div>
+  <label class="form-label mt-2" for="iy">YAML</label><textarea class="form-control mono" id="iy" name="yaml" rows="8"></textarea>
+  <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Import as draft</button></div></form>
+{% endblock %}

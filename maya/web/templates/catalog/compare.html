@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Compare {{ f.name }}{% endblock %}
+{% block content %}
+<h1>Compare versions — {{ f.name }}</h1>
+<form method="get" class="d-flex gap-2 align-items-end mb-3">
+  <div><label class="form-label" for="v1">From</label><select class="form-select" id="v1" name="v1">{% for v in f.versions %}<option {% if v.version_no|string == v1 %}selected{% endif %}>{{ v.version_no }}</option>{% endfor %}</select></div>
+  <div><label class="form-label" for="v2">To</label><select class="form-select" id="v2" name="v2">{% for v in f.versions %}<option {% if v.version_no|string == v2 %}selected{% endif %}>{{ v.version_no }}</option>{% endfor %}</select></div>
+  <button class="btn btn-primary" type="submit">Compare</button></form>
+{% if result %}
+<p>Change class: <strong>{{ result.change_class or 'n/a' }}</strong></p>
+{% call(d) table("diff", ["What", "Change"], result.diff, empty="The two versions are identical in every attribute and policy.") %}
+  <td>{{ d.what }}</td><td class="mono">{{ d.change }}</td>
+{% endcall %}
+{% endif %}
+{% endblock %}

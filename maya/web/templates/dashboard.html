@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-3 maya-hero">
+  <img src="/static/img/maya-mark.svg" alt="">
+  <div><h1 class="mb-0">MAYA</h1><div class="lead-slate">{{ APP_TAGLINE }} · <em>{{ APP_SLOGAN }}</em></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card card-body"><div class="small-muted">Features</div><div class="h2 mb-0">{{ counts.features }}</div><a href="/catalog/features">Browse the catalog</a></div></div>
+  <div class="col-md-3"><div class="card card-body"><div class="small-muted">Models</div><div class="h2 mb-0">{{ counts.models }}</div><a href="/models">Model registry</a></div></div>
+  <div class="col-md-3"><div class="card card-body"><div class="small-muted">In review</div><div class="h2 mb-0">{{ counts.queue }}</div><a href="/workflow">My queue</a></div></div>
+  <div class="col-md-3"><div class="card card-body"><div class="small-muted">System</div>
+    {% if health_full %}<div>{{ pill('ok' if health_full.database.ok else 'bad', 'database ' + health_full.database.dialect) }}</div>
+    <div>{{ pill('ok' if health_full.audit_chain.ok else 'bad', 'audit chain ' + ('verified' if health_full.audit_chain.ok else 'BROKEN')) }}</div>
+    <a href="/admin/health">System health</a>{% else %}<span class="small-muted">Health unavailable</span>{% endif %}</div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7"><h2>Recently changed features</h2>
+  {% call(f) table("recent", ["Feature", "Namespace", "Latest", "State", "Pins", "Updated"], recent, empty="The catalog is empty. Start with Workbench → Quick feature: one CSV, one minute.") %}
+    <td><a href="/catalog/features/{{ f.namespace }}/{{ f.name }}">{{ f.name }}</a></td><td>{{ f.namespace }}</td>
+    <td>v{{ f.latest_version }}</td><td>{{ pill(f.latest_state) }}</td><td>{{ f.pins }}</td><td>{{ f.updated_at|dt }}</td>
+  {% endcall %}</div>
+  <div class="col-lg-5"><h2>Awaiting review</h2>
+  {% call(i) table("queue", ["Object", "Type", "By", "Age (days)"], queue, empty="Nothing is waiting for review.") %}
+    <td><a href="/workflow/review/{{ i.object_type }}/{{ i.id }}">{{ i.ref }}</a></td><td>{{ i.object_type }}</td><td>{{ i.submitted_by }}</td><td>{{ i.age_days }}</td>
+  {% endcall %}
+  <h2>My recent jobs</h2>
+  {% call(j) table("jobs", ["Job", "State", "Progress", "Created"], jobs, empty="No jobs yet. Pins, validations and exports run as jobs.") %}
+    <td>{{ j.job_type }}</td><td>{{ pill(j.state) }}</td><td>{{ j.progress }}%</td><td>{{ j.created_at|dt }}</td>
+  {% endcall %}</div>
+</div>
+{% endblock %}

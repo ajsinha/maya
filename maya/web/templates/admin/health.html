@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}System health{% endblock %}
+{% block content %}
+<h1>System health</h1>
+<p class="lead-slate">MAYA {{ h.version }} (build {{ h.build_date }}) · Python {{ h.python }} · {{ h.platform }} · environment <strong>{{ h.environment }}</strong></p>
+{% if h.default_admin_password %}<div class="alert alert-danger">The bootstrap admin still uses the default password. Outside dev MAYA refuses to start like this.</div>{% endif %}
+<h2>Degraded modes, in plain language</h2>
+{% if h.degraded %}<ul>{% for d in h.degraded %}<li>{{ d }}</li>{% endfor %}</ul>{% else %}<p>{{ pill('ok', 'none') }} Every dependency runs on its preferred implementation.</p>{% endif %}
+<div class="row g-3">
+<div class="col-lg-6"><div class="card card-body"><h3>Database</h3>
+  {{ kv([('Dialect', h.database.dialect), ('Status', pill('ok' if h.database.ok else 'bad', 'ok' if h.database.ok else 'failing')), ('Detail', h.database.detail), ('Schema file', h.database.schema_file), ('Schema hash', h.database.schema_hash)]) }}</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Lake (maya_delta)</h3>
+  {{ kv([('Backend', h.lake.backend), ('Why', h.lake.detail), ('Root', h.lake.root)]) }}</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Sandbox</h3>
+  {{ kv([('Tier', pill('ok' if h.sandbox.tier == 'strong' else 'warn', h.sandbox.tier)), ('Mechanism', h.sandbox.mechanism), ('Reason', h.sandbox.reason)]) }}</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Typesetting and audit</h3>
+  {{ kv([('Typeset backend', h.typeset.backend), ('Detail', h.typeset.detail), ('Audit chain', pill('ok' if h.audit_chain.ok else 'bad', 'verified' if h.audit_chain.ok else 'BROKEN at ' ~ h.audit_chain.broken_at)), ('Entries checked', h.audit_chain.checked)]) }}</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Jobs</h3>
+  {{ kv([('Queued', h.jobs.queued), ('Running', h.jobs.running), ('Dead-lettered', h.jobs.dead_letter), ('Workers', h.jobs.workers)]) }}</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Process</h3>{{ kv(h.process.items()|list) }}</div></div>
+</div>
+<h2 class="mt-3">Dependency seams (§13.4)</h2>
+{% call(s) table("seams", ["Seam", "Polarity", "Selected", "Preferred", "Fallback", "Pinned", "Reason", "Cost when degraded"], h.seams, empty="No seams reported.") %}
+  <td class="mono">{{ s.seam }}</td><td>{{ s.polarity }}</td><td>{{ pill('ok' if s.selected == s.preferred else 'warn', s.selected) }}</td><td>{{ s.preferred }}</td><td>{{ s.fallback }}</td><td>{{ 'yes' if s.pinned else '' }}</td><td>{{ s.reason }}</td><td>{{ s.cost }}</td>
+{% endcall %}
+{% endblock %}

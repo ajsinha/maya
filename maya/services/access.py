@@ -1,0 +1,377 @@
+"""
+Access administration and enforcement: users, roles, groups, namespaces,
+grants, and the ``require`` helper every service calls before acting (§11).
+
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+"""
+from __future__ import annotations
+
+import datetime as dt
+from typing import Any
+
+from maya.core import kdf
+from maya.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
+from maya.persistence.types import utcnow
+from maya.security.authz import LEVELS, Principal, can, inert_grant_reason
+from maya.security.roles import PRESETS
+
+# object kind -> (table, capability type, grant object_type)
+KINDS = {
+    "feature": ("features", "feature"), "featureset": ("feature_sets", "featureset"),
+    "model": ("models", "model"), "training_warrant": ("training_warrants", "training_warrant"),
+    "execution_warrant": ("execution_warrants", "execution_warrant"),
+    "namespace": ("namespaces", "namespace"),
+}
+
+
+class AccessService:
+    """Everything that decides or changes who may do what."""
+
+    def __init__(self, platform: Any) -> None:
+        self.p = platform
+
+    # -- enforcement -----------------------------------------------------------
+    def describe(self, uow: Any, kind: str, obj: dict[str, Any],
+                 state: str | None = None, cap_type: str | None = None) -> dict[str, Any]:
+        """The ``can()`` view of a catalog object plus its namespace and grants."""
+        ns = uow.repo("namespaces").require(obj["namespace_id"]) if obj.get("namespace_id") \
+            else None
+        grants = uow.repo("grants").list(object_type=kind, object_id=obj["id"])
+        if ns:
+            grants += uow.repo("grants").list(object_type="namespace", object_id=ns["id"])
+        return {"obj": {"type": cap_type or KINDS[kind][1], "id": obj["id"],
+                        "owner_id": obj.get("owner_id"), "state": state,
+                        "namespace_name": ns["name"] if ns else None},
+                "grants": grants, "namespace": ns}
+
+    def require(self, uow: Any, p: Principal, action: str, kind: str, obj: dict[str, Any],
+                *, state: str | None = None, cap_type: str | None = None,
+                audit: bool = True) -> None:
+        d = self.describe(uow, kind, obj, state, cap_type)
+        decision = can(p, action, d["obj"], d["grants"], d["namespace"])
+        if not decision:
+            label = obj.get("name", obj["id"])
+            if audit and (action in ("approve", "pin", "seal", "grant", "revoke")
+                          or kind == "namespace"):
+                uow.audit("authz.denied", object_type=kind, object_ref=str(label),
+                          detail={"action": action, "rule": decision.rule}, durable=True)
+            raise PermissionDenied(f"You may not {action} {kind} '{label}': {decision.rule}",
+                                   action=action, rule=decision.rule)
+
+    def allowed(self, uow: Any, p: Principal, action: str, kind: str,
+                obj: dict[str, Any], **kw: Any) -> bool:
+        try:
+            self.require(uow, p, action, kind, obj, audit=False, **kw)
+            return True
+        except PermissionDenied:
+            return False
+
+    def require_capability(self, p: Principal, object_type: str, letter: str) -> None:
+        if not p.has_capability(object_type, letter):
+            raise PermissionDenied(f"Your roles carry no '{letter}' on {object_type}")
+
+    # -- namespaces --------------------------------------------------------------
+    def namespace(self, uow: Any, name: str) -> dict[str, Any]:
+        ns = uow.repo("namespaces").find_one(name=name)
+        if ns is None:
+            raise NotFound(f"Namespace '{name}' does not exist", namespace=name)
+        return ns
+
+    def create_namespace(self, p: Principal, *, name: str, description: str = "",
+                         parent: str | None = None, preset: str = "standard",
+                         default_visibility: str = "namespace_read", production: bool = False,
+                         classification: str = "internal", quota_bytes: int | None = None
+                         ) -> dict[str, Any]:
+        self.require_capability(p, "namespace", "C")
+        if preset not in PRESETS:
+            raise ValidationFailed(f"Preset must be one of {', '.join(PRESETS)}")
+        if not name.replace("_", "").replace(".", "").replace("-", "").isalnum():
+            raise ValidationFailed("Namespace names use letters, digits, '_', '-' and '.'")
+        with self.p.uow(p.username) as uow:
+            if uow.repo("namespaces").find_one(name=name):
+                raise ConflictError(f"Namespace '{name}' already exists")
+            parent_id = None
+            if parent:
+                par = self.namespace(uow, parent)
+                if par["parent_id"]:
+                    raise ValidationFailed("Namespaces nest one level only (D-5)")
+                parent_id = par["id"]
+            ns = uow.repo("namespaces").add({
+                "name": name, "description": description, "parent_id": parent_id,
+                "preset": preset, "sod": PRESETS[preset]["sod"],
+                "default_visibility": default_visibility, "production": production,
+                "classification": classification, "quota_bytes": quota_bytes,
+                "owner_id": p.user_id})
+            uow.audit("namespace.created", object_type="namespace", object_ref=name,
+                      detail={"preset": preset, "production": production})
+            return ns
+
+    def update_namespace(self, p: Principal, name: str, changes: dict[str, Any]) -> dict[str, Any]:
+        self.require_capability(p, "namespace", "U")
+        allowed = {"description", "sod", "default_visibility", "quota_bytes", "classification",
+                   "production", "preset", "materialize_policy"}
+        bad = set(changes) - allowed
+        if bad:
+            raise ValidationFailed("Cannot change: " + ", ".join(sorted(bad)))
+        if "sod" in changes and changes["sod"] not in ("strict", "two_person", "none"):
+            raise ValidationFailed("sod must be strict, two_person or none")
+        with self.p.uow(p.username) as uow:
+            ns = self.namespace(uow, name)
+            row = uow.repo("namespaces").update(ns["id"], changes)
+            uow.audit("namespace.updated", object_type="namespace", object_ref=name,
+                      detail=changes)
+            return row
+
+    def ensure_scratch(self, uow: Any, p: Principal) -> dict[str, Any]:
+        """Every user's zero-ceremony namespace (§28.1)."""
+        name = f"scratch.{p.username}"
+        ns = uow.repo("namespaces").find_one(name=name)
+        if ns is None:
+            ns = uow.repo("namespaces").add({
+                "name": name, "description": f"Personal scratch space of {p.username} — "
+                "ungoverned: no review, no approval, no SoD", "preset": "small_team",
+                "sod": "none", "default_visibility": "private", "is_scratch": True,
+                "owner_id": p.user_id, "classification": "internal"})
+            uow.audit("namespace.scratch_created", object_type="namespace", object_ref=name)
+        return ns
+
+    def list_namespaces(self) -> list[dict[str, Any]]:
+        with self.p.uow() as uow:
+            rows = uow.repo("namespaces").list(order_by=["name"])
+            counts = {}
+            for tbl in ("features", "feature_sets", "models"):
+                for r in uow.repo(tbl).list():
+                    counts.setdefault(r["namespace_id"], {}).setdefault(tbl, 0)
+                    counts[r["namespace_id"]][tbl] += 1
+        for r in rows:
+            r["counts"] = counts.get(r["id"], {})
+        return rows
+
+    # -- grants ------------------------------------------------------------------
+    def resolve_object(self, kind: str, ref: str) -> dict[str, Any]:
+        """The grantable object behind ``ref`` (a maya:// reference, a name or an id)."""
+        from maya.services import catalog, refs as refmod
+        if kind not in KINDS:
+            raise ValidationFailed(f"Grants apply to {', '.join(KINDS)}")
+        table = KINDS[kind][0]
+        with self.p.uow() as uow:
+            if kind == "namespace":
+                return self.namespace(uow, ref)
+            if kind in ("training_warrant", "execution_warrant"):
+                return uow.repo(table).require(ref)
+            obj, _ = catalog.find_object(uow, table, kind, refmod.parse(ref, kind))
+            return obj
+
+    def grant(self, p: Principal, *, kind: str, obj: dict[str, Any], principal_type: str,
+              principal_id: str, level: str, days: int | None = 90, deny: bool = False,
+              conditions: dict[str, Any] | None = None) -> dict[str, Any]:
+        if level not in LEVELS:
+            raise ValidationFailed(f"Level must be one of {', '.join(LEVELS)}")
+        if principal_type not in ("user", "group", "role", "everyone"):
+            raise ValidationFailed("principal_type must be user, group, role or everyone")
+        if conditions:
+            raise ValidationFailed(
+                "Grant conditions (row filters, column masks, time bounds — §11.4) are not "
+                "enforced in this build. A mask that is stored but not applied would leak "
+                "data silently, so the grant is refused rather than accepted.")
+        with self.p.uow(p.username) as uow:
+            self.require(uow, p, "grant", kind, obj)
+            if not p.is_admin and LEVELS.index(level) > LEVELS.index("own"):
+                raise PermissionDenied("Only administrators grant 'admin'")
+            inert = self._inert(uow, principal_type, principal_id, level, KINDS[kind][1])
+            row = uow.repo("grants").add({
+                "object_type": kind, "object_id": obj["id"], "principal_type": principal_type,
+                "principal_id": principal_id, "level": level, "deny": deny,
+                "expires_at": utcnow() + dt.timedelta(days=days) if days else None,
+                "conditions": conditions or {}, "inert_reason": inert})
+            uow.audit("access.granted", object_type=kind, object_ref=obj.get("name"),
+                      detail={"to": f"{principal_type}:{principal_id}", "level": level,
+                              "deny": deny, "inert": inert})
+            return row
+
+    def _inert(self, uow: Any, ptype: str, pid: str, level: str, cap_type: str) -> str | None:
+        if ptype != "user":
+            return None
+        user = uow.repo("users").find_one(id=pid) or uow.repo("users").find_one(username=pid)
+        if user is None:
+            raise NotFound(f"User '{pid}' does not exist")
+        principal = self.p.auth.build_principal(uow, user["id"])
+        return inert_grant_reason(level, principal.capabilities, cap_type)
+
+    def revoke_grant(self, p: Principal, grant_id: str) -> None:
+        with self.p.uow(p.username) as uow:
+            g = uow.repo("grants").require(grant_id)
+            kind = g["object_type"]
+            table = KINDS[kind][0]
+            obj = uow.repo(table).require(g["object_id"])
+            self.require(uow, p, "revoke", kind, obj)
+            uow.repo("grants").delete(grant_id)
+            uow.audit("access.revoked", object_type=kind, object_ref=obj.get("name"),
+                      detail={"grant": g["principal_type"] + ":" + g["principal_id"]})
+
+    def grants_for(self, kind: str, obj_id: str) -> list[dict[str, Any]]:
+        with self.p.uow() as uow:
+            return uow.repo("grants").list(object_type=kind, object_id=obj_id)
+
+    def recertification(self, p: Principal) -> list[dict[str, Any]]:
+        """Every grant on objects this user owns (§11.5 quarterly recertification)."""
+        with self.p.uow() as uow:
+            out = []
+            for kind, (table, _) in KINDS.items():
+                owned = uow.repo(table).list(owner_id=p.user_id) if kind != "namespace" \
+                    else uow.repo(table).list(owner_id=p.user_id)
+                for obj in owned:
+                    for g in uow.repo("grants").list(object_type=kind, object_id=obj["id"]):
+                        out.append({**g, "object_name": obj["name"]})
+            return out
+
+    # -- users and roles -------------------------------------------------------------
+    def create_user(self, p: Principal, *, username: str, password: str | None,
+                    email: str = "", display_name: str = "", roles: list[str] | None = None,
+                    is_service: bool = False, desk: str | None = None) -> dict[str, Any]:
+        self.require_capability(p, "users", "C")
+        if password:
+            self.p.auth.check_policy(password)
+        with self.p.uow(p.username) as uow:
+            if uow.repo("users").find_one(username=username):
+                raise ConflictError(f"User '{username}' already exists")
+            user = uow.repo("users").add({
+                "username": username, "email": email, "display_name": display_name or username,
+                "auth_source": "db", "is_service": is_service, "desk": desk,
+                "password_hash": kdf.hash_password(password) if password else None,
+                "must_change_password": bool(password)})
+            self._set_roles(uow, user["id"], roles or [])
+            uow.audit("user.created", object_ref=f"user:{username}", detail={"roles": roles})
+            user.pop("password_hash", None)
+            return user
+
+    def set_roles(self, p: Principal, username: str, roles: list[str]) -> None:
+        self.require_capability(p, "users", "U")
+        with self.p.uow(p.username) as uow:
+            user = uow.repo("users").find_one(username=username)
+            if user is None:
+                raise NotFound(f"User '{username}' does not exist")
+            self._set_roles(uow, user["id"], roles)
+            uow.audit("user.roles_changed", object_ref=f"user:{username}", detail={"roles": roles})
+
+    def _set_roles(self, uow: Any, user_id: str, roles: list[str]) -> None:
+        found = uow.repo("roles").list(name__in=roles) if roles else []
+        missing = set(roles) - {r["name"] for r in found}
+        if missing:
+            raise ValidationFailed("Unknown role(s): " + ", ".join(sorted(missing)))
+        uow.repo("user_roles").delete_where(user_id=user_id)
+        for r in found:
+            uow.repo("user_roles").add({"user_id": user_id, "role_id": r["id"]})
+
+    def update_user(self, p: Principal, username: str, changes: dict[str, Any]) -> dict[str, Any]:
+        self.require_capability(p, "users", "U")
+        allowed = {"email", "display_name", "status", "desk"}
+        if set(changes) - allowed:
+            raise ValidationFailed("Cannot change: " + ", ".join(set(changes) - allowed))
+        with self.p.uow(p.username) as uow:
+            user = uow.repo("users").find_one(username=username)
+            if user is None:
+                raise NotFound(f"User '{username}' does not exist")
+            row = uow.repo("users").update(user["id"], changes)
+            uow.audit("user.updated", object_ref=f"user:{username}", detail=changes)
+            row.pop("password_hash", None)
+            return row
+
+    def reset_password(self, p: Principal, username: str, new_password: str) -> None:
+        self.require_capability(p, "users", "U")
+        self.p.auth.check_policy(new_password)
+        with self.p.uow(p.username) as uow:
+            user = uow.repo("users").find_one(username=username)
+            if user is None:
+                raise NotFound(f"User '{username}' does not exist")
+            uow.repo("users").update(user["id"], {
+                "password_hash": kdf.hash_password(new_password), "must_change_password": True,
+                "failed_attempts": 0, "locked_until": None})
+            uow.audit("user.password_reset", object_ref=f"user:{username}")
+
+    def list_users(self) -> list[dict[str, Any]]:
+        with self.p.uow() as uow:
+            users = uow.repo("users").list(order_by=["username"])
+            roles = {r["id"]: r["name"] for r in uow.repo("roles").list()}
+            links = uow.repo("user_roles").list()
+        for u in users:
+            u.pop("password_hash", None)
+            u["roles"] = sorted(roles[lnk["role_id"]] for lnk in links
+                                if lnk["user_id"] == u["id"])
+        return users
+
+    def list_roles(self) -> list[dict[str, Any]]:
+        with self.p.uow() as uow:
+            return uow.repo("roles").list(order_by=["name"])
+
+    def create_role(self, p: Principal, name: str, description: str,
+                    capabilities: dict[str, str]) -> dict[str, Any]:
+        self.require_capability(p, "users", "C")
+        for letters in capabilities.values():
+            if set(letters) - set("CRUAPGQ"):
+                raise ValidationFailed("Capabilities use the letters C R U A P G Q")
+        with self.p.uow(p.username) as uow:
+            if uow.repo("roles").find_one(name=name):
+                raise ConflictError(f"Role '{name}' already exists")
+            row = uow.repo("roles").add({"name": name, "description": description,
+                                         "capabilities": capabilities, "builtin": False})
+            uow.audit("role.created", object_ref=f"role:{name}", detail=capabilities)
+            return row
+
+    def create_group(self, p: Principal, name: str, description: str = "",
+                     roles: list[str] | None = None, members: list[str] | None = None
+                     ) -> dict[str, Any]:
+        self.require_capability(p, "users", "C")
+        with self.p.uow(p.username) as uow:
+            group = uow.repo("groups").add({"name": name, "description": description})
+            for r in uow.repo("roles").list(name__in=roles or []):
+                uow.repo("group_roles").add({"group_id": group["id"], "role_id": r["id"]})
+            for u in uow.repo("users").list(username__in=members or []):
+                uow.repo("group_members").add({"group_id": group["id"], "user_id": u["id"]})
+            uow.audit("group.created", object_ref=f"group:{name}",
+                      detail={"roles": roles, "members": members})
+            return group
+
+    def list_groups(self) -> list[dict[str, Any]]:
+        with self.p.uow() as uow:
+            groups = uow.repo("groups").list(order_by=["name"])
+            users = {u["id"]: u["username"] for u in uow.repo("users").list()}
+            roles = {r["id"]: r["name"] for r in uow.repo("roles").list()}
+            for g in groups:
+                g["members"] = sorted(users[m["user_id"]] for m in
+                                      uow.repo("group_members").list(group_id=g["id"]))
+                g["roles"] = sorted(roles[r["role_id"]] for r in
+                                    uow.repo("group_roles").list(group_id=g["id"]))
+            return groups
+
+    # -- audit and inbox -------------------------------------------------------------
+    def audit_log(self, p: Principal, *, limit: int = 1000, q: str | None = None,
+                  action: str | None = None) -> list[dict[str, Any]]:
+        if not (p.is_admin or "techops" in p.roles):
+            raise PermissionDenied("The audit explorer is for administrators and techops")
+        with self.p.uow() as uow:
+            filters: dict[str, Any] = {}
+            if action:
+                filters["action__ilike"] = action
+            return uow.repo("audit_events").list(
+                order_by=["-seq"], limit=limit,
+                search=(["actor", "action", "object_ref"], q or ""), **filters)
+
+    def verify_audit(self) -> dict[str, Any]:
+        with self.p.uow() as uow:
+            return uow.repo("audit_events").verify_chain()
+
+    def inbox(self, p: Principal) -> list[dict[str, Any]]:
+        with self.p.uow() as uow:
+            return uow.repo("notifications").list(user_id=p.user_id, order_by=["-created_at"],
+                                                  limit=500)
+
+    def mark_read(self, p: Principal, ids: list[str] | None = None) -> int:
+        with self.p.uow(p.username) as uow:
+            rows = uow.repo("notifications").list(user_id=p.user_id, read_at__isnull=True)
+            n = 0
+            for r in rows:
+                if ids is None or r["id"] in ids:
+                    uow.repo("notifications").update(r["id"], {"read_at": utcnow()})
+                    n += 1
+            return n

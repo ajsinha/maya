@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+{% block content %}
+<div class="maya-hero mb-3"><img src="/static/img/maya-lockup.svg" alt="MAYA"></div>
+<h1>About MAYA {{ VERSION }}</h1>
+<p class="lead-slate">{{ APP_TAGLINE }} — <em>{{ APP_SLOGAN }}</em> · build {{ BUILD_DATE }}</p>
+<p>MAYA is the system of record for quantitative features, feature sets, models and the warrants that license a model to be trained or run. This page is generated from <code>maya/core/version.py</code>, the only authority for the version.</p>
+{% for version, items in highlights.items() %}
+<h2>{{ version }}</h2><ul>{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul>
+{% endfor %}
+<p class="small-muted">© 2026 Ashutosh Sinha. All rights reserved.</p>
+{% endblock %}

@@ -1,700 +1,227 @@
 """
-MAYA — feature platform tests.
+Features end to end through the service layer: SC-1 (byte-identical
+re-resolution, with the negative case in the same test), SC-11 (point-in-time
+after a restatement), SC-12 (an unchanged month costs its delta), quality
+contracts blocking pins, pin requests, derived and inherited features,
+scratch, downloads.
 
-The two guarantees under test are the ones adversarial review said would
-otherwise fail silently: point-in-time correctness (a training set must never
-contain a fact that was not yet known), and version-namespaced serving (a model
-pinned to v7 must never be served v8 values — finding C-2).
-
-Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+from __future__ import annotations
 
+import datetime as dt
+import io
+
+import pyarrow.parquet as pq
 import pytest
 
-from core.features import AssemblyRejected, FeatureError, detect_leakage, static_check
-from core.features.pit import AssemblyRequest
-
-
-class TestFeatureDefinition:
-    def test_define_returns_the_row(self, features):
-        f = features.define("dscr", "customer", "float", "Coverage ratio", "person/a")
-        assert f["name"] == "dscr" and f["certification"] == "experimental"
-
-    def test_duplicate_name_is_refused(self, features):
-        features.define("dscr", "customer", "float", "Coverage ratio", "person/a")
-        with pytest.raises(FeatureError, match="already defined"):
-            features.define("dscr", "customer", "float", "Other", "person/b")
-
-    def test_pii_and_protected_basis_round_trip_as_booleans(self, features):
-        features.define("age", "customer", "int", "Applicant age", "person/a",
-                        pii=True, protected_basis=True)
-        row = features.feature("age")
-        assert row["pii"] is True and row["protected_basis"] is True
-
-    def test_proxy_risk_is_recorded(self, features):
-        features.define("zip3", "customer", "string", "Postal prefix", "person/a",
-                        proxy_risk="high")
-        assert features.feature("zip3")["proxy_risk"] == "high"
-
-    def test_certification_lifecycle(self, features):
-        features.define("dscr", "customer", "float", "Coverage ratio", "person/a")
-        assert features.certify("dscr")["certification"] == "certified"
-        assert features.certify("dscr", "deprecated")["certification"] == "deprecated"
-
-    def test_unknown_certification_level_is_refused(self, features):
-        features.define("dscr", "customer", "float", "x", "person/a")
-        with pytest.raises(FeatureError, match="unknown certification"):
-            features.certify("dscr", "blessed")
-
-    def test_duplicate_detection_surfaces_near_matches(self, features):
-        features.define("debt_service_coverage", "customer", "float",
-                        "Debt service coverage ratio", "person/a")
-        near = features.similar("dscr_ratio", "Debt service coverage ratio")
-        assert [f["name"] for f in near] == ["debt_service_coverage"]
-
-    def test_unrelated_feature_is_not_flagged_as_duplicate(self, features):
-        features.define("debt_service_coverage", "customer", "float",
-                        "Debt service coverage ratio", "person/a")
-        assert features.similar("wildfire_hazard", "Geospatial wildfire hazard band") == []
-
-    def test_listing_filters_by_entity(self, features):
-        features.define("dscr", "customer", "float", "x", "p")
-        features.define("notional", "facility", "float", "y", "p")
-        assert len(features.list_features(entity="customer")) == 1
-        assert len(features.list_features()) == 2
-
-
-class TestViewsAndMaterialisation:
-    def test_view_requires_defined_features(self, features):
-        with pytest.raises(FeatureError, match="undefined features"):
-            features.create_view("v", "customer", "p", ["nope"])
-
-    def test_duplicate_view_is_refused(self, features):
-        features.define("dscr", "customer", "float", "x", "p")
-        features.create_view("v", "customer", "p", ["dscr"])
-        with pytest.raises(FeatureError, match="already exists"):
-            features.create_view("v", "customer", "p", ["dscr"])
-
-    def test_materialise_creates_version_one(self, sb_view):
-        versions = sb_view.view_versions_of("sb_financials")
-        assert len(versions) == 1 and versions[0]["version"] == 1
-        assert versions[0]["row_count"] == 4
-
-    def test_each_materialisation_is_a_new_namespace(self, sb_view):
-        sb_view.materialise("sb_financials", [
-            {"entity_id": "C1", "event_ts": 300.0, "ingest_ts": 310.0, "dscr": 1.9, "revenue": 7.0}])
-        assert sb_view.namespace("sb_financials", 1).endswith("/v1")
-        assert sb_view.namespace("sb_financials", 2).endswith("/v2")
-
-    def test_versions_are_separate_tables_not_a_shared_latest(self, sb_view):
-        """Finding C-2: the version IS the serving namespace."""
-        sb_view.materialise("sb_financials", [
-            {"entity_id": "C1", "event_ts": 300.0, "ingest_ts": 310.0, "dscr": 9.9, "revenue": 1.0}])
-        v1 = sb_view.delta.read(sb_view.namespace("sb_financials", 1))
-        v2 = sb_view.delta.read(sb_view.namespace("sb_financials", 2))
-        assert len(v1) == 4 and len(v2) == 1
-        assert 9.9 not in list(v1["dscr"]), "v2 values must not appear in the v1 namespace"
-
-    def test_rows_missing_a_clock_are_refused(self, features):
-        features.define("dscr", "customer", "float", "x", "p")
-        features.create_view("v", "customer", "p", ["dscr"])
-        with pytest.raises(FeatureError, match="two clocks"):
-            features.materialise("v", [{"entity_id": "C1", "dscr": 1.0}])
-
-    def test_missing_ingest_time_is_refused(self, features):
-        features.define("dscr", "customer", "float", "x", "p")
-        features.create_view("v", "customer", "p", ["dscr"])
-        with pytest.raises(FeatureError, match="ingest_ts"):
-            features.materialise("v", [{"entity_id": "C1", "event_ts": 1.0, "dscr": 1.0}])
-
-    def test_quality_report_is_computed(self, sb_view):
-        v = sb_view.view_versions_of("sb_financials")[0]
-        assert v["quality_report"]["dscr"]["null_rate"] == 0.0
-
-    def test_namespace_for_unknown_version_is_refused(self, sb_view):
-        with pytest.raises(FeatureError, match="no version 9"):
-            sb_view.namespace("sb_financials", 9)
-
-
-class TestBitemporalReads:
-    """Two clocks. Same query, different answers depending on what was known."""
-
-    def test_before_the_restatement_lands_the_original_figure_is_returned(self, sb_view):
-        got = sb_view.delta.as_of(sb_view.namespace("sb_financials", 1), 500.0, 500.0)
-        assert float(got[got.entity_id == "C1"]["dscr"].iloc[0]) == pytest.approx(1.20)
-
-    def test_after_the_restatement_lands_the_revised_figure_is_returned(self, sb_view):
-        got = sb_view.delta.as_of(sb_view.namespace("sb_financials", 1), 500.0, 999.0)
-        assert float(got[got.entity_id == "C1"]["dscr"].iloc[0]) == pytest.approx(0.40)
-
-    def test_a_fact_not_yet_true_is_excluded(self, sb_view):
-        got = sb_view.delta.as_of(sb_view.namespace("sb_financials", 1), 50.0, 999.0)
-        assert got.empty
-
-    def test_delta_version_is_recorded(self, sb_view):
-        assert sb_view.delta.version(sb_view.namespace("sb_financials", 1)) >= 0
-
-
-class TestStaticGate:
-    """Layer 1 is a proof, not a warning: a missing bound is a rejection."""
-
-    def test_both_bounds_present_passes(self):
-        assert static_check(AssemblyRequest([], [], 0.0, True, True)).passed
-
-    @pytest.mark.parametrize("valid,txn,missing", [
-        (False, True, "valid_time"), (True, False, "transaction_time"),
-        (False, False, "valid_time")])
-    def test_missing_bound_fails_and_names_it(self, valid, txn, missing):
-        r = static_check(AssemblyRequest([], [], 0.0, valid, txn))
-        assert not r.passed and missing in r.detail
-
-
-class TestTrainingSetAssembly:
-    SPINE = [{"entity_id": "C1", "label_ts": 500.0, "label": 0},
-             {"entity_id": "C2", "label_ts": 500.0, "label": 0},
-             {"entity_id": "C3", "label_ts": 500.0, "label": 1}]
-    VIEWS = [{"view": "sb_financials", "version": 1}]
-
-    def test_assembly_is_point_in_time_correct(self, sb_view):
-        """The decision was taken at t=500. The August restatement did not exist
-        then, so the training set must carry the ORIGINAL figure."""
-        snap = sb_view.build_training_set("pd_train_v1", self.SPINE, self.VIEWS, as_of=500.0)
-        rows = sb_view.delta.read(snap["delta_table"])
-        c1 = rows[rows.entity_id == "C1"].iloc[0]
-        assert float(c1["dscr"]) == pytest.approx(1.20), \
-            "the restated figure was not knowable at label time"
-        assert snap["pit_verified"] is True
-
-    def test_a_later_assembly_still_refuses_the_restatement(self, sb_view):
-        """This test used to assert the opposite, and the opposite was a leak.
-
-        The decision is at t=500 and the restatement was not known until t=900.
-        Assembling the same spine later, with as_of=999, must still produce the
-        figure that was knowable at the decision — otherwise a model is trained
-        on what was learned afterwards, which is precisely what point-in-time
-        correctness means.
-
-        The ingest bound used to be `as_of` alone, which is one scalar for the
-        whole assembly, so anything learned before the set was BUILT was
-        admitted rather than anything known when the decision was MADE.
-        """
-        snap = sb_view.build_training_set("pd_train_v2", self.SPINE, self.VIEWS,
-                                          as_of=999.0)
-        rows = sb_view.delta.read(snap["delta_table"])
-        assert float(rows[rows.entity_id == "C1"].iloc[0]["dscr"]) == pytest.approx(1.20)
-
-    def test_the_restatement_is_visible_where_it_belongs(self, sb_view):
-        """It is not hidden — it is kept out of the training row and reported as
-        what it is. A read at a later transaction time sees it."""
-        frame = sb_view.delta.as_of("features/customer/sb_financials/v1",
-                                    valid_before=500.0, known_before=999.0)
-        row = frame[frame.entity_id == "C1"].to_dict("records")[0]
-        assert row["dscr"] == pytest.approx(0.40)
-
-    def test_assembly_without_a_temporal_bound_is_rejected(self, sb_view):
-        with pytest.raises(AssemblyRejected, match="transaction_time"):
-            sb_view.build_training_set("bad", self.SPINE, self.VIEWS, as_of=500.0,
-                                       transaction_time_bound=False)
-
-    def test_rejection_explains_why(self, sb_view):
-        with pytest.raises(AssemblyRejected, match="leakage cannot be excluded"):
-            sb_view.build_training_set("bad", self.SPINE, self.VIEWS, as_of=500.0,
-                                       valid_time_bound=False)
-
-    def test_snapshot_is_recorded_with_its_report(self, sb_view):
-        snap = sb_view.build_training_set("pd_train_v1", self.SPINE, self.VIEWS, as_of=500.0)
-        stored = sb_view.snapshot(snap["id"])
-        assert stored["row_count"] == 3 and stored["pit_report"]["layer"] == "sampled"
-
-    def test_entities_with_no_admissible_fact_get_no_values(self, sb_view):
-        spine = [{"entity_id": "UNKNOWN", "label_ts": 500.0, "label": 0}]
-        snap = sb_view.build_training_set("sparse", spine, self.VIEWS, as_of=500.0)
-        rows = sb_view.delta.read(snap["delta_table"])
-        assert "dscr" not in rows.columns or rows["dscr"].isna().all()
-
-    def test_assembly_emits_evidence(self, sb_view, evidence):
-        snap = sb_view.build_training_set("pd_train_v1", self.SPINE, self.VIEWS, as_of=500.0)
-        kinds = [n["kind"] for n in evidence.for_subject(snap["id"])]
-        assert "dataset_snapshot_created" in kinds
-
-
-class TestLeakageDetection:
-    """Layer 3's target: a feature that predicts the label perfectly is the label."""
-
-    def test_a_perfect_predictor_is_flagged(self):
-        rows = [{"entity_id": f"C{i}", "label": i % 2, "leaky": i % 2, "ok": i}
-                for i in range(20)]
-        assert "leaky" in detect_leakage(rows)
-
-    def test_an_innocent_feature_is_not_flagged(self):
-        rows = [{"entity_id": f"C{i}", "label": i % 2, "noise": i % 7} for i in range(20)]
-        assert "noise" not in detect_leakage(rows)
-
-    def test_single_class_labels_yield_no_finding(self):
-        rows = [{"entity_id": f"C{i}", "label": 1, "x": i} for i in range(20)]
-        assert detect_leakage(rows) == []
-
-    def test_too_few_rows_yields_no_finding(self):
-        assert detect_leakage([{"entity_id": "C1", "label": 0, "x": 0}]) == []
-
-    # ------------------------------------------------------------------
-    # Four datasets that leak and were passed as clean. Each defeated the
-    # screen by being slightly imperfect, which is what a real leak looks
-    # like: exactness is the property a leak loses first.
-
-    def test_a_label_copy_with_one_null_is_still_a_label_copy(self):
-        """`if any(v is None for v in values): continue` skipped the whole
-        column. A leaked outcome field nulled for the population it does not
-        apply to is the ordinary shape of one."""
-        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "label": i % 2,
-                 "leaked": (i % 2) if i != 13 else None} for i in range(40)]
-        assert "leaked" in detect_leakage(rows)
-
-    def test_a_two_sided_rule_is_caught_though_no_threshold_splits_it(self):
-        """`label = 1 iff 10 <= x <= 20` is deterministic and a textbook leak,
-        and provably no single cut point separates it — the old screen asked
-        for exactly one label change along the sorted column and this produces
-        two. Widening the cut to a tolerance does not help; the screen has to
-        consider a RANGE."""
-        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "x": float(i),
-                 "label": 1 if 10 <= i <= 20 else 0} for i in range(40)]
-        assert "x" in detect_leakage(rows)
-
-    def test_one_contaminated_cell_does_not_hide_a_leak(self):
-        """The purity screen required EVERY bucket to hold exactly one label,
-        so a single correction, backfill or manual override concealed an
-        otherwise perfect leaked status code."""
-        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "label": i % 2,
-                 "status": ("A" if i % 2 else "B") if i != 7 else "A"}
-                for i in range(40)]
-        assert "status" in detect_leakage(rows)
-
-    def test_a_three_class_label_reports_what_it_could_not_screen(self):
-        """The nastiest of the four. Three classes over sixty rows is neither
-        binary nor continuous by the ratio, so the screen ran and reported
-        itself as having run — but a threshold test declines any non-binary
-        label, so every continuous column was examined for nothing and came
-        back clean."""
-        from core.features import screen_leakage
-
-        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "label": i % 3,
-                 "decoder": (i % 3) * 1000 + i} for i in range(60)]
-        _, why_not = screen_leakage(rows)
-        assert why_not is not None, \
-            "reporting this as screened is the wrong answer, not a small one"
-        assert "decoder" in why_not and "3 classes" in why_not
-
-    def test_honest_features_are_not_flagged(self):
-        """A screen loose enough to catch the four above must not start
-        refusing ordinary training sets, or it gets turned off."""
-        import random
-
-        from core.features import screen_leakage
-
-        rng = random.Random(11)
-        for _ in range(50):
-            rows = [{"entity_id": f"C{i}", "label_ts": 1.0,
-                     "label": (label := rng.randint(0, 1)),
-                     "income": rng.gauss(50_000, 12_000),
-                     "age": rng.randint(18, 90),
-                     "region": rng.choice(["uk", "us", "de", "fr"]),
-                     # Weakly predictive, as a real feature is.
-                     "score": rng.gauss(0.4 + 0.2 * label, 0.35)}
-                    for i in range(80)]
-            assert screen_leakage(rows)[0] == []
-
-    def test_injected_leakage_fails_the_assembly(self, sb_view, features):
-        """Adversarial: the verifier must catch leakage it was not told about."""
-        features.define("outcome_copy", "customer", "int", "Copy of the label", "p")
-        features.create_view("leaky", "customer", "p", ["outcome_copy"])
-        features.materialise("leaky", [
-            {"entity_id": f"C{i}", "event_ts": 10.0, "ingest_ts": 20.0, "outcome_copy": i % 2}
-            for i in range(1, 21)])
-        spine = [{"entity_id": f"C{i}", "label_ts": 500.0, "label": i % 2} for i in range(1, 21)]
-        snap = features.build_training_set("leaky_set", spine,
-                                           [{"view": "leaky", "version": 1}], as_of=999.0)
-        assert snap["pit_verified"] is False
-        assert "outcome_copy" in snap["pit_report"]["leakage"]
-
-
-class TestContractsAndRetirement:
-    def test_binding_pins_exact_versions(self, sb_view):
-        c = sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 1}])
-        assert c["items"][0]["namespace"].endswith("/v1") and c["digest"].startswith("sha256:")
-
-    def test_binding_an_unknown_version_is_refused(self, sb_view):
-        with pytest.raises(FeatureError, match="no version 7"):
-            sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 7}])
-
-    def test_serving_namespaces_come_from_the_contract(self, sb_view):
-        sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 1}])
-        ns = sb_view.serving_namespaces("mv-1")
-        assert ns["sb_financials"].endswith("/v1")
-
-    def test_serving_still_points_at_v1_after_v2_is_published(self, sb_view):
-        """Finding C-2 in one assertion: publishing a new version must not move
-        what a pinned model is served."""
-        sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 1}])
-        sb_view.materialise("sb_financials", [
-            {"entity_id": "C1", "event_ts": 300.0, "ingest_ts": 310.0, "dscr": 9.9, "revenue": 1.0}])
-        assert sb_view.serving_namespaces("mv-1")["sb_financials"].endswith("/v1")
-
-    def test_missing_contract_is_an_error_not_a_default(self, sb_view):
-        with pytest.raises(FeatureError, match="no feature contract"):
-            sb_view.serving_namespaces("mv-unknown")
-
-    def test_a_pinned_version_cannot_be_retired(self, sb_view):
-        sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 1}])
-        ok, consumers = sb_view.can_retire("sb_financials", 1)
-        assert ok is False and consumers == ["mv-1"]
-
-    def test_an_unpinned_version_can_be_retired(self, sb_view):
-        sb_view.materialise("sb_financials", [
-            {"entity_id": "C1", "event_ts": 300.0, "ingest_ts": 310.0, "dscr": 1.0, "revenue": 1.0}])
-        sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 1}])
-        assert sb_view.can_retire("sb_financials", 2)[0] is True
-
-
-class TestAWithdrawnValueStaysWithdrawn:
-    """`as_of` returned a bitemporal state that never existed.
-
-    It used `groupby().last()`, which takes the last non-null value per COLUMN
-    rather than the last row. A restatement that withdraws a figure — setting it
-    null, which is a legitimate correction — had the superseded value
-    resurrected and welded onto the withdrawal's timestamps. The row then
-    asserted the old figure was known at a moment it had already been retracted,
-    from the function whose docstring calls itself the point-in-time rule.
-    """
-
-    def _store(self, tmp_path):
-        from db import DeltaStore
-        store = DeltaStore(tmp_path / "delta")
-        store.write("t", [
-            {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 110.0,
-             "dscr": 1.2, "revenue": 5.0},
-            {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 900.0,
-             "dscr": None, "revenue": 3.0},
-        ], mode="overwrite")
-        return store
-
-    def test_a_retracted_figure_is_not_resurrected(self, tmp_path):
-        import math
-        row = self._store(tmp_path).as_of("t", 1000.0, 1000.0).to_dict("records")[0]
-        assert math.isnan(row["dscr"]), "the withdrawal is the latest fact"
-
-    def test_the_rest_of_the_row_is_the_same_row(self, tmp_path):
-        """The other half of the defect: the resurrected value was stamped with
-        the newer row's clocks, so the two halves came from different moments."""
-        row = self._store(tmp_path).as_of("t", 1000.0, 1000.0).to_dict("records")[0]
-        assert row["ingest_ts"] == 900.0 and row["revenue"] == 3.0
-
-    def test_reading_before_the_withdrawal_still_sees_the_figure(self, tmp_path):
-        """Bitemporality's whole point: what was known then is still readable."""
-        row = self._store(tmp_path).as_of("t", 1000.0, 500.0).to_dict("records")[0]
-        assert row["dscr"] == 1.2 and row["ingest_ts"] == 110.0
-
-
-class TestABackFilledValueCannotEnterATrainingRow:
-    """The alignment module claimed a point-in-time read excluded back-filled
-    values 'arithmetically, without anybody having to remember a flag'.
-
-    The stamp was right — a value carried backwards keeps the ingest time at
-    which it actually became knowable. The argument that the stamp was
-    sufficient was not: the assembler bounded ingest by the assembly-wide
-    `as_of`, so a March training row happily took an April observation, and the
-    snapshot came back `pit_verified: True`.
-    """
-
-    def _view(self, features):
-        features.define("px", "customer", "float", "a price", "person/d.raman")
-        features.create_view("prices", "customer", "person/j.okafor", ["px"])
-        # The ONLY observation exists in April: true at 2000, known at 2000.
-        features.materialise("prices", [
-            {"entity_id": "C1", "event_ts": 2000.0, "ingest_ts": 2000.0, "px": 999.0}],
-            ["px"])
-        return features
-
-    def test_a_value_first_known_in_april_stays_out_of_a_march_row(self, features):
-        f = self._view(features)
-        snap = f.build_training_set(
-            "march", [{"entity_id": "C1", "label_ts": 1000.0, "label": 1}],
-            [{"view": "prices", "version": 1}], as_of=9999.0)
-        row = f.delta.read(snap["delta_table"]).to_dict("records")[0]
-        assert row.get("px") is None or str(row.get("px")) == "nan", (
-            "a value that did not exist until April cannot be in a March row")
-
-    def test_the_alignment_stamp_is_what_carries_the_information(self):
-        """The half that was already right, kept as the reason the fix works:
-        a back-filled value carries the ingest time of the observation it came
-        from, not of the grid point it was carried to."""
-        from core.features.alignment import align
-        out = align([{"entity_id": "C1", "asof_date": 2000.0, "ingest_ts": 2000.0,
-                      "px": 999.0}],
-                    ["px"], grid=[1000.0, 2000.0], axis="asof_date",
-                    rule="flat_backward", entity="entity_id")
-        march = next(r for r in out["rows"] if r["asof_date"] == 1000.0)
-        assert march["px"] == 999.0
-        assert march["ingest_ts"] == 2000.0, "stamped with when it became knowable"
-        assert out["point_in_time_safe"] is False
-
-
-class TestTheTwoPointInTimePathsAgreeOnATie:
-    """`(event_ts, ingest_ts)` is a PARTIAL order, and both paths used it.
-
-    Two records for one entity stamped identically on both clocks are equal
-    under it. The assembler took `max(...)`, which keeps the first maximal
-    element; the store sorted stably and took `drop_duplicates(keep="last")`,
-    which keeps the last. So a view holding a duplicate stamp put one value in
-    the training set and made the independent verifier — whose whole job is to
-    recompute the same read a different way — report a violation against it.
-
-    A correct assembly marked `pit_verified: false` is worse than no verifier:
-    it teaches whoever reads the report to discount it.
-    """
-
-    ROWS = [{"entity_id": "E1", "event_ts": 100.0, "ingest_ts": 100.0, "dscr": 1.1},
-            {"entity_id": "E1", "event_ts": 100.0, "ingest_ts": 100.0, "dscr": 9.9}]
-
-    def test_the_assembler_and_the_store_pick_the_same_record(self):
-        import pandas as pd
-
-        from core.features.assembly import TrainingSetBuilder
-        from db.delta_store import ENTITY, pit_order_key
-
-        picked = TrainingSetBuilder.latest_admissible(self.ROWS, 200.0, 200.0)
-
-        frame = pd.DataFrame(self.ROWS)
-        ordered = frame.assign(
-            _k=[pit_order_key(r) for r in frame.to_dict("records")]
-        ).sort_values("_k", kind="stable")
-        store = ordered.drop_duplicates(subset=[ENTITY], keep="last") \
-                       .to_dict("records")[0]
-
-        assert picked["dscr"] == store["dscr"], (
-            "the assembler and its own verifier disagreed about which of two "
-            "identically-stamped records is the fact")
-
-    def test_the_choice_does_not_depend_on_the_order_they_arrive_in(self):
-        """Otherwise a Delta rewrite would silently change the training set."""
-        from core.features.assembly import TrainingSetBuilder
-
-        forward = TrainingSetBuilder.latest_admissible(self.ROWS, 200.0, 200.0)
-        backward = TrainingSetBuilder.latest_admissible(
-            list(reversed(self.ROWS)), 200.0, 200.0)
-        assert forward["dscr"] == backward["dscr"]
-
-    def test_a_genuinely_later_record_still_wins(self):
-        """The tie-break must only break ties. If content ordered ahead of the
-        clocks, the point-in-time rule itself would be broken."""
-        from core.features.assembly import TrainingSetBuilder
-
-        rows = [{"entity_id": "E1", "event_ts": 100.0, "ingest_ts": 100.0,
-                 "dscr": 9.9},
-                {"entity_id": "E1", "event_ts": 150.0, "ingest_ts": 150.0,
-                 "dscr": 1.1}]
-        assert TrainingSetBuilder.latest_admissible(rows, 200.0, 200.0)["dscr"] \
-            == 1.1, "the later fact wins whatever its content sorts as"
-
-
-class TestAVerificationSaysWhatItActuallyCompared:
-    """`N of M rows independently recomputed` counted rows SAMPLED, not values
-    COMPARED, and those differ by exactly the amount that matters.
-
-    `_recompute` skips a row the second route cannot find. When the source is
-    unreadable — an unmounted volume, a permission change overnight — every row
-    is skipped, `expected` is empty every time, the comparison loop runs zero
-    times, and `PitReport(not violations, ...)` is True with an empty
-    violations list. The assembler produces None for every column in that same
-    situation, so the snapshot was persisted, digested, appended to the
-    evidence chain and marked `pit_verified: true`; a fit warrant pinned the
-    digest and a model was fitted on nulls, with the register's own control
-    saying the data had been independently recomputed.
-
-    Zero comparisons is NOT by itself a failure — a point-in-time bound that
-    legitimately excludes every row produces it too, and that is a correct
-    answer that this suite already relies on. So the outage is refused where it
-    happens, in the assembler, and what the report owes the reader here is
-    saying which of the two this was.
-    """
-
-    ROWS = [{"entity_id": f"e{i}", "label_ts": 500.0, "label": i % 2,
-             "dscr": None, "revenue": None} for i in range(40)]
-
-    def test_comparing_nothing_does_not_describe_itself_as_recomputing(self):
-        from core.features.pit import verify_sampled
-
-        report = verify_sampled(self.ROWS, lambda row: {})
-        assert "NO values were compared" in report.detail
-        assert "not the same as verifying values" in report.detail
-        assert "independently recomputed" not in report.detail
-
-    def test_a_frame_that_genuinely_verifies_says_how_much_it_compared(self):
-        from core.features.pit import verify_sampled
-
-        report = verify_sampled(self.ROWS,
-                                lambda row: {"dscr": None, "revenue": None})
-        assert report.passed is True
-        assert "80 values compared" in report.detail
-
-    SPINE = [{"entity_id": "C1", "label_ts": 500.0, "label": 0},
-             {"entity_id": "C2", "label_ts": 500.0, "label": 1}]
-    VIEWS = [{"view": "sb_financials", "version": 1}]
-
-    def test_an_absent_pinned_source_refuses_the_assembly(self, sb_view,
-                                                          tmp_path):
-        """The outage itself, caught where it happens.
-
-        The source is PINNED, so its absence is an outage rather than an
-        answer — but `DeltaStore.read` returns the same empty frame for a table
-        that is not there as for a bound that legitimately excluded everything.
-        With the store gone, every column recomputed to nothing, the comparison
-        loop ran zero times, and a snapshot of entirely null features was
-        recorded `pit_verified: true`.
-        """
-        import shutil
-
-        # It builds while the store is there.
-        ok = sb_view.build_training_set("before", self.SPINE, self.VIEWS,
-                                        as_of=1000.0)
-        assert ok["pit_report"]["passed"] is True
-
-        # The volume goes away. The pinned namespace is what the recomputation
-        # reads, and it is not the view's bare name.
-        pin = sb_view.views.pinned("sb_financials", 1)
-        shutil.rmtree(sb_view.delta.path(pin["namespace"]))
-        assert not sb_view.delta.exists(pin["namespace"])
-
-        with pytest.raises(AssemblyRejected) as refusal:
-            sb_view.build_training_set("after", self.SPINE, self.VIEWS,
-                                       as_of=1000.0)
-        assert "is not present" in str(refusal.value)
-        assert "must not be recorded as verified" in str(refusal.value)
-
-
-class TestAFeatureMayBeShaped:
-    """`shape: [12]` and `shape: [3, 3]` are accepted by the register, reasoned
-    about by the contract algebra, and could not be LOADED.
-
-    `quality()` counted distinct values with `len({v for v in vs})`, and a list
-    is unhashable — so materialising any array feature answered 500 with
-    `TypeError: unhashable type: 'list'`. A balance history and a correlation
-    matrix are the two most ordinary shaped features a bank has.
-    """
-
-    ROWS = [
-        {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 110.0,
-         "dscr": 1.20,
-         "monthly_balances": [10, 11, 12, 11, 10, 9, 9, 10, 11, 12, 13, 12],
-         "correlation": [[1, 0.3, 0.1], [0.3, 1, 0.2], [0.1, 0.2, 1]]},
-        {"entity_id": "C2", "event_ts": 100.0, "ingest_ts": 110.0,
-         "dscr": 2.10,
-         "monthly_balances": [20, 21, 22, 21, 20, 19, 19, 20, 21, 22, 23, 22],
-         "correlation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]},
-    ]
-
-    def _shaped(self, features):
-        features.define("dscr", "borrower", "numeric", "a scalar", "person/d.raman")
-        features.define("monthly_balances", "borrower", "numeric",
-                        "twelve monthly balances", "person/d.raman",
-                        shape=[12])
-        features.define("correlation", "borrower", "numeric",
-                        "a 3x3 correlation matrix", "person/d.raman",
-                        shape=[3, 3])
-        features.create_view("qa_shaped", "borrower", "person/d.raman",
-                             ["dscr", "monthly_balances", "correlation"])
-        return features
-
-    def test_a_scalar_an_array_and_a_matrix_load_together(self, features):
-        version = self._shaped(features).materialise("qa_shaped", self.ROWS)
-        assert version["row_count"] == 2
-
-    def test_the_quality_report_counts_shaped_values_by_content(self, features):
-        """Two different matrices are two distinct values; counting them needs
-        equality, not hashing."""
-        version = self._shaped(features).materialise("qa_shaped", self.ROWS)
-        report = version["quality_report"]
-        assert report["correlation"]["distinct"] == 2
-        assert report["monthly_balances"]["distinct"] == 2
-        assert report["dscr"]["distinct"] == 2
-        assert report["correlation"]["null_rate"] == 0.0
-
-    def test_a_repeated_shaped_value_is_not_counted_twice(self, features):
-        rows = [dict(self.ROWS[0]),
-                {**self.ROWS[1], "correlation": self.ROWS[0]["correlation"]}]
-        version = self._shaped(features).materialise("qa_shaped", rows)
-        assert version["quality_report"]["correlation"]["distinct"] == 1
-
-
-class TestAnOrphanedTableWithDifferentColumnsIsStillReplaceable:
-    """The orphan overwrite has to replace the SCHEMA as well as the rows.
-
-    Delta keeps the existing schema on an overwrite unless told otherwise. The
-    orphan a failed materialisation leaves behind was often written from a
-    different set of features — the view was redefined in between, which is
-    frequently WHY the first attempt failed — so refusing on
-    `SchemaMismatchError` left the table permanently unwritable with no way
-    through the product.
-    """
-
-    def test_a_view_redefined_after_a_failed_write_can_still_materialise(
-            self, features, tmp_path):
-        features.define("a", "borrower", "numeric", "one", "person/o")
-        features.define("b", "borrower", "numeric", "two", "person/o")
-        features.create_view("widened", "borrower", "person/o", ["a"])
-        pin = features.views._path(
-            features.views.require("widened"), 1)
-
-        # An orphan: Delta written, nothing recorded, with columns that do not
-        # match what the next materialisation will carry.
-        features.views.delta.write(
-            pin, [{"entity_id": "C1", "event_ts": 1.0, "ingest_ts": 1.0,
-                   "a": 1.0, "gone": "a column no longer written"}])
-        assert features.views.delta.exists(pin)
-
-        # The real write carries different columns. Without `schema_mode`, Delta
-        # keeps the orphan's schema and raises SchemaMismatchError — leaving the
-        # table permanently unwritable through the product.
-        version = features.materialise("widened", [
-            {"entity_id": "C1", "event_ts": 1.0, "ingest_ts": 1.0,
-             "a": 1.0, "b": 2.0}])
-        assert version["row_count"] == 1
-        stored = features.views.delta.read(pin)
-        assert "gone" not in stored.columns, "the orphan's schema survived"
-
-
-class TestAMalformedPolicyIsRefusedRatherThanCrashing:
-    """`check` exists to refuse a bad policy at the moment it is written, and a
-    policy of the wrong SHAPE got past it into a 500.
-
-    Every section is keyed by column — `{"normalise": {"dscr": "zscore"}}` —
-    and the obvious mistake is to write `{"normalise": "zscore"}`, meaning
-    "this column, this way". That reached `.items()` on a string.
-    """
-
-    def test_a_section_written_as_a_bare_string_is_refused(self):
-        from core.features.policy import check
-
-        for policy, section in (({"normalise": "zscore"}, "normalise"),
-                                ({"fill": "median"}, "fill"),
-                                ({"align": "flat_forward"}, "align")):
-            with pytest.raises(FeatureError) as refusal:
-                check(policy)
-            assert section in str(refusal.value)
-            # And says what the right shape is, since the reader has just
-            # demonstrated they do not know it.
-            assert "{" in str(refusal.value)
-
-    def test_a_well_formed_policy_still_passes(self):
-        from core.features.policy import check
-
-        policy = {"fill": {"dscr": "median"},
-                  "normalise": {"dscr": "zscore"},
-                  "align": {"rule": "flat_forward"}}
-        assert check(policy) == policy
-
-    def test_an_unknown_section_is_still_refused_by_name(self):
-        from core.features.policy import check
-
-        with pytest.raises(FeatureError) as refusal:
-            check({"minimum": 0.0, "maximum": 1.0})
-        assert "minimum" in str(refusal.value)
+from maya.core.errors import (NotApproved, PermissionDenied, QualityCheckFailed,
+                              ValidationFailed)
+from tests.conftest import PX_DEF, approved_feature, price_csv
+
+
+def _pin(w, ref, name, as_of, version=1, **kw):
+    out = w.p.features.pin(w.mick, ref, version_no=version, pin_name=name, as_of=as_of, **kw)
+    w.drain()
+    with w.p.uow() as uow:
+        return uow.repo("feature_pins").require(out["pin"]["id"])
+
+
+def test_sc1_repin_is_byte_identical_and_changed_data_is_not(world):
+    ref = approved_feature(world, "sc1", price_csv(30))
+    a = _pin(world, ref, "s1", dt.date(2026, 1, 30))
+    b = _pin(world, ref, "s2", dt.date(2026, 1, 30))
+    assert a["state"] == b["state"] == "sealed"
+    assert a["content_hash"] == b["content_hash"]
+    assert b["bytes_new"] == 0, "an identical pin must write no new fragment"
+    # the negative case, same test: changed data must hash differently
+    world.p.features.ingest(world.dana, ref, price_csv(30, bump=0.25), fmt="csv")
+    c = _pin(world, ref, "s3", dt.date(2026, 1, 30))
+    assert c["content_hash"] != a["content_hash"]
+
+
+def test_sc1_hash_survives_reread_and_integrity_scan(world):
+    ref = approved_feature(world, "reread", price_csv(10))
+    pin = _pin(world, ref, "eom", dt.date(2026, 1, 10))
+    result = world.p.ops.verify_integrity(world.admin)
+    mine = [r for r in result["results"] if "/reread#" in r["pin"]]
+    assert mine and all(r["ok"] for r in mine)
+    download = world.p.features.download(world.dana, f"maya://feature/eq/reread#eom/2026-01-10")
+    assert download["manifest"]["content_hash"] == pin["content_hash"]
+
+
+def test_sc11_point_in_time_after_restatement(world):
+    ref = approved_feature(world, "restated", price_csv(5))
+    before = dt.datetime.now(dt.timezone.utc)
+    restated = price_csv(5, bump=7.0)
+    out = world.p.features.ingest(world.dana, ref, restated, fmt="csv",
+                                  knowledge_time=before + dt.timedelta(seconds=5))
+    assert out["restatement"] is True
+    old = world.p.features.preview(world.dana, f"maya://feature/{ref}@v1", as_of_known=before)
+    new = world.p.features.preview(world.dana, f"maya://feature/{ref}@v1",
+                                   as_of_known=before + dt.timedelta(minutes=1))
+    assert old["rows"][0]["close"] == pytest.approx(100.0)
+    assert new["rows"][0]["close"] == pytest.approx(107.0)
+
+
+def test_sc12_unchanged_month_costs_under_five_percent(world):
+    """A new pin writes its delta plus the tail fragment it lands in (≈ one fragment
+    target, 512 rows by default), so the ratio is size-relative: it holds for real
+    panels and needs a test panel far larger than one fragment — 40,000 rows here."""
+    world.p.features.create(world.dana, namespace="eq", name="monthly", definition=PX_DEF)
+    ref = "eq/monthly"
+    symbols = tuple(f"S{i:02d}" for i in range(40))
+    world.p.features.ingest(world.dana, ref, price_csv(1000, symbols=symbols), fmt="csv")
+    world.p.features.transition(world.dana, ref, 1, "submit")
+    world.p.features.transition(world.mick, ref, 1, "approve")
+    first = _pin(world, ref, "m1", dt.date(2028, 9, 26))
+    world.p.features.ingest(world.dana, ref, price_csv(10, symbols=symbols, start_day=1001),
+                            fmt="csv")
+    second = _pin(world, ref, "m2", dt.date(2028, 10, 6))
+    assert second["row_count"] > first["row_count"]
+    assert second["bytes_new"] < 0.05 * second["bytes_total"], (
+        f"marginal {second['bytes_new']} of {second['bytes_total']}")
+
+
+def test_quality_contract_blocks_the_pin(world):
+    d = dict(PX_DEF, resolution={"grid": {"calendar": "natural_days"}, "rules": {}})
+    ref = approved_feature(world, "gappy", price_csv(3), definition=d)
+    csv = b"date,symbol,close\n2026-01-10,AAA,1\n"
+    world.p.features.ingest(world.dana, ref, csv, fmt="csv")
+    pin = _pin(world, ref, "q", dt.date(2026, 1, 10))
+    assert pin["state"] == "failed" and "not_null" in pin["failure"]
+
+
+def test_only_approved_versions_pin_and_designer_needs_approval(world):
+    world.p.features.create(world.dana, namespace="eq", name="unapproved", definition=PX_DEF)
+    with pytest.raises(NotApproved):
+        world.p.features.pin(world.mick, "eq/unapproved", version_no=1, pin_name="x",
+                             as_of=dt.date(2026, 1, 1))
+    ref = approved_feature(world, "requested", price_csv(5))
+    out = world.p.features.pin(world.dana, ref, version_no=1, pin_name="req",
+                               as_of=dt.date(2026, 1, 5))
+    assert out["job"] is None and out["pin"]["state"] == "requested"
+    with pytest.raises(PermissionDenied):
+        world.p.features.approve_pin_request(world.dana, out["pin"]["id"])
+    world.p.features.approve_pin_request(world.mick, out["pin"]["id"])
+    world.drain()
+    with world.p.uow() as uow:
+        assert uow.repo("feature_pins").require(out["pin"]["id"])["state"] == "sealed"
+
+
+def test_idempotency_key_never_pins_twice(world):
+    ref = approved_feature(world, "idem", price_csv(5))
+    a = world.p.features.pin(world.mick, ref, version_no=1, pin_name="i1",
+                             as_of=dt.date(2026, 1, 5), idempotency_key="k-1")
+    with pytest.raises(Exception):
+        world.p.features.pin(world.mick, ref, version_no=1, pin_name="i1",
+                             as_of=dt.date(2026, 1, 5), idempotency_key="k-1")
+    with world.p.uow() as uow:
+        assert uow.repo("jobs").count(idempotency_key="k-1") == 1
+    assert a["job"]["idempotency_key"] == "k-1"
+
+
+def test_segregation_of_duties_refuses_self_approval(world):
+    """One person holding designer and manager roles (a small desk) cannot approve their
+    own submission under strict SoD — and can when the namespace says so (§28.9)."""
+    world.p.access.create_user(world.admin, username="solo", password="Test-password-1",
+                               roles=["feature_designer", "feature_manager"])
+    solo = world.principal("solo")
+    world.p.access.create_namespace(world.admin, name="desk", preset="regulated")
+    for name in ("selfie", "selfie2"):
+        world.p.features.create(solo, namespace="desk", name=name, definition=PX_DEF)
+        world.p.features.ingest(solo, f"desk/{name}", price_csv(3), fmt="csv")
+        world.p.features.transition(solo, f"desk/{name}", 1, "submit")
+    with pytest.raises(PermissionDenied, match="segregation"):
+        world.p.features.transition(solo, "desk/selfie", 1, "approve")
+    world.p.access.update_namespace(world.admin, "desk", {"sod": "none"})
+    out = world.p.features.transition(solo, "desk/selfie2", 1, "approve")
+    assert out["state"] == "approved"
+
+
+def test_cosmetic_edit_does_not_mint_a_version(world):
+    ref = approved_feature(world, "cosmetic", price_csv(3))
+    world.p.features.new_draft(world.dana, ref)
+    with pytest.raises(ValidationFailed, match="hashes identically"):
+        world.p.features.transition(world.dana, ref, 2, "submit")
+
+
+def test_change_classes(world):
+    ref = approved_feature(world, "classy", price_csv(3))
+    world.p.features.new_draft(world.dana, ref)
+    d = dict(PX_DEF, schema=PX_DEF["schema"] + [{"name": "vol", "type": "float64"}])
+    world.p.features.update_draft(world.dana, ref, d)
+    world.p.features.transition(world.dana, ref, 2, "submit")
+    with world.p.uow() as uow:
+        f = uow.repo("features").find_one(name="classy")
+        v2 = uow.repo("feature_versions").find_one(feature_id=f["id"], version_no=2)
+    assert v2["change_class"] == "additive"
+
+
+def test_derived_union_and_inheritance(world):
+    a = approved_feature(world, "vendor_a", price_csv(5, symbols=("AAA",)))
+    b = approved_feature(world, "vendor_b", price_csv(5, symbols=("BBB",)))
+    derived = {"index": ["date", "symbol"], "index_types": PX_DEF["index_types"],
+               "schema": PX_DEF["schema"],
+               "source": {"type": "derived", "derivation": {
+                   "operator": "union", "operands": [f"maya://feature/{a}@v1",
+                                                     f"maya://feature/{b}@v1"],
+                   "options": {"collision": "error"}}},
+               "resolution": {"grid": "as_is", "rules": {}}, "transform": [], "quality": []}
+    ref = approved_feature(world, "both", definition=derived)
+    rows = world.p.features.preview(world.dana, f"maya://feature/{ref}@v1")
+    assert rows["total_rows"] == 10
+    child = {"extends": {"parent": f"maya://feature/{a}@v1", "binding": "pinned",
+                         "override": {"filter": "close > 101"}}}
+    cref = approved_feature(world, "a_filtered", definition=child)
+    out = world.p.features.preview(world.dana, f"maya://feature/{cref}@v1")
+    assert 0 < out["total_rows"] < 5
+    lineage = world.p.ops.lineage(f"maya://feature/{ref}@v1", direction="upstream")
+    assert any(e["type"] == "operand_of" for e in lineage["edges"])
+
+
+def test_tracking_binding_is_blocked_in_production(world):
+    world.p.access.create_namespace(world.admin, name="prodns", production=True)
+    child = {"extends": {"parent": "maya://feature/eq/vendor_a", "binding": "tracking",
+                         "override": {}}}
+    world.p.features.create(world.dana, namespace="prodns", name="tracker", definition=child)
+    with pytest.raises(ValidationFailed, match="production"):
+        world.p.features.transition(world.dana, "prodns/tracker", 1, "submit")
+
+
+def test_scratch_quick_feature_has_zero_ceremony(world):
+    out = world.p.features.quick(world.dana, price_csv(4), name="scratchy")
+    assert out["ref"] == "maya://feature/scratch.dana/scratchy"
+    feature = world.p.features.get(world.dana, out["ref"])
+    assert feature["ungoverned"] and feature["versions"][0]["state"] == "approved"
+    with pytest.raises(PermissionDenied):
+        world.p.features.get(world.mick, out["ref"])
+
+
+def test_download_formats_and_csv_encoding(world):
+    ref = approved_feature(world, "dl", price_csv(4))
+    _pin(world, ref, "d", dt.date(2026, 1, 4))
+    pin_ref = "maya://feature/eq/dl#d/2026-01-04"
+    parquet = world.p.features.download(world.dana, pin_ref, fmt="parquet")
+    assert pq.read_table(io.BytesIO(parquet["data"])).num_rows == 8
+    csv = world.p.features.download(world.dana, pin_ref, fmt="csv")
+    assert b"AAA" in csv["data"]
+    with world.p.uow() as uow:
+        assert uow.repo("audit_events").count(action="data.downloaded") >= 2
+
+
+def test_unsupported_source_is_refused_by_name(world):
+    d = dict(PX_DEF, source={"type": "sql"})
+    world.p.features.create(world.dana, namespace="eq", name="sqlsrc", definition=d)
+    with pytest.raises(ValidationFailed, match="sql"):
+        world.p.features.transition(world.dana, "eq/sqlsrc", 1, "submit")
+
+
+def test_quality_failure_raised_directly_by_materialize(world):
+    d = dict(PX_DEF, quality=[{"check": "range", "attr": "close", "min": 0, "max": 50}])
+    ref = approved_feature(world, "ranged", None, definition=d)
+    world.p.features.ingest(world.dana, ref, price_csv(3), fmt="csv")
+    out = world.p.features.pin(world.mick, ref, version_no=1, pin_name="r",
+                               as_of=dt.date(2026, 1, 3))
+    with pytest.raises(QualityCheckFailed):
+        world.p.feature_data.materialize(out["pin"]["id"], "mick")

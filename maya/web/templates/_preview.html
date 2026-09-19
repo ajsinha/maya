@@ -1,0 +1,26 @@
+{# Data preview. Needs: preview, preview_error, data_ref #}
+{% from "_macros/table.html" import table %}
+{% if preview_error %}<div class="alert alert-warning py-2">{{ preview_error }}</div>{% endif %}
+{% if preview %}
+  <p class="small-muted mb-1">{{ preview.total_rows }} row(s) resolved{% if preview.rows|length < preview.total_rows %}; showing the first {{ preview.rows|length }}{% endif %}.</p>
+  {% set cols = preview.columns %}
+  {% call(r) table("preview", cols, preview.rows, empty="Resolution produced no rows: no data ingested yet, or none known at this knowledge instant.") %}
+    {% for c in cols %}<td class="mono">{{ r[c] if r[c] is not none else '∅' }}</td>{% endfor %}
+  {% endcall %}
+  {% if preview.fill_report %}<h3>Fill report</h3>{% set rep = preview.fill_report %}
+    {% set attrs = rep.get('attributes', {}) %}
+    {% call(a) table("fill", ["Attribute", "Rule", "Filled", "Longest run", "Non-causal"], attrs|list, empty="No attributes.") %}
+      <td>{{ a }}</td><td class="mono">{{ attrs[a].rule }}</td><td>{{ attrs[a].filled }}</td><td>{{ attrs[a].longest_run }}</td><td>{{ 'yes — consumes future values' if attrs[a].non_causal else 'no' }}</td>
+    {% endcall %}
+    <p class="small-muted">Rows {{ rep.rows }} from {{ rep.source_rows }} source rows · grid {{ rep.grid }} · first gap {{ rep.first_gap or '—' }} · last gap {{ rep.last_gap or '—' }} · as of known {{ rep.as_of_known or 'now' }}</p>
+  {% endif %}
+  {% if preview.plan %}<details><summary class="small-muted">Plan</summary><ol class="small">{% for p in preview.plan %}<li>{{ p }}</li>{% endfor %}</ol></details>{% endif %}
+  {% if preview.manifest %}<h3>Resolution manifest — winning policy per attribute</h3>
+    {% set ma = preview.manifest.get('attributes', {}) %}
+    {% call(a) table("manifest", ["Attribute", "Member", "Source attribute", "Rule", "Layer that won", "Supplied by"], ma|list, empty="No attributes.") %}
+      <td>{{ a }}</td><td class="mono">{{ ma[a].member }}</td><td>{{ ma[a].source_attr }}</td><td class="mono">{{ ma[a].rule }}</td><td>{{ ma[a].layer }}</td><td>{{ ma[a].source or '' }}</td>
+    {% endcall %}
+    {% if preview.manifest.withheld %}<div class="alert alert-warning py-2">Withheld (you cannot read their member): {{ preview.manifest.withheld|join(', ') }} — returned as null, never silently dropped.</div>{% endif %}
+    <details><summary class="small-muted">Full manifest</summary><pre>{{ preview.manifest|tojson_pretty }}</pre></details>
+  {% endif %}
+{% endif %}

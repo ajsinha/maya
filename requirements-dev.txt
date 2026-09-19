@@ -1,17 +1,6 @@
-# MAYA — development and CI only.
-#
-# Kept apart from requirements.txt on purpose: none of this ships, and a
-# governance platform's runtime dependency list is something a bank reads. A
-# linter in it would be a line they have to ask about.
-ruff>=0.16
-mypy>=1.11
-pip-audit>=2.7
-cyclonedx-bom>=4.0
-
-# Authors an ONNX graph so `tests/test_runtimes.py` can build its fixture in
-# the test rather than carry a binary file in the repository. NOT the same
-# package as `onnxruntime`, which EXECUTES a graph and is what MAYA needs at
-# runtime -- that one is in requirements.txt. The tests guarded on the runtime
-# and imported this, so any environment with one and not the other errored
-# instead of skipping; the guard now asks about both.
-onnx>=1.17
+# What the documented workflows need, on top of requirements.txt.
+# Install BOTH, or the suite goes green at a smaller count (plan §7.3).
+-r requirements.txt
+pytest==9.1.1
+hypothesis==6.168.0
+ruff==0.16.6

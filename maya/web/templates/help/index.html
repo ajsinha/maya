@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Concepts{% endblock %}
+{% block content %}
+<h1>Concepts</h1>
+<div class="row g-3">
+<div class="col-lg-6"><div class="card card-body"><h2>Definition, version, pin</h2>
+<p>A <strong>definition</strong> is how a number is produced, editable while a draft. Submitting mints a <strong>version</strong>: immutable, identified by a definition hash; cosmetic edits do not mint one. A <strong>pin</strong> materializes a version: resolved, quality-checked, written as content-addressed fragments, hashed and sealed. A version freezes <em>how</em>; a pin freezes <em>what</em>. References: <code>maya://feature/ns/name@v3</code> (a version), <code>maya://feature/ns/name#eom/2026-03-31</code> (a pin in the <code>eom</code> series).</p></div></div>
+<div class="col-lg-6"><div class="card card-body"><h2>Bitemporality</h2>
+<p>Every row carries an <strong>event time</strong> (what the value is about) and a <strong>knowledge time</strong> (when MAYA could first have known it). A restatement is a new knowledge-time row, never an overwrite, so "what did we know on 31 March" stays answerable: resolve with <code>as_of_known</code>. Training warrants carry a signed <strong>leakage certificate</strong> proving no row used a value known after its event time.</p></div></div>
+<div class="col-lg-6"><div class="card card-body"><h2>Warrants</h2>
+<p>A <strong>training warrant</strong> binds a model version to a feature set pin; downloads are checksummed and a parameter upload must name the checksum it trained on, or it is flagged <code>unverified_data</code>. An <strong>execution warrant</strong> is a live licence to run: short-lived signed tokens, covenants whose breach suspends it, revocation that fails every consuming call closed. A <strong>bundle</strong> verifies offline, re-executing the model where it can and saying so where it cannot.</p></div></div>
+<div class="col-lg-6"><div class="card card-body"><h2>Workflow</h2>
+<p>One state machine: draft → in review → approved → published → deprecated → retired. Policies are data, edited in the UI, validated as they are edited and activated by a second administrator. Checks block transitions by name; segregation of duties stops you approving what you created; break-glass is loud and permanent. Your personal <code>scratch.&lt;you&gt;</code> namespace has no ceremony at all, and says so.</p></div></div>
+<div class="col-lg-6"><div class="card card-body"><h2>The table contract</h2>
+<p>Every table pages (25/50/100/250/All, remembered), searches across visible columns with highlighting, sorts the <em>whole</em> result set (shift-click for a second key), hides columns and exports the current view as CSV. Keyboard: focus a table and use PageUp/PageDown/Home/End.</p></div></div>
+<div class="col-lg-6"><div class="card card-body"><h2>The web UI is an SDK client</h2>
+<p>Every screen calls the public Python SDK with your own session token. Anything you can do here, a script can do with <code>maya.sdk</code>; see the API reference at <a href="/api/v1/docs">/api/v1/docs</a>.</p></div></div>
+</div>
+{% endblock %}

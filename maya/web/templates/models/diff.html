@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Diff {{ m.name }}{% endblock %}
+{% block content %}
+<h1>Model diff — {{ m.name }}</h1>
+<form method="get" class="d-flex gap-2 align-items-end mb-3">
+  <div><label class="form-label" for="v1">From</label><select class="form-select" id="v1" name="v1">{% for v in m.versions %}<option {% if v.version_no|string == v1 %}selected{% endif %}>{{ v.version_no }}</option>{% endfor %}</select></div>
+  <div><label class="form-label" for="v2">To</label><select class="form-select" id="v2" name="v2">{% for v in m.versions %}<option {% if v.version_no|string == v2 %}selected{% endif %}>{{ v.version_no }}</option>{% endfor %}</select></div>
+  <button class="btn btn-primary" type="submit">Diff</button></form>
+{% if result %}
+<h2>What changed, mathematically</h2>
+{% call(s) table("stmts", ["Statement"], result.statements, empty="No mathematical change between these versions.") %}<td>{{ s }}</td>{% endcall %}
+<p>Code artifact changed: <strong>{{ 'yes' if result.artifact_changed else 'no' }}</strong> · specification document changed: <strong>{{ 'yes' if result.spec_changed else 'no' }}</strong></p>
+<div class="split"><div><h3>v{{ v1 }}</h3><div class="formula-box" data-latex="{{ result.old_latex }}">{{ result.old_latex }}</div></div>
+<div><h3>v{{ v2 }}</h3><div class="formula-box" data-latex="{{ result.new_latex }}">{{ result.new_latex }}</div></div></div>
+{% endif %}
+{% endblock %}

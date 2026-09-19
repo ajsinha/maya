@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ APP_NAME }}{% endblock %} · {{ APP_NAME }}</title>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="/static/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  {% block head %}{% endblock %}
+</head>
+<body data-csrf="{{ csrf }}">
+{% set area = path.split('/')[1] if path else '' %}
+{% macro nav(href, icon, label, match=None) -%}
+  {% set on = (path == href) or (match and path.startswith(match)) %}
+  <a class="nav-item {% if on %}active{% endif %}" href="{{ href }}" {% if on %}aria-current="page"{% endif %}>
+    <i class="bi bi-{{ icon }}" aria-hidden="true"></i><span>{{ label }}</span></a>
+{%- endmacro %}
+{% if user %}
+<nav class="maya-rail" aria-label="Main">
+  <a class="brand" href="/"><img src="/static/img/maya-mark.svg" alt="">
+    <span><span class="name">MAYA</span><small>{{ APP_TAGLINE }}</small></span></a>
+  <div class="area"><div class="area-title">Catalog</div>
+    {{ nav('/catalog/features', 'boxes', 'Features', '/catalog/features') }}
+    {{ nav('/catalog/featuresets', 'grid-3x3-gap', 'Feature sets', '/catalog/featuresets') }}
+    {{ nav('/lineage', 'diagram-3', 'Lineage', '/lineage') }}
+  </div>
+  <div class="area"><div class="area-title">Workbench</div>
+    {{ nav('/workbench', 'tools', 'Overview') }}
+    {{ nav('/workbench/features/new', 'pencil-square', 'Feature designer', '/workbench/features') }}
+    {{ nav('/workbench/upload', 'cloud-upload', 'Upload wizard', '/workbench/upload') }}
+    {{ nav('/workbench/quick', 'lightning', 'Quick feature', '/workbench/quick') }}
+    {{ nav('/workbench/featuresets/new', 'grid-1x2', 'Feature set builder', '/workbench/featuresets') }}
+  </div>
+  <div class="area"><div class="area-title">Models</div>
+    {{ nav('/models', 'calculator', 'Models', '/models/') }}
+    {{ nav('/models/new', 'plus-square', 'New model') }}
+  </div>
+  <div class="area"><div class="area-title">Warrants</div>
+    {{ nav('/warrants', 'file-earmark-lock', 'All warrants') }}
+    {{ nav('/warrants/training/new', 'mortarboard', 'New training warrant', '/warrants/training/new') }}
+    {{ nav('/warrants/execution/new', 'play-circle', 'New execution warrant', '/warrants/execution/new') }}
+    {{ nav('/warrants/verify', 'shield-check', 'Verify a bundle') }}
+  </div>
+  <div class="area"><div class="area-title">Workflow</div>
+    {{ nav('/workflow', 'inbox', 'My queue') }}
+    {{ nav('/workflow/policies', 'diagram-2', 'Policies', '/workflow/policies') }}
+    {{ nav('/workflow/campaigns', 'collection', 'Campaigns') }}
+    {{ nav('/workflow/aging', 'hourglass', 'SLA aging') }}
+    {{ nav('/workflow/break-glass', 'exclamation-triangle', 'Break-glass report') }}
+  </div>
+  <div class="area"><div class="area-title">Admin</div>
+    {{ nav('/admin/health', 'heart-pulse', 'System health') }}
+    {{ nav('/admin/users', 'people', 'Users & roles', '/admin/users') }}
+    {{ nav('/admin/namespaces', 'folder2', 'Namespaces') }}
+    {{ nav('/admin/grants', 'key', 'Grants') }}
+    {{ nav('/admin/jobs', 'cpu', 'Jobs') }}
+    {{ nav('/admin/audit', 'journal-text', 'Audit') }}
+    {{ nav('/admin/config', 'sliders', 'Configuration') }}
+    {{ nav('/admin/storage', 'hdd-stack', 'Storage') }}
+  </div>
+  <div class="area"><div class="area-title">Help</div>
+    {{ nav('/help', 'question-circle', 'Concepts') }}
+    {{ nav('/about', 'info-circle', 'About') }}
+  </div>
+</nav>
+{% endif %}
+<div class="{% if user %}maya-main{% endif %}">
+  {% if user %}
+  <header class="maya-top">
+    <form class="search" action="/search" method="get" role="search">
+      <label class="visually-hidden" for="global-search">Search the catalog</label>
+      <input id="global-search" class="form-control form-control-sm" name="q" type="search"
+             placeholder="Search features, sets, models, warrants…  (Ctrl-K / ⌘K)" value="{{ q or '' }}">
+    </form>
+    <a class="btn btn-sm btn-outline-secondary position-relative" href="/inbox" aria-label="Inbox, {{ unread }} unread">
+      <i class="bi bi-bell" aria-hidden="true"></i>
+      {% if unread %}<span class="badge text-bg-danger ms-1">{{ unread }}</span>{% endif %}</a>
+    <button class="btn btn-sm btn-outline-secondary" type="button" id="theme-toggle" aria-label="Toggle light and dark theme">
+      <i class="bi bi-circle-half" aria-hidden="true"></i></button>
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" type="button" aria-expanded="false">
+        <i class="bi bi-person-circle" aria-hidden="true"></i> {{ user }}</button>
+      <div class="dropdown-menu dropdown-menu-end">
+        <span class="dropdown-item-text small-muted">Roles: {{ my_roles|join(', ') or 'none' }}</span>
+        <a class="dropdown-item" href="/account/keys">My API keys</a>
+        <a class="dropdown-item" href="/account/password">Change password</a>
+        <form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <button class="dropdown-item" type="submit">Log out</button></form>
+      </div>
+    </div>
+  </header>
+  {% if health %}
+    {% if health.default_admin_password %}
+    <div class="maya-banner warn" role="alert"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+      The bootstrap <strong>admin</strong> still uses the default password <code>maya-dev-admin</code>. Change it now.</div>
+    {% endif %}
+    {% if health.dialect == 'sqlite' %}
+    <div class="maya-banner info"><i class="bi bi-database" aria-hidden="true"></i>
+      Running on <strong>SQLite</strong> — single-node, small-team; one writer at a time. PostgreSQL is the production backend.
+      · Environment <strong>{{ health.environment }}</strong> · Lake <strong>{{ health.lake }}</strong> · Sandbox tier <strong>{{ health.sandbox }}</strong></div>
+    {% else %}
+    <div class="maya-banner info">Environment <strong>{{ health.environment }}</strong> · Database <strong>{{ health.dialect }}</strong> · Lake <strong>{{ health.lake }}</strong> · Sandbox tier <strong>{{ health.sandbox }}</strong></div>
+    {% endif %}
+  {% endif %}
+  {% endif %}
+  <main class="maya-content" id="main">
+    <div aria-live="polite">
+    {% for level, message in flashes %}
+      <div class="alert alert-{{ level }} alert-dismissible fade show py-2" role="alert">{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+    {% endfor %}
+    </div>
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script src="/static/vendor/jquery/jquery.min.js"></script>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/vendor/katex/katex.min.js"></script>
+<script src="/static/js/table.js"></script>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

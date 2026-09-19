@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}SLA aging{% endblock %}
+{% block content %}
+<h1>SLA aging report</h1>
+{% call(i) table("aging", ["Object", "Type", "Submitted by", "Age (days)", "SLA (days)"], rows, empty="Nothing is past its SLA.") %}
+  <td><a href="/workflow/review/{{ i.object_type }}/{{ i.id }}">{{ i.ref }}</a></td><td>{{ i.object_type }}</td><td>{{ i.submitted_by }}</td><td>{{ i.age_days }}</td><td>{{ i.sla_days }}</td>
+{% endcall %}
+{% endblock %}

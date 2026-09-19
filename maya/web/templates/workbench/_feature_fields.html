@@ -1,0 +1,71 @@
+{# Structured feature-definition controls. Needs: d (definition), types, calendars, operators, refs #}
+{% set src = d.get('source', {}) %}{% set res = d.get('resolution', {}) %}
+{% set gcal = res.get('grid').get('calendar') if res.get('grid') is mapping else '' %}
+{% set mode = 'extends' if d.get('extends') else ('derived' if src.get('type') == 'derived' else 'source') %}
+<div class="mb-3"><label class="form-label" for="mode">Kind of definition</label>
+  <select class="form-select" id="mode" name="mode" data-toggle-show="fmode" style="max-width:420px">
+    <option value="source" {% if mode == 'source' %}selected{% endif %}>From a source (upload or Delta table)</option>
+    <option value="derived" {% if mode == 'derived' %}selected{% endif %}>Derived — an algebra operator over other features</option>
+    <option value="extends" {% if mode == 'extends' %}selected{% endif %}>Extends a parent — store only the diff</option></select></div>
+<datalist id="feature-refs">{% for r in refs %}<option value="{{ r }}">{% endfor %}</datalist>
+<div data-show-group="fmode" data-show-when="extends" class="card card-body mb-3">
+  <div class="row g-2">
+    <div class="col-md-6"><label class="form-label" for="parent">Parent version</label><input class="form-control mono" id="parent" name="parent" list="feature-refs" value="{{ d.get('extends', {}).get('parent', '') }}" placeholder="maya://feature/ns/name@v3"></div>
+    <div class="col-md-3"><label class="form-label" for="binding">Parent binding</label><select class="form-select" id="binding" name="binding">
+      <option value="pinned">pinned — immune to parent change (default)</option><option value="tracking" {% if d.get('extends', {}).get('binding') == 'tracking' %}selected{% endif %}>tracking — follows the parent (blocked in production)</option></select></div>
+    <div class="col-12"><label class="form-label" for="override">Override (the diff, JSON)</label>
+      <textarea class="form-control mono" id="override" name="override" rows="4" data-json placeholder='{"resolution": {"rules": {"close": "forward_fill(limit=2)"}}, "filter": "close > 0"}'>{{ d.get('extends', {}).get('override', {})|tojson_pretty if d.get('extends') else '' }}</textarea></div>
+  </div></div>
+<div data-show-group="fmode" data-show-when="derived" class="card card-body mb-3">
+  <div class="row g-2">
+    <div class="col-md-3"><label class="form-label" for="operator">Operator</label><select class="form-select" id="operator" name="operator">{% for o in operators %}<option {% if src.get('derivation', {}).get('operator') == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select></div>
+    <div class="col-md-9"><label class="form-label" for="operands">Operands (one reference per line, in order)</label>
+      <textarea class="form-control mono" id="operands" name="operands" rows="3">{{ src.get('derivation', {}).get('operands', [])|join('\n') }}</textarea>
+      <div class="small-muted">Available: {% for r in refs[:8] %}<code>{{ r }}</code> {% endfor %}</div></div>
+    <div class="col-12"><label class="form-label" for="options">Operator options (JSON)</label><textarea class="form-control mono" id="options" name="options" rows="2" data-json placeholder='{"collision": "error"}'>{{ src.get('derivation', {}).get('options', {})|tojson_pretty if src.get('derivation') else '' }}</textarea></div>
+  </div></div>
+<div data-show-group="fmode" data-show-when="source,derived">
+<div class="row g-3">
+<div class="col-lg-4" data-show-group="fmode" data-show-when="source"><div class="card card-body h-100">
+  <h3>Index</h3><p class="small-muted">The first column is the event time (date or timestamp); knowledge time is added by MAYA.</p>
+  <div id="index-rows">
+  {% for col in (d.get('index') or ['date', 'symbol']) %}
+    <div class="d-flex gap-1 mb-1" data-row><input class="form-control form-control-sm" name="index_name" value="{{ col }}" aria-label="Index column">
+      <select class="form-select form-select-sm" name="index_type" aria-label="Index column type">{% for t in ['date','timestamp','string','int64'] %}<option {% if (d.get('index_types') or {'date':'date','symbol':'string'}).get(col) == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+      <button type="button" class="btn btn-sm btn-outline-secondary remove-row" aria-label="Remove">×</button></div>
+  {% endfor %}</div>
+  <template id="tpl-index"><div class="d-flex gap-1 mb-1" data-row><input class="form-control form-control-sm" name="index_name" aria-label="Index column"><select class="form-select form-select-sm" name="index_type" aria-label="Index column type"><option>string</option><option>date</option><option>timestamp</option><option>int64</option></select><button type="button" class="btn btn-sm btn-outline-secondary remove-row" aria-label="Remove">×</button></div></template>
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-add-row="tpl-index" data-target="index-rows">+ index column</button>
+  <h3 class="mt-3">Source</h3>
+  <label class="form-label" for="stype">Type</label><select class="form-select mb-2" id="stype" name="source_type">{% for t in ['csv','parquet','json','delta'] %}<option {% if src.get('type') == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <label class="form-label" for="ktc">Knowledge-time column (optional)</label><input class="form-control mb-2" id="ktc" name="knowledge_time_column" value="{{ src.get('knowledge_time_column') or '' }}" placeholder="published_at — else the upload instant">
+  <label class="form-label" for="dpath">Delta table path (delta only)</label><input class="form-control mono" id="dpath" name="delta_path" value="{{ src.get('path') or '' }}">
+</div></div>
+<div class="col-lg-8"><div class="card card-body h-100">
+  <h3>Attributes and resolution rules</h3>
+  <div class="row g-1 small-muted"><div class="col-3">Name</div><div class="col-3">Type</div><div class="col-1">Unit</div><div class="col-1">Tag</div><div class="col-3">Rule (forward_fill(limit=3), zero, none…)</div></div>
+  <div id="attr-rows">
+  {% for a in (d.get('schema') or [{'name': '', 'type': 'float64'}]) %}
+    <div class="row g-1 mb-1" data-row>
+      <div class="col-3"><input class="form-control form-control-sm" name="attr_name" value="{{ a.name }}" aria-label="Attribute name"></div>
+      <div class="col-3"><input class="form-control form-control-sm mono" name="attr_type" value="{{ a.type }}" list="types" aria-label="Logical type"></div>
+      <div class="col-1"><input class="form-control form-control-sm" name="attr_unit" value="{{ a.unit or '' }}" aria-label="Unit"></div>
+      <div class="col-1"><input class="form-control form-control-sm" name="attr_tag" value="{{ a.tag or '' }}" aria-label="Semantic tag"></div>
+      <div class="col-3"><input class="form-control form-control-sm mono" name="attr_rule" value="{{ (res.get('rules') or {}).get(a.name, '') }}" aria-label="Resolution rule"></div>
+      <div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary remove-row" aria-label="Remove">×</button></div>
+    </div>
+  {% endfor %}</div>
+  <datalist id="types">{% for t in types %}<option value="{{ t }}">{% endfor %}</datalist>
+  <template id="tpl-attr"><div class="row g-1 mb-1" data-row><div class="col-3"><input class="form-control form-control-sm" name="attr_name" aria-label="Attribute name"></div><div class="col-3"><input class="form-control form-control-sm mono" name="attr_type" value="float64" list="types" aria-label="Logical type"></div><div class="col-1"><input class="form-control form-control-sm" name="attr_unit" aria-label="Unit"></div><div class="col-1"><input class="form-control form-control-sm" name="attr_tag" aria-label="Semantic tag"></div><div class="col-3"><input class="form-control form-control-sm mono" name="attr_rule" aria-label="Resolution rule"></div><div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary remove-row" aria-label="Remove">×</button></div></div></template>
+  <div><button type="button" class="btn btn-sm btn-outline-secondary" data-add-row="tpl-attr" data-target="attr-rows">+ attribute</button></div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-4"><label class="form-label" for="grid">Grid</label><select class="form-select" id="grid" name="grid"><option value="as_is">as_is — the source's own rows</option>{% for c in calendars %}<option value="{{ c }}" {% if c == gcal %}selected{% endif %}>calendar {{ c }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="drule">Default rule</label><input class="form-control mono" id="drule" name="default_rule" value="{{ res.get('default') or '' }}" placeholder="none"></div>
+    <div class="col-md-4 small-muted pt-4">backward_fill, linear_interp and spline_interp are <strong>non-causal</strong>: they consume the future and need a justified override inside a training warrant.</div>
+  </div>
+  <div class="row g-2 mt-1">
+    <div class="col-md-6"><label class="form-label" for="transform">Transform pipeline (JSON list)</label><textarea class="form-control mono" id="transform" name="transform" rows="4" data-json placeholder='[{"op": "filter", "expr": "close > 0"}]'>{{ d.get('transform')|tojson_pretty if d.get('transform') else '' }}</textarea></div>
+    <div class="col-md-6"><label class="form-label" for="quality">Quality contract (JSON list) — a failing check blocks the pin</label><textarea class="form-control mono" id="quality" name="quality" rows="4" data-json placeholder='[{"check": "not_null", "attr": "close"}]'>{{ d.get('quality')|tojson_pretty if d.get('quality') else '' }}</textarea></div>
+  </div>
+</div></div>
+</div></div>

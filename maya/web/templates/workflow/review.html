@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Review{% endblock %}
+{% block content %}
+<h1>Review</h1>
+<p class="mono">{{ ref }}</p>
+<p>Type <strong>{{ object_type }}</strong> · current state {{ pill(state) }}{% if policy %} · governed by policy v{{ policy.version_no }} ({{ policy.scope }}){% endif %}</p>
+{% if policy %}{% set tdefs = policy.policy.transitions %}
+<div class="card card-body mb-3"><h3>Available transitions</h3>
+  {% for n in names %}{% set t = tdefs[n] %}<div class="small mb-1"><strong>{{ n }}</strong> → {{ t.to }}{% if t.approvals %} · approvals: {% for a in t.approvals %}{{ a.role }}×{{ a.count or 1 }}{% if a.when %} (when {{ a.when }}){% endif %} {% endfor %}{% endif %}{% if t.checks %} · checks: {{ t.checks|join(', ') }}{% endif %}</div>{% endfor %}
+  <form method="post" action="/workflow/review/{{ object_type }}/{{ object_id }}/transition" class="d-flex flex-wrap gap-1 mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="rationale" placeholder="rationale (recorded)" aria-label="Rationale" style="max-width:260px">
+    {% for n in names %}<button class="btn btn-sm {% if n == 'approve' %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ n }}" type="submit">{{ n.replace('_',' ') }}</button>{% else %}<span class="small-muted">No transition from {{ state }}.</span>{% endfor %}
+    {% if is_admin and names %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass (reason required)</label>{% endif %}
+  </form></div>{% endif %}
+{% include "_history.html" %}
+{% endblock %}

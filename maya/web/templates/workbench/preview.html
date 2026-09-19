@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Preview{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">{{ title }}</h1><a class="btn btn-sm btn-outline-secondary" href="{{ back }}">Back to the editor</a></div>
+<p class="lead-slate">Live resolution of the editable draft: change a rule, save, and see the fill report move.</p>
+<form method="get" class="d-flex gap-2 align-items-end mb-2"><div><label class="form-label" for="aok">As of known</label><input class="form-control" id="aok" name="as_of_known" placeholder="now"></div><button class="btn btn-sm btn-outline-primary" type="submit">Resolve</button></form>
+{% include "_preview.html" %}
+{% endblock %}
