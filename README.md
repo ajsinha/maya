@@ -89,8 +89,8 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 422 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 162 endpoints, schema drift) |
+| **Tests** | 447 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 171 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it
 
@@ -100,10 +100,16 @@ execution warrant → reproducibility bundle.
 - **Only Linux has been exercised.** There is no hosted CI: the gate ladder runs locally,
   in the pre-commit hook on every commit and as `python tools/ci/gates.py --tests`. Windows
   and macOS need a run on those machines.
-- **SAML 2.0 is not shipped.** OIDC single sign-on is (`auth.mode: sso` or `hybrid`), as is
-  TOTP two-factor authentication. Configuring `auth.sso.protocol: saml2` is refused at
-  startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
-  is not built.
+- **SAML 2.0 and security keys are tested against software, not real products.** Single
+  sign-on is OIDC or SAML 2.0 (`auth.sso.protocol: oidc | saml2`, SP-initiated; the IdP
+  must sign assertions). Second factors are TOTP and WebAuthn security keys/passkeys. The
+  SAML tests use a test IdP whose assertions are really signed with xmlsec, and every
+  check (signature, issuer, audience, destination, recipient, expiry, unsolicited,
+  replayed request, replayed assertion) is attacked on its own; the WebAuthn tests use a
+  software ES256 authenticator verified by py_webauthn. No commercial IdP (Okta, Entra ID,
+  ADFS) and no hardware key or browser has been exercised. WebAuthn attestation is not
+  requested, so MAYA does not claim a key is hardware-backed; SAML AuthnRequests are
+  unsigned, and SAML single logout is not built.
 - **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
   claimed only when a probe child fails to escape. macOS runs at `moderate`

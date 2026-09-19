@@ -16,8 +16,8 @@ from fastapi.responses import RedirectResponse
 
 from maya.core.errors import MayaError
 from maya.sdk import AsyncClient
-from maya.web.routes.common import (action, check_csrf, client, csrf_token, flash, form, page,
-                                    render)
+from maya.web.routes.common import (action, api_json, check_csrf, client, csrf_token, flash,
+                                    form, page, render)
 
 router = APIRouter()
 
@@ -67,6 +67,9 @@ async def _enter(request: Request) -> Any:
 
 @router.get("/auth/sso/login")
 async def sso_login(request: Request) -> Any:
+    nxt = _safe_next(request.query_params.get("next"))
+    if (await _sign_in_options(request)).get("protocol") == "saml2":
+        return await _saml_login(request, nxt)
     anon = AsyncClient(app=request.app, channel="web")
     try:
         start = await anon.auth.sso_start()
@@ -79,6 +82,37 @@ async def sso_login(request: Request) -> Any:
                            sso_verifier=start["code_verifier"],
                            next=_safe_next(request.query_params.get("next")))
     return RedirectResponse(start["authorize_url"], status_code=303)
+
+
+async def _saml_login(request: Request, nxt: str) -> Any:
+    """SAML: the request is recorded server-side; the next page rides in RelayState."""
+    anon = AsyncClient(app=request.app, channel="web")
+    try:
+        start = await anon.auth.saml_start(relay_state=nxt)
+    except MayaError as exc:
+        return await render(request, "login.html", {"error": exc.message, "signin": {}},
+                            status=400)
+    finally:
+        await anon.aclose()
+    return RedirectResponse(start["redirect_url"], status_code=303)
+
+
+@router.post("/auth/sso/saml/acs")
+async def saml_acs(request: Request) -> Any:
+    """The IdP's cross-site POST. No session cookie and no CSRF token can come with it;
+    what makes it safe is server-side: the signed assertion answers an outstanding,
+    single-use request MAYA made (see maya.services.sso)."""
+    data = await form(request)
+    anon = AsyncClient(app=request.app, channel="web")
+    try:
+        result = await anon.auth.saml_acs(data.get("SAMLResponse", ""))
+    except MayaError as exc:
+        return await render(request, "login.html", {"error": exc.message,
+                                                    "signin": await _sign_in_options(request)},
+                            status=401)
+    finally:
+        await anon.aclose()
+    return await _establish(request, result, data.get("RelayState"))
 
 
 @router.get("/auth/sso/callback")
@@ -109,7 +143,70 @@ async def sso_callback(request: Request) -> Any:
 async def mfa_page(request: Request) -> Any:
     if request.session.get("mfa") != "challenge":
         return RedirectResponse("/", status_code=303)
-    return await render(request, "account/mfa_challenge.html", {})
+    async with client(request) as sdk:
+        status = await sdk.auth.mfa_status()
+    return await render(request, "account/mfa_challenge.html", {"status": status})
+
+
+async def _roles_and_next(request: Request) -> str:
+    """After a second factor passes from a script: the roles, then where to go."""
+    async with client(request) as sdk:
+        me = await sdk.auth.me()
+    request.session["roles"] = me.get("roles", [])
+    if request.session.get("must_change"):
+        return "/account/password"
+    return request.session.pop("next", "/") or "/"
+
+
+@router.post("/mfa/key/options")
+@api_json
+async def mfa_key_options(request: Request) -> Any:
+    async with client(request) as sdk:
+        return await sdk.auth.security_key_options()
+
+
+@router.post("/mfa/key")
+@api_json
+async def mfa_key_verify(request: Request) -> Any:
+    body = await request.json()
+    try:
+        async with client(request) as sdk:
+            await sdk.auth.security_key_verify(body.get("credential") or {})
+    except MayaError:
+        request.session.clear()               # the server ended that sign-in attempt
+        raise
+    request.session["mfa"] = "ok"
+    return {"next": await _roles_and_next(request)}
+
+
+@router.post("/account/security-keys/options")
+@api_json
+async def security_key_options(request: Request) -> Any:
+    async with client(request) as sdk:
+        return await sdk.auth.security_key_register_options()
+
+
+@router.post("/account/security-keys")
+@api_json
+async def security_key_register(request: Request) -> Any:
+    body = await request.json()
+    async with client(request) as sdk:
+        await sdk.auth.register_security_key(body.get("credential") or {},
+                                             name=str(body.get("name") or "security key"))
+    flash(request, "Security key registered.", "success")
+    if request.session.get("mfa") == "enroll":
+        request.session["mfa"] = "ok"
+        return {"next": await _roles_and_next(request)}
+    return {"next": "/account/mfa"}
+
+
+@router.post("/account/security-keys/{key_id}/delete")
+@action
+async def security_key_delete(request: Request, key_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.auth.remove_security_key(key_id)
+    flash(request, "Security key removed.", "info")
+    return RedirectResponse("/account/mfa", status_code=303)
 
 
 @router.post("/mfa")
@@ -135,9 +232,10 @@ async def mfa_account(request: Request) -> Any:
         return RedirectResponse("/login", status_code=303)
     async with client(request) as sdk:
         status = await sdk.auth.mfa_status()
+        keys = await sdk.auth.security_keys() if request.session.get("mfa") == "ok" else []
     return await render(request, "account/mfa.html", {
         "status": status, "enrollment": request.session.pop("mfa_enrollment", None),
-        "forced": request.session.get("mfa") == "enroll"})
+        "forced": request.session.get("mfa") == "enroll", "keys": keys})
 
 
 @router.post("/account/mfa/enroll")

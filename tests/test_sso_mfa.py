@@ -20,7 +20,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from maya.core import totp
-from maya.core.errors import CapabilityRefused, NotAuthenticated, ValidationFailed
+from maya.core.errors import NotAuthenticated, ValidationFailed
 from maya.sdk import Client
 from tests.conftest import PASSWORD, World, build_platform
 
@@ -166,9 +166,7 @@ def test_hybrid_keeps_password_login_and_sso_mode_refuses_it(sso):
 
 
 def test_startup_refusals_name_what_is_missing():
-    with pytest.raises(CapabilityRefused, match="python3-saml"):
-        build_platform(["--auth.mode=sso", f"--auth.sso.issuer={ISSUER}",
-                        "--auth.sso.protocol=saml2"])
+    # SAML's startup refusals live in tests/test_saml.py
     with pytest.raises(ValidationFailed, match="issuer"):
         build_platform(["--auth.mode=hybrid", "--auth.sso.issuer="])
 

@@ -239,6 +239,23 @@ class CodeIn(BaseModel):
     code: str
 
 
+class SamlStartIn(BaseModel):
+    relay_state: str = ""
+
+
+class SamlAcsIn(BaseModel):
+    saml_response: str
+
+
+class WebAuthnRegisterIn(BaseModel):
+    credential: dict[str, Any]
+    name: str = "security key"
+
+
+class WebAuthnVerifyIn(BaseModel):
+    credential: dict[str, Any]
+
+
 class WorkspaceIn(BaseModel):
     name: str
     description: str = ""

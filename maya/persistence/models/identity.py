@@ -163,3 +163,31 @@ class SqlConnection(Tracked, Base):
     password_env: Mapped[str | None] = mapped_column(String(128))
     description: Mapped[str | None] = mapped_column(Text)
     options: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+
+
+class AuthChallenge(Tracked, Base):
+    """A single-use, short-lived value MAYA issued and expects back: a SAML AuthnRequest
+    id, a consumed SAML assertion id, or a WebAuthn challenge. ``consumed_at`` makes it
+    single-use; ``handle`` is unique, so a replay is a lookup that finds it consumed."""
+    __tablename__ = "auth_challenges"
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    handle: Mapped[str] = mapped_column(String(256), unique=True)
+    user_id: Mapped[str | None] = mapped_column(PortableUUID, ForeignKey(FK_USER), index=True)
+    session_id: Mapped[str | None] = mapped_column(PortableUUID)
+    expires_at: Mapped[dt.datetime] = mapped_column(UTCDateTime, index=True)
+    consumed_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    detail: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+
+
+class WebAuthnCredential(Tracked, Base):
+    """A registered security key or passkey: a second factor for a password login."""
+    __tablename__ = "webauthn_credentials"
+    user_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey(FK_USER), index=True)
+    credential_id: Mapped[str] = mapped_column(String(512), unique=True)   # base64url
+    public_key: Mapped[str] = mapped_column(Text)                          # base64url COSE
+    sign_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    transports: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
+    name: Mapped[str] = mapped_column(String(128), default="security key")
+    aaguid: Mapped[str | None] = mapped_column(String(64))
+    backed_up: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_used_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)

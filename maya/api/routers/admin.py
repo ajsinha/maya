@@ -65,8 +65,8 @@ def mfa_verify(body: s.CodeIn, request: Request, me: Principal = Me,
 
 
 @router.post("/auth/mfa/enroll", tags=["auth"])
-def mfa_enroll(me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.sso.enroll(me))
+def mfa_enroll(request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.sso.enroll(me, _bearer(request)))
 
 
 @router.post("/auth/mfa/confirm", tags=["auth"])
