@@ -43,6 +43,9 @@ class Database:
         self.write_mutex = threading.RLock()
         # called after a commit that queued webhook deliveries (wakes the dispatcher)
         self.on_event: Any = None
+        # called after a commit that changed who may do what (users, roles, groups,
+        # grants, keys, or a session's revocation or second factor)
+        self.on_identity_change: Any = None
 
     @property
     def dialect(self) -> str:

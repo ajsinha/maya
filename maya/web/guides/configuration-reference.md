@@ -175,6 +175,7 @@ MAYA connects to PostgreSQL through the `psycopg` driver (`postgresql+psycopg://
 | `auth.mode` | `db` | `db`: MAYA passwords. `sso`: single sign-on for people; password login refused. `hybrid`: single sign-on for people, passwords kept for break-glass and service accounts. |
 | `auth.session.idle_timeout_minutes` | `30` | A session unused this long ends. |
 | `auth.session.absolute_timeout_hours` | `12` | A session ends this long after sign-in, however active. |
+| `auth.session.principal_cache_seconds` | `2` | How long a signed-in session's principal is reused, since one page makes several internal calls. `0` turns it off. A sign-out, revocation or access change made in another web process reaches the session at most this many seconds late; in the same process it applies at once. Sessions still owing a second factor are never reused. |
 | `auth.password.min_length` | `12` | The minimum password length. A password must also use three of: lower case, upper case, digits, symbols. |
 | `auth.lockout.attempts` | `5` | Failed attempts inside the window that lock an account. |
 | `auth.lockout.window_minutes` | `15` | The window in which failures count. |
