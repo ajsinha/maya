@@ -74,13 +74,25 @@ MAYA uses the authorization code flow with PKCE. Before it believes an ID token:
 
 What is built:
 
-- **SP-initiated only.** MAYA sends an unsigned AuthnRequest by HTTP-Redirect and accepts the Response by HTTP-POST at its assertion consumer service. IdP-initiated sign-in is refused by design: an unsolicited Response cannot be tied to a request.
+- **SP-initiated sign-in.** MAYA sends an AuthnRequest by HTTP-Redirect and accepts the Response by HTTP-POST at its assertion consumer service. IdP-initiated sign-in is refused by design: an unsolicited Response cannot be tied to a request.
+- **Signed requests (optional).** With `auth.sso.saml.sign_requests: true`, MAYA signs its AuthnRequests and logout messages with RSA-SHA256, using a key pair from `sp_cert`/`sp_cert_file` and `sp_key`/`sp_key_file` (the key from the environment or a file, never the configuration file). The SP metadata then publishes the certificate. Turning signing on without both is refused at startup.
 - **Signed assertions required.** The assertion must be signed by the certificate configured for the IdP, with a non-deprecated algorithm; python3-saml runs in strict mode.
 - **Checked:** `Issuer` is the IdP entity id; the `Audience` names MAYA's entity id; `Destination` and `Recipient` are MAYA's ACS URL (taken from configuration, not the request's Host header); `NotBefore`/`NotOnOrAfter` hold now.
 - **One answer per request.** Each AuthnRequest is recorded server-side and valid for ten minutes. A Response must carry `InResponseTo` naming an outstanding request, which the first Response consumes. A missing `InResponseTo`, an unknown or expired one, or a second Response to the same request is refused.
 - **No assertion twice.** Each assertion id is recorded; a replayed assertion is refused.
 
-Every refusal is audited as `auth.sso_refused`. Not built: signed AuthnRequests, single logout, IdP-initiated sign-in. SAML needs the `python3-saml` and `xmlsec` packages; with `protocol: saml2` and either missing, MAYA refuses to start.
+### Single logout
+
+Set `auth.sso.saml.idp_slo_url` (the IdP's logout endpoint) and MAYA's own single logout service, `sls_url` (default `…/auth/sso/saml/sls`). Both directions use HTTP-Redirect.
+
+| Who starts | What happens |
+|---|---|
+| You, signing out of MAYA | The MAYA session ends at once. The browser then goes to the IdP with a LogoutRequest naming the NameID and SessionIndex of your sign-in. The IdP's LogoutResponse must answer that request; an answer to no request, or a second answer, is refused. |
+| The IdP | Its LogoutRequest must be **signed** with the IdP's certificate, come from the configured issuer and be addressed to MAYA's SLS. MAYA ends every session of that NameID (only the named SessionIndex, when there is one), audits `auth.sso_logout`, and redirects back with a LogoutResponse. An unsigned request is refused: it would let anyone end anyone's sessions. |
+
+Redirect signatures are checked over the query string exactly as received, so an IdP's own URL encoding cannot break them. A session opened by password, or by OIDC, signs out locally only.
+
+Every refusal is audited as `auth.sso_refused`. Not supported: IdP-initiated sign-in. Signed requests and single logout are code complete and tested against a simulated IdP; they await a test with a real one. SAML needs the `python3-saml` and `xmlsec` packages; with `protocol: saml2` and either missing, MAYA refuses to start.
 
 ### Groups, roles and provisioning
 

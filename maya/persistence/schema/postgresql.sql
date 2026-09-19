@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: a35ed8ac66463e161d4b3cc8d7c17c9702ec4db5a8d2bcf3cc0658f47dc44668
+-- schema-hash: f023630cd91133fe5037a2846a69e2241a4c3e8ec4ae73955d9042ae579b6de7
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -695,6 +695,8 @@ CREATE TABLE sessions (
 	revoked_at TIMESTAMP WITH TIME ZONE, 
 	ip VARCHAR(64), 
 	user_agent VARCHAR(512), 
+	sso_name_id VARCHAR(512), 
+	sso_session_index VARCHAR(256), 
 	id UUID NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	created_by VARCHAR(128), 
@@ -705,6 +707,8 @@ CREATE TABLE sessions (
 	CONSTRAINT fk_sessions_user_id_users FOREIGN KEY(user_id) REFERENCES users (id), 
 	CONSTRAINT uq_sessions_token_hash UNIQUE (token_hash)
 );
+
+CREATE INDEX ix_sessions_sso_name_id ON sessions (sso_name_id);
 
 CREATE INDEX ix_sessions_user_id ON sessions (user_id);
 

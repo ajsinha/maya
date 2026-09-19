@@ -87,6 +87,9 @@ class Session(Tracked, Base):
     revoked_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     ip: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(512))
+    # SAML single logout: the IdP names the sessions to end by NameID and SessionIndex
+    sso_name_id: Mapped[str | None] = mapped_column(String(512), index=True)
+    sso_session_index: Mapped[str | None] = mapped_column(String(256))
 
 
 class ApiKey(Tracked, Base):

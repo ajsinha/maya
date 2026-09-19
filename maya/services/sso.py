@@ -153,7 +153,61 @@ class SsoService:
             self._saml_refused(exc.message, ip)
             raise
         self._record_assertion(asserted, ip)
-        return self.login_with_claims(self._saml_claims(asserted), ip=ip, user_agent=user_agent)
+        return self.login_with_claims(self._saml_claims(asserted), ip=ip, user_agent=user_agent,
+                                      sso_session={"sso_name_id": asserted["name_id"],
+                                                   "sso_session_index":
+                                                   asserted.get("session_index")})
+
+    # -- SAML single logout -------------------------------------------------------------
+    def logout(self, token: str) -> dict[str, Any]:
+        """End a session; for a SAML sign-in with single logout configured, also where to
+        send the browser so the IdP ends its session (``slo_redirect``)."""
+        with self.p.uow() as uow:
+            sess = uow.repo("sessions").find_one(token_hash=self.p.auth.token_hash(token))
+        self.p.auth.logout(token)
+        if not (sess and sess.get("sso_name_id") and self.enabled
+                and self.protocol == "saml2" and self.saml_sp().cfg.slo):
+            return {"ok": True, "slo_redirect": None}
+        out = self.saml_sp().logout(sess["sso_name_id"], sess.get("sso_session_index"))
+        with self.p.uow("sso") as uow:
+            uow.repo("auth_challenges").add({
+                "kind": "saml_logout", "handle": out["request_id"],
+                "expires_at": utcnow() + dt.timedelta(seconds=SAML_REQUEST_SECONDS)})
+        return {"ok": True, "slo_redirect": out["redirect_url"]}
+
+    def saml_sls(self, query_string: str, *, ip: str | None = None) -> dict[str, Any]:
+        """MAYA's single logout service: the IdP's answer to MAYA's LogoutRequest, or the
+        IdP's own LogoutRequest. Returns where the browser goes next."""
+        sp = self.saml_sp()
+        if not sp.cfg.slo:
+            raise ValidationFailed("SAML single logout is not configured "
+                                   "(auth.sso.saml.idp_slo_url)")
+        try:
+            if sp.message_kind(query_string) == "response":
+                request_id = sp.logout_response_to(query_string)
+                self._claim(request_id, "saml_logout", "SAML logout request", ip)
+                sp.finish_logout(query_string, request_id or "")
+                return {"outcome": "signed_out", "redirect_url": "/login?signed_out=1"}
+            accepted = sp.accept_logout(query_string)
+        except NotAuthenticated as exc:
+            self._saml_refused(exc.message, ip)
+            raise
+        ended = self._end_sso_sessions(accepted["name_id"], accepted["session_indexes"], ip)
+        return {"outcome": "idp_logout", "sessions_ended": ended,
+                "redirect_url": accepted["redirect_url"]}
+
+    def _end_sso_sessions(self, name_id: str, indexes: list[str], ip: str | None) -> int:
+        """Revoke every live session of that SAML sign-in (all of the NameID's when the
+        IdP names no SessionIndex)."""
+        with self.p.uow("sso") as uow:
+            rows = uow.repo("sessions").list(sso_name_id=name_id, revoked_at__isnull=True)
+            ended = [r for r in rows if not indexes or r["sso_session_index"] in indexes]
+            for r in ended:
+                uow.repo("sessions").update(r["id"], {"revoked_at": utcnow()})
+            uow.audit("auth.sso_logout", object_ref=f"saml:{name_id}", ip=ip, channel="web",
+                      detail={"protocol": "saml2", "initiator": "idp",
+                              "sessions_ended": len(ended), "session_indexes": indexes})
+        return len(ended)
 
     def _saml_refused(self, reason: str, ip: str | None) -> None:
         with self.p.uow("sso") as uow:
@@ -162,18 +216,22 @@ class SsoService:
 
     def _claim_saml_request(self, request_id: str | None, ip: str | None) -> None:
         """The Response must answer a request MAYA made, still open and unanswered."""
+        self._claim(request_id, "saml_request", "SAML request", ip)
+
+    def _claim(self, request_id: str | None, kind: str, label: str, ip: str | None) -> None:
+        """A SAML reply must answer a request of ``kind`` MAYA made, still open and
+        unanswered; the claim consumes it, so no reply is accepted twice."""
         problem = None
         with self.p.uow("sso") as uow:
-            row = uow.repo("auth_challenges").find_one(kind="saml_request",
-                                                       handle=request_id or "")
+            row = uow.repo("auth_challenges").find_one(kind=kind, handle=request_id or "")
             if not request_id:
-                problem = "unsolicited SAML response: it answers no request MAYA made"
+                problem = f"unsolicited SAML message: it answers no {label} MAYA made"
             elif row is None:
-                problem = "the SAML response answers a request MAYA did not make"
+                problem = f"the SAML message answers a {label} MAYA did not make"
             elif row["consumed_at"] is not None:
-                problem = "the SAML request was already answered (replay)"
+                problem = f"the {label} was already answered (replay)"
             elif row["expires_at"] < utcnow():
-                problem = "the SAML request has expired; start the sign-in again"
+                problem = f"the {label} has expired; start again"
             else:
                 uow.repo("auth_challenges").update(row["id"], {"consumed_at": utcnow()})
         if problem:
@@ -214,7 +272,8 @@ class SsoService:
                 "name": first(s.get("auth.sso.saml.name_attribute") or "displayName") or None}
 
     def login_with_claims(self, claims: dict[str, Any], *, ip: str | None = None,
-                          user_agent: str | None = None) -> dict[str, Any]:
+                          user_agent: str | None = None,
+                          sso_session: dict[str, Any] | None = None) -> dict[str, Any]:
         props = self.p.settings.props
         username = str(claims.get(props.get("auth.sso.username_claim") or
                                   "preferred_username") or claims.get("sub") or "")
@@ -229,7 +288,7 @@ class SsoService:
             if refusal is None:
                 user = self._upsert(uow, username, claims, roles)
                 token = self.p.auth._open_session(uow, user, ip, user_agent, "web",
-                                                  auth_method="sso")
+                                                  auth_method="sso", extra=sso_session)
                 uow.audit("auth.sso_login", object_ref=f"user:{username}", ip=ip,
                           channel="web", detail={"groups": groups, "roles": roles,
                                                  "issuer": claims.get("iss")})

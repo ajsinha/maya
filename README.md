@@ -108,8 +108,8 @@ execution warrant → reproducibility bundle.
   replayed request, replayed assertion) is attacked on its own; the WebAuthn tests use a
   software ES256 authenticator verified by py_webauthn. No commercial IdP (Okta, Entra ID,
   ADFS) and no hardware key or browser has been exercised. WebAuthn attestation is not
-  requested, so MAYA does not claim a key is hardware-backed; SAML AuthnRequests are
-  unsigned, and SAML single logout is not built.
+  requested, so MAYA does not claim a key is hardware-backed. SAML signed requests and
+  single logout (both directions) are code complete and tested only against the test IdP.
 - **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
   claimed only when a probe child fails to escape. macOS runs at `moderate`

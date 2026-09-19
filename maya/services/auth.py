@@ -121,7 +121,7 @@ class AuthService:
 
     def _open_session(self, uow: Any, user: dict[str, Any], ip: str | None,
                       user_agent: str | None, channel: str, *, auth_method: str = "password",
-                      mfa_state: str = "ok") -> str:
+                      mfa_state: str = "ok", extra: dict[str, Any] | None = None) -> str:
         token = "maya_s_" + secrets.token_urlsafe(32)
         now = utcnow()
         uow.repo("sessions").add({
@@ -129,8 +129,13 @@ class AuthService:
             "auth_method": auth_method, "mfa_state": mfa_state,
             "last_seen_at": now, "expires_at": now + self.idle,
             "absolute_expires_at": now + self.absolute, "ip": ip,
-            "user_agent": (user_agent or "")[:500]})
+            "user_agent": (user_agent or "")[:500], **(extra or {})})
         return token
+
+    @staticmethod
+    def token_hash(token: str) -> str:
+        """How a session token is stored: never the token itself."""
+        return _sha(token)
 
     def logout(self, token: str) -> None:
         with self.p.uow() as uow:

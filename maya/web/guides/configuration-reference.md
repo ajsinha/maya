@@ -225,6 +225,11 @@ Used when `auth.sso.protocol` is `saml2`. Needs the `python3-saml` and `xmlsec` 
 | `auth.sso.saml.idp_sso_url` | empty | `MAYA_SAML_IDP_SSO_URL` | The provider's sign-on URL (HTTP-Redirect). Required. |
 | `auth.sso.saml.idp_cert` | empty | `MAYA_SAML_IDP_CERT` | The provider's signing certificate, inline PEM. This or the file is required. |
 | `auth.sso.saml.idp_cert_file` | empty | `MAYA_SAML_IDP_CERT_FILE` | The same certificate, read from a file; used when `idp_cert` is empty. |
+| `auth.sso.saml.idp_slo_url` | empty | `MAYA_SAML_IDP_SLO_URL` | The IdP's single logout endpoint. Set, it turns on single logout both ways (see the security guide). |
+| `auth.sso.saml.sls_url` | `http://127.0.0.1:8600/auth/sso/saml/sls` | `MAYA_SAML_SLS_URL` | MAYA's single logout service, as the IdP must call it. Required when `idp_slo_url` is set. |
+| `auth.sso.saml.sign_requests` | `false` | `MAYA_SAML_SIGN_REQUESTS` | Sign AuthnRequests and logout messages (RSA-SHA256) with MAYA's key pair; needs `sp_cert` and `sp_key`, or startup is refused. |
+| `auth.sso.saml.sp_cert` / `sp_cert_file` | empty | `MAYA_SAML_SP_CERT`, `MAYA_SAML_SP_CERT_FILE` | MAYA's certificate (PEM), inline or as a file. Published in the SP metadata. |
+| `auth.sso.saml.sp_key` / `sp_key_file` | empty | `MAYA_SAML_SP_KEY`, `MAYA_SAML_SP_KEY_FILE` | MAYA's private key (PEM), from the environment or a file — never written into the configuration file. |
 | `auth.sso.saml.username_attribute` | empty | — | The attribute that becomes the username. Empty: the NameID. |
 | `auth.sso.saml.groups_attribute` | `groups` | — | The attribute holding group names. |
 | `auth.sso.saml.email_attribute` | `email` | — | The attribute holding the email address. |
@@ -363,7 +368,7 @@ curl -s http://localhost:8600/api/v1/system/health -H "Authorization: Bearer $MA
 | `MAYA_PG_HOST`, `MAYA_PG_PORT`, `MAYA_PG_DATABASE`, `MAYA_PG_USER`, `MAYA_PG_PASSWORD` | `db.postgresql.*` |
 | `MAYA_SSO_PROTOCOL` | `auth.sso.protocol` |
 | `MAYA_OIDC_ISSUER`, `MAYA_OIDC_CLIENT_ID`, `MAYA_OIDC_CLIENT_SECRET`, `MAYA_OIDC_REDIRECT_URI` | `auth.sso.*` |
-| `MAYA_SAML_SP_ENTITY_ID`, `MAYA_SAML_ACS_URL`, `MAYA_SAML_IDP_ENTITY_ID`, `MAYA_SAML_IDP_SSO_URL`, `MAYA_SAML_IDP_CERT`, `MAYA_SAML_IDP_CERT_FILE` | `auth.sso.saml.*` |
+| `MAYA_SAML_SP_ENTITY_ID`, `MAYA_SAML_ACS_URL`, `MAYA_SAML_IDP_ENTITY_ID`, `MAYA_SAML_IDP_SSO_URL`, `MAYA_SAML_IDP_CERT`, `MAYA_SAML_IDP_CERT_FILE`, `MAYA_SAML_IDP_SLO_URL`, `MAYA_SAML_SLS_URL`, `MAYA_SAML_SIGN_REQUESTS`, `MAYA_SAML_SP_CERT`, `MAYA_SAML_SP_CERT_FILE`, `MAYA_SAML_SP_KEY`, `MAYA_SAML_SP_KEY_FILE` | `auth.sso.saml.*` |
 | `MAYA_WEBAUTHN_RP_ID`, `MAYA_WEBAUTHN_ORIGINS` | `auth.webauthn.*` |
 | `MAYA_MFA_ENFORCE` | `auth.mfa.enforce` |
 | `MAYA_REQUIRE_TECTONIC` | `typeset.require_true_build` |

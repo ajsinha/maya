@@ -247,6 +247,10 @@ class SamlAcsIn(BaseModel):
     saml_response: str
 
 
+class SamlSlsIn(BaseModel):
+    query_string: str          # exactly as the IdP's redirect carried it (signatures)
+
+
 class WebAuthnRegisterIn(BaseModel):
     credential: dict[str, Any]
     name: str = "security key"
