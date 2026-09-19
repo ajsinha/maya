@@ -61,7 +61,7 @@ def _mul(args: list[dict[str, Any]]) -> str:
     return r"\,".join(parts)
 
 
-def node_latex(node: dict[str, Any]) -> str:
+def node_latex(node: dict[str, Any]) -> str:  # noqa: C901 - one case per IR operator
     """LaTeX for one node."""
     if "const" in node:
         return _const(node["const"])

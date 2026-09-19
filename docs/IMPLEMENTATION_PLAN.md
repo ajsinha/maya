@@ -193,7 +193,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 **Deliverables**
 
 - `pyproject.toml`, `requirements.txt`, `requirements-dev.txt`, `pytest.ini`; `.venv` on Python 3.13.15 per `.python-version`.
-- `maya/core/version.py` — `VERSION = "0.1.0"`, `BUILD_DATE`, `APP_NAME`, and the per-release highlights log.
+- `maya/core/version.py` — `VERSION` (the current release), `BUILD_DATE`, `APP_NAME`, and the per-release highlights log.
 - Package skeleton: every directory in plan §3 with an `__init__.py` and a module docstring stating what belongs in it **and what does not**.
 - **`run_maya_web.py`** — the startup script, complete before there is a server to start: `__main__` guard, `multiprocessing.set_start_method('spawn', force=True)` at module level, the banner (version, build date, Python, platform, DB dialect, `maya_delta` backend, sandbox tier), logging configuration, signal and `atexit` drain handlers, config path and `--key=value` overrides.
 - **Configuration**, DishtaYantra-style: `config/application.yaml` with `app`, `server`, `logging`, `db`, `storage`, `auth`, `sandbox`, `lake` sections and no secret; `${VAR:default}` substitution; `config/application.local.yaml` git-ignored and loaded straight after.

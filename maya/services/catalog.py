@@ -214,7 +214,7 @@ def change_class(old: dict[str, Any] | None, new: dict[str, Any]) -> str | None:
 
 
 # -- validation -------------------------------------------------------------------
-def validate_feature_definition(d: dict[str, Any], *, production: bool = False) -> list[str]:
+def validate_feature_definition(d: dict[str, Any], *, production: bool = False) -> list[str]:  # noqa: C901 - a checklist
     """Every problem with a feature definition, at definition time (§5.8 typing)."""
     from maya.security.licence import validate as validate_licence
     errors: list[str] = [f"licence: {e}" for e in validate_licence(d.get("licence"))]

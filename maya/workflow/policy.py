@@ -51,7 +51,7 @@ def validate(policy: dict[str, Any], *, checks: Iterable[str],
     return errors
 
 
-def _validate_transition(name: str, t: dict[str, Any], states: set[str], checks: set[str],
+def _validate_transition(name: str, t: dict[str, Any], states: set[str], checks: set[str],  # noqa: C901 - a checklist
                          roles: set[str]) -> list[str]:
     errors = []
     sources = t.get("from") or []

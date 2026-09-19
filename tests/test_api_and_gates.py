@@ -109,15 +109,18 @@ def test_real_server_over_http_with_sdk_and_cli(tmp_path):
                             cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     try:
         url = f"http://127.0.0.1:{port}"
-        for _ in range(120):
+        deadline = time.monotonic() + 90          # a loaded machine starts slowly, not never
+        while True:
             try:
                 import httpx
                 if httpx.get(url + "/readyz", timeout=1).status_code == 200:
                     break
             except Exception:  # noqa: BLE001 - not up yet
-                time.sleep(0.25)
-        else:
-            raise AssertionError(proc.stdout.read().decode() if proc.stdout else "no output")
+                pass
+            if proc.poll() is not None or time.monotonic() > deadline:
+                proc.kill()
+                raise AssertionError(proc.stdout.read().decode() if proc.stdout else "no output")
+            time.sleep(0.25)
         c = Client(url, token=Client(url).auth.login("admin", "maya-dev-admin")["token"])
         assert c.admin.health()["database"]["dialect"] == "sqlite"
         key = c.auth.create_api_key("cli", days=1)["api_key"]

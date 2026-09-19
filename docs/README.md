@@ -1,6 +1,6 @@
 # docs
 
-The specification is the source of truth for MAYA. Version 0.1.0 implements its spine; the README states exactly what is and is not shipped.
+The specification is the source of truth for MAYA. Version 0.2.0 implements its spine; the README states exactly what is and is not shipped.
 Read in this order.
 
 | Document | What it is |
