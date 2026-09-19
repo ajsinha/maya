@@ -76,12 +76,12 @@ def population(object_type: str, me: Principal = Me, plat: Any = Plat) -> Respon
 
 @router.get("/history")
 def history(object_type: str, object_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.history(object_type, object_id))
+    return ok(plat.workflow_svc.history(object_type, object_id, me))
 
 
 @router.get("/comments")
 def comments(object_type: str, object_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.comments(object_type, object_id))
+    return ok(plat.workflow_svc.comments(object_type, object_id, me))
 
 
 @router.post("/comments", status_code=201)

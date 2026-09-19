@@ -111,6 +111,20 @@ def output_hash(values: Any) -> str:
     return hashlib.sha256(arr.astype(">f8").tobytes()).hexdigest()
 
 
+def run_verifier(data: bytes, script: str) -> dict[str, Any]:
+    """Run a verifier script over a bundle in a clean interpreter; its JSON report."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "bundle.zip"
+        path.write_bytes(data)
+        (Path(tmp) / "verify.py").write_text(script, encoding="utf-8")
+        proc = subprocess.run([sys.executable, "-I", str(Path(tmp) / "verify.py"), str(path)],
+                              capture_output=True, text=True, timeout=300, check=False)
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return {"verified": False, "error": proc.stderr[-2000:]}
+
+
 class BundleService:
     def __init__(self, platform: Any) -> None:
         self.p = platform
@@ -208,18 +222,60 @@ class BundleService:
         }
 
     def verify(self, data: bytes) -> dict[str, Any]:
-        """Run the bundle's own verify.py in a clean interpreter, exactly as offline."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "bundle.zip"
-            path.write_bytes(data)
-            with zipfile.ZipFile(path) as z:
-                if "verify.py" not in z.namelist():
-                    raise ValidationFailed("Not a MAYA bundle: verify.py is missing")
-                (Path(tmp) / "verify.py").write_bytes(z.read("verify.py"))
-            proc = subprocess.run([sys.executable, "-I", str(Path(tmp) / "verify.py"), str(path)],
-                                  capture_output=True, text=True, timeout=300, check=False)
+        """Verify a bundle on the server, as ``verify.py`` does offline.
+
+        Verification executes code the bundle carries (the canonical hasher and the
+        reference model), so the server runs it only for a bundle this MAYA signed and
+        whose every file still matches its signed hash — and then with MAYA's own
+        ``verify.py``, never the uploaded one. Anything else is reported, not executed:
+        verifying a stranger's bundle is for ``python verify.py`` on your own machine.
+        """
+        refusal = self._untrusted(data)
+        if refusal is not None:
+            return {"verified": False, "checks": [refusal], "executed": False}
+        return {**run_verifier(data, VERIFY_PY), "executed": True}
+
+    @staticmethod
+    def verify_offline(data: bytes) -> dict[str, Any]:
+        """``maya export verify`` on your own machine: the bundle's own ``verify.py``, run
+        by you on a bundle you chose — exactly what ``python verify.py`` would do."""
         try:
-            report = json.loads(proc.stdout)
-        except json.JSONDecodeError:
-            report = {"verified": False, "error": proc.stderr[-2000:]}
-        return report
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                script = z.read("verify.py").decode("utf-8")
+        except (zipfile.BadZipFile, KeyError) as exc:
+            raise ValidationFailed(f"Not a MAYA bundle: {exc}") from exc
+        return run_verifier(data, script)
+
+    def _untrusted(self, data: bytes) -> dict[str, Any] | None:
+        """Why the server will not execute this bundle's code, or None when it may."""
+        from maya.core.crypto import verify as verify_signature
+        try:
+            z = zipfile.ZipFile(io.BytesIO(data))
+            manifest = json.loads(z.read("manifest.json"))
+            files, sig = manifest["files"], manifest.get("signature") or {}
+        except (zipfile.BadZipFile, KeyError, ValueError, TypeError) as exc:
+            raise ValidationFailed(f"Not a MAYA bundle: {exc}") from exc
+        why = "not executed on the server"
+        signer = self.p.signer_or_none()
+        body = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
+        if signer is None or sig.get("public_key") != signer.public_key_b64:
+            return {"check": "signed by this MAYA", "ok": False,
+                    "detail": f"{why}: the bundle is not signed by this instance's key; "
+                              "verify it offline with 'python verify.py bundle.zip'"}
+        try:
+            signed = verify_signature(sig["public_key"], body, str(sig.get("signature", "")))
+        except ValueError:
+            signed = False
+        if not signed:
+            return {"check": "Ed25519 signature over the file list", "ok": False,
+                    "detail": f"{why}: the signature does not verify"}
+        names = set(z.namelist())
+        for name, digest in files.items():
+            if name not in names or hashlib.sha256(z.read(name)).hexdigest() != digest:
+                return {"check": f"file hash {name}", "ok": False,
+                        "detail": f"{why}: {name} is missing or altered"}
+        if names - set(files) - {"manifest.json"}:
+            return {"check": "file list", "ok": False,
+                    "detail": f"{why}: files outside the signed list: "
+                              + ", ".join(sorted(names - set(files) - {"manifest.json"}))}
+        return None

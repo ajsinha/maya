@@ -269,7 +269,7 @@ def export_bundle(args: argparse.Namespace) -> int:
 def export_verify(args: argparse.Namespace) -> int:
     """Offline: runs the bundle's own verify.py, needing no MAYA at all."""
     from maya.services.bundle import BundleService
-    report = BundleService(None).verify(Path(args.file).read_bytes())
+    report = BundleService.verify_offline(Path(args.file).read_bytes())
     _out(args, report, lambda r: "\n".join(
         f"  [{'ok' if c['ok'] else 'n/a' if c['ok'] is None else 'FAIL'}] {c['check']}"
         for c in r.get("checks", [])) + f"\nverified: {r.get('verified')}")

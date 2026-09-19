@@ -139,7 +139,7 @@ def _admin(me: Principal) -> None:
 # -- users, roles, groups --------------------------------------------------------------
 @router.get("/users", tags=["admin"])
 def users(me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.access.list_users())
+    return ok(plat.access.list_users(me))
 
 
 @router.post("/users", tags=["admin"], status_code=201)

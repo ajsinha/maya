@@ -153,6 +153,7 @@ class WorkspaceService:
     def impact(self, p: Principal, ws_id: str) -> dict[str, Any]:
         """Everything downstream of a staged change, with its owner (§19)."""
         with self.p.uow() as uow:
+            uow.repo("workspaces").require(ws_id)
             changes = uow.repo("workspace_changes").list(workspace_id=ws_id)
         nodes: dict[str, set[str]] = {}
         for c in changes:
