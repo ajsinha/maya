@@ -29,6 +29,7 @@ def wire(platform: Any) -> None:
     from maya.services.webhooks import WebhookService
     from maya.services.licensing import LicenceService
     from maya.services.custody import CustodyService
+    from maya.services.assistant import AssistantService
     from maya.services.passkeys import PasskeyService
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
@@ -42,12 +43,13 @@ def wire(platform: Any) -> None:
                       ("workspaces", WorkspaceService), ("sources", SourceService),
                       ("webhooks", WebhookService), ("licences", LicenceService),
                       ("custody", CustodyService),
-                      ("passkeys", PasskeyService)):
+                      ("passkeys", PasskeyService), ("assistant", AssistantService)):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)
     _collectors(platform)
     platform.workflow.principal_loader = platform.auth.build_principal
+    platform.workflow.on_move(platform.assistant.on_move)
     from maya.jobs.scheduler import Scheduler
     platform.scheduler = Scheduler()
     platform.scheduler.every("workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue)
@@ -61,6 +63,7 @@ def wire(platform: Any) -> None:
 def _jobs(platform: Any) -> None:
     q = platform.jobs
     q.register("feature.pin", platform.features.run_pin_job)
+    q.register("assistant.challenge", platform.assistant.run_job)
     q.register("featureset.pin", platform.featuresets.run_pin_job)
     q.register("model.validate_artifact", platform.models.run_validation_job)
     q.register("workspace.shadow_replay", platform.workspaces.run_replay_job)

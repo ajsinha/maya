@@ -67,9 +67,15 @@ class WorkflowEngine:
         self.principal_loader: Callable[[Any, str], Principal] | None = None
         self.allow_self_approval = allow_self_approval and environment == "dev"
         self.environment = environment
+        # (uow, subject, transition, to_state) after every move, inside its transaction
+        self.listeners: list[Callable[[Any, Subject, str, str], None]] = []
 
     def register_check(self, name: str, fn: CheckFn) -> None:
         self.checks[name] = fn
+
+    def on_move(self, fn: Callable[[Any, Subject, str, str], None]) -> None:
+        """Observe moves (e.g. to queue the challenger's memo); a listener never blocks one."""
+        self.listeners.append(fn)
 
     # -- policy lookup -------------------------------------------------------
     def active_policy(self, uow: Any, object_type: str, namespace: str) -> dict[str, Any]:
@@ -262,6 +268,8 @@ class WorkflowEngine:
                   detail={"from": subject.state, "to": target, "rationale": rationale},
                   channel=p.channel)
         self._notify(uow, record["policy"], subject, target, name, p, forced)
+        for listener in self.listeners:
+            listener(uow, subject, name, target)
         return Outcome(True, target, f"{name}: {subject.state} → {target}", results)
 
     @staticmethod

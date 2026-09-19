@@ -939,6 +939,25 @@ class Events(_Resource):
         return self._c("POST", f"/webhooks/{seg(webhook_id)}/ping")
 
 
+class Assistant(_Resource):
+    """The recorded challenger's memos (§29.8): read them, ask for one, record a response."""
+
+    @endpoint("GET", "/assistant/memos")
+    def memos(self, object_type: str, object_id: str) -> Any:
+        return self._c("GET", "/assistant/memos",
+                       params={"object_type": object_type, "object_id": object_id})
+
+    @endpoint("POST", "/assistant/memos")
+    def request(self, object_type: str, object_id: str) -> Any:
+        return self._c("POST", "/assistant/memos",
+                       json_body={"object_type": object_type, "object_id": object_id})
+
+    @endpoint("POST", "/assistant/memos/{memo_id}/stance")
+    def respond(self, memo_id: str, stance: str, note: str = "") -> Any:
+        return self._c("POST", f"/assistant/memos/{seg(memo_id)}/stance",
+                       json_body={"stance": stance, "note": note})
+
+
 class Custody(_Resource):
     """Anchoring the audit chain outside MAYA, and effective licences (§29.6)."""
 

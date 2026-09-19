@@ -37,6 +37,10 @@ psutil==7.2.2
 polars==1.44.2
 tzdata==2026.3     # hard requirement on Windows: no system tz database
 
+# The recorded challenger's Claude provider (§29.8, assistant.provider: claude). Without it
+# that provider is refused by name; the deterministic provider needs nothing.
+anthropic==1.7.0
+
 # Spreadsheet import (§29.9): openpyxl reads .xlsx; defusedxml makes it refuse XML bombs.
 # Without openpyxl, workbook import is refused by name; nothing else changes.
 openpyxl==3.1.5

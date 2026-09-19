@@ -104,7 +104,7 @@ class Offline:
         self.checksum = self._checksum()
         self.training = _Training(self)
         self.models = _Models(self)
-        for area in ("features", "featuresets", "execution", "workflow", "jobs", "access",
+        for area in ("features", "featuresets", "execution", "workflow", "jobs", "access", "assistant",
                      "admin", "auth", "namespaces", "workspaces", "sources", "events",
                      "custody"):
             setattr(self, area, _Refuse(area, self.holds))

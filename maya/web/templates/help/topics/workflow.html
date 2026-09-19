@@ -125,6 +125,28 @@ my.features.transition("credit/ltv", 4, "approve", force=True,
 {% endcall %}
 {% endcall %}
 
+{% call step(7, 'The recorded challenger') %}
+<p>Every submission into review gets a <strong>challenge memo</strong>, written by a job and shown on the
+review page. It looks for look-ahead, unbounded fills, schema drift against the last approved version,
+thin or missing limitations, and a document that no longer matches its formula.</p>
+{{ cards([
+  ('slash-circle', 'Never decides', 'It never approves, never blocks and never edits the version. No check reads it; it lives in its own table.'),
+  ('person-check', 'You respond', 'The reviewer records agree, partly or disagree, with a reason unless they agree. The author cannot grade the challenge to their own work.'),
+  ('journal-text', 'On the record', 'Each memo names the provider and exact model that wrote it; every memo and every response is audited.'),
+]) }}
+{{ fields([
+  ('assistant.provider: rules', 'the default: deterministic findings only, no network'),
+  ('assistant.provider: claude', 'also asks Claude Opus 5; sends definitions, the specification and the formula — never data rows — to Anthropic, so it is opt-in'),
+  ('assistant.claude.effort', 'low, medium, high (default), xhigh or max'),
+]) }}
+{% call example('Read a memo and record your response', 'python') %}
+memo = my.assistant.memos("feature_version", version_id)[0]
+for f in memo["findings"]:
+    print(f["severity"], f["title"], "—", f["source"])
+my.assistant.respond(memo["id"], "partly", "Agree on the fill cap; the schema change is intended")
+{% endcall %}
+{% endcall %}
+
 <h2>Also under Workflow</h2>
 {{ cards([
   ('person-badge', 'Delegations', 'Hand your approvals to a stand-in while you are away. See the next topic.'),

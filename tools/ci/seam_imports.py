@@ -19,6 +19,7 @@ SEAMS = {
     "uvloop": ("maya.core.backends",),
     "opentelemetry": ("maya.observability.tracing",),
     "openpyxl": ("maya.formula.xlsx",),
+    "anthropic": ("maya.assistant.claude",),
     "onelogin": ("maya.security.saml",),
     "xmlsec": ("maya.security.saml",),
     "webauthn": ("maya.security.passkeys",),

@@ -26,7 +26,7 @@ from typing import Any
 import httpx
 
 from maya.core.errors import MayaError, ValidationFailed
-from maya.sdk.resources import (Access, Admin, Auth, Custody, Events, ExecutionWarrants, Features,
+from maya.sdk.resources import (Access, Admin, Assistant, Auth, Custody, Events, ExecutionWarrants, Features,
                                 FeatureSets,
                                 Jobs, Models, Namespaces, Sources, TrainingWarrants,
                                 Workflow, Workspaces)
@@ -54,6 +54,7 @@ class _Namespaces:
         self.sources = Sources(transport)
         self.events = Events(transport)
         self.custody = Custody(transport)
+        self.assistant = Assistant(transport)
 
 
 class Client(_Namespaces):
