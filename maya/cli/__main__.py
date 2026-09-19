@@ -67,8 +67,14 @@ def admin_init_db(args: argparse.Namespace) -> int:
 
 
 def admin_export_estate(args: argparse.Namespace) -> int:
-    platform = _local_platform(args)
-    Path(args.out).write_bytes(platform.ops.export_estate())
+    """Straight from the database, with no platform: this is the way out of a database
+    whose schema the running code no longer accepts, so it must not need that check."""
+    from maya.config import load_settings
+    from maya.core.version import VERSION
+    from maya.persistence import estate
+    from maya.persistence.engine import database_from_settings
+    db = database_from_settings(load_settings(args.config))
+    Path(args.out).write_bytes(estate.export(db, VERSION))
     print(f"Estate written to {args.out}")
     return EXIT_OK
 
