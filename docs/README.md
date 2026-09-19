@@ -1,12 +1,12 @@
 # docs
 
-The specification is the source of truth for MAYA. Version 0.2.0 implements its spine; the README states exactly what is and is not shipped.
+The specification is the source of truth for MAYA. Version 0.3.0 implements its spine; the README states exactly what is shipped, with the test that proves each capability ([*What's shipped*](../README.md#whats-shipped)), what is out of scope by decision, and what is not yet done ([*Status*](../README.md#status--read-this-first)).
 Read in this order.
 
 | Document | What it is |
 |---|---|
 | [`MAYA_Requirements_and_Design.md`](MAYA_Requirements_and_Design.md) | **The specification**, revision 2.3 (the notes for 2.2 and 2.3 are at its top, each marked where it lands). 30 sections: vision, personas, domain model, the four subsystems (features, feature sets, models, warrants), `maya_delta` and physical storage, authz, architecture, the UI, the API and SDK, engineering standards, the design read adversarially (§28), and the ten innovations (§29) |
-| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, the 28-rung CI gate ladder, the six one-way doors, and the decision register |
+| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, each marked with what it delivered by 0.3.0 and what it did not; the 28-rung CI gate ladder and which rungs exist; the six one-way doors; and the decision register |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | **What has been measured**, against §3 and §24.3: the machine, how to reproduce each run, every number from the unedited result files in [`benchmarks/`](benchmarks/), and what has not been measured |
 | [`CHANGELOG.md`](CHANGELOG.md) | **What each release changed**, as narrative; the version itself lives in `maya/core/version.py` |
 
@@ -32,8 +32,9 @@ the sections that carry them:
 
 ## What goes here next
 
-`adr/` for numbered architecture decisions — the fourteen calls in plan §4 become
-ADR-001 onward during M0. `design/` for per-subsystem design notes, `runbooks/` for the
+`adr/` for numbered architecture decisions — the fourteen calls in plan §4 were to
+become ADR-001 onward during M0. They have not been written; until they are, plan §4
+and specification §26.3 are the register. `design/` for per-subsystem design notes, `runbooks/` for the
 operational procedures §20 requires to ship *with* the product, and `research/` when the
 paper is rewritten.
 

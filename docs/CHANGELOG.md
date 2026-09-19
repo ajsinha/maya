@@ -9,7 +9,18 @@ The SDK is unchanged from 0.2.0 (`CLIENT_VERSION` stays 0.2.0).
   with group-mapped roles, SAML signed requests, single logout started by MAYA, and
   logout started by Keycloak. `tests/test_sso_keycloak.py` reruns it when
   `MAYA_TEST_KEYCLOAK_URL` is set. The security guide gives the Keycloak settings that
-  worked. Not supported: back-channel logout, and OIDC sign-out at the IdP.
+  worked. SAML back-channel (SOAP) logout is not supported.
+- **OIDC logout, both ways.** With `auth.sso.post_logout_redirect_uri`
+  (`MAYA_OIDC_POST_LOGOUT_URI`) set and registered with the IdP, signing out of MAYA
+  also sends the browser to the issuer's end-session endpoint and back; empty, sign-out
+  is local, as before. The IdP can end sessions server to server at
+  `POST /api/v1/auth/sso/oidc/backchannel-logout` (SDK `auth.oidc_backchannel_logout`):
+  the logout token is checked like an ID token, and must also be fresh, carry the
+  logout event, a `sub` or `sid` and a single-use `jti`, and no `nonce`. It ends the
+  subject's sessions, only the named one when it carries a `sid`. A token that fails is
+  a `400` and is audited. Against Keycloak 26.4, signing out of MAYA ended the Keycloak
+  session, and ending a session in Keycloak's admin console ended the MAYA session.
+  Keycloak's "sign out all sessions" of a user sent a token for one session only.
 - **Feature-set pin materialization** follows the namespace's `materialize_policy`:
   - `always` writes the output at sealing, as before;
   - `on_demand` writes it at the first read;
@@ -24,9 +35,30 @@ The SDK is unchanged from 0.2.0 (`CLIENT_VERSION` stays 0.2.0).
   second factor is never reused.
 - **SC-3 re-measured with that cache.** Three runs on PostgreSQL with 8 web processes
   gave a p95 of 0.34 s, 0.22 s and 0.43 s against a 0.3 s target. It is not met
-  reliably.
+  reliably, and a dedicated benchmark host to settle it is out of scope by decision.
 - **The specification's `.docx` and `.pdf`** are rebuilt from the Markdown at revision
   2.3 by `tools/docs/build_spec.py`, diagrams included.
+- **The TSA's signature on a custody timestamp is checked inside MAYA.** Set
+  `custody.anchor.tsa_ca_file` (`MAYA_TSA_CA_FILE`) to the authority's CA certificate
+  and `openssl ts -verify` checks it when an anchor is made and at every custody
+  verification; a token that does not chain to that CA, or answers another head, is
+  reported. Set without the file or without `openssl`, MAYA refuses to start. Unset,
+  MAYA checks status and imprint only, as before, and names the command to run by
+  hand. Tested against a real `openssl` TSA, including the wrong CA and the wrong
+  imprint.
+
+**Documentation**
+
+- The README gains *What's shipped*: every delivered capability, where it lives, and
+  the tests that prove it. The implementation plan marks each milestone and success
+  criterion with what 0.3.0 delivered and what it did not.
+- Three things are now stated as **out of scope by the owner's decision**, not as
+  pending work: testing the assistant against the live Claude API (its Claude provider
+  is verified against a stub only), Windows and macOS (only Linux is exercised, so
+  SC-14 is not met), and a dedicated benchmark host (SC-3 stays not met reliably).
+- Specification revision 2.3 gains markers for the principal cache (§12) and the
+  namespace's `materialize_policy` in D-1 (§26.3), which contradicted the code without
+  one.
 
 **Fixed**
 

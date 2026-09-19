@@ -33,6 +33,7 @@ auth:
     client_id: "${MAYA_OIDC_CLIENT_ID:maya}"
     client_secret: "${MAYA_OIDC_CLIENT_SECRET:}"   # from the environment, never this file
     redirect_uri: "${MAYA_OIDC_REDIRECT_URI:http://127.0.0.1:8600/auth/sso/callback}"
+    post_logout_redirect_uri: "${MAYA_OIDC_POST_LOGOUT_URI:}"   # set: sign out at the IdP too
     groups_claim: groups
     jit_provision: "true"
     on_missing_group: deny
@@ -45,6 +46,14 @@ auth:
 the matching MAYA capability at their next session, with no manual step. First-time users are created
 with the mapped roles and no object grants.</p>
 {% endcall %}
+<p><strong>Signing out, over OIDC.</strong> With <code>post_logout_redirect_uri</code> set and registered
+with the IdP, signing out of MAYA also sends you to the IdP's end-session endpoint, which ends your
+session there and returns you; empty, only the MAYA session ends. In the other direction the IdP can end
+a MAYA session server to server by POSTing a signed logout token to
+<code>/api/v1/auth/sso/oidc/backchannel-logout</code>. MAYA checks it as strictly as an ID token, and
+more: fresh, carrying the logout event, a subject or session id, a single-use <code>jti</code> and no
+nonce. Anything else is refused with a <code>400</code>, audited as <code>auth.sso_refused</code>, and ends
+nothing.</p>
 {% call example('config/application.yaml — SAML 2.0 instead', 'yaml') %}
 auth:
   mode: hybrid
@@ -72,11 +81,12 @@ when it names one). With
 <code>sign_requests: true</code> MAYA signs its AuthnRequests and logout messages with its own key
 pair (RSA-SHA256), and its metadata publishes the certificate.</p>
 {% call warn('Tested against one real identity provider') %}
-<p>SAML sign-in, signed requests and single logout have been exercised end to end against Keycloak
-26.4 only, besides a simulated IdP in the test suite; the security guide gives the exact client
-settings. Logout reaches MAYA only through the browser (front channel): an IdP's server-to-server
-logout does not. IdP-initiated sign-in is not supported, by design: it cannot be tied to a request
-MAYA made.</p>
+<p>OIDC and SAML sign-in, sign-out at the IdP, and single logout have been exercised end to end against
+Keycloak 26.4 only, besides a simulated IdP in the test suite; the security guide gives the exact client
+settings. Over SAML, logout reaches MAYA only through the browser (front channel): a SAML IdP's
+server-to-server (SOAP) logout does not. Over OIDC the back channel works, but Keycloak's "sign out all
+sessions" of a user was seen to send a logout token for only one of them. IdP-initiated sign-in is not
+supported, by design: it cannot be tied to a request MAYA made.</p>
 {% endcall %}
 {% endcall %}
 

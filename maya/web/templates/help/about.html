@@ -75,7 +75,7 @@
       ('boxes', 'Features and data', ['CSV, Parquet, JSON, read-only SQL and Delta sources', 'Bitemporal ingest log; restatements never overwrite', 'Resolution rules, calendars and quality contracts', 'Content-addressed pins sharing fragments across months', 'Feature sets downloaded tabular or wide, with cascade pins']),
       ('calculator', 'Models', ['Formula IR from LaTeX, a lifted Python function, or an Excel workbook', 'Declared black boxes and composite models', 'Specification documents bound to the IR hash', 'Sandboxed artifact validation and conformance tests', 'Mathematical diffs between versions']),
       ('shield-check', 'Governance', ['Policies as data; checks that block by name', 'Separation of duties, break-glass, delegation, SLA escalation', 'Grants with row filters, column masks and expiry', 'Workspaces with shadow replay; approval is a merge', 'Licence algebra; hash-chained audit with external anchors']),
-      ('hdd-stack', 'Platform', ['Python SDK — the only client, used by the UI itself', 'REST API with OpenAPI, CLI, API keys, OIDC SSO and TOTP', 'Durable event stream, SSE and signed webhooks', 'Prometheus metrics and W3C tracing end to end', 'SQLite or PostgreSQL from one setting; estate export/import']),
+      ('hdd-stack', 'Platform', ['Python SDK — the only client, used by the UI itself', 'REST API with OpenAPI, CLI, API keys; OIDC and SAML SSO, TOTP and security keys', 'Durable event stream, SSE and signed webhooks', 'Prometheus metrics and W3C tracing end to end', 'SQLite or PostgreSQL from one setting; estate export/import']),
     ] %}
     <div class="col-md-6 col-xl-3"><div class="cap-group"><i class="bi bi-{{ icon }}" aria-hidden="true"></i> {{ group }}</div>
       <ul class="cap-list">{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul></div>
@@ -98,12 +98,13 @@
     <div class="card-body">
       <p class="small-muted">Stated so nobody has to discover them.</p>
       <ul class="cap-list">
-        <li>Not yet built: performance benchmarks. The challenger's Claude provider has been tested against a stub, not the live API.</li>
+        <li>Benchmarks ran on one shared workstation. SC-4, SC-5 and 100k-object search pass; SC-3, 200 users on one node, is not met reliably (one run of three passes).</li>
+        <li>Out of scope by decision: a dedicated benchmark host, so SC-3 stays unsettled; the live Claude API, so the challenger's Claude provider is verified against a stub only; and Windows and macOS, so only Linux is exercised.</li>
+        <li>Single sign-on is proven against one identity provider, Keycloak 26.4. SAML back-channel (SOAP) logout is not supported; OIDC logout works both ways.</li>
         <li>Spreadsheet import lifts a deliberately narrow slice of Excel and refuses the rest by cell.</li>
-        <li>SAML is refused at startup; OIDC SSO and TOTP are shipped. WebAuthn is not built.</li>
-        <li>The strong sandbox tier is Linux-only; macOS runs at moderate, Windows at minimal.</li>
+        <li>The strong sandbox tier is Linux-only; macOS would run at moderate, Windows at minimal.</li>
         <li>Search is MAYA's own inverted index; PostgreSQL <code>tsvector</code> and SQLite FTS5 are not used.</li>
-        <li>Custody anchors are only as external as the storage you point them at.</li>
+        <li>Custody anchors are only as external as the storage you point them at, and a timestamp authority's signature is checked only when its CA certificate is configured.</li>
       </ul>
     </div></section></div>
 </div>

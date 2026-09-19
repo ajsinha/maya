@@ -173,6 +173,7 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 | `sso_config()` | `GET /auth/sso/config` |
 | `sso_start()` | `POST /auth/sso/start` |
 | `sso_callback(code, code_verifier, nonce)` | `POST /auth/sso/callback` |
+| `oidc_backchannel_logout(logout_token)` | `POST /auth/sso/oidc/backchannel-logout` — what the IdP does server to server; here for tests and tooling |
 | `saml_metadata()` | `GET /auth/sso/saml/metadata` |
 | `saml_start(relay_state="")` | `POST /auth/sso/saml/start` |
 | `saml_acs(saml_response)` | `POST /auth/sso/saml/acs` |

@@ -12,7 +12,7 @@ printed by a tool in `tools/bench/`.
 | **SC-5**: p95 resolution, 50-column, 10-year daily feature set | under 15 s warm, under 60 s cold | no rules: warm p95 **0.98 s**, cold **1.0 s**. `forward_fill(limit=3)` on every attribute: warm p95 **6.1 s**, cold **6.3 s** | **pass** |
 | Catalog search p95 over 100k objects | under 500 ms | p95 **0.16 s** (p50 0.08 s), 800,010 index rows | **pass** |
 | **SC-4**: p95 page latency, metadata screens | under 300 ms | worst page p95 **0.15 s** (SQLite, one process); **0.18 s** (PostgreSQL, 8 web processes) | **pass** |
-| **SC-3**: 200 concurrent interactive users on one node without p95 degradation | p95 under 300 ms with 200 users | PostgreSQL, 8 web processes, with the principal cache, three runs: p95 **0.34 s**, **0.22 s**, **0.43 s** (median 0.34 s); 93–97 requests/s, no errors | **not met reliably**: one run of three passes |
+| **SC-3**: 200 concurrent interactive users on one node without p95 degradation | p95 under 300 ms with 200 users | PostgreSQL, 8 web processes, with the principal cache, three runs: p95 **0.34 s**, **0.22 s**, **0.43 s** (median 0.34 s); 93–97 requests/s, no errors | **not met reliably**: one run of three passes; a dedicated host to settle it is out of scope by decision |
 
 ## The machine
 
@@ -130,9 +130,12 @@ six times. Three further full runs on the same configuration:
 | 2 | 96.6 req/s | 0.033 s | **0.215 s** | 0.80 s | 0 | 1.22 |
 | 3 | 93.4 req/s | 0.054 s | 0.425 s | 3.37 s | 0 | 2.16 |
 
-One run of three meets the target; the median p95 (0.34 s) does not. The spread
-between runs on the same configuration is the machine, not the code, and only a
-dedicated host will settle it.
+One run of three meets the target; the median p95 (0.34 s) does not. The
+configuration was identical across the runs, so the spread is most likely the
+machine rather than the code — but that is an inference, and only a quiet, dedicated
+host could turn it into a measurement. A dedicated benchmark host is out of scope by
+the owner's decision, so SC-3 stands as **not met reliably** on this workstation, and
+this report does not claim it.
 
 **Why the first run failed.** The p95 of 0.37 s is above 0.3 s, and it is twice the
 single-user p95, so it counts as degradation. Tail latency varied about twofold from
@@ -154,6 +157,9 @@ and 0.67 s. The remaining per-request costs are known:
   SC-3's load from one process (41 req/s above).
 - **Tail latencies here vary about twofold between runs.** Treat single-run p95
   figures near a target as indicative, not conclusive.
+- **No dedicated benchmark host, by decision.** Every number here comes from the
+  shared workstation above and will not be re-measured elsewhere. A verdict close to
+  its target (SC-3 above all) is therefore a verdict about this machine.
 
 ## Not yet measured
 

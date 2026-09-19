@@ -12,6 +12,16 @@ Version 1.1 · 2026-09-17 · Ashutosh Sinha
 > **Revision 1.2.** `maya_delta` generalised: specification §13.4 now states the dependency-seam
 > policy for the whole stack — twenty seams, three polarities, and the list of what is
 > deliberately *not* proxied. The seam resolver lands in M0 and SC-18 is added.
+>
+> **Status at version 0.3.0 (2026-09-19).** Each milestone below now carries a *Status*
+> note: what it delivered, with the tests, and what it promised and did not deliver.
+> Nothing promised has been deleted — the record of what was promised is part of the
+> evidence. The delivered capabilities, each with the test that proves it, are in the
+> README's [*What's shipped*](../README.md#whats-shipped). Three things this plan asks
+> for are **out of scope by the owner's decision**, not pending: Windows and macOS (only
+> Linux is exercised, so SC-14 and gate 12 are not met), testing the assistant against
+> the live Claude API (its Claude provider is verified against a stub only), and a
+> dedicated benchmark host (SC-3 is not met reliably on the shared workstation).
 
 ---
 
@@ -34,6 +44,8 @@ Section references like §29.1 point into the specification unless they say "pla
 ## 1. Where we are
 
 The repository was emptied on 2026-09-17 and restarted from the specification. It holds the specification, this plan, the brand, and the legal files. There is no package, no test, no server.
+
+*As of version 0.3.0 (2026-09-19):* the spine runs end to end through the UI, API, SDK and CLI, with 1,149 tests on Linux over SQLite and PostgreSQL 16, 17 and 18. M0–M7 are delivered with the exceptions each *Status* note names; M8 is delivered in part. The paragraph above is kept as the starting point it describes.
 
 Everything that follows is greenfield, which is worth saying plainly because it is the one and only time some of these decisions are cheap. Bitemporality, content-addressed storage, the two import boundaries, three-platform CI and the table contract are all *free* today and *a rewrite* in six months. The plan is shaped around that asymmetry more than around anything else.
 
@@ -188,6 +200,16 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 
 ### M0 — Skeleton, gates, three platforms · **S–M**
 
+> **Status at 0.3.0 — delivered, except the three-platform parts and four deliverables.** The
+> package, `run_maya_web.py`, the configuration, the seam resolver (`maya/core/backends.py`,
+> including `tzdb` and `procstat`), the Type B seams, the `maya_delta` seam, the vendored
+> shell, both hooks and the gates in `tools/ci/` all exist; each gate is seen to fail on a
+> planted violation (`tests/test_api_and_gates.py`). **Not delivered:** `public_symbols.py`
+> and `cycle_check.py`; the `docs/adr/` records; and the CI job that runs the suite with
+> every Type A seam pinned to its fallback. **Out of scope by decision:** CI on Windows and
+> macOS, and with it the cross-platform byte comparison of the Type B seams — only Linux
+> is exercised, and there is no hosted CI.
+
 *Nothing about the product. Everything about making the next eight milestones checkable.*
 
 **Deliverables**
@@ -201,7 +223,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 - **The cheap seams, complete in M0** because they are load-bearing everywhere and trivial to build: `core/djson` (orjson → stdlib), `core/tzdb` (system → `tzdata`, a **hard requirement on Windows**), `core/compress` (zstd → zlib), `core/procstat` (psutil → per-platform). Each with its suite run twice, once per backend.
 - **The Type B seams, authoritative from the first line**: `core/canonical` (§7.2 Rule 4) and `core/chunker` (§29.3). These define content hashes, so MAYA's pure implementation *is* the specification and any accelerator must match it byte for byte. Building them first — before anything hashes — is what keeps that inversion true.
 - **`maya_delta/` skeleton**: the public API surface, backend detection, the self-check, the configuration pin, and startup reporting. The implementations come in M2; what lands here is the *seam*, so nothing above it ever imports `deltalake` directly.
-- **Vendored UI shell**: Bootstrap 5, jQuery, Cytoscape.js, CodeMirror 6, KaTeX, pinned under `static/vendor/`. `static/css/tokens.css` with the Harvard Crimson set of §16.6. `_macros/table.html` and `static/js/table.js`.
+- **Vendored UI shell**: Bootstrap 5, jQuery, Cytoscape.js, CodeMirror 6, KaTeX, pinned under `static/vendor/`. *As built: CodeMirror 5, because CodeMirror 6 ships as ES modules that need a bundler (specification revision 2.2, §17).* `static/css/tokens.css` with the Harvard Crimson set of §16.6. `_macros/table.html` and `static/js/table.js`.
 - `.githooks/commit-msg` refusing assistant attribution trailers; `.githooks/pre-commit` running the fast gates.
 - **`tools/ci/`** — `gates.py` as the single entry point (**Python, not shell**, so it runs on all three platforms), plus `file_size.py`, `import_boundaries.py`, `seam_imports.py`, `public_symbols.py`, `cycle_check.py`, `gen_schema.py`, `table_contract.py`, `contrast.py`, `version_single_source.py`, `no_secrets.py`.
 - **CI on three operating systems from the first commit** — Windows, Linux, macOS — with SQLite everywhere and PostgreSQL at least on Linux.
@@ -224,6 +246,15 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ### M1 — Foundation: identity, authorization, persistence, jobs, audit, chrome · **L**
 *Specification Phase 0*
 
+> **Status at 0.3.0 — delivered, except the platform and fallback criteria.** DB and SSO
+> sign-in (OIDC and SAML 2.0, tested against Keycloak 26.4), the generated schema and its
+> drift gate, the estate round trip, the tamper-detecting hash chain, the stored-KDF
+> rehash, the named crypto refusal, the authorization tests and the table contract are
+> proved by the tests the README's *What's shipped* names. The suite runs green on SQLite
+> and PostgreSQL 16, 17 and 18 (SC-10). **Not delivered:** the full M1 suite with every
+> Type A seam pinned to its fallback. **Out of scope by decision:** all three platforms
+> (SC-14).
+
 **Deliverables**
 
 - `maya/persistence/`: engine and dialect selection, `UnitOfWork`, `types.py` (`PortableJSON`, `PortableUUID`, UTC normalisation, `NUMERIC(38,12)` mapped to text-and-convert on SQLite — **never float**), `locks.py` (PG advisory locks, SQLite write mutex).
@@ -233,7 +264,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 - `maya/security/`: `AuthProvider` with DB and OIDC/SAML2 implementations behind one config switch; sessions with `HttpOnly`/`Secure`/`SameSite=Lax` and CSRF; API keys shaped `maya_<env>_<key_id>_<secret>`, stored hashed, shown once.
 - **`core/kdf`** (§13.4): Argon2id preferred, `hashlib.scrypt` then PBKDF2-HMAC-SHA512 as fallbacks, with **the algorithm and its parameters stored alongside every hash** rather than assumed globally — so verification survives a change and a login transparently rehashes to the strongest available. A password store that assumes one KDF can never change it.
 - **`core/crypto`** (Type C): one API over `cryptography`, PKCS#11/HSM or cloud KMS, and a **refusal** naming the wanted backend when none is present. There is no pure-Python signer and there will not be one.
-- **`core/search`**: PostgreSQL `tsvector` / SQLite FTS5, detected at startup — **FTS5 is not compiled into every Python's bundled SQLite** — with MAYA's own inverted index as the fallback.
+- **`core/search`**: PostgreSQL `tsvector` / SQLite FTS5, detected at startup — **FTS5 is not compiled into every Python's bundled SQLite** — with MAYA's own inverted index as the fallback. *As built: MAYA's own inverted index is the only backend, identical on both databases — ranked, prefix-matched, every term required, filtered by read permission and kept current in the writing transaction (`maya/persistence/search_index.py`, `tests/test_search.py`). Neither `tsvector` nor FTS5 is used; 100,000 objects search at p95 0.16 s (`docs/BENCHMARKS.md`). Specification §13.4.2, revision 2.2.*
 - **SAML as a declared capability**: a deployment configured for SAML on a host without `xmlsec` fails at *startup* with the package named, not at the first person's login.
 - `can(principal, action, object) -> Decision` — the **single** authorization function with the §11.2 resolution order and the role ceiling. Nothing in the UI, API, SDK or CLI bypasses it.
 - Append-only, hash-chained audit (§19), each row carrying the previous row's hash.
@@ -262,6 +293,13 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ### M2 — `maya_delta` · **L**
 *New milestone. Specification §7.4*
 
+> **Status at 0.3.0 — delivered on Linux.** The conformance suite passes on both backends,
+> the cross-backend round trip holds both ways, and unsupported protocol features are
+> refused by name (`tests/test_maya_delta.py`, SC-16); compaction and vacuum followed
+> (`tests/test_lake_maintenance.py`). **Not delivered:** the lint check forbidding literal
+> protocol versions. The concurrent-writer race has run on ext4 only; NTFS and APFS are
+> out of scope with Windows and macOS.
+
 *Pins are written on top of this, and the physical layout is a one-way door, so it is solid before M3 rather than alongside it.*
 
 **Deliverables**
@@ -284,6 +322,14 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 
 ### M3 — Features: bitemporal and content-addressed · **XL**
 *Specification Phase 1 · contains three of the six one-way doors*
+
+> **Status at 0.3.0 — delivered.** SC-1, SC-11 and SC-12 each have a named test
+> (`tests/test_features.py`); every logical type round-trips in every format
+> (`tests/test_resolution_algebra.py`); a deliberately leaky set is refused
+> (`tests/test_warrants.py`); the scratch path is one command (`tests/test_cli.py`). **Not
+> proved as written:** `maya feature quick` is tested, not timed; an interrupted pin is
+> tested as ending `failed` rather than stuck (`test_an_unexpected_error_leaves_the_pin_failed_not_stuck`),
+> not as reclaimed by a reaper mid-write.
 
 **Deliverables**
 
@@ -316,6 +362,14 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ### M4 — Feature sets · **L**
 *Specification Phase 2*
 
+> **Status at 0.3.0 — delivered, with two criteria built but not proved by a test.** The
+> tensor round trip, the cascade rollback and the precedence layers are tested; since
+> 0.3.0 the namespace's `materialize_policy` (`always`, `on_demand`, `never`) decides
+> where a pin's output is kept, D-1's default unchanged (`tests/test_materialization.py`).
+> The cascade test injects its quality failure into a two-member set, not at member 39
+> of forty. Equivalence detection at creation and withheld attributes are in the code
+> (`maya/services/featuresets.py`) with no test that proves either.
+
 **Deliverables**
 
 - Attribute mapping; the four alignment modes; broadcast joins stated in the plan; rejection — never a silent row pick — where a member index has columns the set does not.
@@ -337,6 +391,11 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 
 ### M5 — Workflow, workspaces, and the policy UI · **L**
 *Specification Phase 3 · contains the fourth one-way door*
+
+> **Status at 0.3.0 — delivered.** Every non-compliant route refused, SoD by preset,
+> governed policy activation, byte-identical YAML, loud break-glass
+> (`tests/test_workflow_and_estate.py`, `tests/test_workflow_matrix.py`); a change
+> rehearsed in a workspace and approved as its merge (`tests/test_workspaces.py`).
 
 **Deliverables**
 
@@ -365,6 +424,15 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ### M6 — Models · **L**
 *Specification Phase 4*
 
+> **Status at 0.3.0 — delivered on Linux, SC-9 not measured.** The formula IR, the
+> validation ladder one rung per test, true Tectonic builds (a real PDF without the draft
+> watermark — its extracted text is not asserted), and composite maturity capping are
+> tested (`tests/test_formula.py`,
+> `tests/test_sandbox.py`, `tests/test_sandbox_linux.py`, `tests/test_typeset.py`).
+> **Not delivered:** SC-9, timed with a real person. PDFs on three platforms, and the
+> escape tests on the `moderate` and `minimal` tiers, are out of scope with Windows and
+> macOS.
+
 **Deliverables**
 
 - The **formula IR** (§8.1), and the fact that **nobody authors it by hand** (§28.6): parsed from LaTeX, lifted from Python by AST analysis, or drafted and corrected. It earns its place by type-checking against the bound feature set, rendering the document, and producing semantic diffs.
@@ -389,6 +457,13 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ### M7 — Warrants and the evidence bundle · **L**
 *Specification Phase 5*
 
+> **Status at 0.3.0 — delivered, SC-2 not rehearsed.** The checksum cycle and
+> `unverified_data`, covenant suspension failing closed, blind scoring, and a bundle that
+> verifies offline and fails after one byte changes are tested (`tests/test_warrants.py`,
+> `tests/test_sdk_modes.py`, `tests/test_cli.py`). **Not delivered:** SC-2 against a
+> deliberately aged warrant. The covenant test runs in process, not against a running
+> server; the offline verification has run on Linux only.
+
 **Deliverables**
 
 - Training warrants: contract validation, split specification, seed, environment declaration, expiry, and the download-checksum-then-verify-on-upload cycle that **turns a warrant from paperwork into a control** (§9.1).
@@ -410,6 +485,15 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ### M8 — Hardening · **L**
 *Specification Phase 6*
 
+> **Status at 0.3.0 — delivered in part.** Built: SDK record/replay and
+> `maya.offline(bundle)`, server-side paging, several web processes on one node, the CLI,
+> and the benchmarks in `docs/BENCHMARKS.md` — SC-4, SC-5 and 100k-object search pass,
+> SC-3 is not met reliably, and most of §24.3 is not measured. **Not delivered:**
+> `maya.testing` fakes and the UI suite run against them; the deadlock probes; runbooks;
+> the restore drill; the external security review; the synthetic market dataset of §23.
+> The exit criterion *all eighteen success criteria met* is therefore not met (plan §8).
+> A dedicated benchmark host is out of scope by decision.
+
 **Deliverables**
 
 - Performance and soak against the §24.3 targets; scaling levers pulled in the stated order and the result recorded.
@@ -430,6 +514,15 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 ---
 
 ### Beyond M8 — the additive innovations
+
+> **Status at 0.3.0 — four of five delivered, ahead of M8.** Shadow replay
+> (`tests/test_workspaces.py`), licence algebra and external anchoring, with the TSA's
+> signature checked when its CA is configured (`tests/test_custody.py`), the recorded
+> challenger (`tests/test_assistant.py`, its Claude provider against a stub only, by
+> decision), and spreadsheet import (`tests/test_spreadsheet.py`,
+> `tests/test_spreadsheet_libreoffice.py`). Vendor models exist as a model kind
+> (`maya/services/models.py`) with no test of their own. The plan put each behind a
+> feature flag; only the challenger has one (`assistant.enabled`, on by default).
 
 Each behind a feature flag, in roughly this order (§29.11): shadow replay (§29.2) → licence algebra and external audit anchoring (§29.6) → the recorded challenger (§29.8) → spreadsheet import (§29.9) → vendor model registration (§29.10). Shadow replay is first because it changes what a review *is*: *"this forward-fill limit change moves 3 of 11 dependent models; the PD model shifts by more than 2 bp on 0.4% of rows"* instead of a list of names.
 
@@ -472,6 +565,14 @@ One entry point — `python tools/ci/gates.py` — run locally and in CI, on all
 | 25 | Dependency scan, SAST, sandbox escape tests per tier | M6 | no |
 | 26 | Performance benchmarks — no regression over 10% without a note | M8 | note required |
 
+*At 0.3.0:* `tools/ci/gates.py` runs rungs 3, 4, 5, 6, 8, 9, 10, 11, 13 and 15 as scripts,
+and with `--tests` the suite under a 90% coverage floor. Rungs 14, 16, 17, 18, 20 and 22 are
+tests in that suite, and 17 needs `MAYA_TEST_PG_URL` for the PostgreSQL half; rung 24 is
+`tests/test_browser.py` in headless Chrome, without screenshots. **Not built:** 1, 2, 7,
+11b, 19, 21, 23 as a gate, 25 and 26 — `ruff` and `mypy` are not part of the ladder,
+and benchmarks are run on demand (`tools/bench/`), not gated. Rungs 11c and 12
+are out of scope by decision with Windows and macOS.
+
 ### 7.3 Two things this ladder must not be allowed to do
 
 **A green suite at the wrong total.** A module that cannot import its dependency *skips*, and a module-level skip removes its whole file from the collected count. Install `requirements.txt` without `requirements-dev.txt` and the suite goes green at a smaller number while real coverage has silently gone. From M1 the advertised count is stamped from one source (`docs/test_counts.json`) and the pre-commit hook re-collects and fails if the total moved. **Check the total, not merely the absence of failures.** This matters more here than in DishtaYantra, because `maya_delta`'s two backends and three platforms multiply the ways a suite can quietly shrink — the stamp is per platform and per backend, not one number.
@@ -484,26 +585,26 @@ One entry point — `python tools/ci/gates.py` — run locally and in CI, on all
 
 Specification §2 states eighteen. Each is met by a named test at a named milestone. A criterion with no test is a wish.
 
-| # | Criterion | Met at | Proved by |
-|---|---|---|---|
-| SC-1 | Byte-identical re-resolution of any pinned feature set | M3 | Gate 22, with the negative case in the same test |
-| SC-2 | Two-year-old training run reproduced in under 10 min | M7 | Bundle verify against an aged fixture |
-| SC-3 | 200 concurrent interactive users per API pod | M8 | Soak benchmark |
-| SC-4 | Metadata p95 under 300 ms | M8 | Benchmark; regression-gated from M1 |
-| SC-5 | 50-col × 10-year resolution under 15 s warm, 60 s cold | M8 | Benchmark on the synthetic dataset |
-| SC-6 | 100% of non-UI files under 1,500 lines | M0 | Gate 3, continuously |
-| SC-7 | Zero unauthorized accesses succeed | M1 | Gate 18, grown by every later milestone |
-| SC-8 | 100% of state changes audited immutably | M1 | Hash-chain suite, including the tamper case |
-| SC-9 | New designer publishes a first model in under 60 min | M6 | Timed with a real person |
-| SC-10 | Full suite green on SQLite and PostgreSQL | M1 | Gate 17, continuously |
-| SC-11 | Point-in-time reconstruction after a restatement | M3 | Bitemporal suite |
-| SC-12 | Monthly pin of unchanged history under 5% of full size | M3 | Fragment-store measurement |
-| SC-13 | 100% UI ↔ SDK parity, both directions | M1 | Gate 15, continuously |
-| SC-14 | Full suite green on Windows, Linux and macOS | M0 | Gate 12, continuously |
-| SC-15 | Zero drift between the `.sql` files and the ORM metadata | M1 | Gate 13, continuously |
-| SC-16 | `maya_delta` backend equivalence and cross-backend reads | M2 | Gate 20 |
-| SC-17 | 100% of tables paginated, searchable, sortable | M0/M1 | Gate 10, continuously |
-| SC-18 | Seam equivalence — Type A both ways, Type B byte-identical | M0 | Gates 11b and 11c, continuously |
+| # | Criterion | Met at | Proved by | At 0.3.0 |
+|---|---|---|---|---|
+| SC-1 | Byte-identical re-resolution of any pinned feature set | M3 | Gate 22, with the negative case in the same test | Met: `test_sc1_repin_is_byte_identical_and_changed_data_is_not` |
+| SC-2 | Two-year-old training run reproduced in under 10 min | M7 | Bundle verify against an aged fixture | Not rehearsed against an aged warrant |
+| SC-3 | 200 concurrent interactive users per API pod | M8 | Soak benchmark | **Not met reliably**: p95 0.34, 0.22, 0.43 s on a shared workstation; a dedicated host is out of scope by decision |
+| SC-4 | Metadata p95 under 300 ms | M8 | Benchmark; regression-gated from M1 | Met on the workstation: worst page p95 0.18 s |
+| SC-5 | 50-col × 10-year resolution under 15 s warm, 60 s cold | M8 | Benchmark on the synthetic dataset | Met on SQLite: warm p95 6.1 s with forward fill |
+| SC-6 | 100% of non-UI files under 1,500 lines | M0 | Gate 3, continuously | Met: the file-size gate |
+| SC-7 | Zero unauthorized accesses succeed | M1 | Gate 18, grown by every later milestone | Tested by route (`tests/test_api_contract.py`) and by transition (`tests/test_workflow_matrix.py`), not as the full role × action × state matrix |
+| SC-8 | 100% of state changes audited immutably | M1 | Hash-chain suite, including the tamper case | Met: the chain and the tamper case (`tests/test_workflow_and_estate.py`), anchors (`tests/test_custody.py`) |
+| SC-9 | New designer publishes a first model in under 60 min | M6 | Timed with a real person | Not measured |
+| SC-10 | Full suite green on SQLite and PostgreSQL | M1 | Gate 17, continuously | Met: SQLite and PostgreSQL 16, 17, 18 |
+| SC-11 | Point-in-time reconstruction after a restatement | M3 | Bitemporal suite | Met: `test_sc11_point_in_time_after_restatement` |
+| SC-12 | Monthly pin of unchanged history under 5% of full size | M3 | Fragment-store measurement | Met: `test_sc12_unchanged_month_costs_under_five_percent` |
+| SC-13 | 100% UI ↔ SDK parity, both directions | M1 | Gate 15, continuously | Met for SDK ↔ API: 178 endpoints |
+| SC-14 | Full suite green on Windows, Linux and macOS | M0 | Gate 12, continuously | **Out of scope by decision**: only Linux is exercised |
+| SC-15 | Zero drift between the `.sql` files and the ORM metadata | M1 | Gate 13, continuously | Met: the schema-drift gate |
+| SC-16 | `maya_delta` backend equivalence and cross-backend reads | M2 | Gate 20 | Met on Linux: `tests/test_maya_delta.py` |
+| SC-17 | 100% of tables paginated, searchable, sortable | M0/M1 | Gate 10, continuously | Met: the table-contract gate and `tests/test_browser.py` |
+| SC-18 | Seam equivalence — Type A both ways, Type B byte-identical | M0 | Gates 11b and 11c, continuously | In part: the seams exist; the fallback matrix is not built, and the cross-platform byte comparison is out of scope with Windows and macOS |
 
 ---
 
@@ -535,7 +636,7 @@ Specification §2 states eighteen. Each is met by a named test at a named milest
 - **Branch.** All work on `develop`. Promote to `main` only when the suite is green on all three platforms and both backends, the counts are stamped, built artifacts are newer than their sources, and the tree is clean.
 - **Commits.** One coherent change per commit, message stating what changed and why. **No assistant attribution trailers** — enforced by the `commit-msg` hook from M0.
 - **ADRs.** Every architectural decision numbered in `docs/adr/` and referenced from the code it governs. The fourteen calls in §4 become ADR-004 onward in M0.
-- **This document.** A living plan. When a milestone lands, its exit criteria move into the README's *What's shipped* section **with the test that proves each one**, and the milestone section here is marked done rather than deleted — the record of what was promised is part of the evidence.
+- **This document.** A living plan. When a milestone lands, its exit criteria move into the README's *What's shipped* section **with the test that proves each one**, and the milestone section here is marked done rather than deleted — the record of what was promised is part of the evidence. At 0.3.0 that section is [README → What's shipped](../README.md#whats-shipped), and each milestone above carries its *Status* note.
 
 ---
 

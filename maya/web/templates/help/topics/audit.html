@@ -71,6 +71,7 @@ custody:
     methods: "signature,file,event"
     file: "${MAYA_ANCHOR_FILE:}"        # empty: <storage.root>/anchors.jsonl
     tsa_url: "${MAYA_TSA_URL:}"         # required if methods names rfc3161
+    tsa_ca_file: "${MAYA_TSA_CA_FILE:}" # the TSA's CA (PEM): its signature is checked
     interval_seconds: 3600
 {% endcall %}
 {% call example('Anchor now, and list anchors', 'python') %}
@@ -83,7 +84,8 @@ print(my.custody.anchors()["anchors"][:3])
 {% call step(4, 'Verify the anchors') %}
 <p>Verification checks each anchor against the live chain: is the hash it pinned still the hash at that
 sequence number, does its signature verify, is it still in the anchor file, and — for a timestamp token —
-does the token carry this head's imprint.</p>
+does the token carry this head's imprint and, with <code>custody.anchor.tsa_ca_file</code> set, does the
+authority's signature chain to that CA.</p>
 {% call example('Verify chain and anchors', 'bash') %}
 curl https://maya.example.com/api/v1/custody/verify -H "Authorization: Bearer $MAYA_API_KEY"
 {% endcall %}
@@ -102,8 +104,10 @@ curl https://maya.example.com/api/v1/custody/verify -H "Authorization: Bearer $M
 {% call warn('An anchor is only as external as you make it') %}
 <p>On the same disk as the database, the anchor file only raises the bar. Put it on write-once or
 off-host storage, subscribe an independent system to <code>audit.anchored</code> webhooks, or enable
-RFC 3161. MAYA checks a timestamp token's status and imprint; checking the authority's own signature
-needs its certificate chain — use <code>openssl ts -verify</code>.</p>
+RFC 3161. MAYA checks a timestamp token's status and imprint; it checks the authority's own signature
+only when <code>custody.anchor.tsa_ca_file</code> names the authority's CA certificate (through
+<code>openssl ts -verify</code>, which must be installed — MAYA refuses to start otherwise). Without it,
+run that command yourself: an unchecked signature is the authority's claim, not evidence.</p>
 {% endcall %}
 
 <h2>Related</h2>

@@ -67,6 +67,22 @@ MAYA uses the authorization code flow with PKCE. Before it believes an ID token:
 - `exp` is in the future and `iat` is not, with 120 seconds of clock skew allowed;
 - `nonce` is the one MAYA issued for this sign-in.
 
+### Signing out, both directions
+
+| Who starts | What happens |
+|---|---|
+| You, signing out of MAYA | The MAYA session ends at once. If `auth.sso.post_logout_redirect_uri` is set — and registered with the IdP as a valid post-logout redirect — and the issuer's discovery document publishes an `end_session_endpoint`, the browser then goes there with `client_id` and that address (OpenID Connect RP-Initiated Logout 1.0); the IdP ends its own session and sends the browser back. Empty, sign-out is local: the IdP's session survives, and the next SSO sign-in is silent while it lasts. |
+| The IdP, server to server | It POSTs a logout token, form field `logout_token`, to `POST /api/v1/auth/sso/oidc/backchannel-logout` (OpenID Connect Back-Channel Logout 1.0). MAYA ends every session of the token's `sub` — only the session named, when the token carries a `sid` — and audits `auth.sso_logout`. |
+
+The back-channel endpoint is public, because the IdP holds no MAYA credential: the token's signature is the only thing that authenticates the call, so it is checked as strictly as an ID token's and then some. The signature must be by a key the issuer publishes, with an asymmetric algorithm; `iss` must be `auth.sso.issuer` and `aud` must contain `auth.sso.client_id`; `iat` must be no more than 300 seconds old, plus the clock skew; the token must carry the back-channel-logout event, a `sub` or a `sid`, and a `jti`; it must **not** carry a `nonce`, which would make it an ID token presented as a logout token; and its `jti` is single use. A token that fails any of these is answered `400` with `Cache-Control: no-store`, is audited as `auth.sso_refused`, and ends nothing. The detail names the check, for example:
+
+```json
+{"type": "not_authenticated", "title": "NotAuthenticated", "status": 400,
+ "detail": "The logout token was already used (replay)", "context": {}}
+```
+
+Back-channel logout needs the IdP to reach MAYA's API server to server, which a MAYA on a private network may not allow.
+
 ## Single sign-on with SAML 2.0
 
 !!! warning "Tested against one real identity provider"
@@ -90,9 +106,9 @@ Set `auth.sso.saml.idp_slo_url` (the IdP's logout endpoint) and MAYA's own singl
 | You, signing out of MAYA | The MAYA session ends at once. The browser then goes to the IdP with a LogoutRequest naming the NameID and SessionIndex of your sign-in. The IdP's LogoutResponse must answer that request; an answer to no request, or a second answer, is refused. |
 | The IdP | Its LogoutRequest must be **signed** with the IdP's certificate, come from the configured issuer and be addressed to MAYA's SLS. MAYA ends every session of that NameID (only the named SessionIndex, when there is one), audits `auth.sso_logout`, and redirects back with a LogoutResponse. An unsigned request is refused: it would let anyone end anyone's sessions. |
 
-Redirect signatures are checked over the query string exactly as received, so an IdP's own URL encoding cannot break them. A session opened by password, or by OIDC, signs out locally only.
+Redirect signatures are checked over the query string exactly as received, so an IdP's own URL encoding cannot break them. A session opened by password signs out locally only; one opened by OIDC follows the OIDC rules above.
 
-Every refusal is audited as `auth.sso_refused`. Not supported: IdP-initiated sign-in, and back-channel (server-to-server SOAP or POST) logout — MAYA's SLS takes front-channel redirects only, so an IdP that signs people out without their browser does not reach MAYA, and the MAYA session lasts until its own timeout or sign-out. An attribute sent as several same-named elements (Keycloak sends one `Role` element per role, for example) has its values merged. SAML needs the `python3-saml` and `xmlsec` packages; with `protocol: saml2` and either missing, MAYA refuses to start.
+Every refusal is audited as `auth.sso_refused`. Not supported for SAML: IdP-initiated sign-in, and back-channel (server-to-server SOAP) logout — MAYA's SLS takes front-channel redirects only, so a SAML IdP that signs people out without their browser does not reach MAYA, and the MAYA session lasts until its own timeout or sign-out. (OIDC has a back channel; see [Signing out, both directions](#signing-out-both-directions).) An attribute sent as several same-named elements (Keycloak sends one `Role` element per role, for example) has its values merged. SAML needs the `python3-saml` and `xmlsec` packages; with `protocol: saml2` and either missing, MAYA refuses to start.
 
 ### Groups, roles and provisioning
 
@@ -106,16 +122,17 @@ For both protocols:
 
 ## Tested against Keycloak 26.4
 
-MAYA's SSO was driven end to end in headless Chrome against Keycloak 26.4.7 in dev mode, with MAYA started by `run_maya_web.py` in `hybrid` mode on another host name, so the SAML POST and the logout redirects were cross-site as in production. `tests/test_sso_keycloak.py` repeats it against any Keycloak you point `MAYA_TEST_KEYCLOAK_URL` at; it builds the realm below through the admin REST API. This is one IdP at one version. Other IdPs, and other Keycloak versions, have not been tested.
+MAYA's SSO was driven end to end in headless Chrome against Keycloak 26.4.7 in dev mode, with MAYA started by `run_maya_web.py` in `hybrid` mode on another host name, so the SAML POST and the logout redirects were cross-site as in production. `tests/test_sso_keycloak.py` repeats it against any Keycloak you point `MAYA_TEST_KEYCLOAK_URL` at; it builds the realm below through the admin REST API. Keycloak must be able to reach MAYA server to server for the back-channel test (the test's docstring runs it with `--network host`); without that, those two tests fail and the rest pass. This is one IdP at one version. Other IdPs, and other Keycloak versions, have not been tested.
 
 | Flow | Result with Keycloak 26.4.7 |
 |---|---|
 | OIDC sign-in (code flow, PKCE S256, confidential client) | Works; the `groups` claim maps to roles; a person in no mapped group is refused. |
-| OIDC sign-out | Local only: the MAYA session ends, Keycloak's does not, and the next SSO sign-in is silent while it lasts. MAYA does no OIDC logout of any kind. |
+| OIDC sign-out from MAYA (RP-initiated) | Works with `auth.sso.post_logout_redirect_uri` set: the browser goes to Keycloak's end-session endpoint, Keycloak asks the person to confirm (MAYA sends no ID token hint), ends its session and returns to MAYA; the next sign-in asks for the password. With it empty, sign-out is local only. |
+| Keycloak administrator ends one OIDC session (back channel) | Works: Keycloak POSTs a logout token to MAYA and the MAYA session ends. Keycloak's "sign out all sessions" of a user was seen to send a token for one of that user's sessions only, so do not rely on it to end them all; end each session. |
 | SAML sign-in, signed AuthnRequest | Works; groups arrive as one `groups` element per group or as one multi-valued element, both merged. |
 | SAML sign-out from MAYA (single logout) | Works: signed LogoutRequest to Keycloak, its signed LogoutResponse back to the SLS, Keycloak's session ended (the next sign-in asks for the password). |
 | Keycloak ends the session in the browser (its end-session page, or another application's logout) | Works: Keycloak redirects the browser to MAYA's SLS with a signed LogoutRequest, MAYA ends the session and answers. |
-| Keycloak administrator "Sign out" of a user | Does **not** reach MAYA: that is Keycloak's back channel, which MAYA does not offer (Keycloak logs "Some clients have not been logged out"). |
+| Keycloak administrator "Sign out" of a SAML user | Does **not** reach MAYA: that is Keycloak's SAML back channel (SOAP), which MAYA does not offer (Keycloak logs "Some clients have not been logged out"). |
 
 **OIDC client** (Clients → Create, OpenID Connect):
 
@@ -125,6 +142,8 @@ MAYA's SSO was driven end to end in headless Chrome against Keycloak 26.4.7 in d
 - A **group membership** mapper, token claim name `groups`, **Full group path off** (with it on the claim carries `/maya-admins`, which `group_role_map` must then name), added to the ID token.
 - MAYA asks for the scopes `openid profile email groups`, and Keycloak refuses a scope it does not know (`invalid_scope`). Either create a client scope named `groups` holding the mapper and add it to the client (optional or default), or put the mapper on the client and set `auth.sso.scopes: "openid profile email"`. Both were tested.
 - `auth.sso.issuer` is the realm URL, `https://keycloak.example.com/realms/<realm>`, exactly as the discovery document's `issuer` says (the host name the browser uses).
+- For sign-out at Keycloak: **Valid post logout redirect URIs** (`post.logout.redirect.uris`) holds exactly `auth.sso.post_logout_redirect_uri`, e.g. `https://maya.example.com/login?signed_out=1`.
+- For back-channel logout: **Backchannel logout URL** (`backchannel.logout.url`) is `https://maya.example.com/api/v1/auth/sso/oidc/backchannel-logout`, and **Backchannel logout session required** (`backchannel.logout.session.required`) is on, so each token names the session (`sid`) and ends only that one.
 
 **SAML client** (Clients → Create, SAML):
 
@@ -233,7 +252,7 @@ MAYA signs execution-warrant tokens, leakage certificates, reproducibility bundl
 - **Refusals are kept.** Denied approvals, pins, seals, grants and revocations (`authz.denied`), failed API keys, failed and refused sign-ins, SSO refusals and licence refusals on export are written as durable entries that survive the request's rollback.
 - **Hash-chained.** Each entry's hash covers its content and the previous hash; altering or deleting any entry breaks every link after it. `GET /api/v1/audit/verify` walks the chain.
 - **Append-only in the database.** A trigger refuses any update or delete of `audit_events`, on SQLite and PostgreSQL.
-- **Anchored outside.** A consistent rewrite — history changed and every later hash recomputed — still verifies as a chain. Anchors close that gap: every `custody.anchor.interval_seconds` (hourly) the chain head is signed, appended to `custody.anchor.file`, announced as an `audit.anchored` event, and optionally timestamped by an RFC 3161 authority. `GET /api/v1/custody/verify` checks every anchor against the live chain and reports `TAMPERING` when they disagree. MAYA checks a timestamp token's status and imprint; checking the authority's own signature is left to `openssl ts -verify`.
+- **Anchored outside.** A consistent rewrite — history changed and every later hash recomputed — still verifies as a chain. Anchors close that gap: every `custody.anchor.interval_seconds` (hourly) the chain head is signed, appended to `custody.anchor.file`, announced as an `audit.anchored` event, and optionally timestamped by an RFC 3161 authority. `GET /api/v1/custody/verify` checks every anchor against the live chain and reports `TAMPERING` when they disagree. MAYA checks a timestamp token's status and imprint. With `custody.anchor.tsa_ca_file` set to the authority's CA certificate, it also checks the authority's own signature, through `openssl ts -verify`, when it anchors and at every verification; configured without the file or without `openssl`, MAYA refuses to start. Without it, the signature is left to you, and the verification report names the command.
 
 !!! tip "Make the anchors independent"
     On the same disk as the database, the anchor file only raises the bar. Put it on write-once or off-host storage, subscribe a system your MAYA administrators do not control to `audit.anchored` webhooks, or enable `rfc3161`.
@@ -243,7 +262,7 @@ MAYA signs execution-warrant tokens, leakage certificates, reproducibility bundl
 | Connection | Guard |
 |---|---|
 | Webhooks | HTTPS only. The host may not resolve to a private, loopback, link-local or reserved address, checked at creation and again at every delivery; redirects are not followed. Only dev with `observability.webhooks.allow_private` relaxes this. Each delivery is HMAC-SHA256-signed over `<timestamp>.<body>`. |
-| RFC 3161 timestamps | Off by default; enabling `rfc3161` sends the audit head hash to `custody.anchor.tsa_url`. |
+| RFC 3161 timestamps | Off by default; enabling `rfc3161` sends the audit head hash to `custody.anchor.tsa_url`. Set `custody.anchor.tsa_ca_file` too, or the TSA's signature is not checked. |
 | The assistant | `rules` (default) makes no network call. `claude` sends definitions, specifications and formulas — never data rows — to Anthropic's API. |
 | `/metrics` | Open by default; name a token variable in `observability.metrics.token_env` to require a bearer token. A named but unset variable refuses every scrape rather than opening the endpoint. |
 

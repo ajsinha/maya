@@ -81,6 +81,11 @@ rows = my.featuresets.preview("maya://featureset/quant/panel@v1")
 <p>A feature set refuses to pin while any member is referenced by version rather than by pin: the data
 under it could still move. A <strong>cascade pin</strong> pins those members under the same series and
 date, then the set, in one job; if anything fails, everything it created is rolled back.</p>
+<p>Where the set's resolved output is kept is the namespace's <code>materialize_policy</code>:
+<code>always</code> (the default) writes it to the lake at sealing, <code>on_demand</code> at the first
+read, and <code>never</code> not at all — every read replays it from the member pins. Every policy seals the
+same content hash, and a replay that does not reproduce it is not served: the read fails with
+<code>integrity_error</code>. The policy trades disk for replay time, never content.</p>
 {% call example('Command line', 'bash') %}
 python -m maya.cli featureset pin quant/panel --version 1 --name q1 --as-of 2026-03-31 --cascade
 {% endcall %}
