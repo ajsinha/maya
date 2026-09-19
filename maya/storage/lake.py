@@ -99,8 +99,10 @@ class LakeStore:
     # -- content-addressed pins --------------------------------------------
     def plan_fragments(self, table: pa.Table) -> tuple[str, list[tuple[str, int, int]]]:
         """Schema digest and ``(hash, start, end)`` runs for an index-sorted table."""
-        cols = canonical.table_columns(table)
-        digests = canonical.row_digests(cols)
+        from maya.core import canonical_fast       # the same digests, a column at a time
+        digests = canonical_fast.row_digests(table)
+        if digests is None:                          # a type it does not cover
+            digests = canonical.row_digests(canonical.table_columns(table))
         runs = boundaries(digests, self.chunk)
         schema_hex = canonical.schema_digest(
             (f.name, str(f.type)) for f in table.schema)
@@ -149,12 +151,24 @@ class LakeStore:
         if not fragments:
             raise ValueError("empty fragment manifest")
         data = self.delta.read(path, partitions={FRAGMENT_COL: sorted(set(fragments))})
+        # one sort by (fragment, row), then each fragment is a contiguous slice
+        data = data.take(pa.compute.sort_indices(
+            data, sort_keys=[(FRAGMENT_COL, "ascending"), (ROW_COL, "ascending")]))
+        keys = data.column(FRAGMENT_COL).to_numpy(zero_copy_only=False)
+        where: dict[str, tuple[int, int]] = {}
+        if len(keys):
+            import numpy as np
+            edges = np.flatnonzero(keys[1:] != keys[:-1]) + 1
+            starts = np.concatenate(([0], edges))
+            ends = np.concatenate((edges, [len(keys)]))
+            where = {str(keys[a]): (int(a), int(b)) for a, b in zip(starts, ends)}
+        body = data.drop_columns([FRAGMENT_COL, ROW_COL])
         pieces = []
         for digest in fragments:
-            mask = pa.compute.equal(data.column(FRAGMENT_COL), digest)
-            part = data.filter(mask)
-            part = part.take(pa.compute.sort_indices(part.column(ROW_COL)))
-            pieces.append(part.drop_columns([FRAGMENT_COL, ROW_COL]))
+            if digest not in where:
+                raise ValueError(f"fragment {digest[:12]} is missing from the lake")
+            a, b = where[digest]
+            pieces.append(body.slice(a, b - a))
         return pa.concat_tables(pieces)
 
     def verify_pin(self, kind: str, namespace: str, name: str, fragments: list[str],
