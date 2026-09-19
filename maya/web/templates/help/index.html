@@ -63,31 +63,3 @@
   </div></div>
 </section>
 {% endblock %}
-{% block scripts %}
-<script>
-(function () {
-  var box = document.getElementById('help-q');
-  var items = [].slice.call(document.querySelectorAll('.help-item'));
-  var cats = [].slice.call(document.querySelectorAll('.help-cat'));
-  var none = document.getElementById('help-none');
-  if (!box) return;
-  box.addEventListener('input', function () {
-    var q = box.value.trim().toLowerCase(), any = false;
-    items.forEach(function (it) {
-      var hit = !q || (it.getAttribute('data-search') || '').indexOf(q) !== -1;
-      it.hidden = !hit; if (hit) any = true;
-    });
-    cats.forEach(function (cat) {
-      var visible = [].some.call(cat.querySelectorAll('.help-item'), function (i) { return !i.hidden; });
-      cat.hidden = !visible; if (q) cat.open = true;
-    });
-    none.hidden = any;
-  });
-  document.querySelectorAll('.cat-chips .chip').forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      var el = document.querySelector(chip.getAttribute('href')); if (el) el.open = true;
-    });
-  });
-})();
-</script>
-{% endblock %}

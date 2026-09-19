@@ -247,7 +247,7 @@
 
   MayaTable.prototype.highlight = function (cell) {
     cell.innerHTML = cell.getAttribute('data-orig');
-    if (!this.query || cell.querySelector('a,button,form,input,select')) { return; }
+    if (!this.query || cell.querySelector('button,form,input,select,textarea')) { return; }
     var re = new RegExp('(' + escapeRe(this.query) + ')', 'ig');
     var walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, null);
     var nodes = [];
