@@ -27,7 +27,8 @@ PUBLIC = {("POST", "/auth/login"), ("GET", "/auth/sso/config"), ("POST", "/auth/
           # SAML sign-in: the IdP's POST carries no session, and metadata is public by design
           ("POST", "/auth/sso/saml/start"), ("POST", "/auth/sso/saml/acs"),
           ("GET", "/auth/sso/saml/metadata"),
-          ("POST", "/auth/sso/saml/sls")}   # the IdP redirect carries no session; signed
+          ("POST", "/auth/sso/saml/sls"),
+          ("POST", "/auth/sso/oidc/backchannel-logout")}   # server to server; signed token   # the IdP redirect carries no session; signed
 # A never-ending server-sent stream: covered by its own test below, not the sweep.
 STREAMING = {("GET", "/events/stream")}
 # Writes any signed-in person may make on their own behalf, or that change nothing shared.

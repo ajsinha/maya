@@ -118,7 +118,10 @@ class SsoService:
     def callback(self, code: str, code_verifier: str, nonce: str, *, ip: str | None = None,
                  user_agent: str | None = None) -> dict[str, Any]:
         claims = self.client().finish(code, code_verifier, nonce)
-        return self.login_with_claims(claims, ip=ip, user_agent=user_agent)
+        # sub and sid name the sign-in a back-channel logout token will later end
+        return self.login_with_claims(claims, ip=ip, user_agent=user_agent,
+                                      sso_session={"sso_name_id": str(claims.get("sub") or ""),
+                                                   "sso_session_index": claims.get("sid")})
 
     # -- SAML ---------------------------------------------------------------------------
     def saml_sp(self) -> Any:
@@ -160,13 +163,17 @@ class SsoService:
 
     # -- SAML single logout -------------------------------------------------------------
     def logout(self, token: str) -> dict[str, Any]:
-        """End a session; for a SAML sign-in with single logout configured, also where to
-        send the browser so the IdP ends its session (``slo_redirect``)."""
+        """End a session; for an SSO sign-in whose IdP logout is configured, also where to
+        send the browser so the IdP ends its session (``slo_redirect``): SAML single
+        logout, or the OIDC end-session endpoint."""
         with self.p.uow() as uow:
             sess = uow.repo("sessions").find_one(token_hash=self.p.auth.token_hash(token))
         self.p.auth.logout(token)
-        if not (sess and sess.get("sso_name_id") and self.enabled
-                and self.protocol == "saml2" and self.saml_sp().cfg.slo):
+        if not (sess and sess.get("sso_name_id") and self.enabled):
+            return {"ok": True, "slo_redirect": None}
+        if self.protocol == "oidc":
+            return {"ok": True, "slo_redirect": self.client().logout_url()}
+        if not (self.protocol == "saml2" and self.saml_sp().cfg.slo):
             return {"ok": True, "slo_redirect": None}
         out = self.saml_sp().logout(sess["sso_name_id"], sess.get("sso_session_index"))
         with self.p.uow("sso") as uow:
@@ -196,18 +203,57 @@ class SsoService:
         return {"outcome": "idp_logout", "sessions_ended": ended,
                 "redirect_url": accepted["redirect_url"]}
 
-    def _end_sso_sessions(self, name_id: str, indexes: list[str], ip: str | None) -> int:
-        """Revoke every live session of that SAML sign-in (all of the NameID's when the
-        IdP names no SessionIndex)."""
+    def _end_sso_sessions(self, name_id: str | None, indexes: list[str], ip: str | None,
+                          *, protocol: str = "saml2", channel: str = "front") -> int:
+        """Revoke every live session of that sign-in: all of the subject's when the IdP
+        names no session, only the named sessions when it does, and — for an OIDC
+        token naming only a sid — that session whoever it belongs to."""
         with self.p.uow("sso") as uow:
-            rows = uow.repo("sessions").list(sso_name_id=name_id, revoked_at__isnull=True)
+            if name_id:
+                rows = uow.repo("sessions").list(sso_name_id=name_id, revoked_at__isnull=True)
+            else:
+                rows = uow.repo("sessions").list(sso_session_index__in=indexes,
+                                                 revoked_at__isnull=True)
             ended = [r for r in rows if not indexes or r["sso_session_index"] in indexes]
             for r in ended:
                 uow.repo("sessions").update(r["id"], {"revoked_at": utcnow()})
-            uow.audit("auth.sso_logout", object_ref=f"saml:{name_id}", ip=ip, channel="web",
-                      detail={"protocol": "saml2", "initiator": "idp",
+            ref = "saml" if protocol == "saml2" else "oidc"
+            uow.audit("auth.sso_logout", object_ref=f"{ref}:{name_id or ','.join(indexes)}",
+                      ip=ip, channel="web" if channel == "front" else "api",
+                      detail={"protocol": protocol, "initiator": "idp", "channel": channel,
                               "sessions_ended": len(ended), "session_indexes": indexes})
         return len(ended)
+
+    # -- OIDC back-channel logout ----------------------------------------------------------
+    def oidc_backchannel_logout(self, logout_token: str, *, ip: str | None = None
+                                ) -> dict[str, Any]:
+        """The IdP, server to server, ends a sign-in (OIDC Back-Channel Logout 1.0). The
+        token is verified like an ID token, is single-use (its jti), and ends the
+        sessions of its sub, narrowed to its sid when it names one."""
+        if not (self.enabled and self.protocol == "oidc"):
+            raise ValidationFailed("OIDC back-channel logout needs auth.sso.protocol: oidc")
+        try:
+            claims = self.client().validate_logout_token(logout_token)
+            self._consume_jti(str(claims["jti"]))
+        except NotAuthenticated as exc:
+            with self.p.uow("sso") as uow:
+                uow.audit("auth.sso_refused", object_ref="oidc", ip=ip, channel="api",
+                          detail={"protocol": "oidc", "reason": exc.message[:500]})
+            raise
+        sid = claims.get("sid")
+        ended = self._end_sso_sessions(str(claims["sub"]) if claims.get("sub") else None,
+                                       [sid] if sid else [], ip, protocol="oidc",
+                                       channel="back")
+        return {"ok": True, "sessions_ended": ended}
+
+    def _consume_jti(self, jti: str) -> None:
+        with self.p.uow("sso") as uow:
+            handle = f"oidc-logout:{jti}"
+            if uow.repo("auth_challenges").find_one(kind="oidc_logout", handle=handle):
+                raise NotAuthenticated("The logout token was already used (replay)")
+            uow.repo("auth_challenges").add({
+                "kind": "oidc_logout", "handle": handle, "consumed_at": utcnow(),
+                "expires_at": utcnow() + dt.timedelta(days=1)})
 
     def _saml_refused(self, reason: str, ip: str | None) -> None:
         with self.p.uow("sso") as uow:

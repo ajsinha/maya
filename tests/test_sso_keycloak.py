@@ -5,9 +5,12 @@ Opt-in. Set ``MAYA_TEST_KEYCLOAK_URL`` to a running Keycloak whose master realm
 admin is ``MAYA_TEST_KEYCLOAK_ADMIN`` / ``MAYA_TEST_KEYCLOAK_ADMIN_PASSWORD``
 (default admin / admin), e.g. a throwaway dev-mode container::
 
-    docker run -d --name maya-keycloak -p 127.0.0.1:58080:8080 \\
+    docker run -d --name maya-keycloak --network host \\
         -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \\
-        quay.io/keycloak/keycloak:26.4 start-dev
+        quay.io/keycloak/keycloak:26.4 start-dev --http-port=58080
+
+(``--network host`` so Keycloak can reach MAYA server to server for OIDC back-channel
+logout; without it those two tests fail, the rest pass.)
     MAYA_TEST_KEYCLOAK_URL=http://localhost:58080 pytest tests/test_sso_keycloak.py
 
 The module creates its own realm through the admin REST API (removed afterwards),
@@ -114,7 +117,11 @@ class Realm:
             "publicClient": False, "secret": "maya-oidc-secret", "standardFlowEnabled": True,
             "directAccessGrantsEnabled": False, "implicitFlowEnabled": False,
             "redirectUris": [f"{self.maya}/auth/sso/callback"],
-            "attributes": {"pkce.code.challenge.method": "S256"}}))
+            "attributes": {"pkce.code.challenge.method": "S256",
+                           "post.logout.redirect.uris": f"{self.maya}/login?signed_out=1",
+                           "backchannel.logout.url":
+                               f"{self.maya}/api/v1/auth/sso/oidc/backchannel-logout",
+                           "backchannel.logout.session.required": "true"}}))
         scope = next(c["id"] for c in self.http.get(f"{self.admin}/client-scopes").json()
                      if c["name"] == "groups")
         client = self.http.get(f"{self.admin}/clients",
@@ -154,6 +161,13 @@ class Realm:
         """The admin console's "Sign out" for a user: Keycloak's back channel only."""
         self._login()
         self._ok(self.http.post(f"{self.admin}/users/{user_id}/logout"))
+
+    def end_latest_session(self, user_id: str) -> None:
+        """The admin console's "Sign out" on one session: the user's most recent."""
+        self._login()
+        latest = max(self.http.get(f"{self.admin}/users/{user_id}/sessions").json(),
+                     key=lambda s: s["start"])
+        self._ok(self.http.delete(f"{self.admin}/sessions/{latest['id']}"))
 
     def delete(self) -> None:
         self._login()
@@ -233,7 +247,8 @@ def oidc(realm, tmp_path_factory):
     m = Maya(tmp_path_factory.mktemp("maya-oidc"), port, "--auth.sso.protocol=oidc",
              f"--auth.sso.issuer={r.issuer}", "--auth.sso.client_id=maya-oidc",
              "--auth.sso.client_secret=maya-oidc-secret",
-             f"--auth.sso.redirect_uri=http://127.0.0.1:{port}/auth/sso/callback")
+             f"--auth.sso.redirect_uri=http://127.0.0.1:{port}/auth/sso/callback",
+             f"--auth.sso.post_logout_redirect_uri=http://127.0.0.1:{port}/login?signed_out=1")
     yield r, m
     m.stop()
 
@@ -308,15 +323,36 @@ def test_oidc_person_in_no_mapped_group_is_refused(oidc, page):
     assert _signed_in_as(page, maya) is None
 
 
-def test_oidc_sign_out_is_local_keycloak_session_survives(oidc, page):
-    """MAYA has no OIDC logout: signing out ends the MAYA session only, and the next
-    SSO sign-in is silent while Keycloak's own session lasts."""
-    _, maya = oidc
+def test_oidc_sign_out_ends_the_keycloak_session_too(oidc, page):
+    """RP-initiated logout: MAYA ends its session and sends the browser to Keycloak's
+    end-session endpoint, which (asked to confirm, as Keycloak does without an ID token
+    hint) ends its own and returns to MAYA; the next sign-in asks for the password."""
+    r, maya = oidc
     _sso_login(page, maya)
-    _sign_out_of_maya(page)
+    before = r.sessions(r.alice)          # earlier tests' browsers keep their own sessions
+    page.evaluate("document.querySelector(\"form[action='/logout']\").submit()")
+    page.wait_for_url(re.compile(re.escape(r.issuer)))
+    page.click("#kc-logout")
+    page.wait_for_url(re.compile(r"^http://127\.0\.0\.1:\d+/login"))
     assert _signed_in_as(page, maya) is None
-    assert not _sso_login(page, maya)
-    assert _signed_in_as(page, maya) == (ALICE, ["admin", "model_manager"])
+    assert r.sessions(r.alice) == before - 1, "this browser's Keycloak session ended"
+    assert _sso_login(page, maya), "Keycloak's session ended: it asks for the password"
+
+
+def test_oidc_keycloak_admin_sign_out_reaches_maya_by_back_channel(oidc, page):
+    """Ending this sign-in's session in Keycloak's admin console POSTs a signed logout
+    token (naming the session's sid) to MAYA, server to server; the MAYA session ends
+    with no browser involved. (Keycloak 26.4's "sign out all sessions" of a user sent a
+    token for one of the user's sessions only; the security guide records that.)"""
+    r, maya = oidc
+    _sso_login(page, maya)
+    assert _signed_in_as(page, maya)
+    r.end_latest_session(r.alice)
+    for _ in range(20):
+        if _signed_in_as(page, maya) is None:
+            break
+        time.sleep(0.5)
+    assert _signed_in_as(page, maya) is None
 
 
 # -- SAML 2.0 ---------------------------------------------------------------------------
