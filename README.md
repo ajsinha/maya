@@ -94,8 +94,6 @@ execution warrant → reproducibility bundle.
 
 ### Not yet — stated so nobody has to discover it
 
-- **Feature-set pins always materialize.** The namespace's `materialize_policy` is stored,
-  but `on_demand` and `never` (replay from member pins) are not built.
 - **PostgreSQL is verified on 16, 17 and 18.** The whole suite passes on PostgreSQL 16.15,
   17.11 and 18.6, as well as SQLite. Run it with
   `MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test platform

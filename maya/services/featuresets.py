@@ -373,7 +373,7 @@ class FeatureSetService:
                 self.p.access.require(uow, p, "read", "featureset", fs)
             self.p.licences.reader(p, "featureset", ref)
         if pin is not None:
-            table = self.p.lake.read_pin("fspins", ns["name"], fs["name"], pin["fragments"])
+            table = self.pin_table(pin, fs, ns, eff, inherited)
             meta = pin["manifest"].get("meta") or {}
             res = Resolved(table.to_pandas(), meta, dict(pin["manifest"]), [],
                            [f"{ref}: sealed pin"])
@@ -382,6 +382,67 @@ class FeatureSetService:
         if p is not None:
             res.fill_report["access_conditions"] = self.condition(p, fs, eff, res)
         return res
+
+    @staticmethod
+    def stored(pin: dict[str, Any]) -> bool:
+        """Whether a pin's resolved output is in the lake (pins sealed before the policy
+        existed carry no note, and were always written)."""
+        return (pin.get("manifest") or {}).get("materialization", {}).get("stored", True)
+
+    def pin_table(self, pin: dict[str, Any], fs: dict[str, Any], ns: dict[str, Any],
+                  eff: dict[str, Any], inherited: list[Any]) -> Any:
+        """A sealed pin's bytes: read from the lake, or — for a pin sealed under
+        ``on_demand`` or ``never`` and not yet written — replayed from its member pins and
+        accepted only if the replay reproduces the sealed content hash exactly. Under
+        ``on_demand`` the first replay is written, and later reads come from the lake."""
+        if self.stored(pin):
+            return self.p.lake.read_pin("fspins", ns["name"], fs["name"], pin["fragments"])
+        table = self.replay(pin, eff, inherited)
+        policy = pin["manifest"]["materialization"]["policy"]
+        if policy == "on_demand":
+            write, lake_table = self.p.feature_data._write_fragments(
+                ns["name"], fs["name"], table, kind="fspins")
+            with self.p.uow("system") as uow:
+                manifest = {**pin["manifest"], "materialization": {
+                    "policy": policy, "stored": True, "stored_at": utcnow().isoformat()}}
+                uow.repo("feature_set_pins").update(pin["id"], {
+                    "lake_table": lake_table, "manifest": manifest,
+                    "bytes_new": write.bytes_new})
+                uow.audit("pin.materialized", object_type="featureset_pin",
+                          object_ref=pin["id"], principal_type="system",
+                          detail={"content_hash": pin["content_hash"], "policy": policy})
+        return table
+
+    def replay(self, pin: dict[str, Any], eff: dict[str, Any], inherited: list[Any]) -> Any:
+        """Resolve a pin again over its recorded member pins; refuse unless it is the same
+        content, byte for byte by the canonical hash."""
+        res = self.resolve_definition(None, eff, inherited,
+                                      member_override=pin["manifest"]["member_pins"],
+                                      end=pin["as_of_date"])
+        table = self.p.feature_data.to_table(res)
+        again = self.p.lake.describe_pin(table)
+        if again.content_hash != pin["content_hash"]:
+            from maya.core.errors import IntegrityError
+            raise IntegrityError(
+                "Replaying this pin from its member pins did not reproduce its sealed "
+                f"content (sealed {pin['content_hash'][:12]}, replayed "
+                f"{again.content_hash[:12]}); it is not served",
+                expected=pin["content_hash"], actual=again.content_hash)
+        return table
+
+    def verify_pin(self, pin: dict[str, Any]) -> dict[str, Any]:
+        """Integrity verification for a pin whose bytes are not stored: replay and hash."""
+        with self.p.uow() as uow:
+            v = uow.repo("feature_set_versions").require(pin["feature_set_version_id"])
+            eff, inherited = self.effective(uow, v["definition"])
+        from maya.core.errors import IntegrityError
+        try:
+            table = self.replay(pin, eff, inherited)
+        except IntegrityError as exc:
+            return {"ok": False, "expected": pin["content_hash"],
+                    "actual": exc.context.get("actual"), "replayed": True}
+        return {"ok": True, "expected": pin["content_hash"], "actual": pin["content_hash"],
+                "rows": table.num_rows, "replayed": True}
 
     def condition(self, p: Principal, fs: dict[str, Any], eff: dict[str, Any],
                   res: Resolved) -> list[dict[str, Any]]:
@@ -481,13 +542,19 @@ class FeatureSetService:
         res = self.resolve_definition(None, eff, inherited, member_override=override,
                                       end=pin["as_of_date"])
         table = self.p.feature_data.to_table(res)
-        write, lake_table = self.p.feature_data._write_fragments(ns["name"], fs["name"], table,
-                                                                 kind="fspins")
-        verify = self.p.lake.verify_pin("fspins", ns["name"], fs["name"], write.fragments,
-                                        write.content_hash)
-        if not verify["ok"]:
-            raise ValidationFailed("Feature set pin failed hash verification", **verify)
-        manifest = _jsonsafe({**res.fill_report, "meta": res.meta, "member_pins": override})
+        policy = ns.get("materialize_policy") or "always"
+        if policy == "always":
+            write, lake_table = self.p.feature_data._write_fragments(
+                ns["name"], fs["name"], table, kind="fspins")
+            verify = self.p.lake.verify_pin("fspins", ns["name"], fs["name"], write.fragments,
+                                            write.content_hash)
+            if not verify["ok"]:
+                raise ValidationFailed("Feature set pin failed hash verification", **verify)
+        else:        # sealed by its hash; the bytes are replayed from member pins when read
+            write, lake_table = self.p.lake.describe_pin(table), None
+        manifest = _jsonsafe({**res.fill_report, "meta": res.meta, "member_pins": override,
+                              "materialization": {"policy": policy,
+                                                  "stored": policy == "always"}})
         provenance = self.p.feature_data.provenance(v["definition_hash"], res, write, ctx.actor)
         with self.p.uow(ctx.actor) as uow:
             uow.repo("feature_set_pins").update(pin_id, {

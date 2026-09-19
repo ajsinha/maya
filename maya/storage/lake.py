@@ -133,6 +133,15 @@ class LakeStore:
         return FragmentWrite(canonical.content_hash(schema_hex, hashes), schema_hex, hashes,
                              new, table.num_rows, total, sum(b for _, _, b in new))
 
+    def describe_pin(self, table: pa.Table) -> FragmentWrite:
+        """What ``write_pin`` would record for ``table`` — content hash, schema digest and
+        fragment manifest — with nothing written (a pin that is not materialized)."""
+        schema_hex, runs = self.plan_fragments(table)
+        hashes = [d for d, _, _ in runs]
+        total = sum(table.slice(s, e - s).nbytes for _, s, e in runs)
+        return FragmentWrite(canonical.content_hash(schema_hex, hashes), schema_hex, hashes,
+                             [], table.num_rows, total, 0)
+
     def read_pin(self, kind: str, namespace: str, name: str,
                  fragments: list[str]) -> pa.Table:
         """Reassemble a pin from its manifest, in manifest order."""

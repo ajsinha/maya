@@ -257,6 +257,29 @@ step for set pins. The same series and date twice is a conflict unless the first
 attempt failed: `Pin q1/2026-02-28 already exists`. The sealed pin records its
 member pin ids, its fill manifest and its provenance.
 
+### Where a pin's output is kept
+
+The namespace's `materialize_policy` decides whether the resolved output of a set
+pin is written to the lake:
+
+| Policy | At sealing | When read |
+|---|---|---|
+| `always` (default) | written, re-read and verified against its hash | read from the lake |
+| `on_demand` | not written; sealed by the content hash of the output | the first read replays it from the member pins and writes it; later reads come from the lake |
+| `never` | not written; sealed by the content hash | every read replays it from the member pins |
+
+The policy changes storage, never content. Every policy seals the same hash for
+the same inputs. A replay is served only if it reproduces that hash exactly;
+otherwise the read fails with `integrity_error` and nothing is returned.
+Integrity verification (`maya admin verify-integrity`) replays unwritten pins the
+same way and reports any that no longer reproduce. The first write under
+`on_demand` is audited as `pin.materialized`.
+
+```python
+# Keep only the recipe for a namespace's feature-set pins
+admin.namespaces.update("research", materialize_policy="never")
+```
+
 ## Reading a feature set
 
 | Call | What it returns |

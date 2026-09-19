@@ -26,6 +26,10 @@ KINDS = {
 
 CREDENTIAL_FIELDS = ("password_hash", "mfa_secret", "mfa_last_step")
 
+# How a namespace's feature-set pins keep their resolved output (§6, revision 2.3):
+# written at sealing; written at first read; or never written, replayed from member pins.
+MATERIALIZE_POLICIES = ("always", "on_demand", "never")
+
 
 DIRECTORY_FIELDS = ("id", "username", "display_name", "status")
 
@@ -158,6 +162,10 @@ class AccessService:
             raise ValidationFailed("Cannot change: " + ", ".join(sorted(bad)))
         if "sod" in changes and changes["sod"] not in ("strict", "two_person", "none"):
             raise ValidationFailed("sod must be strict, two_person or none")
+        if "materialize_policy" in changes and \
+                changes["materialize_policy"] not in MATERIALIZE_POLICIES:
+            raise ValidationFailed("materialize_policy must be one of "
+                                   + ", ".join(MATERIALIZE_POLICIES))
         with self.p.uow(p.username) as uow:
             ns = self.namespace(uow, name)
             row = uow.repo("namespaces").update(ns["id"], changes)

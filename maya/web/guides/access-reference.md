@@ -114,7 +114,7 @@ Every catalog object lives in a namespace. A namespace sets its default visibili
 | `classification` | text, default `internal` | Recorded. |
 | `quota_bytes` | integer | Recorded. |
 
-`update` may change `description`, `sod`, `default_visibility`, `quota_bytes`, `classification`, `production`, `preset` and `materialize_policy`.
+`update` may change `description`, `sod`, `default_visibility`, `quota_bytes`, `classification`, `production`, `preset` and `materialize_policy` (`always`, `on_demand` or `never`; anything else is refused).
 
 ### Presets and separation of duties
 
