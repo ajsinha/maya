@@ -13,8 +13,10 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import base64
 import copy
 import json
+import shutil
 
 import httpx
 import pytest
@@ -183,3 +185,93 @@ def test_rfc3161_timestamp_is_requested_and_its_imprint_checked(world, tmp_path)
     refused = svc.anchor()
     assert refused["tsa_token"] is None and "refused" in refused["detail"]["tsa"]["detail"]
     assert not check_timestamp_response(b"\x30\x03\x02\x01\x00", b"\x00" * 32)["ok"]
+
+
+# -- a real TSA: openssl ts -reply, with a CA and a timeStamping certificate made here ----------
+def _real_tsa(directory):
+    """An RFC 3161 authority run by openssl; returns (transport, ca_file, rogue_ca_file)."""
+    import datetime as _dt
+    import subprocess
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    def key():
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    def cert(subject_key, cn, issuer_key=None, issuer_name=None, tsa=False):
+        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
+        now = _dt.datetime.now(_dt.timezone.utc)
+        b = (x509.CertificateBuilder().subject_name(name).issuer_name(issuer_name or name)
+             .public_key(subject_key.public_key()).serial_number(x509.random_serial_number())
+             .not_valid_before(now - _dt.timedelta(days=1))
+             .not_valid_after(now + _dt.timedelta(days=30)))
+        if tsa:
+            b = b.add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.TIME_STAMPING]),
+                                critical=True)
+        else:
+            b = b.add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        return b.sign(issuer_key or subject_key, hashes.SHA256())
+
+    pem = serialization.Encoding.PEM
+    ca_key, tsa_key, rogue_key = key(), key(), key()
+    ca = cert(ca_key, "Test TSA Root")
+    tsa = cert(tsa_key, "Test TSA", ca_key, ca.subject, tsa=True)
+    rogue = cert(rogue_key, "Some Other Root")
+    for name, obj in (("ca.pem", ca), ("tsa.pem", tsa), ("rogue.pem", rogue)):
+        (directory / name).write_bytes(obj.public_bytes(pem))
+    (directory / "tsa.key").write_bytes(tsa_key.private_bytes(
+        pem, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    (directory / "serial").write_text("01\n")
+    (directory / "tsa.cnf").write_text(f"""
+[ tsa ]
+default_tsa = tsa_config
+[ tsa_config ]
+serial = {directory}/serial
+signer_cert = {directory}/tsa.pem
+certs = {directory}/tsa.pem
+signer_key = {directory}/tsa.key
+signer_digest = sha256
+default_policy = 1.2.3.4.1
+digests = sha256
+accuracy = secs:1
+ordering = no
+tsa_name = no
+ess_cert_id_chain = no
+ess_cert_id_alg = sha256
+""")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        (directory / "q.tsq").write_bytes(request.content)
+        subprocess.run(["openssl", "ts", "-reply", "-config", str(directory / "tsa.cnf"),
+                        "-queryfile", str(directory / "q.tsq"), "-out",
+                        str(directory / "r.tsr")], check=True, capture_output=True)
+        return httpx.Response(200, content=(directory / "r.tsr").read_bytes(),
+                              headers={"Content-Type": "application/timestamp-reply"})
+    return httpx.MockTransport(handler), str(directory / "ca.pem"), str(directory / "rogue.pem")
+
+
+@pytest.mark.skipif(shutil.which("openssl") is None, reason="openssl is not installed")
+def test_a_real_tsa_signature_is_verified_against_its_ca(world, tmp_path):
+    """With custody.anchor.tsa_ca_file, the TSA's own signature is checked, at anchoring
+    and at every verification; a token from the right TSA checked against the wrong CA,
+    or not granted for this head, is refused."""
+    w = world
+    transport, ca, rogue = _real_tsa(tmp_path)
+    svc = CustodyService(w.p)
+    svc.methods, svc.tsa_url, svc.tsa_ca = ["rfc3161"], "https://tsa.example.test/", ca
+    svc.path, svc.transport = tmp_path / "a.jsonl", transport
+    row = svc.anchor()
+    assert row["tsa_token"] and row["detail"]["tsa"]["ok"], row["detail"]
+    assert "verified against" in row["detail"]["tsa"]["detail"]
+    assert not [b for b in svc.verify()["broken"] if b["seq"] == row["seq"]]
+    wrong = CustodyService(w.p)
+    wrong.methods, wrong.tsa_url, wrong.tsa_ca = ["rfc3161"], svc.tsa_url, rogue
+    wrong.path, wrong.transport = svc.path, transport
+    mine = [b for b in wrong.verify()["broken"] if b["seq"] == row["seq"]]
+    assert mine and "does not verify" in " ".join(mine[0]["problems"])
+    from maya.services.custody import verify_tsa_signature
+    raw = base64.b64decode(row["tsa_token"])
+    assert not verify_tsa_signature(raw, b"\x00" * 32, ca)["ok"], "another head's imprint"
