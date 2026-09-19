@@ -127,7 +127,7 @@ Specification §22.3 is the authority. In summary:
 └── tests/ docs/ assets/
 ```
 
-Two layout decisions are recorded as ADRs in M0 because a decision that is not written down gets re-litigated every quarter:
+Two layout decisions are recorded as ADRs because a decision that is not written down gets re-litigated every quarter ([ADR-001](adr/ADR-001-package-layout.md) and [ADR-003](adr/ADR-003-maya-delta-beside-maya.md), in [`docs/adr/`](adr/README.md)):
 
 - **ADR-001 — everything under `maya/`, not at the repository root.** DishtaYantra puts `core/`, `routes/` and `web/` at the root. MAYA does not, because `maya.persistence`, `maya.web` and `maya.sdk` are named import-boundary units (§13, §14, §16) and `pip install maya-sdk` must deliver a client of a few megabytes with no server in it (§18.2.3). Both need a real package root. Everything *inside* the package follows DishtaYantra's idioms unchanged.
 - **ADR-003 — `maya_delta` beside `maya`, not inside it.** It holds no MAYA domain knowledge, is reachable only through the `LakeStore` port of §25, and must be independently testable and swappable. Burying a general-purpose Delta implementation inside the product package would make it neither.
@@ -136,7 +136,7 @@ Two layout decisions are recorded as ADRs in M0 because a decision that is not w
 
 ## 4. Decision register
 
-**All eight open decisions were closed on 2026-09-17, before any code.** Six further calls were taken at the same time. Each becomes a numbered ADR in M0; this table and specification §26.3 are the register.
+**All eight open decisions were closed on 2026-09-17, before any code.** Six further calls were taken at the same time. Each is a numbered ADR in [`docs/adr/`](adr/README.md) — due in M0, written after 0.3.0; this table and specification §26.3 are the register.
 
 ### 4.1 The eight
 
@@ -200,13 +200,14 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 
 ### M0 — Skeleton, gates, three platforms · **S–M**
 
-> **Status at 0.3.0 — delivered, except the three-platform parts and four deliverables.** The
+> **Status at 0.3.0 — delivered, except the three-platform parts and three deliverables.** The
 > package, `run_maya_web.py`, the configuration, the seam resolver (`maya/core/backends.py`,
 > including `tzdb` and `procstat`), the Type B seams, the `maya_delta` seam, the vendored
 > shell, both hooks and the gates in `tools/ci/` all exist; each gate is seen to fail on a
 > planted violation (`tests/test_api_and_gates.py`). **Not delivered:** `public_symbols.py`
-> and `cycle_check.py`; the `docs/adr/` records; and the CI job that runs the suite with
-> every Type A seam pinned to its fallback. **Out of scope by decision:** CI on Windows and
+> and `cycle_check.py`; and the CI job that runs the suite with every Type A seam pinned to
+> its fallback. The `docs/adr/` records, due here, arrived after 0.3.0: ADR-001 to ADR-028
+> in [`docs/adr/`](adr/README.md). The code does not yet reference them. **Out of scope by decision:** CI on Windows and
 > macOS, and with it the cross-platform byte comparison of the Type B seams — only Linux
 > is exercised, and there is no hosted CI.
 
@@ -489,8 +490,13 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > `maya.offline(bundle)`, server-side paging, several web processes on one node, the CLI,
 > and the benchmarks in `docs/BENCHMARKS.md` — SC-4, SC-5 and 100k-object search pass,
 > SC-3 is not met reliably, and most of §24.3 is not measured. **Not delivered:**
-> `maya.testing` fakes and the UI suite run against them; the deadlock probes; runbooks;
-> the restore drill; the external security review; the synthetic market dataset of §23.
+> `maya.testing` fakes and the UI suite run against them; the deadlock probes; the restore
+> drill; the external security review; the synthetic market dataset of §23. The runbooks
+> arrived after 0.3.0, in [`docs/runbooks/`](runbooks/README.md): nine of §20's procedures,
+> schema rebuild and `maya_delta` fallback among them, with the rest named there as
+> missing. The restore drill's procedure is one of them and was rehearsed on a throwaway
+> estate; the drill itself has not been performed on a real deployment, nor its result
+> recorded.
 > The exit criterion *all eighteen success criteria met* is therefore not met (plan §8).
 > A dedicated benchmark host is out of scope by decision.
 
@@ -635,7 +641,7 @@ Specification §2 states eighteen. Each is met by a named test at a named milest
 
 - **Branch.** All work on `develop`. Promote to `main` only when the suite is green on all three platforms and both backends, the counts are stamped, built artifacts are newer than their sources, and the tree is clean.
 - **Commits.** One coherent change per commit, message stating what changed and why. **No assistant attribution trailers** — enforced by the `commit-msg` hook from M0.
-- **ADRs.** Every architectural decision numbered in `docs/adr/` and referenced from the code it governs. The fourteen calls in §4 become ADR-004 onward in M0.
+- **ADRs.** Every architectural decision numbered in `docs/adr/` and referenced from the code it governs. The calls in §4 are ADR-004 to ADR-018 in [`docs/adr/`](adr/README.md) — the eight decisions as ADR-004 to ADR-011, the lakehouse call recorded once with D-6, and SQLite-by-default and the one startup script given records of their own — and the later decisions of revisions 2.2 and 2.3 and version 0.3 continue the sequence to ADR-028. The second half of the rule is not yet kept: the code cites D-numbers in a few places and ADR numbers nowhere.
 - **This document.** A living plan. When a milestone lands, its exit criteria move into the README's *What's shipped* section **with the test that proves each one**, and the milestone section here is marked done rather than deleted — the record of what was promised is part of the evidence. At 0.3.0 that section is [README → What's shipped](../README.md#whats-shipped), and each milestone above carries its *Status* note.
 
 ---

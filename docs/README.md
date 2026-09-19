@@ -9,6 +9,8 @@ Read in this order.
 | [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, each marked with what it delivered by 0.3.0 and what it did not; the 28-rung CI gate ladder and which rungs exist; the six one-way doors; and the decision register |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | **What has been measured**, against §3 and §24.3: the machine, how to reproduce each run, every number from the unedited result files in [`benchmarks/`](benchmarks/), and what has not been measured |
 | [`CHANGELOG.md`](CHANGELOG.md) | **What each release changed**, as narrative; the version itself lives in `maya/core/version.py` |
+| [`adr/`](adr/README.md) | **Why it is built this way.** Twenty-eight architecture decision records: the package layout and working practice, the eight decisions and six further calls of §26.3, and the later decisions of revisions 2.2 and 2.3 and version 0.3 — each with its context, its cost, and the code and tests that carry it |
+| [`runbooks/`](runbooks/README.md) | **What to do when it misbehaves.** The operational procedures §20 requires to ship with the product — schema rebuild, moving between SQLite and PostgreSQL, `maya_delta` fallback, integrity drift, audit chain and custody, stuck jobs and pins, a suspended warrant, an SSO outage, the restore drill — each with symptoms, diagnosis commands, steps, verification and limits |
 
 ## Revision 2.1 — what changed, 2026-09-17
 
@@ -19,7 +21,7 @@ the sections that carry them:
 |---|---|
 | No database migrations — two generated `.sql` files, everything through SQLAlchemy | §14.3 |
 | `maya_delta`: native `deltalake` preferred, MAYA's own pure-Python Delta as fallback | §7.4 |
-| Windows, Linux and macOS as equal first-class platforms | §24.5 |
+| Windows, Linux and macOS as equal first-class platforms — *since amended by the owner's decision: only Linux is exercised* ([ADR-014](adr/ADR-014-platforms.md)) | §24.5 |
 | Bootstrap 5 + jQuery, vendored, on a Harvard Crimson visual system | §16.6 |
 | The universal table contract — every table paginated, searchable, sortable | §16.7 |
 | Workflow authored and managed in the UI; YAML as a projection, not a second authority | §10.6 |
@@ -32,11 +34,13 @@ the sections that carry them:
 
 ## What goes here next
 
-`adr/` for numbered architecture decisions — the fourteen calls in plan §4 were to
-become ADR-001 onward during M0. They have not been written; until they are, plan §4
-and specification §26.3 are the register. `design/` for per-subsystem design notes, `runbooks/` for the
-operational procedures §20 requires to ship *with* the product, and `research/` when the
-paper is rewritten.
+`adr/` and `runbooks/` are written (above). The decision records were due in M0 and arrived
+after 0.3.0; specification §26.3 and plan §4 remain the registers they expand. The runbooks
+cover nine of the procedures §20 asks for, and [their index](runbooks/README.md) names the
+ones still missing — orphaned pin partitions in full, Delta small-file explosion, database
+failover, sandbox escape suspicion, storage quota exhaustion and default-password remediation.
+Still to come: `design/` for per-subsystem design notes, and `research/` when the paper is
+rewritten.
 
 > The research paper and the presentation decks are **deferred by decision**, to be
 > rewritten against this specification. `NOTICE` still references
