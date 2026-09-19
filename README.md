@@ -94,10 +94,9 @@ execution warrant → reproducibility bundle.
 
 ### Not yet — stated so nobody has to discover it
 
-- **PostgreSQL has not been run live.** `schema/postgresql.sql` is generated and the
-  dialect switch works (`db.dialect: postgresql`), but no server was available where this
-  was built. Run the suite against one with `MAYA_TEST_PG_URL=postgresql+psycopg://…
-  python -m pytest`.
+- **PostgreSQL is verified on 18 only.** The whole suite passes on PostgreSQL 18.6 as well as
+  SQLite (`MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test
+  platform gets its own freshly created database). Earlier PostgreSQL majors have not been run.
 - **Only Linux has been exercised.** There is no hosted CI: the gate ladder runs locally,
   in the pre-commit hook on every commit and as `python tools/ci/gates.py --tests`. Windows
   and macOS need a run on those machines.

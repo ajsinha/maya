@@ -25,6 +25,25 @@ ROLES = {"dana": ["feature_designer"], "mick": ["feature_manager"], "mona": ["mo
          "tess": ["techops"], "admin2": ["admin"]}
 
 
+def fresh_pg_database(url: str) -> str:
+    """A new, empty database on the server behind ``url``, one per platform.
+
+    Tests build several platforms at once (a module fixture plus one inside a test);
+    on SQLite each has its own file, so on PostgreSQL each gets its own database —
+    re-initialising one shared database would wipe a platform still in use."""
+    import uuid
+
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.engine import make_url
+    base = make_url(url)
+    name = f"{base.database}_{uuid.uuid4().hex[:10]}"
+    admin = create_engine(base.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    with admin.connect() as conn:
+        conn.execute(text(f'CREATE DATABASE "{name}"'))
+    admin.dispose()
+    return base.set(database=name).render_as_string(hide_password=False)
+
+
 def build_platform(extra_argv: list[str] | None = None, lake: str = "auto") -> Any:
     sys.argv = ["pytest", f"--lake.backend={lake}"] + (extra_argv or [])
     os.environ["MAYA_HOME"] = tempfile.mkdtemp(prefix="maya-test-")
@@ -37,7 +56,8 @@ def build_platform(extra_argv: list[str] | None = None, lake: str = "auto") -> A
     if pg:
         # The full suite on PostgreSQL (SC-10): each platform gets a freshly created
         # schema from schema/postgresql.sql, exactly as `init-db --force` would.
-        settings.database_url = lambda: pg  # type: ignore[method-assign]
+        own = fresh_pg_database(pg)
+        settings.database_url = lambda: own  # type: ignore[method-assign]
         from maya.persistence.engine import database_from_settings
         db = database_from_settings(settings)
         db.init_schema(force=True)
