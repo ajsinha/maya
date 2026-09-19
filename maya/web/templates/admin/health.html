@@ -20,6 +20,8 @@
 <div class="col-lg-6"><div class="card card-body"><h3>Jobs</h3>
   {{ kv([('Queued', h.jobs.queued), ('Running', h.jobs.running), ('Dead-lettered', h.jobs.dead_letter), ('Workers', h.jobs.workers)]) }}</div></div>
 <div class="col-lg-6"><div class="card card-body"><h3>Process</h3>{{ kv(h.process.items()|list) }}</div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Observability</h3>
+  {{ kv([('Span export', pill('ok' if h.tracing.exporting else 'warn', 'on' if h.tracing.exporting else 'off')), ('Detail', h.tracing.detail), ('Metrics', '/metrics (Prometheus)'), ('Webhooks pending', h.webhooks.pending), ('Webhooks dead-lettered', h.webhooks.dead)]) }}</div></div>
 </div>
 <h2 class="mt-3">Dependency seams (§13.4)</h2>
 {% call(s) table("seams", ["Seam", "Polarity", "Selected", "Preferred", "Fallback", "Pinned", "Reason", "Cost when degraded"], h.seams, empty="No seams reported.") %}

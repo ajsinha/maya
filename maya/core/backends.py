@@ -106,6 +106,8 @@ def _specs() -> list[_SeamSpec]:
         _SeamSpec("event_loop", "A", "uvloop", "asyncio",
                   lambda: has_module("uvloop") and sys.platform != "win32",
                   "Lower HTTP throughput"),
+        _SeamSpec("tracing", "A", "otel", "ids", lambda: has_module("opentelemetry.sdk"),
+                  "Trace ids still propagate to logs, audit and jobs; spans are not exported"),
         _SeamSpec("canonical", "B", "maya", "maya", lambda: True,
                   "None. MAYA's canonicalizer is authoritative"),
         _SeamSpec("chunker", "B", "maya", "maya", lambda: True,

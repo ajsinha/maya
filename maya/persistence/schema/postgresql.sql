@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 275be2a45926b3a9c31a93f8f258f3c75239cf1bf1b7c48d2a240f7f2552ec0d
+-- schema-hash: 5602570a9325d994ebe2483dff65ec5a5fcba573c7ebde42527766200dbc874d
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -127,6 +127,20 @@ CREATE TABLE derivations (
 );
 
 CREATE INDEX ix_derivations_target_version_id ON derivations (target_version_id);
+
+CREATE TABLE events (
+	seq BIGSERIAL NOT NULL, 
+	at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	type VARCHAR(64) NOT NULL, 
+	object_type VARCHAR(32), 
+	object_ref VARCHAR(512), 
+	actor VARCHAR(128) NOT NULL, 
+	trace_id VARCHAR(32), 
+	payload JSONB NOT NULL, 
+	CONSTRAINT pk_events PRIMARY KEY (seq)
+);
+
+CREATE INDEX ix_events_type ON events (type);
 
 CREATE TABLE execution_reports (
 	execution_warrant_id UUID NOT NULL, 
@@ -372,6 +386,45 @@ CREATE TABLE users (
 );
 
 CREATE INDEX ix_users_external_subject ON users (external_subject);
+
+CREATE TABLE webhook_deliveries (
+	webhook_id UUID NOT NULL, 
+	event_seq BIGINT NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	attempts INTEGER NOT NULL, 
+	next_attempt_at TIMESTAMP WITH TIME ZONE, 
+	last_status INTEGER, 
+	last_error TEXT, 
+	delivered_at TIMESTAMP WITH TIME ZONE, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_webhook_deliveries PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_webhook_deliveries_due ON webhook_deliveries (state, next_attempt_at);
+
+CREATE INDEX ix_webhook_deliveries_webhook_id ON webhook_deliveries (webhook_id);
+
+CREATE TABLE webhooks (
+	name VARCHAR(128) NOT NULL, 
+	url VARCHAR(1024) NOT NULL, 
+	secret_sealed TEXT NOT NULL, 
+	event_types JSONB NOT NULL, 
+	active BOOLEAN NOT NULL, 
+	description TEXT, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_webhooks PRIMARY KEY (id), 
+	CONSTRAINT uq_webhooks_name UNIQUE (name)
+);
 
 CREATE TABLE workflow_events (
 	object_type VARCHAR(32) NOT NULL, 

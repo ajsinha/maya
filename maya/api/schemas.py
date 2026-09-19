@@ -260,3 +260,10 @@ class ConnectionIn(BaseModel):
 
 class PullIn(BaseModel):
     knowledge_time: str | None = None
+
+
+class WebhookIn(BaseModel):
+    name: str
+    url: str
+    event_types: list[str] = Field(default_factory=list)
+    description: str = ""

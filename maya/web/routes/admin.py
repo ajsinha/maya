@@ -140,6 +140,63 @@ async def end_session(request: Request, session_id: str) -> Any:
     return RedirectResponse("/admin/users#sessions", status_code=303)
 
 
+# -- events and webhooks ------------------------------------------------------------------------
+@router.get("/admin/webhooks")
+@page
+async def webhooks(request: Request) -> Any:
+    show = request.query_params.get("deliveries")
+    async with client(request) as sdk:
+        rows = await sdk.events.webhooks()
+        deliveries = await sdk.events.deliveries(show) if show else None
+    return await render(request, "admin/webhooks.html", {
+        "rows": rows, "deliveries": deliveries, "shown": show,
+        "new_secret": request.session.pop("new_webhook_secret", None)})
+
+
+@router.post("/admin/webhooks")
+@action
+async def create_webhook(request: Request) -> Any:
+    data = await form(request)
+    types = [t.strip() for t in (data.get("event_types") or "").split(",") if t.strip()]
+    async with client(request) as sdk:
+        hook = await sdk.events.create_webhook(data.get("name", ""), data.get("url", ""), types,
+                                               data.get("description", ""))
+    request.session["new_webhook_secret"] = hook["secret"]
+    flash(request, "Webhook created. Copy its signing secret now: it is shown once.", "warning")
+    return RedirectResponse("/admin/webhooks", status_code=303)
+
+
+@router.post("/admin/webhooks/{webhook_id}/ping")
+@action
+async def ping_webhook(request: Request, webhook_id: str) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.events.ping(webhook_id)
+    flash(request, f"Ping {out['state']} (HTTP {out['last_status'] or '—'})"
+          + (f": {out['last_error']}" if out.get("last_error") else ""),
+          "success" if out["state"] == "delivered" else "warning")
+    return RedirectResponse(f"/admin/webhooks?deliveries={webhook_id}", status_code=303)
+
+
+@router.post("/admin/webhooks/{webhook_id}/delete")
+@action
+async def delete_webhook(request: Request, webhook_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.events.delete_webhook(webhook_id)
+    flash(request, "Webhook deactivated; its pending deliveries were dropped.", "info")
+    return RedirectResponse("/admin/webhooks", status_code=303)
+
+
+@router.get("/admin/events")
+@page
+async def events_page(request: Request) -> Any:
+    q = request.query_params
+    async with client(request) as sdk:
+        rows = await sdk.events.list(after=int(q.get("after") or 0), limit=2000,
+                                     type=q.get("type") or None)
+    return await render(request, "admin/events.html", {"rows": list(reversed(rows)),
+                                                       "type": q.get("type", "")})
+
+
 # -- SQL source connections --------------------------------------------------------------------
 @router.get("/admin/sources")
 @page

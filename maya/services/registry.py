@@ -26,6 +26,7 @@ def wire(platform: Any) -> None:
     from maya.services.sso import SsoService
     from maya.services.workspaces import WorkspaceService
     from maya.services.sources import SourceService
+    from maya.services.webhooks import WebhookService
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
 
@@ -35,10 +36,12 @@ def wire(platform: Any) -> None:
                       ("warrants", WarrantService), ("execution", ExecutionService),
                       ("bundles", BundleService), ("workflow_svc", WorkflowService),
                       ("ops", OpsService), ("sso", SsoService),
-                      ("workspaces", WorkspaceService), ("sources", SourceService)):
+                      ("workspaces", WorkspaceService), ("sources", SourceService),
+                      ("webhooks", WebhookService)):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)
+    _collectors(platform)
     platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: \
         dispatch_transition(platform, p, object_type, object_id, name, **kw)
 
@@ -51,6 +54,40 @@ def _jobs(platform: Any) -> None:
     q.register("workspace.shadow_replay", platform.workspaces.run_replay_job)
     q.register("integrity.verify", lambda ctx, params: platform.ops.verify_integrity(
         _system_principal(platform, ctx.actor)))
+
+
+def _collectors(platform: Any) -> None:
+    """Gauges read at scrape time, so /metrics never reports a stale number."""
+    from maya.core.backends import Backends
+    from maya.core.version import BUILD_DATE, VERSION
+    from maya.observability.metrics import METRICS
+    from maya.persistence.types import utcnow
+
+    def state() -> list[tuple[str, dict[str, Any], float]]:
+        out: list[tuple[str, dict[str, Any], float]] = []
+        with platform.uow() as uow:
+            for st in ("queued", "running", "failed", "dead_letter"):
+                out.append(("maya_jobs", {"state": st}, uow.repo("jobs").count(state=st)))
+            out.append(("maya_sessions_active", {}, uow.repo("sessions").count(
+                revoked_at__isnull=True, expires_at__gt=utcnow())))
+            for st in ("pending", "dead"):
+                out.append(("maya_webhook_backlog", {"state": st},
+                            uow.repo("webhook_deliveries").count(state=st)))
+        return out
+
+    def static() -> list[tuple[str, dict[str, Any], float]]:
+        from maya.security.sandbox import sandbox_tier
+        out: list[tuple[str, dict[str, Any], float]] = [
+            ("maya_build_info", {"version": VERSION, "build": BUILD_DATE,
+                                 "dialect": platform.db.dialect}, 1.0),
+            ("maya_sandbox_tier", {"tier": sandbox_tier()["tier"]}, 1.0)]
+        out += [("maya_seam_backend", {"seam": c["seam"], "backend": c["selected"]}, 1.0)
+                for c in Backends.report()]
+        return out
+
+    METRICS._collectors.clear()      # one platform per process owns the scrape
+    METRICS.collector(state)
+    METRICS.collector(static)
 
 
 def _system_principal(platform: Any, username: str) -> Principal:

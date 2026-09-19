@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: c9410aebd56623d2caa28056b6166402292a5128578a92926612784de30c9411
+-- schema-hash: 639331e86559cdc41199d051170c5d730fea622e2857f28cbb52e59d72a04807
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -127,6 +127,20 @@ CREATE TABLE derivations (
 );
 
 CREATE INDEX ix_derivations_target_version_id ON derivations (target_version_id);
+
+CREATE TABLE events (
+	seq INTEGER NOT NULL, 
+	at DATETIME NOT NULL, 
+	type VARCHAR(64) NOT NULL, 
+	object_type VARCHAR(32), 
+	object_ref VARCHAR(512), 
+	actor VARCHAR(128) NOT NULL, 
+	trace_id VARCHAR(32), 
+	payload JSON NOT NULL, 
+	CONSTRAINT pk_events PRIMARY KEY (seq)
+);
+
+CREATE INDEX ix_events_type ON events (type);
 
 CREATE TABLE execution_reports (
 	execution_warrant_id CHAR(36) NOT NULL, 
@@ -372,6 +386,45 @@ CREATE TABLE users (
 );
 
 CREATE INDEX ix_users_external_subject ON users (external_subject);
+
+CREATE TABLE webhook_deliveries (
+	webhook_id CHAR(36) NOT NULL, 
+	event_seq BIGINT NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	attempts INTEGER NOT NULL, 
+	next_attempt_at DATETIME, 
+	last_status INTEGER, 
+	last_error TEXT, 
+	delivered_at DATETIME, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_webhook_deliveries PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_webhook_deliveries_due ON webhook_deliveries (state, next_attempt_at);
+
+CREATE INDEX ix_webhook_deliveries_webhook_id ON webhook_deliveries (webhook_id);
+
+CREATE TABLE webhooks (
+	name VARCHAR(128) NOT NULL, 
+	url VARCHAR(1024) NOT NULL, 
+	secret_sealed TEXT NOT NULL, 
+	event_types JSON NOT NULL, 
+	active BOOLEAN NOT NULL, 
+	description TEXT, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_webhooks PRIMARY KEY (id), 
+	CONSTRAINT uq_webhooks_name UNIQUE (name)
+);
 
 CREATE TABLE workflow_events (
 	object_type VARCHAR(32) NOT NULL, 

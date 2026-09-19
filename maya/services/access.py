@@ -59,6 +59,9 @@ class AccessService:
         decision = can(p, action, d["obj"], d["grants"], d["namespace"])
         if not decision:
             label = obj.get("name", obj["id"])
+            if audit:
+                from maya.observability.metrics import METRICS
+                METRICS.inc("maya_authz_denials_total", {"action": action})
             if audit and (action in ("approve", "pin", "seal", "grant", "revoke")
                           or kind == "namespace"):
                 uow.audit("authz.denied", object_type=kind, object_ref=str(label),

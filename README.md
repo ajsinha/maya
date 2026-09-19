@@ -114,7 +114,7 @@ execution warrant → reproducibility bundle.
   forbids approval on a draft render outside dev.
 - **Not built:** licence algebra and
   external audit anchoring (§29.6); the assistant (§29.8); spreadsheet import (§29.9);
-  webhooks; OpenTelemetry and Prometheus; delegation; server-side table paging; SDK
+  delegation; server-side table paging; SDK
   record/replay and `offline()`; performance benchmarks (SC-3/4/5).
 - **Deviations from the spec:** CodeMirror 5 instead of 6 (6 needs a bundler). The
   dark-mode `--maya-crimson-deep` is `#E07A8E`, because the spec's `#A51C30` measures

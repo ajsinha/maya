@@ -63,6 +63,8 @@ class Platform:
             db.init_schema()
         db.verify_schema()
         platform = cls(settings, db)
+        from maya.observability import tracing
+        tracing.configure(settings.get("observability.otlp.endpoint") or None)
         platform.wire()
         from maya.services.seed import seed
         seed(platform)
@@ -70,6 +72,7 @@ class Platform:
         platform.jobs.reap()
         if start_workers:
             platform.jobs.start()
+            platform.webhooks.start()
         return platform
 
     def uow(self, actor: str | None = None) -> UnitOfWork:
@@ -122,4 +125,5 @@ class Platform:
 
     def shutdown(self) -> None:
         self.jobs.stop()
+        self.service("webhooks").stop()
         self.db.dispose()

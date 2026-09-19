@@ -483,6 +483,9 @@ class FeatureSetService:
                 "pinned_as")
             for mref in override.values():
                 uow.repo("lineage_edges").link(mref, me, "member_of")
+            from maya.observability.metrics import METRICS
+            METRICS.inc("maya_pins_sealed_total", {"kind": "featureset"})
+            METRICS.inc("maya_pin_new_bytes_total", value=float(write.bytes_new))
             uow.audit("pin.sealed", object_type="featureset_pin", object_ref=me,
                       detail={"content_hash": write.content_hash, "members": len(override),
                               "cascaded": len(created)})
