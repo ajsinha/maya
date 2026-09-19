@@ -25,12 +25,10 @@ the sections that carry them:
 | Workflow authored and managed in the UI; YAML as a projection, not a second authority | §10.6 |
 | One startup script, `run_maya_web.py` | §24.5 |
 
-> **The `.docx` and `.pdf` beside the specification were exported before revision 2.1 and
-> are behind it.** The Markdown is the authority. They were not regenerated because they
-> carry rendered diagram images from a toolchain that is not wired up here, and producing
-> a degraded file under the same name is exactly the *builds, validates, and is wrong*
-> failure this project is built to avoid. Regenerate them deliberately, with the
-> toolchain that made them.
+> **The `.docx` and `.pdf` beside the specification are renderings of the Markdown**, which
+> is the authority. `python tools/docs/build_spec.py` rebuilds both (pandoc and Tectonic;
+> the diagrams are drawn in headless Chrome) and is rerun whenever the Markdown changes.
+> They were last rebuilt at revision 2.3.
 
 ## What goes here next
 

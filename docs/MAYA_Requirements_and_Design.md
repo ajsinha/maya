@@ -21,8 +21,8 @@
 > first-class platforms** (§24.5), **Bootstrap 5 and jQuery with a Harvard Crimson
 > visual system** (§16.6), **a universal table contract** — every table paginated,
 > searchable and sortable (§16.7) — and **workflow policy authored and managed in the
-> UI** (§10.6). The `.docx` and `.pdf` beside this file were exported before revision
-> 2.1 and are behind it; this Markdown is the authority.
+> UI** (§10.6). This Markdown is the authority; the `.docx` and `.pdf` beside it are
+> renderings, rebuilt by `tools/docs/build_spec.py`.
 
 ## 1. Executive summary and vision
 
