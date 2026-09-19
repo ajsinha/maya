@@ -126,9 +126,9 @@ execution warrant → reproducibility bundle.
   must be given a cached bundle.
 - **Benchmarks were measured on one shared workstation, not the specified cluster**
   ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)). SC-5, SC-4 and 100k-object search pass;
-  SC-5 and search were measured on SQLite only. SC-3 (200 users) does not yet: p95
-  0.37 s against 0.3 s, on PostgreSQL with 8 web processes, and tail latency varied
-  about twofold between runs on that machine. Several web processes need PostgreSQL;
+  SC-5 and search were measured on SQLite only. SC-3 (200 users) is not met reliably: on
+  PostgreSQL with 8 web processes, three runs gave p95 0.34 s, 0.22 s and 0.43 s against
+  0.3 s (one passes), at 93–97 requests/s with no errors. A dedicated host will settle it. Several web processes need PostgreSQL;
   MAYA refuses them over SQLite. The rest of §24.3 — pin write throughput, object
   counts beyond search, job throughput, cold start, Delta table size — has not been
   measured.

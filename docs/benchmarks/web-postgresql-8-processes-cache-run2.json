@@ -1,0 +1,122 @@
+{
+ "machine": {
+  "python": "3.13.15",
+  "os": "Linux-7.0.4-76070004-generic-x86_64-with-glibc2.43",
+  "cpus": 24,
+  "cpu": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+  "memory_gb": 61.1
+ },
+ "database": "postgresql",
+ "web_processes": 8,
+ "catalog": {
+  "features": 2000,
+  "models": 200,
+  "seed_seconds": 8.7
+ },
+ "SC-4": {
+  "target_p95_s": 0.3,
+  "per_page": {
+   "/": {
+    "n": 30,
+    "p50": 0.0288,
+    "p95": 0.087,
+    "max": 0.1568,
+    "mean": 0.0362
+   },
+   "/catalog/features": {
+    "n": 30,
+    "p50": 0.0509,
+    "p95": 0.1765,
+    "max": 0.1986,
+    "mean": 0.0717
+   },
+   "/catalog/features/eq/f_01000": {
+    "n": 30,
+    "p50": 0.0204,
+    "p95": 0.0472,
+    "max": 0.0507,
+    "mean": 0.0248
+   },
+   "/catalog/featuresets": {
+    "n": 30,
+    "p50": 0.0056,
+    "p95": 0.0082,
+    "max": 0.009,
+    "mean": 0.0057
+   },
+   "/models": {
+    "n": 30,
+    "p50": 0.0093,
+    "p95": 0.0149,
+    "max": 0.0154,
+    "mean": 0.0105
+   },
+   "/models/eq/m_0100": {
+    "n": 30,
+    "p50": 0.0176,
+    "p95": 0.0412,
+    "max": 0.0422,
+    "mean": 0.0193
+   },
+   "/workflow": {
+    "n": 30,
+    "p50": 0.0043,
+    "p95": 0.0086,
+    "max": 0.0102,
+    "mean": 0.005
+   },
+   "/search?q=f_001": {
+    "n": 30,
+    "p50": 0.0135,
+    "p95": 0.0229,
+    "max": 0.0237,
+    "mean": 0.0147
+   },
+   "/inbox": {
+    "n": 30,
+    "p50": 0.0032,
+    "p95": 0.0076,
+    "max": 0.0087,
+    "mean": 0.0039
+   },
+   "/help": {
+    "n": 30,
+    "p50": 0.0063,
+    "p95": 0.0088,
+    "max": 0.0099,
+    "mean": 0.0067
+   },
+   "/workbench": {
+    "n": 30,
+    "p50": 0.0244,
+    "p95": 0.1443,
+    "max": 0.1635,
+    "mean": 0.0343
+   }
+  },
+  "worst_page_p95": 0.1765,
+  "pass": true
+ },
+ "SC-3": {
+  "target": "p95 under 0.3 s with 200 users; no material degradation",
+  "single_user_p95": 0.1765,
+  "loaded": {
+   "users": 200,
+   "duration_s": 60.0,
+   "think_s": [
+    1.0,
+    3.0
+   ],
+   "requests": 5797,
+   "errors": 0,
+   "throughput_rps": 96.6,
+   "n": 5797,
+   "p50": 0.0334,
+   "p95": 0.2151,
+   "max": 0.7983,
+   "mean": 0.0591
+  },
+  "degradation_ratio": 1.22,
+  "pass": true
+ }
+}
