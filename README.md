@@ -119,8 +119,11 @@ execution warrant → reproducibility bundle.
   it they are watermarked drafts, and `typeset.require_true_build` forbids approval on a
   draft outside dev. Tectonic downloads its TeX bundle on first use: an air-gapped server
   must be given a cached bundle.
-- **Not built:** performance benchmarks (SC-3/4/5). SDK record/replay is synchronous only
-  (`Client`, not `AsyncClient`).
+- **Benchmarks were measured on one shared workstation, not the specified cluster**
+  ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)). SC-5, SC-4 and 100k-object search pass.
+  SC-3 (200 users) does not yet: p95 0.37 s against 0.3 s, on PostgreSQL with 8 web
+  processes. Several web processes need PostgreSQL; MAYA refuses them over SQLite.
+- **Not built:** SDK record/replay is synchronous only (`Client`, not `AsyncClient`).
 - **The challenger's Claude provider is tested against a stub, not the live API.** The
   deterministic provider is the default. With `assistant.provider: claude`, the request
   (Claude Opus 5, structured JSON output, server-side refusal fallbacks) is verified against

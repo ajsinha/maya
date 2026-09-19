@@ -1,0 +1,24 @@
+{
+ "criterion": "catalog search p95 over 100k objects",
+ "target_p95_s": 0.5,
+ "machine": {
+  "python": "3.13.15",
+  "os": "Linux-7.0.4-76070004-generic-x86_64-with-glibc2.43",
+  "cpus": 24,
+  "cpu": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+  "memory_gb": 61.1
+ },
+ "database": "sqlite",
+ "objects": 100000,
+ "index_rows": 800010,
+ "seed_seconds": 39.4,
+ "search": {
+  "n": 200,
+  "p50": 0.0822,
+  "p95": 0.1614,
+  "max": 0.3863,
+  "mean": 0.0906
+ },
+ "mean_hits": 42.2,
+ "pass": true
+}
