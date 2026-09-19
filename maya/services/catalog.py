@@ -119,6 +119,24 @@ def effective_feature_definition(uow: Any, definition: dict[str, Any], *,
     return apply_override(parent, ext.get("override") or {}, definition)
 
 
+FROZEN_STATES = ("approved", "published", "deprecated")
+
+
+def pinned_parent_errors(uow: Any, definition: dict[str, Any]) -> list[str]:
+    """A pinned binding is immune to parent change only if the parent cannot change: it
+    must name an approved version, never a draft that is still being edited."""
+    ext = definition.get("extends")
+    if not ext or ext.get("binding", "pinned") != "pinned":
+        return []
+    parent_ref = refs.parse(ext["parent"], "feature")
+    feature, _ = find_object(uow, "features", "feature", parent_ref)
+    parent = version_of(uow, "feature_versions", "feature_id", feature, parent_ref.version)
+    if parent["state"] not in FROZEN_STATES:
+        return [f"extends {ext['parent']}, which is {parent['state']}: a pinned parent must "
+                "be an approved version, or the child would change when the draft does"]
+    return []
+
+
 def apply_override(parent: dict[str, Any], override: dict[str, Any],
                    child: dict[str, Any]) -> dict[str, Any]:
     """The child's stored diff applied to the parent (a diff, never a copy)."""

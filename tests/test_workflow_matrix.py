@@ -215,3 +215,20 @@ def test_model_transitions_by_role(w, transition, submitted, allowed):
         if ok != (role in allowed):
             wrong.append((user, role, "moved" if ok else "refused"))
     assert not wrong, (transition, wrong)
+
+
+def test_a_pinned_parent_must_be_approved(w):
+    """extends … binding: pinned is immune to parent change only if the parent cannot
+    change; clone-and-extend binds the latest approved version, never an open draft."""
+    parent = _feature(w, "approved")
+    w.p.features.new_draft(w.dana, parent)                              # v2, a draft
+    child = f"std/child{next(_seq)}"
+    w.p.features.clone(w.dana, parent, name=child.split("/")[1], extend=True)
+    ext = w.p.features.get(w.dana, child)["versions"][0]["definition"]["extends"]
+    assert ext["parent"].endswith(f"{parent}@v1") and ext["binding"] == "pinned"
+    rogue = f"child{next(_seq)}"
+    w.p.features.create(w.dana, namespace="std", name=rogue, definition={"extends": {
+        "parent": f"maya://feature/{parent}@v2", "binding": "pinned", "override": {}}})
+    with pytest.raises(ValidationFailed, match="which is draft: a pinned parent must be"):
+        w.p.features.transition(w.dana, f"std/{rogue}", 1, "submit")
+    assert w.p.features.transition(w.dana, child, 1, "submit")["moved"]
