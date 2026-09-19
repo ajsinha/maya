@@ -35,7 +35,7 @@ tar -C "$MAYA_HOME" --exclude=./maya.db --exclude=./maya.db-wal --exclude=./maya
     -czf /backup/storage-root.tgz .
 ```
 
-PostgreSQL (standard tooling; not exercised when this runbook was written):
+PostgreSQL (standard tooling; exercised in the drill recorded in §5):
 
 ```bash
 pg_dump -Fc -d maya -f /backup/maya.dump
@@ -64,10 +64,12 @@ export MAYA_PORT=8698
 
 ## 3. Disarm the copy before anything starts
 
-The restored database holds production's webhooks and their signing secrets. Any MAYA process
-started on it — the server, or the CLI's `--local` mode — starts the webhook dispatcher at once,
-and delivers pending and new events, correctly signed, to production's receivers. Even the
-verification in step 4 emits one: `integrity.verified` is an event. Disarm them first:
+The restored database holds production's webhooks and their signing secrets. The server started
+in step 4 starts the webhook dispatcher at once, and would deliver pending and new events,
+correctly signed, to production's receivers (the CLI's `--local` mode runs job workers only and
+delivers nothing). Even the verification in step 4 emits one: `integrity.verified` is an event.
+Disarm them first — a disarmed webhook's deliveries settle as "webhook is inactive; nothing was
+sent":
 
 ```bash
 python -c "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); n=c.execute('UPDATE webhooks SET active = 0').rowcount; c.commit(); print(n, 'webhook(s) disarmed')" "$MAYA_HOME/maya.db"
@@ -116,7 +118,11 @@ record outside MAYA, where the model risk function can see it, one row per drill
 
 | Date | Backup taken at | Dialect | Pins checked | Drift | Chain | Anchors | Duration | Performed by | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | |
+| 2026-09-19 | 20:37 UTC | SQLite | 5 of 5 | 0 | ok (50 events) | 1, agree | 7.7 s | development | Drill estate, not a deployment: 5 sealed pins (3 feature, 2 cascade), a training warrant, 1 webhook, 1 anchor. Steps 1–4 and 6 exactly as written; the webhook disarmed, its pending delivery settled "webhook is inactive; nothing was sent", no request made |
+| 2026-09-19 | 20:37 UTC | PostgreSQL 17 | 5 of 5 | 0 | ok (50 events) | 1, agree | 3.1 s | development | The same estate on PostgreSQL: `pg_dump -Fc` / `pg_restore` into a new database (the first run of this runbook's PostgreSQL steps). Same outcome |
+
+Duration is from "start restore" to "verification green", on a laptop, for a tiny estate: it
+says the procedure works, not what the recovery time of a real one would be.
 
 A failed drill is recorded as failed, with the cause, and repeated once the cause is fixed.
 
@@ -137,14 +143,14 @@ and production's signing key.
 
 ## What this does not reach
 
-- **No drill of a real deployment has been recorded.** This procedure was rehearsed end to end
-  on a throwaway SQLite estate — online backup, restore to a scratch directory, disarm, verify
-  integrity, verify anchors — when it was written. That is a test of the runbook, not a drill.
-  The plan's M8 criterion *"the restore drill has been performed and its result recorded and
-  visible"* is not met.
-- **Recovery time and recovery point have never been measured.**
+- **No drill of a real deployment has been recorded.** The drills above ran on a small drill
+  estate on SQLite and on PostgreSQL 17 (§5): the procedure is proven on both dialects, and the
+  plan's M8 criterion *"the restore drill has been performed and its result recorded and
+  visible"* is met for the procedure. A deployment's first drill, on its own backups, is still
+  its operator's to perform and record.
+- **Recovery time and recovery point have never been measured** at production size.
 - **`verify-integrity` re-hashes sealed pins only** — not blobs, raw ingested data or keys. A
   backup that lost a model's specification PDF passes it.
-- **The CLI's `--local` mode starting webhooks and the scheduler** is the reason step 3 exists.
-  A verification command that emits events and contacts receivers is a defect in the CLI; until
-  it is fixed, the disarming step is not optional.
+- **Why step 3 is still not optional.** The CLI's `--local` mode no longer starts the webhook
+  dispatcher or the scheduler (it runs job workers only), but the scratch server started in
+  step 4 does both, and it is started on production's webhooks.

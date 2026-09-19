@@ -1,5 +1,91 @@
 # Changelog
 
+## Unreleased
+
+**Access and governance**
+
+- **The review queue, the SLA aging list and the break-glass report name only what
+  the caller may read.** They named every in-review object and forced transition in
+  every namespace to anyone signed in. The system's own escalation sweep still sees
+  everything. An administrator sees every break-glass event.
+- **The lineage graph leaves out what the caller may not read.** `GET /lineage` named
+  objects across namespaces. An unreadable object is now absent, counted in a new
+  `hidden` field. An operation, parameter set or execution shows only next to
+  something readable. A root the caller may not read is `404`. The workspace impact
+  view still shows everything downstream of a staged change, which is its purpose.
+- **A training warrant keeps what its feature-set reference meant.** A bare name was
+  stored as typed and re-resolved on every download and holdout score, so "latest"
+  moved under an approved warrant. A bare name is now stored as the version it
+  resolved to, and a pin series without a date as the date of the pin found. The
+  custody record keeps the reference as given.
+- **A model that declares parameters runs only under a named, approved parameter
+  set.** An execution warrant drawn from a training warrant without a parameter set
+  was approved as "non-trainable", and so was a black box that declares parameters.
+  Both are now refused at creation and at the approval check. A parameter set must
+  also come from the warrant it is drawn from.
+- **Defects found by exercising the runbooks:**
+  - An estate load now checks everything before writing anything. It refuses a
+    database that holds data, and an estate whose own audit chain does not link.
+    It also refuses columns this version does not know, unless `--allow-drop`
+    (`import_estate(..., allow_drop=True)`), which names what was dropped.
+  - Reinstating a warrant that is not suspended is refused.
+  - A custody anchor signed by a key other than this MAYA's is reported.
+  - The lake reports its native backend only when that backend's self-check passes.
+  - The CLI's `--local` mode runs job workers only, never the webhook dispatcher or
+    the scheduler.
+  - A disarmed webhook's pending delivery now settles as "webhook is inactive;
+    nothing was sent", not "no longer exists".
+
+**Capacity (§24.3)**
+
+- `tools/bench/bench_capacity.py` measures the rest of §24.3, and all four targets pass on
+  SQLite ([BENCHMARKS](BENCHMARKS.md#capacity-243)):
+  - pin write throughput, 59.7 MB/s (51.4 MB/s on a second run) against 50;
+  - 20k feature sets, 10k models and 100k pins, every page p95 under 30 ms;
+  - job throughput, 134,962 an hour against 1,000;
+  - cold start, 1.26 s against 30 s.
+- **Pins get faster to seal:**
+  - Sealing verifies a pin by comparing values with what was hashed, instead of
+    hashing it twice.
+  - Logical-type conversion is vectorised.
+  - A pin's fragment files are read in parallel.
+  - Rows that all share one layout are hashed from contiguous column slabs.
+
+  Each change is proven equal to the path it replaces.
+- **The catalog holds 20k feature sets, 10k models and 100k pins without
+  degrading:**
+  - A feature's page shows its latest 100 pins and their total, with the rest paged
+    at `GET /features/{ns}/{name}/pins` (SDK `features.pins`).
+  - List totals under row-level authorization are counted in the database by
+    (namespace, owned) group.
+
+**Operations**
+
+- **The restore drill has been performed**, on SQLite and on PostgreSQL 17, and
+  recorded in the runbook. It covered backup, restore, disarming, integrity
+  verification and anchor verification. This was the first run of the runbook's
+  PostgreSQL steps.
+- The test suite and the benchmarks remove the storage roots and PostgreSQL databases
+  they create. They used to leave them behind until `/tmp` filled.
+
+**Documentation and gates**
+
+- **The gate ladder is complete:** lint, strict typing of `maya/services`, public
+  names per module, import cycles, SDK and OpenAPI snapshots, the fallback matrix,
+  UI↔SDK parity, protocol literals, browser screenshots, bandit, pip-audit with the
+  sandbox tests, and a benchmark regression check. Each rung is proven to catch a
+  planted fault. Also new: `maya.testing` and a synthetic market dataset.
+- **Added:**
+  - 28 architecture decision records (`docs/adr/`);
+  - nine runbooks (`docs/runbooks/`);
+  - the specification audit of 2026-09-19 (`docs/audit/`), with what has been fixed
+    since.
+- **The research paper and its article are restored and rewritten** against 0.3.0.
+  Every claim about the system carries a mark: runs, in part, implemented but
+  untested, or not in MAYA.
+- **The decks are rebuilt as three:** executive briefing, system design, and concepts
+  and formalism. `LICENSE` and `NOTICE` now name the research documents correctly.
+
 ## 0.3.0 — 2026-09-19
 
 The SDK is unchanged from 0.2.0 (`CLIENT_VERSION` stays 0.2.0).

@@ -210,6 +210,11 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > in [`docs/adr/`](adr/README.md). The code does not yet reference them. **Out of scope by decision:** CI on Windows and
 > macOS, and with it the cross-platform byte comparison of the Type B seams — only Linux
 > is exercised, and there is no hosted CI.
+>
+> **Since 0.3.0:** delivered. `public_symbols.py` and `cycle_check.py` are gates, and
+> `gates.py --fallback` runs the whole suite with every Type A seam pinned to its
+> fallback (1,150 passed). Each rung of the ladder is proven to catch a planted fault
+> (`tests/test_gate_ladder.py`).
 
 *Nothing about the product. Everything about making the next eight milestones checkable.*
 
@@ -254,7 +259,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > proved by the tests the README's *What's shipped* names. The suite runs green on SQLite
 > and PostgreSQL 16, 17 and 18 (SC-10). **Not delivered:** the full M1 suite with every
 > Type A seam pinned to its fallback. **Out of scope by decision:** all three platforms
-> (SC-14).
+> (SC-14). **Since 0.3.0:** the fallback matrix runs the whole suite (gate 11b).
 
 **Deliverables**
 
@@ -298,7 +303,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > the cross-backend round trip holds both ways, and unsupported protocol features are
 > refused by name (`tests/test_maya_delta.py`, SC-16); compaction and vacuum followed
 > (`tests/test_lake_maintenance.py`). **Not delivered:** the lint check forbidding literal
-> protocol versions. The concurrent-writer race has run on ext4 only; NTFS and APFS are
+> protocol versions (**since 0.3.0:** a gate, `protocol_literals.py`). The concurrent-writer race has run on ext4 only; NTFS and APFS are
 > out of scope with Windows and macOS.
 
 *Pins are written on top of this, and the physical layout is a one-way door, so it is solid before M3 rather than alongside it.*
@@ -462,7 +467,8 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > `unverified_data`, covenant suspension failing closed, blind scoring, and a bundle that
 > verifies offline and fails after one byte changes are tested (`tests/test_warrants.py`,
 > `tests/test_sdk_modes.py`, `tests/test_cli.py`). **Not delivered:** SC-2 against a
-> deliberately aged warrant. The covenant test runs in process, not against a running
+> deliberately aged warrant (**since 0.3.0:** rehearsed — a warrant aged two years is
+> reproduced from its bundle, byte-identical). The covenant test runs in process, not against a running
 > server; the offline verification has run on Linux only.
 
 **Deliverables**
@@ -498,6 +504,15 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > estate; the drill itself has not been performed on a real deployment, nor its result
 > recorded.
 > The exit criterion *all eighteen success criteria met* is therefore not met (plan §8).
+>
+> **Since 0.3.0:** delivered — `maya.testing` (a throwaway platform with seeded users and
+> SDK clients, and a pytest plugin), the synthetic market dataset, the concurrency and
+> deadlock probes on SQLite and PostgreSQL, the rest of §24.3 measured by
+> `tools/bench/bench_capacity.py` ([BENCHMARKS](BENCHMARKS.md#capacity-243)), and **the
+> restore drill, performed on SQLite and PostgreSQL 17 and recorded** in
+> [its runbook](runbooks/restore-drill.md#5-record-the-result) — which meets this
+> milestone's criterion for the procedure; a deployment's own first drill remains its
+> operator's. Still not delivered: the external security review, and SC-9.
 > A dedicated benchmark host is out of scope by decision.
 
 **Deliverables**
@@ -532,7 +547,7 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 
 Each behind a feature flag, in roughly this order (§29.11): shadow replay (§29.2) → licence algebra and external audit anchoring (§29.6) → the recorded challenger (§29.8) → spreadsheet import (§29.9) → vendor model registration (§29.10). Shadow replay is first because it changes what a review *is*: *"this forward-fill limit change moves 3 of 11 dependent models; the PD model shifts by more than 2 bp on 0.4% of rows"* instead of a list of names.
 
-**Deferred, and deliberately.** The research paper and the presentation decks are to be rewritten against this specification. They are not in M0–M8 and are not blocked by it. `NOTICE` still references `docs/research/LICENSE`; restore it with the paper or amend `NOTICE` then.
+**Delivered outside the milestones.** The research paper and the presentation decks were rewritten against this specification and version 0.3.0. They were never part of M0–M8 and were not blocked by it. The paper is `docs/research/models-as-parametric-kernels.tex`, built to `docs/research/models-as-parametric-kernels.pdf` with Tectonic, with an article version beside it and `docs/research/LICENSE` restored, so `NOTICE` resolves again; every claim it makes about MAYA is marked with the module and test that carry it, or as not in the rebuilt system. The seven decks of the previous build became three — `docs/MAYA-Executive-Briefing.pptx`, `docs/MAYA-System-Design.pptx` and `docs/MAYA-Concepts-and-Formalism.pptx` — generated by `tools/deck/` and checked for layout by `tests/test_deck_geometry.py`.
 
 ---
 
@@ -610,7 +625,7 @@ Specification §2 states eighteen. Each is met by a named test at a named milest
 | SC-15 | Zero drift between the `.sql` files and the ORM metadata | M1 | Gate 13, continuously | Met: the schema-drift gate |
 | SC-16 | `maya_delta` backend equivalence and cross-backend reads | M2 | Gate 20 | Met on Linux: `tests/test_maya_delta.py` |
 | SC-17 | 100% of tables paginated, searchable, sortable | M0/M1 | Gate 10, continuously | Met: the table-contract gate and `tests/test_browser.py` |
-| SC-18 | Seam equivalence — Type A both ways, Type B byte-identical | M0 | Gates 11b and 11c, continuously | In part: the seams exist; the fallback matrix is not built, and the cross-platform byte comparison is out of scope with Windows and macOS |
+| SC-18 | Seam equivalence — Type A both ways, Type B byte-identical | M0 | Gates 11b and 11c, continuously | In part: the seams exist and the fallback matrix runs the whole suite (since 0.3.0); the cross-platform byte comparison is out of scope with Windows and macOS |
 
 ---
 

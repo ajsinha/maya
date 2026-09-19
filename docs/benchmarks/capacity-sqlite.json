@@ -1,0 +1,58 @@
+{
+ "machine": {
+  "python": "3.13.15",
+  "os": "Linux-7.0.4-76070004-generic-x86_64-with-glibc2.43",
+  "cpus": 24,
+  "cpu": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+  "memory_gb": 61.1
+ },
+ "database": "sqlite",
+ "pin_write_throughput": {
+  "target_mb_s": 50,
+  "rows": 1260000,
+  "logical_mb": 530.5,
+  "seconds": 8.89,
+  "mb_per_s": 59.7,
+  "pass": true
+ },
+ "job_throughput": {
+  "target_per_hour": 1000,
+  "jobs": 200,
+  "seconds": 5.33,
+  "per_hour_one_worker": 134962,
+  "pass": true
+ },
+ "objects": {
+  "target": "no degradation at 20k feature sets, 10k models, 100k pins",
+  "counts": {
+   "featuresets": 20000,
+   "models": 10000,
+   "pins": 100000
+  },
+  "seed_seconds": 30.9,
+  "p95_before_s": {
+   "features": 0.0021,
+   "featuresets": 0.001,
+   "models": 0.0011,
+   "feature_detail": 0.0055
+  },
+  "p95_after_s": {
+   "features": 0.0128,
+   "featuresets": 0.0081,
+   "models": 0.0055,
+   "feature_detail": 0.0292
+  },
+  "ratio": {
+   "features": 6.1,
+   "featuresets": 8.1,
+   "models": 5.0,
+   "feature_detail": 5.31
+  },
+  "pass": true
+ },
+ "cold_start": {
+  "target_s": 30,
+  "seconds": 1.26,
+  "pass": true
+ }
+}

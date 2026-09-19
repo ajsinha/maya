@@ -91,11 +91,13 @@ execution warrant → reproducibility bundle. The SDK's own version, `CLIENT_VER
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — each milestone marked with what it delivered and what it did not |
 | **Shipped** | [What's shipped](#whats-shipped), below — every capability with the tests that prove it |
-| **Measured** | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) — SC-4, SC-5 and 100k-object search pass; SC-3 is not met reliably |
+| **Measured** | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) — SC-4, SC-5, 100k-object search and the four §24.3 capacity targets pass; SC-3 is not met reliably |
 | **Changes** | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) |
+| **Audited** | [`docs/audit/spec-audit-2026-09-19.md`](docs/audit/spec-audit-2026-09-19.md) — the specification read against the code, requirement by requirement: of about 540, some 195 are built and tested, 28 built but untested, 123 partly built and 84 not built. The gaps are ranked; what has been fixed since is marked at the top |
+| **Decisions and operations** | [`docs/adr/`](docs/adr/) — 28 architecture decision records; [`docs/runbooks/`](docs/runbooks/) — nine runbooks, the restore drill among them, performed and recorded |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 1,149 on Linux. On SQLite 1,139 pass and 10 are skipped: the eight Keycloak tests (`tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`) and the two multi-process server tests (`tests/test_web_processes.py`), which need PostgreSQL. On PostgreSQL 16, 17 and 18 the suite last ran at 1,135 tests, every one but the Keycloak tests passing; the thirteen added since — the TSA signature check and OIDC logout — have run on SQLite only. They include real-browser tests in headless Chrome, a multi-process server, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. 92.9% line coverage, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 178 endpoints, schema drift) |
+| **Tests** | 1,270 on Linux. On SQLite 1,260 pass and 10 are skipped: the eight Keycloak tests (`tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`) and the two multi-process server tests (`tests/test_web_processes.py`), which need PostgreSQL. On PostgreSQL 16, 17 and 18 all but the Keycloak tests pass (1,262). With every Type A seam pinned to its fallback (`gates.py --fallback`) the suite passed when that gate was added, at 1,150 tests; it has not been rerun since. They include real-browser tests in headless Chrome, a multi-process server, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. Line coverage was 92.9% at 0.3.0, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green — lint, strict typing of `maya/services`, file size, both import boundaries, import cycles, public names per module, seam imports, SDK public symbols, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 179 endpoints, UI↔SDK parity, the API contract snapshot, protocol literals, bandit, schema drift. `--tests`, `--fallback`, `--security` and `--bench` add the suite with coverage, the fallback matrix, pip-audit with the sandbox tests, and the benchmark regression check |
 
 ### Out of scope by decision
 
@@ -163,17 +165,26 @@ something that should be read plainly:
   without it they are watermarked drafts, and `typeset.require_true_build` forbids
   approval on a draft outside dev. Tectonic downloads its TeX bundle on first use: an
   air-gapped server must be given a cached bundle.
-- **Most of §24.3 has not been measured.** SC-5 and 100k-object search were measured on
-  SQLite only, and the per-pod figure of §24.3 not at all. Pin write throughput, object
-  counts beyond search, job throughput, cold start and Delta table size have not been
-  measured. Several web processes need PostgreSQL; MAYA refuses them over SQLite.
+- **§24.3 is measured on SQLite, on one workstation.** Pin write throughput (59.7 MB/s,
+  51.4 on a second run, against 50 — a narrow pass), job throughput, cold start,
+  100k-object search, and 20k feature sets, 10k models and 100k pins without degradation
+  all pass ([BENCHMARKS](docs/BENCHMARKS.md#capacity-243)); none has been run on
+  PostgreSQL. The per-pod figure and Delta table size (2 TB per
+  feature) have not been measured. Several web processes need PostgreSQL; MAYA refuses
+  them over SQLite.
+- **The specification is not fully built.** The audit above lists what is partly built
+  or missing, ranked by what it costs a user: among the largest, feature-set operators
+  beyond `extend`, subscriptions, enforced quotas, upload size limits, the SDK's object
+  handles, and the review screen's semantic diff. This README's *What's shipped* lists
+  only what is built and tested.
 - **Server-side paging is per page, not per threshold.** Features, feature sets, models,
   audit, events and jobs always page from the server; smaller tables stay client-side. In
   server mode a table sorts on the columns the server can order by (name, update time,
   sequence), one key at a time, and its search runs on the server's fields (name and
   description, or actor/action/object for audit), then highlights matches in what is
   shown. Lists filtered row by row for authorization (features, feature sets, models,
-  warrants) compute an exact total by scanning; the rest count in the database. The
+  warrants) count their exact total in the database, one count per namespace and
+  ownership group. The
   table script was exercised in headless Chrome against a harness, not in a user's browser.
 - **Spreadsheet import is v1 scope.** Arithmetic, standard functions, named cells and ranges,
   and VLOOKUP/HLOOKUP over constant tables lift into the formula IR; everything else is refused
@@ -246,14 +257,18 @@ promised and did not deliver is marked in
 | **M8** Metrics, tracing, events, signed webhooks | `maya/observability/`, `maya/services/webhooks.py` | `tests/test_observability.py` |
 | §29.6 Licence algebra and custody anchors, with the TSA's signature checked | `maya/security/licence.py`, `maya/services/custody.py` | `tests/test_custody.py` (`test_an_anchor_catches_a_rechained_rewrite`, `test_a_real_tsa_signature_is_verified_against_its_ca`) |
 | §29.8 The assistant as a recorded challenger | `maya/assistant/`, `maya/services/assistant.py` | `tests/test_assistant.py` (the Claude provider against a stub only) |
+| The gate ladder: typing, cycles, symbol and API snapshots, the fallback matrix, UI↔SDK parity, bandit, pip-audit, benchmark regression | `tools/ci/gates.py` | `tests/test_gate_ladder.py` (each rung caught planting a fault); `gates.py --fallback` ran the whole suite with every Type A seam on its fallback |
+| Read scoping of the review queue, SLA aging, break-glass report and lineage | `maya/services/workflow_service.py`, `maya/services/ops.py` | `tests/test_read_scoping.py` |
+| `maya.testing`: a throwaway platform for users' own tests, and a synthetic market dataset | `maya/testing/` | `tests/test_testing_kit.py`, `tests/test_market_dataset.py` |
+| The restore drill, on SQLite and PostgreSQL 17 | `docs/runbooks/restore-drill.md` | Performed and recorded in the runbook, §5 |
 | Measured against §3 and §24.3 | `tools/bench/` | Not tests: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), from the result files in `docs/benchmarks/` |
 
 **Promised by the plan and not delivered.** SC-9 — a new designer publishing a first
-model in under an hour, timed with a real person — has not been measured. The
-fallback matrix (the whole suite with every Type A seam pinned to its fallback, gate
-11b) is not built. No external security review has been done, and no restore drill has
-been performed. The three-platform matrix is out of scope by decision (above). The plan
-marks each of these where it was promised.
+model in under an hour, timed with a real person — has not been measured, and no
+external security review has been done: neither can be done by the project itself. The
+three-platform matrix is out of scope by decision (above). The plan marks each where it
+was promised; the [specification audit](docs/audit/spec-audit-2026-09-19.md) lists what
+the specification asks for beyond the plan's milestones and is not yet built.
 
 ---
 
