@@ -11,12 +11,21 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 APP_NAME = "MAYA"
 APP_TAGLINE = "Model & AI Lifecycle Assurance"
 APP_SLOGAN = "Evidence, not assertion."
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 BUILD_DATE = "2026-09-19"
 API_VERSION = "v1"
 
 # Per-release highlights, newest first. Rendered on the About page.
 HIGHLIGHTS = {
+    "0.3.0": [
+        "Single sign-on tested against a real identity provider, Keycloak 26.4: OIDC and "
+        "SAML sign-in, single logout in both directions",
+        "Feature-set pin materialization per namespace: always, on_demand or never, "
+        "every mode sealed by the same hash",
+        "A signed-in session's principal reused for two seconds; access changes apply "
+        "at once in the same process",
+        "The specification's PDF and DOCX rebuilt from the Markdown by a script",
+    ],
     "0.2.0": [
         "Top navigation with mega-menus; a card-based help centre with four tutorials and "
         "thirteen full-reference guides",

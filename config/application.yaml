@@ -229,6 +229,9 @@ custody:
     # Put this on WORM or off-host storage; empty means <storage.root>/anchors.jsonl
     file: "${MAYA_ANCHOR_FILE:}"
     tsa_url: "${MAYA_TSA_URL:}"
+    # The TSA's CA certificate (PEM). Set, MAYA checks the TSA's signature on every
+    # token with `openssl ts -verify`; empty, it checks the status and imprint only.
+    tsa_ca_file: "${MAYA_TSA_CA_FILE:}"
     interval_seconds: 3600
 
 workspaces:

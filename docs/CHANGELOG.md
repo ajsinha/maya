@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.3.0 — 2026-09-19
+
+The SDK is unchanged from 0.2.0 (`CLIENT_VERSION` stays 0.2.0).
+
+- **Single sign-on against a real identity provider.** OIDC and SAML were driven end to
+  end against Keycloak 26.4.7, through its own login pages in headless Chrome: sign-in
+  with group-mapped roles, SAML signed requests, single logout started by MAYA, and
+  logout started by Keycloak. `tests/test_sso_keycloak.py` reruns it when
+  `MAYA_TEST_KEYCLOAK_URL` is set. The security guide gives the Keycloak settings that
+  worked. Not supported: back-channel logout, and OIDC sign-out at the IdP.
+- **Feature-set pin materialization** follows the namespace's `materialize_policy`:
+  - `always` writes the output at sealing, as before;
+  - `on_demand` writes it at the first read;
+  - `never` replays it from the member pins on every read.
+
+  Every mode seals the same content hash. A replay is served only if it reproduces that
+  hash; otherwise the read fails with `integrity_error`. Integrity verification replays
+  unwritten pins.
+- **A signed-in session's principal is reused** for `auth.session.principal_cache_seconds`
+  (default 2). A sign-out, revocation or access change applies at once in the process
+  that made it, and within that time in other web processes. A session still owing a
+  second factor is never reused.
+- **SC-3 re-measured with that cache.** Three runs on PostgreSQL with 8 web processes
+  gave a p95 of 0.34 s, 0.22 s and 0.43 s against a 0.3 s target. It is not met
+  reliably.
+- **The specification's `.docx` and `.pdf`** are rebuilt from the Markdown at revision
+  2.3 by `tools/docs/build_spec.py`, diagrams included.
+
+**Fixed**
+
+- SAML refused Responses that repeat an attribute name, which Keycloak sends by
+  default, so every Keycloak SAML sign-in failed.
+- The estate import now names a required column the estate cannot fill, instead of
+  failing inside the database.
+
 ## 0.2.0 — 2026-09-19
 
 Built from specification revision 2.3. The SDK's own version (`CLIENT_VERSION`) is

@@ -17,8 +17,9 @@ the chain head at a sequence number in places the database cannot reach:
 ``verify`` checks each anchor against the live chain. A rewritten history no
 longer matches the heads its anchors pinned, even when its own chain verifies.
 An RFC 3161 token is checked here for status and message imprint; checking the
-TSA's signature needs its certificate chain and is left to
-``openssl ts -verify``, which the report names.
+TSA's signature needs its certificate chain: with ``custody.anchor.tsa_ca_file`` set
+(the TSA's CA certificate, PEM), MAYA checks it on every anchor and every verification
+with ``openssl ts -verify``; without it, the report names that command to run by hand.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -27,6 +28,9 @@ from __future__ import annotations
 import base64
 import json
 import secrets
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +77,25 @@ def check_timestamp_response(raw: bytes, digest: bytes) -> dict[str, Any]:
                                   "'openssl ts -verify -data <head> -in <token> -CAfile <tsa>'"}
 
 
+def verify_tsa_signature(raw: bytes, digest: bytes, ca_file: str) -> dict[str, Any]:
+    """The TSA's signature over its token, for this imprint, chained to ``ca_file``."""
+    openssl = shutil.which("openssl")
+    if openssl is None:
+        return {"ok": False, "detail": "openssl is not installed, so the TSA's signature "
+                                       "cannot be checked"}
+    with tempfile.TemporaryDirectory() as tmp:
+        token = Path(tmp) / "token.tsr"
+        token.write_bytes(raw)
+        r = subprocess.run([openssl, "ts", "-verify", "-digest", digest.hex(), "-in",
+                            str(token), "-CAfile", ca_file],
+                           capture_output=True, text=True, timeout=30, check=False)
+    if r.returncode == 0 and "Verification: OK" in r.stdout:
+        return {"ok": True, "detail": f"TSA signature verified against {ca_file}"}
+    reason = (r.stderr or r.stdout).strip().splitlines()
+    return {"ok": False, "detail": "the TSA's signature does not verify: "
+                                   + (reason[-1] if reason else f"openssl exit {r.returncode}")}
+
+
 class CustodyService:
     def __init__(self, platform: Any) -> None:
         self.p = platform
@@ -84,6 +107,10 @@ class CustodyService:
         if "rfc3161" in self.methods and not self.tsa_url:
             raise ValidationFailed("custody.anchor.methods names rfc3161 but "
                                    "custody.anchor.tsa_url is not set")
+        self.tsa_ca = (s.get("custody.anchor.tsa_ca_file") or "").strip()
+        if self.tsa_ca and not (Path(self.tsa_ca).is_file() and shutil.which("openssl")):
+            raise ValidationFailed("custody.anchor.tsa_ca_file needs the CA file to exist "
+                                   "and openssl to be installed", tsa_ca_file=self.tsa_ca)
         self.path = Path(s.get("custody.anchor.file") or (platform.root / "anchors.jsonl"))
         self.transport: Any = None                      # tests inject a TSA
 
@@ -140,10 +167,17 @@ class CustodyService:
             with httpx.Client(transport=self.transport, timeout=20) as client:
                 r = client.post(self.tsa_url, content=req,
                                 headers={"Content-Type": "application/timestamp-query"})
-            result = check_timestamp_response(r.content, digest)
+            result = self._check_token(r.content, digest)
         except httpx.HTTPError as exc:
             return None, {"ok": False, "detail": f"TSA unreachable: {exc}"}
         return (base64.b64encode(r.content).decode() if result["ok"] else None), result
+
+    def _check_token(self, raw: bytes, digest: bytes) -> dict[str, Any]:
+        """Granted and the imprint matches; and, with a TSA CA configured, signed by it."""
+        result = check_timestamp_response(raw, digest)
+        if result["ok"] and self.tsa_ca:
+            result = verify_tsa_signature(raw, digest, self.tsa_ca)
+        return result
 
     def list(self, p: Principal) -> dict[str, Any]:
         self._admin(p)
@@ -151,7 +185,7 @@ class CustodyService:
             rows = uow.repo("anchors").list(order_by=["-seq"], limit=1000)
         signer = self.p.signer_or_none()
         return {"anchors": rows, "methods": self.methods, "file": str(self.path),
-                "tsa_url": self.tsa_url or None,
+                "tsa_url": self.tsa_url or None, "tsa_ca_file": self.tsa_ca or None,
                 "public_key": signer.public_key_b64 if signer else None,
                 "key_id": signer.key_id if signer else None}
 
@@ -185,8 +219,8 @@ class CustodyService:
             if "file" in a["methods"] and (a["seq"], a["head_hash"]) not in file_lines:
                 problems.append("the anchor is missing from the append-only file")
             if a["tsa_token"]:
-                tsa = check_timestamp_response(base64.b64decode(a["tsa_token"]),
-                                               bytes.fromhex(a["head_hash"]))
+                tsa = self._check_token(base64.b64decode(a["tsa_token"]),
+                                        bytes.fromhex(a["head_hash"]))
                 if not tsa["ok"]:
                     problems.append(f"timestamp token: {tsa['detail']}")
             results.append({"seq": a["seq"], "head": a["head_hash"], "ok": not problems,
