@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 8806ec9520d32908c2ada2797b45923634266517c6103370e21f342c5f42fa93
+-- schema-hash: a35ed8ac66463e161d4b3cc8d7c17c9702ec4db5a8d2bcf3cc0658f47dc44668
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -92,6 +92,34 @@ CREATE TABLE campaigns (
 	row_version INTEGER NOT NULL, 
 	CONSTRAINT pk_campaigns PRIMARY KEY (id)
 );
+
+CREATE TABLE challenge_memos (
+	object_type VARCHAR(32) NOT NULL, 
+	object_id UUID NOT NULL, 
+	object_ref VARCHAR(512), 
+	provider VARCHAR(32) NOT NULL, 
+	model VARCHAR(64) NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	summary TEXT, 
+	findings JSONB NOT NULL, 
+	dossier_sha256 VARCHAR(64), 
+	error TEXT, 
+	stance VARCHAR(16), 
+	stance_by VARCHAR(128), 
+	stance_note TEXT, 
+	stance_at TIMESTAMP WITH TIME ZONE, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_challenge_memos PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_challenge_memos_object_id ON challenge_memos (object_id);
+
+CREATE INDEX ix_challenge_memos_object_type ON challenge_memos (object_type);
 
 CREATE TABLE comments (
 	object_type VARCHAR(32) NOT NULL, 

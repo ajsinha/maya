@@ -13,5 +13,6 @@
     {% for n in names %}<button class="btn btn-sm {% if n == 'approve' %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ n }}" type="submit">{{ n.replace('_',' ') }}</button>{% else %}<span class="small-muted">No transition from {{ state }}.</span>{% endfor %}
     {% if is_admin and names %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass (reason required)</label>{% endif %}
   </form></div>{% endif %}
+{% if memos is not none %}{% include "workflow/_challenge.html" %}{% endif %}
 {% include "_history.html" %}
 {% endblock %}

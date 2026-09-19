@@ -1,0 +1,40 @@
+{# The recorded challenger's memo (§29.8). Needs: memos, object_type, object_id, csrf #}
+{% set sev = {'high': 'bad', 'medium': 'warn', 'low': 'brand', 'info': 'ok'} %}
+<section class="card mb-3" aria-labelledby="challenge-title">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-chat-square-quote" aria-hidden="true"></i>
+    <span id="challenge-title" class="me-auto">Recorded challenge</span>
+    <form method="post" action="/workflow/review/{{ object_type }}/{{ object_id }}/challenge">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Ask again</button></form>
+  </div>
+  <div class="card-body">
+    <p class="small-muted mb-2">The challenger never approves, never blocks and never edits this version. Its memo is part of the record; the reviewer records whether they agreed.</p>
+    {% set memo = memos[0] if memos else none %}
+    {% if not memo %}<p class="mb-0">No memo yet. One is written when a version is submitted, or on request.</p>
+    {% elif memo.state == 'pending' %}<p class="mb-0"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Being written by {{ memo.model }}…</p>
+    {% else %}
+      <div class="mb-2"><strong>{{ memo.summary }}</strong> <span class="small-muted">— {{ memo.provider }} · {{ memo.model }} · {{ memo.updated_at|dt }}</span></div>
+      {% if memo.error %}<div class="alert alert-warning py-2">{{ memo.error }}</div>{% endif %}
+      {% for f in memo.findings %}
+      <div class="help-box {{ 'warn' if f.severity in ('high', 'medium') else 'concept' }} py-2">
+        <div class="hb-title">{{ pill(sev.get(f.severity, 'brand'), f.severity) }} {{ f.title }} <span class="small-muted">· {{ f.category.replace('_', ' ') }} · {{ f.source }}</span></div>
+        <div class="small">{{ f.detail }}</div></div>
+      {% endfor %}
+      {% if memo.stance %}
+      <div class="alert alert-info py-2 mt-2 mb-0"><strong>{{ memo.stance_by }}</strong> recorded <strong>{{ memo.stance }}</strong>{% if memo.stance_note %}: {{ memo.stance_note }}{% endif %} <span class="small-muted">({{ memo.stance_at|dt }})</span></div>
+      {% else %}
+      <form method="post" action="/workflow/review/{{ object_type }}/{{ object_id }}/challenge/{{ memo.id }}" class="row g-2 align-items-end mt-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <div class="col-md-3"><label class="form-label" for="stance">Your response</label>
+          <select class="form-select form-select-sm" id="stance" name="stance"><option value="agree">I agree</option><option value="partly">I partly agree</option><option value="disagree">I disagree</option></select></div>
+        <div class="col-md-7"><label class="form-label" for="stance-note">Why (required unless you agree)</label>
+          <input class="form-control form-control-sm" id="stance-note" name="note"></div>
+        <div class="col-md-2"><button class="btn btn-sm btn-primary w-100" type="submit">Record</button></div>
+      </form>
+      {% endif %}
+    {% endif %}
+    {% if memos|length > 1 %}<details class="mt-2"><summary class="small">{{ memos|length - 1 }} earlier memo(s)</summary>
+      {% for m in memos[1:] %}<div class="small">{{ m.updated_at|dt }} · {{ m.model }} · {{ m.summary }}{% if m.stance %} · {{ m.stance_by }}: {{ m.stance }}{% endif %}</div>{% endfor %}</details>{% endif %}
+  </div>
+</section>

@@ -260,3 +260,24 @@ class SearchTerm(Base):
     object_id: Mapped[str] = mapped_column(PortableUUID, index=True)
     field: Mapped[str] = mapped_column(String(16))
     weight: Mapped[int] = mapped_column(Integer)
+
+
+class ChallengeMemo(Tracked, Base):
+    """The assistant's recorded challenge on one reviewed version (§29.8). It never approves,
+    never blocks and never writes to the object; the reviewer records whether they agreed."""
+
+    __tablename__ = "challenge_memos"
+    object_type: Mapped[str] = mapped_column(String(32), index=True)
+    object_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    object_ref: Mapped[str | None] = mapped_column(String(512))
+    provider: Mapped[str] = mapped_column(String(32))
+    model: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(16), default="pending")   # pending|ready|failed
+    summary: Mapped[str | None] = mapped_column(Text)
+    findings: Mapped[list[dict[str, Any]]] = mapped_column(PortableJSON, default=list)
+    dossier_sha256: Mapped[str | None] = mapped_column(String(64))
+    error: Mapped[str | None] = mapped_column(Text)
+    stance: Mapped[str | None] = mapped_column(String(16))              # agree|partly|disagree
+    stance_by: Mapped[str | None] = mapped_column(String(128))
+    stance_note: Mapped[str | None] = mapped_column(Text)
+    stance_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)

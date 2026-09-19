@@ -42,6 +42,8 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
         history = await sdk.workflow.history(object_type, object_id)
         comments = await sdk.workflow.comments(object_type, object_id)
         policies = await sdk.workflow.policies()
+        memos = await sdk.assistant.memos(object_type, object_id) if object_type in (
+            "feature_version", "featureset_version", "model_version") else None
     active = next((p for p in policies if p["object_type"] == object_type and
                    p["state"] == "active"), None)
     events = [e for e in history if e.get("to_state")]
@@ -56,6 +58,7 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
     return await render(request, "workflow/review.html", {
         "object_type": object_type, "object_id": object_id, "history": history,
         "comments": comments, "state": state, "ref": ref, "names": names, "policy": active,
+        "memos": memos,
         "is_admin": is_admin(request)})
 
 
@@ -213,3 +216,23 @@ async def revoke_delegation(request: Request, delegation_id: str) -> Any:
         await sdk.workflow.revoke_delegation(delegation_id)
     flash(request, "Delegation revoked.", "info")
     return RedirectResponse("/workflow/delegations", status_code=303)
+
+
+@router.post("/workflow/review/{object_type}/{object_id}/challenge")
+@action
+async def ask_challenge(request: Request, object_type: str, object_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.assistant.request(object_type, object_id)
+    flash(request, "A fresh challenge memo is being written.", "info")
+    return RedirectResponse(f"/workflow/review/{object_type}/{object_id}", status_code=303)
+
+
+@router.post("/workflow/review/{object_type}/{object_id}/challenge/{memo_id}")
+@action
+async def respond_challenge(request: Request, object_type: str, object_id: str,
+                            memo_id: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.assistant.respond(memo_id, data.get("stance", ""), data.get("note", ""))
+    flash(request, "Your response to the challenge is recorded.", "success")
+    return RedirectResponse(f"/workflow/review/{object_type}/{object_id}", status_code=303)

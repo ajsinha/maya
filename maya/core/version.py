@@ -38,5 +38,6 @@ HIGHLIGHTS = {
         "SAML 2.0 single sign-on and WebAuthn security keys",
         "Catalog search on an inverted index: ranked, prefix-matched, permission-filtered",
         "True LaTeX builds with Tectonic; SDK record/replay fixtures and maya.offline(bundle)",
+        "Server-side cursor paging; the assistant as a recorded challenger on every review",
     ],
 }
