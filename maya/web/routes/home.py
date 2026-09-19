@@ -112,8 +112,30 @@ async def about(request: Request) -> Any:
 
 @router.get("/help")
 async def help_index(request: Request) -> Any:
-    from maya.web.help_catalog import CATEGORIES
-    return await render(request, "help/index.html", {"catalog": CATEGORIES, "public_nav": True})
+    from maya.web.help_catalog import CATEGORIES, GUIDES
+    return await render(request, "help/index.html", {"catalog": CATEGORIES, "guides": GUIDES,
+                                                     "public_nav": True})
+
+
+@router.get("/help/guides")
+async def help_guides(request: Request) -> Any:
+    from maya.web.help_catalog import GUIDES
+    return await render(request, "help/guides.html", {"guides": GUIDES, "public_nav": True})
+
+
+@router.get("/help/guides/{slug}")
+async def help_guide(request: Request, slug: str) -> Any:
+    from maya.web.guide_render import render as render_guide
+    from maya.web.help_catalog import find_guide
+    guide = find_guide(slug)
+    if guide is None:
+        return RedirectResponse("/help/guides", status_code=303)
+    try:
+        doc = render_guide(slug)
+    except FileNotFoundError:
+        return RedirectResponse("/help/guides", status_code=303)
+    return await render(request, "help/guide.html", {"guide": guide, "doc": doc,
+                                                     "public_nav": True})
 
 
 @router.get("/help/{slug}")
@@ -122,5 +144,6 @@ async def help_topic(request: Request, slug: str) -> Any:
     topic = find(slug)
     if topic is None:
         return RedirectResponse("/help", status_code=303)
-    return await render(request, f"help/topics/{slug}.html", {"topic": topic,
-                                                              "public_nav": True})
+    from maya.web.help_catalog import companion
+    return await render(request, f"help/topics/{slug}.html", {
+        "topic": topic, "companion": companion(slug), "public_nav": True})

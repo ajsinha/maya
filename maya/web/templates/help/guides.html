@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Guides · Help{% endblock %}
+{% block content %}
+<nav class="help-crumbs" aria-label="Breadcrumb">
+  <a href="/help"><i class="bi bi-book" aria-hidden="true"></i> Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  <span aria-current="page">Tutorials and full references</span>
+</nav>
+<section class="help-hero">
+  <i class="bi bi-journal-richtext hero-ico" aria-hidden="true"></i>
+  <h1>Tutorials and full references</h1>
+  <p>Step-by-step tutorials that take you end to end, and the complete reference for every part of MAYA.</p>
+</section>
+<div class="help-toolbar"><div class="help-search"><i class="bi bi-search" aria-hidden="true"></i>
+  <label class="visually-hidden" for="help-q">Search the guides</label>
+  <input id="help-q" type="search" autocomplete="off" placeholder="Search the guides — e.g. covenant, calendar, SAML, estate…"></div></div>
+{% for kind, label, blurb in [('tutorial', 'Tutorials', 'Follow along: each one builds on the last, with every command and screen.'), ('reference', 'Full references', 'Everything, precisely: every key, operator, method, setting and rule.')] %}
+<details class="help-cat" open>
+  <summary><span class="cat-name"><span class="cat-ico"><i class="bi bi-{{ 'signpost-split' if kind == 'tutorial' else 'journal-richtext' }}" aria-hidden="true"></i></span> {{ label }}</span>
+    <span class="cat-count">{{ guides|selectattr('kind', 'equalto', kind)|list|length }}</span></summary>
+  <p class="cat-blurb">{{ blurb }}</p>
+  <div class="row g-3 cat-body">
+    {% for g in guides if g.kind == kind %}
+    <div class="col-md-6 col-xl-4 help-item" data-search="{{ (g.title ~ ' ' ~ g.summary)|lower }}">
+      <a class="card help-card h-100" href="/help/guides/{{ g.slug }}"><div class="card-body">
+        <div class="hc-title"><span class="hc-ico"><i class="bi bi-{{ g.icon }}" aria-hidden="true"></i></span><span>{{ g.title }}</span></div>
+        <p>{{ g.summary }}</p><span class="more">Open <i class="bi bi-arrow-right" aria-hidden="true"></i></span></div></a>
+    </div>
+    {% endfor %}
+  </div>
+</details>
+{% endfor %}
+<div id="help-none" class="help-none" hidden><i class="bi bi-search" aria-hidden="true"></i> No guide matches that search.</div>
+{% endblock %}

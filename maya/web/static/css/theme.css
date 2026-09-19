@@ -338,3 +338,27 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .about-author { text-align: center; padding: 2rem; }
 .about-author .avatar { width: 88px; height: 88px; border-radius: 50%; margin: 0 auto 1rem; display: grid; place-items: center; font-size: 2.4rem;
   color: var(--maya-on-nav); background: linear-gradient(135deg, var(--maya-nav-via), var(--maya-nav-to)); }
+
+/* Guides: a contents rail beside long-form reference text */
+.guide-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.6rem; align-items: start; max-width: 1240px; }
+.guide-toc { position: sticky; top: 84px; max-height: calc(100vh - 110px); overflow-y: auto; font-size: 13px;
+  padding: .9rem 1rem; border-radius: 14px; background: var(--maya-surface); border: 1px solid var(--maya-border); }
+.guide-toc .head { font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--maya-slate); margin-bottom: .5rem; }
+.guide-toc ol { list-style: none; margin: 0; padding: 0; }
+.guide-toc ol ol { padding-left: .8rem; margin: .15rem 0 .35rem; border-left: 2px solid var(--maya-border); }
+.guide-toc a { display: block; padding: .18rem 0; text-decoration: none; color: var(--maya-ink); }
+.guide-toc a:hover { color: var(--maya-crimson); }
+.guide-body { max-width: 860px; }
+.guide-body h2 { margin-top: 2rem; padding-top: .4rem; border-top: 1px solid var(--maya-border); scroll-margin-top: 90px; }
+.guide-body h3 { margin-top: 1.4rem; scroll-margin-top: 90px; }
+.guide-body code { color: var(--maya-crimson-deep); }
+.guide-body pre code { color: var(--maya-ink); }
+.guide-body blockquote { border-left: 4px solid var(--maya-indigo); padding: .4rem 1rem; color: var(--maya-slate); margin: 1rem 0; }
+.help-table-wrap { margin: 1rem 0; border: 1px solid var(--maya-border); border-radius: 12px; background: var(--maya-surface); }
+.help-table-wrap table.maya-table th { position: static; }
+.help-companion { display: flex; align-items: center; gap: .7rem; max-width: 1100px; margin: 0 0 1rem; padding: .8rem 1.1rem;
+  border-radius: 14px; text-decoration: none; color: var(--maya-ink); background: var(--maya-surface);
+  border: 1px solid var(--maya-border); border-left: 4px solid var(--maya-crimson); }
+.help-companion:hover { color: var(--maya-ink); border-color: var(--maya-crimson); }
+.help-companion > .bi:first-child { font-size: 1.3rem; color: var(--maya-crimson); }
+@media (max-width: 991.98px) { .guide-layout { grid-template-columns: 1fr; } .guide-toc { position: static; max-height: none; } }
