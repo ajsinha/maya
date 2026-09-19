@@ -116,6 +116,79 @@ def admin_verify_integrity(args: argparse.Namespace) -> int:
     return EXIT_OK if not result["drift"] and result["audit_chain"]["ok"] else EXIT_REFUSED
 
 
+def admin_record_drill(args: argparse.Namespace) -> int:
+    """Write the result of a restore drill onto the production instance (§20).
+
+    Beside the database, like the other estate commands: the drill is performed on a
+    scratch copy which is then deleted, and the record belongs to the instance that was
+    backed up, not to the copy. ``MAYA_USER`` names the person recording it.
+    """
+    platform, principal = _local_ops(args)
+    row = platform.ops.record_restore_drill(
+        principal,
+        dialect=args.dialect,
+        outcome="failed" if args.failed else "passed",
+        pins_checked=args.pins,
+        drift=args.drift,
+        audit_chain_ok=not args.chain_broken,
+        anchors_ok=not args.anchors_broken,
+        duration_seconds=args.duration,
+        notes=args.notes,
+    )
+    _out(
+        args,
+        row,
+        lambda r: (
+            f"recorded restore drill {r['id']}: {r['outcome']}, "
+            f"{r['pins_checked']} pin(s), drift {r['drift']}, {r['duration_seconds']:g}s"
+        ),
+    )
+    return EXIT_OK
+
+
+def admin_drills(args: argparse.Namespace) -> int:
+    platform, principal = _local_ops(args)
+    status = platform.ops.restore_drill_status(principal)
+    rows = platform.ops.restore_drills(principal)
+    _out(
+        args,
+        {"status": status, "drills": rows},
+        lambda r: (
+            _rows(
+                [
+                    {
+                        "performed": str(d["performed_at"])[:19],
+                        "dialect": d["dialect"],
+                        "outcome": d["outcome"],
+                        "pins": d["pins_checked"],
+                        "drift": d["drift"],
+                        "by": d["verified_by"],
+                    }
+                    for d in r["drills"]
+                ],
+                ["performed", "dialect", "outcome", "pins", "drift", "by"],
+            )
+            + f"\n\n{r['status']['detail']}"
+            + ("  (overdue: §20 asks for one a quarter)" if r["status"]["overdue"] else "")
+        ),
+    )
+    return EXIT_REFUSED if status["overdue"] else EXIT_OK
+
+
+def _local_ops(args: argparse.Namespace) -> tuple[Any, Any]:
+    """A platform opened beside the database, and the principal naming who is acting."""
+    from maya.config import load_settings
+    from maya.services.platform import Platform
+
+    platform = Platform.build(load_settings(args.config), start_workers=False)
+    username = os.environ.get("MAYA_USER", "admin")
+    with platform.uow() as uow:
+        user = uow.repo("users").find_one(username=username)
+        if user is None:
+            raise MayaError(f"No such user '{username}'; set MAYA_USER")
+        return platform, platform.auth.build_principal(uow, user["id"], channel="cli")
+
+
 def _local_platform(args: argparse.Namespace, seed: bool = True) -> Any:
     from maya.config import load_settings
     from maya.services.platform import Platform
@@ -392,6 +465,20 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     cmd(a, "verify-integrity", admin_verify_integrity)
+    cmd(
+        a,
+        "record-drill",
+        admin_record_drill,
+        (("--dialect",), {"default": None, "help": "the dialect the drill restored"}),
+        (("--pins",), {"type": int, "default": 0, "help": "sealed pins verified"}),
+        (("--drift",), {"type": int, "default": 0, "help": "pins that failed to verify"}),
+        (("--duration",), {"type": float, "default": 0.0, "help": "seconds, restore to green"}),
+        (("--failed",), {"action": "store_true", "help": "the drill did not pass"}),
+        (("--chain-broken",), {"action": "store_true", "dest": "chain_broken"}),
+        (("--anchors-broken",), {"action": "store_true", "dest": "anchors_broken"}),
+        (("--notes",), {"default": None, "help": "what was restored, and anything unusual"}),
+    )
+    cmd(a, "drills", admin_drills)
 
     f = groups.add_parser("feature").add_subparsers(dest="cmd", required=True)
     cmd(f, "list", feature_list, (("--namespace",), {}), (("-q",), {"dest": "q"}))
