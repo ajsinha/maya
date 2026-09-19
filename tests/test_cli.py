@@ -69,6 +69,7 @@ def estate():
             ("admin", "maya-dev-admin"),
             ("mick", "Test-password-1"),
             ("mgr", "Test-password-1"),
+            ("devi", "Test-password-1"),
         )
     }
     yield w, clients
@@ -358,3 +359,72 @@ def test_rows_formatting():
     text = cli._rows([{"a": "x", "bb": 12}, {"a": "longer"}], ["a", "bb"])
     lines = text.splitlines()
     assert lines[0].startswith("A       BB") and lines[2].startswith("longer")
+
+
+def test_admin_users_roles_and_namespaces_from_the_command_line(run, monkeypatch):
+    """§18.3's `admin user|role|grant|policy` group, which was missing entirely."""
+    monkeypatch.setenv("MAYA_NEW_PASSWORD", "Cli-password-1")
+    code, out, err = run("admin", "user-create", "cliuser", "--role", "feature_designer")
+    assert code == 0 and "created cliuser" in out, err
+    code, out, _ = run("admin", "user-list", json_out=True)
+    assert code == 0 and any(u["username"] == "cliuser" for u in json.loads(out))
+    code, out, _ = run("admin", "user-roles", "cliuser", "--role", "techops")
+    assert code == 0 and "techops" in out
+    code, out, _ = run("admin", "role-list")
+    assert code == 0 and "feature_manager" in out
+    code, out, _ = run(
+        "admin", "role-create", "cli_reader", "--capability", "feature=R", "--description", "read"
+    )
+    assert code == 0 and "created role cli_reader" in out
+    code, out, _ = run(
+        "admin", "namespace-create", "cli_ns", "--quota-bytes", "1000000", "--preset", "small_team"
+    )
+    assert code == 0 and "created namespace cli_ns" in out
+    code, out, _ = run("admin", "namespace-list", json_out=True)
+    row = next(n for n in json.loads(out) if n["name"] == "cli_ns")
+    assert row["quota_bytes"] == 1000000 and row["preset"] == "small_team"
+
+
+def test_admin_grants_and_policies_from_the_command_line(run):
+    code, out, _ = run(
+        "admin", "grant-add", "feature", "eq/px", "read", "--principal", "cliuser", "--days", "30"
+    )
+    assert code == 0 and "granted read on eq/px" in out
+    code, out, _ = run("admin", "grant-list", "feature", "eq/px", json_out=True)
+    assert code == 0 and json.loads(out)
+    code, out, _ = run("admin", "policy-list", json_out=True)
+    policies = json.loads(out)
+    active = next(p for p in policies if p["state"] == "active")
+    code, out, _ = run("admin", "policy-show", active["id"])
+    assert code == 0 and "transitions:" in out
+
+
+def test_featureset_build_model_validate_and_warrant_create(run, tmp_path):
+    definition = {
+        "index": ["date", "symbol"],
+        "members": [
+            {"attr": "x2", "ref": "maya://feature/quant/xy@v1", "source_attr": "x"},
+            {"attr": "y2", "ref": "maya://feature/quant/xy@v1", "source_attr": "y"},
+        ],
+    }
+    path = tmp_path / "set.json"
+    path.write_text(json.dumps(definition), encoding="utf-8")
+    code, out, _ = run("featureset", "build", "quant/built", str(path))
+    assert code == 0 and "quant/built" in out
+    code, out, err = run("model", "validate", "quant/linear", json_out=True)
+    assert out, err
+    report = json.loads(out)
+    assert code in (0, 1) and report["ref"] == "quant/linear" and "conformance" in report
+    code, out, err = run(
+        "warrant",
+        "create",
+        "quant/cli_calib",
+        "--model",
+        "quant/linear@v1",
+        "--featureset",
+        "maya://featureset/quant/panel@v1",
+        "--target",
+        "y",
+        as_user="devi",
+    )
+    assert code == 0 and "leakage certificate" in out, err

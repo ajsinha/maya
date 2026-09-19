@@ -27,7 +27,7 @@ from maya.resolution import algebra, shapes
 from maya.resolution.featureset import resolve_featureset
 from maya.resolution.resolver import KT
 from maya.security.authz import Principal
-from maya.services import catalog, refs
+from maya.services import catalog, quota, refs
 from maya.services.feature_data import Resolved
 from maya.services.features import _records
 from maya.workflow.engine import Subject
@@ -981,6 +981,10 @@ class FeatureSetService:
         table = self.p.feature_data.to_table(res)
         policy = ns.get("materialize_policy") or "always"
         if policy == "always":
+            rel = self.p.lake.rel(self.p.lake.table_path("fspins", ns["name"], fs["name"]))
+            with self.p.uow() as uow:
+                known = {f["hash"] for f in uow.repo("fragments").list(lake_table=rel)}
+                quota.check(uow, ns, self.p.lake.new_bytes(table, known), what="feature set pin")
             write, lake_table = self.p.feature_data._write_fragments(
                 ns["name"], fs["name"], table, kind="fspins"
             )

@@ -38,7 +38,7 @@ from maya.resolution import algebra, quality, shapes
 from maya.resolution.resolver import KT, resolve_feature
 from maya.resolution.transforms import apply_pipeline
 from maya.resolution.types import cast_frame
-from maya.services import catalog, refs
+from maya.services import catalog, quota, refs
 
 
 @dataclass
@@ -426,6 +426,12 @@ class FeatureData:
                 "ingested, or none known at as_of_known)"
             )
         table = self.to_table(res)
+        lake_table = self.p.lake.rel(self.p.lake.table_path("pins", ns["name"], feature["name"]))
+        with self.p.uow() as uow:
+            known = {f["hash"] for f in uow.repo("fragments").list(lake_table=lake_table)}
+            # the real figure, before anything is stored: a queue of pins cannot slip past
+            # a quota by all being estimated while none of them is written yet
+            quota.check(uow, ns, self.p.lake.new_bytes(table, known), what="pin")
         write, lake_table = self._write_fragments(ns["name"], feature["name"], table)
         verify = self.p.lake.verify_pin(
             "pins", ns["name"], feature["name"], write.fragments, write.content_hash, written=table

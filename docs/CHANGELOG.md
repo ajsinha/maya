@@ -17,6 +17,30 @@
   request past `api.limits.timeout_seconds` is answered `504`. All three count per
   process, so several web processes multiply them.
 
+**Quotas, and what a pin will cost (§7.3)**
+
+- A namespace's `quota_bytes` was stored and read by nothing. It is now checked when a pin
+  is requested — against an estimate, before a worker spends minutes — and again against
+  the writer's real figure before any byte is stored, so a queue of pins cannot slip past
+  a quota while none of them is written yet. A pin refused that late is left `failed` with
+  the quota named.
+- What is charged is **stored** bytes, counted once per content-addressed fragment: a
+  re-pin of unchanged data adds nothing, where charging logical size would bill the same
+  bytes again.
+- `maya/services/quota.py` reports a namespace's usage, and `features.footprint(ref)`
+  answers what a feature holds and what one more pin would store, saying where the figure
+  came from (its own last sealed pin, or its declared schema).
+
+**The CLI's missing command groups (§18.3)**
+
+- `maya admin user-list | user-create | user-roles`, `role-list | role-create`,
+  `namespace-list | namespace-create` (with `--quota-bytes`), `grant-list | grant-add`,
+  and `policy-list | policy-show | policy-import | policy-activate`.
+- `maya featureset build <ns/name> <definition.json|yaml> [--submit]`.
+- `maya model validate <ref>` — how the formula conforms and what the workflow still
+  wants; a draft with no artifact to test reports that rather than failing.
+- `maya warrant create <ns/name> --model --featureset --target|--spec`.
+
 **The feature-set algebra (§6.8), which was only `extend` and `project`**
 
 - A feature set can now be **an operation over other feature sets**: it carries a

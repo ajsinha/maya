@@ -116,6 +116,19 @@ class LakeStore:
         schema_hex = canonical.schema_digest((f.name, str(f.type)) for f in table.schema)
         return schema_hex, [(canonical.fragment_hash(digests[s:e]), s, e) for s, e in runs]
 
+    def new_bytes(self, table: pa.Table, known: set[str]) -> int:
+        """What writing ``table`` would add, in bytes, without writing it: the fragments
+        ``known`` does not already hold. Used to check a quota before storing anything."""
+        _, runs = self.plan_fragments(table)
+        seen: set[str] = set()
+        total = 0
+        for digest, start, end in runs:
+            if digest in known or digest in seen:
+                continue
+            seen.add(digest)
+            total += table.slice(start, end - start).nbytes
+        return total
+
     def write_pin(
         self, kind: str, namespace: str, name: str, table: pa.Table, known: set[str]
     ) -> FragmentWrite:

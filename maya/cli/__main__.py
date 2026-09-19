@@ -360,21 +360,197 @@ def export_verify(args: argparse.Namespace) -> int:
 
 
 # -- argument parsing -------------------------------------------------------------------------
-def _parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="maya", description="MAYA command line")
-    p.add_argument("--json", action="store_true", help="machine-readable output")
-    p.add_argument("--profile", help="profile in ~/.maya/config.toml")
-    p.add_argument("--local", action="store_true", help="in-process platform, not a server")
-    p.add_argument("--config", default="config/application.yaml")
-    groups = p.add_subparsers(dest="group", required=True)
 
-    def cmd(group: Any, name: str, fn: Callable[..., int], *arguments: tuple[Any, ...]) -> None:
-        sp = group.add_parser(name)
-        for spec in arguments:
-            sp.add_argument(*spec[0], **spec[1])
-        sp.set_defaults(fn=fn)
+# -- admin, featureset build, model validate, warrant create (§18.3) ---------------------
 
-    a = groups.add_parser("admin").add_subparsers(dest="cmd", required=True)
+
+def _definition(path: str) -> dict[str, Any]:
+    """A definition read from JSON or YAML, whichever the file is."""
+    text = Path(path).read_text(encoding="utf-8")
+    if path.endswith((".yaml", ".yml")):
+        import yaml
+
+        return dict(yaml.safe_load(text))
+    return dict(json.loads(text))
+
+
+def admin_user_list(args: argparse.Namespace) -> int:
+    rows = _client(args).admin.users()
+    _out(args, rows, lambda r: _rows(r, ["username", "status", "roles", "last_login_at"]))
+    return EXIT_OK
+
+
+def admin_user_create(args: argparse.Namespace) -> int:
+    password = args.password or os.environ.get("MAYA_NEW_PASSWORD")
+    if not password:
+        raise MayaError("Give --password, or put it in MAYA_NEW_PASSWORD")
+    extra = {"email": args.email} if args.email else {}
+    out = _client(args).admin.create_user(
+        args.username, password=password, roles=args.role or [], **extra
+    )
+    roles = ", ".join(args.role or []) or "no roles"
+    _out(args, out, lambda r: f"created {r['username']} with {roles}")
+    return EXIT_OK
+
+
+def admin_user_roles(args: argparse.Namespace) -> int:
+    out = _client(args).admin.set_roles(args.username, args.role or [])
+    held = ", ".join(out.get("roles") or args.role or []) or "no roles"
+    _out(args, out, lambda r: f"{args.username} now holds {held}")
+    return EXIT_OK
+
+
+def admin_role_list(args: argparse.Namespace) -> int:
+    rows = _client(args).admin.roles()
+    _out(args, rows, lambda r: _rows(r, ["name", "description", "builtin"]))
+    return EXIT_OK
+
+
+def admin_role_create(args: argparse.Namespace) -> int:
+    capabilities = {}
+    for pair in args.capability or []:
+        kind, _, letters = pair.partition("=")
+        capabilities[kind.strip()] = letters.strip()
+    out = _client(args).admin.create_role(args.name, capabilities, args.description or "")
+    _out(args, out, lambda r: f"created role {r['name']}")
+    return EXIT_OK
+
+
+def admin_namespace_list(args: argparse.Namespace) -> int:
+    rows = _client(args).namespaces.list()
+    _out(
+        args,
+        rows,
+        lambda r: _rows(r, ["name", "preset", "default_visibility", "production", "quota_bytes"]),
+    )
+    return EXIT_OK
+
+
+def admin_namespace_create(args: argparse.Namespace) -> int:
+    extra = {"quota_bytes": args.quota_bytes} if args.quota_bytes else {}
+    out = _client(args).namespaces.create(
+        args.name,
+        preset=args.preset,
+        production=args.production,
+        default_visibility=args.visibility,
+        **extra,
+    )
+    _out(args, out, lambda r: f"created namespace {r['name']} ({r['preset']})")
+    return EXIT_OK
+
+
+def admin_grant_list(args: argparse.Namespace) -> int:
+    rows = _client(args).access.grants(args.kind, args.ref)
+    _out(args, rows, lambda r: _rows(r, ["principal_type", "principal_id", "level", "expires_at"]))
+    return EXIT_OK
+
+
+def admin_grant_add(args: argparse.Namespace) -> int:
+    out = _client(args).access.grant(
+        args.kind,
+        args.ref,
+        args.principal_type,
+        args.principal,
+        args.level,
+        days=args.days,
+        deny=args.deny,
+    )
+    _out(args, out, lambda r: f"granted {r['level']} on {args.ref} to {args.principal}")
+    return EXIT_OK
+
+
+def admin_policy_list(args: argparse.Namespace) -> int:
+    rows = _client(args).workflow.policies()
+    _out(args, rows, lambda r: _rows(r, ["object_type", "scope", "version_no", "state"]))
+    return EXIT_OK
+
+
+def admin_policy_show(args: argparse.Namespace) -> int:
+    print(_client(args).workflow.policy_yaml(args.id))
+    return EXIT_OK
+
+
+def admin_policy_import(args: argparse.Namespace) -> int:
+    body = Path(args.file).read_text(encoding="utf-8")
+    out = _client(args).workflow.import_policy(args.object_type, body, scope=args.scope)
+    _out(args, out, lambda r: f"drafted policy {r['id']} for {r['object_type']} ({r['scope']})")
+    return EXIT_OK
+
+
+def admin_policy_activate(args: argparse.Namespace) -> int:
+    out = _client(args).workflow.activate_policy(args.id)
+    _out(args, out, lambda r: f"policy {r['id']} is {r['state']}")
+    return EXIT_OK
+
+
+def featureset_build(args: argparse.Namespace) -> int:
+    """Create a feature set from a definition file, and optionally submit it for review."""
+    namespace, _, name = args.ref.partition("/")
+    if not name:
+        raise MayaError("Name the set as namespace/name")
+    c = _client(args)
+    out = c.featuresets.create(namespace, name, _definition(args.file))
+    if args.submit:
+        out = c.featuresets.transition(args.ref, out.get("version_no", 1), "submit")
+    _out(args, out, lambda r: f"{args.ref} is {r.get('state', 'draft')}")
+    return EXIT_OK
+
+
+def model_validate(args: argparse.Namespace) -> int:
+    """What the server can say about a draft before it is submitted: how its formula
+    conforms, and what the workflow would still ask for."""
+    c = _client(args)
+    model = c.models.get(args.ref)
+    version = args.version or model.get("latest_version") or 1
+    try:
+        conformance = c.models.conformance(args.ref, version)
+    except MayaError as exc:
+        # a draft with no uploaded artifact cannot be conformance-tested; that is a thing
+        # to report, not a reason for the command to fall over
+        conformance = {"status": "not run", "reason": exc.message}
+    problems = [str(x) for x in (conformance or {}).get("problems", [])]
+    if conformance.get("status") == "not run":
+        problems.append(conformance["reason"])
+    report = {
+        "ref": args.ref,
+        "latest_version": model.get("latest_version"),
+        "state": model.get("latest_state"),
+        "conformance": conformance,
+        "transitions": model.get("transitions"),
+    }
+    _out(
+        args,
+        report,
+        lambda r: "\n".join(
+            [f"{args.ref} v{r['latest_version']} is {r['state']}"]
+            + ([f"  problem: {p}" for p in problems] or ["  nothing refused it"])
+        ),
+    )
+    return EXIT_REFUSED if problems else EXIT_OK
+
+
+def warrant_create(args: argparse.Namespace) -> int:
+    namespace, _, name = args.ref.partition("/")
+    if not name:
+        raise MayaError("Name the warrant as namespace/name")
+    spec = _definition(args.spec) if args.spec else {"target": args.target}
+    out = _client(args).training.create(
+        namespace, name, model=args.model, featureset=args.featureset, spec=spec
+    )
+    _out(
+        args,
+        out,
+        lambda r: (
+            f"{args.ref} v{r['version_no']} drawn on {r['featureset_ref']}; "
+            f"leakage certificate: {r['leakage_certificate']['status']}"
+        ),
+    )
+    return EXIT_OK
+
+
+def _admin_commands(cmd: Callable[..., None], a: Any) -> None:
+    """The `maya admin ...` group: the database lifecycle, then users, roles, namespaces,
+    grants and workflow policies (§18.3)."""
     cmd(a, "init-db", admin_init_db, (("--force",), {"action": "store_true"}))
     cmd(a, "export-estate", admin_export_estate, (("--out",), {"required": True}))
     cmd(
@@ -392,6 +568,79 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     cmd(a, "verify-integrity", admin_verify_integrity)
+    cmd(a, "user-list", admin_user_list)
+    cmd(
+        a,
+        "user-create",
+        admin_user_create,
+        (("username",), {}),
+        (("--password",), {"help": "or MAYA_NEW_PASSWORD"}),
+        (("--role",), {"action": "append"}),
+        (("--email",), {}),
+    )
+    cmd(a, "user-roles", admin_user_roles, (("username",), {}), (("--role",), {"action": "append"}))
+    cmd(a, "role-list", admin_role_list)
+    cmd(
+        a,
+        "role-create",
+        admin_role_create,
+        (("name",), {}),
+        (("--capability",), {"action": "append", "help": "kind=LETTERS, e.g. feature=CRU"}),
+        (("--description",), {}),
+    )
+    cmd(a, "namespace-list", admin_namespace_list)
+    cmd(
+        a,
+        "namespace-create",
+        admin_namespace_create,
+        (("name",), {}),
+        (("--preset",), {"default": "standard"}),
+        (("--production",), {"action": "store_true"}),
+        (("--quota-bytes",), {"dest": "quota_bytes", "type": int}),
+        (("--visibility",), {"dest": "visibility", "default": "namespace_read"}),
+    )
+    cmd(a, "grant-list", admin_grant_list, (("kind",), {}), (("ref",), {}))
+    cmd(
+        a,
+        "grant-add",
+        admin_grant_add,
+        (("kind",), {}),
+        (("ref",), {}),
+        (("level",), {}),
+        (("--principal-type",), {"dest": "principal_type", "default": "user"}),
+        (("--principal",), {"required": True}),
+        (("--days",), {"type": int, "default": 90}),
+        (("--deny",), {"action": "store_true"}),
+    )
+    cmd(a, "policy-list", admin_policy_list)
+    cmd(a, "policy-show", admin_policy_show, (("id",), {}))
+    cmd(
+        a,
+        "policy-import",
+        admin_policy_import,
+        (("object_type",), {}),
+        (("file",), {}),
+        (("--scope",), {"default": "*"}),
+    )
+    cmd(a, "policy-activate", admin_policy_activate, (("id",), {}))
+
+
+def _parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="maya", description="MAYA command line")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
+    p.add_argument("--profile", help="profile in ~/.maya/config.toml")
+    p.add_argument("--local", action="store_true", help="in-process platform, not a server")
+    p.add_argument("--config", default="config/application.yaml")
+    groups = p.add_subparsers(dest="group", required=True)
+
+    def cmd(group: Any, name: str, fn: Callable[..., int], *arguments: tuple[Any, ...]) -> None:
+        sp = group.add_parser(name)
+        for spec in arguments:
+            sp.add_argument(*spec[0], **spec[1])
+        sp.set_defaults(fn=fn)
+
+    a = groups.add_parser("admin").add_subparsers(dest="cmd", required=True)
+    _admin_commands(cmd, a)
 
     f = groups.add_parser("feature").add_subparsers(dest="cmd", required=True)
     cmd(f, "list", feature_list, (("--namespace",), {}), (("-q",), {"dest": "q"}))
@@ -448,6 +697,15 @@ def _parser() -> argparse.ArgumentParser:
         (("--csv-encoding",), {"dest": "csv_encoding"}),
     )
 
+    cmd(
+        fs,
+        "build",
+        featureset_build,
+        (("ref",), {}),
+        (("file",), {"help": "definition as JSON or YAML"}),
+        (("--submit",), {"action": "store_true"}),
+    )
+
     m = groups.add_parser("model").add_subparsers(dest="cmd", required=True)
     cmd(m, "push", model_push, (("ref",), {}), (("file",), {}))
     cmd(
@@ -461,8 +719,19 @@ def _parser() -> argparse.ArgumentParser:
         (("--preview",), {"action": "store_true"}),
     )
     cmd(m, "diff", model_diff, (("ref",), {}), (("v1",), {"type": int}), (("v2",), {"type": int}))
+    cmd(m, "validate", model_validate, (("ref",), {}), (("--version",), {"type": int}))
 
     w = groups.add_parser("warrant").add_subparsers(dest="cmd", required=True)
+    cmd(
+        w,
+        "create",
+        warrant_create,
+        (("ref",), {}),
+        (("--model",), {"required": True}),
+        (("--featureset",), {"required": True}),
+        (("--target",), {}),
+        (("--spec",), {"help": "spec as JSON or YAML; overrides --target"}),
+    )
     cmd(w, "fetch", warrant_fetch, (("id",), {}), (("--out",), {"required": True}))
     cmd(w, "upload-params", warrant_upload_params, (("id",), {}), (("file",), {}))
     cmd(w, "seal", warrant_seal, (("id",), {}))

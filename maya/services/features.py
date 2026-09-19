@@ -17,7 +17,7 @@ from maya.core.clock import utcnow
 from maya.resolution import algebra, shapes
 from maya.resolution.types import cast_preview, infer_schema, schema_warnings
 from maya.security.authz import Principal
-from maya.services import catalog, refs
+from maya.services import catalog, quota, refs
 from maya.services.feature_data import schema_generation
 from maya.workflow.engine import Subject
 
@@ -795,6 +795,8 @@ class FeatureService:
                     feature,
                     cap_type="feature_pin",
                 )
+            eff = catalog.effective_feature_definition(uow, version["definition"])
+            quota.check(uow, ns, self.pin_estimate(uow, feature, eff)["bytes"])
             # one request per series and date at a time (§15.3): a racer waits here, then
             # sees the winner's pin and is refused as a conflict
             uow.lock(f"pin:feature:{feature['id']}:{pin_name}:{as_of}")
@@ -845,6 +847,37 @@ class FeatureService:
             uow.repo("feature_pins").update(pin_id, {"state": "materializing"})
             job = self.p.jobs.submit(uow, "feature.pin", {"pin_id": pin_id}, owner=p.username)
             return {"pin_id": pin_id, "job": job}
+
+    def pin_estimate(
+        self, uow: Any, feature: dict[str, Any], eff: dict[str, Any]
+    ) -> dict[str, Any]:
+        """What a pin of this feature would store, from its own last sealed pin where
+        there is one (§7.3). Used to refuse an impossible pin before a worker starts."""
+        prior = uow.repo("feature_pins").list(
+            feature_id=feature["id"], state="sealed", order_by=["-created_at"], limit=1
+        )
+        rows = int(prior[0]["row_count"]) if prior and prior[0]["row_count"] else None
+        return quota.estimate(
+            uow, feature_id=feature["id"], rows=rows, schema=eff.get("schema") or []
+        )
+
+    def footprint(self, p: Principal, ref: str) -> dict[str, Any]:
+        """A feature's pins, what they store, and what one more would cost (§16.4)."""
+        with self.p.uow() as uow:
+            feature, ns = catalog.find_object(
+                uow, "features", "feature", refs.parse(ref, "feature")
+            )
+            self.p.access.require(uow, p, "read", "feature", feature)
+            version = catalog.require_latest(uow, "feature_versions", "feature_id", feature["id"])
+            eff = catalog.effective_feature_definition(uow, version["definition"])
+            estimate = self.pin_estimate(uow, feature, eff)
+            held = quota.usage(uow, ns["id"])
+        return {
+            "namespace": ns["name"],
+            "quota_bytes": ns.get("quota_bytes"),
+            "held": held,
+            "next_pin_estimate": estimate,
+        }
 
     def run_pin_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
         try:
