@@ -235,6 +235,23 @@ Conditions are validated when the grant is made, not at first read. When several
 
 `my.access.recertification()` (`GET /access/recertification`) lists every grant on every object you own, for the periodic review of who still needs what. Grants expire after 90 days unless made otherwise, which keeps the review honest.
 
+### Asking for access
+
+Nobody has to guess who to email. A reader refused something sees the rule that refused
+them and a *request access* action beside the disabled control; the request becomes an item
+the owner and the administrators decide, and the grant it produces is time-boxed at 90 days
+by default. `my.workflow.request_access(kind, ref, level=…, reason=…)`,
+`my.workflow.decide_access_request(id, approve=…, note=…, days=…)`, and
+`my.workflow.access_check(kind, ref, action=…)` for the reason itself. The full rules,
+including who receives the item and what is audited, are in the
+[workflow reference](/help/guides/workflow-reference).
+
+!!! note "Who can actually answer"
+    An approving decision issues the grant under the decider's own principal, so it needs
+    `G` on the object type. In the shipped matrix only `admin` holds `G`, so an owner
+    without the admin role — or without an `own` or `admin` grant of their own — is told
+    about the request but cannot answer it. That is why administrators receive the item too.
+
 ## API-key scope
 
 An API key acts as its owner, narrowed:

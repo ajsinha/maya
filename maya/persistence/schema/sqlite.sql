@@ -3,8 +3,36 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 39fbf16ad6989040235072f68794975ac3f1e5a830d8e42ac338e9a54e89f443
+-- schema-hash: 73d49a0c63a71b6eab858fae8d3a354dcb83054ee6065ba031d2eec4344fbbbe
 -- ==========================================================================
+
+CREATE TABLE access_requests (
+	kind VARCHAR(24) NOT NULL, 
+	object_id CHAR(36) NOT NULL, 
+	object_ref VARCHAR(512) NOT NULL, 
+	requester_id CHAR(36) NOT NULL, 
+	level VARCHAR(16) NOT NULL, 
+	reason TEXT, 
+	state VARCHAR(16) NOT NULL, 
+	days INTEGER NOT NULL, 
+	decided_by VARCHAR(128), 
+	decided_at DATETIME, 
+	decision_note TEXT, 
+	grant_id CHAR(36), 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_access_requests PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_access_requests_object ON access_requests (kind, object_id);
+
+CREATE INDEX ix_access_requests_requester_id ON access_requests (requester_id);
+
+CREATE INDEX ix_access_requests_state ON access_requests (state);
 
 CREATE TABLE anchors (
 	seq BIGINT NOT NULL, 
@@ -868,6 +896,7 @@ CREATE TABLE feature_set_versions (
 	submitted_by VARCHAR(128), 
 	approved_at DATETIME, 
 	approved_by VARCHAR(128), 
+	needs_reapproval TEXT, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 
@@ -932,6 +961,7 @@ CREATE TABLE model_versions (
 	submitted_by VARCHAR(128), 
 	approved_at DATETIME, 
 	approved_by VARCHAR(128), 
+	needs_reapproval TEXT, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 

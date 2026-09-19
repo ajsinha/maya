@@ -1,13 +1,17 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
-{% from "_macros/ui.html" import pill, kv, tabs, json_block %}
+{% from "_macros/ui.html" import pill, kv, tabs, json_block, impact_panel %}
 {% block title %}{{ m.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ m.name }}</h1><div class="small-muted mono">{{ m.ref }}{% if v %}@v{{ v.version_no }}{% endif %}</div></div>
   <form method="get" class="d-flex gap-1"><label class="visually-hidden" for="vsel">Version</label><select class="form-select form-select-sm" id="vsel" name="v">{% for x in m.versions %}<option value="{{ x.version_no }}" {% if v and x.version_no == v.version_no %}selected{% endif %}>v{{ x.version_no }} · {{ x.state }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form>
   {% if m.can_edit %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">New draft</button></form>{% endif %}
+  <form method="post" action="/catalog/subscriptions"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="object_ref" value="{{ m.ref }}">
+    <button class="btn btn-sm btn-outline-secondary" type="submit" title="Be told when a new version is approved"><i class="bi bi-bell" aria-hidden="true"></i> Follow</button></form>
   <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/diff">Diff versions</a>
 </div>
+{% if v and v.needs_reapproval %}<div class="alert alert-warning py-2">{{ v.needs_reapproval }}</div>{% endif %}
 {% include "_job.html" %}
 {% if v %}
 {{ tabs([('overview','Overview'),('definition','Definition'),('spec','Specification'),('code','Code'),('params','Parameters'),('lineage','Lineage'),('history','History & Comments')], tab) }}
@@ -126,7 +130,7 @@ class Model:
     <td>{% if p.training_warrant_id %}<a href="/warrants/training/{{ p.training_warrant_id }}">warrant</a>{% endif %}</td><td>{{ p.created_at|dt }}</td>
   {% endcall %}
 </div>
-<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{% include "_lineage_canvas.html" %}</div>
+<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{{ impact_panel(impact) }}{% include "_lineage_canvas.html" %}</div>
 <div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
   {% set object_type = 'model_version' %}{% set object_id = v.id %}{% include "_history.html" %}
 </div>

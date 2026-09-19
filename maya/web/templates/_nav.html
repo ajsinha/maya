@@ -4,10 +4,13 @@
 {% set MENU = [
   ('Catalog', 'boxes', [
     ('Browse', [
+      ('/catalog', 'funnel', 'Faceted catalog', 'Filter by type, namespace, owner, status, tag and freshness', None),
       ('/catalog/features', 'boxes', 'Features', 'Every governed feature, its versions, pins and data', '/catalog/features'),
       ('/catalog/featuresets', 'grid-3x3-gap', 'Feature sets', 'Bundles of features mapped to model inputs', '/catalog/featuresets'),
       ('/lineage', 'diagram-3', 'Lineage', 'What feeds what, upstream and downstream', '/lineage'),
-      ('/search', 'search', 'Search', 'Find features, sets, models and warrants', '/search')])]),
+      ('/search', 'search', 'Search', 'Find features, sets, models and warrants', '/search')]),
+    ('Follow', [
+      ('/catalog/subscriptions', 'bell', 'My subscriptions', 'Objects you follow, and what you are told about', '/catalog/subscriptions')])]),
   ('Workbench', 'tools', [
     ('Design', [
       ('/workbench', 'tools', 'Overview', 'Your drafts and what to do next', None),
@@ -37,6 +40,7 @@
     ('Governance', [
       ('/workflow/policies', 'diagram-2', 'Policies', 'Approval paths and separation of duties', '/workflow/policies'),
       ('/workflow/campaigns', 'collection', 'Campaigns', 'Periodic re-certification of access and models', None),
+      ('/workflow/access-requests', 'person-raised-hand', 'Access requests', 'Who asked for access, and what you decided', '/workflow/access-requests'),
       ('/workflow/aging', 'hourglass', 'SLA aging', 'Reviews running late, by age', None),
       ('/workflow/break-glass', 'exclamation-triangle', 'Break-glass report', 'Every forced approval, for review', None)])]),
 ] %}

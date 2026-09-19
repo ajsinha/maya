@@ -33,6 +33,60 @@ def break_glass(days: int = 31, me: Principal = Me, plat: Any = Plat) -> Respons
     return ok(plat.workflow_svc.break_glass_report(me, days))
 
 
+@router.get("/review")
+def review(object_type: str, object_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Everything the review screen shows (§10.3, §10.6): the semantic diff against the
+    last approved version, the impact list with owners, the policy that governs this
+    item, the separation of duties in force, and the approvals still outstanding."""
+    return ok(plat.workflow_svc.review(me, object_type, object_id))
+
+
+# -- access requests (§11.5): a request, a decision, and the audit trail of both --------
+@router.get("/access-requests")
+def access_requests(state: str | None = None, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.access_requests.list(me, state=state))
+
+
+@router.post("/access-requests", status_code=201)
+def request_access(body: s.AccessRequestIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(
+        plat.access_requests.request(
+            me,
+            kind=body.kind,
+            ref=body.ref,
+            level=body.level,
+            reason=body.reason,
+            days=body.days,
+        ),
+        201,
+    )
+
+
+@router.post("/access-requests/{request_id}/decide")
+def decide_access_request(
+    request_id: str, body: s.AccessDecisionIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    return ok(
+        plat.access_requests.decide(
+            me, request_id, approve=body.approve, note=body.note, days=body.days
+        )
+    )
+
+
+@router.post("/access-requests/{request_id}/withdraw")
+def withdraw_access_request(request_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.access_requests.withdraw(me, request_id))
+
+
+@router.get("/access-check")
+def access_check(
+    kind: str, ref: str, action: str = "read", me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """Whether you may take ``action``, and in the words of the rule that decided — what
+    a control disabled rather than hidden puts next to itself (§16.4)."""
+    return ok(plat.access_requests.check(me, kind=kind, ref=ref, action=action))
+
+
 @router.get("/policies")
 def policies(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.workflow_svc.policies())

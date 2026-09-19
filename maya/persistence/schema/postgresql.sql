@@ -3,8 +3,36 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 4498789ccafff355e643edebfb6ac3d235a8f961d37ef71d629125468219a3c4
+-- schema-hash: ff561301a952ce2bf60df5fec29b1001f65974e3ed5826375c462154be490a99
 -- ==========================================================================
+
+CREATE TABLE access_requests (
+	kind VARCHAR(24) NOT NULL, 
+	object_id UUID NOT NULL, 
+	object_ref VARCHAR(512) NOT NULL, 
+	requester_id UUID NOT NULL, 
+	level VARCHAR(16) NOT NULL, 
+	reason TEXT, 
+	state VARCHAR(16) NOT NULL, 
+	days INTEGER NOT NULL, 
+	decided_by VARCHAR(128), 
+	decided_at TIMESTAMP WITH TIME ZONE, 
+	decision_note TEXT, 
+	grant_id UUID, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_access_requests PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_access_requests_object ON access_requests (kind, object_id);
+
+CREATE INDEX ix_access_requests_requester_id ON access_requests (requester_id);
+
+CREATE INDEX ix_access_requests_state ON access_requests (state);
 
 CREATE TABLE anchors (
 	seq BIGINT NOT NULL, 
@@ -868,6 +896,7 @@ CREATE TABLE feature_set_versions (
 	submitted_by VARCHAR(128), 
 	approved_at TIMESTAMP WITH TIME ZONE, 
 	approved_by VARCHAR(128), 
+	needs_reapproval TEXT, 
 	id UUID NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	created_by VARCHAR(128), 
@@ -932,6 +961,7 @@ CREATE TABLE model_versions (
 	submitted_by VARCHAR(128), 
 	approved_at TIMESTAMP WITH TIME ZONE, 
 	approved_by VARCHAR(128), 
+	needs_reapproval TEXT, 
 	id UUID NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	created_by VARCHAR(128), 

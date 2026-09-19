@@ -192,10 +192,12 @@ async def model(request: Request, ns: str, name: str) -> Any:
                     ]
                 except MayaError:
                     reference = None
+        impact = await sdk.catalog.dependents(f"maya://model/{ns}/{name}")
     return await render(
         request,
         "models/model.html",
         {
+            "impact": impact,
             "m": m,
             "v": v,
             "reference": reference,

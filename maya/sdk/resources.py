@@ -471,6 +471,77 @@ class Access(_Resource):
         )
 
 
+class Catalog(_Resource):
+    """Browsing the catalog across its object types, and the previews §16.4 requires."""
+
+    @endpoint("GET", "/catalog/browse")
+    def browse(self, **facets: Any) -> Any:
+        """Everything you may read of one type, narrowed by the facets: ``type``
+        (feature, featureset, model), ``namespace``, ``owner``, ``status``, ``tag``,
+        ``freshness`` (24h, 7d, 30d, 90d), ``state`` and ``q``."""
+        return self._c("GET", "/catalog/browse", params=facets)
+
+    def browse_page(
+        self,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+        **facets: Any,
+    ) -> Any:
+        """One page of the faceted catalog; sort is name, -name, updated, -updated,
+        created, -created."""
+        return self._page("/catalog/browse", facets, page_size, cursor, sort, total)
+
+    def browse_iter(
+        self, page_size: int = PAGE_SIZE, sort: str | None = None, **facets: Any
+    ) -> Any:
+        return self._iter("/catalog/browse", facets, page_size, sort)
+
+    @endpoint("GET", "/catalog/facets")
+    def facets(self, type: str = "feature") -> Any:
+        """What each facet can be set to, for this object type."""
+        return self._c("GET", "/catalog/facets", params={"type": type})
+
+    @endpoint("GET", "/catalog/dependents")
+    def dependents(self, ref: str, depth: int = 4) -> Any:
+        """What would break: the dependent objects downstream of ``ref``, with owners."""
+        return self._c("GET", "/catalog/dependents", params={"ref": ref, "depth": depth})
+
+    @endpoint("POST", "/features/{namespace}/{name}/pin-preview")
+    def pin_preview(
+        self,
+        ref: str,
+        version_no: int,
+        as_of: str,
+        as_of_known: str | None = None,
+        pin_name: str = "",
+    ) -> Any:
+        """Rows, fill report, quality verdict and storage estimate for a pin not yet made."""
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/pin-preview",
+            json_body={
+                "version_no": version_no,
+                "as_of": as_of,
+                "as_of_known": as_of_known,
+                "pin_name": pin_name,
+            },
+        )
+
+    @endpoint("GET", "/subscriptions")
+    def subscriptions(self) -> Any:
+        return self._c("GET", "/subscriptions")
+
+    @endpoint("POST", "/subscriptions")
+    def subscribe(self, object_ref: str) -> Any:
+        return self._c("POST", "/subscriptions", json_body={"object_ref": object_ref})
+
+    @endpoint("DELETE", "/subscriptions")
+    def unsubscribe(self, object_ref: str) -> Any:
+        return self._c("DELETE", "/subscriptions", params={"object_ref": object_ref})
+
+
 class Features(_Resource):
     @endpoint("GET", "/features")
     def list(
@@ -1160,6 +1231,61 @@ class Workflow(_Resource):
     @endpoint("GET", "/workflow/queue")
     def queue(self) -> Any:
         return self._c("GET", "/workflow/queue")
+
+    @endpoint("GET", "/workflow/review")
+    def review(self, object_type: str, object_id: str) -> Any:
+        """The review screen's whole payload (§10.3, §10.6): the semantic diff, the
+        impact list with owners, the governing policy, the SoD in force and the
+        approvals still outstanding."""
+        return self._c(
+            "GET",
+            "/workflow/review",
+            params={"object_type": object_type, "object_id": object_id},
+        )
+
+    @endpoint("GET", "/workflow/access-requests")
+    def access_requests(self, state: str | None = None) -> Any:
+        return self._c("GET", "/workflow/access-requests", params={"state": state})
+
+    @endpoint("POST", "/workflow/access-requests")
+    def request_access(
+        self, kind: str, ref: str, level: str = "read", reason: str = "", days: int = 90
+    ) -> Any:
+        """Ask the owner for access (§11.5); the resulting grant is time-boxed."""
+        return self._c(
+            "POST",
+            "/workflow/access-requests",
+            json_body={
+                "kind": kind,
+                "ref": ref,
+                "level": level,
+                "reason": reason,
+                "days": days,
+            },
+        )
+
+    @endpoint("POST", "/workflow/access-requests/{request_id}/decide")
+    def decide_access_request(
+        self, request_id: str, approve: bool, note: str = "", days: int | None = None
+    ) -> Any:
+        return self._c(
+            "POST",
+            f"/workflow/access-requests/{seg(request_id)}/decide",
+            json_body={"approve": approve, "note": note, "days": days},
+        )
+
+    @endpoint("POST", "/workflow/access-requests/{request_id}/withdraw")
+    def withdraw_access_request(self, request_id: str) -> Any:
+        return self._c("POST", f"/workflow/access-requests/{seg(request_id)}/withdraw")
+
+    @endpoint("GET", "/workflow/access-check")
+    def access_check(self, kind: str, ref: str, action: str = "read") -> Any:
+        """Whether you may act, and the rule's own words when you may not (§16.4)."""
+        return self._c(
+            "GET",
+            "/workflow/access-check",
+            params={"kind": kind, "ref": ref, "action": action},
+        )
 
     @endpoint("GET", "/workflow/aging")
     def aging(self) -> Any:

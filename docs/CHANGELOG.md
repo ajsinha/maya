@@ -17,6 +17,63 @@
   request past `api.limits.timeout_seconds` is answered `504`. All three count per
   process, so several web processes multiply them.
 
+**The review screen and the catalog (§10.3, §10.6, §16.2, §16.4)**
+
+- **Review is a review again.** `/workflow/review/{type}/{id}` shows a semantic diff against
+  the last approved version — section by section, in words, not JSON — the dependents and
+  who owns them, the separation-of-duties level in force and whether it stops *you*, and
+  which approvals are outstanding and who can give them. A dependent the reviewer may not
+  read is counted, never named. The screen showed a policy from the wrong scope; it now
+  shows the one that governs the namespace.
+- **Catalog facets**: type, namespace, owner, status, tag and freshness, across features,
+  feature sets and models, with cursor paging. Totals stay exact under row-level
+  authorization — the facets that are columns narrow the query, and the two that are not
+  (tag, freshness) narrow an id set counted in the database.
+- **Before you pin**: a preview reports rows, columns, the fill report, the quality contract
+  run under the pin's own as-of, a storage estimate, what the namespace holds against its
+  quota, and every blocker. The pin control arms only on a clean preview, and disarms when a
+  field changes.
+- **Disabled controls say why.** A control the caller cannot use carries the rule that would
+  refuse it — `can()`'s own words, so the screen cannot promise what the server refuses —
+  and offers to request access.
+- **Access requests (§11.5)**: request, decide, withdraw, list, with a time-boxed grant on
+  approval and both sides audited.
+- **`tracking` bindings do something.** A behavioural bump marks every tracking dependant for
+  re-approval and tells its owner; an additive one marks nobody; a pinned dependant is
+  untouched. Deprecating a member warns the sets that hold it, and a revoked member warrant
+  flags the composite execution warrants that embed it.
+- **Subscriptions work**: follow a feature, set or model and hear when a new version is
+  approved or a pin is sealed. A follower who loses read access goes quiet without losing
+  the subscription.
+- **The missing notices**: a covenant breach and 30-days-to-expiry reach the model manager,
+  and a failed quality check reaches the owner. Each sweep is idempotent.
+
+**Observability and operations (§15, §20, §22)**
+
+- **The metrics §20 lists exist** — 42 described families, up from 16, including job wait,
+  resolution rows and bytes, Delta file counts and small-file ratio, database pool and slow
+  queries, cache hits and misses, pins and bytes per namespace, and queue depth by type.
+  A phrase-to-series table fails if a metric is renamed or a claim dropped.
+- **SLO recording rules and alerts** ship in `config/prometheus/maya-slo.rules.yml`, every
+  alert linking a runbook that must exist and naming a metric MAYA actually exports.
+- **Integrity verification runs on a schedule**, deduplicated per window.
+- **A restore drill the estate remembers**: `maya admin record-drill` and `maya admin drills`,
+  which exits non-zero when a drill is overdue, and a metric that ages.
+- **Job fairness**: the queue ranks by each owner's running share, with a per-user
+  concurrency cap, and refuses new work with a wait estimate rather than growing without
+  bound.
+- **A worker process outside the web process**: `python run_maya_web.py --worker` binds no
+  port and runs the queue only.
+- **Typed configuration**: 114 settings declared with type, default and validator. An unknown
+  key in a file refuses startup and names the nearest match; one on the command line is
+  reported, because the command line belongs to whatever launched the process.
+- **Six more runbooks** — orphaned partitions, Delta small files, database failover, a
+  suspected sandbox escape, quota exhaustion, the default password — so all nine §20
+  procedures ship. Every command was run against a throwaway estate, and the ones that could
+  not be are marked.
+- **Logs carry request id, trace id, actor and object ref**, and a module's level can be
+  changed at runtime in the process that receives the call.
+
 **Warrants, bundles and parameters**
 
 - **The reproducibility bundle carries what §18.4 asks for.** It omitted the uploaded code

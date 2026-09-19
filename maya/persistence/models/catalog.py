@@ -140,6 +140,7 @@ class FeatureSetVersion(Tracked, Base):
     submitted_by: Mapped[str | None] = mapped_column(String(128))
     approved_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     approved_by: Mapped[str | None] = mapped_column(String(128))
+    needs_reapproval: Mapped[str | None] = mapped_column(Text)
 
 
 class FeatureSetMember(Base):

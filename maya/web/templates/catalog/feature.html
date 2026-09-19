@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_rows.html" import pin_row %}
 {% from "_macros/table.html" import table %}
-{% from "_macros/ui.html" import pill, kv, licence_panel, transitions, tabs, json_block %}
+{% from "_macros/ui.html" import pill, kv, licence_panel, transitions, tabs, json_block, gated, impact_panel %}
 {% block title %}{{ f.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1">
@@ -9,8 +9,12 @@
     <div class="small-muted mono">{{ f.ref }}</div></div>
   {% if f.can_edit %}<form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Edit draft</button></form>
   <a class="btn btn-sm btn-outline-secondary" href="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest">Ingest data</a>{% endif %}
+  <form method="post" action="/catalog/subscriptions"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="object_ref" value="{{ f.ref }}">
+    <button class="btn btn-sm btn-outline-secondary" type="submit" title="Be told when a new version is approved or a dependent pin is sealed"><i class="bi bi-bell" aria-hidden="true"></i> Follow</button></form>
   <a class="btn btn-sm btn-outline-secondary" href="/catalog/features/{{ f.namespace }}/{{ f.name }}/compare">Compare versions</a>
 </div>
+{{ gated('Edit draft', edit_gate, 'feature', f.ref, csrf, 'read_write', 'pencil') }}
 {% if f.ungoverned %}<div class="alert alert-warning py-2">Ungoverned: this lives in a scratch namespace — no review, no approval, no SoD. Promote it by cloning into a governed namespace.</div>{% endif %}
 {% include "_job.html" %}
 {{ tabs([('overview','Overview'),('definition','Definition'),('data','Data'),('pins','Pins'),('lineage','Lineage'),('history','History & Comments')], tab) }}
@@ -68,7 +72,8 @@
 <div class="tab-pane {% if tab == 'pins' %}show active{% endif %}" id="tab-pins" role="tabpanel">
   {% call(p) table("pins", ["Series", "As of", "Version", "State", "Rows", "Content hash", "New bytes", "Sealed", "!Actions"], pins_page["items"], empty="No pins. Pin an approved version to freeze its values forever.", page=pins_page) %}{{ pin_row(p, csrf) }}{% endcall %}
   {% if f.can_pin %}
-  <form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/pin" class="card card-body">
+  <form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/pin" class="card card-body"
+        data-pin-preview="/ui/pin-preview/{{ f.namespace }}/{{ f.name }}">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <h3>Pin a version</h3>
     <div class="row g-2">
@@ -76,12 +81,20 @@
       <div class="col-md-3"><label class="form-label" for="pn">Pin series name</label><input class="form-control" id="pn" name="pin_name" placeholder="eom" required></div>
       <div class="col-md-2"><label class="form-label" for="pa">As of date</label><input class="form-control" id="pa" name="as_of" type="date" required></div>
       <div class="col-md-3"><label class="form-label" for="pk">As of known (optional)</label><input class="form-control" id="pk" name="as_of_known" placeholder="now"></div>
-      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Pin</button></div>
+      <div class="col-md-2 d-flex align-items-end gap-1">
+        <button class="btn btn-outline-primary w-100" type="button" data-pin-check>Preview</button>
+        <button class="btn btn-primary w-100" type="submit" data-pin-submit disabled>Pin</button></div>
     </div>
-    <p class="small-muted mb-0 mt-1">Pinning resolves, runs the quality contract (a failure blocks the pin), writes only fragments the store has never seen, re-reads to verify the hash, and seals.</p>
-  </form>{% endif %}
+    <div class="mt-2" data-pin-report aria-live="polite"></div>
+    <p class="small-muted mb-0 mt-1">Nothing destructive without a preview (§16.4): Preview resolves the
+      version as of that date and reports the rows, the fill report, the quality verdict and the storage
+      it would take. The Pin button turns on only once the preview comes back clean. Pinning then writes
+      only fragments the store has never seen, re-reads to verify the hash, and seals.</p>
+  </form>
+  {% else %}{{ gated('Pin a version', pin_gate, 'feature', f.ref, csrf, 'approve', 'pin-angle') }}{% endif %}
 </div>
 <div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">
+  {{ impact_panel(impact) }}
   {% include "_lineage_canvas.html" %}<a href="/lineage?root={{ root|urlq }}">Open the full canvas</a>
 </div>
 <div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
@@ -89,4 +102,4 @@
 </div>
 </div>
 {% endblock %}
-{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script><script src="/static/js/pin_preview.js"></script>{% endblock %}

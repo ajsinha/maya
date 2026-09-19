@@ -56,6 +56,49 @@
 
 {% macro json_block(value) -%}<pre class="mono">{{ value|tojson_pretty }}</pre>{%- endmacro %}
 
+{# §16.4: a control the user cannot use is shown disabled *with the reason*, never hidden —
+   a hidden control makes people think the system is broken. Where access is what is
+   missing, the reason comes with a way to ask for it (§11.5). `gate` is the payload of
+   workflow.access_check: {allowed, reason, can_request, pending_request}. #}
+{% macro gated(label, gate, kind, ref, csrf, level='read', icon='lock') -%}
+{% if gate and not gate.allowed %}
+<div class="d-flex flex-wrap align-items-center gap-2 maya-gated">
+  <button class="btn btn-sm btn-outline-secondary" type="button" disabled aria-disabled="true">
+    <i class="bi bi-{{ icon }}" aria-hidden="true"></i> {{ label }}</button>
+  <span class="small-muted">{{ gate.reason }}</span>
+  {% if gate.pending_request %}<span class="pill warn"><i class="bi bi-hourglass-split" aria-hidden="true"></i>access requested</span>
+  {% elif gate.can_request %}
+  <form method="post" action="/workflow/access-requests" class="d-flex gap-1 align-items-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="ref" value="{{ ref }}">
+    <input type="hidden" name="level" value="{{ level }}">
+    <label class="visually-hidden" for="ar-{{ ref|urlq }}-{{ level }}">Why you need access</label>
+    <input class="form-control form-control-sm" id="ar-{{ ref|urlq }}-{{ level }}" name="reason"
+           placeholder="why you need it" style="max-width:220px">
+    <button class="btn btn-sm btn-outline-primary" type="submit">
+      <i class="bi bi-person-raised-hand" aria-hidden="true"></i> Request access</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# Dependents and their owners, one click from any definition change (§16.4). #}
+{% macro impact_panel(impact, title='What this would break') -%}
+<div class="card card-body mb-3"><h3 class="h6">{{ title }}</h3>
+  {% if impact and impact['items'] %}
+  <ul class="list-unstyled mb-0 small">
+    {% for d in impact['items'] %}
+    <li><a href="{{ d.url }}">{{ d.ref }}</a> — {{ d.type }} {{ d.edge.replace('_', ' ') }}, owned by
+      <strong>{{ d.owner or 'nobody' }}</strong>{% if d.state %} · {{ pill(d.state) }}{% endif %}
+      {%- if d.change_class %} · last change {{ d.change_class }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="small-muted mb-0">Nothing downstream depends on this yet.</p>{% endif %}
+  {% if impact and impact['hidden'] %}<p class="small-muted mb-0">{{ impact['hidden'] }} further dependent(s) you may not read are not named here.</p>{% endif %}
+</div>
+{%- endmacro %}
+
 {% macro tabs(names, active='overview') -%}
 <ul class="nav nav-tabs mb-3" role="tablist">
 {% for key, label in names %}

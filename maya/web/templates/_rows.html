@@ -11,6 +11,13 @@
   <td>{{ pill(f.latest_state) }}</td><td>{{ f.pins }}</td><td>{{ (f.tags or [])|join(', ') }}</td><td>{{ f.updated_at|dt }}</td>
 {%- endmacro %}
 
+{% macro catalog_row(o) -%}
+  <td><a href="{{ o.url }}">{{ o.name }}</a>{% if o.needs_reapproval %} <span class="pill warn" title="{{ o.needs_reapproval }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>re-approve</span>{% endif %}</td>
+  <td>{{ o.type }}</td><td>{{ o.namespace }}</td><td>{{ o.owner }}</td>
+  <td data-sort="{{ o.latest_version }}">v{{ o.latest_version }}</td><td>{{ pill(o.latest_state) }}</td>
+  <td>{{ o.change_class or '—' }}</td><td>{{ (o.tags or [])|join(', ') }}</td><td>{{ o.updated_at|dt }}</td>
+{%- endmacro %}
+
 {% macro featureset_row(s) -%}
   <td><a href="/catalog/featuresets/{{ s.namespace }}/{{ s.name }}">{{ s.name }}</a></td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td>
   <td>{{ pill(s.latest_state) }}</td><td>{{ s.members }}</td><td>{{ s.pins }}</td><td>{{ s.updated_at|dt }}</td>

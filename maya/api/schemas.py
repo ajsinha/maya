@@ -297,3 +297,28 @@ class DelegationIn(BaseModel):
     ends_on: str
     object_types: list[str] = Field(default_factory=list)
     reason: str = ""
+
+
+class PinPreviewIn(BaseModel):
+    version_no: int
+    as_of: str
+    as_of_known: str | None = None
+    pin_name: str = ""
+
+
+class SubscriptionIn(BaseModel):
+    object_ref: str
+
+
+class AccessRequestIn(BaseModel):
+    kind: str
+    ref: str
+    level: str = "read"
+    reason: str = ""
+    days: int = 90
+
+
+class AccessDecisionIn(BaseModel):
+    approve: bool
+    note: str = ""
+    days: int | None = None

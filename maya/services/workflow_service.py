@@ -16,7 +16,7 @@ from typing import Any
 
 from maya.core.errors import MayaError, NotApproved, PermissionDenied, ValidationFailed
 from maya.core.clock import utcnow
-from maya.security.authz import Principal
+from maya.security.authz import Principal, can
 from maya.workflow import policy as pol
 
 
@@ -205,6 +205,316 @@ class WorkflowService:
     def _admin(p: Principal) -> None:
         if not p.has_capability("workflow_policy", "U"):
             raise PermissionDenied("Workflow policy is administered by 'admin'")
+
+    # -- the review screen (§10.3, §10.6) ------------------------------------------------
+    def review(self, p: Principal, object_type: str, object_id: str) -> dict[str, Any]:
+        """Everything a reviewer needs on one screen, and nothing they may not read.
+
+        The semantic diff against the last approved version; the impact list — every
+        dependent object and who owns it; the policy that actually governs *this* item,
+        found by its own namespace rather than by object type alone; the separation of
+        duties in force and whether it stops this reviewer; and which approvals are
+        still outstanding and from whom.
+        """
+        with self.p.uow() as uow:
+            self.require_read(uow, p, object_type, object_id)
+            table, parent_key, parent_table, kind = GOVERNING[object_type]
+            row = uow.repo(table).require(object_id)
+            owner = uow.repo(parent_table).require(row[parent_key]) if parent_key else row
+            ns = uow.repo("namespaces").require(self._namespace_id(uow, owner, row))
+            record = self._policy_for(uow, object_type, ns["name"])
+            ref = self._ref_of(uow, object_type, object_id, owner, ns)
+            transitions = self._transition_views(uow, p, record, row, kind, owner, ns)
+            outstanding = self._outstanding(uow, record, row, ns, object_type, object_id)
+            return {
+                "object_type": object_type,
+                "object_id": object_id,
+                "kind": kind,
+                "ref": ref,
+                "state": row["state"],
+                "namespace": ns["name"],
+                "owner": self._username(uow, owner.get("owner_id")),
+                "policy": record,
+                "policy_scope": (record or {}).get("scope"),
+                "sod": self._sod_view(p, row, ns),
+                "transitions": transitions,
+                "outstanding": outstanding,
+                "approvals": uow.repo("approvals").list(
+                    object_type=object_type, object_id=object_id, order_by=["created_at"]
+                ),
+                "diff": self._review_diff(uow, object_type, row, owner),
+                "impact": self.p.catalog.dependents_in(uow, p, self._impact_roots(ref)),
+            }
+
+    @staticmethod
+    def _namespace_id(uow: Any, owner: dict[str, Any], row: dict[str, Any]) -> str:
+        """The namespace whose policy and SoD govern this item. A parameter set has none
+        of its own: it is governed by its training warrant's."""
+        if owner.get("namespace_id"):
+            return str(owner["namespace_id"])
+        warrant = uow.repo("training_warrants").get(row.get("training_warrant_id"))
+        if warrant is None:
+            raise ValidationFailed("This object belongs to no namespace", id=str(row.get("id")))
+        return str(warrant["namespace_id"])
+
+    def _policy_for(self, uow: Any, object_type: str, namespace: str) -> dict[str, Any] | None:
+        """The policy record the engine will use on this item: the namespace's if it has
+        one, else the global one. Showing the first active policy of the type regardless
+        of scope would describe a different rule from the one that decides."""
+        try:
+            record: dict[str, Any] = self.p.workflow.active_policy(uow, object_type, namespace)
+        except ValidationFailed:
+            return None
+        return record
+
+    @staticmethod
+    def _ref_of(
+        uow: Any, object_type: str, object_id: str, owner: dict[str, Any], ns: dict[str, Any]
+    ) -> str:
+        events = uow.repo("workflow_events").list(
+            object_type=object_type, object_id=object_id, order_by=["-created_at"]
+        )
+        for event in events:
+            if event.get("object_ref"):
+                return str(event["object_ref"])
+        return f"{ns['name']}/{owner.get('name') or object_id}"
+
+    @staticmethod
+    def _impact_roots(ref: str) -> list[str]:
+        """A lineage edge may name the version or the bare object; walk from both."""
+        roots = [ref]
+        bare = ref.split("@")[0]
+        if bare != ref:
+            roots.append(bare)
+        return roots
+
+    @staticmethod
+    def _username(uow: Any, user_id: str | None) -> str | None:
+        user = uow.repo("users").get(user_id) if user_id else None
+        return str(user["username"]) if user else None
+
+    SOD_STATEMENTS = {
+        "strict": "nobody who created, submitted or last edited this object may approve it",
+        "two_person": "whoever submitted this object may not approve it",
+        "none": "no separation of duties is enforced in this namespace",
+    }
+
+    def _sod_view(self, p: Principal, row: dict[str, Any], ns: dict[str, Any]) -> dict[str, Any]:
+        """The strictness in force and whether it disqualifies this reviewer (§28.9)."""
+        level = ns.get("sod", "strict")
+        involved = {row.get(k) for k in ("created_by", "submitted_by", "updated_by") if row.get(k)}
+        if level == "two_person":
+            involved = {row.get("submitted_by") or row.get("created_by")}
+        blocks = level != "none" and p.username in involved
+        return {
+            "level": level,
+            "statement": self.SOD_STATEMENTS.get(level, level),
+            "blocks_you": blocks,
+            "reason": (
+                f"segregation of duties ({level}): you created, submitted or last "
+                "modified this object, so you cannot approve it"
+                if blocks
+                else None
+            ),
+            "involved": sorted(x for x in involved if x),
+        }
+
+    CAPABILITY_ACTIONS = {"A": "approve", "U": "submit", "C": "create", "P": "seal"}
+
+    def _transition_views(
+        self,
+        uow: Any,
+        p: Principal,
+        record: dict[str, Any] | None,
+        row: dict[str, Any],
+        kind: str,
+        owner: dict[str, Any],
+        ns: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """Every transition out of this state, each either available or disabled with the
+        reason — §16.4: a control nobody explains looks like a broken system.
+
+        The reason is the engine's own: the same role test, the same ``can()`` decision
+        and the same separation of duties it will apply if the button is pressed, so the
+        screen cannot promise what the server will refuse, or refuse what it would allow.
+        """
+        if record is None:
+            return []
+        policy = record["policy"]
+        described = self.p.access.describe(uow, kind, owner, state=row["state"])
+        sod = self._sod_view(p, row, ns)
+        out = []
+        for name in pol.transitions_from(policy, row["state"]):
+            t = (policy.get("transitions") or {})[name]
+            reason = None
+            roles = t.get("roles") or t.get("requires_role") or []
+            letter = t.get("capability")
+            if roles and not set(roles) & set(p.roles):
+                reason = f"'{name}' requires one of the roles {', '.join(roles)}; yours are " + (
+                    ", ".join(p.roles) or "none"
+                )
+            elif letter:
+                action = self.CAPABILITY_ACTIONS.get(letter, "update")
+                decision = can(p, action, described["obj"], described["grants"], ns)
+                if not decision:
+                    reason = f"you may not {name} this object: {decision.rule}"
+            if reason is None and t.get("approvals") and sod["blocks_you"]:
+                reason = sod["reason"]
+            out.append(
+                {
+                    "name": name,
+                    "to": t.get("to"),
+                    "approvals": t.get("approvals") or [],
+                    "checks": t.get("checks") or [],
+                    "segregation": t.get("segregation"),
+                    "available": reason is None,
+                    "reason": reason,
+                }
+            )
+        return out
+
+    def _outstanding(
+        self,
+        uow: Any,
+        record: dict[str, Any] | None,
+        row: dict[str, Any],
+        ns: dict[str, Any],
+        object_type: str,
+        object_id: str,
+    ) -> list[dict[str, Any]]:
+        """Which approvals are still missing, and from whom (§10.6)."""
+        if record is None:
+            return []
+        approve = (record["policy"].get("transitions") or {}).get("approve") or {}
+        round_no = max(
+            uow.repo("workflow_events").count(
+                object_type=object_type, object_id=object_id, transition="submit"
+            ),
+            1,
+        )
+        given = uow.repo("approvals").list(
+            object_type=object_type, object_id=object_id, round_no=round_no, decision="approve"
+        )
+        out = []
+        for requirement in approve.get("approvals") or []:
+            when = requirement.get("when")
+            if when == "prod" and not ns.get("production"):
+                continue
+            role = requirement["role"]
+            count = int(requirement.get("count", 1))
+            done = [a["approver"] for a in given if a["role"] == role]
+            if len(done) >= count:
+                continue
+            out.append(
+                {
+                    "role": role,
+                    "count": count,
+                    "given": done,
+                    "remaining": count - len(done),
+                    "when": when,
+                    "who": sorted(self._role_holders(uow, role) - set(done)),
+                }
+            )
+        return out
+
+    @staticmethod
+    def _role_holders(uow: Any, role_name: str) -> set[str]:
+        role = uow.repo("roles").find_one(name=role_name)
+        if role is None:
+            return set()
+        ids = {ur["user_id"] for ur in uow.repo("user_roles").list(role_id=role["id"])}
+        return {
+            u["username"]
+            for u in uow.repo("users").list(status="active")
+            if u["id"] in ids and not u["is_service"]
+        }
+
+    def _review_diff(
+        self, uow: Any, object_type: str, row: dict[str, Any], owner: dict[str, Any]
+    ) -> dict[str, Any]:
+        """The semantic diff against the last approved version before this one (§10.3)."""
+        from maya.services import catalog
+
+        if object_type == "model_version":
+            return self._model_diff(uow, row, owner)
+        kinds = {"feature_version": ("feature", "feature_versions", "feature_id")}
+        kinds["featureset_version"] = ("featureset", "feature_set_versions", "feature_set_id")
+        if object_type not in kinds:
+            return {
+                "kind": object_type,
+                "entries": [],
+                "note": f"a {object_type.replace('_', ' ')} carries no definition to diff",
+            }
+        kind, table, fk = kinds[object_type]
+        prior = uow.repo(table).list(
+            **{fk: row[fk], "state__in": catalog.APPROVED_STATES},
+            version_no__lt=row["version_no"],
+            order_by=["-version_no"],
+            limit=1,
+        )
+        if not prior:
+            return {
+                "kind": kind,
+                "entries": [],
+                "note": "no approved version before this one: everything in it is new",
+            }
+        old, new = self._effective(uow, kind, prior[0]), self._effective(uow, kind, row)
+        return {
+            "kind": kind,
+            "against": f"v{prior[0]['version_no']}",
+            "entries": catalog.definition_diff(kind, old, new),
+            "change_class": row.get("change_class"),
+        }
+
+    def _effective(self, uow: Any, kind: str, version: dict[str, Any]) -> dict[str, Any]:
+        from maya.services import catalog
+
+        if kind == "featureset":
+            effective: dict[str, Any] = self.p.featuresets.effective(uow, version["definition"])[0]
+            return effective
+        return catalog.effective_feature_definition(uow, version["definition"])
+
+    def _model_diff(self, uow: Any, row: dict[str, Any], owner: dict[str, Any]) -> dict[str, Any]:
+        """A model's diff is over its formula, its artifact and its specification."""
+        from maya.formula.diff import semantic_diff
+
+        prior = uow.repo("model_versions").list(
+            model_id=row["model_id"],
+            state__in=("approved", "published"),
+            version_no__lt=row["version_no"],
+            order_by=["-version_no"],
+            limit=1,
+        )
+        if not prior:
+            return {
+                "kind": "model",
+                "entries": [],
+                "note": "no approved version before this one: everything in it is new",
+            }
+        old = prior[0]
+        entries = [
+            {
+                "section": "Formula",
+                "what": "statement",
+                "was": "",
+                "now": statement,
+                "change": "changed",
+            }
+            for statement in semantic_diff(old["formula_ir"] or {}, row["formula_ir"] or {})
+        ]
+        for section, key in (("Code", "artifact_hash"), ("Specification", "spec_latex")):
+            if old.get(key) != row.get(key):
+                entries.append(
+                    {
+                        "section": section,
+                        "what": key.replace("_", " "),
+                        "was": str(old.get(key) or "—")[:64],
+                        "now": str(row.get(key) or "—")[:64],
+                        "change": "changed",
+                    }
+                )
+        _ = owner
+        return {"kind": "model", "against": f"v{old['version_no']}", "entries": entries}
 
     # -- people-facing ------------------------------------------------------------------
     def queue(self, p: Principal, *, everything: bool = False) -> list[dict[str, Any]]:

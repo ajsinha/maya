@@ -452,6 +452,48 @@ A draft that hashes identically to the previous version is refused:
 A definition identical to another feature's is flagged for the reviewer as
 `equivalent to an existing definition`.
 
+## Before you pin: the preview
+
+Nothing destructive without a preview (§16.4). `POST /features/{ns}/{name}/pin-preview`
+resolves the version as of the date you named and reports what the pin would be, without
+writing anything:
+
+```python
+p = my.catalog.pin_preview("eq/prices", version_no=3, as_of="2026-03-31", pin_name="eom")
+```
+
+| Key | What it says |
+|---|---|
+| `rows`, `columns` | how many rows the pin would hold, and over which columns |
+| `fill_report` | which rule filled what, on the real frame |
+| `checks` | the quality contract's verdict, run with the pin's own as-of — the check that would block the pin |
+| `storage` | `estimated_bytes` with `bytes_per_row` measured on `sampled_rows` real rows and scaled, plus the `namespace`, the bytes it already `held_bytes`, and its `quota_bytes` |
+| `blockers` | every reason the pin would be refused: an unapproved version, no pin right, a series that already has that date, a failing check, no rows, a quota it would exceed |
+| `may_pin` | true only when `blockers` is empty |
+
+The estimate is an estimate and says so: a pin writes only fragments the store has never
+seen, so its own new bytes are usually smaller than the figure quoted.
+
+In the UI the pin form's button starts disabled and is armed only by a preview that comes
+back with no blockers; changing any field disarms it again.
+
+## Following a feature
+
+Subscribe to be told when a new version is approved or a pin that depends on the feature
+is sealed (§5.7).
+
+```python
+my.catalog.subscribe("maya://feature/eq/prices")
+my.catalog.subscriptions()
+my.catalog.unsubscribe("maya://feature/eq/prices")
+```
+
+You may follow only what you may read. A subscription is not deleted when you lose read
+access — it goes quiet, and speaks again if access returns, so a notification never
+becomes a side channel around `can()`. The list marks each one `readable` so you can see
+which of yours are silent. Features, feature sets and models are all subscribable; the
+reference is stored bare, so a subscription follows the object rather than a version.
+
 ## References
 
 | Reference | Addresses |
