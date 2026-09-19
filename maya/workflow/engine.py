@@ -63,6 +63,8 @@ class WorkflowEngine:
 
     def __init__(self, *, allow_self_approval: bool = False, environment: str = "dev") -> None:
         self.checks: dict[str, CheckFn] = {}
+        # (uow, user_id) -> Principal; set by the platform so delegations can be honoured
+        self.principal_loader: Callable[[Any, str], Principal] | None = None
         self.allow_self_approval = allow_self_approval and environment == "dev"
         self.environment = environment
 
@@ -97,15 +99,46 @@ class WorkflowEngine:
                               f"allowed from {', '.join(sources)}", state=subject.state)
         if force:
             return self._break_glass(uow, p, subject, name, t, rationale, record)
-        self._authorize(p, subject, t, name)
+        acting = self._acting(uow, p, subject, t, name)
         results = self._run_checks(uow, subject, t)
         failed = [r for r in results if not r["passed"]]
         if failed:
             raise NotApproved("Blocked by check(s): " + "; ".join(
                 f"{r['check']} — {r['detail']}" for r in failed), checks=results)
         if t.get("approvals"):
-            return self._approve(uow, p, subject, name, t, rationale, record, results)
+            return self._approve(uow, p, subject, name, t, rationale, record, results,
+                                 delegator=acting if acting is not p else None)
         return self._move(uow, p, subject, name, t, rationale, record, results)
+
+    def _acting(self, uow: Any, p: Principal, subject: Subject, t: dict[str, Any],
+                name: str) -> Principal:
+        """Who the approval is taken as: the person, or someone who delegated to them."""
+        try:
+            self._authorize(p, subject, t, name)
+            return p
+        except PermissionDenied as own:
+            if not t.get("approvals") or self.principal_loader is None:
+                raise
+            for delegator_id in self.delegators(uow, p, subject.object_type):
+                delegator = self.principal_loader(uow, delegator_id)
+                try:
+                    self._authorize(delegator, subject, t, name)
+                    return delegator
+                except PermissionDenied:
+                    continue
+            raise own
+
+    @staticmethod
+    def delegators(uow: Any, p: Principal, object_type: str) -> list[str]:
+        """Users with an active delegation to ``p`` covering this object type (§10.4)."""
+        import datetime as _dt
+        today = _dt.date.today()
+        out = []
+        for d in uow.repo("delegations").list(delegate_id=p.user_id, revoked_at__isnull=True,
+                                              starts_on__le=today, ends_on__ge=today):
+            if not d["object_types"] or object_type in d["object_types"]:
+                out.append(d["delegator_id"])
+        return out
 
     def _authorize(self, p: Principal, subject: Subject, t: dict[str, Any], name: str) -> None:
         roles = t.get("roles")
@@ -149,32 +182,43 @@ class WorkflowEngine:
 
     def _approve(self, uow: Any, p: Principal, subject: Subject, name: str,
                  t: dict[str, Any], rationale: str | None, record: dict[str, Any],
-                 results: list[dict[str, Any]]) -> Outcome:
-        violation = self._sod_violation(p, subject)
-        if violation:
-            raise PermissionDenied(violation, sod=subject.namespace.get("sod"))
+                 results: list[dict[str, Any]], delegator: Principal | None = None
+                 ) -> Outcome:
+        for person in [p] + ([delegator] if delegator else []):
+            violation = self._sod_violation(person, subject)
+            if violation:
+                who = "" if person is p else f" (as delegate of {person.username})"
+                raise PermissionDenied(violation + who, sod=subject.namespace.get("sod"))
+        role_holder = delegator or p
         reqs = self._requirements(t, subject)
         round_no = self._round(uow, subject)
         existing = uow.repo("approvals").list(object_type=subject.object_type,
                                               object_id=subject.id, round_no=round_no,
                                               decision="approve")
-        if any(a["approver"] == p.username for a in existing):
-            raise NotApproved("You have already approved this object in this round")
-        role = next((r["role"] for r in reqs if r["role"] in p.roles
+        people = {p.username} | ({delegator.username} if delegator else set())
+        if any(a["approver"] in people or a.get("on_behalf_of") in people for a in existing):
+            raise NotApproved("You have already approved this object in this round"
+                              + (" (directly or through a delegation)" if delegator else ""))
+        role = next((r["role"] for r in reqs if r["role"] in role_holder.roles
                      and self._count(existing, r["role"]) < r["count"]),
-                    None) or ("admin" if p.is_admin else None)
+                    None) or ("admin" if role_holder.is_admin else None)
         if role is None:
             raise PermissionDenied("Your roles do not satisfy any outstanding approval: "
                                    + self._outstanding_text(reqs, existing))
         uow.repo("approvals").add({"object_type": subject.object_type, "object_id": subject.id,
                                    "round_no": round_no, "approver": p.username, "role": role,
-                                   "decision": "approve", "rationale": rationale})
+                                   "decision": "approve", "rationale": rationale,
+                                   "on_behalf_of": delegator.username if delegator else None})
         existing.append({"role": role, "approver": p.username})
+        if delegator:
+            rationale = f"{rationale or ''} [as delegate of {delegator.username}]".strip()
         outstanding = [r for r in reqs if self._count(existing, r["role"]) < r["count"]
-                       and not (role == "admin" and p.is_admin)]
+                       and not (role == "admin" and role_holder.is_admin)]
         if outstanding:
             uow.audit("workflow.approval_recorded", object_type=subject.object_type,
-                      object_ref=subject.ref, detail={"role": role, "rationale": rationale})
+                      object_ref=subject.ref, detail={"role": role, "rationale": rationale,
+                                                      "on_behalf_of": delegator.username
+                                                      if delegator else None})
             return Outcome(False, subject.state, "Approval recorded; still outstanding: "
                            + self._outstanding_text(reqs, existing), results,
                            {"outstanding": outstanding})

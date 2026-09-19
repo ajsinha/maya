@@ -4,7 +4,7 @@
 <h3>Workflow history</h3>
 {% call(e) table("history-" ~ object_type, ["When", "Transition", "From", "To", "Actor", "Rationale", "Forced"], history, empty="No transitions yet: the object is still a draft.") %}
   <td>{{ e.created_at|dt }}</td><td>{{ e.transition }}</td><td>{{ e.from_state }}</td><td>{{ e.to_state }}</td>
-  <td>{{ e.actor }}</td><td>{{ e.rationale or '' }}</td><td>{% if e.forced %}{{ pill('bad', 'BREAK-GLASS') }}{% endif %}</td>
+  <td>{{ e.actor }}{% if e.on_behalf_of %} <span class="small-muted">on behalf of {{ e.on_behalf_of }}</span>{% endif %}</td><td>{{ e.rationale or '' }}</td><td>{% if e.forced %}{{ pill('bad', 'BREAK-GLASS') }}{% endif %}</td>
 {% endcall %}
 <h3>Comments</h3>
 {% call(c) table("comments-" ~ object_type, ["When", "Author", "Comment", "Blocking", "!Resolve"], comments, empty="No comments. Reviewers can comment here; a blocking comment prevents approval until resolved.") %}

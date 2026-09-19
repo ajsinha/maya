@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 639331e86559cdc41199d051170c5d730fea622e2857f28cbb52e59d72a04807
+-- schema-hash: 32e9cf90795ef64bcb346dcbd7420dc92fb1a27322b8af89d84f40c600ce18c9
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -14,6 +14,7 @@ CREATE TABLE approvals (
 	role VARCHAR(64) NOT NULL, 
 	decision VARCHAR(16) NOT NULL, 
 	rationale TEXT, 
+	on_behalf_of VARCHAR(128), 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 
@@ -110,6 +111,27 @@ CREATE TABLE custody_events (
 );
 
 CREATE INDEX ix_custody_events_warrant_id ON custody_events (warrant_id);
+
+CREATE TABLE delegations (
+	delegator_id CHAR(36) NOT NULL, 
+	delegate_id CHAR(36) NOT NULL, 
+	starts_on DATE NOT NULL, 
+	ends_on DATE NOT NULL, 
+	object_types JSON NOT NULL, 
+	reason TEXT, 
+	revoked_at DATETIME, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_delegations PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_delegations_delegate_id ON delegations (delegate_id);
+
+CREATE INDEX ix_delegations_delegator_id ON delegations (delegator_id);
 
 CREATE TABLE derivations (
 	target_type VARCHAR(24) NOT NULL, 

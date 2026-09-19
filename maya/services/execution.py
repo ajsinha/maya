@@ -318,6 +318,9 @@ class ExecutionService:
         with self.p.uow("system") as uow:
             for ew in uow.repo("execution_warrants").list(valid_to__le=soon, valid_to__gt=utcnow(),
                                                           revoked_at__isnull=True):
+                if uow.repo("notifications").find_one(user_id=ew["owner_id"], kind="expiry",
+                                                      object_ref=ew["id"]):
+                    continue                    # one notice per warrant, not one per sweep
                 uow.repo("notifications").add({"user_id": ew["owner_id"], "kind": "expiry",
                                                "message": f"{ew['name']} expires "
                                                           f"{ew['valid_to']:%Y-%m-%d}",

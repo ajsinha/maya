@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Delegations{% endblock %}
+{% block content %}
+<h1>Delegations</h1>
+<p class="lead-slate">Name a stand-in for your approvals while you are away. The delegate approves only what you could, only within the dates and object types you choose; each approval is recorded as theirs <em>on behalf of</em> you, segregation of duties binds you both, and a delegate cannot pass it on.</p>
+{% call(d) table("delegations", ["From", "To", "Starts", "Ends", "Object types", "Reason", "Status", "!Revoke"], rows, empty="No delegations given or received.") %}
+  <td>{{ d.delegator }}</td><td>{{ d.delegate }}</td><td>{{ d.starts_on }}</td><td>{{ d.ends_on }}</td><td class="small">{{ d.object_types|join(', ') or 'all' }}</td><td class="small">{{ d.reason or '' }}</td>
+  <td>{% if d.revoked_at %}{{ pill('revoked') }}{% elif d.active %}{{ pill('active') }}{% else %}{{ pill('draft', 'scheduled or past') }}{% endif %}</td>
+  <td>{% if not d.revoked_at and d.delegator == user %}<form method="post" action="/workflow/delegations/{{ d.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form>{% endif %}</td>
+{% endcall %}
+<form method="post" action="/workflow/delegations" class="card card-body mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2 class="h5">Delegate my approvals</h2>
+  <div class="row g-2">
+    <div class="col-md-3"><label class="form-label" for="dto">To</label><select class="form-select" id="dto" name="to" required>{% for u in users %}<option>{{ u }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label" for="dfrom">From</label><input class="form-control" id="dfrom" name="starts_on" type="date" required></div>
+    <div class="col-md-2"><label class="form-label" for="dend">Until</label><input class="form-control" id="dend" name="ends_on" type="date" required></div>
+    <div class="col-md-5"><label class="form-label" for="dtypes">Only these object types (none selected = all)</label><select class="form-select" id="dtypes" name="object_types" multiple size="3">{% for t in ['feature_version', 'featureset_version', 'model_version', 'parameter_set', 'training_warrant', 'execution_warrant'] %}<option>{{ t }}</option>{% endfor %}</select></div>
+    <div class="col-md-10"><label class="form-label" for="dreason">Reason</label><input class="form-control" id="dreason" name="reason" placeholder="Annual leave"></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Delegate</button></div>
+  </div>
+</form>
+{% endblock %}

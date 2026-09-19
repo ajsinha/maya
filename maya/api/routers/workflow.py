@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse, Response
 
 from maya.api import schemas as s
-from maya.api.deps import Me, Plat, ok
+from maya.api.deps import Me, Plat, ok, parse_date
 from maya.security.authz import Principal
 
 router = APIRouter(prefix="/workflow", tags=["workflow"])
@@ -110,3 +110,22 @@ def campaigns(me: Principal = Me, plat: Any = Plat) -> Response:
 def run_campaign(body: s.CampaignIn, me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.workflow_svc.run_campaign(me, body.name, body.transition, body.items,
                                              body.rationale), 201)
+
+
+@router.get("/delegations")
+def delegations(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.workflow_svc.delegations(me))
+
+
+@router.post("/delegations", status_code=201)
+def delegate(body: s.DelegationIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.workflow_svc.delegate(
+        me, to=body.to, starts_on=parse_date(body.starts_on, "starts_on"),
+        ends_on=parse_date(body.ends_on, "ends_on"), object_types=body.object_types,
+        reason=body.reason), 201)
+
+
+@router.delete("/delegations/{delegation_id}")
+def revoke_delegation(delegation_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    plat.workflow_svc.revoke_delegation(me, delegation_id)
+    return ok({"ok": True})

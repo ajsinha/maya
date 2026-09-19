@@ -19,6 +19,19 @@ from maya.security.authz import Principal
 from maya.workflow import policy as pol
 
 # policy object type -> (table, how to transition an object of it)
+def _namespace_of(ref: str) -> str | None:
+    """The namespace in a maya:// reference (warrants carry an extra path segment)."""
+    body = ref.split("maya://", 1)[-1].split("@")[0].split("#")[0].split("/")
+    if body[:1] == ["warrant"]:
+        body = body[1:]
+    return body[1] if len(body) >= 3 else None
+
+
+def _admin_ids(uow: Any) -> set[str]:
+    role = uow.repo("roles").find_one(name="admin")
+    return {r["user_id"] for r in uow.repo("user_roles").list(role_id=role["id"])}
+
+
 TABLES = {
     "feature_version": "feature_versions", "featureset_version": "feature_set_versions",
     "model_version": "model_versions", "parameter_set": "parameter_sets",
@@ -209,6 +222,81 @@ class WorkflowService:
     def queue_all(self) -> list[dict[str, Any]]:
         from maya.security.authz import Principal as P
         return self.queue(P("", "", [], {}))
+
+    # -- delegation and escalation (§10.4) -----------------------------------------------
+    def delegate(self, p: Principal, *, to: str, starts_on: dt.date, ends_on: dt.date,
+                 object_types: list[str] | None = None, reason: str = "") -> dict[str, Any]:
+        """Name a stand-in for a date range. Only someone who can approve can delegate."""
+        if not any("A" in letters for letters in p.capabilities.values()):
+            raise PermissionDenied("Only an approver can delegate approvals")
+        if ends_on < starts_on:
+            raise ValidationFailed("The delegation ends before it starts")
+        bad = set(object_types or []) - set(TABLES)
+        if bad:
+            raise ValidationFailed("Unknown object type(s): " + ", ".join(sorted(bad)))
+        with self.p.uow(p.username) as uow:
+            delegate = uow.repo("users").find_one(username=to)
+            if delegate is None or delegate["status"] != "active":
+                raise ValidationFailed(f"'{to}' is not an active user")
+            if delegate["id"] == p.user_id:
+                raise ValidationFailed("You cannot delegate to yourself")
+            row = uow.repo("delegations").add({
+                "delegator_id": p.user_id, "delegate_id": delegate["id"], "starts_on": starts_on,
+                "ends_on": ends_on, "object_types": object_types or [], "reason": reason})
+            uow.repo("notifications").add({
+                "user_id": delegate["id"], "kind": "delegation",
+                "message": f"{p.username} delegated approvals to you from {starts_on} to "
+                           f"{ends_on}" + (f" ({', '.join(object_types)})" if object_types
+                                           else ""), "object_ref": None})
+            uow.audit("workflow.delegated", object_ref=f"user:{to}",
+                      detail={"from": p.username, "starts_on": starts_on.isoformat(),
+                              "ends_on": ends_on.isoformat(), "object_types": object_types,
+                              "reason": reason})
+            return row
+
+    def delegations(self, p: Principal) -> list[dict[str, Any]]:
+        """Delegations given and received by this user (all, for an administrator)."""
+        with self.p.uow() as uow:
+            users = {u["id"]: u["username"] for u in uow.repo("users").list()}
+            rows = uow.repo("delegations").list(order_by=["-starts_on"])
+        out = []
+        today = dt.date.today()
+        for r in rows:
+            if p.is_admin or p.user_id in (r["delegator_id"], r["delegate_id"]):
+                active = not r["revoked_at"] and r["starts_on"] <= today <= r["ends_on"]
+                out.append({**r, "delegator": users.get(r["delegator_id"]),
+                            "delegate": users.get(r["delegate_id"]), "active": active})
+        return out
+
+    def revoke_delegation(self, p: Principal, delegation_id: str) -> None:
+        with self.p.uow(p.username) as uow:
+            row = uow.repo("delegations").require(delegation_id)
+            if row["delegator_id"] != p.user_id and not p.is_admin:
+                raise PermissionDenied("Only the delegator or an administrator revokes it")
+            uow.repo("delegations").update(delegation_id, {"revoked_at": utcnow()})
+            uow.audit("workflow.delegation_revoked", object_ref=f"delegation:{delegation_id}")
+
+    def escalate_overdue(self) -> int:
+        """Items past their SLA escalate to the namespace owner, once each (§10.4)."""
+        sent = 0
+        with self.p.uow("system") as uow:
+            for item in self.aging():
+                ns_name = _namespace_of(item["ref"])
+                ns = uow.repo("namespaces").find_one(name=ns_name) if ns_name else None
+                owners = {ns["owner_id"]} if ns and ns["owner_id"] else _admin_ids(uow)
+                for owner in owners:
+                    if uow.repo("notifications").find_one(user_id=owner, kind="escalation",
+                                                          object_ref=item["ref"]):
+                        continue
+                    uow.repo("notifications").add({
+                        "user_id": owner, "kind": "escalation", "object_ref": item["ref"],
+                        "message": f"{item['ref']} has waited {item['age_days']} days in review "
+                                   f"(SLA {item['sla_days']} days)"})
+                    sent += 1
+            if sent:
+                uow.audit("workflow.escalated", principal_type="system", channel="scheduler",
+                          detail={"notifications": sent})
+        return sent
 
     # -- campaigns ------------------------------------------------------------------------
     def run_campaign(self, p: Principal, name: str, transition: str,

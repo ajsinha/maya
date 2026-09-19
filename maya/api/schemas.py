@@ -267,3 +267,11 @@ class WebhookIn(BaseModel):
     url: str
     event_types: list[str] = Field(default_factory=list)
     description: str = ""
+
+
+class DelegationIn(BaseModel):
+    to: str
+    starts_on: str
+    ends_on: str
+    object_types: list[str] = Field(default_factory=list)
+    reason: str = ""

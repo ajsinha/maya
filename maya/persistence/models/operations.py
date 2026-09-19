@@ -8,7 +8,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import (BigInteger, Boolean, Index, Integer, String, Text,
+from sqlalchemy import (BigInteger, Boolean, Date, Index, Integer, String, Text,
                         UniqueConstraint)
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -59,6 +59,7 @@ class Approval(Tracked, Base):
     role: Mapped[str] = mapped_column(String(64))
     decision: Mapped[str] = mapped_column(String(16))
     rationale: Mapped[str | None] = mapped_column(Text)
+    on_behalf_of: Mapped[str | None] = mapped_column(String(128))   # the delegator, if any
 
 
 class Comment(Tracked, Base):
@@ -219,3 +220,16 @@ class WebhookDelivery(Tracked, Base):
     last_status: Mapped[int | None] = mapped_column(Integer)
     last_error: Mapped[str | None] = mapped_column(Text)
     delivered_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+
+
+class Delegation(Tracked, Base):
+    """An approver's stand-in for a date range (§10.4). Never chained."""
+
+    __tablename__ = "delegations"
+    delegator_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    delegate_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    starts_on: Mapped[dt.date] = mapped_column(Date)
+    ends_on: Mapped[dt.date] = mapped_column(Date)
+    object_types: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
+    reason: Mapped[str | None] = mapped_column(Text)
+    revoked_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
