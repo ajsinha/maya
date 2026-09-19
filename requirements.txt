@@ -36,3 +36,9 @@ zstandard==0.25.0
 psutil==7.2.2
 polars==1.44.2
 tzdata==2026.3     # hard requirement on Windows: no system tz database
+
+# Tracing seam: OpenTelemetry span export over OTLP/HTTP (observability.otlp.endpoint).
+# Without it trace ids still propagate to responses, logs, audit and jobs.
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0

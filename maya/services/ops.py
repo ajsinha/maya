@@ -62,6 +62,8 @@ class OpsService:
                      "workers": self.p.jobs.n_workers},
             "seams": Backends.report(), "degraded": degraded, "process": procstat(),
             "default_admin_password": self.p.auth.default_admin_password_active(),
+            "tracing": _tracing_status(),
+            "webhooks": _webhook_backlog(self.p),
             "audit_chain": self.p.access.verify_audit(),
         }
 
@@ -249,6 +251,17 @@ class OpsService:
         if not chain["ok"]:
             raise ValidationFailed("The imported audit chain does not verify", **chain)
         return {"tables": counts, "audit_chain": chain}
+
+
+def _tracing_status() -> dict[str, Any]:
+    from maya.observability import tracing
+    return tracing.status()
+
+
+def _webhook_backlog(platform: Any) -> dict[str, int]:
+    from maya.services.webhooks import deliveries_backlog
+    with platform.uow() as uow:
+        return deliveries_backlog(uow)
 
 
 def _kind(ref: str) -> str:

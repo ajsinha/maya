@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Webhooks{% endblock %}
+{% block content %}
+<h1>Webhooks</h1>
+<p class="lead-slate">Every committed state change of consequence is an event, written in the same transaction as its audit entry. Webhooks receive them as signed POSTs: verify <code>X-Maya-Signature</code> = <code>sha256=HMAC(secret, timestamp + "." + body)</code>, and treat <code>X-Maya-Delivery</code> as an idempotency key — delivery is at-least-once. Failures retry with backoff, then dead-letter.</p>
+{% if new_secret %}<div class="alert alert-warning"><strong>Signing secret — shown once:</strong> <span class="mono user-select-all">{{ new_secret }}</span></div>{% endif %}
+{% call(h) table("webhooks", ["Name", "URL", "Events", "Active", "Pending", "Dead", "!Actions"], rows, empty="No webhooks yet. Add one below.") %}
+  <td>{{ h.name }}</td><td class="mono small">{{ h.url }}</td><td class="mono small">{{ h.event_types|join(', ') or 'all' }}</td>
+  <td>{{ pill('true' if h.active else 'false', 'yes' if h.active else 'no') }}</td><td>{{ h.pending }}</td><td>{{ h.dead }}</td>
+  <td class="d-flex gap-1"><a class="btn btn-sm btn-link" href="?deliveries={{ h.id }}">Deliveries</a>
+  {% if h.active %}<form method="post" action="/admin/webhooks/{{ h.id }}/ping"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit">Ping</button></form>
+  <form method="post" action="/admin/webhooks/{{ h.id }}/delete"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Deactivate</button></form>{% endif %}</td>
+{% endcall %}
+{% if deliveries is not none %}
+<h2>Deliveries</h2>
+{% call(d) table("deliveries", ["Event", "State", "Attempts", "Last status", "Last error", "Next attempt", "Delivered"], deliveries, empty="No deliveries yet.") %}
+  <td>{{ d.event_seq }}</td><td>{{ pill({'pending': 'queued', 'delivered': 'succeeded', 'dead': 'dead_letter'}[d.state], d.state) }}</td><td>{{ d.attempts }}</td><td>{{ d.last_status or '' }}</td><td class="small">{{ d.last_error or '' }}</td><td>{{ d.next_attempt_at|dt }}</td><td>{{ d.delivered_at|dt }}</td>
+{% endcall %}
+{% endif %}
+<form method="post" action="/admin/webhooks" class="card card-body mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2 class="h5">Add a webhook</h2>
+  <div class="row g-2">
+    <div class="col-md-2"><label class="form-label" for="wh">Name</label><input class="form-control" id="wh" name="name" required></div>
+    <div class="col-md-4"><label class="form-label" for="wu">URL (https)</label><input class="form-control mono" id="wu" name="url" required placeholder="https://monitoring.example.com/maya"></div>
+    <div class="col-md-3"><label class="form-label" for="wt">Event types (comma; prefix*; blank = all)</label><input class="form-control mono" id="wt" name="event_types" placeholder="pin.sealed, warrant.*"></div>
+    <div class="col-md-3"><label class="form-label" for="wd">Description</label><input class="form-control" id="wd" name="description"></div>
+  </div>
+  <button class="btn btn-primary mt-2" type="submit">Create</button>
+</form>
+{% endblock %}

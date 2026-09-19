@@ -714,6 +714,39 @@ class Workspaces(_Resource):
         return self._c("POST", f"/workspaces/{seg(ws_id)}/abandon")
 
 
+class Events(_Resource):
+    @endpoint("GET", "/events")
+    def list(self, after: int = 0, limit: int = 500, type: str | None = None) -> Any:
+        return self._c("GET", "/events", params={"after": after, "limit": limit, "type": type})
+
+    @endpoint("GET", "/events/stream")
+    def stream(self, after: int = 0) -> Any:
+        return self._c("GET", "/events/stream", params={"after": after})
+
+    @endpoint("GET", "/webhooks")
+    def webhooks(self) -> Any:
+        return self._c("GET", "/webhooks")
+
+    @endpoint("POST", "/webhooks")
+    def create_webhook(self, name: str, url: str, event_types: list[str] | None = None,
+                       description: str = "") -> Any:
+        return self._c("POST", "/webhooks", json_body={
+            "name": name, "url": url, "event_types": event_types or [],
+            "description": description})
+
+    @endpoint("DELETE", "/webhooks/{webhook_id}")
+    def delete_webhook(self, webhook_id: str) -> Any:
+        return self._c("DELETE", f"/webhooks/{seg(webhook_id)}")
+
+    @endpoint("GET", "/webhooks/{webhook_id}/deliveries")
+    def deliveries(self, webhook_id: str) -> Any:
+        return self._c("GET", f"/webhooks/{seg(webhook_id)}/deliveries")
+
+    @endpoint("POST", "/webhooks/{webhook_id}/ping")
+    def ping(self, webhook_id: str) -> Any:
+        return self._c("POST", f"/webhooks/{seg(webhook_id)}/ping")
+
+
 class Jobs(_Resource):
     @endpoint("GET", "/jobs")
     def list(self, all: bool = False) -> Any:

@@ -91,13 +91,39 @@ class UnitOfWork:
         ``durable`` entries (refusals, denials) are also written if the transaction
         rolls back — a refusal usually *is* the exception that rolls it back.
         """
+        from maya.observability.tracing import current_trace_id
         safe = json.loads(json.dumps(detail or {}, default=str))
         entry = {
             "actor": self.actor or "system", "principal_type": principal_type,
             "channel": channel, "action": action, "object_type": object_type,
-            "object_ref": object_ref, "detail": safe, "request_id": request_id, "ip": ip,
+            "object_ref": object_ref, "detail": safe,
+            "request_id": request_id or current_trace_id(), "ip": ip,
         }
         if durable:
             self._durable.append(entry)
             return
         self.repo("audit_events").append(entry)
+        self._emit(entry)
+
+    def _emit(self, entry: dict[str, Any]) -> None:
+        """Write the event this audit entry announces, and queue its deliveries (§18.1)."""
+        from maya.observability.events import event_type, matches
+        from maya.observability.metrics import METRICS
+        from maya.persistence.types import utcnow
+        etype = event_type(entry)
+        if etype is None:
+            return
+        event = self.repo("events").add({
+            "at": utcnow(), "type": etype, "object_type": entry["object_type"],
+            "object_ref": entry["object_ref"], "actor": entry["actor"],
+            "trace_id": entry["request_id"], "payload": entry["detail"]})
+        METRICS.inc("maya_events_total", {"type": etype})
+        queued = False
+        for hook in self.repo("webhooks").list(active=True):
+            if matches(hook["event_types"], etype):
+                self.repo("webhook_deliveries").add({
+                    "webhook_id": hook["id"], "event_seq": event["seq"], "state": "pending",
+                    "next_attempt_at": utcnow()})
+                queued = True
+        if queued and self.db.on_event is not None:
+            self.after_commit(self.db.on_event)

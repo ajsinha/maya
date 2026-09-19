@@ -17,6 +17,7 @@ SEAMS = {
     "deltalake": ("maya_delta",),
     "duckdb": ("maya.core.pushdown",),
     "uvloop": ("maya.core.backends",),
+    "opentelemetry": ("maya.observability.tracing",),
 }
 
 

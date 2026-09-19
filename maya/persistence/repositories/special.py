@@ -50,6 +50,8 @@ class AuditRepository(Repository[operations.AuditEvent]):
         obj = operations.AuditEvent(**entry)
         self.session.add(obj)
         self.session.flush()
+        from maya.observability.metrics import METRICS
+        METRICS.inc("maya_audit_events_total")
         return obj.to_dict()
 
     def verify_chain(self) -> dict[str, Any]:

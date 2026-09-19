@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<h1>Event stream</h1>
+<p class="lead-slate">Durable and ordered, written with the audit entry that caused it. Also available as <code>GET /api/v1/events?after=&lt;seq&gt;</code> and as server-sent events at <code>/api/v1/events/stream</code>.</p>
+<form method="get" class="row g-2 mb-2" style="max-width:520px"><div class="col-8"><input class="form-control mono" name="type" value="{{ type }}" placeholder="filter by type, e.g. pin." aria-label="Event type filter"></div><div class="col-4"><button class="btn btn-outline-primary w-100" type="submit">Filter</button></div></form>
+{% call(e) table("events", ["Seq", "At", "Type", "Object", "Actor", "Trace"], rows, empty="No events yet.") %}
+  <td>{{ e.seq }}</td><td>{{ e.at|dt }}</td><td class="mono">{{ e.type }}</td><td class="mono small">{{ e.object_ref or '' }}</td><td>{{ e.actor }}</td><td class="mono small">{{ e.trace_id|short(16) if e.trace_id else '' }}</td>
+{% endcall %}
+{% endblock %}

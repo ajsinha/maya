@@ -39,6 +39,8 @@ class Database:
         # concurrent requests queue here instead of failing with "database is
         # locked" (§14.1). PostgreSQL uses row and advisory locks instead.
         self.write_mutex = threading.RLock()
+        # called after a commit that queued webhook deliveries (wakes the dispatcher)
+        self.on_event: Any = None
 
     @property
     def dialect(self) -> str:

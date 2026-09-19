@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 Handler = Callable[["JobContext", dict[str, Any]], dict[str, Any]]
 
 
+def _current_trace() -> str | None:
+    from maya.observability.tracing import current_trace_id
+    return current_trace_id()
+
+
 class JobCancelled(Exception):
     """Raised inside a handler when cancellation was requested."""
 
@@ -96,7 +101,8 @@ class JobQueue:
         job = uow.repo("jobs").add({
             "job_type": job_type, "owner": owner, "state": "queued", "params": params,
             "params_hash": params_hash, "idempotency_key": idempotency_key,
-            "max_attempts": self.max_attempts, "trace_id": secrets.token_hex(8), "logs": [],
+            "max_attempts": self.max_attempts, "logs": [],
+            "trace_id": _current_trace() or secrets.token_hex(16),
         })
         uow.after_commit(self._wake.set)
         return job
@@ -128,21 +134,39 @@ class JobQueue:
         return n
 
     def _execute(self, job: dict[str, Any]) -> None:
+        import time
+        from maya.observability import tracing
+        from maya.observability.metrics import METRICS
+        parent = tracing.TraceContext(job["trace_id"], secrets.token_hex(8)) \
+            if len(job["trace_id"]) == 32 else None
+        started = time.perf_counter()
+        with tracing.span(f"job {job['job_type']}", parent=parent,
+                          attributes={"maya.job_id": job["id"]}):
+            outcome = self._run_handler(job)
+        METRICS.inc("maya_job_runs_total", {"type": job["job_type"], "outcome": outcome})
+        METRICS.observe("maya_job_duration_seconds", time.perf_counter() - started,
+                        {"type": job["job_type"]})
+
+    def _run_handler(self, job: dict[str, Any]) -> str:
         ctx = JobContext(self, job)
         try:
             result = self.handlers[job["job_type"]](ctx, job["params"])
             self._finish(job["id"], "succeeded", result=result or {}, progress=100)
+            return "succeeded"
         except JobCancelled:
             self._finish(job["id"], "cancelled", error="cancelled by request")
+            return "cancelled"
         except MayaError as exc:
             # A deliberate refusal (quality failure, contract mismatch) is not
             # retried: running it again would refuse again.
             self._finish(job["id"], "failed", error=f"{type(exc).__name__}: {exc.message}",
                          result={"problem": exc.to_problem()})
+            return "failed"
         except Exception as exc:  # noqa: BLE001 - the job boundary records everything
             logger.exception("job %s failed", job["id"])
             self._retry_or_dead_letter(job, f"{type(exc).__name__}: {exc}",
                                        traceback.format_exc(limit=8))
+            return "error"
 
     def _retry_or_dead_letter(self, job: dict[str, Any], error: str, tb: str) -> None:
         if job["attempts"] < job["max_attempts"]:

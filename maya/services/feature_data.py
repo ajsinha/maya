@@ -307,6 +307,9 @@ class FeatureData:
             pin_uri = refs.pin_ref("feature", ns["name"], feature["name"], pin["pin_name"],
                                    pin["as_of_date"])
             uow.repo("lineage_edges").link(label, pin_uri, "pinned_as")
+            from maya.observability.metrics import METRICS
+            METRICS.inc("maya_pins_sealed_total", {"kind": "feature"})
+            METRICS.inc("maya_pin_new_bytes_total", value=float(write.bytes_new))
             uow.audit("pin.sealed", object_type="feature_pin", object_ref=pin_uri,
                       detail={"content_hash": write.content_hash, "rows": write.rows,
                               "fragments": len(write.fragments),

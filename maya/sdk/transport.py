@@ -69,6 +69,10 @@ def decode(response: httpx.Response, call: Call) -> Any:
 
 def _headers(token: str | None, channel: str, extra: dict[str, str]) -> dict[str, str]:
     h = {"X-Maya-Client": f"python/{CLIENT_VERSION}", "X-Maya-Channel": channel, **extra}
+    from maya.observability.tracing import current
+    ctx = current()
+    if ctx is not None:          # one trace from the browser through the API and its jobs
+        h["traceparent"] = ctx.header()
     if token:
         h["Authorization"] = f"Bearer {token}"
     return h

@@ -26,7 +26,8 @@ from typing import Any
 import httpx
 
 from maya.core.errors import MayaError, ValidationFailed
-from maya.sdk.resources import (Access, Admin, Auth, ExecutionWarrants, Features, FeatureSets,
+from maya.sdk.resources import (Access, Admin, Auth, Events, ExecutionWarrants, Features,
+                                FeatureSets,
                                 Jobs, Models, Namespaces, Sources, TrainingWarrants,
                                 Workflow, Workspaces)
 from maya.sdk.transport import AsyncTransport, SyncTransport
@@ -50,6 +51,7 @@ class _Namespaces:
         self.jobs = Jobs(transport)
         self.workspaces = Workspaces(transport)
         self.sources = Sources(transport)
+        self.events = Events(transport)
 
 
 class Client(_Namespaces):

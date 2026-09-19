@@ -15,9 +15,13 @@ from pathlib import Path
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
+        from maya.observability.tracing import current
         payload = {"ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
                    "level": record.levelname, "logger": record.name,
                    "message": record.getMessage()}
+        ctx = current()
+        if ctx is not None:
+            payload.update(trace_id=ctx.trace_id, span_id=ctx.span_id)
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=False)
