@@ -242,7 +242,7 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
 
         return resolved
 
-    def _resolve_value(self, value: str, properties: Dict[str, str], visited: set) -> str:
+    def _resolve_value(self, value: str, properties: Dict[str, str], visited: set) -> str:  # noqa: C901 - the ${...} grammar
         """
         Recursively resolve ${...} references in a value, including nested references
 

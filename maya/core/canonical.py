@@ -37,7 +37,7 @@ T_NULL, T_BOOL, T_INT, T_FLOAT, T_STR, T_BYTES = b"N", b"B", b"I", b"F", b"S", b
 T_DATE, T_TS, T_DEC, T_LIST, T_MAP, T_DUR = b"D", b"T", b"M", b"L", b"K", b"U"
 
 
-def encode_value(value: Any) -> bytes:
+def encode_value(value: Any) -> bytes:  # noqa: C901 - the hash's definition: one literal case per type
     """Encode one value into its canonical bytes."""
     if value is None:
         return T_NULL

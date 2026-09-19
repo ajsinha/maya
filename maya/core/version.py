@@ -11,12 +11,28 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 APP_NAME = "MAYA"
 APP_TAGLINE = "Model & AI Lifecycle Assurance"
 APP_SLOGAN = "Evidence, not assertion."
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 BUILD_DATE = "2026-09-19"
 API_VERSION = "v1"
 
 # Per-release highlights, newest first. Rendered on the About page.
 HIGHLIGHTS = {
+    "0.2.0": [
+        "Top navigation with mega-menus; a card-based help centre with four tutorials and "
+        "thirteen full-reference guides",
+        "Spreadsheet import: an Excel formula graph lifted into the IR, checked cell by cell "
+        "against the workbook's own results and against LibreOffice Calc",
+        "The python source driver: a reviewed producer function run in the sandbox on each pull",
+        "SAML 2.0 sign-in with signed requests and single logout; WebAuthn security keys",
+        "Catalog search on an inverted index: ranked, prefix-matched, permission-filtered",
+        "True LaTeX builds with Tectonic; SDK record/replay (sync and async) and "
+        "maya.offline(bundle)",
+        "Server-side cursor paging; the assistant as a recorded challenger on every review",
+        "maya_delta compaction and vacuum on both backends, run daily over every lake table",
+        "Composite models re-executed in evidence bundles; offline execution labelled unattested",
+        "Several web processes on one node over PostgreSQL, spread evenly by SO_REUSEPORT",
+        "Measured: SC-4, SC-5 and 100k-object search pass; SC-3 close (docs/BENCHMARKS.md)",
+    ],
     "0.1.0": [
         "First end-to-end build from specification revision 2.1",
         "Bitemporal features with content-addressed, fragment-shared pins",
@@ -31,14 +47,5 @@ HIGHLIGHTS = {
         "Prometheus metrics, W3C tracing, a durable event stream and signed webhooks",
         "Delegation and SLA escalation, run by a maintenance scheduler",
         "Licence algebra and tamper-evident custody anchoring of the audit chain",
-        "Top navigation with mega-menus, and a card-based help system with worked examples",
-        "Spreadsheet import: an Excel formula graph lifted into the IR, checked cell by cell "
-        "against the workbook's own results",
-        "The python source driver: a reviewed producer function run in the sandbox on each pull",
-        "SAML 2.0 single sign-on and WebAuthn security keys",
-        "Catalog search on an inverted index: ranked, prefix-matched, permission-filtered",
-        "True LaTeX builds with Tectonic; SDK record/replay fixtures and maya.offline(bundle)",
-        "Server-side cursor paging; the assistant as a recorded challenger on every review",
-        "maya_delta compaction and vacuum on both backends, run daily over every lake table",
     ],
 }

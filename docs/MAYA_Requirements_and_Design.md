@@ -2,6 +2,13 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.3 — 2026-09-19.** Three decisions from building and measuring version 0.2,
+> each marked *Revision 2.3* where it lands: several web processes on one node require
+> PostgreSQL, and MAYA refuses them over SQLite (§14.1); the estate export reads the
+> database as it is, so the one upgrade path works across the schema change that needs
+> it (§14.3); and SAML adds signed requests and single logout in both directions, an
+> IdP's logout request accepted only when signed (§12).
+>
 > **Revision 2.2 — 2026-09-19.** Three corrections from the first build, each marked
 > *Revision 2.2* where it lands: the dark `--maya-crimson-deep` token (§16.6), which failed
 > this document's own contrast gate; CodeMirror 5 in place of 6 (§17), which the
@@ -783,7 +790,12 @@ routine install failure on Windows and macOS. MAYA treats SAML as a **declared
 capability** (§13.4, Type C): its availability is resolved at startup, and a deployment
 configured for SAML on a host without `xmlsec` **fails to start** with the missing
 package named — rather than starting cleanly and failing at the first person's login,
-which is how this dependency is usually discovered. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
+which is how this dependency is usually discovered. *Revision 2.3:* sign-in is
+SP-initiated only (an unsolicited Response cannot be tied to a request). AuthnRequests and
+logout messages may be signed with MAYA's own key pair. Single logout runs in both
+directions over HTTP-Redirect: signing out of MAYA ends the session and asks the IdP to
+end its own, and the IdP's LogoutRequest ends every MAYA session of that sign-in, but
+only when the IdP signed it. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
 
 **Service principals.** API keys and OAuth2 client credentials, scoped to roles and namespaces, with mandatory expiry, last-used tracking, one-click revocation and a rotation reminder. Keys are shown once at creation and stored only as hashes.
 
@@ -989,7 +1001,7 @@ The two backends differ in ways that bite, so each difference is handled once, i
 | `UUID` native vs text | `PortableUUID`, stored as native on PG, 36-char text on SQLite |
 | Timezone-aware timestamps | Always stored UTC; SQLite values normalized on read and write |
 | `NUMERIC` precision | `decimal` mapped to `NUMERIC(38,12)` on PG; on SQLite stored as text and converted, never float |
-| Concurrent writers | PG: row locks and advisory locks. SQLite: WAL mode, `busy_timeout`, one writer, serialized through a write mutex |
+| Concurrent writers | PG: row locks and advisory locks. SQLite: WAL mode, `busy_timeout`, one writer, serialized through a write mutex. *Revision 2.3:* that mutex lives in one process and is what keeps read-then-write steps (linking the audit chain, numbering versions) atomic, so SQLite is **one writing process**: `server.workers` above 1 requires PostgreSQL, and MAYA refuses to start the combination |
 | `SKIP LOCKED` job queue | PG native; SQLite uses an in-process queue with the same interface |
 | Full-text search | PG `tsvector`; SQLite FTS5 — both behind a `SearchIndex` port |
 
@@ -1042,6 +1054,12 @@ maya admin export-estate   --out estate.mayabundle   # dialect-neutral, versione
 maya admin init-db         --force                   # drops and recreates from the .sql file
 maya admin import-estate   --in  estate.mayabundle   # re-materialises, verifying every hash
 ```
+
+*Revision 2.3:* the export must work exactly when startup refuses, so it reads the
+database as it is rather than through a platform that first checks the schema. Each
+table is read through the code's column types, but only for the columns the database
+really has. Columns the new code added take their defaults on import, and anything the
+new code no longer has is named in the bundle's manifest, never silently dropped.
 
 The cost is a maintenance window proportional to estate size, and the benefit is that
 there is exactly one way a database can be shaped and it is a file you can read. Because

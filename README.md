@@ -30,7 +30,7 @@ It exists because four things are true in almost every quantitative shop, and ea
 The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes a model version against a feature set version and receives the parameters that training produced. An *execution warrant* packages a model, its parameters and its input contract into a licence that can be handed to a downstream system or a regulator — and, because it is a live instrument rather than a document, withdrawn on a Friday afternoon when the model is found to be wrong. Warrants make *who was allowed to run what, on which data, with whose approval* a query rather than an archaeology project.
 
 [![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/MAYA_Requirements_and_Design.md)
-[![Implementation](https://img.shields.io/badge/implementation-v0.1.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
+[![Implementation](https://img.shields.io/badge/implementation-v0.2.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
@@ -79,7 +79,7 @@ That is māyā, and it is model risk, in one figure.
 
 ## Status — read this first
 
-**Version 0.1.0 (2026-09-19): the first end-to-end build from specification revision 2.1.**
+**Version 0.2.0 (2026-09-19), built from specification revision 2.3.**
 The whole spine runs through the web UI, the REST API, the SDK and the CLI:
 source → feature → feature set → pin → model → training warrant → parameter set →
 execution warrant → reproducibility bundle.
@@ -89,14 +89,16 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 929 passing on SQLite and on PostgreSQL 18, Linux, including real-browser tests in headless Chrome; 92% line coverage, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 176 endpoints, schema drift) |
+| **Tests** | 1,115 on Linux, all passing on PostgreSQL 16, 17 and 18. On SQLite 1,113 pass and two are skipped: the multi-process server tests, which need PostgreSQL. They include real-browser tests in headless Chrome, a multi-process server, and LibreOffice Calc as a judge of spreadsheet lifts. 92.8% line coverage, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 177 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it
 
-- **PostgreSQL is verified on 18 only.** The whole suite passes on PostgreSQL 18.6 as well as
-  SQLite (`MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test
-  platform gets its own freshly created database). Earlier PostgreSQL majors have not been run.
+- **PostgreSQL is verified on 16, 17 and 18.** The whole suite passes on PostgreSQL 16.15,
+  17.11 and 18.6, as well as SQLite. Run it with
+  `MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test platform
+  gets its own freshly created database. Version 14, the documented floor, and version 15
+  have not been run.
 - **Only Linux has been exercised.** There is no hosted CI: the gate ladder runs locally,
   in the pre-commit hook on every commit and as `python tools/ci/gates.py --tests`. Windows
   and macOS need a run on those machines.

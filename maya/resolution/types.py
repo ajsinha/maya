@@ -82,7 +82,7 @@ def _split_top(text: str) -> list[str]:
     return parts
 
 
-def parse_type(text: str) -> LogicalType:
+def parse_type(text: str) -> LogicalType:  # noqa: C901 - one case per logical-type form
     """Parse a logical type string. Raises ValidationFailed on anything unknown."""
     t = text.strip()
     if t in SCALARS:
@@ -146,7 +146,7 @@ def arrow_type(logical: str) -> pa.DataType:
     return pa.struct([pa.field(n, arrow_type(ft)) for n, ft in lt.params])
 
 
-def logical_from_arrow(t: pa.DataType) -> str:
+def logical_from_arrow(t: pa.DataType) -> str:  # noqa: C901 - one case per Arrow type family
     """The MAYA logical type for an Arrow type (tensor shape needs a manifest)."""
     for name, at in SCALARS.items():
         if t == at:
@@ -232,7 +232,7 @@ def schema_warnings(schema: list[dict[str, Any]]) -> list[str]:
     return warns
 
 
-def _cast_scalar(value: Any, lt: LogicalType) -> Any:
+def _cast_scalar(value: Any, lt: LogicalType) -> Any:  # noqa: C901 - one case per logical type
     """Cast one value; raises ValueError/TypeError on failure."""
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return None
