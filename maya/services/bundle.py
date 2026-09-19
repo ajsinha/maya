@@ -118,6 +118,7 @@ class BundleService:
     def export(self, p: Principal, warrant_id: str) -> dict[str, Any]:
         """Build a signed bundle for a training warrant and store it as a blob."""
         w = self.p.warrants.get(p, warrant_id)
+        self.p.licences.export(p, "featureset", w["featureset_ref"], "external")
         with self.p.uow() as uow:
             mv = uow.repo("model_versions").require(w["model_version_id"])
             params = next((ps for ps in w["parameter_sets"]

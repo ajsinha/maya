@@ -201,6 +201,8 @@ class AccessService:
             if principal_type == "user":
                 # grants are matched on the user id; a name typed in the UI would never match
                 principal_id = self._user_id(uow, principal_id)
+            if kind in ("feature", "featureset"):
+                self._licence_allows(uow, kind, obj, principal_type, principal_id)
             inert = self._inert(uow, principal_type, principal_id, level, KINDS[kind][1])
             row = uow.repo("grants").add({
                 "object_type": kind, "object_id": obj["id"], "principal_type": principal_type,
@@ -211,6 +213,22 @@ class AccessService:
                       detail={"to": f"{principal_type}:{principal_id}", "level": level,
                               "deny": deny, "inert": inert})
             return row
+
+    def _licence_allows(self, uow: Any, kind: str, obj: dict[str, Any], ptype: str,
+                        pid: str) -> None:
+        from maya.services import refs as refmod
+        ns = uow.repo("namespaces").require(obj["namespace_id"])
+        ref = refmod.object_ref(kind, ns["name"], obj["name"])
+        groups: list[str] = []
+        desk = None
+        if ptype == "user":
+            holder = self.p.auth.build_principal(uow, pid)
+            groups, desk = holder.groups, holder.desk
+        try:
+            self.p.licences.grantee(kind, ref, ptype, pid, groups, desk)
+        except Exception as exc:
+            if getattr(exc, "code", "") != "not_approved":
+                raise
 
     @staticmethod
     def _user_id(uow: Any, who: str) -> str:

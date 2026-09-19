@@ -66,8 +66,31 @@ async def workbench(request: Request) -> Any:
 
 
 # -- feature designer ------------------------------------------------------------------
+def licence_from_form(data: Any) -> dict[str, Any] | None:
+    """The vendor terms block (§29.6); None when the designer left it empty."""
+    lic: dict[str, Any] = {}
+    for key in ("vendor", "redistribution", "derived_works", "notes"):
+        if (data.get(f"licence_{key}") or "").strip():
+            lic[key] = data[f"licence_{key}"].strip()
+    population = [g.strip() for g in (data.get("licence_population") or "").split(",")
+                  if g.strip()]
+    if population:
+        lic["population"] = population
+    if (data.get("licence_retention_days") or "").strip():
+        lic["retention_days"] = int(data["licence_retention_days"])
+    return lic or None
+
+
 def definition_from_form(data: Any) -> dict[str, Any]:
     """Build a feature definition from the designer's structured controls."""
+    definition = _definition_body(data)
+    licence = licence_from_form(data)
+    if licence:
+        definition["licence"] = licence
+    return definition
+
+
+def _definition_body(data: Any) -> dict[str, Any]:
     mode = data.get("mode", "source")
     if mode == "extends":
         return {"extends": {"parent": data.get("parent", "").strip(),

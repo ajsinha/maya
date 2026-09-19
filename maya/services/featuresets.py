@@ -353,6 +353,7 @@ class FeatureSetService:
         if p is not None:
             with self.p.uow() as uow:
                 self.p.access.require(uow, p, "read", "featureset", fs)
+            self.p.licences.reader(p, "featureset", ref)
         if pin is not None:
             table = self.p.lake.read_pin("fspins", ns["name"], fs["name"], pin["fragments"])
             meta = pin["manifest"].get("meta") or {}
@@ -550,6 +551,7 @@ class FeatureSetService:
 
     def download(self, p: Principal, ref: str, *, fmt: str = "parquet", shape: str = "tabular",
                  csv_encoding: str | None = None) -> dict[str, Any]:
+        self.p.licences.export(p, "featureset", ref, "internal")
         res = self.resolve_ref(p, ref)
         schema = self._full_schema(res)
         if shape == "wide":

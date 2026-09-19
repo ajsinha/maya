@@ -296,6 +296,12 @@ class FeatureService:
                                    errors=errors)
         non_causal = bool(catalog.non_causal_rules(eff))
         src = eff.get("source") or {}
+        built_on = list((src.get("derivation") or {}).get("operands") or []) \
+            if src.get("type") == "derived" else []
+        if version["definition"].get("extends"):
+            built_on.append(version["definition"]["extends"]["parent"])
+        if built_on:
+            self.p.licences.derivation("feature", built_on, "building a derived feature")
         if src.get("type") == "derived":
             d = src["derivation"]
             metas = self.data.operand_metas(d)
@@ -359,6 +365,7 @@ class FeatureService:
                 start: dt.date | None = None, end: dt.date | None = None,
                 limit: int = PREVIEW_ROWS) -> dict[str, Any]:
         conditions = self._read_conditions(p, ref)
+        self.p.licences.reader(p, "feature", ref)
         res = self.data.resolve_ref(ref, as_of_known=as_of_known, start=start, end=end)
         applied = self._condition(res, conditions, p)
         return {"rows": _records(res.df.head(limit)), "total_rows": len(res.df),
@@ -471,6 +478,7 @@ class FeatureService:
             feature, _ = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "download", "feature", feature)
             conditions = self.p.access.read_conditions(uow, p, "feature", feature)
+        licence = self.p.licences.export(p, "feature", ref, "internal")
         res = self.data.resolve_ref(ref, as_of_known=as_of_known)
         applied = self._condition(res, conditions, p)
         if any(how == "hash" for how in (conditions.get("column_mask") or {}).values()):
@@ -487,7 +495,9 @@ class FeatureService:
         manifest = {"ref": ref, "content_hash": content, "rows": len(res.df), "format": fmt,
                     "csv_encoding": csv_encoding, "exported_at": utcnow().isoformat(),
                     "exported_by": p.username, "as_of_known": str(as_of_known or "now"),
-                    "access_conditions": applied}
+                    "access_conditions": applied,
+                    "licence": {k: licence[k] for k in ("vendors", "redistribution",
+                                                        "derived_works", "retention_days")}}
         with self.p.uow(p.username) as uow:
             uow.audit("data.downloaded", object_type="feature", object_ref=ref, detail=manifest)
         return {"data": payload, "manifest": manifest}

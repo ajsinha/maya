@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
-{% from "_macros/ui.html" import pill, kv, tabs, json_block %}
+{% from "_macros/ui.html" import pill, kv, licence_panel, tabs, json_block %}
 {% block title %}{{ fs.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ fs.name }}</h1><div class="small-muted mono">{{ fs.ref }}</div></div>
@@ -19,6 +19,7 @@
       {% if is_admin and v.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass</label>{% endif %}
     </form></td>
   {% endcall %}
+  {{ licence_panel(licence) }}
   {% if latest %}<h3>Attribute mapping (effective, v{{ latest.version_no }})</h3>
   {% set members = latest.effective.get('members', []) %}
   {% call(m) table("members", ["Attribute", "Member reference", "Source attribute", "Cast", "Rule override"], members, empty="No members mapped.") %}

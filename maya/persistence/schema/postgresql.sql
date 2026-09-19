@@ -3,8 +3,26 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: a7c2e3d1bd6dd8e6f61f5d465e48dc7b95e1d92b7f3fe4abfca9d6659bb71775
+-- schema-hash: 7f7079c32cb53c9d9900a47c97dba678f720d8ec621c42cd0082ed9d7a64114a
 -- ==========================================================================
+
+CREATE TABLE anchors (
+	seq BIGINT NOT NULL, 
+	head_hash VARCHAR(64) NOT NULL, 
+	methods JSONB NOT NULL, 
+	signature JSONB NOT NULL, 
+	tsa_token TEXT, 
+	detail JSONB NOT NULL, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_anchors PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_anchors_seq ON anchors (seq);
 
 CREATE TABLE approvals (
 	object_type VARCHAR(32) NOT NULL, 

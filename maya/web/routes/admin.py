@@ -197,6 +197,27 @@ async def events_page(request: Request) -> Any:
                                                        "type": q.get("type", "")})
 
 
+# -- custody anchors (§29.6) --------------------------------------------------------------------
+@router.get("/admin/custody")
+@page
+async def custody_page(request: Request) -> Any:
+    verify = request.query_params.get("verify") == "1"
+    async with client(request) as sdk:
+        data = await sdk.custody.anchors()
+        report = await sdk.custody.verify() if verify else None
+    return await render(request, "admin/custody.html", {**data, "report": report})
+
+
+@router.post("/admin/custody/anchor")
+@action
+async def custody_anchor(request: Request) -> Any:
+    async with client(request) as sdk:
+        row = await sdk.custody.anchor()
+    flash(request, f"Chain head anchored at seq {row['seq']}." if row else
+          "The audit log is empty; nothing to anchor.", "success" if row else "info")
+    return RedirectResponse("/admin/custody", status_code=303)
+
+
 # -- SQL source connections --------------------------------------------------------------------
 @router.get("/admin/sources")
 @page

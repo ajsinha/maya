@@ -127,6 +127,7 @@ class WarrantService:
                 raise NotApproved(f"{model} is '{mv['state']}'; warrants are drawn on approved "
                                   "model versions")
             model_uri = refs.version_ref("model", mns["name"], mobj["name"], mv["version_no"])
+        self.p.licences.derivation("featureset", [featureset], "training a model on it")
         res = self.p.featuresets.resolve_ref(p, featureset)
         report = self.validate_contract(mv, res.meta, spec)
         if not report["ok"]:
@@ -254,6 +255,7 @@ class WarrantService:
             w, ns = self._load(uow, warrant_id)
             self.p.access.require(uow, p, "download", "training_warrant", w)
         self._live(w)
+        self.p.licences.export(p, "featureset", w["featureset_ref"], "internal")
         escrow = w["spec"].get("holdout") == "escrowed"
         df, meta = self.training_frame(w, include_test=not escrow, principal=p)
         table = pa.Table.from_pandas(df, preserve_index=False).replace_schema_metadata(None)

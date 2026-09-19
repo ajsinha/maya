@@ -142,6 +142,17 @@ observability:
     # dev only: allow http://localhost and private addresses (never outside dev)
     allow_private: "false"
 
+custody:
+  # §29.6: pin the audit chain head outside the database, periodically.
+  # signature (Ed25519), file (append-only JSON lines), event (a webhook-visible
+  # audit.anchored event), rfc3161 (a timestamp authority; sends the head hash out).
+  anchor:
+    methods: "signature,file,event"
+    # Put this on WORM or off-host storage; empty means <storage.root>/anchors.jsonl
+    file: "${MAYA_ANCHOR_FILE:}"
+    tsa_url: "${MAYA_TSA_URL:}"
+    interval_seconds: 3600
+
 workspaces:
   shadow:
     # rows replayed per dependent warrant (the most recent, by index); stated on the report
