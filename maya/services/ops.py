@@ -218,15 +218,15 @@ class OpsService:
         out = []
         with self.p.uow() as uow:
             names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
+            readers: dict[str, Any] = {}             # the read rule, loaded once per kind
             for h in uow.repo("search").search(q, limit=max(1, min(limit, 200)) * 3):
                 kind = self.SEARCH_KINDS.get(h["kind"])
                 if kind is not None:
-                    table = {"feature": "features", "featureset": "feature_sets",
-                             "model": "models", "training_warrant": "training_warrants",
-                             "execution_warrant": "execution_warrants"}[kind]
-                    if not self.p.access.allowed(uow, p, "read", kind,
-                                                 uow.repo(table).require(h["id"])):
+                    if kind not in readers:
+                        readers[kind] = self.p.access.reader(uow, p, kind)
+                    if not readers[kind](uow, h):
                         continue
+                h.pop("owner_id", None)                 # read-rule input, not a result field
                 h["namespace"] = names.get(h.get("namespace_id"))
                 out.append(h)
                 if len(out) >= limit:
@@ -263,7 +263,7 @@ class OpsService:
     # -- estate (§14.3) -------------------------------------------------------------------
     def export_estate(self) -> bytes:
         """Dialect-neutral dump of every table, hashed per table, in dependency order."""
-        return estate.export(self.p.db, self.p.uow, VERSION)
+        return estate.export(self.p.db, VERSION)
 
     def import_estate(self, data: bytes) -> dict[str, Any]:
         """Load an estate into an empty, freshly created schema, verifying every hash."""

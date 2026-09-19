@@ -138,15 +138,23 @@ class SearchRepository:
         from maya.persistence import search_index
         hits = search_index.search(self.session, q, limit)
         models = {kind: model for kind, model in self.TARGETS}
+        wanted: dict[str, list[Any]] = {}
+        for kind, oid, _ in hits:
+            wanted.setdefault(kind, []).append(oid)
+        rows = {}                                   # one query per kind, not one per hit
+        for kind, ids in wanted.items():
+            model = models[kind]
+            for obj in self.session.scalars(select(model).where(model.id.in_(ids))):
+                rows[(kind, obj.id)] = obj.to_dict()
         out = []
         for kind, oid, score in hits:
-            obj = self.session.get(models[kind], oid)
-            if obj is None:
+            row = rows.get((kind, oid))
+            if row is None:
                 continue
-            row = obj.to_dict()
             out.append({"kind": kind, "id": row["id"], "name": row["name"],
                         "description": row.get("description"), "tags": row.get("tags") or [],
-                        "namespace_id": row.get("namespace_id"), "score": score})
+                        "namespace_id": row.get("namespace_id"),
+                        "owner_id": row.get("owner_id"), "score": score})
         return out
 
     def rebuild(self) -> int:

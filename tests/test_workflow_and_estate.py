@@ -151,3 +151,39 @@ def test_schema_mismatch_refuses_to_start():
     with pytest.raises(ConfigurationError, match="export-estate"):
         platform.db.verify_schema()
     platform.shutdown()
+
+
+def test_a_database_from_another_schema_still_exports_and_loads():
+    """The documented way out of a schema mismatch must work on a mismatched database:
+    export reads the columns the database has; a column the code no longer knows is
+    named in the manifest, a column the code added is filled by its default on load."""
+    import io
+    import json
+    import zipfile
+
+    from maya.core.errors import ConfigurationError
+    from maya.core.version import VERSION
+    from maya.persistence import estate
+    platform = build_platform()
+    w = World(platform)
+    platform.access.create_namespace(w.admin, name="eq")
+    approved_feature(w, "old_schema_px", price_csv(3))
+    head = platform.access.verify_audit()["head"]
+    with platform.db.engine.begin() as conn:     # an "older" database
+        conn.execute(text("ALTER TABLE features ADD COLUMN legacy_note TEXT"))
+        conn.execute(text("ALTER TABLE sessions DROP COLUMN user_agent"))
+        conn.execute(text("UPDATE schema_meta SET value='0ld5c4e7a' WHERE key='schema_hash'"))
+    with pytest.raises(ConfigurationError, match="Schema mismatch"):
+        platform.db.verify_schema()
+    data = estate.export(platform.db, VERSION)
+    manifest = json.loads(zipfile.ZipFile(io.BytesIO(data)).read("manifest.json"))
+    assert manifest["not_carried"] == {"features": ["legacy_note"]}
+    platform.db.init_schema(force=True)
+    result = platform.ops.import_estate(data)
+    assert result["audit_chain"]["ok"] and result["audit_chain"]["head"] == head
+    assert platform.features.get(w.admin, "eq/old_schema_px")["versions"][0]["state"] \
+        == "approved"
+    with platform.uow() as uow:
+        assert all(s["user_agent"] is None for s in uow.repo("sessions").list())
+    platform.db.verify_schema()
+    platform.shutdown()

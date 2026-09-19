@@ -50,20 +50,44 @@ def _decode(row: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def export(db: Any, uow_factory: Any, maya_version: str) -> bytes:
-    """Dump every table, hashed per table, in dependency order."""
+def export(db: Any, maya_version: str) -> bytes:
+    """Dump every table, hashed per table, in dependency order.
+
+    Reads the database as it is, not as this code's schema says it should be: an
+    estate is how a database made by an older schema reaches a newer one, so export
+    must work exactly when the schema check at startup refuses. Each table is read
+    through this code's column types, but only the columns the database really has;
+    columns this code has and the database lacks are left out (the load fills them
+    with their defaults), and whatever the database has that this code does not is
+    named in the manifest's ``not_carried``, never silently lost from view.
+    """
+    from sqlalchemy import inspect, select
     out = io.BytesIO()
     manifest: dict[str, Any] = {"format": FORMAT, "maya_version": maya_version,
                                 "exported_at": utcnow().isoformat(),
-                                "source_dialect": db.dialect, "tables": {}}
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z, uow_factory() as uow:
+                                "source_dialect": db.dialect, "tables": {},
+                                "not_carried": {}}
+    found = inspect(db.engine)
+    present = set(found.get_table_names())
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z, db.engine.connect() as conn:
         for table in Base.metadata.sorted_tables:
-            repo = uow.repo(table.name)
-            rows = repo.list(order_by=["seq"]) if table.name == "audit_events" else repo.list()
+            if table.name not in present:
+                continue
+            have = {c["name"] for c in found.get_columns(table.name)}
+            cols = [c for c in table.columns if c.name in have]
+            extra = sorted(have - {c.name for c in table.columns})
+            if extra:
+                manifest["not_carried"][table.name] = extra
+            stmt = select(*cols)
+            if table.name == "audit_events":
+                stmt = stmt.order_by(table.c.seq)
+            rows = [dict(r._mapping) for r in conn.execute(stmt)]
             body = "\n".join(json.dumps(r, default=_enc, sort_keys=True) for r in rows)
             z.writestr(f"tables/{table.name}.jsonl", body)
             manifest["tables"][table.name] = {"rows": len(rows),
                                               "sha256": hashlib.sha256(body.encode()).hexdigest()}
+        for name in sorted(present - set(Base.metadata.tables)):
+            manifest["not_carried"][name] = ["(the whole table)"]
         z.writestr("manifest.json", json.dumps(manifest, indent=2, sort_keys=True))
     return out.getvalue()
 
@@ -85,7 +109,9 @@ def load(db: Any, data: bytes) -> dict[str, int]:
                     raise ValidationFailed(f"Table {table.name} failed its hash check")
                 if table.name == "schema_meta":
                     continue
-                rows = [_decode(json.loads(line)) for line in body.splitlines() if line]
+                known = {c.name for c in table.columns}
+                rows = [{k: v for k, v in _decode(json.loads(line)).items() if k in known}
+                        for line in body.splitlines() if line]
                 if rows:
                     conn.execute(table.insert(), rows)
                 counts[table.name] = len(rows)

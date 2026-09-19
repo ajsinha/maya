@@ -98,6 +98,34 @@ def _shutdown(*_: object) -> None:
         _platform.shutdown()
 
 
+def _supervise(workers: int, host: str, port: int, loop: str) -> None:
+    """Run ``workers`` web processes, each on its own SO_REUSEPORT socket so the kernel
+    spreads connections evenly; restart any that dies until MAYA is asked to stop."""
+    import time
+    from maya.server import serve_web_process
+    ctx = multiprocessing.get_context("spawn")
+
+    def start() -> multiprocessing.Process:
+        proc = ctx.Process(target=serve_web_process, args=(host, port, loop), daemon=True)
+        proc.start()
+        return proc
+
+    procs = [start() for _ in range(workers)]
+    try:
+        while not _shutting_down:
+            for i, proc in enumerate(procs):
+                if not proc.is_alive():
+                    logger.warning("web process %s exited (%s); starting another",
+                                   proc.pid, proc.exitcode)
+                    procs[i] = start()
+            time.sleep(1.0)
+    finally:
+        for proc in procs:
+            proc.terminate()
+        for proc in procs:
+            proc.join(10)
+
+
 def main(argv: list[str]) -> int:
     global _platform
     if any(a in ("-h", "--help") for a in argv[1:]):
@@ -130,14 +158,19 @@ def main(argv: list[str]) -> int:
     print(f"\n  Serving on http://{host}:{port}   (API docs: /api/v1/docs)"
           + (f"   ·   {workers} web processes" if workers > 1 else "") + "\n")
     if workers > 1:
-        # This process keeps the job workers, webhooks and scheduler; uvicorn starts
+        # This process keeps the job workers, webhooks and scheduler and starts
         # ``workers`` web processes (spawned, so each re-reads the same configuration
         # and --key=value overrides). Make the signing keys now, not in a race between them.
+        from maya.server import balanced_sockets, check_web_processes
+        check_web_processes(workers, _platform.db.dialect)
         os.environ["MAYA_CONFIG_FILE"] = os.path.abspath(_config_path(argv))
         _platform.signer_or_none()
-        uvicorn.run("maya.server:web_worker", factory=True, workers=workers, host=host,
-                    port=port, log_level="warning", loop=loop, proxy_headers=True,
-                    access_log=False)
+        if balanced_sockets():
+            _supervise(workers, host, port, loop)
+        else:
+            uvicorn.run("maya.server:web_worker", factory=True, workers=workers, host=host,
+                        port=port, log_level="warning", loop=loop, proxy_headers=True,
+                        access_log=False)
     else:
         uvicorn.run(build_app(_platform), host=host, port=port, log_level="warning",
                     loop=loop, proxy_headers=True, access_log=False)

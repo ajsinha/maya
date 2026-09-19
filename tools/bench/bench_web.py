@@ -92,9 +92,18 @@ def launch(workers: int) -> tuple[str, subprocess.Popen]:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
-    proc = subprocess.Popen([sys.executable, str(h.ROOT / "run_maya_web.py"),
-                             f"--server.workers={workers}", f"--server.port={port}",
-                             "--logging.level=WARNING"], cwd=h.ROOT, env=dict(os.environ),
+    argv = [sys.executable, str(h.ROOT / "run_maya_web.py"), f"--server.workers={workers}",
+            f"--server.port={port}", "--logging.level=WARNING"]
+    if os.environ.get("MAYA_BENCH_DB_URL"):           # the PostgreSQL database seeded here
+        from sqlalchemy.engine import make_url
+        u = make_url(os.environ["MAYA_BENCH_DB_URL"])
+        argv += ["--db.dialect=postgresql", f"--db.postgresql.host={u.host}",
+                 f"--db.postgresql.port={u.port or 5432}",
+                 f"--db.postgresql.database={u.database}", f"--db.postgresql.user={u.username}"]
+        if u.password:
+            argv.append(f"--db.postgresql.password={u.password}")
+    argv += os.environ.get("MAYA_BENCH_SERVER_ARGS", "").split()   # e.g. pool sizes
+    proc = subprocess.Popen(argv, cwd=h.ROOT, env=dict(os.environ),
                             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     base = f"http://127.0.0.1:{port}"
     deadline = time.time() + 120

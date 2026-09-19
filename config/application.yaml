@@ -29,10 +29,12 @@ app:
 server:
   host: "${MAYA_HOST:127.0.0.1}"
   port: "${MAYA_PORT:8600}"
-  # Web processes. 1 serves everything from one process. Above 1, uvicorn runs this
-  # many web processes; the launching process keeps the job workers, webhooks and the
-  # scheduler. One Python process tops out near 40 page requests a second; size this
-  # to cores and load. Prometheus metrics are per process.
+  # Web processes. 1 serves everything from one process. Above 1 (PostgreSQL only:
+  # SQLite admits one writing process, and MAYA refuses the combination), this many
+  # web processes serve the port — on Linux each on its own SO_REUSEPORT socket, so
+  # connections spread evenly — and the launching process keeps the job workers,
+  # webhooks and scheduler. One Python process serves roughly 40 page requests a
+  # second; size this to cores and load. Prometheus metrics are per process.
   workers: "${MAYA_WEB_WORKERS:1}"
 
 logging:
