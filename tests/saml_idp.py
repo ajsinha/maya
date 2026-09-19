@@ -120,13 +120,25 @@ class SamlIdP:
                  groups: tuple[str, ...] = ("maya-admins",), audience: str = SP,
                  issuer: str = IDP, recipient: str = ACS, destination: str = ACS,
                  not_on_or_after: dt.datetime | None = None, rogue: bool = False,
-                 unsigned: bool = False, assertion_id: str | None = None) -> str:
+                 unsigned: bool = False, assertion_id: str | None = None,
+                 repeat_attributes: bool = False) -> str:
+        """A signed Response. ``repeat_attributes`` shapes the attribute statement as
+        Keycloak does: one same-named Attribute element per group, plus its default
+        role-list mapper's one ``Role`` element per role."""
         from onelogin.saml2.constants import OneLogin_Saml2_Constants as C
         from onelogin.saml2.utils import OneLogin_Saml2_Utils
         now = dt.datetime.now(dt.timezone.utc)
         until = not_on_or_after or now + dt.timedelta(minutes=5)
         irt = f' InResponseTo="{request_id}"' if request_id else ""
         values = "".join(f"<saml:AttributeValue>{g}</saml:AttributeValue>" for g in groups)
+        group_attrs = f'<saml:Attribute Name="groups">{values}</saml:Attribute>'
+        if repeat_attributes:
+            group_attrs = "".join(
+                f'<saml:Attribute Name="groups"><saml:AttributeValue>{g}'
+                "</saml:AttributeValue></saml:Attribute>" for g in groups) + "".join(
+                f'<saml:Attribute Name="Role"><saml:AttributeValue>{r}'
+                "</saml:AttributeValue></saml:Attribute>"
+                for r in ("offline_access", "uma_authorization"))
         assertion = (
             '<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
             f'ID="{assertion_id or "_a" + uuid.uuid4().hex}" Version="2.0" '
@@ -146,8 +158,7 @@ class SamlIdP:
             "<saml:AuthnContext><saml:AuthnContextClassRef>"
             "urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef>"
             "</saml:AuthnContext></saml:AuthnStatement>"
-            '<saml:AttributeStatement><saml:Attribute Name="groups">'
-            f"{values}</saml:Attribute>"
+            f"<saml:AttributeStatement>{group_attrs}"
             f'<saml:Attribute Name="email"><saml:AttributeValue>{username}@example.test'
             "</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>"
             "</saml:Assertion>")

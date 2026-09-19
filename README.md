@@ -102,16 +102,19 @@ execution warrant → reproducibility bundle.
 - **Only Linux has been exercised.** There is no hosted CI: the gate ladder runs locally,
   in the pre-commit hook on every commit and as `python tools/ci/gates.py --tests`. Windows
   and macOS need a run on those machines.
-- **SAML 2.0 and security keys are tested against software, not real products.** Single
-  sign-on is OIDC or SAML 2.0 (`auth.sso.protocol: oidc | saml2`, SP-initiated; the IdP
-  must sign assertions). Second factors are TOTP and WebAuthn security keys/passkeys. The
-  SAML tests use a test IdP whose assertions are really signed with xmlsec, and every
-  check (signature, issuer, audience, destination, recipient, expiry, unsolicited,
-  replayed request, replayed assertion) is attacked on its own; the WebAuthn tests use a
-  software ES256 authenticator verified by py_webauthn. No commercial IdP (Okta, Entra ID,
-  ADFS) and no hardware key or browser has been exercised. WebAuthn attestation is not
-  requested, so MAYA does not claim a key is hardware-backed. SAML signed requests and
-  single logout (both directions) are code complete and tested only against the test IdP.
+- **Single sign-on has been tested against one real IdP: Keycloak 26.4.** Single sign-on
+  is OIDC or SAML 2.0 (`auth.sso.protocol: oidc | saml2`, SP-initiated; the IdP must sign
+  assertions). Against Keycloak 26.4.7, driven in headless Chrome, these all worked:
+  OIDC sign-in with group-mapped roles; SAML sign-in with signed requests; single logout
+  started from MAYA; and logout started from Keycloak's end-session page. That run
+  found and fixed one defect: SAML refused repeated attribute elements. Rerun with
+  `MAYA_TEST_KEYCLOAK_URL=… pytest tests/test_sso_keycloak.py`. Not supported:
+  back-channel (server-to-server) logout, and OIDC sign-out at the IdP; signing out of
+  MAYA over OIDC ends only the MAYA session. No commercial IdP (Okta, Entra ID, ADFS)
+  has been tried, and only over http on loopback. The simulated-IdP tests attack every
+  SAML check on its own. Second factors are TOTP and WebAuthn keys/passkeys, tested
+  with a software ES256 authenticator, not hardware. Attestation is not requested, so
+  MAYA does not claim a key is hardware-backed.
 - **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
   claimed only when a probe child fails to escape. macOS runs at `moderate`
