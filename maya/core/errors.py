@@ -99,12 +99,19 @@ class ConfigurationError(MayaError):
     code, status = "configuration_error", 500
 
 
+class IntegrityError(MayaError):
+    """Stored or replayed content does not match the hash it was sealed with: an incident,
+    never served."""
+
+    code, status = "integrity_error", 500
+
+
 ERRORS_BY_CODE: dict[str, type[MayaError]] = {
     cls.code: cls
     for cls in (
         MayaError, ValidationFailed, NotFound, NotAuthenticated, PermissionDenied,
         ConflictError, NotApproved, ContractMismatch, QualityCheckFailed,
         WarrantExpired, WarrantSuspended, QuotaExceeded, LicenceBreach,
-        CapabilityRefused, ConfigurationError, InvalidCursor,
+        CapabilityRefused, ConfigurationError, InvalidCursor, IntegrityError,
     )
 }

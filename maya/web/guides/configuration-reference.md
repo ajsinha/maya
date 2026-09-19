@@ -335,7 +335,7 @@ The recorded challenger writes a memo on every submission into review. It never 
 |---|---|---|
 | `health.audit_verify_seconds` | `60` | The health report (read on every home page) re-walks the whole audit chain at most this often and states when it last did (`audit_chain.verified_at`). The audit page and the integrity check always walk it afresh. |
 
-Materialization of feature-set pins is a per-namespace setting (`materialize_policy`, default `always`), not a configuration key.
+Materialization of feature-set pins is a per-namespace setting (`materialize_policy`: `always`, the default; `on_demand`; or `never`), not a configuration key. See the feature sets reference.
 
 ## seams
 

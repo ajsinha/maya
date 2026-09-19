@@ -150,7 +150,9 @@ class OpsService:
         for kind, _, _, _, pin in pins:
             ns, name = names[pin["id"]]
             try:
-                r = self.p.lake.verify_pin(kind, ns, name, pin["fragments"], pin["content_hash"])
+                r = self.p.featuresets.verify_pin(pin) if kind == "fspins" and \
+                    not self.p.featuresets.stored(pin) else \
+                    self.p.lake.verify_pin(kind, ns, name, pin["fragments"], pin["content_hash"])
             except Exception as exc:  # noqa: BLE001 - reported per pin
                 r = {"ok": False, "error": str(exc)}
             results.append({"pin": f"{ns}/{name}#{pin['pin_name']}/{pin['as_of_date']}", **r})
