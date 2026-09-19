@@ -75,10 +75,6 @@ def api():
     platform.shutdown()
 
 
-def _ids(app):
-    return [f"{m} {p[len(PREFIX):]}" for m, p, _ in endpoints(app)]
-
-
 def _sweep(api):
     app, _, _ = api
     return [(m, p, op) for m, p, op in endpoints(app)
