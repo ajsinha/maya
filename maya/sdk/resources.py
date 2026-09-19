@@ -644,6 +644,51 @@ class Workflow(_Resource):
             "name": name, "transition": transition, "items": items, "rationale": rationale})
 
 
+class Workspaces(_Resource):
+    @endpoint("GET", "/workspaces")
+    def list(self) -> Any:
+        return self._c("GET", "/workspaces")
+
+    @endpoint("POST", "/workspaces")
+    def create(self, name: str, description: str = "") -> Any:
+        return self._c("POST", "/workspaces", json_body={"name": name,
+                                                         "description": description})
+
+    @endpoint("GET", "/workspaces/{ws_id}")
+    def get(self, ws_id: str) -> Any:
+        return self._c("GET", f"/workspaces/{seg(ws_id)}")
+
+    @endpoint("PUT", "/workspaces/{ws_id}/changes")
+    def stage(self, ws_id: str, kind: str, ref: str, definition: dict[str, Any],
+              note: str = "") -> Any:
+        return self._c("PUT", f"/workspaces/{seg(ws_id)}/changes", json_body={
+            "kind": kind, "ref": ref, "definition": definition, "note": note})
+
+    @endpoint("DELETE", "/workspaces/{ws_id}/changes/{change_id}")
+    def unstage(self, ws_id: str, change_id: str) -> Any:
+        return self._c("DELETE", f"/workspaces/{seg(ws_id)}/changes/{seg(change_id)}")
+
+    @endpoint("GET", "/workspaces/{ws_id}/preview")
+    def preview(self, ws_id: str, ref: str) -> Any:
+        return self._c("GET", f"/workspaces/{seg(ws_id)}/preview", params={"ref": ref})
+
+    @endpoint("GET", "/workspaces/{ws_id}/impact")
+    def impact(self, ws_id: str) -> Any:
+        return self._c("GET", f"/workspaces/{seg(ws_id)}/impact")
+
+    @endpoint("POST", "/workspaces/{ws_id}/replay")
+    def shadow_replay(self, ws_id: str) -> Any:
+        return self._c("POST", f"/workspaces/{seg(ws_id)}/replay")
+
+    @endpoint("POST", "/workspaces/{ws_id}/submit")
+    def submit(self, ws_id: str) -> Any:
+        return self._c("POST", f"/workspaces/{seg(ws_id)}/submit")
+
+    @endpoint("POST", "/workspaces/{ws_id}/abandon")
+    def abandon(self, ws_id: str) -> Any:
+        return self._c("POST", f"/workspaces/{seg(ws_id)}/abandon")
+
+
 class Jobs(_Resource):
     @endpoint("GET", "/jobs")
     def list(self, all: bool = False) -> Any:

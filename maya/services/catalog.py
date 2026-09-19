@@ -7,8 +7,10 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import contextlib
 import copy
-from typing import Any
+from contextvars import ContextVar
+from typing import Any, Iterator
 
 from maya.core import djson
 from maya.core.errors import NotApproved, NotFound, ValidationFailed
@@ -27,6 +29,33 @@ DECLARED_UNSUPPORTED = {
 }
 APPROVED_STATES = ("approved", "published")
 MAX_DERIVATION_DEPTH = 16
+
+
+# -- workspace overlay (§28.3) --------------------------------------------------
+# (kind, object id) -> {"base_version_no", "definition"} while resolving inside a workspace
+_OVERLAY: ContextVar[dict[tuple[str, str], dict[str, Any]]] = ContextVar("maya_overlay",
+                                                                         default={})
+
+
+@contextlib.contextmanager
+def overlay(changes: dict[tuple[str, str], dict[str, Any]]) -> Iterator[None]:
+    """Resolve with staged definitions in place of the versions they would replace."""
+    token = _OVERLAY.set(changes)
+    try:
+        yield
+    finally:
+        _OVERLAY.reset(token)
+
+
+def overlaid(kind: str, obj_id: str, version: dict[str, Any],
+             requested_version: int | None) -> dict[str, Any]:
+    """The version to resolve: the staged proposal when it replaces this one."""
+    change = _OVERLAY.get().get((kind, obj_id))
+    if change is None:
+        return version
+    if requested_version is not None and requested_version != change["base_version_no"]:
+        return version          # a pinned reference to another version is untouched
+    return {**version, "definition": change["definition"], "workspace": True}
 
 
 # -- lookups ------------------------------------------------------------------

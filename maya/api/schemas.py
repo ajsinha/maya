@@ -237,3 +237,15 @@ class SsoCallbackIn(BaseModel):
 
 class CodeIn(BaseModel):
     code: str
+
+
+class WorkspaceIn(BaseModel):
+    name: str
+    description: str = ""
+
+
+class StageIn(BaseModel):
+    kind: str
+    ref: str
+    definition: dict[str, Any]
+    note: str = ""

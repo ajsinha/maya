@@ -343,7 +343,8 @@ class FeatureSetService:
                 pin = rows[0]
                 v = uow.repo("feature_set_versions").require(pin["feature_set_version_id"])
             else:
-                v = catalog.version_of(uow, "feature_set_versions", "feature_set_id", fs, r.version)
+                v = catalog.overlaid("featureset", fs["id"], catalog.version_of(
+                    uow, "feature_set_versions", "feature_set_id", fs, r.version), r.version)
             eff, inherited = self.effective(uow, v["definition"])
         return fs, ns, v, pin, eff, inherited
 

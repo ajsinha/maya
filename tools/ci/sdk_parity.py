@@ -17,9 +17,10 @@ UNVERSIONED = {"/healthz", "/readyz"}
 
 def server_endpoints() -> set[tuple[str, str]]:
     from fastapi import FastAPI
-    from maya.api.routers import admin, catalog, registry, workflow
+    from maya.api.routers import admin, catalog, registry, workflow, workspaces
     app = FastAPI()
-    for r in (admin.router, catalog.router, registry.router, workflow.router):
+    for r in (admin.router, catalog.router, registry.router, workflow.router,
+              workspaces.router):
         app.include_router(r, prefix=PREFIX)
     out = set()
     for path, ops in app.openapi()["paths"].items():

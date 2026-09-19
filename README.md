@@ -109,7 +109,7 @@ execution warrant → reproducibility bundle.
   It is named as such on the health page and on every validation report.
 - **No Tectonic here**, so spec PDFs are watermarked drafts. `typeset.require_true_build`
   forbids approval on a draft render outside dev.
-- **Not built:** workspaces and shadow replay (§28.3, §29.2); licence algebra and
+- **Not built:** licence algebra and
   external audit anchoring (§29.6); the assistant (§29.8); spreadsheet import (§29.9);
   webhooks; OpenTelemetry and Prometheus; delegation; server-side table paging; SDK
   record/replay and `offline()`; performance benchmarks (SC-3/4/5).

@@ -16,7 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from maya.api.deps import ok, problem_response
-from maya.api.routers import admin, catalog, registry, workflow
+from maya.api.routers import admin, catalog, registry, workflow, workspaces
 from maya.core.errors import MayaError
 from maya.core.version import API_VERSION, APP_NAME, VERSION
 
@@ -32,7 +32,8 @@ def create_api(platform: Any) -> FastAPI:
                   openapi_url=f"{PREFIX}/openapi.json", docs_url=f"{PREFIX}/docs",
                   redoc_url=None)
     app.state.platform = platform
-    for r in (admin.router, catalog.router, registry.router, workflow.router):
+    for r in (admin.router, catalog.router, registry.router, workflow.router,
+              workspaces.router):
         app.include_router(r, prefix=PREFIX)
     install_handlers(app)
 
