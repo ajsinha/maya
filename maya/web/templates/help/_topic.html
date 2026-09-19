@@ -18,6 +18,12 @@
   {% if topic.prev %}<a class="btn btn-outline-secondary" href="/help/{{ topic.prev.slug }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> {{ topic.prev.title }}</a>{% else %}<span></span>{% endif %}
   {% if topic.next %}<a class="btn btn-primary" href="/help/{{ topic.next.slug }}">{{ topic.next.title }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
 </div>
+{% if companion %}
+<a class="help-companion" href="/help/guides/{{ companion.slug }}">
+  <i class="bi bi-journal-richtext" aria-hidden="true"></i>
+  <span><strong>Full reference:</strong> {{ companion.title }} <span class="small-muted">— {{ companion.summary }}</span></span>
+  <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i></a>
+{% endif %}
 <div class="help-related">
   <div class="head"><i class="bi bi-signpost-2" aria-hidden="true"></i> More in {{ topic.category }}</div>
   <div class="chips">

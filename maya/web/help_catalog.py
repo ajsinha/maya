@@ -132,3 +132,112 @@ def find(slug: str) -> dict[str, Any] | None:
                         "prev": ordered[pos - 1] if pos > 0 else None,
                         "next": ordered[pos + 1] if pos + 1 < len(ordered) else None}
     return None
+
+
+# -- full references and tutorials (Markdown in maya/web/guides/<slug>.md) --------------
+# Topic pages explain and show; a guide is the complete reference or a step-by-step
+# tutorial, rendered from Markdown when opened. A topic names its companion guide, and
+# its footer links to it as "Full reference".
+GUIDES: list[dict[str, Any]] = [
+    {"slug": "tutorial-01-first-feature", "kind": "tutorial", "icon": "flag",
+     "title": "Tutorial 1 — Your first governed feature",
+     "summary": "From one CSV to an approved, pinned, downloadable feature, with every "
+                "command and screen."},
+    {"slug": "tutorial-02-featureset-and-model", "kind": "tutorial", "icon": "grid-3x3-gap",
+     "title": "Tutorial 2 — A feature set and a model",
+     "summary": "Map features into a panel, write a model in LaTeX, complete its "
+                "specification and take it through review."},
+    {"slug": "tutorial-03-warrants-and-bundles", "kind": "tutorial", "icon": "mortarboard",
+     "title": "Tutorial 3 — Warrants, parameters and a bundle",
+     "summary": "Train under a warrant, upload parameters, issue an execution warrant, "
+                "export a bundle and verify it offline."},
+    {"slug": "tutorial-04-governed-change", "kind": "tutorial", "icon": "bezier2",
+     "title": "Tutorial 4 — A governed change",
+     "summary": "Stage a change in a workspace, replay its impact, answer the challenger "
+                "and merge on approval."},
+    {"slug": "features-reference", "kind": "reference", "icon": "pencil-square",
+     "title": "Feature definition reference",
+     "summary": "Every key of a feature definition: index, types, sources, resolution "
+                "rules, calendars, transforms, quality checks, licences, extends."},
+    {"slug": "algebra-reference", "kind": "reference", "icon": "diagram-3",
+     "title": "Feature algebra reference",
+     "summary": "Every operator with its typing rules, options, examples and what it "
+                "does to causality."},
+    {"slug": "featuresets-reference", "kind": "reference", "icon": "grid-3x3-gap",
+     "title": "Feature set reference",
+     "summary": "Members, alignment, policy inheritance, cascade pins, shapes and "
+                "downloads."},
+    {"slug": "data-and-lake-guide", "kind": "reference", "icon": "hdd-stack",
+     "title": "Data, pins and the lake",
+     "summary": "The bitemporal ingest log, content hashing, fragments, the two Delta "
+                "backends, compaction and vacuum."},
+    {"slug": "models-reference", "kind": "reference", "icon": "calculator",
+     "title": "Models and the formula IR reference",
+     "summary": "Formula syntax, IR nodes and operations, roles, black boxes, composites, "
+                "specification documents, artifacts, conformance, spreadsheet lifting."},
+    {"slug": "warrants-reference", "kind": "reference", "icon": "file-earmark-lock",
+     "title": "Warrants and bundles reference",
+     "summary": "Training and execution warrant specifications, leakage certificates, "
+                "parameter sets, covenants, limits, tokens, bundles and offline use."},
+    {"slug": "workflow-reference", "kind": "reference", "icon": "diagram-2",
+     "title": "Workflow and policy reference",
+     "summary": "States, transitions, the policy schema, every check, separation of "
+                "duties, break-glass, delegation, escalation and the challenger."},
+    {"slug": "access-reference", "kind": "reference", "icon": "key",
+     "title": "Roles, access and licences reference",
+     "summary": "Roles and capabilities, presets, grants and conditions, API keys, and "
+                "how licence terms combine."},
+    {"slug": "sdk-cli-reference", "kind": "reference", "icon": "code-square",
+     "title": "Python SDK and CLI reference",
+     "summary": "Every SDK resource and method, errors, client modes, record/replay, "
+                "offline bundles, and every CLI command."},
+    {"slug": "api-guide", "kind": "reference", "icon": "braces",
+     "title": "REST API guide",
+     "summary": "Authentication, conventions, errors, paging, idempotency and the "
+                "endpoints by area."},
+    {"slug": "configuration-reference", "kind": "reference", "icon": "sliders",
+     "title": "Configuration reference",
+     "summary": "Every key in application.yaml: its default, what it controls, and how to "
+                "override it."},
+    {"slug": "operations-guide", "kind": "reference", "icon": "tools",
+     "title": "Operations and administration guide",
+     "summary": "Install, run, switch databases, back up, export and import the estate, "
+                "maintain the lake, anchor custody, monitor."},
+    {"slug": "security-guide", "kind": "reference", "icon": "shield-lock",
+     "title": "Security guide",
+     "summary": "Sign-in modes, OIDC and SAML, two-factor codes and security keys, "
+                "sessions, the sandbox, secrets and the audit trail."},
+]
+
+# topic slug -> the guide that is its full reference
+COMPANIONS: dict[str, str] = {
+    "getting-started": "tutorial-01-first-feature", "features": "features-reference",
+    "ingest": "features-reference", "bitemporal": "data-and-lake-guide",
+    "pins": "data-and-lake-guide", "algebra": "algebra-reference",
+    "featuresets": "featuresets-reference", "models": "models-reference",
+    "conformance": "models-reference", "training-warrants": "warrants-reference",
+    "execution-warrants": "warrants-reference", "bundles": "warrants-reference",
+    "workflow": "workflow-reference", "delegation": "workflow-reference",
+    "access": "access-reference", "licences": "access-reference",
+    "workspaces": "tutorial-04-governed-change", "audit": "operations-guide",
+    "sdk": "sdk-cli-reference", "sources": "features-reference",
+    "events": "operations-guide", "observability": "operations-guide",
+    "security": "security-guide", "operations": "operations-guide",
+    "tour": "tutorial-01-first-feature", "glossary": "features-reference",
+}
+
+
+def find_guide(slug: str) -> dict[str, Any] | None:
+    for i, g in enumerate(GUIDES):
+        if g["slug"] == slug:
+            same = [x for x in GUIDES if x["kind"] == g["kind"]]
+            pos = same.index(g)
+            return {**g, "prev": same[pos - 1] if pos > 0 else None,
+                    "next": same[pos + 1] if pos + 1 < len(same) else None,
+                    "topics": [t for t in all_topics() if COMPANIONS.get(t["slug"]) == slug]}
+    return None
+
+
+def companion(topic_slug: str) -> dict[str, Any] | None:
+    slug = COMPANIONS.get(topic_slug)
+    return next((g for g in GUIDES if g["slug"] == slug), None) if slug else None

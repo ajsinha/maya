@@ -19,7 +19,7 @@ include = ["maya*", "maya_delta*"]
 [tool.setuptools.package-data]
 "maya.persistence" = ["schema/*.sql"]
 "maya.workflow" = ["*.yaml"]
-"maya.web" = ["templates/**/*", "static/**/*"]
+"maya.web" = ["templates/**/*", "static/**/*", "guides/*.md"]
 
 [tool.ruff]
 line-length = 100

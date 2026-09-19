@@ -33,7 +33,7 @@ server:
 
 logging:
   level: INFO
-  format: text            # text | jsonkeep going drill as things complete, and now work in fully automated way since i need to go somehere
+  format: text            # text | json
   file: "${storage.root}/logs/maya.log"
 
 # --------------------------------------------------------------------------
