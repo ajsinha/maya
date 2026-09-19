@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 645265c7e447795b13b019946e96d9f4175daaa8d81912ce652619e95430e5e6
+-- schema-hash: 2a0c273516c13d02a4840caabd1ed45218425ee3aa1e1317f040262da35fe00d
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -398,6 +398,47 @@ CREATE TABLE workflow_policies (
 	CONSTRAINT pk_workflow_policies PRIMARY KEY (id), 
 	CONSTRAINT uq_workflow_policies_object_type_scope_version_no UNIQUE (object_type, scope, version_no)
 );
+
+CREATE TABLE workspace_changes (
+	workspace_id UUID NOT NULL, 
+	object_kind VARCHAR(16) NOT NULL, 
+	object_id UUID NOT NULL, 
+	object_ref VARCHAR(512) NOT NULL, 
+	base_version_id UUID NOT NULL, 
+	base_version_no INTEGER NOT NULL, 
+	definition JSONB NOT NULL, 
+	note TEXT, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_workspace_changes PRIMARY KEY (id), 
+	CONSTRAINT uq_workspace_changes_workspace_id_object_kind_object_id UNIQUE (workspace_id, object_kind, object_id)
+);
+
+CREATE INDEX ix_workspace_changes_workspace_id ON workspace_changes (workspace_id);
+
+CREATE TABLE workspaces (
+	name VARCHAR(128) NOT NULL, 
+	owner_id UUID NOT NULL, 
+	description TEXT, 
+	state VARCHAR(16) NOT NULL, 
+	replay JSONB NOT NULL, 
+	submitted_versions JSONB NOT NULL, 
+	submitted_at TIMESTAMP WITH TIME ZONE, 
+	merged_at TIMESTAMP WITH TIME ZONE, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_workspaces PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_workspaces_owner_id ON workspaces (owner_id);
 
 CREATE TABLE api_keys (
 	key_id VARCHAR(32) NOT NULL, 

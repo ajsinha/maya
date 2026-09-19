@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 951be7581b26f9c8a07f32caef3938993de7736d9477bac0865217e78c5fa186
+-- schema-hash: 917a062aa44cad58f1d46031c8512fe45cb203a78d7687e17eb89292021c3493
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -398,6 +398,47 @@ CREATE TABLE workflow_policies (
 	CONSTRAINT pk_workflow_policies PRIMARY KEY (id), 
 	CONSTRAINT uq_workflow_policies_object_type_scope_version_no UNIQUE (object_type, scope, version_no)
 );
+
+CREATE TABLE workspace_changes (
+	workspace_id CHAR(36) NOT NULL, 
+	object_kind VARCHAR(16) NOT NULL, 
+	object_id CHAR(36) NOT NULL, 
+	object_ref VARCHAR(512) NOT NULL, 
+	base_version_id CHAR(36) NOT NULL, 
+	base_version_no INTEGER NOT NULL, 
+	definition JSON NOT NULL, 
+	note TEXT, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_workspace_changes PRIMARY KEY (id), 
+	CONSTRAINT uq_workspace_changes_workspace_id_object_kind_object_id UNIQUE (workspace_id, object_kind, object_id)
+);
+
+CREATE INDEX ix_workspace_changes_workspace_id ON workspace_changes (workspace_id);
+
+CREATE TABLE workspaces (
+	name VARCHAR(128) NOT NULL, 
+	owner_id CHAR(36) NOT NULL, 
+	description TEXT, 
+	state VARCHAR(16) NOT NULL, 
+	replay JSON NOT NULL, 
+	submitted_versions JSON NOT NULL, 
+	submitted_at DATETIME, 
+	merged_at DATETIME, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_workspaces PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_workspaces_owner_id ON workspaces (owner_id);
 
 CREATE TABLE api_keys (
 	key_id VARCHAR(32) NOT NULL, 

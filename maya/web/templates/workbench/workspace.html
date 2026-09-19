@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}Workspace {{ ws.name }}{% endblock %}
+{% block content %}
+<h1>Workspace: {{ ws.name }} {{ pill(ws.state) }}</h1>
+<p class="lead-slate">{{ ws.description or "A branch of the catalog. Staged changes are visible only here." }}</p>
+{{ kv([("Owner", ws.owner), ("Created", ws.created_at|dt), ("Submitted", ws.submitted_at|dt), ("Merged", ws.merged_at|dt)]) }}
+
+<h2>Staged changes</h2>
+{% call(c) table("changes", ["Object", "Replaces", "What changes", "Note", "!Actions"], ws.changes, empty="Nothing staged yet. Stage a change below.") %}
+  <td><span class="mono">{{ c.object_ref }}</span></td><td>v{{ c.base_version_no }}</td>
+  <td class="small">{% for d in c.diff %}<div><strong>{{ d.what }}</strong>: <span class="mono">{{ d.change|truncate(160) }}</span></div>{% else %}no difference{% endfor %}</td>
+  <td>{{ c.note or '' }}</td>
+  <td>{% if ws.mine and ws.state == 'open' %}<form method="post" action="/workbench/workspaces/{{ ws.id }}/changes/{{ c.id }}/unstage"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Unstage</button></form>{% endif %}
+    <a class="btn btn-sm btn-link" href="?preview={{ c.object_ref|urlencode }}">Preview inside</a></td>
+{% endcall %}
+
+{% if ws.mine and ws.state == 'open' %}
+<div class="card card-body my-3">
+  <h2 class="h5">Stage a change</h2>
+  <form method="get" class="row g-2 align-items-end mb-2">
+    <div class="col-md-2"><label class="form-label" for="sk">Kind</label><select class="form-select" id="sk" name="kind"><option value="feature" {% if stage_kind == 'feature' %}selected{% endif %}>feature</option><option value="featureset" {% if stage_kind == 'featureset' %}selected{% endif %}>feature set</option></select></div>
+    <div class="col-md-6"><label class="form-label" for="sr">Object (ns/name)</label><input class="form-control mono" id="sr" name="ref" value="{{ stage_ref }}" required></div>
+    <div class="col-md-4"><button class="btn btn-outline-primary w-100" type="submit">Load its approved definition</button></div>
+  </form>
+  {% if template %}
+  <form method="post" action="/workbench/workspaces/{{ ws.id }}/stage">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="{{ stage_kind }}"><input type="hidden" name="ref" value="{{ stage_ref }}">
+    <label class="form-label" for="sd">Proposed definition (JSON) — edit, then stage</label>
+    <textarea class="form-control mono" id="sd" name="definition" rows="16" data-json>{{ template }}</textarea>
+    <div class="row g-2 mt-1"><div class="col-md-9"><input class="form-control" name="note" placeholder="Why this change?" aria-label="Note"></div>
+    <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Stage</button></div></div>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if preview %}
+<h2>Inside the workspace: <span class="mono">{{ preview_ref }}</span></h2>
+{% set cols = preview.columns %}
+{% call(r) table("ws-preview", cols, preview.rows, empty="Resolution produced no rows.") %}
+  {% for c in cols %}<td>{{ r[c] }}</td>{% endfor %}
+{% endcall %}
+{% endif %}
+
+<h2>What it reaches</h2>
+{% call(n) table("impact", ["Downstream object", "Kind", "Via"], impact.downstream, empty="Nothing downstream of the staged changes.") %}
+  <td class="mono">{{ n.ref }}</td><td>{{ n.kind }}</td><td class="mono small">{{ n.via|join(', ') }}</td>
+{% endcall %}
+
+<h2>Shadow replay</h2>
+{% if ws.replay and ws.replay.warrants is defined %}
+<div class="alert alert-info"><strong>{{ ws.replay.summary }}</strong><div class="small mt-1">{{ ws.replay.basis }} Sample: up to {{ ws.replay.sample_rows }} most recent rows per warrant; material if |Δ| &gt; {{ ws.replay.materiality }}. Generated {{ ws.replay.generated_at }}.</div></div>
+{% call(r) table("replay", ["Warrant", "Replayed", "Rows compared", "Median |Δ|", "p95 |Δ|", "Max |Δ|", "Over materiality", "Worst row", "Note"], ws.replay.warrants, empty="No dependent warrant.") %}
+  <td class="mono">{{ r.warrant }}</td><td>{{ pill('true' if r.replayed else 'false', 'yes' if r.replayed else 'no') }}</td>
+  <td>{{ r.rows_compared if r.rows_compared is defined else '' }}</td><td>{{ '%.4g'|format(r.median_abs_shift) if r.median_abs_shift is not none and r.median_abs_shift is defined else '' }}</td>
+  <td>{{ '%.4g'|format(r.p95_abs_shift) if r.p95_abs_shift is defined else '' }}</td><td>{{ '%.4g'|format(r.max_abs_shift) if r.max_abs_shift is defined else '' }}</td>
+  <td>{% if r.rows_over_materiality is defined %}{{ r.rows_over_materiality }} ({{ '%.1f'|format(100 * r.share_over_materiality) }}%){% endif %}</td>
+  <td class="mono small">{{ r.worst_row if r.worst_row is defined else '' }}</td><td class="small">{{ r.reason or '' }}</td>
+{% endcall %}
+{% else %}
+<p class="small-muted">Not run{% if ws.changes %} since the last staged change{% endif %}. Replay re-runs every dependent training warrant's model on current and proposed definitions and reports the numeric shift.</p>
+{% endif %}
+
+{% if ws.mine and ws.state == 'open' and ws.changes %}
+<div class="d-flex gap-2 my-3">
+  <form method="post" action="/workbench/workspaces/{{ ws.id }}/replay"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-activity" aria-hidden="true"></i> Run shadow replay</button></form>
+  <form method="post" action="/workbench/workspaces/{{ ws.id }}/submit"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-primary" type="submit"><i class="bi bi-send" aria-hidden="true"></i> Submit for review</button></form>
+  <form method="post" action="/workbench/workspaces/{{ ws.id }}/abandon"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-outline-secondary" type="submit">Abandon</button></form>
+</div>
+{% endif %}
+{% if ws.submitted_versions %}
+<h2>Submitted for review</h2>
+{% call(v) table("submitted", ["Object", "Version", "Review"], ws.submitted_versions, empty="") %}
+  <td class="mono">{{ v.ref }}</td><td>v{{ v.version_no }}</td><td><a href="/workflow/review/{{ 'feature_version' if v.kind == 'feature' else 'featureset_version' }}/{{ v.version_id }}">Open review</a></td>
+{% endcall %}
+{% endif %}
+{% endblock %}

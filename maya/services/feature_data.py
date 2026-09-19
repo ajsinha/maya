@@ -135,8 +135,8 @@ class FeatureData:
                 version = uow.repo("feature_versions").require(pin["feature_version_id"])
             else:
                 pin = None
-                version = catalog.version_of(uow, "feature_versions", "feature_id", feature,
-                                             r.version)
+                version = catalog.overlaid("feature", feature["id"], catalog.version_of(
+                    uow, "feature_versions", "feature_id", feature, r.version), r.version)
             eff = catalog.effective_feature_definition(uow, version["definition"])
         if pin is not None:
             return self.read_pin(ns["name"], feature["name"], eff, pin)

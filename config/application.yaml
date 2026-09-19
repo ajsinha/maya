@@ -128,6 +128,13 @@ jobs:
   workers: 2
   max_attempts: 3
 
+workspaces:
+  shadow:
+    # rows replayed per dependent warrant (the most recent, by index); stated on the report
+    sample_rows: 5000
+    # an absolute output shift above this counts as material
+    materiality: 0.0001
+
 featureset:
   pin:
     materialize: always

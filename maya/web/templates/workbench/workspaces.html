@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Workspaces{% endblock %}
+{% block content %}
+<h1>Workspaces</h1>
+<p class="lead-slate">Rehearse a change on a branch of the catalog before anyone reviews it: resolve against it, see what it reaches, and replay the models that depend on it. Nothing outside the workspace sees a staged change; approval of the submitted versions is the merge.</p>
+{% call(w) table("workspaces", ["Name", "Owner", "State", "Changes", "Created", "Submitted", "Merged"], rows, empty="No workspaces yet. Open one below to rehearse a change.") %}
+  <td><a href="/workbench/workspaces/{{ w.id }}">{{ w.name }}</a></td><td>{{ w.owner }}</td><td>{{ pill(w.state) }}</td><td>{{ w.changes }}</td><td>{{ w.created_at|dt }}</td><td>{{ w.submitted_at|dt }}</td><td>{{ w.merged_at|dt }}</td>
+{% endcall %}
+<form method="post" action="/workbench/workspaces" class="card card-body mt-3" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2 class="h5">Open a workspace</h2>
+  <div class="row g-2">
+    <div class="col-md-4"><label class="form-label" for="wn">Name</label><input class="form-control" id="wn" name="name" required placeholder="ffill-limit-change"></div>
+    <div class="col-md-6"><label class="form-label" for="wd">What are you trying out?</label><input class="form-control" id="wd" name="description"></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Open</button></div>
+  </div>
+</form>
+{% endblock %}

@@ -15,7 +15,8 @@
   'certified_with_exceptions': ('warn', 'patch-exclamation', ''), 'refused': ('bad', 'patch-minus', ''),
   'locked': ('bad', 'lock', ''), 'disabled': ('bad', 'slash-circle', ''),
   'experimental': ('warn', 'flask', ''), 'candidate': ('warn', 'star-half', ''),
-  'restricted': ('bad', 'shield-exclamation', ''), 'true': ('ok', 'check2', ''), 'false': ('bad', 'x', ''),
+  'restricted': ('bad', 'shield-exclamation', ''), 'open': ('', 'folder2-open', ''),
+  'merged': ('ok', 'git', ''), 'abandoned': ('', 'trash', ''), 'true': ('ok', 'check2', ''), 'false': ('bad', 'x', ''),
 } %}
 
 {% macro pill(state, label=None) -%}

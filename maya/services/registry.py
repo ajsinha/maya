@@ -24,6 +24,7 @@ def wire(platform: Any) -> None:
     from maya.services.models import ModelService
     from maya.services.ops import OpsService
     from maya.services.sso import SsoService
+    from maya.services.workspaces import WorkspaceService
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
 
@@ -32,7 +33,8 @@ def wire(platform: Any) -> None:
                       ("featuresets", FeatureSetService), ("models", ModelService),
                       ("warrants", WarrantService), ("execution", ExecutionService),
                       ("bundles", BundleService), ("workflow_svc", WorkflowService),
-                      ("ops", OpsService), ("sso", SsoService)):
+                      ("ops", OpsService), ("sso", SsoService),
+                      ("workspaces", WorkspaceService)):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)
@@ -45,6 +47,7 @@ def _jobs(platform: Any) -> None:
     q.register("feature.pin", platform.features.run_pin_job)
     q.register("featureset.pin", platform.featuresets.run_pin_job)
     q.register("model.validate_artifact", platform.models.run_validation_job)
+    q.register("workspace.shadow_replay", platform.workspaces.run_replay_job)
     q.register("integrity.verify", lambda ctx, params: platform.ops.verify_integrity(
         _system_principal(platform, ctx.actor)))
 

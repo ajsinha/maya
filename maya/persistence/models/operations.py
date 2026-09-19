@@ -150,3 +150,32 @@ class Subscription(Tracked, Base):
     __table_args__ = (UniqueConstraint("user_id", "object_ref"),)
     user_id: Mapped[str] = mapped_column(PortableUUID)
     object_ref: Mapped[str] = mapped_column(String(512))
+
+
+class Workspace(Tracked, Base):
+    """A copy-on-write branch of the catalog where a change is rehearsed (§28.3)."""
+
+    __tablename__ = "workspaces"
+    name: Mapped[str] = mapped_column(String(128))
+    owner_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    state: Mapped[str] = mapped_column(String(16), default="open")
+    replay: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    submitted_versions: Mapped[list[Any]] = mapped_column(PortableJSON, default=list)
+    submitted_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    merged_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+
+
+class WorkspaceChange(Tracked, Base):
+    """One staged definition: nothing is copied until a change is written (§28.3)."""
+
+    __tablename__ = "workspace_changes"
+    __table_args__ = (UniqueConstraint("workspace_id", "object_kind", "object_id"),)
+    workspace_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    object_kind: Mapped[str] = mapped_column(String(16))          # feature | featureset
+    object_id: Mapped[str] = mapped_column(PortableUUID)
+    object_ref: Mapped[str] = mapped_column(String(512))
+    base_version_id: Mapped[str] = mapped_column(PortableUUID)
+    base_version_no: Mapped[int] = mapped_column(Integer)
+    definition: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    note: Mapped[str | None] = mapped_column(Text)
