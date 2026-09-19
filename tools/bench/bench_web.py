@@ -14,7 +14,11 @@ template, the SDK in-process, the API, authorization and the database:
   duration; p95 under load is compared with the single-user p95.
 
     python tools/bench/bench_web.py [--features 2000] [--models 200] [--users 200]
-                                    [--duration 60]
+                                    [--duration 60] [--workers 1]
+
+With ``--workers N`` above 1 the catalog is seeded in-process, then the server is
+started exactly as in production — ``run_maya_web.py --server.workers=N`` — over the
+same storage, and measured from outside.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -25,7 +29,9 @@ import asyncio
 import json
 import random
 import re
+import os
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -78,6 +84,31 @@ def serve(p) -> tuple[str, object]:
     while not server.started:
         time.sleep(0.05)
     return f"http://127.0.0.1:{port}", server
+
+
+def launch(workers: int) -> tuple[str, subprocess.Popen]:
+    """``run_maya_web.py`` with ``workers`` web processes over this run's MAYA_HOME."""
+    import httpx
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    proc = subprocess.Popen([sys.executable, str(h.ROOT / "run_maya_web.py"),
+                             f"--server.workers={workers}", f"--server.port={port}",
+                             "--logging.level=WARNING"], cwd=h.ROOT, env=dict(os.environ),
+                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    base = f"http://127.0.0.1:{port}"
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            raise RuntimeError(proc.stderr.read().decode()[-2000:])
+        try:
+            if httpx.get(base + "/login", timeout=2).status_code == 200:
+                return base, proc
+        except httpx.HTTPError:
+            pass
+        time.sleep(0.5)
+    proc.kill()
+    raise RuntimeError("the server did not come up")
 
 
 async def login(client) -> None:
@@ -151,16 +182,29 @@ def main() -> None:
     ap.add_argument("--repeats", type=int, default=30)
     ap.add_argument("--think-min", type=float, default=1.0)
     ap.add_argument("--think-max", type=float, default=3.0)
+    ap.add_argument("--workers", type=int, default=1)
     a = ap.parse_args()
     p = h.platform()
+    dialect = p.db.dialect
     t_seed, pages = h.timed(lambda: seed(p, a.features, a.models))
-    base, server = serve(p)
-    one = asyncio.run(single_user(base, pages, a.repeats))
-    single_p95 = h.pct([s["p95"] for s in one.values()], 95)
-    loaded = asyncio.run(load(base, pages, a.users, a.duration, (a.think_min, a.think_max)))
-    server.should_exit = True
+    if a.workers > 1:
+        p.shutdown()
+        base, proc = launch(a.workers)
+    else:
+        base, server = serve(p)
+    try:
+        one = asyncio.run(single_user(base, pages, a.repeats))
+        single_p95 = h.pct([s["p95"] for s in one.values()], 95)
+        loaded = asyncio.run(load(base, pages, a.users, a.duration,
+                                  (a.think_min, a.think_max)))
+    finally:
+        if a.workers > 1:
+            proc.terminate()
+            proc.wait(30)
+        else:
+            server.should_exit = True
     report = {
-        "machine": h.machine(), "database": p.db.dialect,
+        "machine": h.machine(), "database": dialect, "web_processes": a.workers,
         "catalog": {"features": a.features, "models": a.models,
                     "seed_seconds": round(t_seed, 1)},
         "SC-4": {"target_p95_s": 0.3, "per_page": one,
@@ -171,7 +215,8 @@ def main() -> None:
                  "degradation_ratio": round(loaded["p95"] / single_p95, 2) if single_p95 else None,
                  "pass": loaded["p95"] < 0.3 and loaded["errors"] == 0},
     }
-    p.shutdown()
+    if a.workers == 1:
+        p.shutdown()
     print(json.dumps(report, indent=1))
 
 

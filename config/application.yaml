@@ -29,7 +29,11 @@ app:
 server:
   host: "${MAYA_HOST:127.0.0.1}"
   port: "${MAYA_PORT:8600}"
-  workers: 1
+  # Web processes. 1 serves everything from one process. Above 1, uvicorn runs this
+  # many web processes; the launching process keeps the job workers, webhooks and the
+  # scheduler. One Python process tops out near 40 page requests a second; size this
+  # to cores and load. Prometheus metrics are per process.
+  workers: "${MAYA_WEB_WORKERS:1}"
 
 logging:
   level: INFO
@@ -83,7 +87,6 @@ auth:
   session:
     idle_timeout_minutes: 30
     absolute_timeout_hours: 12
-    token_ttl_minutes: 15
   password:
     min_length: 12
   lockout:
@@ -214,10 +217,6 @@ workspaces:
     sample_rows: 5000
     # an absolute output shift above this counts as material
     materiality: 0.0001
-
-featureset:
-  pin:
-    materialize: always
 
 # Dependency seams (spec §13.4). auto, or pin a backend to force it.
 seams:

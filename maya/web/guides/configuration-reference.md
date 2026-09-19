@@ -112,7 +112,7 @@ The same list is `GET /api/v1/system/config`.
 |---|---|---|---|
 | `server.host` | `127.0.0.1` | `MAYA_HOST` | The address the server listens on. The default accepts local connections only; use `0.0.0.0` behind a reverse proxy. |
 | `server.port` | `8600` | `MAYA_PORT` | The listening port. |
-| `server.workers` | `1` | — | Declared, but not read by this build: `run_maya_web.py` always starts one server process. |
+| `server.workers` | `1` | `MAYA_WEB_WORKERS` | Web processes. Above 1, uvicorn runs this many web processes on the one port; the launching process alone keeps the job workers, webhooks and scheduler (jobs submitted from any process are rows its workers poll every second). One Python process serves roughly 40 page requests a second; size this to cores and load. Prometheus metrics are per process. |
 
 ## logging
 
@@ -175,7 +175,6 @@ MAYA connects to PostgreSQL through the `psycopg` driver (`postgresql+psycopg://
 | `auth.mode` | `db` | `db`: MAYA passwords. `sso`: single sign-on for people; password login refused. `hybrid`: single sign-on for people, passwords kept for break-glass and service accounts. |
 | `auth.session.idle_timeout_minutes` | `30` | A session unused this long ends. |
 | `auth.session.absolute_timeout_hours` | `12` | A session ends this long after sign-in, however active. |
-| `auth.session.token_ttl_minutes` | `15` | Declared, but not read by this build. Execution-warrant tokens have a fixed 15-minute life set in code. |
 | `auth.password.min_length` | `12` | The minimum password length. A password must also use three of: lower case, upper case, digits, symbols. |
 | `auth.lockout.attempts` | `5` | Failed attempts inside the window that lock an account. |
 | `auth.lockout.window_minutes` | `15` | The window in which failures count. |
@@ -324,11 +323,13 @@ The recorded challenger writes a memo on every submission into review. It never 
 | `workspaces.shadow.sample_rows` | `5000` | Rows replayed per dependent warrant in a shadow replay (the most recent, by index). Stated on the report. |
 | `workspaces.shadow.materiality` | `0.0001` | An absolute output shift above this counts as material. |
 
-## featureset
+## health
 
 | Key | Default | Meaning |
 |---|---|---|
-| `featureset.pin.materialize` | `always` | Declared, but not read by this build. Materialization is recorded per namespace (`materialize_policy`, default `always`). |
+| `health.audit_verify_seconds` | `60` | The health report (read on every home page) re-walks the whole audit chain at most this often and states when it last did (`audit_chain.verified_at`). The audit page and the integrity check always walk it afresh. |
+
+Materialization of feature-set pins is a per-namespace setting (`materialize_policy`, default `always`), not a configuration key.
 
 ## seams
 

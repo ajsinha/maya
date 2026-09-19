@@ -344,7 +344,7 @@ curl -N https://maya.example.com/api/v1/jobs/$JOB/events -H "Authorization: Bear
 
 | Method and path | Purpose |
 |---|---|
-| `GET /events?after=&limit=&type=` | Events after a sequence number (administrators and techops). `type` matches case-insensitively anywhere in the event type. |
+| `GET /events?after=&limit=&type=` | Events after a sequence number (administrators and techops). `type` is a prefix of the event type: `pin.` gives every pin event, `pin.sealed` just that one. |
 | `GET /events/stream?after=` | Server-sent events: `id` is the sequence, `event` the type; reconnect with the last id. |
 | `GET /webhooks`, `POST /webhooks`, `DELETE /webhooks/{id}`, `GET /webhooks/{id}/deliveries`, `POST /webhooks/{id}/ping` | Webhooks. |
 | `GET /custody/anchors`, `POST /custody/anchor`, `GET /custody/verify` | Audit anchors (administrators and techops). |

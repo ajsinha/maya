@@ -142,7 +142,7 @@ class WebhookService:
         with self.p.uow() as uow:
             filters: dict[str, Any] = {"seq__gt": after}
             if type_prefix:
-                filters["type__ilike"] = type_prefix
+                filters["type__prefix"] = type_prefix
             return uow.repo("events").list(order_by=["seq"], limit=min(limit, 5000), **filters)
 
     def events_page(self, p: Principal, *, type_prefix: str | None = None,
@@ -150,7 +150,7 @@ class WebhookService:
                    sort: str | None = None, total: bool = False) -> dict[str, Any]:
         from maya.services.paging import Listing, run_page
         self._admin(p)
-        filters = {"type__ilike": type_prefix} if type_prefix else {}
+        filters = {"type__prefix": type_prefix} if type_prefix else {}
         return run_page(self.p, lambda uow: Listing(
             "events", {"seq": "seq", "-seq": "-seq"}, "seq", filters),
             page_size=page_size, cursor=cursor, sort=sort, total=total)

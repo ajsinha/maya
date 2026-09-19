@@ -104,7 +104,7 @@ def install_handlers(app: FastAPI) -> None:
         if client.startswith("python/") and _too_old(client[7:]):
             return JSONResponse({"type": "client_too_old", "status": 426,
                                  "detail": "This SDK is older than the server supports. "
-                                           "Upgrade with: pip install -U maya-sdk"},
+                                           "Upgrade with: pip install -U maya"},
                                 status_code=426)
         response = await call_next(request)
         response.headers["X-Request-Id"] = request.state.request_id

@@ -41,7 +41,10 @@ python -m maya.cli export bundle <warrant-id> --out pd-2026q1.zip
   ('model/parameters.json', 'the parameter values'),
   ('model/spec.tex', 'the specification document source'),
   ('environment.json', 'Python version, declared environment and backend set'),
+  ('model/model_version.json', 'the model version: formula, IR, hashes'),
+  ('model/parameter_set.json', 'the parameter set the warrant was sealed with'),
   ('lib/canonical.py', 'MAYA\'s canonical hash — it is the definition of the hash, so it ships'),
+  ('lib/chunker.py', 'the content-defined chunker the data hash is computed over'),
   ('verify.py', 'the offline verifier'),
 ]) }}
 {% endcall %}
@@ -62,8 +65,11 @@ python -m maya.cli export verify pd-2026q1.zip
 #   [ok] re-execution output hash
 # verified: True
 {% endcall %}
-<p>Or upload it at {{ screen('/warrants/verify', 'Warrants → Verify a bundle') }}: MAYA runs the
-bundle's own <code>verify.py</code> in a clean interpreter, exactly as offline.</p>
+<p>Or upload it at {{ screen('/warrants/verify', 'Warrants → Verify a bundle') }}. Verifying runs code
+the bundle carries, so the server does it only for a bundle <em>this</em> MAYA signed whose every file
+still matches its signed hash, and then with MAYA's own verifier, never the uploaded
+<code>verify.py</code>. Any other bundle is reported, not executed: verify a stranger's bundle with
+<code>python verify.py</code> on your own machine.</p>
 {% endcall %}
 
 {% call warn('When re-execution is impossible, the bundle says so') %}

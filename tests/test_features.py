@@ -223,6 +223,25 @@ def test_scratch_quick_feature_has_zero_ceremony(world):
         world.p.features.get(world.mick, out["ref"])
 
 
+def test_the_scratch_owner_pins_directly_and_nobody_else_can(world):
+    """Zero ceremony: a designer (no pin capability anywhere governed) pins their own
+    scratch feature with no request or approval; another user may not touch it."""
+    ref = world.p.features.quick(world.dana, price_csv(4), name="pinnable")["ref"]
+    out = world.p.features.pin(world.dana, ref, version_no=1, pin_name="s",
+                               as_of=dt.date(2026, 1, 4))
+    assert out["job"] is not None and out["pin"]["state"] == "materializing"
+    world.drain()
+    assert world.p.features.get(world.dana, ref)["pins"][0]["state"] == "sealed"
+    with pytest.raises(PermissionDenied):
+        world.p.features.pin(world.mick, ref, version_no=1, pin_name="t",
+                             as_of=dt.date(2026, 1, 4))
+    world.p.access.create_user(world.admin, username="dina", password="Test-password-1",
+                               roles=["feature_designer"])
+    with pytest.raises(PermissionDenied, match="scratch namespaces belong to their owner"):
+        world.p.features.pin(world.principal("dina"), ref, version_no=1, pin_name="t",
+                             as_of=dt.date(2026, 1, 4))
+
+
 def test_download_formats_and_csv_encoding(world):
     ref = approved_feature(world, "dl", price_csv(4))
     _pin(world, ref, "d", dt.date(2026, 1, 4))
