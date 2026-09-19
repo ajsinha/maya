@@ -32,7 +32,7 @@ import httpx
 
 from maya.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from maya.observability.metrics import METRICS
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 
 

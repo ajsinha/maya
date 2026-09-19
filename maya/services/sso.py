@@ -37,7 +37,7 @@ from typing import Any
 from maya.core import totp
 from maya.core.errors import (CapabilityRefused, NotAuthenticated, PermissionDenied,
                               ValidationFailed)
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.security.oidc import OIDCClient, settings_from
 

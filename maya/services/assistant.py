@@ -24,7 +24,7 @@ from typing import Any
 
 from maya.assistant import rules
 from maya.core.errors import NotFound, PermissionDenied, ValidationFailed
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
 

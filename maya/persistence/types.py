@@ -88,5 +88,4 @@ class Money(TypeDecorator[decimal.Decimal]):
         return None if value is None else decimal.Decimal(str(value))
 
 
-def utcnow() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc)
+from maya.core.clock import utcnow  # noqa: E402,F401 - the one clock, re-exported for persistence

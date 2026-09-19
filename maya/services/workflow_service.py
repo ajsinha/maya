@@ -14,7 +14,7 @@ import datetime as dt
 from typing import Any
 
 from maya.core.errors import NotApproved, PermissionDenied, ValidationFailed
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.workflow import policy as pol
 

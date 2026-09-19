@@ -14,7 +14,7 @@ import logging
 from typing import Any
 
 from maya.core import kdf
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.roles import DESCRIPTIONS, MATRIX
 from maya.services.auth import DEFAULT_ADMIN_PASSWORD
 from maya.workflow.policy import default_policies

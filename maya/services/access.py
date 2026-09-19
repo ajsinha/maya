@@ -11,7 +11,7 @@ from typing import Any
 
 from maya.core import kdf
 from maya.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import LEVELS, Principal, can, inert_grant_reason
 from maya.security.roles import PRESETS
 

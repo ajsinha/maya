@@ -30,7 +30,7 @@ import pyarrow.parquet as pq
 from maya.core.backends import Backends
 from maya.core.errors import QualityCheckFailed, ValidationFailed
 from maya.core.version import VERSION
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.resolution import algebra, quality, shapes
 from maya.resolution.resolver import KT, resolve_feature
 from maya.resolution.transforms import apply_pipeline

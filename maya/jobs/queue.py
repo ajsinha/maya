@@ -28,7 +28,7 @@ from typing import Any, Callable
 
 from maya.core import djson
 from maya.core.errors import ConflictError, MayaError
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
 

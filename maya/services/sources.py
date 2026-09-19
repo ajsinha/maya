@@ -27,7 +27,7 @@ from typing import Any
 
 from maya.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from maya.persistence import external
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
 from maya.services.feature_data import schema_generation

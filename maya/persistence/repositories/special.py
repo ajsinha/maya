@@ -152,3 +152,11 @@ class SearchRepository:
     def rebuild(self) -> int:
         from maya.persistence import search_index
         return search_index.rebuild(self.session)
+
+    def ensure_current(self) -> bool:
+        """Rebuild the derived index when it is empty but the catalog is not."""
+        from maya.persistence import search_index
+        if search_index.needs_rebuild(self.session):
+            search_index.rebuild(self.session)
+            return True
+        return False

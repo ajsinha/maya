@@ -34,7 +34,7 @@ import httpx
 
 from maya.core import djson
 from maya.core.errors import PermissionDenied, ValidationFailed
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 
 SHA256_OID = bytes.fromhex("0609608648016503040201")      # 2.16.840.1.101.3.4.2.1

@@ -21,7 +21,7 @@ from typing import Any
 
 from maya.core import kdf
 from maya.core.errors import (NotAuthenticated, NotFound, PermissionDenied, ValidationFailed)
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal, merge_capabilities
 
 DEFAULT_ADMIN_PASSWORD = "maya-dev-admin"

@@ -76,7 +76,7 @@ def _collectors(platform: Any) -> None:
     from maya.core.backends import Backends
     from maya.core.version import BUILD_DATE, VERSION
     from maya.observability.metrics import METRICS
-    from maya.persistence.types import utcnow
+    from maya.core.clock import utcnow
 
     def state() -> list[tuple[str, dict[str, Any], float]]:
         out: list[tuple[str, dict[str, Any], float]] = []

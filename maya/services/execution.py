@@ -21,7 +21,7 @@ from maya.core.errors import (NotApproved, PermissionDenied, QuotaExceeded, Vali
                               WarrantExpired, WarrantSuspended)
 from maya.core.backends import Backends
 from maya.formula import ir as irmod
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
 from maya.workflow.engine import Subject
