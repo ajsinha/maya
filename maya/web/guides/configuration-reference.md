@@ -56,8 +56,8 @@ MAYA_CONFIG_FILE=/etc/maya/application.yaml python run_maya_web.py
 
 `MAYA_CONFIG_FILE` wins over `--config`. The overlay rule follows the file: `/etc/maya/application.yaml` picks up `/etc/maya/application.local.yaml`.
 
-!!! warning "The command line tool reads the file, not flags"
-    `python -m maya.cli` takes `--config <path>` but does not accept `--key=value` overrides: its argument parser rejects them. For the CLI, use the `MAYA_*` environment variables or the overlay.
+!!! note "The command line tool takes the same overrides"
+    `python -m maya.cli` takes `--config <path>` and lets `--section.key=value` settings through to the configuration, as the launcher does: `python -m maya.cli admin init-db --force --db.dialect=postgresql`. Only the commands that read the configuration themselves use them — the `admin` database commands and anything run with `--local`. A command that talks to a server is governed by that server's settings, not by flags on your command line. Any other unknown flag is still a usage error.
 
 ### Validated at startup
 

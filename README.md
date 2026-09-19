@@ -94,6 +94,8 @@ execution warrant → reproducibility bundle.
 
 ### Not yet — stated so nobody has to discover it
 
+- **Feature-set pins always materialize.** The namespace's `materialize_policy` is stored,
+  but `on_demand` and `never` (replay from member pins) are not built.
 - **PostgreSQL is verified on 16, 17 and 18.** The whole suite passes on PostgreSQL 16.15,
   17.11 and 18.6, as well as SQLite. Run it with
   `MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test platform
@@ -122,9 +124,13 @@ execution warrant → reproducibility bundle.
   draft outside dev. Tectonic downloads its TeX bundle on first use: an air-gapped server
   must be given a cached bundle.
 - **Benchmarks were measured on one shared workstation, not the specified cluster**
-  ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)). SC-5, SC-4 and 100k-object search pass.
-  SC-3 (200 users) does not yet: p95 0.37 s against 0.3 s, on PostgreSQL with 8 web
-  processes. Several web processes need PostgreSQL; MAYA refuses them over SQLite.
+  ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)). SC-5, SC-4 and 100k-object search pass;
+  SC-5 and search were measured on SQLite only. SC-3 (200 users) does not yet: p95
+  0.37 s against 0.3 s, on PostgreSQL with 8 web processes, and tail latency varied
+  about twofold between runs on that machine. Several web processes need PostgreSQL;
+  MAYA refuses them over SQLite. The rest of §24.3 — pin write throughput, object
+  counts beyond search, job throughput, cold start, Delta table size — has not been
+  measured.
 - **The challenger's Claude provider is tested against a stub, not the live API.** The
   deterministic provider is the default. With `assistant.provider: claude`, the request
   (Claude Opus 5, structured JSON output, server-side refusal fallbacks) is verified against
@@ -219,10 +225,10 @@ Four risks have no clean fix and are accepted with mitigation rather than waved 
 |---|---|---|
 | Language | Python 3.13 (`.python-version`) | Matches the estate; `.venv` is git-ignored |
 | API | FastAPI + Pydantic v2, OpenAPI 3.1 | Typed contracts, generated spec, async where it helps |
-| Platforms | **Windows, Linux and macOS, equally first-class** | Not "Linux, and it probably works elsewhere" — all three green in CI or it does not release (SC-14) |
-| ORM | SQLAlchemy 2.0, typed | Confined to one package, enforced by import-linter |
+| Platforms | **Windows, Linux and macOS, equally first-class** | Not "Linux, and it probably works elsewhere" — the requirement is all three green before a release (SC-14). So far only Linux has been run, and there is no hosted CI (see *Not yet*) |
+| ORM | SQLAlchemy 2.0, typed | Confined to one package, enforced by a gate (`tools/ci/import_boundaries.py`) |
 | Schema | **Two generated DDL files, no migration framework** | One typed metadata is the source; `schema/postgresql.sql` and `schema/sqlite.sql` are generated from it and CI fails on drift. Two files maintained by hand are two files that will disagree |
-| Database | PostgreSQL 14+ in production, SQLite for laptop and dev | Full suite green on both, or the build fails |
+| Database | PostgreSQL 14+ in production, SQLite for laptop and dev | Full suite green on both, or the build fails. Run so far on PostgreSQL 16, 17 and 18, not 14 or 15 |
 | Compute | Apache Arrow + Polars in process, DuckDB for pushdown | Columnar, zero-copy, releases the GIL |
 | Lakehouse | **`maya_delta`** — native `deltalake` preferred, MAYA's own pure-Python Delta as fallback | ACID and time travel with no JVM and no Spark, and no hard dependency on someone else's build matrix having a wheel for the platform in front of us |
 | UI | Jinja2 + **Bootstrap 5** + **jQuery**, vendored, **no build pipeline**, Harvard Crimson | Renders air-gapped. A developer moves between MAYA and DishtaYantra without relearning the layout grammar |
@@ -377,7 +383,7 @@ Specified before it is built, which is the only order that works (§12, §21):
 - **Secrets never in a tracked file.** `config/application.yaml` is tracked and carries no secret; `config/application.local.yaml` is git-ignored and is where a real one belongs.
 - **The default admin password is a speed bump, not a door.** MAYA refuses to start with it outside dev unless explicitly allowed.
 - **User Python is hostile until proved otherwise.** Static validation, import allowlist, a sandboxed subprocess with no network, no credentials and resource caps — and a determinism probe, because non-determinism undermines every reproducibility claim MAYA makes.
-- **The sandbox tier is declared, not assumed.** Three operating systems do not have equivalent isolation primitives, so MAYA resolves a tier at startup — `strong` on Linux (separate user, seccomp, cgroups), `moderate` on macOS and Windows (`sandbox-exec` / restricted token and Job Objects), `minimal` if misconfigured — names it on the health page, refuses to start below the configured minimum outside dev, and records it permanently on every artifact validated under it. A reviewer needs to know what the green tick was worth.
+- **The sandbox tier is declared, not assumed.** Three operating systems do not have equivalent isolation primitives, so MAYA resolves a tier at startup — `strong` on Linux only when a probe child verifies a bubblewrap jail with an unmapped user, a seccomp filter and a cgroup v2 scope; `moderate` on macOS (`sandbox-exec`) or on Linux with part of that; `minimal` on Windows, where Job Objects and restricted tokens are not built, and wherever the primitives are missing — names it on the health page, refuses to start below the configured minimum outside dev, and records it permanently on every artifact validated under it. A reviewer needs to know what the green tick was worth.
 - **The audit log cannot be edited.** Append-only, hash-chained, with the chain head anchored externally. Nothing in MAYA — not an administrator, not a migration — can alter an entry.
 
 ---

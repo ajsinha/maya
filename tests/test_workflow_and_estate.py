@@ -187,3 +187,19 @@ def test_a_database_from_another_schema_still_exports_and_loads():
         assert all(s["user_agent"] is None for s in uow.repo("sessions").list())
     platform.db.verify_schema()
     platform.shutdown()
+
+
+def test_a_required_column_the_estate_cannot_fill_is_named():
+    """A column added as required with no default cannot take a default on load; the
+    import names it instead of failing somewhere inside the database."""
+    from sqlalchemy import Column, MetaData, String, Table
+
+    from maya.core.errors import ValidationFailed
+    from maya.persistence.estate import _require_carried
+    table = Table("t", MetaData(), Column("id", String, primary_key=True),
+                  Column("added", String, nullable=False),
+                  Column("optional", String), Column("defaulted", String, nullable=False,
+                                                     default="x"))
+    _require_carried(table, {"id": "1", "added": "a"})
+    with pytest.raises(ValidationFailed, match="added"):
+        _require_carried(table, {"id": "1"})

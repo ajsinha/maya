@@ -67,7 +67,8 @@ an unsolicited Response, a replayed Response and a replayed assertion are all re
 them <code>saml2</code> is refused at startup, naming both.</p>
 <p><strong>Single logout</strong>, when <code>auth.sso.saml.idp_slo_url</code> is set: signing out of
 MAYA ends the MAYA session and sends you to the IdP to end yours there; the IdP's own LogoutRequest,
-which must be signed, ends every MAYA session of that sign-in. With
+which must be signed, ends every MAYA session of the person it names (only the named IdP session,
+when it names one). With
 <code>sign_requests: true</code> MAYA signs its AuthnRequests and logout messages with its own key
 pair (RSA-SHA256), and its metadata publishes the certificate.</p>
 {% call warn('Awaiting a real identity provider') %}

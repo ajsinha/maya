@@ -24,14 +24,15 @@ Built from specification revision 2.3. The SDK's own version (`CLIENT_VERSION`) 
   logout request is accepted only when signed. WebAuthn security keys as a second factor.
 - Execution warrants: a copy issued for offline use is labelled `unattested`, on the
   copy and on the warrant.
-- Twelve defects found by test hardening were fixed, including code execution in
-  server-side bundle verification and unauthenticated review comments.
+- Defects found by test hardening were fixed, including code execution in
+  server-side bundle verification, and review comments and history open to any
+  signed-in user rather than to those who may read the object.
 
 **Evidence**
 
-- Bundles re-execute composite models of closed-form members. `maya.offline` evaluates
-  them from the signed member IRs.
-- SDK record/replay for both clients; `maya.offline(bundle)`; real LaTeX builds with
+- Bundles re-execute composite models of closed-form members. `maya.sdk.offline`
+  evaluates them from the signed member IRs.
+- SDK record/replay for both clients; `maya.sdk.offline(bundle)`; real LaTeX builds with
   Tectonic.
 
 **Operations and performance**
@@ -56,8 +57,9 @@ Built from specification revision 2.3. The SDK's own version (`CLIENT_VERSION`) 
 - The event `type` filter matched anywhere; it is now a prefix.
 - Review aging ignored namespace policies.
 - The CLI refused `--key=value` setting overrides.
-- Removed unused configuration keys: `server.workers` (it now does something),
-  `auth.session.token_ttl_minutes` and `featureset.pin.materialize`.
+- Removed unused configuration keys: `auth.session.token_ttl_minutes` and
+  `featureset.pin.materialize`. `server.workers`, also unused before, now does
+  something (above). `health.audit_verify_seconds` is new.
 - A stray pasted sentence was removed from a configuration comment.
 
 ## 0.1.0 — 2026-09-19
@@ -75,4 +77,4 @@ First end-to-end build from specification revision 2.1. The version authority is
 - Workflow policy as data, edited in the UI, governed, projected to YAML.
 - Gate ladder in `tools/ci/`.
 
-See the README's *What's shipped* and *Not yet* sections for the precise boundary.
+See the README's *Status* and *Not yet* sections for the precise boundary.

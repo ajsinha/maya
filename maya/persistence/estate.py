@@ -113,11 +113,26 @@ def load(db: Any, data: bytes) -> dict[str, int]:
                 rows = [{k: v for k, v in _decode(json.loads(line)).items() if k in known}
                         for line in body.splitlines() if line]
                 if rows:
+                    _require_carried(table, rows[0])
                     conn.execute(table.insert(), rows)
                 counts[table.name] = len(rows)
             if db.dialect == "postgresql":
                 _advance_sequences(conn)
     return counts
+
+
+def _require_carried(table: Any, row: dict[str, Any]) -> None:
+    """A column the new code added takes its default on load; a required column with no
+    default cannot, and is named here rather than failing inside the database."""
+    missing = [c.name for c in table.columns
+               if c.name not in row and not c.nullable and c.default is None
+               and c.server_default is None and c.autoincrement is not True]
+    if missing:
+        raise ValidationFailed(
+            f"Table {table.name}: the estate has no values for required column(s) "
+            f"{', '.join(missing)}, and the schema gives them no default. Give them a "
+            "default in the model, or fill them in the export, before loading.",
+            table=table.name, columns=missing)
 
 
 def _advance_sequences(conn: Any) -> None:

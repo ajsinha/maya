@@ -37,6 +37,8 @@ three ways: a paged REST list, server-sent events, and signed webhooks.</p>
 curl -s "http://localhost:8600/api/v1/events?after=1200&limit=500&type=warrant" \
      -H "Authorization: Bearer $MAYA_API_KEY"
 {% endcall %}
+<p><code>type</code> is a prefix of the event type: <code>pin.</code> gives every pin event,
+<code>pin.sealed</code> just that one.</p>
 {% call example('Follow it live (server-sent events)', 'bash') %}
 curl -N "http://localhost:8600/api/v1/events/stream?after=1200" \
      -H "Authorization: Bearer $MAYA_API_KEY"
