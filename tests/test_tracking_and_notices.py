@@ -233,6 +233,12 @@ def test_a_revoked_member_warrant_flags_the_composite_warrants_that_embed_it(wor
                 "spec": {"valid_days": 30, "environments": ["prod"]},
             }
         )
+    with w.p.uow("system") as uow:
+        uow.repo("training_warrants").update(
+            warrant["id"],
+            {"revoked_at": utcnow(), "revoke_reason": "parameters found to be stale"},
+        )
+    assert w.p.tracking.sweep_revoked_members() >= 1, "the hourly sweep finds it"
     flagged = w.p.tracking.flag_composites_of(warrant["id"], "parameters found to be stale")
     assert [f["execution_warrant_id"] for f in flagged] == [ew["id"]]
     assert flagged[0]["member"] == "tr_member"

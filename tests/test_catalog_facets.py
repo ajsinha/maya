@@ -18,7 +18,7 @@ import datetime as dt
 import pytest
 
 from maya.core.errors import ValidationFailed
-from tests.conftest import PX_DEF, price_csv
+from tests.conftest import PX_DEF, approved_feature, price_csv
 
 
 @pytest.fixture(scope="module")
@@ -205,6 +205,41 @@ def test_a_cursor_does_not_survive_a_change_of_facet(estate):
         w.p.catalog.browse_page(
             w.dana, type="feature", tag="intraday", page_size=1, cursor=page["next_cursor"]
         )
+
+
+def test_the_pin_preview_reports_the_quota_and_refuses_a_pin_that_would_exceed_it(world):
+    """§16.4's preview is only useful if it names what the estimate is against, and a
+    quota that would refuse the pin is one of the things it has to name."""
+    w = world
+    w.p.access.create_namespace(w.admin, name="fc_quota", preset="regulated")
+    approved_feature(w, "fc_quota_px", price_csv(), ns="fc_quota")
+    generous = w.p.catalog.pin_preview(
+        w.mick, "fc_quota/fc_quota_px", version_no=1, as_of=dt.date(2026, 1, 20), pin_name="eom"
+    )
+    assert generous["rows"] > 0
+    assert generous["storage"]["namespace"] == "fc_quota"
+    assert generous["storage"]["held_bytes"] == 0
+    assert generous["storage"]["quota_bytes"] is None
+    assert generous["storage"]["estimated_bytes"] > 0
+    assert generous["blockers"] == [] and generous["may_pin"] is True
+    assert all(c["passed"] for c in generous["checks"])
+    w.p.access.update_namespace(w.admin, "fc_quota", {"quota_bytes": 16})
+    tight = w.p.catalog.pin_preview(
+        w.mick, "fc_quota/fc_quota_px", version_no=1, as_of=dt.date(2026, 1, 20), pin_name="eom"
+    )
+    assert tight["may_pin"] is False
+    assert any("exceed the quota" in b for b in tight["blockers"]), tight["blockers"]
+    assert tight["storage"]["quota_bytes"] == 16
+
+
+def test_the_pin_preview_refuses_a_reader_who_holds_no_pin_right(world):
+    w = world
+    approved_feature(w, "fc_nopin_px", price_csv(), ns="eq")
+    out = w.p.catalog.pin_preview(
+        w.mona, "eq/fc_nopin_px", version_no=1, as_of=dt.date(2026, 1, 20), pin_name="eom"
+    )
+    assert out["may_pin"] is False
+    assert any("no pin or pin-request right" in b for b in out["blockers"])
 
 
 def test_an_old_ingest_is_not_fresh(estate):

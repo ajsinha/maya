@@ -311,6 +311,36 @@ def test_two_identical_definitions_diff_to_nothing():
     assert catalog.definition_diff("feature", PX_DEF, PX_DEF) == []
 
 
+def test_a_derived_feature_set_diffs_its_algebra(reviewed):
+    """A set built by §6.8 algebra has a derivation where a mapped one has members, and
+    the diff shows the expression rather than a dictionary."""
+    w, _ = reviewed
+    base = {
+        "index": ["date", "symbol"],
+        "index_types": {"date": "date", "symbol": "string"},
+        "derivation": {
+            "operator": "union",
+            "operands": ["maya://featureset/rev/a", "maya://featureset/rev/b"],
+            "options": {},
+        },
+    }
+    wider = copy.deepcopy(base)
+    wider["derivation"]["operands"] = [
+        "maya://featureset/rev/a",
+        "maya://featureset/rev/c",
+    ]
+    wider["derivation"]["options"] = {"collision": "prefer_left"}
+    entries = catalog.definition_diff("featureset", base, wider)
+    algebra = next(e for e in entries if e["section"] == "Algebra")
+    assert algebra["was"] == "union(maya://featureset/rev/a, maya://featureset/rev/b)"
+    assert algebra["now"] == (
+        "union(maya://featureset/rev/a, maya://featureset/rev/c) [collision prefer_left]"
+    )
+    assert algebra["change"] == "changed"
+    assert catalog.definition_diff("featureset", base, base) == []
+    assert w
+
+
 def test_an_object_with_no_definition_says_so_rather_than_showing_an_empty_diff(world):
     """A warrant carries no definition; the screen says which, rather than rendering an
     empty diff that reads as 'nothing changed'."""

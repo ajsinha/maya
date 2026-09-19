@@ -84,6 +84,9 @@ def wire(platform: Any) -> None:
     platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
     platform.scheduler.every("notices.sweep", 3600, platform.subscriptions.notices)
     platform.scheduler.every(
+        "tracking.revoked_members", 3600, platform.tracking.sweep_revoked_members
+    )
+    platform.scheduler.every(
         "lake.maintenance",
         platform.settings.int("lake.maintenance.interval_seconds", 86400),
         platform.ops.lake_maintenance,

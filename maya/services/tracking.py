@@ -178,6 +178,26 @@ class TrackingService:
         return 1
 
     # -- a member model's warrant was revoked (§9.5) ----------------------------
+    def sweep_revoked_members(self) -> int:
+        """Flag the composites whose member warrants have been revoked. Run hourly.
+
+        A sweep rather than a hook on revocation: ``warrants.revoke`` cascades to the
+        execution warrants issued from the same training warrant, which is a different
+        relationship, and the composite that merely *contains* that model is a separate
+        instrument with a separate owner. Flagging is idempotent on (owner, warrant,
+        message), so a warrant revoked once is reported once however often this runs.
+        """
+        flagged = 0
+        with self.p.uow() as uow:
+            revoked = [
+                (w["id"], w["revoke_reason"])
+                for table in ("training_warrants", "execution_warrants")
+                for w in uow.repo(table).list(revoked_at__isnull=False)
+            ]
+        for warrant_id, reason in revoked:
+            flagged += len(self.flag_composites_of(warrant_id, reason or "the warrant was revoked"))
+        return flagged
+
     def flag_composites_of(self, warrant_id: str, reason: str) -> list[dict[str, Any]]:
         """Every composite execution warrant embedding the revoked warrant's model, with
         the member named. Revocation cascades to the warrants issued from the same
