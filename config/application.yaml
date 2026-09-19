@@ -89,6 +89,10 @@ auth:
   session:
     idle_timeout_minutes: 30
     absolute_timeout_hours: 12
+    # A signed-in session's principal is reused this many seconds (0: never), because
+    # one page makes several internal calls. A sign-out or access change in another
+    # web process reaches a session at most this late; in the same process, at once.
+    principal_cache_seconds: 2
   password:
     min_length: 12
   lockout:

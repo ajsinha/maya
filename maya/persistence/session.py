@@ -14,10 +14,31 @@ import hashlib
 import json
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import event, text
+from sqlalchemy.orm import Session
 
 from maya.persistence.engine import Database
 from maya.persistence.repositories import repository_class
+
+
+IDENTITY_TABLES = {"users", "roles", "user_roles", "groups", "group_members", "group_roles",
+                   "grants", "api_keys", "namespaces"}
+SESSION_FIELDS = ("revoked_at", "mfa_state")
+
+
+def _identity_changed(session: Any, _ctx: Any, _instances: Any) -> None:
+    """Mark the transaction when it changes access; a session merely seen is not a change."""
+    from sqlalchemy import inspect
+    for obj in (*session.new, *session.dirty, *session.deleted):
+        table = getattr(obj, "__tablename__", "")
+        if table in IDENTITY_TABLES or (table == "sessions" and (
+                obj in session.new or obj in session.deleted
+                or any(inspect(obj).attrs[f].history.has_changes() for f in SESSION_FIELDS))):
+            session.info["identity_changed"] = True
+            return
+
+
+event.listen(Session, "before_flush", _identity_changed)
 
 
 class UnitOfWork:
@@ -42,7 +63,11 @@ class UnitOfWork:
             if exc_type is None:
                 for entry in self._durable:
                     self.repo("audit_events").append(entry)
+                changed = self.session.info.pop("identity_changed", False)
                 self.session.commit()
+                changed = changed or self.session.info.pop("identity_changed", False)
+                if changed and self.db.on_identity_change is not None:
+                    self.db.on_identity_change()
                 for fn in self._after_commit:
                     fn()
             else:

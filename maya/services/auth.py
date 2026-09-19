@@ -38,6 +38,11 @@ class AuthService:
     def __init__(self, platform: Any) -> None:
         self.p = platform
         self._default_pw: tuple[str | None, bool] = (None, False)
+        # token hash -> (monotonic expiry, principal); see _session_principal
+        self._principals: dict[str, tuple[float, Principal]] = {}
+        self.principal_ttl = float(platform.settings.get(
+            "auth.session.principal_cache_seconds", "2") or 0)
+        platform.db.on_identity_change = self.forget_principals
         s = platform.settings
         self.idle = dt.timedelta(minutes=s.int("auth.session.idle_timeout_minutes", 30))
         self.absolute = dt.timedelta(hours=s.int("auth.session.absolute_timeout_hours", 12))
@@ -137,7 +142,12 @@ class AuthService:
         """How a session token is stored: never the token itself."""
         return _sha(token)
 
+    def forget_principals(self) -> None:
+        """Access changed in this process: resolve every session afresh."""
+        self._principals.clear()
+
     def logout(self, token: str) -> None:
+        self._principals.pop(_sha(token), None)
         with self.p.uow() as uow:
             sess = uow.repo("sessions").find_one(token_hash=_sha(token))
             if sess and not sess["revoked_at"]:
@@ -156,6 +166,28 @@ class AuthService:
         raise NotAuthenticated("Unrecognised credential")
 
     def _session_principal(self, token: str, path: str | None = None) -> Principal:
+        """The principal a session token stands for.
+
+        One web page makes several internal API calls, each resolving the same session;
+        a fully signed-in session's principal is therefore kept for
+        ``auth.session.principal_cache_seconds`` (default 2; 0 turns it off). The price,
+        accepted deliberately: a sign-out in *another* process, a revocation, or a role
+        change reaches a session at most that many seconds late. A sign-out in this
+        process clears the entry at once, and sessions still owing a second factor are
+        never kept."""
+        key = _sha(token)
+        hit = self._principals.get(key)
+        if hit and hit[0] > time.monotonic():
+            return hit[1]
+        principal, fully_signed_in = self._resolve_session(token, path)
+        if self.principal_ttl > 0 and fully_signed_in:
+            if len(self._principals) > 10_000:
+                self._principals.clear()
+            self._principals[key] = (time.monotonic() + self.principal_ttl, principal)
+        return principal
+
+    def _resolve_session(self, token: str, path: str | None = None
+                         ) -> tuple[Principal, bool]:
         from maya.services.sso import MFA_OPEN_PATHS
         with self.p.uow() as uow:
             sess = uow.repo("sessions").find_one(token_hash=_sha(token))
@@ -174,7 +206,8 @@ class AuthService:
                 uow.repo("sessions").update(sess["id"], {
                     "last_seen_at": now, "expires_at": min(now + self.idle,
                                                            sess["absolute_expires_at"])})
-            return self.build_principal(uow, sess["user_id"], channel=sess["channel"])
+            return (self.build_principal(uow, sess["user_id"], channel=sess["channel"]),
+                    sess["mfa_state"] == "ok")
 
     def _key_principal(self, key: str, ip: str | None) -> Principal:
         parts = key.split("_", 3)
