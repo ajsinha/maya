@@ -4,7 +4,7 @@ The repository base (§14).
 A repository returns plain dictionaries, never ORM instances, so nothing
 above this package ever holds a ``Session`` or a lazy relationship. Filters
 are keyword arguments with Django-style suffixes (``state__in``,
-``name__ilike``, ``expires_at__lt``, ``revoked_at__isnull``) — a small closed
+``name__ilike``, ``type__prefix``, ``expires_at__lt``, ``revoked_at__isnull``) — a small closed
 vocabulary rather than a query builder, so every query shape has one place to
 live and one place to be tested.
 
@@ -37,6 +37,7 @@ _OPS = {
     "notin": lambda c, v: c.not_in(list(v)),
     "isnull": lambda c, v: c.is_(None) if v else c.is_not(None),
     "ilike": lambda c, v: func.lower(c).like(f"%{str(v).lower()}%"),
+    "prefix": lambda c, v: c.startswith(str(v), autoescape=True),   # % and _ are literal
 }
 
 

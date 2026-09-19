@@ -50,28 +50,36 @@ class Platform:
             allow_self_approval=settings.bool("workflow.allow_self_approval", False),
             environment=settings.environment)
         self._services: dict[str, Any] = {}
+        self.primary = True        # False in an extra web process (see ``build``)
 
     # -- construction ------------------------------------------------------
     @classmethod
     def build(cls, settings: Settings, *, init_if_empty: bool = True,
-              start_workers: bool = True) -> "Platform":
+              start_workers: bool = True, primary: bool = True) -> "Platform":
+        """A running MAYA. ``primary=False`` is an extra web process (``server.workers``
+        above 1): it serves requests over the database the primary prepared — no schema
+        creation, seeding, job reaping, job workers, webhooks or scheduler of its own."""
         Backends.resolve(pins_from_config(settings.props))
         db = database_from_settings(settings)
-        if not db.is_initialized():
+        if primary and not db.is_initialized():
             if not init_if_empty:
                 db.verify_schema()
             db.init_schema()
         db.verify_schema()
         platform = cls(settings, db)
-        platform.ensure_search_index()
+        platform.primary = primary
+        if primary:
+            platform.ensure_search_index()
         from maya.observability import tracing
         tracing.configure(settings.get("observability.otlp.endpoint") or None)
         platform.wire()
-        from maya.services.seed import seed
-        seed(platform)
+        if primary:
+            from maya.services.seed import seed
+            seed(platform)
         platform.startup_checks()
-        platform.jobs.reap()
-        if start_workers:
+        if primary:
+            platform.jobs.reap()
+        if start_workers and primary:
             platform.jobs.start()
             platform.webhooks.start()
             platform.scheduler.start()

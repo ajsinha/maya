@@ -121,15 +121,26 @@ def main(argv: list[str]) -> int:
     atexit.register(_shutdown)
     signal.signal(signal.SIGINT, lambda *a: (_shutdown(), sys.exit(0)))
     signal.signal(signal.SIGTERM, lambda *a: (_shutdown(), sys.exit(0)))
-    app = build_app(_platform)
     import uvicorn
     host = settings.get("server.host", "127.0.0.1") or "127.0.0.1"
     port = settings.int("server.port", 8600)
+    workers = settings.int("server.workers", 1)
     from maya.core.backends import Backends
     loop = "uvloop" if Backends.selected("event_loop") == "uvloop" else "asyncio"
-    print(f"\n  Serving on http://{host}:{port}   (API docs: /api/v1/docs)\n")
-    uvicorn.run(app, host=host, port=port, log_level="warning", loop=loop,
-                proxy_headers=True, access_log=False)
+    print(f"\n  Serving on http://{host}:{port}   (API docs: /api/v1/docs)"
+          + (f"   ·   {workers} web processes" if workers > 1 else "") + "\n")
+    if workers > 1:
+        # This process keeps the job workers, webhooks and scheduler; uvicorn starts
+        # ``workers`` web processes (spawned, so each re-reads the same configuration
+        # and --key=value overrides). Make the signing keys now, not in a race between them.
+        os.environ["MAYA_CONFIG_FILE"] = os.path.abspath(_config_path(argv))
+        _platform.signer_or_none()
+        uvicorn.run("maya.server:web_worker", factory=True, workers=workers, host=host,
+                    port=port, log_level="warning", loop=loop, proxy_headers=True,
+                    access_log=False)
+    else:
+        uvicorn.run(build_app(_platform), host=host, port=port, log_level="warning",
+                    loop=loop, proxy_headers=True, access_log=False)
     return 0
 
 

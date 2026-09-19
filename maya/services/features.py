@@ -439,10 +439,16 @@ class FeatureService:
             if version["state"] not in catalog.APPROVED_STATES:
                 raise NotApproved(f"v{version_no} is '{version['state']}'; only an approved "
                                   "version can be pinned")
-            direct = ns["is_scratch"] or p.has_capability("feature_pin", "P")
-            action = "pin" if direct else "request_pin"
-            self.p.access.require(uow, p, action, "feature", feature,
-                                  cap_type="feature_pin" if not ns["is_scratch"] else "feature")
+            if ns["is_scratch"]:
+                # Zero ceremony (§28.1): whoever may edit a scratch feature — its owner —
+                # pins it directly. No role carries 'P' on 'feature' itself, so checking
+                # "pin" there refused every scratch pin.
+                direct = True
+                self.p.access.require(uow, p, "update", "feature", feature)
+            else:
+                direct = p.has_capability("feature_pin", "P")
+                self.p.access.require(uow, p, "pin" if direct else "request_pin", "feature",
+                                      feature, cap_type="feature_pin")
             clash = uow.repo("feature_pins").find_one(feature_id=feature["id"], pin_name=pin_name,
                                                       as_of_date=as_of)
             if clash and clash["state"] != "failed":

@@ -7,6 +7,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import os
 import platform as pyplatform
 import sys
 import time
@@ -50,8 +51,10 @@ class OpsService:
                      "root": str(self.p.lake.root)},
             "sandbox": sandbox_tier(), "typeset": typeset_detect(),
             "jobs": {"queued": queued, "running": running, "dead_letter": dead,
-                     "workers": self.p.jobs.n_workers},
-            "seams": Backends.report(), "degraded": degraded, "process": procstat(),
+                     "workers": self.p.jobs.n_workers if self.p.primary else 0},
+            "seams": Backends.report(), "degraded": degraded,
+            "process": {**procstat(), "pid": os.getpid(),
+                        "role": "primary" if self.p.primary else "web"},
             "default_admin_password": self.p.auth.default_admin_password_active(),
             "tracing": _tracing_status(),
             "webhooks": _webhook_backlog(self.p),

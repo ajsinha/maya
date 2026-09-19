@@ -195,3 +195,18 @@ def test_admin_observability_pages_render(obs):
                          ("/admin/events", "pin.sealed"), ("/admin/health", "Span export")):
         r = web.get(path)
         assert r.status_code == 200 and needle in r.text, path
+
+
+def test_the_event_type_filter_is_a_prefix(obs):
+    """``type`` selects by prefix, not substring; LIKE wildcards in it are literal."""
+    w, _ = obs
+    ref = approved_feature(w, "prefixed", price_csv(3))
+    w.p.features.pin(w.mick, ref, version_no=1, pin_name="x", as_of=dt.date(2026, 1, 3))
+    w.drain()
+    pins = {e["type"] for e in w.p.webhooks.events(w.admin, type_prefix="pin.")}
+    assert pins and all(t.startswith("pin.") for t in pins)
+    assert not w.p.webhooks.events(w.admin, type_prefix="sealed")    # a substring, not a prefix
+    assert not w.p.webhooks.events(w.admin, type_prefix="pin_")      # '_' is not a wildcard
+    page = w.p.webhooks.events_page(w.admin, type_prefix="feature_version.", page_size=50)
+    assert page["items"] and all(e["type"].startswith("feature_version.")
+                                 for e in page["items"])

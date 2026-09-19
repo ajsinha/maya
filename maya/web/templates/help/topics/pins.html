@@ -34,8 +34,6 @@ from a script. Name the series, the as-of date, and optionally the knowledge tim
 out, it defaults to now and the pin's provenance records that it was defaulted.</p>
 {% call example('Command line', 'bash') %}
 python -m maya.cli feature pin eq/prices --version 3 --name eom --as-of 2026-01-31
-#   40% resolving …
-#  100% sealed
 # sealed 9f2c…e1 (2,480 rows, 18,432 new bytes)
 {% endcall %}
 {% call example('Python SDK', 'python') %}
@@ -68,8 +66,9 @@ always pin directly.</p>
   <li>Re-reads the fragments and verifies the content hash before sealing.</li>
   <li>Seals the pin, writes a <code>pin.sealed</code> audit entry and emits the event.</li>
 </ol>
-<p>It is a saga: a crash half-way leaves the pin <code>failed</code>, and its unreferenced fragments
-become reclaimable storage. It never leaves a half-sealed pin.</p>
+<p>It is a saga: any error half-way (a failed check, an empty result, a resolver or lake error)
+leaves the pin <code>failed</code> with the reason, and its unreferenced fragments become reclaimable
+storage. It never leaves a half-sealed pin.</p>
 {% endcall %}
 
 {% call step(4, 'Use it') %}
@@ -126,6 +125,6 @@ print(out["filesRemoved"], "small files compacted into", out["filesAdded"], "—
 {{ cards([
   ('clock-history', 'Bitemporality', 'The as_of_known a pin resolves at, and why restatements append.'),
   ('grid-3x3-gap', 'Feature sets', 'Pin a whole set at once with a cascade pin.'),
-  ('mortarboard', 'Training warrants', 'Warrants bind a model to a feature-set pin, never to live data.'),
+  ('mortarboard', 'Training warrants', 'Warrants bind a model to a feature-set pin or an approved version.'),
 ]) }}
 {% endblock %}

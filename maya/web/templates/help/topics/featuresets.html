@@ -6,7 +6,8 @@
 attributes of member features onto the names a model expects, assembles them on a declared index by a
 declared <strong>alignment</strong>, and fills the gaps under a <strong>policy precedence</strong> that is
 recorded per attribute, so nobody has to guess which rule filled a value. Like a feature, it is
-versioned, approved and pinned, and a training warrant always binds to a feature-set pin.</p>
+versioned, approved and pinned. A training warrant binds to a feature-set pin, or to an approved
+feature-set version.</p>
 {% endcall %}
 
 {{ cards([
@@ -37,10 +38,11 @@ versioned, approved and pinned, and a training warrant always binds to a feature
   ('members[].cast', 'an optional logical type to cast the column to'),
   ('members[].rule', 'an attribute-level fill rule; the strongest layer of the precedence'),
   ('members[].aggregate', 'required when the member has index columns the set does not'),
+  ('members[].filter', 'an expression over the member’s columns; values where it is false become null'),
   ('alignment', 'mode = inner | outer | left | asof; left and asof take a driving member, asof a tolerance_days'),
   ('grid', '"as_is", or a calendar such as {"calendar": "NYSE"} (natural_days, ISO_business_days, NYSE, LSE, TARGET)'),
   ('global_policy / group_policies', 'set-wide and per-group fill rules'),
-  ('filters', 'start, end and a universe of index values'),
+  ('filters', 'start, end, a universe of index values, and expr: a row filter in the expression language, applied after the fill'),
 ]) }}
 {% endcall %}
 

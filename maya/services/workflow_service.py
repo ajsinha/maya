@@ -162,8 +162,11 @@ class WorkflowService:
         """Everything in review that this user could act on (My queue, §16.2)."""
         out = []
         with self.p.uow() as uow:
+            names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
             for object_type, table in TABLES.items():
+                _, parent_key, parent_table, _ = GOVERNING[object_type]
                 for row in uow.repo(table).list(state="in_review"):
+                    owner = uow.repo(parent_table).get(row[parent_key]) if parent_key else row
                     ev = uow.repo("workflow_events").list(object_type=object_type,
                                                           object_id=row["id"],
                                                           order_by=["-created_at"], limit=1)
@@ -172,6 +175,7 @@ class WorkflowService:
                     out.append({"object_type": object_type, "id": row["id"], "ref": ref,
                                 "submitted_by": row.get("submitted_by") or row.get("created_by"),
                                 "since": since, "age_days": (utcnow() - since).days,
+                                "namespace": names.get((owner or {}).get("namespace_id")),
                                 "mine": (row.get("submitted_by") or row.get("created_by"))
                                 == p.username})
         return sorted(out, key=lambda r: r["since"])
@@ -245,12 +249,16 @@ class WorkflowService:
         """Items past their SLA (§10.4)."""
         out = []
         with self.p.uow() as uow:
-            active = {r["object_type"]: r["policy"] for r in
-                      uow.repo("workflow_policies").list(state="active", scope="*")}
-        for item in self.queue_all():
-            sla = (active.get(item["object_type"], {}).get("sla_days") or {}).get("in_review")
-            if sla and item["age_days"] > int(sla):
-                out.append({**item, "sla_days": sla})
+            for item in self.queue_all():
+                # the policy that governs the item: its namespace's, else the global one
+                try:
+                    policy = self.p.workflow.active_policy(uow, item["object_type"],
+                                                           item["namespace"] or "*")["policy"]
+                except ValidationFailed:
+                    continue
+                sla = (policy.get("sla_days") or {}).get("in_review")
+                if sla and item["age_days"] > int(sla):
+                    out.append({**item, "sla_days": sla})
         return out
 
     def queue_all(self) -> list[dict[str, Any]]:

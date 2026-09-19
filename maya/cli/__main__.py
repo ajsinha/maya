@@ -6,6 +6,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 from __future__ import annotations
 
 import argparse
+import re
 import json
 import os
 import sys
@@ -340,8 +341,17 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
+# ``--section.key=value`` overrides a setting (spec §24.2); the configuration reads them
+# from the command line itself, so the parser only has to let them through.
+_SETTING = re.compile(r"^--[A-Za-z_][\w-]*(\.[\w-]+)+=")
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args, extra = parser.parse_known_args(argv)
+    unknown = [a for a in extra if not _SETTING.match(a)]
+    if unknown:
+        parser.error(f"unrecognized arguments: {' '.join(unknown)}")
     try:
         return args.fn(args)
     except MayaError as exc:

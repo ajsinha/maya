@@ -438,7 +438,8 @@ class FeatureSetService:
             v = catalog.version_of(uow, "feature_set_versions", "feature_set_id", fs, version_no)
             if v["state"] not in catalog.APPROVED_STATES:
                 raise NotApproved(f"v{version_no} is '{v['state']}'; pin an approved version")
-            self.p.access.require(uow, p, "pin", "featureset", fs)
+            self.p.access.require(uow, p, "update" if ns["is_scratch"] else "pin",
+                                  "featureset", fs)          # scratch: its owner pins
             eff, _ = self.effective(uow, v["definition"])
             unpinned = [m["ref"] for m in eff["members"] if not refs.parse(m["ref"]).is_pin]
             if unpinned and not cascade:

@@ -105,7 +105,8 @@ operators are:</p>
 <p><code>add</code> <code>sub</code> <code>mul</code> <code>div</code> <code>pow</code> <code>neg</code>
 <code>exp</code> <code>log</code> <code>sqrt</code> <code>abs</code> <code>ncdf</code> <code>npdf</code>
 <code>max</code> <code>min</code> <code>where</code> <code>gt</code> <code>lt</code> <code>ge</code>
-<code>le</code> <code>eq</code> <code>and</code> <code>or</code></p>
+<code>le</code> <code>eq</code> <code>and</code> <code>or</code> <code>na</code> (Excel's
+<code>#N/A</code>, from a spreadsheet lookup miss: evaluates to NaN)</p>
 {% call example('The IR of yhat = a*x + b (roles a, b: parameter)', 'json') %}
 {
   "outputs": [{"name": "yhat", "type": "float64"}],

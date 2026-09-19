@@ -103,6 +103,29 @@ def test_overdue_items_escalate_once(world):
                for n in owner_inbox)
 
 
+def test_a_namespace_policy_sets_its_own_review_deadline(world):
+    """Aging reads the policy that governs the item — its namespace's when there is one,
+    as the engine does — not only the global policy."""
+    w = world
+    w.p.access.create_namespace(w.admin, name="brisk")
+    ref = _submitted(w, "brisk", "quickturn")
+    with w.p.uow() as uow:
+        v = uow.repo("feature_versions").find_one(
+            feature_id=uow.repo("features").find_one(name="quickturn")["id"])
+        for e in uow.repo("workflow_events").list(object_id=v["id"]):
+            uow.repo("workflow_events").update(e["id"], {
+                "created_at": dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=2)})
+        base = w.p.workflow.active_policy(uow, "feature_version", "*")["policy"]
+    overdue = lambda: [i for i in w.p.workflow_svc.aging() if i["id"] == v["id"]]  # noqa: E731
+    assert not overdue(), "two days is within the global deadline"
+    tight = {**base, "sla_days": {**(base.get("sla_days") or {}), "in_review": 1}}
+    draft = w.p.workflow_svc.draft_policy(w.admin, "feature_version", tight, scope="brisk")
+    w.p.workflow_svc.activate(w.principal("admin2"), draft["id"])   # never by its author
+    item = overdue()
+    assert item and item[0]["sla_days"] == 1 and item[0]["namespace"] == "brisk"
+    assert ref.split("/")[-1].startswith("quickturn")
+
+
 def test_scheduler_runs_each_sweep_on_its_interval():
     from maya.jobs.scheduler import Scheduler
     calls: list[str] = []

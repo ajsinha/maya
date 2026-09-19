@@ -101,6 +101,17 @@ def test_usage_errors_exit_2(run):
     assert exc.value.code == cli.EXIT_USAGE
 
 
+def test_setting_overrides_pass_and_other_unknown_flags_are_refused(run):
+    """``--section.key=value`` overrides a setting (§24.2), before or after the command;
+    anything else unknown is still a usage error."""
+    code, out, _ = run("--db.dialect=sqlite", "feature", "list", "--server.port=9000")
+    assert code == 0 and "maya://feature/eq/px" in out
+    for bad in ("--nonsense=1", "--dialect=sqlite", "--db.dialect"):
+        with pytest.raises(SystemExit) as exc:
+            run("feature", "list", bad)
+        assert exc.value.code == cli.EXIT_USAGE
+
+
 def test_quick_upload_and_restatement(run, tmp_path):
     csv = tmp_path / "rates.csv"
     csv.write_bytes(price_csv(3, symbols=("ZZZ",)))

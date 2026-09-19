@@ -136,8 +136,9 @@ After sealing no more parameters can be uploaded; clone the warrant to train aga
 
 <h2>Revocation</h2>
 <p>The model owner or an administrator can revoke a warrant with a written reason
-(<code>my.training.revoke(id, reason=…)</code>). Revocation cascades: every live execution warrant drawn
-on it is revoked too, and its owner is notified.</p>
+(<code>my.training.revoke(id, reason=…)</code>). Revocation cascades: every execution warrant drawn on
+it is revoked too, whether live, suspended or still in draft (unless it is already revoked), and its
+owner is notified.</p>
 
 <h2>Where next</h2>
 {{ cards([
