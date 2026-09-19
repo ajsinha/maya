@@ -42,7 +42,19 @@ def _opt(qp: Any, key: str) -> str | None:
     return qp.get(key) or None
 
 
+CATALOG_FACETS = ("type", "namespace", "owner", "status", "tag", "freshness", "state")
+
+
 TABLES: dict[str, Table] = {
+    "catalog": Table(
+        lambda sdk, qp, **kw: sdk.catalog.browse_page(
+            **{f: _opt(qp, f) for f in CATALOG_FACETS}, q=_opt(qp, "q"), **kw
+        ),
+        "catalog_row",
+        {"Name": "name", "Updated": "updated"},
+        "name",
+        CATALOG_FACETS,
+    ),
     "features": Table(
         lambda sdk, qp, **kw: sdk.features.page(
             namespace=_opt(qp, "namespace"), q=_opt(qp, "q"), **kw

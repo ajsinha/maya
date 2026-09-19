@@ -56,27 +56,17 @@ async def queue(request: Request) -> Any:
 @router.get("/workflow/review/{object_type}/{object_id}")
 @page
 async def review(request: Request, object_type: str, object_id: str) -> Any:
+    """The review screen (§10.3, §10.6). The route stays thin: one SDK call assembles
+    the diff, the impact list, the governing policy, the SoD and what is outstanding."""
     async with client(request) as sdk:
+        r = await sdk.workflow.review(object_type, object_id)
         history = await sdk.workflow.history(object_type, object_id)
         comments = await sdk.workflow.comments(object_type, object_id)
-        policies = await sdk.workflow.policies()
         memos = (
             await sdk.assistant.memos(object_type, object_id)
             if object_type in ("feature_version", "featureset_version", "model_version")
             else None
         )
-    active = next(
-        (p for p in policies if p["object_type"] == object_type and p["state"] == "active"), None
-    )
-    events = [e for e in history if e.get("to_state")]
-    state = events[-1]["to_state"] if events else "draft"
-    ref = next((e.get("object_ref") for e in reversed(events) if e.get("object_ref")), object_id)
-    names = []
-    if active:
-        for name, t in (active["policy"].get("transitions") or {}).items():
-            sources = t.get("from") or []
-            if state in (sources if isinstance(sources, list) else [sources]):
-                names.append(name)
     return await render(
         request,
         "workflow/review.html",
@@ -85,10 +75,11 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
             "object_id": object_id,
             "history": history,
             "comments": comments,
-            "state": state,
-            "ref": ref,
-            "names": names,
-            "policy": active,
+            "state": r["state"],
+            "ref": r["ref"],
+            "r": r,
+            "names": [t["name"] for t in r["transitions"] if t["available"]],
+            "policy": r["policy"],
             "memos": memos,
             "is_admin": is_admin(request),
         },
@@ -109,6 +100,63 @@ async def review_transition(request: Request, object_type: str, object_id: str) 
         )
     flash(request, out["message"], "success" if out["moved"] else "info")
     return RedirectResponse(f"/workflow/review/{object_type}/{object_id}", status_code=303)
+
+
+# -- access requests (§11.5) ----------------------------------------------------------------
+@router.get("/workflow/access-requests")
+@page
+async def access_requests(request: Request) -> Any:
+    async with client(request) as sdk:
+        rows = await sdk.workflow.access_requests(state=request.query_params.get("state") or None)
+    return await render(
+        request,
+        "workflow/access_requests.html",
+        {"rows": rows, "state": request.query_params.get("state", "")},
+    )
+
+
+@router.post("/workflow/access-requests")
+@action
+async def request_access(request: Request) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.workflow.request_access(
+            data["kind"],
+            data["ref"],
+            level=data.get("level") or "read",
+            reason=data.get("reason", ""),
+        )
+    flash(request, "Access requested; the owner has an item to decide.", "success")
+    return RedirectResponse(request.headers.get("referer", "/workflow/access-requests"), 303)
+
+
+@router.post("/workflow/access-requests/{request_id}/decide")
+@action
+async def decide_access_request(request: Request, request_id: str) -> Any:
+    data = await form(request)
+    approve = data.get("decision") == "approve"
+    async with client(request) as sdk:
+        await sdk.workflow.decide_access_request(
+            request_id,
+            approve,
+            note=data.get("note", ""),
+            days=int(data["days"]) if data.get("days") else None,
+        )
+    flash(
+        request,
+        "Access granted, time-boxed and audited." if approve else "Request refused and audited.",
+        "success" if approve else "info",
+    )
+    return RedirectResponse("/workflow/access-requests", status_code=303)
+
+
+@router.post("/workflow/access-requests/{request_id}/withdraw")
+@action
+async def withdraw_access_request(request: Request, request_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.workflow.withdraw_access_request(request_id)
+    flash(request, "Request withdrawn.", "info")
+    return RedirectResponse("/workflow/access-requests", status_code=303)
 
 
 # -- policies -------------------------------------------------------------------------------

@@ -271,6 +271,51 @@ Every hour the scheduler escalates each overdue item to its namespace's owner �
 !!! note "SLA comes from the governing policy"
     Aging and escalation read `sla_days` from the same policy the workflow engine applies to the item: the active policy scoped to its namespace when there is one, otherwise the global (`*`) policy of its type. A namespace that shortens its review SLA is escalated on its own clock.
 
+## The review screen
+
+Approval is a review, not a button (§10.3). One call assembles everything the screen
+shows, so a script sees exactly what a reviewer sees:
+
+```python
+r = my.workflow.review("feature_version", version_id)
+```
+
+| Key | What it holds |
+|---|---|
+| `diff` | The **semantic diff** against the last approved version before this one: `entries` of `{section, what, was, now, change}` with `against` naming that version. Rendered in words — `rule for close: forward_fill(limit=3) → last_known_as_of(lag=1)`, `step 1: derive expr=close * 2, name=dbl` — never as two pretty-printed dictionaries. Sections are Index, Schema, Source, Resolution, Transform, Quality and Licence for a feature; Index, Algebra, Members, Alignment, Filters, Grid and Policy for a feature set; Formula, Code and Specification for a model. Where there is no earlier approved version, or the object carries no definition at all (a warrant), `entries` is empty and `note` says which. |
+| `impact` | The dependent objects downstream of this one, each with its type, the edge that reached it, its state, its last change class, its owner and a link. A dependent the reviewer may not read is never named: it is counted in `hidden`. |
+| `policy` | The policy record that **will** decide: the active one scoped to the item's own namespace, else the global (`*`) one. `policy_scope` names which. |
+| `sod` | The separation of duties in force: its `level`, a plain `statement` of what it forbids, whether it `blocks_you` and the `reason` if it does, and who is already `involved`. |
+| `outstanding` | Each approval still missing, with the role, how many `remaining`, who has `given` one already, the `when` condition if any, and `who` could give the rest — by username. |
+| `transitions` | Every transition out of the current state, each `available` or not, and when not, the `reason` — the engine's own role test, `can()` decision or SoD rule, so the screen cannot promise what the server will refuse. |
+| `approvals` | Every approval recorded against the item, in order. |
+
+The screen renders an unavailable transition as a disabled button carrying that reason
+rather than hiding it (§16.4).
+
+## Access requests
+
+Access is a workflow too (§11.5): somebody asks, an owner decides, and both halves are on
+record a year later.
+
+```python
+r = my.workflow.request_access("feature", "risk/ltv", level="read", reason="challenger model")
+my.workflow.decide_access_request(r["id"], approve=True, note="for the quarter", days=30)
+```
+
+| Step | Behaviour |
+|---|---|
+| Asking | One open request per person per object; asking again returns the open one marked `duplicate`. Asking for what you can already read is refused as pointless. `days` defaults to 90. |
+| Who hears | The object's owner and its namespace's owner, because §11.5 says the owner hears it, and the administrators, because with the shipped role matrix they are the ones holding `G` who can answer. Each gets an `access_request` notification. |
+| Deciding | Anyone who may `grant` on the object. Approving issues the grant **under the decider's own principal**, so a decision can never hand out more access than the decider holds. Refusing records the refusal and its note. |
+| Withdrawing | Only the person who asked, and only while it is `pending`. |
+| The record | `access.requested`, `access.request_decided` (with the decision, the requester, the level, the note and the grant id) and `access.request_withdrawn` in the audit log; the grant's own `access.granted` alongside. |
+| The requester | Hears the verdict and the note as an `access_decision` notification. |
+
+`GET /workflow/access-check?kind=&ref=&action=` answers the question a disabled control
+asks: whether you may act, and if not, the words of the rule that decided, plus whether a
+request is worth offering and whether you already have one open.
+
 ## Comments
 
 Reviewers comment on any governed object they can read. A comment marked **blocking** holds up every transition that runs `no_open_blocking_comments` until it is resolved. Only the comment's author (or an administrator) resolves it.

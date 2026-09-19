@@ -90,6 +90,20 @@
      "sso_start": "(self)"
     }
    },
+   "catalog": {
+    "class": "Catalog",
+    "methods": {
+     "browse": "(self, **facets)",
+     "browse_iter": "(self, page_size=100, sort=None, **facets)",
+     "browse_page": "(self, page_size=100, cursor=None, sort=None, total=False, **facets)",
+     "dependents": "(self, ref, depth=4)",
+     "facets": "(self, type='feature')",
+     "pin_preview": "(self, ref, version_no, as_of, as_of_known=None, pin_name='')",
+     "subscribe": "(self, object_ref)",
+     "subscriptions": "(self)",
+     "unsubscribe": "(self, object_ref)"
+    }
+   },
    "custody": {
     "class": "Custody",
     "methods": {
@@ -247,12 +261,15 @@
    "workflow": {
     "class": "Workflow",
     "methods": {
+     "access_check": "(self, kind, ref, action='read')",
+     "access_requests": "(self, state=None)",
      "activate_policy": "(self, policy_id)",
      "aging": "(self)",
      "break_glass": "(self, days=31)",
      "campaigns": "(self)",
      "comment": "(self, object_type, object_id, body, blocking=False, anchor=None)",
      "comments": "(self, object_type, object_id)",
+     "decide_access_request": "(self, request_id, approve, note='', days=None)",
      "delegate": "(self, to, starts_on, ends_on, object_types=None, reason='')",
      "delegations": "(self)",
      "draft_policy": "(self, object_type, policy, scope='*', note='')",
@@ -263,11 +280,14 @@
      "policy_yaml": "(self, policy_id)",
      "population": "(self, object_type)",
      "queue": "(self)",
+     "request_access": "(self, kind, ref, level='read', reason='', days=90)",
      "resolve_comment": "(self, comment_id)",
+     "review": "(self, object_type, object_id)",
      "revoke_delegation": "(self, delegation_id)",
      "run_campaign": "(self, name, transition, items, rationale='')",
      "transition": "(self, object_type, object_id, transition, rationale=None, force=False)",
-     "validate_policy": "(self, object_type, policy)"
+     "validate_policy": "(self, object_type, policy)",
+     "withdraw_access_request": "(self, request_id)"
     }
    },
    "workspaces": {
@@ -380,6 +400,20 @@
      "sso_start": "(self)"
     }
    },
+   "catalog": {
+    "class": "Catalog",
+    "methods": {
+     "browse": "(self, **facets)",
+     "browse_iter": "(self, page_size=100, sort=None, **facets)",
+     "browse_page": "(self, page_size=100, cursor=None, sort=None, total=False, **facets)",
+     "dependents": "(self, ref, depth=4)",
+     "facets": "(self, type='feature')",
+     "pin_preview": "(self, ref, version_no, as_of, as_of_known=None, pin_name='')",
+     "subscribe": "(self, object_ref)",
+     "subscriptions": "(self)",
+     "unsubscribe": "(self, object_ref)"
+    }
+   },
    "custody": {
     "class": "Custody",
     "methods": {
@@ -537,12 +571,15 @@
    "workflow": {
     "class": "Workflow",
     "methods": {
+     "access_check": "(self, kind, ref, action='read')",
+     "access_requests": "(self, state=None)",
      "activate_policy": "(self, policy_id)",
      "aging": "(self)",
      "break_glass": "(self, days=31)",
      "campaigns": "(self)",
      "comment": "(self, object_type, object_id, body, blocking=False, anchor=None)",
      "comments": "(self, object_type, object_id)",
+     "decide_access_request": "(self, request_id, approve, note='', days=None)",
      "delegate": "(self, to, starts_on, ends_on, object_types=None, reason='')",
      "delegations": "(self)",
      "draft_policy": "(self, object_type, policy, scope='*', note='')",
@@ -553,11 +590,14 @@
      "policy_yaml": "(self, policy_id)",
      "population": "(self, object_type)",
      "queue": "(self)",
+     "request_access": "(self, kind, ref, level='read', reason='', days=90)",
      "resolve_comment": "(self, comment_id)",
+     "review": "(self, object_type, object_id)",
      "revoke_delegation": "(self, delegation_id)",
      "run_campaign": "(self, name, transition, items, rationale='')",
      "transition": "(self, object_type, object_id, transition, rationale=None, force=False)",
-     "validate_policy": "(self, object_type, policy)"
+     "validate_policy": "(self, object_type, policy)",
+     "withdraw_access_request": "(self, request_id)"
     }
    },
    "workspaces": {

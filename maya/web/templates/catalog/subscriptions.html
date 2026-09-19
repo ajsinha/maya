@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}My subscriptions{% endblock %}
+{% block content %}
+<h1>My subscriptions</h1>
+<p class="lead-slate">Objects you follow (§5.7). You are told when a new version is approved and when a
+  pin that depends on one is sealed. A subscription goes quiet — it is not deleted — if you lose read
+  access to what it points at.</p>
+{% call(s) table("subscriptions", ["Object", "Since", "Readable", "!Actions"], rows,
+                empty="You follow nothing yet. Use Follow on a feature, feature set or model.") %}
+  <td class="mono">{{ s.object_ref }}</td><td>{{ s.created_at|dt }}</td>
+  <td>{{ 'yes' if s.readable else 'no — notices are held back' }}</td>
+  <td><form method="post" action="/catalog/subscriptions/remove">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="object_ref" value="{{ s.object_ref }}">
+    <button class="btn btn-sm btn-outline-secondary" type="submit">Unfollow</button></form></td>
+{% endcall %}
+<form method="post" action="/catalog/subscriptions" class="d-flex gap-2 align-items-end mt-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div><label class="form-label" for="sub-ref">Follow a reference</label>
+    <input class="form-control form-control-sm mono" id="sub-ref" name="object_ref"
+           placeholder="maya://feature/eq/px" required style="min-width:320px"></div>
+  <button class="btn btn-sm btn-primary" type="submit">Follow</button>
+</form>
+{% endblock %}

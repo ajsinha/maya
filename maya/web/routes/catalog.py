@@ -15,7 +15,17 @@ from fastapi.responses import RedirectResponse
 
 from maya.core.errors import MayaError
 from maya.web.routes.tables import first_page
-from maya.web.routes.common import action, client, download, flash, form, is_admin, page, render
+from maya.web.routes.common import (
+    action,
+    api_json,
+    client,
+    download,
+    flash,
+    form,
+    is_admin,
+    page,
+    render,
+)
 
 router = APIRouter()
 
@@ -29,6 +39,75 @@ async def _preview(fetch: Any) -> tuple[Any, str | None]:
         return await fetch, None
     except MayaError as exc:
         return None, f"{type(exc).__name__}: {exc.message}"
+
+
+FACETS = ("type", "namespace", "owner", "status", "tag", "freshness", "state")
+
+
+# -- browse with facets (§16.2) -----------------------------------------------------
+@router.get("/catalog")
+@page
+async def browse(request: Request) -> Any:
+    qp = request.query_params
+    chosen = {f: qp.get(f) or None for f in FACETS}
+    chosen["type"] = chosen["type"] or "feature"
+    async with client(request) as sdk:
+        facets = await sdk.catalog.facets(type=chosen["type"])
+        table = await first_page(request, sdk, "catalog", q=qp.get("q") or None, **chosen)
+    return await render(
+        request,
+        "catalog/browse.html",
+        {"page": table, "facets": facets, "sel": chosen, "q": qp.get("q", "")},
+    )
+
+
+# -- subscriptions (§5.7) -----------------------------------------------------------
+@router.get("/catalog/subscriptions")
+@page
+async def subscriptions(request: Request) -> Any:
+    async with client(request) as sdk:
+        rows = await sdk.catalog.subscriptions()
+    return await render(request, "catalog/subscriptions.html", {"rows": rows})
+
+
+@router.post("/catalog/subscriptions")
+@action
+async def subscribe(request: Request) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.catalog.subscribe(data["object_ref"])
+    flash(request, f"Following {data['object_ref']}.", "success")
+    return RedirectResponse(
+        request.headers.get("referer", "/catalog/subscriptions"), status_code=303
+    )
+
+
+@router.post("/catalog/subscriptions/remove")
+@action
+async def unsubscribe(request: Request) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.catalog.unsubscribe(data["object_ref"])
+    flash(request, f"No longer following {data['object_ref']}.", "info")
+    return RedirectResponse(
+        request.headers.get("referer", "/catalog/subscriptions"), status_code=303
+    )
+
+
+# -- the pin preview (§16.4) --------------------------------------------------------
+@router.post("/ui/pin-preview/{ns}/{name}")
+@api_json
+async def pin_preview(request: Request, ns: str, name: str) -> Any:
+    """What the pin form asks before it lets the button work."""
+    body = await request.json()
+    async with client(request) as sdk:
+        return await sdk.catalog.pin_preview(
+            _ref("feature", ns, name),
+            int(body["version_no"]),
+            body["as_of"],
+            as_of_known=body.get("as_of_known") or None,
+            pin_name=body.get("pin_name") or "",
+        )
 
 
 # -- features ----------------------------------------------------------------------
@@ -69,11 +148,27 @@ async def feature(request: Request, ns: str, name: str) -> Any:
             )
         licence = await sdk.custody.licence("feature", ref) if latest else None
         pins_page = await first_page(request, sdk, "pins", feature=ref)
+        impact = await sdk.catalog.dependents(ref)
+        # §16.4: where a control is unavailable it is disabled with the reason, so the
+        # reason has to come from the same decision that would refuse the action.
+        pin_gate = (
+            None
+            if f["can_pin"]
+            else await sdk.workflow.access_check(kind="feature", ref=ref, action="request_pin")
+        )
+        edit_gate = (
+            None
+            if f["can_edit"]
+            else await sdk.workflow.access_check(kind="feature", ref=ref, action="update")
+        )
     lineage_root = f"{ref}@v{latest['version_no']}" if latest else ref
     return await render(
         request,
         "catalog/feature.html",
         {
+            "impact": impact,
+            "pin_gate": pin_gate,
+            "edit_gate": edit_gate,
             "f": f,
             "latest": latest,
             "history": history,
@@ -268,10 +363,18 @@ async def featureset(request: Request, ns: str, name: str) -> Any:
         if data_ref:
             preview, preview_error = await _preview(sdk.featuresets.preview(data_ref))
         licence = await sdk.custody.licence("featureset", ref) if latest else None
+        impact = await sdk.catalog.dependents(ref)
+        edit_gate = (
+            None
+            if fs["can_edit"]
+            else await sdk.workflow.access_check(kind="featureset", ref=ref, action="update")
+        )
     return await render(
         request,
         "catalog/featureset.html",
         {
+            "impact": impact,
+            "edit_gate": edit_gate,
             "fs": fs,
             "latest": latest,
             "history": history,

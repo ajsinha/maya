@@ -1,18 +1,83 @@
 {% extends "base.html" %}
-{% from "_macros/ui.html" import pill %}
+{% from "_macros/ui.html" import pill, kv, impact_panel %}
+{% from "_macros/table.html" import table %}
 {% block title %}Review{% endblock %}
 {% block content %}
 <h1>Review</h1>
 <p class="mono">{{ ref }}</p>
-<p>Type <strong>{{ object_type }}</strong> · current state {{ pill(state) }}{% if policy %} · governed by policy v{{ policy.version_no }} ({{ policy.scope }}){% endif %}</p>
-{% if policy %}{% set tdefs = policy.policy.transitions %}
-<div class="card card-body mb-3"><h3>Available transitions</h3>
-  {% for n in names %}{% set t = tdefs[n] %}<div class="small mb-1"><strong>{{ n }}</strong> → {{ t.to }}{% if t.approvals %} · approvals: {% for a in t.approvals %}{{ a.role }}×{{ a.count or 1 }}{% if a.when %} (when {{ a.when }}){% endif %} {% endfor %}{% endif %}{% if t.checks %} · checks: {{ t.checks|join(', ') }}{% endif %}</div>{% endfor %}
+<p>Type <strong>{{ object_type }}</strong> · current state {{ pill(state) }} · namespace
+  <strong>{{ r.namespace }}</strong> · owner <strong>{{ r.owner or 'nobody' }}</strong>
+  {%- if policy %} · governed by policy v{{ policy.version_no }} scoped to
+  <code>{{ policy.scope }}</code>{% else %} · <span class="pill bad"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>no active policy</span>{% endif %}</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="card card-body h-100"><h3 class="h6">Separation of duties in force</h3>
+      <p class="mb-1"><strong>{{ r.sod.level }}</strong> — {{ r.sod.statement }}</p>
+      {% if r.sod.blocks_you %}<div class="alert alert-warning py-2 mb-0">{{ r.sod.reason }}</div>
+      {% else %}<p class="small-muted mb-0">It does not stop you approving this item.
+        {% if r.sod.involved %}Already involved: {{ r.sod.involved|join(', ') }}.{% endif %}</p>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card card-body h-100"><h3 class="h6">Approvals still outstanding</h3>
+      {% if r.outstanding %}
+      <ul class="list-unstyled mb-0 small">
+        {% for o in r.outstanding %}
+        <li><strong>{{ o.role }}</strong> ×{{ o.remaining }} of {{ o.count }}
+          {%- if o.when %} (required when {{ o.when }}){% endif %} — from
+          {{ o.who|join(', ') if o.who else 'nobody holds this role' }}
+          {%- if o.given %} · already given by {{ o.given|join(', ') }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="small-muted mb-0">Nothing outstanding: no approval is missing for the
+        approve transition of this policy.</p>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card card-body mb-3"><h3 class="h6">Semantic diff{% if r.diff.against %} against {{ r.diff.against }}{% endif %}
+  {%- if r.diff.change_class %} · classified <strong>{{ r.diff.change_class }}</strong>{% endif %}</h3>
+  {% if r.diff.entries %}
+  {% call(e) table("diff", ["Section", "What", "Was", "Now", "Change"], r.diff.entries,
+                   empty="Nothing changed.") %}
+    <td>{{ e.section }}</td><td>{{ e.what }}</td><td>{{ e.was }}</td><td>{{ e.now }}</td><td>{{ pill(e.change) }}</td>
+  {% endcall %}
+  {% else %}<p class="small-muted mb-0">{{ r.diff.note or 'This version is identical to the last approved one.' }}</p>{% endif %}
+</div>
+
+{{ impact_panel(r.impact, 'Impact: every dependent object and who owns it') }}
+
+<div class="card card-body mb-3"><h3 class="h6">Transitions</h3>
+  {% for t in r.transitions %}
+  <div class="small mb-1"><strong>{{ t.name }}</strong> → {{ t.to }}
+    {%- if t.approvals %} · approvals: {% for a in t.approvals %}{{ a.role }}×{{ a.count or 1 }}{% if a.when %} (when {{ a.when }}){% endif %} {% endfor %}{% endif %}
+    {%- if t.checks %} · checks: {{ t.checks|join(', ') }}{% endif %}
+    {%- if not t.available %} · <span class="pill bad"><i class="bi bi-lock" aria-hidden="true"></i>unavailable</span>
+      <span class="small-muted">{{ t.reason }}</span>{% endif %}</div>
+  {% else %}<p class="small-muted">No transition leads out of {{ state }}.</p>{% endfor %}
   <form method="post" action="/workflow/review/{{ object_type }}/{{ object_id }}/transition" class="d-flex flex-wrap gap-1 mt-2">
-    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="rationale" placeholder="rationale (recorded)" aria-label="Rationale" style="max-width:260px">
-    {% for n in names %}<button class="btn btn-sm {% if n == 'approve' %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ n }}" type="submit">{{ n.replace('_',' ') }}</button>{% else %}<span class="small-muted">No transition from {{ state }}.</span>{% endfor %}
-    {% if is_admin and names %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass (reason required)</label>{% endif %}
-  </form></div>{% endif %}
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label class="visually-hidden" for="rev-rationale">Rationale</label>
+    <input class="form-control form-control-sm" id="rev-rationale" name="rationale" placeholder="rationale (recorded)" style="max-width:260px">
+    {% for t in r.transitions %}
+      <button class="btn btn-sm {% if t.name == 'approve' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+              name="transition" value="{{ t.name }}" type="submit"
+              {% if not t.available %}disabled aria-disabled="true" title="{{ t.reason }}"{% endif %}>{{ t.name.replace('_',' ') }}</button>
+    {% else %}<span class="small-muted">No transition from {{ state }}.</span>{% endfor %}
+    {% if is_admin and r.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass (reason required)</label>{% endif %}
+  </form>
+</div>
+
+{% if r.approvals %}
+<div class="card card-body mb-3"><h3 class="h6">Approvals recorded</h3>
+  {% call(a) table("approvals", ["Round", "Approver", "Role", "Decision", "On behalf of", "Rationale", "At"], r.approvals,
+                   empty="No approval recorded yet.") %}
+    <td>{{ a.round_no }}</td><td>{{ a.approver }}</td><td>{{ a.role }}</td><td>{{ pill(a.decision) }}</td>
+    <td>{{ a.on_behalf_of or '' }}</td><td>{{ a.rationale or '' }}</td><td>{{ a.created_at|dt }}</td>
+  {% endcall %}
+</div>
+{% endif %}
 {% if memos is not none %}{% include "workflow/_challenge.html" %}{% endif %}
 {% include "_history.html" %}
 {% endblock %}

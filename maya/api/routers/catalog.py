@@ -49,6 +49,73 @@ def _data_response(result: dict[str, Any], fmt: str, stem: str) -> Response:
     )
 
 
+# -- browse and facets (§16.2) ----------------------------------------------------------
+@router.get("/catalog/browse", tags=["catalog"])
+def browse(
+    type: str = "feature",
+    namespace: str | None = None,
+    owner: str | None = None,
+    status: str | None = None,
+    tag: str | None = None,
+    freshness: str | None = None,
+    state: str | None = None,
+    q: str | None = None,
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
+    """The catalog you may read, narrowed by the §16.2 facets: type, namespace, owner,
+    status, tag and freshness. Opt-in cursor paging: pass ``page_size`` or ``cursor``."""
+    facets = {
+        "type": type,
+        "namespace": namespace,
+        "owner": owner,
+        "status": status,
+        "tag": tag,
+        "freshness": freshness,
+        "state": state,
+        "q": q,
+    }
+    if page_size is not None or cursor is not None:
+        return ok(
+            plat.catalog.browse_page(
+                me, page_size=page_size, cursor=cursor, sort=sort, total=total, **facets
+            )
+        )
+    return ok(plat.catalog.browse(me, **facets))
+
+
+@router.get("/catalog/facets", tags=["catalog"])
+def facets(type: str = "feature", me: Principal = Me, plat: Any = Plat) -> Response:
+    """What each facet can be set to, for this object type."""
+    return ok(plat.catalog.facets(me, type=type))
+
+
+@router.get("/catalog/dependents", tags=["catalog"])
+def dependents(ref: str, depth: int = 4, me: Principal = Me, plat: Any = Plat) -> Response:
+    """What would break: every dependent object downstream of ``ref``, and who owns it."""
+    return ok(plat.catalog.dependents(me, ref, depth=depth))
+
+
+# -- subscriptions (§5.7) ---------------------------------------------------------------
+@router.get("/subscriptions", tags=["catalog"])
+def subscriptions(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.subscriptions.list(me))
+
+
+@router.post("/subscriptions", tags=["catalog"], status_code=201)
+def subscribe(body: s.SubscriptionIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.subscriptions.subscribe(me, body.object_ref), 201)
+
+
+@router.delete("/subscriptions", tags=["catalog"])
+def unsubscribe(object_ref: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.subscriptions.unsubscribe(me, object_ref))
+
+
 # -- features --------------------------------------------------------------------------
 @router.get("/features", tags=["features"])
 def list_features(
@@ -308,6 +375,24 @@ def pin_feature(
             idempotency_key=idempotency_key,
         ),
         202,
+    )
+
+
+@router.post("/features/{namespace}/{name}/pin-preview", tags=["features"])
+def pin_preview(
+    namespace: str, name: str, body: s.PinPreviewIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """What a pin would produce before the button becomes active (§16.4): rows, the fill
+    report, the quality verdict, a storage estimate, and anything that would refuse it."""
+    return ok(
+        plat.catalog.pin_preview(
+            me,
+            ref_of("feature", namespace, name),
+            version_no=body.version_no,
+            as_of=parse_date(body.as_of, "as_of"),
+            as_of_known=parse_instant(body.as_of_known, "as_of_known"),
+            pin_name=body.pin_name,
+        )
     )
 
 

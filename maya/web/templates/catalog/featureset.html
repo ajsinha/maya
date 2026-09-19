@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
-{% from "_macros/ui.html" import pill, kv, licence_panel, tabs, json_block %}
+{% from "_macros/ui.html" import pill, kv, licence_panel, tabs, json_block, gated, impact_panel %}
 {% block title %}{{ fs.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ fs.name }}</h1><div class="small-muted mono">{{ fs.ref }}</div></div>
-{% if fs.can_edit %}<form method="post" action="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Edit draft</button></form>{% endif %}</div>
+{% if fs.can_edit %}<form method="post" action="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Edit draft</button></form>{% endif %}
+<form method="post" action="/catalog/subscriptions"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <input type="hidden" name="object_ref" value="{{ fs.ref }}">
+  <button class="btn btn-sm btn-outline-secondary" type="submit" title="Be told when a new version is approved or a dependent pin is sealed"><i class="bi bi-bell" aria-hidden="true"></i> Follow</button></form></div>
+{{ gated('Edit draft', edit_gate, 'featureset', fs.ref, csrf, 'read_write', 'pencil') }}
+{% if latest and latest.needs_reapproval %}<div class="alert alert-warning py-2">{{ latest.needs_reapproval }}</div>{% endif %}
 {% include "_job.html" %}
 {{ tabs([('overview','Overview'),('definition','Definition'),('data','Data'),('pins','Pins'),('lineage','Lineage'),('history','History & Comments')], tab) }}
 <div class="tab-content">
@@ -28,7 +33,12 @@
   {% if latest.inherited %}<h3>Inherited policy chain (nearest ancestor first)</h3>{{ json_block(latest.inherited) }}{% endif %}{% endif %}
 </div>
 <div class="tab-pane {% if tab == 'definition' %}show active{% endif %}" id="tab-definition" role="tabpanel">
-  {% for v in fs.versions %}<h3>v{{ v.version_no }} — {{ pill(v.state) }}</h3>{{ json_block(v.definition) }}{% endfor %}
+  {% for v in fs.versions %}<h3>v{{ v.version_no }} — {{ pill(v.state) }}</h3>
+    {% if v.definition.derivation %}{% set d = v.definition.derivation %}
+    <p class="mb-1">A <strong>derived</strong> set (§6.8): its members come from the algebra, not from a mapping.</p>
+    <p class="mono">{{ d.operator }}({{ (d.operands or [])|join(', ') }}){% if d.options %} [{{ d.options|tojson }}]{% endif %}</p>
+    {% endif %}
+    {{ json_block(v.definition) }}{% endfor %}
 </div>
 <div class="tab-pane {% if tab == 'data' %}show active{% endif %}" id="tab-data" role="tabpanel">
   <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="tab" value="data">
@@ -54,7 +64,7 @@
       <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Pin</button></div>
     </div></form>
 </div>
-<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{% include "_lineage_canvas.html" %}</div>
+<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{{ impact_panel(impact) }}{% include "_lineage_canvas.html" %}</div>
 <div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
   {% set object_type = 'featureset_version' %}{% set object_id = latest.id if latest else '' %}{% include "_history.html" %}
 </div>

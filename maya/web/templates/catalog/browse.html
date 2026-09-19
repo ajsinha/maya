@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_rows.html" import catalog_row %}
+{% block title %}Catalog{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Catalog</h1>
+  <a class="btn btn-sm btn-outline-secondary me-2" href="/catalog/subscriptions">My subscriptions</a>
+  <a class="btn btn-sm btn-outline-secondary" href="/lineage">Lineage canvas</a></div>
+<p class="lead-slate">Everything you may read, across features, feature sets and models. Freshness means
+  {{ facets.freshness_means }}.</p>
+<form class="row g-2 align-items-end mb-3" method="get">
+  <div class="col-md-2"><label class="form-label" for="f-type">Type</label>
+    <select class="form-select form-select-sm" id="f-type" name="type">
+      {% for t in facets.types %}<option value="{{ t }}" {% if t == sel.type %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-2"><label class="form-label" for="f-ns">Namespace</label>
+    <select class="form-select form-select-sm" id="f-ns" name="namespace"><option value="">any</option>
+      {% for n in facets.namespaces %}<option {% if n == sel.namespace %}selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-2"><label class="form-label" for="f-owner">Owner</label>
+    <select class="form-select form-select-sm" id="f-owner" name="owner"><option value="">anyone</option>
+      {% for o in facets.owners %}<option {% if o == sel.owner %}selected{% endif %}>{{ o }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-2"><label class="form-label" for="f-status">Status</label>
+    <select class="form-select form-select-sm" id="f-status" name="status"><option value="">any</option>
+      {% for st in facets.statuses %}<option {% if st == sel.status %}selected{% endif %}>{{ st }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-2"><label class="form-label" for="f-tag">Tag</label>
+    <select class="form-select form-select-sm" id="f-tag" name="tag"><option value="">any</option>
+      {% for t in facets.tags %}<option {% if t == sel.tag %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-1"><label class="form-label" for="f-fresh">Freshness</label>
+    <select class="form-select form-select-sm" id="f-fresh" name="freshness"><option value="">any</option>
+      {% for f in facets.freshness %}<option {% if f == sel.freshness %}selected{% endif %}>{{ f }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-1"><button class="btn btn-sm btn-primary w-100" type="submit">Filter</button></div>
+</form>
+{% call(o) table("catalog", ["Name", "Type", "Namespace", "Owner", "Latest", "State", "Last change", "Tags", "Updated"],
+                page['items'], empty="Nothing matches these facets that you may read.", page=page) %}{{ catalog_row(o) }}{% endcall %}
+{% endblock %}

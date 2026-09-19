@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Access requests{% endblock %}
+{% block content %}
+<h1>Access requests</h1>
+<p class="lead-slate">Access is a workflow (§11.5): somebody asks, the owner decides, and both halves are
+  audited. A grant made here is time-boxed — ninety days unless the owner says otherwise.</p>
+<form class="d-flex gap-2 mb-2" method="get"><label class="visually-hidden" for="ar-state">State</label>
+  <select class="form-select form-select-sm" id="ar-state" name="state" style="max-width:220px">
+    <option value="">every state</option>
+    {% for s in ('pending', 'approved', 'denied', 'withdrawn') %}<option value="{{ s }}" {% if s == state %}selected{% endif %}>{{ s }}</option>{% endfor %}
+  </select><button class="btn btn-sm btn-outline-secondary" type="submit">Filter</button></form>
+{% call(a) table("access_requests", ["Object", "Requester", "Level", "Reason", "State", "Decided by", "Decision note", "Asked", "!Actions"], rows,
+                empty="No access request touches you.") %}
+  <td class="mono">{{ a.object_ref }}</td><td>{{ a.requester }}{% if a.mine %} (you){% endif %}</td>
+  <td>{{ a.level }}</td><td>{{ a.reason or '' }}</td><td>{{ pill(a.state) }}</td>
+  <td>{{ a.decided_by or '' }}</td><td>{{ a.decision_note or '' }}</td><td>{{ a.created_at|dt }}</td>
+  <td>
+  {% if a.state == 'pending' and a.you_decide %}
+    <form method="post" action="/workflow/access-requests/{{ a.id }}/decide" class="d-flex gap-1 align-items-center">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label class="visually-hidden" for="note-{{ a.id }}">Note</label>
+      <input class="form-control form-control-sm" id="note-{{ a.id }}" name="note" placeholder="note (recorded)" style="max-width:150px">
+      <label class="visually-hidden" for="days-{{ a.id }}">Days</label>
+      <input class="form-control form-control-sm" id="days-{{ a.id }}" name="days" type="number" min="1" max="3650" value="{{ a.days }}" style="max-width:80px">
+      <button class="btn btn-sm btn-primary" name="decision" value="approve" type="submit">Grant</button>
+      <button class="btn btn-sm btn-outline-secondary" name="decision" value="deny" type="submit">Refuse</button>
+    </form>
+  {% elif a.state == 'pending' and a.mine %}
+    <form method="post" action="/workflow/access-requests/{{ a.id }}/withdraw">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <button class="btn btn-sm btn-outline-secondary" type="submit">Withdraw</button></form>
+  {% endif %}
+  </td>
+{% endcall %}
+{% endblock %}

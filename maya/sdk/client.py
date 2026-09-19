@@ -2,9 +2,9 @@
 ``maya.sdk`` clients (§18.2): the only client library of MAYA.
 
 ``Client`` is synchronous and ``AsyncClient`` asynchronous; both expose the
-same resource namespaces (``features``, ``featuresets``, ``models``,
-``training``, ``execution``, ``workflow``, ``jobs``, ``admin``, ``access``,
-``namespaces``, ``auth``). The web UI uses ``AsyncClient`` with the
+same resource namespaces (``catalog``, ``features``, ``featuresets``,
+``models``, ``training``, ``execution``, ``workflow``, ``jobs``, ``admin``,
+``access``, ``namespaces``, ``auth``). The web UI uses ``AsyncClient`` with the
 ``inproc`` transport and the logged-in user's session token — no privileged
 path, no shared key.
 
@@ -32,6 +32,7 @@ from maya.sdk.resources import (
     Admin,
     Assistant,
     Auth,
+    Catalog,
     Custody,
     Events,
     ExecutionWarrants,
@@ -58,6 +59,7 @@ class _Namespaces:
         self.admin = Admin(transport)
         self.namespaces = Namespaces(transport)
         self.access = Access(transport)
+        self.catalog = Catalog(transport)
         self.features = Features(transport)
         self.featuresets = FeatureSets(transport)
         self.models = Models(transport)
