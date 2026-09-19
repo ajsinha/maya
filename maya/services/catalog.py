@@ -20,7 +20,7 @@ from maya.resolution.expr import compile_expr
 from maya.resolution.quality import normalize_contract
 from maya.resolution.rules import parse_rule
 from maya.resolution.types import parse_type
-from maya.services import refs
+from maya.services import quota as quota_svc, refs
 
 SUPPORTED_SOURCES = ("csv", "parquet", "json", "sql", "python", "delta", "derived")
 DECLARED_UNSUPPORTED: dict[str, str] = {}
@@ -920,7 +920,10 @@ class CatalogService:
                 if pin_name
                 else None
             )
-            held = self._namespace_bytes(uow, feature["namespace_id"])
+            # the enforcement's own figure: stored bytes, counted once per
+            # content-addressed fragment. Summing logical sizes here would quote the
+            # reader a number the refusal does not use.
+            held = quota_svc.usage(uow, feature["namespace_id"])["stored_bytes"]
             quota = uow.repo("namespaces").require(feature["namespace_id"]).get("quota_bytes")
         blockers: list[str] = []
         if version["state"] not in APPROVED_STATES:
@@ -977,25 +980,14 @@ class CatalogService:
             "may_pin": not blockers,
         }
 
-    @staticmethod
-    def _namespace_bytes(uow: Any, namespace_id: str) -> int:
-        """What the namespace's sealed pins already hold, so a preview can say what the
-        estimate is against rather than quoting a number with nothing to compare it to."""
-        held = 0
-        for table, obj_table, fk in (
-            ("feature_pins", "features", "feature_id"),
-            ("feature_set_pins", "feature_sets", "feature_set_id"),
-        ):
-            ids = [o["id"] for o in uow.repo(obj_table).slim(["id"], namespace_id=namespace_id)]
-            for chunk in _chunked(ids):
-                held += sum(
-                    pin["bytes_total"]
-                    for pin in uow.repo(table).list(state="sealed", **{f"{fk}__in": chunk})
-                )
-        return held
-
     def _estimate_bytes(self, res: Any) -> dict[str, Any]:
-        """Compressed size per row, measured on a sample and scaled to the whole frame."""
+        """Compressed size per row, measured on a sample and scaled to the whole frame.
+
+        This is what the rows *are*, not what they will add: fragments this feature already
+        holds cost nothing to pin again, so a re-pin of mostly unchanged data stores far
+        less than this. It is the right number for "how big is this", and an upper bound on
+        "what will it cost me".
+        """
         import io
 
         import pyarrow.parquet as pq

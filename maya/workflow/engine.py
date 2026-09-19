@@ -76,7 +76,13 @@ class WorkflowEngine:
         self.checks[name] = fn
 
     def on_move(self, fn: Callable[[Any, Subject, str, str], None]) -> None:
-        """Observe moves (e.g. to queue the challenger's memo); a listener never blocks one."""
+        """Observe moves (e.g. to queue the challenger's memo); a listener never blocks one.
+
+        The ``Subject`` a listener receives carries the row as it was **before** the move:
+        the update is written first, but the subject is not rebuilt, so ``approved_by`` and
+        the new state are not on it. Read the transition's own arguments for those, and
+        ``uow.actor`` for who did it, rather than the row.
+        """
         self.listeners.append(fn)
 
     # -- policy lookup -------------------------------------------------------

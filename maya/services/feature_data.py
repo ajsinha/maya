@@ -370,6 +370,7 @@ class FeatureData:
 
     # -- pins -----------------------------------------------------------------------
     def read_pin(self, ns: str, name: str, eff: dict[str, Any], pin: dict[str, Any]) -> Resolved:
+        self.note_read("feature_pins", pin["id"])
         table = self.p.lake.read_pin("pins", ns, name, pin["fragments"])
         df = table.to_pandas()
         meta = {
@@ -440,6 +441,23 @@ class FeatureData:
             self._fail_pin(pin_id, actor, checks, "hash verification after write failed")
             raise ValidationFailed("Pin hash verification failed after write", **verify)
         return self._seal(pin_id, actor, write, lake_table, res, checks, version, label)
+
+    def note_read(self, table: str, pin_id: str) -> None:
+        """Remember that a pin was read, so retention can say which pins have gone cold
+        (§7.3). Written at most once an hour per pin: a backtest reading one pin in a loop
+        should not write a row per read."""
+        try:
+            with self.p.uow() as uow:
+                pin = uow.repo(table).get(pin_id)
+                if pin is None:
+                    return
+                last = pin.get("last_read_at")
+                # the first read is always written; after that, at most once an hour, so a
+                # backtest reading one pin in a loop does not write a row per read
+                if last is None or (utcnow() - last).total_seconds() > 3600:
+                    uow.repo(table).update(pin_id, {"last_read_at": utcnow()})
+        except Exception:  # noqa: BLE001 - a read must never fail over its own bookkeeping
+            pass
 
     def to_table(self, res: Resolved) -> pa.Table:
         df = res.df.sort_values(res.meta["index"], kind="mergesort").reset_index(drop=True)

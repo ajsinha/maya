@@ -410,6 +410,49 @@ def warrant_seal(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def admin_cold(args: argparse.Namespace) -> int:
+    """Which pins have gone unread long enough to be called cold (§7.3)."""
+    report = _client(args).admin.cold_pins(days=args.days)
+    _out(
+        args,
+        report,
+        lambda r: (
+            f"{r['cold_pins']} cold pin(s) holding {r['cold_bytes'] / 1e6:.1f} MB, "
+            f"unread for {r['cold_after_days']} day(s); {r['warm_pins']} warm "
+            f"({r['warm_bytes'] / 1e6:.1f} MB)\n{r['note']}"
+        ),
+    )
+    return EXIT_OK
+
+
+def admin_archive_pin(args: argparse.Namespace) -> int:
+    out = _client(args).admin.archive_pin(args.pin_id, table=args.table)
+    _out(
+        args,
+        out,
+        lambda r: (
+            f"archived {r['rows']} row(s) as blob {r['blob'][:16]}… "
+            f"({r['bytes'] / 1e6:.2f} MB)\n{r.get('note', '')}"
+        ),
+    )
+    return EXIT_OK
+
+
+def admin_restore_pin(args: argparse.Namespace) -> int:
+    out = _client(args).admin.restore_pin(args.pin_id, table=args.table)
+    _out(
+        args,
+        out,
+        lambda r: (
+            f"{r['manifest']['pin_name']}/{r['manifest']['as_of_date']}: "
+            f"{r['manifest']['row_count']} row(s), content hash "
+            f"{r['manifest']['content_hash'][:16]}… "
+            + ("verified against the archive" if r["verified"] else "manifest only")
+        ),
+    )
+    return EXIT_OK
+
+
 def _format_of(path: str) -> str:
     """The parameter format a file name implies (§9.3)."""
     for fmt, suffixes in (
@@ -743,6 +786,27 @@ def _admin_commands(cmd: Callable[..., None], a: Any) -> None:
         (("--notes",), {"default": None, "help": "what was restored, and anything unusual"}),
     )
     cmd(a, "drills", admin_drills)
+    cmd(a, "cold-pins", admin_cold, (("--days",), {"type": int, "help": "default: configured"}))
+    cmd(
+        a,
+        "archive-pin",
+        admin_archive_pin,
+        (("pin_id",), {}),
+        (
+            ("--table",),
+            {"choices": ["feature_pins", "feature_set_pins"], "default": "feature_pins"},
+        ),
+    )
+    cmd(
+        a,
+        "restore-pin",
+        admin_restore_pin,
+        (("pin_id",), {}),
+        (
+            ("--table",),
+            {"choices": ["feature_pins", "feature_set_pins"], "default": "feature_pins"},
+        ),
+    )
 
 
 def _parser() -> argparse.ArgumentParser:

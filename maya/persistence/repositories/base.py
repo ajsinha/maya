@@ -155,7 +155,13 @@ class Repository(Generic[M]):
     def slim(
         self, columns: Iterable[str], *, search: tuple[list[str], str] | None = None, **filters: Any
     ) -> list[dict[str, Any]]:
-        """Matching rows carrying only ``columns`` — for walking a whole table cheaply."""
+        """Matching rows carrying only ``columns`` — for walking a whole table cheaply.
+
+        ``columns`` is positional on purpose, and every other name here is keyword-only, so
+        a filter may be called anything a column is called. A positional parameter sharing a
+        column's name would collide with ``**filters`` and raise "got multiple values",
+        which is a confusing way to learn that a filter name is reserved.
+        """
         names = list(columns)
         stmt = self._search(
             self._where(select(*[getattr(self.model, c) for c in names]), filters), search
@@ -164,19 +170,19 @@ class Repository(Generic[M]):
 
     def owner_namespace_counts(
         self,
-        owner_id: Any,
-        exclude_ids: Iterable[Any],
+        for_owner: Any,
+        not_ids: Iterable[Any],
         *,
         search: tuple[list[str], str] | None = None,
         **filters: Any,
     ) -> list[tuple[Any, bool, int]]:
-        """(namespace_id, owned by ``owner_id``, rows) over the matching rows, leaving out
-        ``exclude_ids`` — what a read rule that depends only on those two needs to count."""
-        owned = (self.model.owner_id == owner_id).label("owned")
+        """(namespace_id, owned by ``for_owner``, rows) over the matching rows, leaving out
+        ``not_ids`` — what a read rule that depends only on those two needs to count."""
+        owned = (self.model.owner_id == for_owner).label("owned")
         stmt = self._search(
             self._where(select(self.model.namespace_id, owned, func.count()), filters), search
         )
-        excluded = list(dict.fromkeys(exclude_ids))
+        excluded = list(dict.fromkeys(not_ids))
         if excluded:
             stmt = stmt.where(self.model.id.not_in(excluded))
         stmt = stmt.group_by(self.model.namespace_id, owned)

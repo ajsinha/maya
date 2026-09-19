@@ -126,7 +126,14 @@ def can(
     if letter is None:
         return Decision(False, f"unknown action '{action}'")
     obj_type = obj["type"]
-    if not p.has_capability(obj_type, letter) and not (
+    # §11.1: "Owners can always tighten or widen an individual object." The ceiling says
+    # what a role may do across the estate; sharing what you made is not that. Without
+    # this, a designer could not share their own feature and an owner could not answer an
+    # access request for their own model — only an administrator could, for everyone.
+    owns_it = bool(obj.get("owner_id")) and obj.get("owner_id") == p.user_id
+    if letter == "G" and owns_it and p.principal_type == "user":
+        pass
+    elif not p.has_capability(obj_type, letter) and not (
         letter == "Q" and p.has_capability(obj_type, "P")
     ):
         return Decision(

@@ -99,6 +99,11 @@ class FeaturePin(Tracked, Base):
     retired_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     retire_reason: Mapped[str | None] = mapped_column(Text)
     failure: Mapped[str | None] = mapped_column(Text)
+    # Retention (§7.3): when this pin was last read, so cold ones can be named; and the
+    # archive blob a retired pin was packed into, if it has been.
+    last_read_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    archive_blob: Mapped[str | None] = mapped_column(String(64))
+    archived_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
 
 
 class Fragment(Base):
@@ -184,6 +189,11 @@ class FeatureSetPin(Tracked, Base):
     retired_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     retire_reason: Mapped[str | None] = mapped_column(Text)
     failure: Mapped[str | None] = mapped_column(Text)
+    # Retention (§7.3): when this pin was last read, so cold ones can be named; and the
+    # archive blob a retired pin was packed into, if it has been.
+    last_read_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    archive_blob: Mapped[str | None] = mapped_column(String(64))
+    archived_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
 
 
 class Derivation(Tracked, Base):

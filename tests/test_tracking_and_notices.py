@@ -446,3 +446,50 @@ def test_the_sweep_reports_and_audits_what_it_sent(world):
     counts = w.p.subscriptions.notices()
     assert set(counts) == {"expiry", "covenant_breach", "quality_failed"}
     assert all(isinstance(v, int) for v in counts.values())
+
+
+def test_revoking_a_member_warrant_flags_composites_at_once(world):
+    """The sweep catches this within the hour; revocation now says so immediately, because
+    an hour of using a withdrawn model unknowingly is the thing being prevented."""
+    w = world
+    calls: list[tuple[str, str]] = []
+    original = w.p.tracking.flag_composites_of
+    w.p.tracking.flag_composites_of = lambda wid, reason: (
+        calls.append((wid, reason)) or original(wid, reason)
+    )
+    try:
+        w.p.access.create_namespace(w.admin, name="trk_rev")
+        from tests.conftest import PX_DEF, approved_feature, price_csv
+
+        approved_feature(w, "trk_px", price_csv(3), ns="trk_rev")
+        del PX_DEF
+        with w.p.uow("admin") as uow:
+            ns = uow.repo("namespaces").find_one(name="trk_rev")
+            model = uow.repo("models").add(
+                {
+                    "namespace_id": ns["id"],
+                    "name": "trk_m",
+                    "owner_id": w.admin.user_id,
+                    "kind": "formula",
+                }
+            )
+            mv = uow.repo("model_versions").add(
+                {"model_id": model["id"], "version_no": 1, "state": "approved"}
+            )
+            tw = uow.repo("training_warrants").add(
+                {
+                    "namespace_id": ns["id"],
+                    "name": "trk_tw",
+                    "version_no": 1,
+                    "state": "approved",
+                    "owner_id": w.admin.user_id,
+                    "model_version_id": mv["id"],
+                    "featureset_ref": "maya://featureset/trk_rev/none@v1",
+                    "spec": {},
+                }
+            )
+        w.p.warrants.revoke(w.admin, tw["id"], "found wrong on Friday")
+        assert calls and calls[0][0] == tw["id"]
+        assert "member warrant revoked" in calls[0][1]
+    finally:
+        w.p.tracking.flag_composites_of = original

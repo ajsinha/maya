@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}Retention{% endblock %}
+{% block content %}
+<h1>Retention, archives and drills</h1>
+<div class="row g-3">
+<div class="col-lg-6"><div class="card card-body"><h3>Cold pins</h3>
+{{ kv([('Unread for', cold.cold_after_days ~ ' day(s) or more'), ('Cold pins', cold.cold_pins), ('Cold bytes', cold.cold_bytes), ('Warm pins', cold.warm_pins), ('Warm bytes', cold.warm_bytes)]) }}
+<p class="small-muted mb-0">{{ cold.note }}</p>
+{% call(c) table("cold", ["Pin", "As of", "Last read", "Bytes"], cold.pins, empty="Nothing has gone cold.") %}<td>{{ c.pin_name }}</td><td>{{ c.as_of_date }}</td><td>{{ c.last_touched }}</td><td class="text-end">{{ c.bytes_total }}</td>{% endcall %}
+</div></div>
+
+<div class="col-lg-6"><div class="card card-body"><h3>Archive a retired pin</h3>
+<p>A retired pin's rows, its manifest and its fragment list are packed into one compressed bundle and stored as a blob. The pin's fragments are shared with other pins and are not deleted.</p>
+<form method="post" action="/admin/retention/archive" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="col-sm-7"><label class="form-label" for="archive-pin">Pin id</label>
+    <input class="form-control" id="archive-pin" name="pin_id" required></div>
+  <div class="col-sm-5"><label class="form-label" for="archive-table">Kind</label>
+    <select class="form-select" id="archive-table" name="table">
+      <option value="feature_pins">feature pin</option><option value="feature_set_pins">feature-set pin</option>
+    </select></div>
+  <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-file-zip" aria-hidden="true"></i> Archive</button></div>
+</form>
+{% if archived %}<p class="mt-2 mb-0 small">{{ archived.rows }} row(s), {{ archived.bytes }} bytes, blob <span class="mono">{{ archived.blob[:16] }}…</span></p>{% endif %}
+<hr>
+<h3 class="h5">Read an archive back</h3>
+<p class="small-muted">Re-hashes the archived rows against what was sealed, so an archive that rotted is caught rather than served.</p>
+<form method="post" action="/admin/retention/verify-archive" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="col-sm-7"><label class="form-label" for="verify-pin">Pin id</label>
+    <input class="form-control" id="verify-pin" name="pin_id" required></div>
+  <div class="col-sm-5"><label class="form-label" for="verify-table">Kind</label>
+    <select class="form-select" id="verify-table" name="table">
+      <option value="feature_pins">feature pin</option><option value="feature_set_pins">feature-set pin</option>
+    </select></div>
+  <div class="col-12"><button class="btn btn-outline-secondary" type="submit"><i class="bi bi-shield-check" aria-hidden="true"></i> Check the archive</button></div>
+</form>
+{% if checked %}<p class="mt-2 mb-0 small">{{ pill('ok' if checked.verified else 'warn', 'hash ' ~ ('verified' if checked.verified else 'not checked')) }} {{ checked.rows }} row(s), pinned {{ checked.manifest.as_of_date }}</p>{% endif %}
+</div></div>
+
+<div class="col-lg-6"><div class="card card-body"><h3>Restore drills</h3>
+{% set st = drills.status %}
+<p>{{ pill('ok' if not st.overdue else 'bad', 'last drill ' ~ (st.age_days ~ ' day(s) ago' if st.age_days is not none else 'never recorded')) }} every {{ st.every_days }} day(s)</p>
+{% call(d) table("drills", ["Date", "Dialect", "Pins", "Drift", "Outcome", "By"], drills.drills, empty="No drill has been recorded.") %}<td>{{ d.performed_at }}</td><td>{{ d.dialect }}</td><td class="text-end">{{ d.pins }}</td><td class="text-end">{{ d.drift }}</td><td>{{ pill('ok' if d.outcome == 'passed' else 'bad', d.outcome) }}</td><td>{{ d.verified_by }}</td>{% endcall %}
+<hr>
+<h3 class="h5">Record one</h3>
+<p class="small-muted">The drill runs on a scratch copy that is thrown away; this is the row that stays behind. It is a statement by whoever ran it, not a measurement MAYA took.</p>
+<form method="post" action="/admin/retention/drill" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="col-sm-4"><label class="form-label" for="drill-dialect">Dialect</label>
+    <input class="form-control" id="drill-dialect" name="dialect" placeholder="sqlite"></div>
+  <div class="col-sm-2"><label class="form-label" for="drill-pins">Pins</label>
+    <input class="form-control" id="drill-pins" name="pins" type="number" min="0" value="0"></div>
+  <div class="col-sm-2"><label class="form-label" for="drill-drift">Drift</label>
+    <input class="form-control" id="drill-drift" name="drift" type="number" min="0" value="0"></div>
+  <div class="col-sm-2"><label class="form-label" for="drill-seconds">Seconds</label>
+    <input class="form-control" id="drill-seconds" name="duration_seconds" type="number" min="0" step="0.1" value="0"></div>
+  <div class="col-sm-2"><label class="form-label" for="drill-outcome">Outcome</label>
+    <select class="form-select" id="drill-outcome" name="outcome"><option value="passed">passed</option><option value="failed">failed</option></select></div>
+  <div class="col-12"><label class="form-label" for="drill-notes">Notes</label>
+    <input class="form-control" id="drill-notes" name="notes" placeholder="what was restored, and anything unusual"></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit"><i class="bi bi-journal-check" aria-hidden="true"></i> Record the drill</button></div>
+</form>
+</div></div>
+
+<div class="col-lg-6"><div class="card card-body"><h3>Log level</h3>
+<p>Turn one module up or down without a restart. The change applies to the process that answers this request: with several web processes or a worker fleet, make it on each.</p>
+<form method="post" action="/admin/retention/log-level" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="col-sm-7"><label class="form-label" for="log-module">Module</label>
+    <input class="form-control" id="log-module" name="module" value="maya.services" required></div>
+  <div class="col-sm-5"><label class="form-label" for="log-level">Level</label>
+    <select class="form-select" id="log-level" name="level">
+      <option>DEBUG</option><option>INFO</option><option>WARNING</option><option>ERROR</option><option value="inherit">inherit</option>
+    </select></div>
+  <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-sliders" aria-hidden="true"></i> Set the level</button></div>
+</form>
+{% if levels %}<p class="mt-2 mb-0 small">process {{ levels.pid }} ({{ levels.role }}): {% for m, lv in levels.levels.items() %}<span class="mono">{{ m }}={{ lv }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+</div></div>
+</div>
+{% endblock %}

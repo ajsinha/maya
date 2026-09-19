@@ -212,14 +212,42 @@ def test_the_kinds_and_levels_are_the_ones_grants_use(shut):
 
 
 def test_a_decision_can_never_hand_out_more_than_the_decider_holds(world):
-    """The grant is made under the decider's own principal, so ``can()`` still applies."""
+    """The grant is made under the decider's own principal, so ``can()`` still applies.
+
+    §11.1 says an owner may widen their own object, so the owner *can* decide — but the
+    grant is still theirs to make, and only an administrator hands out 'admin'.
+    """
     w = world
     w.p.access.create_namespace(w.admin, name="ar_ceiling", default_visibility="private")
     w.p.features.create(w.dana, namespace="ar_ceiling", name="ar_ceil_px", definition=PX_DEF)
     row = w.p.access_requests.request(
         w.mona, kind="feature", ref="ar_ceiling/ar_ceil_px", level="admin"
     )
-    with pytest.raises(PermissionDenied, match="no 'G' on feature"):
+    with pytest.raises(PermissionDenied, match="administrators grant 'admin'"):
         w.p.access_requests.decide(w.dana, row["id"], approve=True)
     still = [r for r in w.p.access_requests.list(w.mona) if r["id"] == row["id"]]
     assert still[0]["state"] == "pending", "a refused decision leaves the request open"
+    stranger = w.p.access_requests.request(
+        w.devi, kind="feature", ref="ar_ceiling/ar_ceil_px", level="read"
+    )
+    with pytest.raises(PermissionDenied, match="no 'G' on feature"):
+        w.p.access_requests.decide(w.mona, stranger["id"], approve=True)
+
+
+def test_an_owner_may_answer_a_request_for_their_own_object(world):
+    """§11.1: "Owners can always tighten or widen an individual object." The role ceiling
+    says what a role may do across the estate; sharing what you made is not that. Before
+    this, only an administrator could answer a request — for everyone's objects."""
+    w = world
+    w.p.access.create_namespace(w.admin, name="ar_owner", default_visibility="private")
+    w.p.features.create(w.dana, namespace="ar_owner", name="ar_own_px", definition=PX_DEF)
+    row = w.p.access_requests.request(
+        w.mona, kind="feature", ref="ar_owner/ar_own_px", level="read"
+    )
+    decided = w.p.access_requests.decide(w.dana, row["id"], approve=True, note="a desk colleague")
+    assert decided["state"] == "approved" and decided["decided_by"] == "dana"
+    assert w.p.features.get(w.mona, "ar_owner/ar_own_px")["name"] == "ar_own_px"
+    obj = w.p.access.resolve_object("feature", "ar_owner/ar_own_px")
+    with w.p.uow() as uow:
+        issued = uow.repo("grants").list(object_type="feature", object_id=obj["id"])
+    assert any(g["level"] == "read" for g in issued), "the grant the decision issued"

@@ -160,7 +160,12 @@ def oracle(roles, caps, action, otype, state, c, key=None, obj_ns="eq") -> bool:
     if need is None:
         return False
     held = caps.get(otype, "")
-    if need not in held and not (need == "Q" and "P" in held):
+    # §11.1: "Owners can always tighten or widen an individual object." Granting on what you
+    # own is not a thing the role ceiling governs — otherwise only an administrator could
+    # share anything, or answer an access request, for anyone's objects.
+    # a key is not a person: it carries no ownership, so the exemption is for users only
+    owner_may_grant = need == "G" and c["owner"] == ME and key is None
+    if not owner_may_grant and need not in held and not (need == "Q" and "P" in held):
         return False
     if key is not None:
         actions, namespaces = key

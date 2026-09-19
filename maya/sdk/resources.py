@@ -332,6 +332,35 @@ class Admin(_Resource):
     def verify_integrity(self) -> Any:
         return self._c("POST", "/system/integrity")
 
+    @endpoint("GET", "/system/cold-pins")
+    def cold_pins(self, days: int | None = None) -> Any:
+        """Pins that have gone unread long enough to be called cold (§7.3)."""
+        return self._c("GET", "/system/cold-pins", params={"days": days} if days else {})
+
+    @endpoint("POST", "/system/pins/{pin_id}/archive")
+    def archive_pin(self, pin_id: str, table: str = "feature_pins") -> Any:
+        """Pack a retired pin into one compressed bundle and record where it went."""
+        return self._c("POST", f"/system/pins/{seg(pin_id)}/archive", params={"table": table})
+
+    @endpoint("GET", "/system/pins/{pin_id}/archive")
+    def pin_archive(self, pin_id: str, table: str = "feature_pins") -> Any:
+        """An archive's manifest, and whether its rows still hash to the sealed pin."""
+        return self._c("GET", f"/system/pins/{seg(pin_id)}/archive", params={"table": table})
+
+    @endpoint("GET", "/system/restore-drills")
+    def restore_drills(self) -> Any:
+        """The restore-drill register, and whether one is overdue (§20)."""
+        return self._c("GET", "/system/restore-drills")
+
+    @endpoint("POST", "/system/restore-drills")
+    def record_restore_drill(self, **fields: Any) -> Any:
+        return self._c("POST", "/system/restore-drills", json_body=fields)
+
+    @endpoint("PUT", "/system/log-level")
+    def set_log_level(self, module: str, level: str) -> Any:
+        """Turn one module's logging up or down in the process that answers this call."""
+        return self._c("PUT", "/system/log-level", json_body={"module": module, "level": level})
+
     @endpoint("GET", "/system/estate")
     def export_estate(self) -> Any:
         return self._c("GET", "/system/estate", raw=True)

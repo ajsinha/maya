@@ -37,6 +37,34 @@
 > could approve no execution warrant), and the `standard` namespace preset now staffs the
 > model owner and techops.
 >
+> **Batches 2, 3, 5 and 7, and parts of 4, are now closed.** Beyond batch 1:
+> gap 10 — the §6.8 feature-set algebra (`tests/test_set_algebra.py`);
+> gap 11 — the review screen, and the wrong-scope policy bug (`tests/test_review_screen.py`);
+> gap 12 — `tracking` bindings, with composites flagged at revocation
+> (`tests/test_tracking_and_notices.py`);
+> gap 13 — subscriptions (same file);
+> gap 15 — the pin preview, disabled-with-reason controls, and access requests, whose
+> decisions an object's owner can now make (`tests/test_access_requests.py`);
+> gap 16 — quotas enforced, a pin estimate, cold pins and archived ones
+> (`tests/test_quotas.py`, `tests/test_retention.py`); fragment collection is still absent;
+> gap 18 — the CLI's admin, build, validate and create commands (`tests/test_cli.py`);
+> gap 19 — the bundle's artifact, feature-set definition and member pins;
+> gap 20 — catalog facets (`tests/test_catalog_facets.py`);
+> gap 22 — NPZ, scanned pickle and ONNX parameters (`tests/test_parameter_files.py`);
+> gap 25 — the PSI covenant (`tests/test_security_regressions.py`);
+> gap 26 — the three missing notifications;
+> gap 28 — the pre-pin staleness warning;
+> gap 29 — job fairness, backpressure and a worker process (`tests/test_job_fairness.py`,
+> `tests/test_worker_process.py`);
+> gap 33 — the §20 metrics, SLO rules, scheduled integrity verification, a restore-drill
+> register and the six missing runbooks;
+> gap 34 — typed configuration (`tests/test_config_schema.py`).
+> Partly closed: gap 24 (shadow replay now has a per-namespace materiality budget).
+> Still open, and the next work: gaps 14 (the SDK object model), 17 (feature-set
+> composition), 21 (the execution manifest PDF), 23 (assistant drafting), 30 (the lineage
+> canvas), 31 (the §12 auth items), 32 (the editors), 35 (the plugin framework and
+> integrations) and 36.
+>
 > Everything else below stands as written; line numbers are as of b30a428.
 
 This audit was read-only; no repository file was edited. Every section §1–§30 was checked against maya/, maya_delta/, tools/ and tests/. §1–§9 and §26–§30 were audited directly, §10–§16 and §17–§25 by two parallel sub-audits. Their detailed tables are appended below, and the top findings of each were re-verified by reading code.

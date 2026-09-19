@@ -95,6 +95,30 @@
   `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
   `--data-checksum`, `--notes` and `--member-alias`.
 
+**Retention (§7.3), which was not built at all**
+
+- **Cold pins are named.** MAYA records when a pin was last read (the first read always,
+  then at most hourly) and reports which have gone unread past
+  `retention.cold_after_days`, with what they hold. Naming is all it does: moving bytes to
+  an infrequent-access class needs the object-store backend of §25, and the report says so
+  rather than implying a tier exists.
+- **A retired pin can be archived**: its rows, manifest and fragment list packed into one
+  compressed bundle, stored as a blob, recorded on the pin. Reading it back re-hashes the
+  rows against what was sealed, so an archive that rotted is caught rather than served.
+  Archiving twice is one archive. The pin's fragments are shared with other pins and are
+  **not** deleted — collecting those is the §29.3 collector, still unbuilt.
+- `maya admin cold-pins`, `admin archive-pin`, `admin restore-pin`, and an admin
+  **Retention** page carrying all of it beside the restore-drill register and per-module
+  log levels.
+- An object's **owner can now answer an access request for their own object**, as §11.1's
+  "owners can always tighten or widen an individual object" says. Before, the role ceiling
+  meant only an administrator could — for everyone's objects. An owner still cannot hand
+  out an `admin` grant.
+- A revoked member warrant flags the composite execution warrants that embed it **at once**
+  rather than within the hour.
+- The pin preview now quotes the quota's own figure — deduplicated stored bytes — instead
+  of summing logical sizes, so the number in the preview is the number the refusal uses.
+
 **Quotas, and what a pin will cost (§7.3)**
 
 - A namespace's `quota_bytes` was stored and read by nothing. It is now checked when a pin

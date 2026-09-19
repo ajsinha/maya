@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 73d49a0c63a71b6eab858fae8d3a354dcb83054ee6065ba031d2eec4344fbbbe
+-- schema-hash: 1ec1a13b226f730ed43a104bf48372b6b2595d851276fecd33d0e10d715ae285
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -1048,6 +1048,9 @@ CREATE TABLE feature_pins (
 	retired_at DATETIME, 
 	retire_reason TEXT, 
 	failure TEXT, 
+	last_read_at DATETIME, 
+	archive_blob VARCHAR(64), 
+	archived_at DATETIME, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 
@@ -1098,6 +1101,9 @@ CREATE TABLE feature_set_pins (
 	retired_at DATETIME, 
 	retire_reason TEXT, 
 	failure TEXT, 
+	last_read_at DATETIME, 
+	archive_blob VARCHAR(64), 
+	archived_at DATETIME, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 

@@ -21,6 +21,7 @@ def wire(platform: Any) -> None:
     from maya.services.auth import AuthService
     from maya.services.catalog import CatalogService
     from maya.services.subscriptions import SubscriptionService
+    from maya.services.retention import RetentionService
     from maya.services.tracking import TrackingService
     from maya.services.bundle import BundleService
     from maya.services.execution import ExecutionService
@@ -63,6 +64,7 @@ def wire(platform: Any) -> None:
         ("catalog", CatalogService),
         ("subscriptions", SubscriptionService),
         ("access_requests", AccessRequestService),
+        ("retention", RetentionService),
         ("tracking", TrackingService),
     ):
         platform.register_service(name, cls(platform))

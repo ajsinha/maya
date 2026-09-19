@@ -736,6 +736,7 @@ class FeatureSetService:
         ``on_demand`` or ``never`` and not yet written — replayed from its member pins and
         accepted only if the replay reproduces the sealed content hash exactly. Under
         ``on_demand`` the first replay is written, and later reads come from the lake."""
+        self.p.feature_data.note_read("feature_set_pins", pin["id"])
         if self.stored(pin):
             return self.p.lake.read_pin("fspins", ns["name"], fs["name"], pin["fragments"])
         table = self.replay(pin, eff, inherited)

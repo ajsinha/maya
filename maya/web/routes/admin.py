@@ -488,6 +488,82 @@ async def storage(request: Request) -> Any:
     )
 
 
+@router.get("/admin/retention")
+@page
+async def retention(request: Request) -> Any:
+    """Cold pins, the archives retired ones were packed into, the restore-drill register,
+    and module log levels: the operational facts §7.3 and §20 ask MAYA to show."""
+    async with client(request) as sdk:
+        cold = await sdk.admin.cold_pins()
+        drills = await sdk.admin.restore_drills()
+    return await render(
+        request,
+        "admin/retention.html",
+        {
+            "cold": cold,
+            "drills": drills,
+            "archived": request.session.pop("archived", None),
+            "checked": request.session.pop("archive_checked", None),
+            "levels": request.session.pop("levels", None),
+        },
+    )
+
+
+@router.post("/admin/retention/archive")
+@action
+async def archive_pin(request: Request) -> Any:
+    form = await request.form()
+    async with client(request) as sdk:
+        out = await sdk.admin.archive_pin(
+            str(form["pin_id"]), table=str(form.get("table") or "feature_pins")
+        )
+    request.session["archived"] = out
+    flash(request, f"Archived as blob {out['blob'][:16]}…", "success")
+    return RedirectResponse("/admin/retention", status_code=303)
+
+
+@router.post("/admin/retention/verify-archive")
+@action
+async def verify_archive(request: Request) -> Any:
+    form = await request.form()
+    async with client(request) as sdk:
+        out = await sdk.admin.pin_archive(
+            str(form["pin_id"]), table=str(form.get("table") or "feature_pins")
+        )
+    request.session["archive_checked"] = out
+    flash(request, "Read the archive back and checked its hash.", "success")
+    return RedirectResponse("/admin/retention", status_code=303)
+
+
+@router.post("/admin/retention/drill")
+@action
+async def record_drill(request: Request) -> Any:
+    form = await request.form()
+    fields = {
+        "dialect": str(form.get("dialect") or "") or None,
+        "pins": int(str(form.get("pins") or 0)),
+        "drift": int(str(form.get("drift") or 0)),
+        "duration_seconds": float(str(form.get("duration_seconds") or 0)),
+        "outcome": str(form.get("outcome") or "passed"),
+        "notes": str(form.get("notes") or "") or None,
+    }
+    async with client(request) as sdk:
+        await sdk.admin.record_restore_drill(**{k: v for k, v in fields.items() if v is not None})
+    flash(request, "Restore drill recorded.", "success")
+    return RedirectResponse("/admin/retention", status_code=303)
+
+
+@router.post("/admin/retention/log-level")
+@action
+async def set_log_level(request: Request) -> Any:
+    form = await request.form()
+    async with client(request) as sdk:
+        out = await sdk.admin.set_log_level(str(form["module"]), str(form["level"]))
+    request.session["levels"] = out
+    flash(request, f"{form['module']} now logs at {form['level']}.", "success")
+    return RedirectResponse("/admin/retention", status_code=303)
+
+
 @router.post("/admin/lake/maintain")
 @action
 async def lake_maintain(request: Request) -> Any:

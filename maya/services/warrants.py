@@ -818,7 +818,11 @@ class WarrantService:
                 object_ref=self.uri(w, ns),
                 detail={"reason": reason},
             )
-            return row
+        # A composite that merely contains this model is a different instrument with its own
+        # owner: it is told, not revoked. Told here rather than by the hourly sweep, because
+        # "your model was withdrawn" an hour late is an hour of using it unknowingly.
+        self.p.tracking.flag_composites_of(warrant_id, f"member warrant revoked: {reason}")
+        return row
 
     def clone(
         self, p: Principal, warrant_id: str, changes: dict[str, Any] | None = None

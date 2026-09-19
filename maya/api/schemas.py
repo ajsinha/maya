@@ -73,6 +73,23 @@ class NamespaceIn(BaseModel):
     quota_bytes: int | None = None
 
 
+class RestoreDrillIn(BaseModel):
+    dialect: str | None = None
+    pins: int | None = 0
+    drift: int | None = 0
+    duration_seconds: float | None = 0.0
+    outcome: str | None = "passed"
+    chain_ok: bool | None = True
+    anchors_ok: bool | None = True
+    backup_taken_at: str | None = None
+    notes: str | None = None
+
+
+class LogLevelIn(BaseModel):
+    module: str
+    level: str
+
+
 class GrantIn(BaseModel):
     kind: str
     object_ref: str
