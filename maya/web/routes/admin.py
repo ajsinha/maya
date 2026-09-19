@@ -400,9 +400,21 @@ async def config(request: Request) -> Any:
 async def storage(request: Request) -> Any:
     async with client(request) as sdk:
         report = await sdk.admin.storage()
-    return await render(request, "admin/storage.html", {"r": report,
-                                                        "integrity": request.session.pop(
-                                                            "integrity", None)})
+    return await render(request, "admin/storage.html", {
+        "r": report, "integrity": request.session.pop("integrity", None),
+        "maintained": request.session.pop("maintained", None)})
+
+
+@router.post("/admin/lake/maintain")
+@action
+async def lake_maintain(request: Request) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.admin.lake_maintain()
+    request.session["maintained"] = {k: out[k] for k in ("filesRemoved", "filesAdded",
+                                                         "vacuumed")} | {
+        "tables": [t["table"] for t in out["tables"]]}
+    flash(request, "Lake compacted and vacuumed.", "success")
+    return RedirectResponse("/admin/storage", status_code=303)
 
 
 @router.post("/admin/integrity")

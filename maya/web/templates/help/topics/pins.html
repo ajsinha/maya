@@ -105,6 +105,23 @@ each new pin costs only its <code>bytes_new</code>. Fragment sizing is configure
 capture a restatement, pin again under a new date or series; never expect a pin to change.</p>
 {% endcall %}
 
+<h2>Compaction and vacuum</h2>
+<p>Every ingest and every pin appends files to a Delta table, so tables collect many small files.
+Once a day (or from {{ screen('/admin/storage', 'Admin → Storage') }}) MAYA <strong>compacts</strong> each
+table — rewriting small files into larger ones in one commit that changes the layout, not the content —
+and <strong>vacuums</strong> files no version needs once they are older than the retention window
+(<code>lake.maintenance.vacuum_retention_hours</code>, 168 by default). Both work on either lake backend.</p>
+{% call tip('Pins are untouched by it') %}
+<p>A pin is read by fragment value and row number, never by file name, and the ingest log is read at its
+latest version, so neither compaction nor vacuum can change what a pin or an as-of query returns. Integrity
+verification proves it after every run.</p>
+{% endcall %}
+{% call example('On demand', 'python') %}
+out = my.admin.lake_maintain()
+print(out["filesRemoved"], "small files compacted into", out["filesAdded"], "—",
+      out["vacuumed"], "unreferenced files vacuumed")
+{% endcall %}
+
 <h2>Related</h2>
 {{ cards([
   ('clock-history', 'Bitemporality', 'The as_of_known a pin resolves at, and why restatements append.'),

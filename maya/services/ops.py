@@ -225,6 +225,24 @@ class OpsService:
             uow.audit("search.reindexed", detail={"objects": n})
         return {"objects": n}
 
+    # -- lake maintenance ------------------------------------------------------------------
+    def lake_maintenance(self, p: Principal | None = None) -> dict[str, Any]:
+        """Compact every lake table and vacuum files past retention (admin, or the scheduler)."""
+        if p is not None and not (p.is_admin or "techops" in p.roles):
+            raise PermissionDenied("Lake maintenance is for administrators and techops")
+        s = self.p.settings
+        tables = self.p.lake.maintain(
+            target_size=s.int("lake.maintenance.target_size_mb", 128) * 1024 * 1024,
+            retention_hours=float(s.get("lake.maintenance.vacuum_retention_hours", "168")
+                                  or 168))
+        totals = {k: sum(t[k] for t in tables) for k in ("filesRemoved", "filesAdded",
+                                                         "vacuumed")}
+        with self.p.uow(p.username if p else "system") as uow:
+            uow.audit("lake.maintained", principal_type="user" if p else "system",
+                      channel="api" if p else "scheduler",
+                      detail={"tables": len(tables), **totals})
+        return {"tables": tables, **totals}
+
     # -- estate (§14.3) -------------------------------------------------------------------
     def export_estate(self) -> bytes:
         """Dialect-neutral dump of every table, hashed per table, in dependency order."""

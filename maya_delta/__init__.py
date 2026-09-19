@@ -57,6 +57,9 @@ class _Backend(Protocol):
     def files(self, path: Path, partitions: dict[str, list[str]] | None = ...) -> list[dict[str, Any]]: ...
     def history(self, path: Path) -> list[dict[str, Any]]: ...
     def protocol(self, path: Path) -> dict[str, Any]: ...
+    def optimize(self, path: Path, *, target_size: int) -> dict[str, Any]: ...
+    def vacuum(self, path: Path, *, retention_hours: float, dry_run: bool,
+               enforce_retention: bool) -> list[str]: ...
 
 
 def _native_problem() -> str | None:
@@ -154,3 +157,24 @@ class DeltaLake:
 
     def protocol(self, path: str | Path) -> dict[str, Any]:
         return self._b.protocol(Path(path))
+
+    # -- maintenance -------------------------------------------------------------------
+    def optimize(self, path: str | Path, *, target_size: int = 128 * 1024 * 1024
+                 ) -> dict[str, Any]:
+        """Compact each partition's small files into files of about ``target_size`` bytes.
+
+        One commit, ``dataChange: false``: the content is unchanged, only the layout.
+        Returns ``{version, numFilesRemoved, numFilesAdded, partitionsOptimized, numRows}``.
+        """
+        return self._b.optimize(Path(path), target_size=target_size)
+
+    def vacuum(self, path: str | Path, *, retention_hours: float = 168, dry_run: bool = False,
+               enforce_retention: bool = True) -> list[str]:
+        """Delete data files no longer referenced and older than the retention window.
+
+        Returns the files deleted (or, with ``dry_run``, that would be). Retention under
+        168 hours is refused unless ``enforce_retention=False``: time travel to versions
+        whose files are vacuumed stops working.
+        """
+        return self._b.vacuum(Path(path), retention_hours=retention_hours, dry_run=dry_run,
+                              enforce_retention=enforce_retention)

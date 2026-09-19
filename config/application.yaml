@@ -66,6 +66,12 @@ storage:
 lake:
   # auto | native | pure  (maya_delta, spec §7.4)
   backend: auto
+  # Compaction and vacuum of every lake table, daily by the scheduler or on demand.
+  maintenance:
+    interval_seconds: 86400
+    target_size_mb: 128
+    # Unreferenced files are kept this long for time travel; under 168 is allowed but explicit.
+    vacuum_retention_hours: 168
   fragment:
     target_rows: 512
     min_rows: 32

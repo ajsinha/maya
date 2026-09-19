@@ -15,5 +15,10 @@
 </div></div>
 <div class="col-lg-6"><div class="card card-body"><h3>Estate export</h3>
 <p>MAYA has no migrations. A schema change is export → <code>init-db --force</code> → import, verifying every hash.</p>
-<a class="btn btn-outline-primary" href="/admin/estate"><i class="bi bi-download" aria-hidden="true"></i> Download estate.mayabundle</a></div></div></div>
+<a class="btn btn-outline-primary" href="/admin/estate"><i class="bi bi-download" aria-hidden="true"></i> Download estate.mayabundle</a></div></div>
+<div class="col-lg-6"><div class="card card-body"><h3>Compaction and vacuum</h3>
+<p>Rewrites each lake table's small files into larger ones (content unchanged, one commit), then deletes files no version needs once they are past the retention window. Runs daily; sealed pins are read by fragment value, never by file, so they are unaffected.</p>
+<form method="post" action="/admin/lake/maintain"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-arrows-collapse" aria-hidden="true"></i> Compact and vacuum now</button></form>
+{% if maintained %}<p class="mt-2 mb-0 small">{{ maintained.tables|length }} table(s): {{ maintained.filesRemoved }} small files compacted into {{ maintained.filesAdded }}, {{ maintained.vacuumed }} unreferenced file(s) vacuumed.</p>{% endif %}
+</div></div></div>
 {% endblock %}

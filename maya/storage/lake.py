@@ -65,6 +65,27 @@ class LakeStore:
     def rel(self, path: Path) -> str:
         return path.relative_to(self.root).as_posix()
 
+    # -- maintenance: compaction and vacuum -----------------------------
+    def tables(self) -> list[Path]:
+        """Every Delta table under the lake root (ingest logs and fragment stores)."""
+        return sorted(p.parent for p in self.root.rglob("_delta_log") if p.is_dir())
+
+    def maintain(self, *, target_size: int, retention_hours: float) -> list[dict[str, Any]]:
+        """Compact small files, then vacuum unreferenced files past retention, table by table.
+
+        Safe for sealed pins: a pin is read by fragment value and row number, never by file,
+        and the ingest log is read at its latest version.
+        """
+        out = []
+        for path in self.tables():
+            compacted = self.delta.optimize(path, target_size=target_size)
+            vacuumed = self.delta.vacuum(path, retention_hours=retention_hours,
+                                         enforce_retention=retention_hours >= 168)
+            out.append({"table": self.rel(path), "filesRemoved": compacted["numFilesRemoved"],
+                        "filesAdded": compacted["numFilesAdded"], "vacuumed": len(vacuumed),
+                        "version": compacted["version"]})
+        return out
+
     # -- raw, bitemporal ingest ------------------------------------------
     def append_raw(self, namespace: str, name: str, table: pa.Table) -> int:
         return self.delta.write(self.table_path("raw", namespace, name), table, mode="append")
