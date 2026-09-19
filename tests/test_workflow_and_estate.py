@@ -131,7 +131,9 @@ def test_estate_round_trip_and_audit_tamper_detection():
     platform.db.verify_schema()
     # tamper: bypass the append-only trigger and rewrite one entry
     with platform.db.engine.begin() as conn:
-        conn.execute(text("DROP TRIGGER audit_events_no_update"))
+        pg = conn.dialect.name == "postgresql"
+        conn.execute(text("DROP TRIGGER audit_events_no_update ON audit_events" if pg
+                          else "DROP TRIGGER audit_events_no_update"))
         conn.execute(text("UPDATE audit_events SET actor='mallory' WHERE seq=3"))
     broken = platform.access.verify_audit()
     assert broken["ok"] is False and broken["broken_at"] == 3

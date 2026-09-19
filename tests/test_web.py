@@ -35,12 +35,11 @@ def env():
     old_argv, old_home = sys.argv, os.environ.get("MAYA_HOME")
     sys.argv = ["pytest"]
     os.environ["MAYA_HOME"] = tempfile.mkdtemp(prefix="maya-web-")
-    from maya.config import load_settings
     from maya.server import build_app
-    from maya.services.platform import Platform
     from starlette.testclient import TestClient
+    from tests.conftest import build_platform
 
-    platform = Platform.build(load_settings(fresh=True), start_workers=False)
+    platform = build_platform()             # PostgreSQL too when MAYA_TEST_PG_URL is set
     app = build_app(platform)
     ids = _seed(platform)
     client = TestClient(app)
