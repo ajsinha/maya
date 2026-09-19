@@ -89,8 +89,8 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 305 passing on SQLite, Linux. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 159 endpoints, schema drift) |
+| **Tests** | 422 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 162 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it
 
@@ -104,8 +104,6 @@ execution warrant → reproducibility bundle.
   TOTP two-factor authentication. Configuring `auth.sso.protocol: saml2` is refused at
   startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
   is not built.
-- **The `python` source driver is refused by name.** Shipped: csv, parquet, json, sql
-  (SQLite and PostgreSQL, pulled read-only into the bitemporal log), delta, derived.
 - **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
   claimed only when a probe child fails to escape. macOS runs at `moderate`

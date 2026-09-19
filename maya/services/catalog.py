@@ -21,10 +21,8 @@ from maya.resolution.rules import parse_rule
 from maya.resolution.types import parse_type
 from maya.services import refs
 
-SUPPORTED_SOURCES = ("csv", "parquet", "json", "sql", "delta", "derived")
-DECLARED_UNSUPPORTED = {
-    "python": "the 'python' source driver (sandboxed transform) is not shipped in this build",
-}
+SUPPORTED_SOURCES = ("csv", "parquet", "json", "sql", "python", "delta", "derived")
+DECLARED_UNSUPPORTED: dict[str, str] = {}
 APPROVED_STATES = ("approved", "published")
 MAX_DERIVATION_DEPTH = 16
 
@@ -213,6 +211,9 @@ def validate_feature_definition(d: dict[str, Any], *, production: bool = False) 
     elif src == "sql":
         from maya.services.sources import validate_sql_source
         errors += validate_sql_source(d.get("source") or {})
+    elif src == "python":
+        from maya.services.sources import validate_python_source
+        errors += validate_python_source(d.get("source") or {})
     if src != "derived":
         errors += _validate_index(index, index_types)
     errors += _validate_schema(schema, index)

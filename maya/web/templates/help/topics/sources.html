@@ -89,6 +89,33 @@ knew before.</p>
 {% endcall %}
 {% endcall %}
 
+<h2>Python sources: a producer function in the sandbox</h2>
+<p>When the numbers are computed rather than stored — a business-day calendar, a scenario grid, a
+closed-form curve — the <code>python</code> source is the specification's escape hatch. The definition
+carries a function <code>produce(params)</code>; each pull runs it in the
+<a href="/help/security">sandbox</a> and appends what it returns, exactly as a SQL pull does.</p>
+{{ cards([
+  ('shield-lock', 'Sandboxed', 'No network, no filesystem, capped CPU, memory, wall-clock and output. The tier it ran at is recorded on the ingest.'),
+  ('check2-circle', 'Reviewed', 'The code is part of the definition: hashed, diffed and approved like a query. Imports are allowlisted; open, eval and dunders are refused.'),
+  ('clock-history', 'Bitemporal', 'A changed result is a restatement: it appends, and as_of_known still answers what you knew before.'),
+]) }}
+{% call example('A curve from parameters', 'json') %}
+"source": {
+  "type": "python",
+  "code": "import numpy as np\n\ndef produce(params):\n    days = np.arange(params['days'])\n    return {'date': [f'2026-01-{d + 1:02d}' for d in days], 'tenor': ['1Y'] * len(days), 'rate': (params['base'] + 0.001 * days).tolist()}",
+  "params": {"days": {"type": "int", "value": 5}, "base": {"type": "float", "value": 0.02}}
+}
+{% endcall %}
+{{ fields([
+  ('returns', '{column: [values]}, a list of {column: value} records, or a pandas DataFrame; dates may be date objects or ISO strings'),
+  ('imports', 'math, statistics, datetime, calendar, numpy, pandas and the rest of the artifact allowlist — nothing that reaches the network or the disk'),
+  ('limits', 'sources.python.cpu_seconds, memory_mb, wall_seconds and max_output_mb in application.yaml'),
+]) }}
+{% call warn('It computes; it cannot fetch') %}
+<p>A producer has no network and no files, by design. Data that lives elsewhere comes in through a
+<code>sql</code> connection or an upload, where it is reviewed as data rather than hidden in code.</p>
+{% endcall %}
+
 <h2>Related</h2>
 {{ cards([
   ('cloud-upload', 'Ingesting data', 'Files, Delta tables and SQL all land in the same ingest log.'),

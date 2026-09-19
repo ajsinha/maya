@@ -12,6 +12,14 @@
   <pre class="mono small mb-2">{{ src.query }}</pre>
   <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-download" aria-hidden="true"></i> Pull now</button>
 </form>
+{% elif src.type == 'python' %}
+<form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/pull" class="card card-body mb-3" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2 class="h5">Run the Python source</h2>
+  <p class="small-muted mb-2">Runs <span class="mono">{{ src.entry or 'produce' }}(params)</span> in the sandbox — no network, no files, capped — and appends what it returns as a knowledge-time batch. The tier it ran at is recorded on the ingest.</p>
+  <pre class="mono small mb-2">{{ src.code }}</pre>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-play-circle" aria-hidden="true"></i> Run now</button>
+</form>
 {% endif %}
 <form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest" enctype="multipart/form-data" class="card card-body" style="max-width:720px">
   <input type="hidden" name="csrf_token" value="{{ csrf }}">

@@ -90,6 +90,27 @@ def definition_from_form(data: Any) -> dict[str, Any]:
     return definition
 
 
+def _source_from_form(data: Any, mode: str) -> dict[str, Any]:
+    if mode == "derived":
+        operands = [o.strip() for o in data.get("operands", "").splitlines() if o.strip()]
+        return {"type": "derived", "derivation": {
+            "operator": data.get("operator", "union"), "operands": operands,
+            "options": parse_json(data.get("options"), "Operator options", {})}}
+    source: dict[str, Any] = {"type": data.get("source_type", "csv")}
+    if data.get("knowledge_time_column", "").strip():
+        source["knowledge_time_column"] = data["knowledge_time_column"].strip()
+    if source["type"] == "delta":
+        source["path"] = data.get("delta_path", "").strip()
+    if source["type"] == "python":
+        source.update(code=data.get("python_code", ""), entry="produce",
+                      params=parse_json(data.get("python_params"), "Python parameters", {}) or {})
+    if source["type"] == "sql":
+        source.update(connection=data.get("sql_connection", "").strip(),
+                      query=data.get("sql_query", "").strip(),
+                      params=parse_json(data.get("sql_params"), "SQL parameters", {}) or {})
+    return source
+
+
 def _definition_body(data: Any) -> dict[str, Any]:
     mode = data.get("mode", "source")
     if mode == "extends":
@@ -117,20 +138,7 @@ def _definition_body(data: Any) -> dict[str, Any]:
                                   "rules": rules}
     if data.get("default_rule", "").strip():
         resolution["default"] = data["default_rule"].strip()
-    source: dict[str, Any] = {"type": data.get("source_type", "csv")}
-    if data.get("knowledge_time_column", "").strip():
-        source["knowledge_time_column"] = data["knowledge_time_column"].strip()
-    if source["type"] == "delta":
-        source["path"] = data.get("delta_path", "").strip()
-    if source["type"] == "sql":
-        source.update(connection=data.get("sql_connection", "").strip(),
-                      query=data.get("sql_query", "").strip(),
-                      params=parse_json(data.get("sql_params"), "SQL parameters", {}) or {})
-    if mode == "derived":
-        operands = [o.strip() for o in data.get("operands", "").splitlines() if o.strip()]
-        source = {"type": "derived", "derivation": {
-            "operator": data.get("operator", "union"), "operands": operands,
-            "options": parse_json(data.get("options"), "Operator options", {})}}
+    source = _source_from_form(data, mode)
     return {"index": index, "index_types": index_types, "schema": schema, "source": source,
             "resolution": resolution,
             "transform": parse_json(data.get("transform"), "Transform pipeline", []),

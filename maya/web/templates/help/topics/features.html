@@ -46,10 +46,10 @@ value attribute is required and names must be unique.</p>
 
 {% call step(3, 'Source') %}
 <p><code>source.type</code> is one of <code>csv</code>, <code>parquet</code>, <code>json</code>,
-<code>sql</code>, <code>delta</code> or <code>derived</code>. For uploads you may name a
-<code>knowledge_time_column</code>, a column in the file that says when each row became known;
-otherwise the upload instant is used. The <code>python</code> driver is refused by name: it is not
-shipped.</p>
+<code>sql</code>, <code>python</code>, <code>delta</code> or <code>derived</code>. For uploads you may
+name a <code>knowledge_time_column</code>, a column in the file that says when each row became known;
+otherwise the upload instant is used. A <code>python</code> source is a sandboxed producer function;
+see <a href="/help/sources">SQL and Python sources</a>.</p>
 {% call example('A CSV source with its own knowledge times', 'json') %}
 "source": {"type": "csv", "knowledge_time_column": "published_at"}
 {% endcall %}

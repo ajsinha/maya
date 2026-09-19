@@ -99,8 +99,12 @@ class _Ctx:
 
 
 def _jsonable(value: Any) -> Any:
+    if hasattr(value, "columns") and hasattr(value, "to_dict"):      # a pandas DataFrame
+        return {str(c): _jsonable(value[c].tolist()) for c in value.columns}
     if hasattr(value, "tolist"):
-        return value.tolist()
+        return _jsonable(value.tolist())
+    if hasattr(value, "isoformat"):                                    # date, datetime, Timestamp
+        return value.isoformat()
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
