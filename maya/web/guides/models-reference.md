@@ -243,6 +243,8 @@ inputs, with those results.
 | `disagreed` | cells listed with both values | the `formula_typechecks` check blocks submit; the CLI exits 1 |
 | `unchecked` | the file carries no cached results (never recalculated in Excel) | stated, not assumed |
 
+The lift has been checked against a real spreadsheet engine. Every supported construct, the lookups (including a miss) and a multi-sheet model with named cells were recalculated by LibreOffice Calc, and each lift agrees with its results (`tests/test_spreadsheet_libreoffice.py`). That check found one fix: LibreOffice saves the literal `TRUE` as `TRUE()`, which the lift now reads as the literal. Workbooks saved by Microsoft Excel have not been checked yet.
+
 ```python
 # Preview the lift, then import it into a draft
 data = open("mortgage.xlsx", "rb").read()
