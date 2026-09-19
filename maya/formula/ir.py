@@ -128,6 +128,9 @@ def _io_errors(ir: dict[str, Any]) -> list[str]:
         names.add(name)
         if inp.get("role", "feature") not in INPUT_ROLES:
             errors.append(f"input '{name}': role must be one of {INPUT_ROLES}")
+        if "value" in inp and (inp.get("role") != "constant" or isinstance(inp["value"], bool)
+                               or not isinstance(inp["value"], (int, float))):
+            errors.append(f"input '{name}': only a constant carries a value, and it is a number")
         bounds = inp.get("bounds")
         if bounds is not None and (len(bounds) != 2 or bounds[0] > bounds[1]):
             errors.append(f"input '{name}': bounds must be [lo, hi] with lo <= hi")
@@ -192,6 +195,17 @@ def input_contract(ir: dict[str, Any]) -> list[dict[str, Any]]:
 def parameter_inputs(ir: dict[str, Any]) -> list[dict[str, Any]]:
     """Declared parameter inputs, with bounds."""
     return [i for i in ir.get("inputs", []) if i.get("role") == "parameter"]
+
+
+def constant_inputs(ir: dict[str, Any]) -> list[dict[str, Any]]:
+    """Declared constants: fixed, not learned; a declared ``value`` is used when no parameter
+    set supplies one."""
+    return [i for i in ir.get("inputs", []) if i.get("role") == "constant"]
+
+
+def supplied_inputs(ir: dict[str, Any]) -> list[dict[str, Any]]:
+    """Everything a parameter set supplies: the parameters and the constants."""
+    return parameter_inputs(ir) + constant_inputs(ir)
 
 
 def is_opaque(ir: dict[str, Any]) -> bool:

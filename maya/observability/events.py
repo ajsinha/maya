@@ -21,7 +21,7 @@ EVENT_ACTIONS = {
     "warrant.exec_revoked", "bundle.exported",
     "access.granted", "access.revoked", "auth.lockout", "auth.mfa_reset",
     "workspace.submitted", "workspace.merged", "integrity.verified", "policy.activated",
-    "workflow.break_glass", "job.dead_letter", "audit.anchored",
+    "workflow.break_glass", "job.dead_letter", "audit.anchored", "warrant.limit_exceeded",
 }
 
 

@@ -39,7 +39,7 @@ my.models.create("quant", "bs_call", kind="formula",
 {{ fields([
   ('feature', 'an input the bound feature set must provide (the input contract)'),
   ('parameter', 'a value produced by training and uploaded as a parameter set'),
-  ('constant', 'a fixed value supplied with the parameters, not learned'),
+  ('constant', 'a fixed value, not learned: declare it on the input as "value", or supply it with the parameters'),
 ]) }}
 {% endcall %}
 

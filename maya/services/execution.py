@@ -17,7 +17,7 @@ import datetime as dt
 from typing import Any
 
 from maya.core import djson
-from maya.core.errors import (NotApproved, PermissionDenied, ValidationFailed,
+from maya.core.errors import (NotApproved, PermissionDenied, QuotaExceeded, ValidationFailed,
                               WarrantExpired, WarrantSuspended)
 from maya.core.backends import Backends
 from maya.formula import ir as irmod
@@ -26,6 +26,8 @@ from maya.security.authz import Principal
 from maya.services import catalog, refs
 from maya.workflow.engine import Subject
 
+# Rate and volume limits (§9.2): they throttle, where a covenant breach suspends.
+LIMIT_KEYS = ("max_calls_per_day", "max_rows_per_call", "max_rows_per_day")
 COVENANT_KINDS = ("input_null_rate", "input_range", "output_range", "max_rows_per_day",
                   "staleness_days")
 ENVIRONMENTS = ("dev", "uat", "prod")
@@ -128,6 +130,13 @@ class ExecutionService:
         bad_env = set(out["environments"]) - set(ENVIRONMENTS)
         if bad_env:
             raise ValidationFailed(f"Unknown environment(s): {', '.join(bad_env)}")
+        unknown = set(out["limits"]) - set(LIMIT_KEYS)
+        if unknown:
+            raise ValidationFailed(f"Unknown limit(s): {', '.join(sorted(unknown))}; limits are "
+                                   f"{', '.join(LIMIT_KEYS)}")
+        for key, value in out["limits"].items():
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValidationFailed(f"Limit '{key}' must be a positive whole number")
         for c in out["covenants"]:
             if c.get("kind") not in COVENANT_KINDS:
                 raise ValidationFailed(f"Covenant kind must be one of {', '.join(COVENANT_KINDS)}")
@@ -147,6 +156,7 @@ class ExecutionService:
                 "outputs": ir.get("outputs", []),
                 "composite": ir.get("composite"),
                 "environments": spec["environments"], "covenants": spec["covenants"],
+                "limits": spec["limits"],
                 "escalation_contact": spec["contact"]}
 
     # -- workflow ------------------------------------------------------------------------
@@ -211,11 +221,35 @@ class ExecutionService:
             raise PermissionDenied(f"Warrant is not valid in '{environment}'",
                                    environments=ew["spec"]["environments"])
 
+    @staticmethod
+    def usage_today(uow: Any, ew_id: str) -> dict[str, int]:
+        midnight = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        reports = uow.repo("execution_reports").list(execution_warrant_id=ew_id,
+                                                     created_at__ge=midnight)
+        return {"calls": len(reports), "rows": sum(r["rows"] for r in reports)}
+
+    def check_allowance(self, uow: Any, ew: dict[str, Any]) -> None:
+        """Refuse a new run once today's rate or volume allowance is spent (§9.2)."""
+        limits = ew["spec"].get("limits") or {}
+        if not limits:
+            return
+        used = self.usage_today(uow, ew["id"])
+        contact = ew["spec"].get("contact") or "the model owner"
+        if "max_calls_per_day" in limits and used["calls"] >= limits["max_calls_per_day"]:
+            raise QuotaExceeded(f"Today's {limits['max_calls_per_day']} runs under this warrant "
+                                f"are used. Contact {contact} to raise the limit.",
+                                limit="max_calls_per_day", used=used["calls"])
+        if "max_rows_per_day" in limits and used["rows"] >= limits["max_rows_per_day"]:
+            raise QuotaExceeded(f"Today's {limits['max_rows_per_day']} rows under this warrant "
+                                f"are used. Contact {contact} to raise the limit.",
+                                limit="max_rows_per_day", used=used["rows"])
+
     def token(self, p: Principal, ew_id: str, environment: str) -> dict[str, Any]:
         with self.p.uow() as uow:
             ew, ns = self._load(uow, ew_id)
             self.p.access.require(uow, p, "read", "execution_warrant", ew)
-        self.check(ew, environment)
+            self.check(ew, environment)
+            self.check_allowance(uow, ew)
         claims = {"warrant": self.uri(ew, ns), "id": ew_id, "env": environment,
                   "model_ir_hash": ew["manifest"]["model"]["ir_hash"],
                   "params_hash": (ew["manifest"].get("parameters") or {}).get("values_hash"),
@@ -236,7 +270,8 @@ class ExecutionService:
                 if ew["parameter_set_id"] else None
             members = self.p.models._member_irs(uow, mv["formula_ir"]) \
                 if "composite" in (mv["formula_ir"] or {}) else {}
-        self.check(ew, environment)
+            self.check(ew, environment)
+            self.check_allowance(uow, ew)
         return {"warrant": self.uri(ew, ns), "id": ew_id, "manifest": ew["manifest"],
                 "formula_ir": mv["formula_ir"], "member_irs": members,
                 "parameters": ps["values"] if ps else {},
@@ -251,12 +286,10 @@ class ExecutionService:
             ew, ns = self._load(uow, ew_id)
             self.p.access.require(uow, p, "read", "execution_warrant", ew)
             self.check(ew, environment)
-            today = uow.repo("execution_reports").list(
-                execution_warrant_id=ew_id,
-                created_at__ge=utcnow().replace(hour=0, minute=0, second=0, microsecond=0))
+            used = self.usage_today(uow, ew_id)
             breaches = evaluate_covenants(ew["spec"]["covenants"], rows, input_stats,
-                                          output_stats or {},
-                                          rows_today=sum(r["rows"] for r in today) + rows)
+                                          output_stats or {}, rows_today=used["rows"] + rows)
+            over = over_limits(ew["spec"].get("limits") or {}, rows, used)
             uow.repo("execution_reports").add({
                 "execution_warrant_id": ew_id, "environment": environment, "rows": rows,
                 "input_stats": input_stats, "output_stats": output_stats or {},
@@ -265,6 +298,9 @@ class ExecutionService:
             me = self.uri(ew, ns)
             uow.repo("lineage_edges").link(me, f"maya://execution/{ew_id}/{environment}",
                                            "executed_under")
+            if over:
+                uow.audit("warrant.limit_exceeded", object_type="execution_warrant",
+                          object_ref=me, detail={"limits": over, "environment": environment})
             if breaches:
                 reason = "; ".join(b["detail"] for b in breaches)
                 uow.repo("execution_warrants").update(ew_id, {"suspended_at": utcnow(),
@@ -277,7 +313,7 @@ class ExecutionService:
                     uow.repo("notifications").add({"user_id": uid, "kind": "covenant_breach",
                                                    "message": f"{me} SUSPENDED: {reason}",
                                                    "object_ref": me})
-            return {"accepted": True, "breaches": breaches,
+            return {"accepted": True, "breaches": breaches, "limits_exceeded": over,
                     "status": "suspended" if breaches else "live"}
 
     def reinstate(self, p: Principal, ew_id: str, reason: str) -> dict[str, Any]:
@@ -354,3 +390,11 @@ def evaluate_covenants(covenants: list[dict[str, Any]], rows: int, inputs: dict[
             out.append({**c, "observed": stats["age_days"],
                         "detail": f"'{attr}' is {stats['age_days']} days stale"})
     return out
+
+
+def over_limits(limits: dict[str, int], rows: int, used: dict[str, int]) -> list[dict[str, Any]]:
+    """Limits this reported run went past, counting it: recorded as evidence, never hidden."""
+    seen = {"max_rows_per_call": rows, "max_rows_per_day": used["rows"] + rows,
+            "max_calls_per_day": used["calls"] + 1}
+    return [{"limit": k, "max": v, "observed": seen[k]}
+            for k, v in limits.items() if seen[k] > v]

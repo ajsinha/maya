@@ -205,3 +205,22 @@ def test_latex_renders_lets_aligned() -> None:
     ir = parse_model(BS_PY, roles=ROLES)
     tex = to_latex(ir)
     assert tex.startswith(r"\begin{aligned}") and "d_{1} &=" in tex
+
+
+def test_constants_declare_a_value_that_evaluation_and_code_both_use() -> None:
+    """A constant is fixed, not learned: its declared value fills in when no parameter set
+    supplies one; one without a value must be supplied, and a value on anything else is refused."""
+    from maya.services.models import ModelService
+    from maya.services.warrants import WarrantService
+    ir = parse_model(BS_PY, roles={"sigma": "parameter", "r": "constant"})
+    X = {k: np.array([v]) for k, v in POINT.items() if k != "r"}
+    assert WarrantService.check_bounds(ir, {"sigma": 0.2}) == [
+        "missing constant 'r' (the model declares no value for it)"]
+    next(i for i in ir["inputs"] if i["name"] == "r")["value"] = 0.05
+    assert validate_ir(ir) == [] and WarrantService.check_bounds(ir, {"sigma": 0.2}) == []
+    expected = evaluate(ir, {**X, "r": np.array([0.05])}, {"sigma": 0.2})["price"]
+    np.testing.assert_allclose(evaluate(ir, X, {"sigma": 0.2})["price"], expected)
+    np.testing.assert_allclose(compile_reference(ir)(X, {"sigma": 0.2})["price"], expected)
+    assert ModelService._default_params({"formula_ir": ir}) == {"sigma": 0.5, "r": 0.05}
+    bad = dict(ir, inputs=[dict(i, value=1.0) if i["name"] == "S" else i for i in ir["inputs"]])
+    assert any("only a constant carries a value" in e for e in validate_ir(bad))
