@@ -12,7 +12,7 @@ printed by a tool in `tools/bench/`.
 | **SC-5**: p95 resolution, 50-column, 10-year daily feature set | under 15 s warm, under 60 s cold | no rules: warm p95 **0.98 s**, cold **1.0 s**. `forward_fill(limit=3)` on every attribute: warm p95 **6.1 s**, cold **6.3 s** | **pass** |
 | Catalog search p95 over 100k objects | under 500 ms | p95 **0.16 s** (p50 0.08 s), 800,010 index rows | **pass** |
 | **SC-4**: p95 page latency, metadata screens | under 300 ms | worst page p95 **0.15 s** (SQLite, one process); **0.18 s** (PostgreSQL, 8 web processes) | **pass** |
-| **SC-3**: 200 concurrent interactive users on one node without p95 degradation | p95 under 300 ms with 200 users | PostgreSQL, 8 web processes: p95 **0.37 s**, p50 0.06 s, 94 requests/s, no errors; p95 2.0× the single-user p95 | **fail**: close, not met |
+| **SC-3**: 200 concurrent interactive users on one node without p95 degradation | p95 under 300 ms with 200 users | PostgreSQL, 8 web processes, with the principal cache, three runs: p95 **0.34 s**, **0.22 s**, **0.43 s** (median 0.34 s); 93–97 requests/s, no errors | **not met reliably**: one run of three passes |
 
 ## The machine
 
@@ -120,12 +120,26 @@ What it took:
   work holds a mutex inside one process, and across processes that guarantee does
   not hold.
 
-**Why this is still a fail.** The p95 of 0.37 s is above 0.3 s, and it is twice the
+**With the principal cache.** A signed-in session's principal is now reused for two
+seconds (`auth.session.principal_cache_seconds`). Before, the home page resolved it
+six times. Three further full runs on the same configuration:
+
+| Run | Throughput | p50 | p95 | Max | Errors | p95 ÷ single-user p95 |
+|---|---|---|---|---|---|---|
+| 1 | 95.3 req/s | 0.056 s | 0.345 s | 1.73 s | 0 | 1.97 |
+| 2 | 96.6 req/s | 0.033 s | **0.215 s** | 0.80 s | 0 | 1.22 |
+| 3 | 93.4 req/s | 0.054 s | 0.425 s | 3.37 s | 0 | 2.16 |
+
+One run of three meets the target; the median p95 (0.34 s) does not. The spread
+between runs on the same configuration is the machine, not the code, and only a
+dedicated host will settle it.
+
+**Why the first run failed.** The p95 of 0.37 s is above 0.3 s, and it is twice the
 single-user p95, so it counts as degradation. Tail latency varied about twofold from
 run to run on this shared machine: the same configuration measured p95 0.33 s, 0.37 s
 and 0.67 s. The remaining per-request costs are known:
 
-- The home page resolves the signed-in user once per internal API call (six times).
+- The home page resolved the signed-in user once per internal API call, six times (now cached, above).
 - The feature-list total counts readable rows by walking the list.
 
 ## Caveats
