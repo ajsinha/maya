@@ -26,8 +26,11 @@ def _failed_at(report: dict) -> int:
 
 def test_tier_is_declared_honestly() -> None:
     tier = sandbox_tier()
-    assert tier["tier"] in ("minimal", "moderate")  # never claimed strong without seccomp/cgroups
-    assert tier["reason"]
+    assert tier["tier"] in ("minimal", "moderate", "strong") and tier["reason"]
+    if tier["tier"] == "strong":   # claimed only when a probe child verified every part
+        assert "verified by a probe" in tier["reason"]
+        for part in ("bubblewrap", "seccomp", "cgroup"):
+            assert part in tier["mechanism"]
     assert tier_at_least("strong", "minimal") and not tier_at_least("minimal", "strong")
 
 
