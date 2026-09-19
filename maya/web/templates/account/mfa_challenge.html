@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Two-factor verification{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="card"><div class="card-body">
+      <h1 class="h4 mb-2">Two-factor verification</h1>
+      <p class="small-muted">Your password was accepted. Enter the six-digit code from your
+        authenticator app. A wrong code ends this sign-in attempt and counts toward lockout.</p>
+      <form method="post" action="/mfa">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <label class="form-label" for="code">Code</label>
+        <input class="form-control form-control-lg text-center mb-3" id="code" name="code"
+               inputmode="numeric" pattern="[0-9 ]{6,7}" autocomplete="one-time-code" required autofocus>
+        <button class="btn btn-primary w-100" type="submit">Verify</button>
+      </form>
+      <form method="post" action="/logout" class="mt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <button class="btn btn-link w-100" type="submit">Cancel and sign out</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

@@ -23,6 +23,7 @@ def wire(platform: Any) -> None:
     from maya.services.featuresets import FeatureSetService
     from maya.services.models import ModelService
     from maya.services.ops import OpsService
+    from maya.services.sso import SsoService
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
 
@@ -31,7 +32,7 @@ def wire(platform: Any) -> None:
                       ("featuresets", FeatureSetService), ("models", ModelService),
                       ("warrants", WarrantService), ("execution", ExecutionService),
                       ("bundles", BundleService), ("workflow_svc", WorkflowService),
-                      ("ops", OpsService)):
+                      ("ops", OpsService), ("sso", SsoService)):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)

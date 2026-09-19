@@ -24,6 +24,14 @@ KINDS = {
 }
 
 
+CREDENTIAL_FIELDS = ("password_hash", "mfa_secret", "mfa_last_step")
+
+
+def public_user(row: dict[str, Any]) -> dict[str, Any]:
+    """A user row with every credential field removed — the only form that leaves."""
+    return {k: v for k, v in row.items() if k not in CREDENTIAL_FIELDS}
+
+
 class AccessService:
     """Everything that decides or changes who may do what."""
 
@@ -242,8 +250,7 @@ class AccessService:
                 "must_change_password": bool(password)})
             self._set_roles(uow, user["id"], roles or [])
             uow.audit("user.created", object_ref=f"user:{username}", detail={"roles": roles})
-            user.pop("password_hash", None)
-            return user
+            return public_user(user)
 
     def set_roles(self, p: Principal, username: str, roles: list[str]) -> None:
         self.require_capability(p, "users", "U")
@@ -274,8 +281,7 @@ class AccessService:
                 raise NotFound(f"User '{username}' does not exist")
             row = uow.repo("users").update(user["id"], changes)
             uow.audit("user.updated", object_ref=f"user:{username}", detail=changes)
-            row.pop("password_hash", None)
-            return row
+            return public_user(row)
 
     def reset_password(self, p: Principal, username: str, new_password: str) -> None:
         self.require_capability(p, "users", "U")
@@ -294,8 +300,8 @@ class AccessService:
             users = uow.repo("users").list(order_by=["username"])
             roles = {r["id"]: r["name"] for r in uow.repo("roles").list()}
             links = uow.repo("user_roles").list()
+        users = [public_user(u) for u in users]
         for u in users:
-            u.pop("password_hash", None)
             u["roles"] = sorted(roles[lnk["role_id"]] for lnk in links
                                 if lnk["user_id"] == u["id"])
         return users

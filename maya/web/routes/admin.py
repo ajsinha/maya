@@ -87,6 +87,16 @@ async def reset_password(request: Request, username: str) -> Any:
     return RedirectResponse("/admin/users", status_code=303)
 
 
+@router.post("/admin/users/{username}/mfa-reset")
+@action
+async def reset_mfa(request: Request, username: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.admin.reset_mfa(username)
+    flash(request, f"Two-factor authentication of {username} reset; they enroll again.",
+          "success")
+    return RedirectResponse("/admin/users", status_code=303)
+
+
 @router.post("/admin/users/{username}/status")
 @action
 async def set_status(request: Request, username: str) -> Any:

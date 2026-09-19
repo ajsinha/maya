@@ -28,7 +28,7 @@ def principal(request: Request, authorization: str | None = Header(default=None)
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
     ip = request.client.host if request.client else None
-    p = request.app.state.platform.auth.principal(token, ip=ip)
+    p = request.app.state.platform.auth.principal(token, ip=ip, path=request.url.path)
     if x_maya_channel in ("web", "cli", "sdk"):
         p.channel = x_maya_channel
     return p

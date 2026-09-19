@@ -85,12 +85,26 @@ def _login_redirect(request: Request) -> RedirectResponse:
     return RedirectResponse(f"/login?next={quote(nxt, safe='')}", status_code=303)
 
 
+MFA_PAGES = {"challenge": "/mfa", "enroll": "/account/mfa"}
+
+
+def _mfa_gate(request: Request) -> RedirectResponse | None:
+    """A session whose second factor is outstanding sees only the MFA pages."""
+    target = MFA_PAGES.get(request.session.get("mfa", "ok"))
+    if target and not request.url.path.startswith((target, "/logout")):
+        return RedirectResponse(target, status_code=303)
+    return None
+
+
 def page(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
     """GET page: requires login; MAYA errors render as an error page, not a traceback."""
     @functools.wraps(fn)
     async def wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
         if not request.session.get("token"):
             return _login_redirect(request)
+        gate = _mfa_gate(request)
+        if gate is not None:
+            return gate
         if request.session.get("must_change") and request.url.path != "/account/password":
             return RedirectResponse("/account/password", status_code=303)
         try:
@@ -111,6 +125,9 @@ def action(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
     async def wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
         if not request.session.get("token"):
             return _login_redirect(request)
+        gate = _mfa_gate(request)
+        if gate is not None:
+            return gate
         if not await check_csrf(request):
             return HTMLResponse("CSRF token missing or invalid. Reload the page and retry.",
                                 status_code=403)

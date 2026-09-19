@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 2736340e81888d354ef12eb4cd2f3f5052ff50a98477a30a634387c69f4e3dc9
+-- schema-hash: 645265c7e447795b13b019946e96d9f4175daaa8d81912ce652619e95430e5e6
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -340,6 +340,9 @@ CREATE TABLE users (
 	last_login_at TIMESTAMP WITH TIME ZONE, 
 	password_changed_at TIMESTAMP WITH TIME ZONE, 
 	mfa_enabled BOOLEAN NOT NULL, 
+	mfa_secret TEXT, 
+	mfa_last_step BIGINT, 
+	external_subject VARCHAR(256), 
 	is_service BOOLEAN NOT NULL, 
 	desk VARCHAR(128), 
 	id UUID NOT NULL, 
@@ -351,6 +354,8 @@ CREATE TABLE users (
 	CONSTRAINT pk_users PRIMARY KEY (id), 
 	CONSTRAINT uq_users_username UNIQUE (username)
 );
+
+CREATE INDEX ix_users_external_subject ON users (external_subject);
 
 CREATE TABLE workflow_events (
 	object_type VARCHAR(32) NOT NULL, 
@@ -465,6 +470,8 @@ CREATE TABLE sessions (
 	user_id UUID NOT NULL, 
 	token_hash VARCHAR(64) NOT NULL, 
 	channel VARCHAR(16) NOT NULL, 
+	mfa_state VARCHAR(16) NOT NULL, 
+	auth_method VARCHAR(16) NOT NULL, 
 	last_seen_at TIMESTAMP WITH TIME ZONE, 
 	expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	absolute_expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 

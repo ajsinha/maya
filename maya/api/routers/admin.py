@@ -29,6 +29,58 @@ def login(body: s.LoginIn, request: Request, plat: Any = Plat) -> Response:
                               user_agent=request.headers.get("user-agent"), channel=channel))
 
 
+def _bearer(request: Request) -> str:
+    return request.headers.get("authorization", "")[7:].strip()
+
+
+@router.get("/auth/sso/config", tags=["auth"])
+def sso_config(plat: Any = Plat) -> Response:
+    """Public: which sign-in methods this deployment offers."""
+    return ok(plat.sso.public_config())
+
+
+@router.post("/auth/sso/start", tags=["auth"])
+def sso_start(plat: Any = Plat) -> Response:
+    """Public: state, nonce and PKCE verifier for the caller to keep, and the IdP URL."""
+    return ok(plat.sso.start())
+
+
+@router.post("/auth/sso/callback", tags=["auth"])
+def sso_callback(body: s.SsoCallbackIn, request: Request, plat: Any = Plat) -> Response:
+    ip = request.client.host if request.client else None
+    return ok(plat.sso.callback(body.code, body.code_verifier, body.nonce, ip=ip,
+                                user_agent=request.headers.get("user-agent")))
+
+
+@router.get("/auth/mfa", tags=["auth"])
+def mfa_status(request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.sso.mfa_status(_bearer(request)))
+
+
+@router.post("/auth/mfa/verify", tags=["auth"])
+def mfa_verify(body: s.CodeIn, request: Request, me: Principal = Me,
+               plat: Any = Plat) -> Response:
+    ip = request.client.host if request.client else None
+    return ok(plat.sso.verify(_bearer(request), body.code, ip=ip))
+
+
+@router.post("/auth/mfa/enroll", tags=["auth"])
+def mfa_enroll(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.sso.enroll(me))
+
+
+@router.post("/auth/mfa/confirm", tags=["auth"])
+def mfa_confirm(body: s.CodeIn, request: Request, me: Principal = Me,
+                plat: Any = Plat) -> Response:
+    return ok(plat.sso.confirm(me, _bearer(request), body.code))
+
+
+@router.post("/users/{username}/mfa-reset", tags=["admin"])
+def mfa_reset(username: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    plat.sso.reset(me, username)
+    return ok({"ok": True})
+
+
 @router.post("/auth/logout", tags=["auth"])
 def logout(request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
     plat.auth.logout(request.headers.get("authorization", "")[7:].strip())
@@ -39,8 +91,8 @@ def logout(request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
 def whoami(me: Principal = Me, plat: Any = Plat) -> Response:
     with plat.uow() as uow:
         user = uow.repo("users").require(me.user_id)
-    user.pop("password_hash", None)
-    return ok({**user, "roles": me.roles, "capabilities": me.capabilities, "groups": me.groups,
+    from maya.services.access import public_user
+    return ok({**public_user(user), "roles": me.roles, "capabilities": me.capabilities, "groups": me.groups,
                "channel": me.channel, "principal_type": me.principal_type})
 
 

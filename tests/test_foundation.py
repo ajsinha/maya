@@ -176,10 +176,3 @@ def test_acl_resolution_order():
     key.principal_type, key.key_actions = "api_key", ["read"]
     assert not can(key, "update", {**obj, "owner_id": "u1"}, [], NS)
 
-
-def test_unshipped_sso_is_refused_at_startup(tmp_path, monkeypatch):
-    monkeypatch.setenv("MAYA_HOME", str(tmp_path))
-    from maya.services.platform import Platform
-    settings = _settings(tmp_path, "--auth.mode=sso")
-    with pytest.raises(CapabilityRefused, match="SSO"):
-        Platform.build(settings, start_workers=False)

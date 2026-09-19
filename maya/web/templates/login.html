@@ -11,6 +11,12 @@
     <div class="card"><div class="card-body">
       <h1 class="h3 mb-3">Sign in</h1>
       {% if error %}<div class="alert alert-danger py-2" role="alert">{{ error }}</div>{% endif %}
+      {% if signin and signin.sso %}
+      <a class="btn btn-primary w-100 mb-3" href="/auth/sso/login?next={{ (next or '/')|urlencode }}">
+        <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in with single sign-on</a>
+      {% if signin.password_login %}<div class="text-center small-muted mb-2">or with a MAYA password</div>{% endif %}
+      {% endif %}
+      {% if not signin or signin.password_login %}
       <form method="post" action="/login">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">
         <input type="hidden" name="next" value="{{ next or '/' }}">
@@ -18,10 +24,11 @@
           <input class="form-control" id="username" name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></div>
         <div class="mb-3"><label class="form-label" for="password">Password</label>
           <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required></div>
-        <button class="btn btn-primary w-100" type="submit">Sign in</button>
+        <button class="btn {{ 'btn-outline-secondary' if signin and signin.sso else 'btn-primary' }} w-100" type="submit">Sign in</button>
       </form>
+      {% endif %}
     </div></div>
-    <p class="small-muted text-center mt-3">MAYA {{ VERSION }} · database authentication</p>
+    <p class="small-muted text-center mt-3">MAYA {{ VERSION }} · {% if signin and signin.sso %}{{ signin.mode }} sign-in ({{ signin.protocol|upper }}){% else %}database authentication{% endif %}</p>
   </div>
 </div>
 {% endblock %}

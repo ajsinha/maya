@@ -71,6 +71,10 @@ class AuthService:
 
     def _precheck(self, uow: Any, user: dict[str, Any] | None, username: str,
                   ip: str | None, channel: str) -> NotAuthenticated | None:
+        if self.p.settings.auth_mode == "sso":
+            uow.audit("auth.login_refused", object_ref=f"user:{username}", ip=ip,
+                      channel=channel, detail={"reason": "password login disabled (sso)"})
+            return NotAuthenticated("This deployment signs people in with SSO only")
         if user is None or user["auth_source"] != "db" or user["is_service"]:
             uow.audit("auth.login_failed", detail={"reason": "unknown user",
                                                    "username": username}, ip=ip, channel=channel)
@@ -92,12 +96,13 @@ class AuthService:
         if kdf.needs_rehash(user["password_hash"]):
             changes["password_hash"] = kdf.hash_password(password)
         uow.repo("users").update(user["id"], changes)
-        token = self._open_session(uow, user, ip, user_agent, channel)
+        mfa = self.p.sso.initial_mfa_state(uow, user)
+        token = self._open_session(uow, user, ip, user_agent, channel, mfa_state=mfa)
         uow.audit("auth.login", object_ref=f"user:{user['username']}", ip=ip, channel=channel,
-                  detail={"rehashed": "password_hash" in changes})
+                  detail={"rehashed": "password_hash" in changes, "mfa": mfa})
         return {"token": token, "username": user["username"],
                 "must_change_password": user["must_change_password"],
-                "default_password": password == DEFAULT_ADMIN_PASSWORD}
+                "default_password": password == DEFAULT_ADMIN_PASSWORD, "mfa": mfa}
 
     def _record_failure(self, uow: Any, user: dict[str, Any], now: dt.datetime,
                         ip: str | None, channel: str) -> None:
@@ -114,11 +119,13 @@ class AuthService:
                   channel=channel, detail={"attempt": count})
 
     def _open_session(self, uow: Any, user: dict[str, Any], ip: str | None,
-                      user_agent: str | None, channel: str) -> str:
+                      user_agent: str | None, channel: str, *, auth_method: str = "password",
+                      mfa_state: str = "ok") -> str:
         token = "maya_s_" + secrets.token_urlsafe(32)
         now = utcnow()
         uow.repo("sessions").add({
             "user_id": user["id"], "token_hash": _sha(token), "channel": channel,
+            "auth_method": auth_method, "mfa_state": mfa_state,
             "last_seen_at": now, "expires_at": now + self.idle,
             "absolute_expires_at": now + self.absolute, "ip": ip,
             "user_agent": (user_agent or "")[:500]})
@@ -132,21 +139,28 @@ class AuthService:
                 uow.audit("auth.logout", object_ref=f"session:{sess['id']}")
 
     # -- principal resolution -------------------------------------------------
-    def principal(self, token: str | None, *, ip: str | None = None) -> Principal:
+    def principal(self, token: str | None, *, ip: str | None = None,
+                  path: str | None = None) -> Principal:
         if not token:
             raise NotAuthenticated("Authentication required: send a bearer token or API key")
         if token.startswith("maya_s_"):
-            return self._session_principal(token)
+            return self._session_principal(token, path)
         if token.startswith("maya_"):
             return self._key_principal(token, ip)
         raise NotAuthenticated("Unrecognised credential")
 
-    def _session_principal(self, token: str) -> Principal:
+    def _session_principal(self, token: str, path: str | None = None) -> Principal:
+        from maya.services.sso import MFA_OPEN_PATHS
         with self.p.uow() as uow:
             sess = uow.repo("sessions").find_one(token_hash=_sha(token))
             now = utcnow()
             if sess is None or sess["revoked_at"]:
                 raise NotAuthenticated("Session has ended; log in again")
+            if sess["mfa_state"] != "ok" and not (path or "").endswith(MFA_OPEN_PATHS):
+                raise NotAuthenticated(
+                    "A second factor is required: " + ("enter the code from your "
+                    "authenticator" if sess["mfa_state"] == "challenge" else
+                    "enroll an authenticator first"), mfa=sess["mfa_state"])
             if sess["expires_at"] < now or sess["absolute_expires_at"] < now:
                 uow.repo("sessions").update(sess["id"], {"revoked_at": now})
                 raise NotAuthenticated("Session expired; log in again")
