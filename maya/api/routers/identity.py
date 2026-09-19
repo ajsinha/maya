@@ -50,6 +50,13 @@ def saml_acs(body: s.SamlAcsIn, request: Request, plat: Any = Plat) -> Response:
                                 user_agent=request.headers.get("user-agent")))
 
 
+@router.post("/auth/sso/saml/sls")
+def saml_sls(body: s.SamlSlsIn, request: Request, plat: Any = Plat) -> Response:
+    """Public: single logout — the IdP's LogoutResponse to MAYA, or its signed
+    LogoutRequest; returns where to send the browser next."""
+    return ok(plat.sso.saml_sls(body.query_string, ip=_ip(request)))
+
+
 # -- security keys -------------------------------------------------------------------------
 @router.get("/auth/mfa/webauthn")
 def webauthn_keys(me: Principal = Me, plat: Any = Plat) -> Response:

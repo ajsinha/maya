@@ -83,8 +83,9 @@ def mfa_reset(username: str, me: Principal = Me, plat: Any = Plat) -> Response:
 
 @router.post("/auth/logout", tags=["auth"])
 def logout(request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
-    plat.auth.logout(request.headers.get("authorization", "")[7:].strip())
-    return ok({"ok": True})
+    """End this session. After a SAML sign-in with single logout configured,
+    ``slo_redirect`` is where the browser goes so the IdP ends its session too."""
+    return ok(plat.sso.logout(request.headers.get("authorization", "")[7:].strip()))
 
 
 @router.get("/auth/me", tags=["auth"])

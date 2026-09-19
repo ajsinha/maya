@@ -115,6 +115,27 @@ async def saml_acs(request: Request) -> Any:
     return await _establish(request, result, data.get("RelayState"))
 
 
+@router.get("/auth/sso/saml/sls")
+async def saml_sls(request: Request) -> Any:
+    """SAML single logout, both directions, by redirect. The IdP's LogoutResponse ends a
+    sign-out MAYA began; its signed LogoutRequest ends every session of that sign-in —
+    this browser's included — and is answered with a LogoutResponse."""
+    anon = AsyncClient(app=request.app, channel="web")
+    try:
+        result = await anon.auth.saml_sls(request.url.query)
+    except MayaError as exc:
+        return await render(request, "login.html", {"error": exc.message,
+                                                    "signin": await _sign_in_options(request)},
+                            status=400)
+    finally:
+        await anon.aclose()
+    if result["outcome"] == "idp_logout":
+        request.session.clear()
+    else:
+        flash(request, "You are signed out of MAYA and of your identity provider.", "info")
+    return RedirectResponse(result["redirect_url"], status_code=303)
+
+
 @router.get("/auth/sso/callback")
 async def sso_callback(request: Request) -> Any:
     params = request.query_params
@@ -291,14 +312,15 @@ async def login(request: Request) -> Any:
 
 @router.post("/logout")
 async def logout(request: Request) -> Any:
+    slo = None
     if request.session.get("token") and await check_csrf(request):
         async with client(request) as sdk:
             try:
-                await sdk.auth.logout()
+                slo = (await sdk.auth.logout()).get("slo_redirect")
             except MayaError:
                 pass
     request.session.clear()
-    return RedirectResponse("/login", status_code=303)
+    return RedirectResponse(slo or "/login", status_code=303)
 
 
 @router.get("/account/password")

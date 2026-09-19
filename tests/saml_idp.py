@@ -22,6 +22,9 @@ from cryptography.x509.oid import NameOID
 IDP = "https://idp.example.test/saml"
 SP = "https://maya.example.test/saml"
 ACS = "http://127.0.0.1:8600/auth/sso/saml/acs"
+SLS = "http://127.0.0.1:8600/auth/sso/saml/sls"
+IDP_SLO = "https://idp.example.test/slo"
+RSA_SHA256 = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
 
 
 def _cert(key: Any, cn: str) -> str:
@@ -50,13 +53,68 @@ class SamlIdP:
         self.rogue = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         self.rogue_cert = _cert(self.rogue, "rogue.example.test")
 
-    def argv(self) -> list[str]:
+    def argv(self, *, slo: bool = False, sp_files: tuple[str, str] | None = None
+             ) -> list[str]:
+        """Settings for a MAYA that trusts this IdP; ``slo`` adds single logout and
+        ``sp_files`` (cert path, key path) turns on signed requests with that key pair."""
         cert = "".join(line for line in self.cert.splitlines() if "CERTIFICATE" not in line)
-        return ["--auth.mode=hybrid", "--auth.sso.protocol=saml2",
+        argv = ["--auth.mode=hybrid", "--auth.sso.protocol=saml2",
                 f"--auth.sso.saml.sp_entity_id={SP}", f"--auth.sso.saml.acs_url={ACS}",
                 f"--auth.sso.saml.idp_entity_id={IDP}",
                 "--auth.sso.saml.idp_sso_url=https://idp.example.test/sso",
                 f"--auth.sso.saml.idp_cert={cert}"]
+        if slo:
+            argv += [f"--auth.sso.saml.idp_slo_url={IDP_SLO}", f"--auth.sso.saml.sls_url={SLS}"]
+        if sp_files:
+            argv += ["--auth.sso.saml.sign_requests=true",
+                     f"--auth.sso.saml.sp_cert_file={sp_files[0]}",
+                     f"--auth.sso.saml.sp_key_file={sp_files[1]}"]
+        return argv
+
+    # -- single logout, HTTP-Redirect -------------------------------------------------
+    def _redirect(self, kind: str, xml: str, *, signed: bool = True, rogue: bool = False,
+                  relay_state: str | None = None) -> str:
+        """The query string the IdP would redirect with: deflated, and signed over the
+        exact bytes MAYA verifies (SAMLRequest|SAMLResponse, RelayState, SigAlg)."""
+        from urllib.parse import quote_plus
+
+        from cryptography.hazmat.primitives.asymmetric import padding
+        from onelogin.saml2.utils import OneLogin_Saml2_Utils
+        parts = [f"{kind}={quote_plus(OneLogin_Saml2_Utils.deflate_and_base64_encode(xml))}"]
+        if relay_state is not None:
+            parts.append(f"RelayState={quote_plus(relay_state)}")
+        if not signed:
+            return "&".join(parts)
+        parts.append(f"SigAlg={quote_plus(RSA_SHA256)}")
+        key = self.rogue if rogue else self.key
+        sig = key.sign("&".join(parts).encode(), padding.PKCS1v15(), hashes.SHA256())
+        return "&".join(parts) + "&Signature=" + quote_plus(base64.b64encode(sig).decode())
+
+    def logout_request(self, name_id: str, session_index: str | None = "_s1", *,
+                       destination: str = SLS, issuer: str = IDP, **kw: Any) -> str:
+        now = dt.datetime.now(dt.timezone.utc)
+        index = f"<samlp:SessionIndex>{session_index}</samlp:SessionIndex>" \
+            if session_index else ""
+        xml = ('<samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
+               'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+               f'ID="_l{uuid.uuid4().hex}" Version="2.0" IssueInstant="{_t(now)}" '
+               f'Destination="{destination}"><saml:Issuer>{issuer}</saml:Issuer>'
+               '<saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified">'
+               f"{name_id}</saml:NameID>{index}</samlp:LogoutRequest>")
+        return self._redirect("SAMLRequest", xml, **kw)
+
+    def logout_response(self, in_response_to: str, *, destination: str = SLS,
+                        **kw: Any) -> str:
+        now = dt.datetime.now(dt.timezone.utc)
+        xml = ('<samlp:LogoutResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
+               'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+               f'ID="_lr{uuid.uuid4().hex}" Version="2.0" IssueInstant="{_t(now)}" '
+               f'Destination="{destination}" InResponseTo="{in_response_to}">'
+               f"<saml:Issuer>{IDP}</saml:Issuer><samlp:Status><samlp:StatusCode "
+               'Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
+               "</samlp:LogoutResponse>")
+        return self._redirect("SAMLResponse", xml, **kw)
+
 
     def response(self, request_id: str | None, username: str = "sara", *,
                  groups: tuple[str, ...] = ("maya-admins",), audience: str = SP,
@@ -111,3 +169,12 @@ class SamlIdP:
             'Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
             f"{assertion}</samlp:Response>")
         return base64.b64encode(response.encode()).decode()
+
+
+def sp_key_pair(directory: Any) -> tuple[str, str]:
+    """A key pair for MAYA as a service provider, written as PEM files."""
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    cert_path, key_path = directory / "sp.crt", directory / "sp.key"
+    cert_path.write_text(_cert(key, "maya.example.test"))
+    key_path.write_text(_pem_key(key))
+    return str(cert_path), str(key_path)

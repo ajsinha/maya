@@ -124,6 +124,18 @@ auth:
       idp_sso_url: "${MAYA_SAML_IDP_SSO_URL:}"
       idp_cert: "${MAYA_SAML_IDP_CERT:}"
       idp_cert_file: "${MAYA_SAML_IDP_CERT_FILE:}"
+      # Single logout (optional): the IdP's SLO endpoint. When set, signing out of
+      # MAYA also signs out at the IdP, and the IdP's signed LogoutRequests end MAYA
+      # sessions at sls_url. Code complete; awaiting testing against a real IdP.
+      idp_slo_url: "${MAYA_SAML_IDP_SLO_URL:}"
+      sls_url: "${MAYA_SAML_SLS_URL:http://127.0.0.1:8600/auth/sso/saml/sls}"
+      # Sign AuthnRequests and logout messages (RSA-SHA256) with MAYA's own key pair.
+      # The key comes from the environment or a file, never from this file.
+      sign_requests: "${MAYA_SAML_SIGN_REQUESTS:false}"
+      sp_cert: "${MAYA_SAML_SP_CERT:}"
+      sp_cert_file: "${MAYA_SAML_SP_CERT_FILE:}"
+      sp_key: "${MAYA_SAML_SP_KEY:}"
+      sp_key_file: "${MAYA_SAML_SP_KEY_FILE:}"
       # empty: the NameID is the username
       username_attribute: ""
       groups_attribute: groups

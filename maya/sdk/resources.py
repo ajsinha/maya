@@ -132,6 +132,11 @@ class Auth(_Resource):
     def saml_acs(self, saml_response: str) -> Any:
         return self._c("POST", "/auth/sso/saml/acs", json_body={"saml_response": saml_response})
 
+    @endpoint("POST", "/auth/sso/saml/sls")
+    def saml_sls(self, query_string: str) -> Any:
+        """Single logout: hand MAYA the IdP's redirect query string, unaltered."""
+        return self._c("POST", "/auth/sso/saml/sls", json_body={"query_string": query_string})
+
     # security keys (WebAuthn) as a second factor
     @endpoint("GET", "/auth/mfa/webauthn")
     def security_keys(self) -> Any:
