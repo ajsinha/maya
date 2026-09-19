@@ -73,7 +73,7 @@
   <div class="card-body"><div class="row g-4">
     {% for icon, group, items in [
       ('boxes', 'Features and data', ['CSV, Parquet, JSON, read-only SQL and Delta sources', 'Bitemporal ingest log; restatements never overwrite', 'Resolution rules, calendars and quality contracts', 'Content-addressed pins sharing fragments across months', 'Feature sets downloaded tabular or wide, with cascade pins']),
-      ('calculator', 'Models', ['Formula IR from LaTeX or a lifted Python function', 'Declared black boxes and composite models', 'Specification documents bound to the IR hash', 'Sandboxed artifact validation and conformance tests', 'Mathematical diffs between versions']),
+      ('calculator', 'Models', ['Formula IR from LaTeX, a lifted Python function, or an Excel workbook', 'Declared black boxes and composite models', 'Specification documents bound to the IR hash', 'Sandboxed artifact validation and conformance tests', 'Mathematical diffs between versions']),
       ('shield-check', 'Governance', ['Policies as data; checks that block by name', 'Separation of duties, break-glass, delegation, SLA escalation', 'Grants with row filters, column masks and expiry', 'Workspaces with shadow replay; approval is a merge', 'Licence algebra; hash-chained audit with external anchors']),
       ('hdd-stack', 'Platform', ['Python SDK — the only client, used by the UI itself', 'REST API with OpenAPI, CLI, API keys, OIDC SSO and TOTP', 'Durable event stream, SSE and signed webhooks', 'Prometheus metrics and W3C tracing end to end', 'SQLite or PostgreSQL from one setting; estate export/import']),
     ] %}
@@ -98,7 +98,8 @@
     <div class="card-body">
       <p class="small-muted">Stated so nobody has to discover them.</p>
       <ul class="cap-list">
-        <li>Not yet built: the assistant as recorded challenger, spreadsheet import, server-side table paging, SDK record/replay, performance benchmarks.</li>
+        <li>Not yet built: the assistant as recorded challenger, server-side table paging, SDK record/replay, performance benchmarks.</li>
+        <li>Spreadsheet import lifts a deliberately narrow slice of Excel and refuses the rest by cell.</li>
         <li>SAML is refused at startup; OIDC SSO and TOTP are shipped. WebAuthn is not built.</li>
         <li>The strong sandbox tier is Linux-only; macOS runs at moderate, Windows at minimal.</li>
         <li>Search is a <code>LIKE</code> scan, not full-text search.</li>

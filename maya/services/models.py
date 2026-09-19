@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 
 from maya.core import djson
-from maya.core.errors import ConflictError, NotApproved, ValidationFailed
+from maya.core.errors import ConflictError, NotApproved, NotFound, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
 from maya.core.typeset import render_pdf
 from maya.formula import composite as comp
@@ -126,6 +126,45 @@ class ModelService:
         if python_source:
             return lift_python(python_source)
         return ir
+
+    # -- spreadsheets (§29.9) ------------------------------------------------------------
+    @staticmethod
+    def lift_workbook(data: bytes, *, output: str | None = None,
+                      roles: dict[str, str] | None = None,
+                      filename: str = "workbook.xlsx") -> dict[str, Any]:
+        """Preview: the IR a workbook lifts to, with its report. Nothing is stored."""
+        from maya.formula.xlsx import lift_workbook
+        return lift_workbook(data, output=output, roles=roles, filename=filename)
+
+    def import_workbook(self, p: Principal, ref: str, data: bytes, *, output: str | None = None,
+                        roles: dict[str, str] | None = None, filename: str = "workbook.xlsx",
+                        expected_version: int | None = None) -> dict[str, Any]:
+        """Lift a workbook into the model's editable draft and keep the workbook itself.
+
+        The file is stored by hash (the IR records it), so the business keeps the workbook it
+        recognises while MAYA governs the structured version."""
+        ir = self.lift_workbook(data, output=output, roles=roles, filename=filename)
+        ir["lifted_from"]["workbook"]["blob"] = self.p.blobs.put(data)
+        row = self.update_draft(p, ref, ir=ir, expected_version=expected_version)
+        with self.p.uow(p.username) as uow:
+            uow.audit("model.workbook_imported", object_type="model", object_ref=ref,
+                      detail={"filename": filename, "sha256": ir["lifted_from"]["workbook"]["sha256"],
+                              "output": ir["lifted_from"]["workbook"]["output"],
+                              "check": ir["lifted_from"]["workbook"]["check"]["status"]})
+        return {**row, "workbook": ir["lifted_from"]["workbook"]}
+
+    def workbook(self, p: Principal, ref: str, version_no: int) -> dict[str, Any]:
+        """The original workbook a version was lifted from."""
+        with self.p.uow() as uow:
+            model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
+            self.p.access.require(uow, p, "read", "model", model)
+            v = catalog.version_of(uow, "model_versions", "model_id", model, version_no)
+        wb = ((v["formula_ir"] or {}).get("lifted_from") or {}).get("workbook")
+        if not wb or not wb.get("blob"):
+            raise NotFound(f"{ref} v{version_no} was not lifted from a workbook")
+        return {"data": self.p.blobs.get(wb["blob"]), "filename": wb["filename"],
+                "content_type": "application/vnd.openxmlformats-officedocument."
+                                "spreadsheetml.sheet"}
 
     def _version_fields(self, ir: dict[str, Any], name: str, author: str,
                         spec: str | None = None) -> dict[str, Any]:
@@ -378,6 +417,10 @@ class ModelService:
             errors = comp.validate_composite(ir["composite"])
         else:
             errors = irmod.validate_ir(ir)
+        check = ((ir.get("lifted_from") or {}).get("workbook") or {}).get("check") or {}
+        if check.get("status") == "disagreed":
+            errors.append("the lifted formula disagrees with the workbook's own results: "
+                          + check["statement"])
         return (not errors, "; ".join(errors) or "IR validates and typechecks")
 
     def check_spec(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:

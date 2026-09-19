@@ -64,13 +64,57 @@ async def new_model(request: Request) -> Any:
 @action
 async def create_model(request: Request) -> Any:
     data = await form(request)
+    upload = data.get("workbook") if data.get("authoring") == "workbook" else None
+    workbook = await upload.read() if upload is not None and hasattr(upload, "read") else b""
+    if data.get("authoring") == "workbook" and not workbook:
+        flash(request, "Choose an .xlsx workbook to lift.", "danger")
+        return RedirectResponse("/models/new", status_code=303)
+    ref = f"{data['namespace']}/{data['name']}"
     async with client(request) as sdk:
         await sdk.models.create(data["namespace"], data["name"], kind=data.get("kind", "formula"),
                                 description=data.get("description", ""), **_source_fields(data),
                                 vendor=parse_json(data.get("vendor"), "Vendor details", {}))
+        if workbook:
+            out = await sdk.models.import_workbook(
+                ref, workbook, output=data.get("workbook_output") or None,
+                roles=_roles(data.get("workbook_roles", "")), filename=upload.filename)
+            check = out["workbook"]["check"]
+            flash(request, f"Model created from {upload.filename}. {check['statement']}",
+                  "danger" if check["status"] == "disagreed" else
+                  "warning" if check["status"] == "unchecked" else "success")
+            return RedirectResponse(f"/models/{ref}?tab=definition", status_code=303)
     flash(request, "Model created as draft v1 with a firm-standard specification document.",
           "success")
     return RedirectResponse(f"/models/{data['namespace']}/{data['name']}", status_code=303)
+
+
+@router.post("/models/{ns}/{name}/workbook")
+@action
+async def import_workbook(request: Request, ns: str, name: str) -> Any:
+    data = await form(request)
+    upload = data.get("workbook")
+    workbook = await upload.read() if upload is not None and hasattr(upload, "read") else b""
+    if not workbook:
+        flash(request, "Choose an .xlsx workbook to lift.", "danger")
+        return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
+    async with client(request) as sdk:
+        out = await sdk.models.import_workbook(f"{ns}/{name}", workbook,
+                                               output=data.get("workbook_output") or None,
+                                               roles=_roles(data.get("workbook_roles", "")),
+                                               filename=upload.filename)
+    check = out["workbook"]["check"]
+    flash(request, f"Lifted {upload.filename}. {check['statement']}",
+          "danger" if check["status"] == "disagreed" else
+          "warning" if check["status"] == "unchecked" else "success")
+    return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
+
+
+@router.get("/models/{ns}/{name}/versions/{version_no}/workbook.xlsx")
+@page
+async def workbook_download(request: Request, ns: str, name: str, version_no: int) -> Any:
+    async with client(request) as sdk:
+        result = await sdk.models.workbook(f"{ns}/{name}", version_no)
+    return download(result, f"{name}-v{version_no}.xlsx")
 
 
 @router.get("/models/{ns}/{name}")

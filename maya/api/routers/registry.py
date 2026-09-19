@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import Response
 
 from maya.api import schemas as s
@@ -51,6 +51,49 @@ def upload_artifact(namespace: str, name: str, body: s.ArtifactIn, me: Principal
                     plat: Any = Plat) -> Response:
     return ok(plat.models.upload_artifact(me, ref_of("model", namespace, name), body.source,
                                           sample=body.sample, params=body.params), 202)
+
+
+def _roles_form(roles: str) -> dict[str, str]:
+    import json
+
+    from maya.core.errors import ValidationFailed
+    try:
+        out = json.loads(roles or "{}")
+    except json.JSONDecodeError as exc:
+        raise ValidationFailed(f"roles is not valid JSON: {exc}") from exc
+    if not isinstance(out, dict):
+        raise ValidationFailed("roles is a JSON object of input name to role")
+    return out
+
+
+@router.post("/models/workbook/lift", tags=["models"])
+async def lift_workbook(file: UploadFile = File(...), output: str = Form(""),
+                        roles: str = Form("{}"), me: Principal = Me, plat: Any = Plat) -> Response:
+    """Preview the formula IR an Excel workbook lifts to (§29.9). Nothing is stored."""
+    data = await file.read()
+    return ok(await asyncio.to_thread(plat.models.lift_workbook, data, output=output or None,
+                                      roles=_roles_form(roles),
+                                      filename=file.filename or "workbook.xlsx"))
+
+
+@router.post("/models/{namespace}/{name}/workbook", tags=["models"])
+async def import_workbook(namespace: str, name: str, file: UploadFile = File(...),
+                          output: str = Form(""), roles: str = Form("{}"), me: Principal = Me,
+                          plat: Any = Plat) -> Response:
+    """Lift a workbook into the model's editable draft, keeping the workbook itself."""
+    data = await file.read()
+    return ok(await asyncio.to_thread(
+        plat.models.import_workbook, me, ref_of("model", namespace, name), data,
+        output=output or None, roles=_roles_form(roles),
+        filename=file.filename or "workbook.xlsx"))
+
+
+@router.get("/models/{namespace}/{name}/versions/{version_no}/workbook.xlsx", tags=["models"])
+def workbook(namespace: str, name: str, version_no: int, me: Principal = Me,
+             plat: Any = Plat) -> Response:
+    out = plat.models.workbook(me, ref_of("model", namespace, name), version_no)
+    return Response(out["data"], media_type=out["content_type"],
+                    headers={"Content-Disposition": f'attachment; filename="{out["filename"]}"'})
 
 
 @router.post("/models/{namespace}/{name}/versions/{version_no}/render", tags=["models"])

@@ -190,6 +190,32 @@ def model_push(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def model_import_workbook(args: argparse.Namespace) -> int:
+    """Lift an Excel workbook into the model's draft (or only preview the lift)."""
+    roles = {}
+    for pair in args.role or []:
+        name, _, role = pair.partition("=")
+        roles[name.strip()] = role.strip() or "feature"
+    data = Path(args.file).read_bytes()
+    c = _client(args)
+    if args.preview:
+        result = c.models.lift_workbook(data, output=args.output, roles=roles,
+                                        filename=Path(args.file).name)
+        report = result["lifted_from"]["workbook"]
+    else:
+        result = c.models.import_workbook(args.ref, data, output=args.output, roles=roles,
+                                          filename=Path(args.file).name)
+        report = result["workbook"]
+
+    def human(_: Any) -> str:
+        lines = [f"output {report['output']}; {len(report['cells'])} cells named",
+                 report["check"]["statement"]]
+        lines += [f"warning: {w}" for w in report["warnings"]]
+        return "\n".join(lines)
+    _out(args, result, human)
+    return EXIT_OK if report["check"]["status"] != "disagreed" else EXIT_REFUSED
+
+
 def model_diff(args: argparse.Namespace) -> int:
     result = _client(args).models.diff(args.ref, args.v1, args.v2)
     _out(args, result, lambda r: "\n".join(f"- {s}" for s in r["statements"]) or "no change")
@@ -294,6 +320,9 @@ def _parser() -> argparse.ArgumentParser:
 
     m = groups.add_parser("model").add_subparsers(dest="cmd", required=True)
     cmd(m, "push", model_push, (("ref",), {}), (("file",), {}))
+    cmd(m, "import-workbook", model_import_workbook, (("ref",), {}), (("file",), {}),
+        (("--output",), {}), (("--role",), {"action": "append"}),
+        (("--preview",), {"action": "store_true"}))
     cmd(m, "diff", model_diff, (("ref",), {}), (("v1",), {"type": int}), (("v2",), {"type": int}))
 
     w = groups.add_parser("warrant").add_subparsers(dest="cmd", required=True)

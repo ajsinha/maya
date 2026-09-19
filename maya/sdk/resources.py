@@ -11,6 +11,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import json
 from typing import Any, Callable
 
 from maya.sdk.transport import Call, seg, split_ref
@@ -437,6 +438,27 @@ class Models(_Resource):
                         params: dict[str, Any] | None = None) -> Any:
         return self._c("POST", f"/models/{_nn(ref, 'model')}/artifact",
                        json_body={"source": source, "sample": sample, "params": params})
+
+    @endpoint("POST", "/models/workbook/lift")
+    def lift_workbook(self, data: bytes, output: str | None = None,
+                      roles: dict[str, str] | None = None,
+                      filename: str = "workbook.xlsx") -> Any:
+        """Preview the IR an .xlsx lifts to, with its check against the workbook's results."""
+        return self._c("POST", "/models/workbook/lift", files=_files(data, filename),
+                       data={"output": output or "", "roles": json.dumps(roles or {})})
+
+    @endpoint("POST", "/models/{namespace}/{name}/workbook")
+    def import_workbook(self, ref: str, data: bytes, output: str | None = None,
+                        roles: dict[str, str] | None = None,
+                        filename: str = "workbook.xlsx") -> Any:
+        return self._c("POST", f"/models/{_nn(ref, 'model')}/workbook",
+                       files=_files(data, filename),
+                       data={"output": output or "", "roles": json.dumps(roles or {})})
+
+    @endpoint("GET", "/models/{namespace}/{name}/versions/{version_no}/workbook.xlsx")
+    def workbook(self, ref: str, version_no: int) -> Any:
+        return self._c("GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}"
+                              "/workbook.xlsx", raw=True)
 
     @endpoint("POST", "/models/{namespace}/{name}/versions/{version_no}/render")
     def render_spec(self, ref: str, version_no: int) -> Any:

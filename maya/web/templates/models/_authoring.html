@@ -3,7 +3,22 @@
 <select class="form-select mb-2" id="authoring" name="authoring" data-toggle-show="auth" style="max-width:420px">
   <option value="formula">Formula text (Python-ish or LaTeX-lite)</option>
   <option value="python">Lift from a Python function</option>
-  <option value="ir">Formula IR JSON (black box, composite, vendor)</option></select>
+  <option value="ir">Formula IR JSON (black box, composite, vendor)</option>
+  {% if allow_workbook %}<option value="workbook">Lift from an Excel workbook (.xlsx)</option>{% endif %}</select>
+{% if allow_workbook %}
+<div data-show-group="auth" data-show-when="workbook">
+  <div class="row g-2">
+    <div class="col-md-5"><label class="form-label" for="wbfile">Workbook (.xlsx)</label>
+      <input class="form-control" type="file" id="wbfile" name="workbook" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div>
+    <div class="col-md-3"><label class="form-label" for="wbout">Output cell or name</label>
+      <input class="form-control mono" id="wbout" name="workbook_output" placeholder="Model!B7 — blank: the one final cell"></div>
+    <div class="col-md-4"><label class="form-label" for="wbroles">Input roles (one "name: role" per line)</label>
+      <textarea class="form-control mono" id="wbroles" name="workbook_roles" rows="2" placeholder="rate: parameter
+days_per_year: constant"></textarea></div>
+  </div>
+  <div class="small-muted mt-1">Arithmetic, standard functions, named ranges and simple lookups are lifted; anything else is refused by cell. The lift is checked against the workbook's own cached results. <a href="/help/models">How it works</a>.</div>
+</div>
+{% endif %}
 <div data-show-group="auth" data-show-when="formula">
   <label class="form-label" for="formula">Formula — lets first, the output last</label>
   <textarea class="form-control mono" id="formula" name="formula" rows="6" placeholder="d1 = (log(S/K) + (r + sigma^2/2)*T) / (sigma*sqrt(T))
