@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 2a0c273516c13d02a4840caabd1ed45218425ee3aa1e1317f040262da35fe00d
+-- schema-hash: 275be2a45926b3a9c31a93f8f258f3c75239cf1bf1b7c48d2a240f7f2552ec0d
 -- ==========================================================================
 
 CREATE TABLE approvals (
@@ -311,6 +311,22 @@ CREATE TABLE schema_meta (
 	key VARCHAR(64) NOT NULL, 
 	value TEXT NOT NULL, 
 	CONSTRAINT pk_schema_meta PRIMARY KEY (key)
+);
+
+CREATE TABLE sql_connections (
+	name VARCHAR(128) NOT NULL, 
+	url VARCHAR(1024) NOT NULL, 
+	password_env VARCHAR(128), 
+	description TEXT, 
+	options JSONB NOT NULL, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_sql_connections PRIMARY KEY (id), 
+	CONSTRAINT uq_sql_connections_name UNIQUE (name)
 );
 
 CREATE TABLE subscriptions (

@@ -27,8 +27,8 @@ import httpx
 
 from maya.core.errors import MayaError, ValidationFailed
 from maya.sdk.resources import (Access, Admin, Auth, ExecutionWarrants, Features, FeatureSets,
-                                Jobs, Models, Namespaces, TrainingWarrants, Workflow,
-                                Workspaces)
+                                Jobs, Models, Namespaces, Sources, TrainingWarrants,
+                                Workflow, Workspaces)
 from maya.sdk.transport import AsyncTransport, SyncTransport
 
 API_PREFIX = "/api/v1"
@@ -49,6 +49,7 @@ class _Namespaces:
         self.workflow = Workflow(transport)
         self.jobs = Jobs(transport)
         self.workspaces = Workspaces(transport)
+        self.sources = Sources(transport)
 
 
 class Client(_Namespaces):

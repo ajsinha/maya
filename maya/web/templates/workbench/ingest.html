@@ -3,6 +3,16 @@
 {% block content %}
 <h1>Ingest data — {{ f.name }}</h1>
 <p class="lead-slate">An ingest is a knowledge-time batch. Uploading values for keys that already exist is a <strong>restatement</strong>: it appends; the earlier values stay resolvable as of any earlier knowledge instant.</p>
+{% set src = (f.versions[0].definition.source if f.versions else {}) or {} %}
+{% if src.type == 'sql' %}
+<form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/pull" class="card card-body mb-3" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2 class="h5">Pull from the SQL source</h2>
+  <p class="small-muted mb-2">Runs the reviewed query read-only on connection <span class="mono">{{ src.connection }}</span> and appends the rows as a knowledge-time batch.</p>
+  <pre class="mono small mb-2">{{ src.query }}</pre>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-database-down" aria-hidden="true"></i> Pull now</button>
+</form>
+{% endif %}
 <form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest" enctype="multipart/form-data" class="card card-body" style="max-width:720px">
   <input type="hidden" name="csrf_token" value="{{ csrf }}">
   <div class="mb-2"><label class="form-label" for="file">File</label><input class="form-control" id="file" name="file" type="file" required></div>

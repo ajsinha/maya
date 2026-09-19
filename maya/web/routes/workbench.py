@@ -99,6 +99,10 @@ def definition_from_form(data: Any) -> dict[str, Any]:
         source["knowledge_time_column"] = data["knowledge_time_column"].strip()
     if source["type"] == "delta":
         source["path"] = data.get("delta_path", "").strip()
+    if source["type"] == "sql":
+        source.update(connection=data.get("sql_connection", "").strip(),
+                      query=data.get("sql_query", "").strip(),
+                      params=parse_json(data.get("sql_params"), "SQL parameters", {}) or {})
     if mode == "derived":
         operands = [o.strip() for o in data.get("operands", "").splitlines() if o.strip()]
         source = {"type": "derived", "derivation": {
@@ -207,6 +211,17 @@ async def ingest(request: Request, ns: str, name: str) -> Any:
 
 
 # -- upload wizard ------------------------------------------------------------------------
+@router.post("/workbench/features/{ns}/{name}/pull")
+@action
+async def pull(request: Request, ns: str, name: str) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.features.pull(f"{ns}/{name}")
+    flash(request, f"Pulled {out['rows']} row(s) from the source"
+                   + (" — a restatement: earlier values stay resolvable as of earlier knowledge"
+                      if out["restatement"] else "."), "success")
+    return RedirectResponse(f"/workbench/features/{ns}/{name}/ingest", status_code=303)
+
+
 @router.get("/workbench/upload")
 @page
 async def upload_page(request: Request) -> Any:

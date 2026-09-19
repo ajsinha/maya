@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Sources{% endblock %}
+{% block content %}
+<h1>SQL source connections</h1>
+<p class="lead-slate">Features whose source is <code>sql</code> name one of these. Every query runs as one reviewed SELECT with bound parameters over a connection opened read-only by the driver. MAYA never stores a database password: a connection names the environment variable that holds it on this server.</p>
+{% call(c) table("sources", ["Name", "URL", "Password from", "Description", "!Actions"], rows, empty="No connections yet. Add one below.") %}
+  <td class="mono">{{ c.name }}</td><td class="mono small">{{ c.url }}</td><td class="mono">{{ c.password_env or '—' }}</td><td>{{ c.description or '' }}</td>
+  <td class="d-flex gap-1"><form method="post" action="/admin/sources/{{ c.name }}/test"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit">Test</button></form>
+  <form method="post" action="/admin/sources/{{ c.name }}/delete"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Delete</button></form></td>
+{% endcall %}
+<form method="post" action="/admin/sources" class="card card-body mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2 class="h5">Add a connection</h2>
+  <div class="row g-2">
+    <div class="col-md-2"><label class="form-label" for="cn">Name</label><input class="form-control" id="cn" name="name" required></div>
+    <div class="col-md-5"><label class="form-label" for="cu">URL (no password)</label><input class="form-control mono" id="cu" name="url" required placeholder="postgresql+psycopg://reader@warehouse:5432/market"></div>
+    <div class="col-md-2"><label class="form-label" for="cp">Password env var</label><input class="form-control mono" id="cp" name="password_env" placeholder="WAREHOUSE_PASSWORD"></div>
+    <div class="col-md-3"><label class="form-label" for="cd">Description</label><input class="form-control" id="cd" name="description"></div>
+  </div>
+  <button class="btn btn-primary mt-2" type="submit">Save connection</button>
+</form>
+{% endblock %}

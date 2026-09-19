@@ -98,6 +98,36 @@ async def ingest_feature(namespace: str, name: str, file: UploadFile = File(...)
     return ok(result, 201)
 
 
+@router.post("/features/{namespace}/{name}/pull", tags=["features"], status_code=201)
+async def pull_feature(namespace: str, name: str, body: s.PullIn, me: Principal = Me,
+                       plat: Any = Plat) -> Response:
+    """Snapshot an sql-sourced feature's reviewed query into its ingest log."""
+    kt = parse_instant(body.knowledge_time, "knowledge_time")
+    return ok(await asyncio.to_thread(plat.sources.pull, me, ref_of("feature", namespace, name),
+                                      knowledge_time=kt), 201)
+
+
+@router.get("/sql-connections", tags=["sources"])
+def connections(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.sources.list())
+
+
+@router.post("/sql-connections", tags=["sources"], status_code=201)
+def create_connection(body: s.ConnectionIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.sources.create(me, **body.model_dump()), 201)
+
+
+@router.delete("/sql-connections/{name}", tags=["sources"])
+def delete_connection(name: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    plat.sources.delete(me, name)
+    return ok({"ok": True})
+
+
+@router.post("/sql-connections/{name}/test", tags=["sources"])
+async def test_connection(name: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(await asyncio.to_thread(plat.sources.test, me, name))
+
+
 @router.post("/features/{namespace}/{name}/versions/{version_no}/transitions/{transition}",
              tags=["features"])
 def feature_transition(namespace: str, name: str, version_no: int, transition: str,

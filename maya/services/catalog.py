@@ -21,10 +21,8 @@ from maya.resolution.rules import parse_rule
 from maya.resolution.types import parse_type
 from maya.services import refs
 
-SUPPORTED_SOURCES = ("csv", "parquet", "json", "delta", "derived")
+SUPPORTED_SOURCES = ("csv", "parquet", "json", "sql", "delta", "derived")
 DECLARED_UNSUPPORTED = {
-    "sql": "the 'sql' source driver is declared in §5.2 but not shipped in this build; "
-           "export the query result to Parquet and upload it",
     "python": "the 'python' source driver (sandboxed transform) is not shipped in this build",
 }
 APPROVED_STATES = ("approved", "published")
@@ -211,6 +209,9 @@ def validate_feature_definition(d: dict[str, Any], *, production: bool = False) 
         errors.append(DECLARED_UNSUPPORTED[src])
     elif src not in SUPPORTED_SOURCES:
         errors.append(f"source.type must be one of {', '.join(SUPPORTED_SOURCES)}")
+    elif src == "sql":
+        from maya.services.sources import validate_sql_source
+        errors += validate_sql_source(d.get("source") or {})
     if src != "derived":
         errors += _validate_index(index, index_types)
     errors += _validate_schema(schema, index)
