@@ -1,12 +1,22 @@
 <p align="center">
-  <img src="assets/logo/maya-lockup.svg" alt="MAYA" height="72">
+  <img src="assets/logo/maya-lockup.svg" alt="MAYA — Model &amp; AI Lifecycle Assurance" width="100%">
 </p>
 
-# MAYA — Model &amp; AI Lifecycle Assurance
+<h1 align="center">MAYA</h1>
 
-## © 2026 Ashutosh Sinha
+<h3 align="center">Model &amp; AI Lifecycle Assurance</h3>
 
-> ### *Evidence, not assertion.*
+<p align="center"><strong><em>Evidence, not assertion.</em></strong></p>
+
+<p align="center">
+  <a href="#status--read-this-first">Status</a> ·
+  <a href="#the-name">The name</a> ·
+  <a href="#what-makes-it-different">What makes it different</a> ·
+  <a href="#getting-started">Getting started</a> ·
+  <a href="docs/MAYA_Requirements_and_Design.md">Specification</a>
+</p>
+
+---
 
 **MAYA** is the system of record for quantitative **features**, **feature sets**, **models**, and the **warrants** that license a model to be trained or run. Definition, data, documentation, approval and evidence live in one place, so any number a model produced can be rebuilt exactly, years later, by someone who was not there.
 
@@ -23,6 +33,47 @@ The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes
 [![Implementation](https://img.shields.io/badge/implementation-v0.1.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
+
+---
+
+## The name
+
+**māyā** (माया) — in Indian philosophy, *māyā* is **appearance**: the representation that stands in
+for reality and is so easily mistaken for it. The usual translation, "illusion", is too strong. Māyā
+is not falsehood. It is a *rendering* of the world — useful, often necessary, and dangerous only when
+you forget that it is a rendering.
+
+That is exactly what a model is. The supervisory guidance says so in almost the same words:
+
+> *"Models are simplified representations of real-world relationships… based on assumptions that make
+> them useful in estimating values and predicting events, but which also can have limitations and
+> create model risk."*
+> — SR 26-2, §III
+
+Model risk is what happens when an organisation forgets the difference between the map and the
+territory. The platform is named for the thing it governs, and for the discipline of never mistaking
+it for the world.
+
+| | |
+|---|---|
+| **Name** | MAYA — from Sanskrit *māyā* (माया), *appearance*, *representation* |
+| **Tagline** | Model & AI Lifecycle Assurance |
+| **Slogan** | **Evidence, not assertion.** |
+| **Principle** | A model is a representation of the world. Governance is knowing the difference. |
+
+### The mark
+
+![The MAYA mark — a square inscribed in a circle](assets/logo/maya-mark-128.png)
+
+A **square inscribed in a circle** — the oldest model there is. Archimedes estimated π by inscribing
+and circumscribing polygons and tightening the bound as the sides multiplied: a tractable figure
+standing in for one that cannot be computed directly.
+
+The **gap** between the square and the circle is the model error. The **four points** are where the
+model and the world agree. Add sides and the gap closes but never vanishes — no model becomes the
+thing it represents.
+
+That is māyā, and it is model risk, in one figure.
 
 ---
 
@@ -146,7 +197,7 @@ Four risks have no clean fix and are accepted with mitigation rather than waved 
 
 ---
 
-## Intended stack
+## Stack
 
 | Concern | Choice | Why |
 |---|---|---|
