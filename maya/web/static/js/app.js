@@ -53,6 +53,16 @@
     });
   });
 
+  // Help examples: copy the code block beside the button.
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var code = btn.closest('figure').querySelector('pre');
+      var done = function () { btn.innerHTML = '<i class="bi bi-check2"></i> Copied'; setTimeout(function () {
+        btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 1500); };
+      if (navigator.clipboard) { navigator.clipboard.writeText(code.innerText).then(done, function () {}); }
+    });
+  });
+
   document.addEventListener('keydown', function (ev) {
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') {
       var s = document.getElementById('global-search');

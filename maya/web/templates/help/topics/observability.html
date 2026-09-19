@@ -1,0 +1,106 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Useful with nothing installed') %}
+<p>MAYA publishes Prometheus metrics and W3C trace context without adding a dependency. Every request
+gets a trace id: taken from the caller's <code>traceparent</code> header, or created when it is absent.
+That id is returned on the response and written into every log line, audit entry and job the request
+causes. Exporting <em>spans</em> is the one optional part: it needs the OpenTelemetry SDK and an OTLP
+endpoint. Without them, trace ids still propagate, and the health page says spans are not exported.
+A dashboard never stays silently empty.</p>
+{% endcall %}
+
+{{ cards([
+  ('graph-up', 'Metrics', 'Prometheus text format on /metrics. Counters and histograms update live; gauges are read at scrape time.'),
+  ('link-45deg', 'Trace context', 'traceparent in, traceparent out, the same id in logs, audit, jobs and events.'),
+  ('speedometer2', 'Health', '/healthz (alive), /readyz (ready to serve), and Admin → System health.'),
+]) }}
+
+{% call step(1, 'Scrape the metrics') %}
+<p>The endpoint is <code>/metrics</code> at the server root, beside <code>/healthz</code> and
+<code>/readyz</code>. To protect it, name an <em>environment variable</em> that holds a bearer token.
+The token itself never goes in the configuration file.</p>
+{% call example('config/application.yaml', 'yaml') %}
+observability:
+  metrics:
+    token_env: MAYA_METRICS_TOKEN     # empty: /metrics is open
+{% endcall %}
+{% call example('prometheus.yml', 'yaml') %}
+scrape_configs:
+  - job_name: maya
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/maya-token
+    static_configs:
+      - targets: ["maya.internal:8600"]
+{% endcall %}
+{% call example('Check it by hand', 'bash') %}
+curl -s -H "Authorization: Bearer $MAYA_METRICS_TOKEN" http://localhost:8600/metrics | head
+curl -s http://localhost:8600/readyz
+{% endcall %}
+{% call warn('A token variable that is not set locks the endpoint') %}
+<p>If <code>token_env</code> names a variable that is not set on the server, every scrape gets
+<code>401</code>. MAYA fails closed rather than falling back to an open endpoint.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Know what is measured') %}
+{{ fields([
+  ('maya_http_requests_total', 'requests by method, route template and status'),
+  ('maya_http_request_duration_seconds', 'request latency histogram, by method and route'),
+  ('maya_job_runs_total · maya_job_duration_seconds', 'jobs finished by type and outcome, and their run time'),
+  ('maya_pins_sealed_total · maya_pin_new_bytes_total', 'pins sealed by kind, and new fragment bytes they wrote'),
+  ('maya_authz_denials_total', 'authorization denials, by action'),
+  ('maya_audit_events_total · maya_events_total', 'audit entries appended; events emitted by type'),
+  ('maya_webhook_deliveries_total · maya_webhook_backlog', 'delivery attempts by outcome; waiting deliveries by state'),
+  ('maya_jobs · maya_sessions_active', 'jobs by state and live sessions, read at scrape time'),
+  ('maya_seam_backend · maya_sandbox_tier · maya_build_info', 'which backend each dependency seam resolved to, the verified sandbox tier, the running version'),
+]) }}
+{% call tip('Routes are templates, not URLs') %}
+<p><code>route</code> labels carry the route template (<code>/api/v1/features/{namespace}/{name}</code>),
+never the concrete path, so a busy catalog cannot explode the series count.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Follow one request end to end') %}
+<p>Send your own <code>traceparent</code> and MAYA continues your trace. The SDK forwards the current
+trace context when it is called inside one — that is how a page in the web UI, the API call behind it
+and the jobs it queues share one trace id.</p>
+{% call example('Continue a trace from outside', 'bash') %}
+curl -si http://localhost:8600/api/v1/features \
+     -H "Authorization: Bearer $MAYA_API_KEY" \
+     -H "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" | grep -i traceparent
+# traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-<new span id>-01
+{% endcall %}
+<p>The response also carries <code>X-Request-Id</code>: the caller's <code>X-Request-Id</code> when one
+was sent, otherwise the trace id. Audit entries record the trace id as their request id, and jobs carry
+it too, so searching for the trace id finds everything the request caused.</p>
+{% endcall %}
+
+{% call step(4, 'Export spans (optional)') %}
+<p>Install the OpenTelemetry SDK and exporter, and point MAYA at a collector over OTLP/HTTP.</p>
+{% call example('Enable export', 'bash') %}
+pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+export MAYA_OTLP_ENDPOINT=http://collector:4318/v1/traces
+python run_maya_web.py
+{% endcall %}
+{% call example('config/application.yaml', 'yaml') %}
+observability:
+  otlp:
+    endpoint: "${MAYA_OTLP_ENDPOINT:}"
+logging:
+  level: INFO
+  format: json        # text | json — json lines carry trace_id and span_id
+{% endcall %}
+<p>{{ screen('/admin/health', 'Admin → System health') }} states whether spans are being exported, and
+why not when they are not.</p>
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('broadcast-pin', 'Events and webhooks', 'The durable event stream, which also carries trace ids.'),
+  ('journal-text', 'Audit and custody', 'Every audit entry records the trace id of the request that wrote it.'),
+  ('sliders', 'Configuration', 'How settings, environment variables and flags combine.'),
+]) }}
+{% endblock %}

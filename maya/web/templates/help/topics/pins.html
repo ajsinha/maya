@@ -1,0 +1,114 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A version freezes how; a pin freezes what') %}
+<p>An approved <strong>version</strong> says <em>how</em> a number is produced. Resolving it tomorrow can
+still return different rows: a vendor restates, a late file lands. A <strong>pin</strong> removes that
+doubt. MAYA resolves the version as of a date, runs its quality contract, writes the result as
+content-addressed <strong>fragments</strong>, re-reads them to verify the hash, and <strong>seals</strong>
+the pin. From then on its reference names the same bytes forever.</p>
+{% endcall %}
+
+{{ cards([
+  ('pin-angle', 'Named and dated', 'A pin lives in a named series (eom, q1, daily) at an as-of date: maya://feature/eq/prices#eom/2026-01-31.'),
+  ('hash', 'Content addressed', 'Rows are cut into fragments named by their hash. Identical fragments are stored once, across pins and versions.'),
+  ('shield-check', 'Quality gated', 'A failing quality check blocks the pin. It never warns and seals anyway.'),
+]) }}
+
+<h2>Reading a pin reference</h2>
+{{ fields([
+  ('maya://feature/eq/prices@v3', 'version 3: resolved live every time you read it'),
+  ('maya://feature/eq/prices#eom/2026-01-31', 'the sealed pin in the eom series at 31 January 2026'),
+  ('maya://feature/eq/prices#eom', 'the latest sealed pin in the eom series'),
+  ('maya://featureset/eq/panel#q1/2026-03-31', 'a feature-set pin; its members are pins too'),
+]) }}
+
+{% call step(1, 'Approve the version first') %}
+<p>Only an approved (or published) version can be pinned. Pinning a draft is refused with the version's
+current state named. See <a href="/help/workflow">Workflow and policies</a>.</p>
+{% endcall %}
+
+{% call step(2, 'Request the pin') %}
+<p>From the feature's <strong>Pins</strong> tab ({{ screen('/catalog/features', 'Catalog → Features') }}), or
+from a script. Name the series, the as-of date, and optionally the knowledge time to resolve at; left
+out, it defaults to now and the pin's provenance records that it was defaulted.</p>
+{% call example('Command line', 'bash') %}
+python -m maya.cli feature pin eq/prices --version 3 --name eom --as-of 2026-01-31
+#   40% resolving …
+#  100% sealed
+# sealed 9f2c…e1 (2,480 rows, 18,432 new bytes)
+{% endcall %}
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+out = my.features.pin("eq/prices", version_no=3, pin_name="eom", as_of="2026-01-31",
+                      as_of_known="2026-02-01T08:00:00Z",   # what was known then
+                      idempotency_key="eom-2026-01")        # safe to retry
+if out["job"]:
+    job = my.wait(out["job"])
+    print(job["result"]["content_hash"], job["result"]["bytes_new"])
+else:
+    print("requested — awaiting a pin authorizer")
+{% endcall %}
+{% call tip('Who can pin directly') %}
+<p>Someone holding the pin capability starts the job at once (state <code>materializing</code>). Anyone
+else's request waits in state <code>requested</code> until a pin authorizer approves it
+(<code>my.features.approve_pin(pin_id)</code>). In your <code>scratch.&lt;you&gt;</code> namespace you
+always pin directly.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'What the pin job does') %}
+<ol>
+  <li>Resolves the version as of the date and the knowledge time, recording a fill report.</li>
+  <li>Runs the quality contract (<code>not_null</code>, <code>range</code>, <code>unique_on_index</code>,
+    <code>freshness_within</code> …). Any failure marks the pin <code>failed</code> and stops.</li>
+  <li>Cuts the rows into content-defined fragments and writes only the ones not already stored.</li>
+  <li>Re-reads the fragments and verifies the content hash before sealing.</li>
+  <li>Seals the pin, writes a <code>pin.sealed</code> audit entry and emits the event.</li>
+</ol>
+<p>It is a saga: a crash half-way leaves the pin <code>failed</code>, and its unreferenced fragments
+become reclaimable storage. It never leaves a half-sealed pin.</p>
+{% endcall %}
+
+{% call step(4, 'Use it') %}
+{% call example('Read and download a pin', 'python') %}
+ref = "maya://feature/eq/prices#eom/2026-01-31"
+preview = my.features.preview(ref)                 # rows, fill report, plan
+data = my.features.download(ref, format="parquet") # bytes plus a manifest
+{% endcall %}
+{% call example('Download from the command line', 'bash') %}
+python -m maya.cli feature download "maya://feature/eq/prices#eom/2026-01-31" \
+    --out prices-eom.parquet --format parquet
+{% endcall %}
+{% endcall %}
+
+<h2>Pin states</h2>
+{{ fields([
+  ('requested', 'waiting for a pin authorizer to approve the request'),
+  ('materializing', 'the pin job is resolving, checking and writing fragments'),
+  ('sealed', 'hashed, verified and immutable; readable by reference'),
+  ('failed', 'the quality contract or the write failed; the same series and date can be requested again'),
+  ('retired', 'withdrawn by an administrator, with a reason; the audit trail keeps it'),
+]) }}
+
+<h2>Why fragments</h2>
+<p>Consecutive month-end pins of a long history share almost all their rows. Fragment boundaries are
+content-defined, so an appended month changes only the fragments at the end; the rest are shared, and
+each new pin costs only its <code>bytes_new</code>. Fragment sizing is configured under
+<code>lake.fragment</code> in <code>config/application.yaml</code>
+(<code>target_rows</code>, <code>min_rows</code>, <code>max_rows</code>).</p>
+
+{% call warn('A pin series and date are unique') %}
+<p>Requesting <code>eom/2026-01-31</code> twice is a conflict unless the earlier attempt failed. To
+capture a restatement, pin again under a new date or series; never expect a pin to change.</p>
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('clock-history', 'Bitemporality', 'The as_of_known a pin resolves at, and why restatements append.'),
+  ('grid-3x3-gap', 'Feature sets', 'Pin a whole set at once with a cascade pin.'),
+  ('mortarboard', 'Training warrants', 'Warrants bind a model to a feature-set pin, never to live data.'),
+]) }}
+{% endblock %}

@@ -1,19 +1,93 @@
 {% extends "base.html" %}
-{% block title %}Concepts{% endblock %}
+{% block title %}Help{% endblock %}
 {% block content %}
-<h1>Concepts</h1>
-<div class="row g-3">
-<div class="col-lg-6"><div class="card card-body"><h2>Definition, version, pin</h2>
-<p>A <strong>definition</strong> is how a number is produced, editable while a draft. Submitting mints a <strong>version</strong>: immutable, identified by a definition hash; cosmetic edits do not mint one. A <strong>pin</strong> materializes a version: resolved, quality-checked, written as content-addressed fragments, hashed and sealed. A version freezes <em>how</em>; a pin freezes <em>what</em>. References: <code>maya://feature/ns/name@v3</code> (a version), <code>maya://feature/ns/name#eom/2026-03-31</code> (a pin in the <code>eom</code> series).</p></div></div>
-<div class="col-lg-6"><div class="card card-body"><h2>Bitemporality</h2>
-<p>Every row carries an <strong>event time</strong> (what the value is about) and a <strong>knowledge time</strong> (when MAYA could first have known it). A restatement is a new knowledge-time row, never an overwrite, so "what did we know on 31 March" stays answerable: resolve with <code>as_of_known</code>. Training warrants carry a signed <strong>leakage certificate</strong> proving no row used a value known after its event time.</p></div></div>
-<div class="col-lg-6"><div class="card card-body"><h2>Warrants</h2>
-<p>A <strong>training warrant</strong> binds a model version to a feature set pin; downloads are checksummed and a parameter upload must name the checksum it trained on, or it is flagged <code>unverified_data</code>. An <strong>execution warrant</strong> is a live licence to run: short-lived signed tokens, covenants whose breach suspends it, revocation that fails every consuming call closed. A <strong>bundle</strong> verifies offline, re-executing the model where it can and saying so where it cannot.</p></div></div>
-<div class="col-lg-6"><div class="card card-body"><h2>Workflow</h2>
-<p>One state machine: draft → in review → approved → published → deprecated → retired. Policies are data, edited in the UI, validated as they are edited and activated by a second administrator. Checks block transitions by name; segregation of duties stops you approving what you created; break-glass is loud and permanent. Your personal <code>scratch.&lt;you&gt;</code> namespace has no ceremony at all, and says so.</p></div></div>
-<div class="col-lg-6"><div class="card card-body"><h2>The table contract</h2>
-<p>Every table pages (25/50/100/250/All, remembered), searches across visible columns with highlighting, sorts the <em>whole</em> result set (shift-click for a second key), hides columns and exports the current view as CSV. Keyboard: focus a table and use PageUp/PageDown/Home/End.</p></div></div>
-<div class="col-lg-6"><div class="card card-body"><h2>The web UI is an SDK client</h2>
-<p>Every screen calls the public Python SDK with your own session token. Anything you can do here, a script can do with <code>maya.sdk</code>; see the API reference at <a href="/api/v1/docs">/api/v1/docs</a>.</p></div></div>
+<section class="help-hero">
+  <i class="bi bi-book hero-ico" aria-hidden="true"></i>
+  <h1>Help &amp; documentation</h1>
+  <p>Everything about MAYA, with worked examples. Search, or browse by category.</p>
+  <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+    <a class="btn btn-light" href="/help/getting-started"><i class="bi bi-flag" aria-hidden="true"></i> Getting started</a>
+    <a class="btn btn-outline-light" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About MAYA</a>
+    <a class="btn btn-outline-light" href="/api/v1/docs"><i class="bi bi-code-square" aria-hidden="true"></i> API reference</a>
+  </div>
+</section>
+
+<div class="help-toolbar">
+  <div class="help-search">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <label class="visually-hidden" for="help-q">Search help</label>
+    <input id="help-q" type="search" autocomplete="off" placeholder="Search help — e.g. pin, restatement, covenant, delegate, webhook…">
+  </div>
+  <div class="cat-chips">
+    {% for c in catalog %}<a class="chip" href="#cat-{{ c.id }}"><i class="bi bi-{{ c.icon }}" aria-hidden="true"></i> {{ c.name }} <span>{{ c.topics|length }}</span></a>{% endfor %}
+  </div>
 </div>
+
+{% for c in catalog %}
+<details class="help-cat" id="cat-{{ c.id }}" open>
+  <summary><span class="cat-name"><span class="cat-ico"><i class="bi bi-{{ c.icon }}" aria-hidden="true"></i></span> {{ c.name }}</span>
+    <span class="cat-count">{{ c.topics|length }}</span></summary>
+  <p class="cat-blurb">{{ c.blurb }}</p>
+  <div class="row g-3 cat-body">
+    {% for t in c.topics %}
+    <div class="col-md-6 col-xl-4 help-item" data-search="{{ (t.title ~ ' ' ~ t.summary ~ ' ' ~ c.name)|lower }}">
+      <a class="card help-card h-100" href="/help/{{ t.slug }}">
+        <div class="card-body">
+          <div class="hc-title"><span class="hc-ico"><i class="bi bi-{{ t.icon }}" aria-hidden="true"></i></span>
+            <span>{{ t.title }}{% if t.badge %} <span class="badge">{{ t.badge }}</span>{% endif %}</span></div>
+          <p>{{ t.summary }}</p>
+          <span class="more">Read more <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</details>
+{% endfor %}
+<div id="help-none" class="help-none" hidden><i class="bi bi-search" aria-hidden="true"></i> No help topic matches that search.</div>
+
+<section class="card mt-2">
+  <div class="card-header"><i class="bi bi-lightning" aria-hidden="true"></i> Quick reference</div>
+  <div class="card-body"><div class="row g-4">
+    <div class="col-md-4"><h3>Run it</h3>
+      <div class="small"><code>python run_maya_web.py</code><br>then open <code>http://localhost:8600</code></div>
+      <div class="small mt-2">First sign-in: <strong>admin</strong> / <code>maya-dev-admin</code> — you are made to change it.</div></div>
+    <div class="col-md-4"><h3>References</h3>
+      <div class="small"><code>maya://feature/ns/name@v3</code> — a version<br>
+        <code>maya://feature/ns/name#eom/2026-03-31</code> — a pin<br>
+        <code>maya://featureset/ns/name@v2</code> — a feature set version</div></div>
+    <div class="col-md-4"><h3>Script it</h3>
+      <div class="small"><code>import maya.sdk as maya</code><br>
+        <code>my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")</code><br>
+        Everything the UI does goes through that SDK. See <a href="/help/sdk">the SDK topic</a>.</div></div>
+  </div></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var box = document.getElementById('help-q');
+  var items = [].slice.call(document.querySelectorAll('.help-item'));
+  var cats = [].slice.call(document.querySelectorAll('.help-cat'));
+  var none = document.getElementById('help-none');
+  if (!box) return;
+  box.addEventListener('input', function () {
+    var q = box.value.trim().toLowerCase(), any = false;
+    items.forEach(function (it) {
+      var hit = !q || (it.getAttribute('data-search') || '').indexOf(q) !== -1;
+      it.hidden = !hit; if (hit) any = true;
+    });
+    cats.forEach(function (cat) {
+      var visible = [].some.call(cat.querySelectorAll('.help-item'), function (i) { return !i.hidden; });
+      cat.hidden = !visible; if (q) cat.open = true;
+    });
+    none.hidden = any;
+  });
+  document.querySelectorAll('.cat-chips .chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var el = document.querySelector(chip.getAttribute('href')); if (el) el.open = true;
+    });
+  });
+})();
+</script>
 {% endblock %}

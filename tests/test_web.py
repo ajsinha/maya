@@ -365,3 +365,28 @@ def test_policy_editor_saves_a_draft(env):
     new_id = r.json()["id"]
     page = client.get(f"/workflow/policies/{new_id}")
     assert page.status_code == 200 and "Activate (second administrator)" in page.text
+
+
+def test_help_catalog_and_topic_templates_agree():
+    """Every declared topic has a page, and every page is declared (one source of truth)."""
+    from maya.web.help_catalog import all_topics
+    declared = {t["slug"] for t in all_topics()}
+    on_disk = {p.stem for p in (TEMPLATES / "help" / "topics").glob("*.html")}
+    assert declared == on_disk, (sorted(declared - on_disk), sorted(on_disk - declared))
+    assert len(declared) == len(all_topics()), "a slug is declared twice"
+
+
+def test_help_and_about_render_signed_in_and_anonymously(env):
+    from starlette.testclient import TestClient
+    from maya.web.help_catalog import all_topics
+    _, app, client, _ = env
+    anon = TestClient(app)
+    paths = ["/help", "/about"] + [f"/help/{t['slug']}" for t in all_topics()]
+    for c, who in ((client, "signed in"), (anon, "anonymous")):
+        for path in paths:
+            r = c.get(path, follow_redirects=False)
+            assert r.status_code == 200, (who, path, r.status_code, r.text[:300])
+            assert "maya-nav" in r.text and "Traceback" not in r.text, (who, path)
+    assert "Sign in" in anon.get("/help").text
+    r = anon.get("/help/no-such-topic", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/help"

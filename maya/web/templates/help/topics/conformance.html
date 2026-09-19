@@ -1,0 +1,131 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Three artefacts that must not drift apart') %}
+<p>A model usually lives in three places: its mathematics in a PDF, its code in a repository, its
+parameters in a spreadsheet, and the three quietly diverge. MAYA holds all three against one formula
+IR. The <strong>specification document</strong> pulls its equations from the IR, the uploaded
+<strong>code artifact</strong> is validated in a sandbox, and a <strong>conformance test</strong>
+compares the code's outputs with the IR's own evaluation on sampled inputs, reporting the rows where
+they part company.</p>
+{% endcall %}
+
+{{ cards([
+  ('file-earmark-text', 'Specification', 'A firm-standard LaTeX document whose formulas are bound to the IR, not typed twice.'),
+  ('file-earmark-code', 'Artifact', 'Your Python implementation, checked by a six-rung ladder and run only in the sandbox.'),
+  ('file-earmark-check', 'Conformance', 'A differential test of the artifact against the documented mathematics.'),
+]) }}
+
+{% call step(1, 'Complete the specification') %}
+<p>A new model starts with the firm template pre-filled from the IR. Edit it on the model page; the
+preview renders as you type. Nine sections are required, and an empty one blocks submission:</p>
+<p><em>Purpose · Scope and Limitations · Mathematical Formulation · Assumptions · Data and Features
+Used · Calibration Methodology · Validation Evidence · Known Weaknesses · Change Log</em></p>
+<p>Two macros keep the document honest:</p>
+{{ fields([
+  ('\\mayaformula{body}', 'the output equation, rendered from the IR'),
+  ('\\mayaformula{let:d1}', 'one intermediate let'),
+  ('\\mayaformula{full}', 'every let and the output'),
+  ('\\mayaref{maya://…}', 'a catalog reference, such as the feature set the model is trained on'),
+]) }}
+{% call example('A Mathematical Formulation section', 'latex') %}
+\section{Mathematical Formulation}
+The call price is
+\mayaformula{body}
+where the moneyness term is
+\mayaformula{let:d1}
+Inputs are drawn from \mayaref{maya://featureset/quant/options_panel@v3}.
+{% endcall %}
+{% call tip('Change the maths, and the document asks to be re-read') %}
+<p>If the IR changes under a document that binds it, the document is marked for re-review and the
+<code>spec_document_complete</code> check blocks until someone saves it again.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Render the PDF') %}
+<p>Rendering expands the macros and builds a PDF. With Tectonic installed it is a true LaTeX build;
+without it MAYA produces a watermarked <strong>draft</strong> render. Outside dev (or with
+<code>typeset.require_true_build</code> set) a model cannot be approved on a draft render: the
+<code>spec_true_build</code> check refuses it.</p>
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+meta = my.models.render_spec("quant/bs_call", 1)      # draft_render, backend, pdf_blob
+pdf = my.models.spec_pdf("quant/bs_call", 1)
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Upload the code artifact') %}
+<p>The artifact is a Python module with a class <code>Model</code> implementing
+<code>fit(self, X, y, ctx)</code> and <code>predict(self, X, params, ctx)</code>. <code>X</code> is a
+mapping of input name to values; <code>params</code> is the parameter set.</p>
+{% call example('model.py', 'python') %}
+import numpy as np
+from scipy.stats import norm
+
+
+class Model:
+    def fit(self, X, y, ctx):
+        return {"sigma": 0.2}                      # the trained parameters
+
+    def predict(self, X, params, ctx):
+        S, K, T, r = (np.asarray(X[k], dtype=float) for k in ("S", "K", "T", "r"))
+        sigma = params["sigma"]
+        d1 = (np.log(S / K) + (r + sigma ** 2 / 2) * T) / (sigma * np.sqrt(T))
+        d2 = d1 - sigma * np.sqrt(T)
+        return S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+{% endcall %}
+{% call example('Upload it', 'bash') %}
+python -m maya.cli model push quant/bs_call model.py
+{% endcall %}
+<p>Validation runs as a job, stops at the first failing rung and records later rungs as not run:</p>
+{{ fields([
+  ('1 parse', 'the module parses (and ruff check runs where ruff is installed; whether it ran is recorded)'),
+  ('2 entry point', 'Model exists with the fit and predict signatures above'),
+  ('3 import allowlist', 'math, statistics, numpy, pandas, polars, pyarrow, scipy, sklearn, statsmodels and a few standard modules'),
+  ('4 static ban', 'no filesystem, process, network or dynamic code: open, eval, exec, os, subprocess, socket …'),
+  ('5 smoke run', 'predict runs in the sandbox against a sample'),
+  ('6 determinism', 'the smoke run twice, outputs compared; a mismatch is a warning'),
+]) }}
+{% call warn('The sandbox tier is stated, not assumed') %}
+<p>The validation report records the sandbox tier it ran under (<code>strong</code>,
+<code>moderate</code> or <code>minimal</code>). See <a href="/help/security">Sign-in and security</a>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Run the conformance test') %}
+<p>From the model page, run conformance for a version. MAYA samples inputs, evaluates the IR, runs your
+<code>predict</code> in the sandbox on the same rows, and compares them to a tight relative
+tolerance.</p>
+{% call example('Python SDK', 'python') %}
+result = my.models.conformance("quant/bs_call", 1, n=2000)
+print(result["statement"])
+for row in result["counterexamples"]:
+    print(row)          # the inputs, plus _expected (the IR) and _actual (your code)
+{% endcall %}
+{% call example('A typical statement', 'text') %}
+Sampled agreement is not proof: the implementation agreed with the documented
+mathematics on 2000 of 2000 sampled inputs to a relative tolerance of 1e-09.
+{% endcall %}
+{% call tip('Sampled agreement is not proof, and says so') %}
+<p>The report states how many sampled inputs agreed, never "verified". A declared black box is skipped
+with the reason given, because it has no closed form to test against.</p>
+{% endcall %}
+{% endcall %}
+
+<h2>The checks that use all this</h2>
+{{ fields([
+  ('formula_typechecks', 'the IR (or composite) validates; on submit and approve'),
+  ('spec_document_complete', 'every required section present and not empty; on submit and approve'),
+  ('code_artifact_validated', 'an attached artifact passed its ladder (formula-only models pass); on submit and approve'),
+  ('spec_true_build', 'the PDF is a true LaTeX build where required; on approve'),
+]) }}
+
+<h2>Related</h2>
+{{ cards([
+  ('calculator', 'Models and the formula IR', 'Where the IR comes from, and the kinds of model.'),
+  ('diagram-2', 'Workflow and policies', 'How checks block a transition by name.'),
+  ('box-seam', 'Reproducibility bundles', 'A bundle re-executes the model offline where it can.'),
+]) }}
+{% endblock %}

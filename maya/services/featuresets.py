@@ -551,6 +551,12 @@ class FeatureSetService:
 
     def download(self, p: Principal, ref: str, *, fmt: str = "parquet", shape: str = "tabular",
                  csv_encoding: str | None = None) -> dict[str, Any]:
+        if shape not in ("tabular", "wide"):
+            raise ValidationFailed(
+                f"A download is tabular or wide, not '{shape}'"
+                + (": the tensor shape is an in-memory form with no file format; download "
+                   "tabular and reshape with maya.resolution.shapes.to_shape" if shape == "tensor"
+                   else ""), allowed=["tabular", "wide"])
         self.p.licences.export(p, "featureset", ref, "internal")
         res = self.resolve_ref(p, ref)
         schema = self._full_schema(res)

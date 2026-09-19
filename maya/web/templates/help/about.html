@@ -1,12 +1,137 @@
 {% extends "base.html" %}
 {% block title %}About{% endblock %}
 {% block content %}
-<div class="maya-hero mb-3"><img src="/static/img/maya-lockup.svg" alt="MAYA"></div>
-<h1>About MAYA {{ VERSION }}</h1>
-<p class="lead-slate">{{ APP_TAGLINE }} — <em>{{ APP_SLOGAN }}</em> · build {{ BUILD_DATE }}</p>
-<p>MAYA is the system of record for quantitative features, feature sets, models and the warrants that license a model to be trained or run. This page is generated from <code>maya/core/version.py</code>, the only authority for the version.</p>
-{% for version, items in highlights.items() %}
-<h2>{{ version }}</h2><ul>{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul>
-{% endfor %}
-<p class="small-muted">© 2026 Ashutosh Sinha. All rights reserved.</p>
+<section class="about-hero">
+  <img src="/static/img/maya-mark-white.svg" alt="">
+  <h1>MAYA</h1>
+  <p class="fs-5">{{ APP_TAGLINE }}</p>
+  <p><em>{{ APP_SLOGAN }}</em></p>
+  <span class="version-badge">Version {{ VERSION }} · built {{ BUILD_DATE }}</span>
+  <div class="d-flex flex-wrap gap-2 justify-content-center mt-4 position-relative">
+    {% if user %}<a class="btn btn-light btn-lg" href="/"><i class="bi bi-house" aria-hidden="true"></i> Home</a>
+    {% else %}<a class="btn btn-light btn-lg" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>{% endif %}
+    <a class="btn btn-outline-light btn-lg" href="/help"><i class="bi bi-book" aria-hidden="true"></i> Documentation</a>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-header"><i class="bi bi-info-circle" aria-hidden="true"></i> What is MAYA?</div>
+  <div class="card-body">
+    <p class="lead">MAYA is the system of record for quantitative <strong>features</strong>, <strong>feature sets</strong>,
+      <strong>models</strong>, and the <strong>warrants</strong> that license a model to be trained or run.</p>
+    <p>Definition, data, documentation, approval and evidence live in one place, so any number a model produced
+      can be rebuilt exactly, years later, by someone who was not there. A <strong>version</strong> freezes
+      <em>how</em> a number is produced; a <strong>pin</strong> freezes <em>what</em> it was. A warrant binds
+      <em>this model version</em>, <em>this data</em> and <em>these parameters</em> into one auditable,
+      transferable instrument — and, because it is live, it can be withdrawn on a Friday afternoon when the model
+      is found to be wrong.</p>
+    <p class="mb-0 small-muted">Built for model-risk, quantitative research and data teams in regulated
+      firms, where "we think this is what we ran" is not an answer an examiner accepts.</p>
+  </div>
+</section>
+
+<section class="card mb-4 about-problem">
+  <div class="card-header"><i class="bi bi-bullseye" aria-hidden="true"></i> The problems it solves</div>
+  <div class="card-body"><div class="row g-3">
+    {% for bad, fix in [
+      ('Feature logic lives in notebooks and SQL snippets, so two teams compute "adjusted close" differently and neither is wrong.',
+       'One governed definition per feature, versioned by content hash, approved by someone else, visible in lineage.'),
+      ('Training data is a file on a share drive; when results are challenged, nobody can produce the exact rows used.',
+       'Pins: sealed, content-addressed data whose hash survives engine upgrades, cited by every warrant.'),
+      ('The mathematics is in a PDF, the code in a repo, the parameters in a spreadsheet — and they drift apart.',
+       'The formula IR: one typed expression tree that renders the document, type-checks inputs and tests the code.'),
+      ('Nothing binds this model, this data and these parameters into one auditable, transferable object.',
+       'Warrants and signed reproducibility bundles that verify offline, on a machine with no MAYA at all.'),
+    ] %}
+    <div class="col-md-6"><p class="mb-1"><i class="bi bi-x-circle bad" aria-hidden="true"></i> {{ bad }}</p>
+      <p class="fix mb-0"><i class="bi bi-arrow-return-right" aria-hidden="true"></i> {{ fix }}</p></div>
+    {% endfor %}
+  </div></div>
+</section>
+
+<h2 class="mb-3"><i class="bi bi-stars" aria-hidden="true"></i> What makes it different</h2>
+<div class="row g-3 mb-4">
+  {% for icon, title, text in [
+    ('boxes', 'Definitions are code', 'MAYA stores how a number is produced and materializes values only when asked. A version resolved a hundred times may move with its source; a pin returns the same bytes forever.'),
+    ('diagram-3', 'A closed algebra', 'union, intersect, compose, coalesce, extend, override, project, aggregate: every operator yields an ordinary, versioned, pinnable feature — and inheritance stores a diff, not a copy.'),
+    ('calculator', 'Mathematics as data', 'A model is a typed expression tree. MAYA renders its specification, emits reference code, and diffs two versions mathematically instead of textually.'),
+    ('clock-history', 'Bitemporal from day one', 'Every row has an event time and a knowledge time. Restatements append; "what did we know on 31 March" stays answerable, with a signed leakage certificate.'),
+    ('mortarboard', 'Warrants', 'Training warrants freeze a model against a pin; execution warrants are live licences with covenants that suspend on breach and revocation that fails closed.'),
+    ('box-seam', 'Evidence that travels', 'A signed bundle carries the warrant, model, code, parameters and every pin, with a verifier that recomputes each hash and re-executes where it can.'),
+    ('bezier2', 'Shadow replay', 'Stage a change in a workspace and see the numeric shift on every dependent model before anyone approves it.'),
+    ('file-earmark-lock', 'Licences that follow the data', 'Vendor terms propagate as the most restrictive of a derivation\'s sources and are enforced at every download, export and grant.'),
+    ('shield-lock', 'Tamper-evident custody', 'A hash-chained audit log, anchored outside the database, so even a rewritten and re-chained history is caught.'),
+  ] %}
+  <div class="col-md-6 col-xl-4"><div class="card about-feature"><div class="card-body">
+    <div class="fi"><i class="bi bi-{{ icon }}" aria-hidden="true"></i></div>
+    <h3>{{ title }}</h3><p>{{ text }}</p></div></div></div>
+  {% endfor %}
+</div>
+
+<section class="card mb-4">
+  <div class="card-header"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Capabilities</div>
+  <div class="card-body"><div class="row g-4">
+    {% for icon, group, items in [
+      ('boxes', 'Features and data', ['CSV, Parquet, JSON, read-only SQL and Delta sources', 'Bitemporal ingest log; restatements never overwrite', 'Resolution rules, calendars and quality contracts', 'Content-addressed pins sharing fragments across months', 'Feature sets downloaded tabular or wide, with cascade pins']),
+      ('calculator', 'Models', ['Formula IR from LaTeX or a lifted Python function', 'Declared black boxes and composite models', 'Specification documents bound to the IR hash', 'Sandboxed artifact validation and conformance tests', 'Mathematical diffs between versions']),
+      ('shield-check', 'Governance', ['Policies as data; checks that block by name', 'Separation of duties, break-glass, delegation, SLA escalation', 'Grants with row filters, column masks and expiry', 'Workspaces with shadow replay; approval is a merge', 'Licence algebra; hash-chained audit with external anchors']),
+      ('hdd-stack', 'Platform', ['Python SDK — the only client, used by the UI itself', 'REST API with OpenAPI, CLI, API keys, OIDC SSO and TOTP', 'Durable event stream, SSE and signed webhooks', 'Prometheus metrics and W3C tracing end to end', 'SQLite or PostgreSQL from one setting; estate export/import']),
+    ] %}
+    <div class="col-md-6 col-xl-3"><div class="cap-group"><i class="bi bi-{{ icon }}" aria-hidden="true"></i> {{ group }}</div>
+      <ul class="cap-list">{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul></div>
+    {% endfor %}
+  </div></div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7"><section class="card h-100">
+    <div class="card-header"><i class="bi bi-tag" aria-hidden="true"></i> In this release</div>
+    <div class="card-body">
+      {% for version, items in highlights.items() %}
+      <div class="cap-group">Version {{ version }}</div>
+      <ul class="cap-list mb-3">{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul>
+      {% endfor %}
+      <p class="small-muted mb-0">Generated from <code>maya/core/version.py</code>, the single authority for the version.</p>
+    </div></section></div>
+  <div class="col-lg-5"><section class="card h-100">
+    <div class="card-header"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Honest limits</div>
+    <div class="card-body">
+      <p class="small-muted">Stated so nobody has to discover them.</p>
+      <ul class="cap-list">
+        <li>Not yet built: the assistant as recorded challenger, spreadsheet import, server-side table paging, SDK record/replay, performance benchmarks.</li>
+        <li>SAML is refused at startup; OIDC SSO and TOTP are shipped. WebAuthn is not built.</li>
+        <li>The strong sandbox tier is Linux-only; macOS runs at moderate, Windows at minimal.</li>
+        <li>Search is a <code>LIKE</code> scan, not full-text search.</li>
+        <li>Custody anchors are only as external as the storage you point them at.</li>
+      </ul>
+    </div></section></div>
+</div>
+
+<section class="card mb-4">
+  <div class="card-header"><i class="bi bi-code-square" aria-hidden="true"></i> Technology</div>
+  <div class="card-body">
+    {% for t in ['Python 3.13', 'FastAPI', 'SQLAlchemy 2.0', 'SQLite', 'PostgreSQL', 'Apache Arrow', 'pandas', 'Delta Lake (delta-rs)', 'Jinja2', 'Bootstrap 5', 'KaTeX', 'Cytoscape.js', 'CodeMirror', 'Ed25519 signatures', 'Prometheus', 'OpenTelemetry', 'bubblewrap + seccomp'] %}<span class="tech-badge">{{ t }}</span>{% endfor %}
+    <p class="small-muted mt-3 mb-0">Every browser library is vendored: the UI works on an air-gapped network. Optional components sit
+      behind dependency seams, and the System health page names the backend each one resolved to.</p>
+  </div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-5"><section class="card h-100 about-author">
+    <div class="avatar"><i class="bi bi-person" aria-hidden="true"></i></div>
+    <h3>Ashutosh Sinha</h3>
+    <p class="small-muted">Designer and author of MAYA and its specification.</p>
+    <a class="btn btn-outline-primary btn-sm" href="https://github.com/ajsinha/maya"><i class="bi bi-github" aria-hidden="true"></i> github.com/ajsinha/maya</a>
+  </section></div>
+  <div class="col-md-7"><section class="card h-100">
+    <div class="card-header"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Licence and copyright</div>
+    <div class="card-body small">
+      <p>© 2026 Ashutosh Sinha. All rights reserved. MAYA — including its source code, specification and design
+        documents, data models, algorithms, build tooling, brand assets, the MAYA name and the MAYA mark — is the
+        exclusive property of Ashutosh Sinha.</p>
+      <p class="mb-0">This software is <strong>proprietary and confidential</strong>. Unauthorized copying,
+        modification, distribution or use, in whole or in part, is strictly prohibited without express written
+        permission. See the <code>LICENSE</code> and <code>NOTICE</code> files.</p>
+    </div></section></div>
+</div>
 {% endblock %}

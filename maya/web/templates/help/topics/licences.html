@@ -1,0 +1,113 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Terms that follow the data') %}
+<p>A feature built on licensed market data inherits that vendor's terms, and so does everything built from
+it. MAYA lets a source declare its terms in a <code>licence</code> block, and computes an object's
+<strong>effective licence</strong> as the <em>most restrictive</em> combination of everything it is built
+from: its own declaration, the parent it extends, the operands it is derived from, the members of a feature
+set. Because the vocabulary is closed and ordered, "most restrictive" is arithmetic, not a judgement call —
+and every combined term remembers which source imposed it, so a refusal names the clause and the vendor
+instead of just saying no.</p>
+{% endcall %}
+
+{{ cards([
+  ('diagram-3', 'Propagates', 'Through extends, derived operands and feature set members, all the way to the warrant.'),
+  ('shield-x', 'Enforced at every exit', 'Downloads, bundles, derived features, training, grants and reads.'),
+  ('journal-text', 'Refusals are evidence', 'A refused export is written to the audit log as licence.refused, even though the request failed.'),
+]) }}
+
+<h2>The vocabulary</h2>
+{{ fields([
+  ('vendor', 'who the terms come from; accumulated for attribution'),
+  ('redistribution', 'none < internal < external < public — how far the data may travel'),
+  ('derived_works', 'forbidden < attribution < allowed — whether a derived feature or trained model may be built on it'),
+  ('population', 'groups or desk:<name> entries allowed to receive it; combined by intersection'),
+  ('retention_days', 'a positive number of days; the shortest wins'),
+  ('notes', 'free text for the reviewer; not enforced'),
+]) }}
+{% call tip('What redistribution means in practice') %}
+<p><code>none</code>: viewable and usable inside MAYA, but never leaves in bulk.
+<code>internal</code>: downloads within the firm. <code>external</code>: to regulators and counterparties,
+in a reproducibility bundle. <code>public</code>: anywhere. Leaving the block out is the same as
+<code>public</code> and <code>allowed</code> with no population limit.</p>
+{% endcall %}
+
+{% call step(1, 'Declare terms on a source') %}
+<p>In the {{ screen('/workbench/features/new', 'Workbench → Feature designer') }}, open the
+<strong>Licence</strong> panel and fill in the vendor and terms. In a definition, it is one more key:</p>
+{% call example('A licence block in a feature definition', 'json') %}
+{
+  "index": ["date", "symbol"],
+  "schema": [{"name": "close", "type": "float64"}],
+  "source": {"type": "csv"},
+  "resolution": {"grid": "as_is", "rules": {}},
+  "licence": {
+    "vendor": "Acme Data",
+    "redistribution": "internal",
+    "derived_works": "attribution",
+    "population": ["desk:rates", "quant-research"],
+    "retention_days": 365
+  }
+}
+{% endcall %}
+<p>An unknown term or a value outside the vocabulary is a validation error when the version is
+submitted, not a surprise at first export.</p>
+{% endcall %}
+
+{% call step(2, 'See the effective licence') %}
+<p>Every feature and feature set page shows an <strong>Effective licence</strong> panel with each term
+and who imposed it, and tells you if you are outside the permitted population. From a script:</p>
+{% call example('Effective licence of a derived feature', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
+lic = my.custody.licence("feature", "maya://feature/eq/spread@v2")
+print(lic["redistribution"], lic["clauses"]["redistribution"])
+# internal  Acme Data via maya://feature/eq/prices@v1
+print(lic["vendors"], lic["you_may_receive"])
+{% endcall %}
+{% call example('Or over REST', 'bash') %}
+curl -G https://maya.example.com/api/v1/licences \
+  -H "Authorization: Bearer $MAYA_API_KEY" \
+  --data-urlencode kind=featureset --data-urlencode ref=eq/panel
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Know where it is enforced') %}
+{{ fields([
+  ('preview / read', 'a reader outside the population is refused'),
+  ('feature or feature set download', 'needs redistribution of at least internal'),
+  ('training data for a warrant', 'needs at least internal'),
+  ('reproducibility bundle export', 'goes outside the firm, so needs external'),
+  ('submitting a derived or extending feature', 'refused when an operand forbids derived works'),
+  ('creating a training warrant', 'refused when the feature set forbids derived works ("training a model on it")'),
+  ('granting access', 'a grant to everyone or a role is refused when a population is set; a user or group outside it is refused'),
+]) }}
+{% call example('What a refusal looks like', 'json') %}
+{
+  "type": "licence_breach",
+  "title": "LicenceBreach",
+  "status": 451,
+  "detail": "Licence: this data may not leave MAYA in bulk (redistribution: none, imposed by Acme Data via maya://feature/eq/prices@v1)",
+  "context": {"term": "redistribution", "value": "none",
+              "source": "Acme Data via maya://feature/eq/prices@v1"}
+}
+{% endcall %}
+<p>In the SDK the same refusal raises <code>maya.sdk.LicenceBreach</code>, so a pipeline can catch it by
+name.</p>
+{% endcall %}
+
+{% call warn('Terms are declared, not discovered') %}
+<p>MAYA enforces the terms you give it; it cannot read a vendor contract. Agree the vocabulary mapping
+with legal once, record it in the <code>notes</code>, and have the licence block reviewed like any other
+part of the definition — it is inside the versioned definition, so a change to it is a new version.</p>
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('key', 'Access and grants', 'How population limits interact with grants.'),
+  ('diagram-3', 'The algebra', 'How derived features combine their operands, and their terms.'),
+  ('box-seam', 'Bundles', 'The external exit, and why it needs external redistribution.'),
+]) }}
+{% endblock %}

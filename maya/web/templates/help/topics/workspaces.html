@@ -1,0 +1,113 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Rehearse a change before anyone approves it') %}
+<p>A <strong>workspace</strong> is a copy-on-write branch of the catalog. You stage a proposed definition
+for an existing feature or feature set; nothing else is copied. Inside the workspace every resolution —
+direct, through a derived feature, through a feature set's members — uses your proposal in place of the
+version it would replace, so downstream effects are real resolutions, not a list of names.
+<strong>Shadow replay</strong> then answers the question a reviewer actually has: <em>how much does it
+move the models?</em></p>
+{% endcall %}
+
+{{ cards([
+  ('bezier2', 'Stage', 'Propose a new definition for a feature or feature set; you need read access, not update.'),
+  ('activity', 'Replay', 'Score every dependent training warrant twice — today\'s definitions, then yours.'),
+  ('check2-circle', 'Merge on approval', 'Submitting turns each change into an ordinary draft in review.'),
+]) }}
+
+{% call step(1, 'Open a workspace and stage a change') %}
+<p>Start from {{ screen('/workbench/workspaces', 'Workbench → Workspaces') }}. Name it after the change
+you are rehearsing, then stage one or more proposals. Each staged change records the approved version it
+is based on and shows an attribute-by-attribute diff against it.</p>
+{% call example('Stage a longer forward-fill on prices', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
+ws = my.workspaces.create("longer-fill", description="ffill limit 3 → 5 on close")
+
+current = my.features.get("eq/prices")["versions"][0]["definition"]
+proposed = {**current, "resolution": {**current["resolution"],
+                                      "rules": {"close": "forward_fill(limit=5)"}}}
+my.workspaces.stage(ws["id"], kind="feature", ref="eq/prices",
+                    definition=proposed, note="vendor gaps run longer in Q4")
+{% endcall %}
+{% call tip('Staging needs only read access') %}
+<p>Anyone who can read an object can rehearse a change to it. Submitting the workspace is what needs
+update rights, because that is when real drafts are created.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Look inside, and see what is downstream') %}
+<p>Preview any feature or feature set <em>as it would be if the workspace merged</em>, and list everything
+downstream of your changes — derived features, feature sets and training warrants.</p>
+{% call example('Preview and impact', 'python') %}
+rows = my.workspaces.preview(ws["id"], ref="maya://featureset/eq/panel@v2")
+print(rows["total_rows"], rows["workspace"])
+
+impact = my.workspaces.impact(ws["id"])
+for node in impact["downstream"]:
+    print(node["kind"], node["ref"], "via", node["via"])
+print("warrants affected:", impact["warrants"])
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Run a shadow replay') %}
+<p>The replay runs as a job. For each dependent training warrant, MAYA resolves its feature set version
+live twice — on current definitions, then on the workspace's — and scores both with the warrant's own
+model and parameter set. The report gives, per model:</p>
+{{ fields([
+  ('rows_compared', 'rows scored on both sides (the most recent, up to the sample size)'),
+  ('median_abs_shift / p95_abs_shift', 'typical and tail movement of the model output'),
+  ('max_abs_shift / worst_row', 'the single largest move, and the index of the row where it happened'),
+  ('rows_over_materiality', 'how many rows moved by more than the materiality threshold'),
+  ('rows_added / rows_removed', 'rows that exist on only one side'),
+]) }}
+{% call example('Replay and wait for it', 'python') %}
+job = my.workspaces.shadow_replay(ws["id"])
+my.wait(job)
+report = my.workspaces.get(ws["id"])["replay"]
+print(report["summary"])
+# moves 1 of 2 replayed dependent model(s); maya://warrant/train/eq/pd@v3: median |Δ| 0.0021, …
+{% endcall %}
+{% call example('The two knobs, in config/application.yaml', 'yaml') %}
+workspaces:
+  shadow:
+    sample_rows: 5000      # rows replayed per dependent warrant
+    materiality: 0.0001    # an absolute output shift above this counts as material
+{% endcall %}
+{% call warn('Sampled agreement is not proof') %}
+<p>The report states its sample size and basis. Sealed pins never change, so the replay shows what each
+warrant would see if its data were drawn today. A warrant with no parameter set yet is listed as not
+replayed, with the reason.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Submit: the merge request') %}
+<p>Submitting turns each staged change into a new draft version, submits it through the ordinary
+<a href="/help/workflow">workflow</a>, and attaches the replay summary as a comment for the reviewer.
+The workspace moves to <code>in_review</code>, and to <code>merged</code> once every version it submitted
+is approved. Nothing production-facing changes before then.</p>
+{% call example('Submit or abandon', 'python') %}
+my.workspaces.submit(ws["id"])       # each change → a submitted draft
+# or, if the idea did not pan out:
+my.workspaces.abandon(ws["id"])
+{% endcall %}
+{% call warn('A base that moved is a conflict') %}
+<p>If someone approved a newer version of an object after you staged against it, or the object already
+has an open draft, submitting is refused with a conflict naming the object. Re-stage the change (a rebase)
+and replay again.</p>
+{% endcall %}
+{% endcall %}
+
+<h2>States at a glance</h2>
+{{ fields([
+  ('open', 'you can stage, unstage, preview and replay'),
+  ('in_review', 'submitted; the drafts are with reviewers'),
+  ('merged', 'every submitted version was approved'),
+  ('abandoned', 'closed without submitting'),
+]) }}
+<p class="small-muted">Every step is audited: <code>workspace.created</code>, <code>workspace.staged</code>,
+<code>workspace.replayed</code>, <code>workspace.submitted</code>, <code>workspace.merged</code> and
+<code>workspace.abandoned</code>.</p>
+{% endblock %}

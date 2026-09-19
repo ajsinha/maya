@@ -1,0 +1,114 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A feature set is a view with a contract') %}
+<p>A model does not read features one by one; it reads a panel. A <strong>feature set</strong> maps
+attributes of member features onto the names a model expects, assembles them on a declared index by a
+declared <strong>alignment</strong>, and fills the gaps under a <strong>policy precedence</strong> that is
+recorded per attribute, so nobody has to guess which rule filled a value. Like a feature, it is
+versioned, approved and pinned, and a training warrant always binds to a feature-set pin.</p>
+{% endcall %}
+
+{{ cards([
+  ('grid-3x3-gap', 'Map', 'attr → member feature + source_attr, with an optional cast, rule or aggregation.'),
+  ('arrow-left-right', 'Align', 'inner, outer, left or asof over the member keys, on the set’s own index.'),
+  ('pin-angle', 'Pin together', 'A cascade pin seals every unpinned member and the set in one job, or none of them.'),
+], 3) }}
+
+{% call step(1, 'Define the mapping') %}
+<p>Build it in {{ screen('/workbench/featuresets/new', 'Workbench → Feature set builder') }}, or as JSON:</p>
+{% call example('A two-member panel', 'json') %}
+{
+  "index": ["date", "symbol"],
+  "grid": "as_is",
+  "alignment": {"mode": "inner"},
+  "members": [
+    {"attr": "close",  "ref": "maya://feature/eq/px@v2",  "source_attr": "close"},
+    {"attr": "volume", "ref": "maya://feature/eq/vol@v1", "source_attr": "vol",
+     "cast": "float64", "rule": "forward_fill(limit=2)"}
+  ],
+  "global_policy": {"default": "none"},
+  "filters": {"start": "2025-01-01", "universe": {"attr": "symbol", "values": ["AAA", "BBB"]}}
+}
+{% endcall %}
+{{ fields([
+  ('index', 'the set’s index; at least one member must carry all of it'),
+  ('members[].attr / ref / source_attr', 'the output name, the member feature (a version or a pin) and its attribute'),
+  ('members[].cast', 'an optional logical type to cast the column to'),
+  ('members[].rule', 'an attribute-level fill rule; the strongest layer of the precedence'),
+  ('members[].aggregate', 'required when the member has index columns the set does not'),
+  ('alignment', 'mode = inner | outer | left | asof; left and asof take a driving member, asof a tolerance_days'),
+  ('grid', '"as_is", or a calendar such as {"calendar": "NYSE"} (natural_days, ISO_business_days, NYSE, LSE, TARGET)'),
+  ('global_policy / group_policies', 'set-wide and per-group fill rules'),
+  ('filters', 'start, end and a universe of index values'),
+]) }}
+{% endcall %}
+
+{% call step(2, 'Understand who filled what') %}
+<p>Each attribute's fill rule is chosen from the first layer that sets one:</p>
+<ol>
+  <li><strong>attribute</strong>: the member entry's own <code>rule</code></li>
+  <li><strong>group</strong>: a <code>group_policies</code> entry listing the attribute</li>
+  <li><strong>global</strong>: the set's <code>global_policy</code></li>
+  <li><strong>inherited</strong>: a parent set's policy, nearest ancestor first</li>
+  <li><strong>member</strong>: the member feature's own resolution rule</li>
+  <li><strong>default</strong>: leave it null</li>
+</ol>
+<p>The preview's fill report names the layer and the source for every attribute.</p>
+{% call tip('Extend instead of copying') %}
+<p>A set can <code>extends</code> a parent version and override only what differs:
+<code>drop_attributes</code>, <code>add_members</code>, <code>attribute_rules</code>, <code>filters</code>,
+<code>grid</code>, <code>alignment</code>, <code>global_policy</code>. Inheritance is capped at eight
+levels.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Submit, approve, preview') %}
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+my.featuresets.create("quant", "panel", definition)
+my.featuresets.transition("quant/panel", 1, "submit")
+# … a feature manager approves it …
+rows = my.featuresets.preview("maya://featureset/quant/panel@v1")
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Pin it, with its members') %}
+<p>A feature set refuses to pin while any member is referenced by version rather than by pin: the data
+under it could still move. A <strong>cascade pin</strong> pins those members under the same series and
+date, then the set, in one job; if anything fails, everything it created is rolled back.</p>
+{% call example('Command line', 'bash') %}
+python -m maya.cli featureset pin quant/panel --version 1 --name q1 --as-of 2026-03-31 --cascade
+{% endcall %}
+{% call example('Python SDK', 'python') %}
+out = my.featuresets.pin("quant/panel", version_no=1, pin_name="q1",
+                         as_of="2026-03-31", cascade=True)
+my.wait(out["job"])
+# → maya://featureset/quant/panel#q1/2026-03-31
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'Download it') %}
+<p>Downloads come in <code>tabular</code> shape (nested columns kept) or <code>wide</code> shape (nested
+values exploded into suffixed columns), in <code>arrow</code>, <code>parquet</code>, <code>json</code>,
+<code>ndjson</code> or <code>csv</code>. Every download carries a manifest naming the reference, the row
+count, the shape, anything withheld from you, and any access condition applied, and is audited.</p>
+{% call example('Command line', 'bash') %}
+python -m maya.cli featureset download "maya://featureset/quant/panel#q1/2026-03-31" \
+    --out panel.parquet --format parquet --shape tabular
+{% endcall %}
+{% call warn('Members you cannot read are withheld, not faked') %}
+<p>If you lack read access to a member feature, its attributes are left out and listed under
+<code>withheld</code> in the manifest. If you can read none of them, the read is refused.</p>
+{% endcall %}
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('pin-angle', 'Pins', 'How sealing, fragments and pin states work.'),
+  ('mortarboard', 'Training warrants', 'Bind a model version to a feature-set pin.'),
+  ('key', 'Access and conditions', 'Row filters and column masks apply to feature-set reads too.'),
+]) }}
+{% endblock %}

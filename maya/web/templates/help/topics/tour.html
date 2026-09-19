@@ -1,0 +1,91 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('One bar, six areas, the same shape everywhere') %}
+<p>MAYA's screens hang off a single fixed bar across the top. Each area opens a panel of columns;
+every entry carries an icon and a one-line description, so you can find a screen by what it does.
+Hover to open a panel on a wide screen, or click it (and use the keyboard) anywhere. The area you
+are in is underlined. On a phone the bar collapses behind the <i class="bi bi-list" aria-hidden="true"></i>
+button.</p>
+{% endcall %}
+
+<h2>The areas</h2>
+{{ cards([
+  ('boxes', 'Catalog', 'Browse Features and Feature sets, walk Lineage upstream and downstream, and Search every object.'),
+  ('tools', 'Workbench', 'Design: the Feature designer and Feature set builder. Bring data in: the Upload wizard and Quick feature. Change safely: Workspaces.'),
+  ('calculator', 'Models', 'All models (formulas, specifications, artifacts, diffs) and New model.'),
+  ('file-earmark-lock', 'Warrants', 'Issue training and execution warrants; inspect all warrants; verify a reproducibility bundle offline.'),
+  ('inbox', 'Workflow', 'My queue, Notifications and Delegations; Policies, Campaigns, SLA aging and the Break-glass report.'),
+  ('shield-lock', 'Admin', 'Users & roles, Namespaces, Grants, Sources, Webhooks, Events, System health, Jobs, Storage, Configuration, Audit and Custody.'),
+], cols=3) }}
+{% call tip('Admin is only there for administrators and techops') %}
+<p>If you do not hold the <code>admin</code> or <code>techops</code> role, the Admin area does not
+appear at all. Help (Concepts and About MAYA) is always there, and is readable before you sign in.</p>
+{% endcall %}
+
+<h2>The right-hand tools</h2>
+{{ fields([
+  ('Search', 'the box in the bar; press Ctrl-K (⌘K on a Mac) from any page to jump into it'),
+  ('Bell', 'your notifications, with the unread count; the same list as Workflow → Notifications'),
+  ('Half circle', 'switch between the light and dark theme; your choice is remembered in this browser'),
+  ('Your initial', 'your roles, My API keys, Change password, Two-factor authentication, and Log out'),
+]) }}
+<p>Under the bar, a thin status strip states the environment, the database, the lake backend and the
+verified sandbox tier. On SQLite it says so plainly: single-node, one writer at a time.</p>
+
+{% call step(1, 'Start from the home page') %}
+<p>The home page greets you with quick actions ({{ screen('/workbench/quick', 'Quick feature') }},
+{{ screen('/models/new', 'New model') }}, {{ screen('/workflow', 'My queue') }}), four tiles
+(features, models, items in review, system health), recently changed features, what awaits your
+review, and your recent jobs.</p>
+{% endcall %}
+
+{% call step(2, 'Open any object: the same core tabs') %}
+<p>A feature, a feature set and a model share one page shape. Learn it once:</p>
+{{ fields([
+  ('Overview', 'versions and their state, who submitted and approved each; for features and feature sets, the effective licence; for a feature, the ingests'),
+  ('Definition', 'the exact definition (or formula IR) behind every version, as JSON'),
+  ('Data', 'features and feature sets: a live preview of an approved version or a sealed pin, with the fill report'),
+  ('Pins', 'features and feature sets: the sealed pins, and a form to request a new one'),
+  ('Lineage', 'what this is built from and what is built on it, as a graph'),
+  ('History', 'every transition with actor, time and rationale, plus the comment thread'),
+]) }}
+<p>A model swaps Data and Pins for <strong>Specification</strong> (the LaTeX document),
+<strong>Code</strong> (the uploaded artifact and its validation) and <strong>Parameters</strong>.</p>
+<p>Transition buttons (<em>submit</em>, <em>approve</em>, <em>request changes</em>…) appear only when
+the policy allows you to take them, each with a rationale box.</p>
+{% endcall %}
+
+{% call step(3, 'Use the table contract') %}
+<p>Every list in MAYA is the same table, so these work everywhere:</p>
+{{ cards([
+  ('list-ol', 'Paging', '25, 50, 100, 250 or All rows per page; your choice is remembered per table.'),
+  ('search', 'Search', 'Filters across the visible columns and highlights the matches.'),
+  ('sort-down', 'Sort', 'Click a header to sort the whole result set; shift-click adds a second key.'),
+  ('columns-gap', 'Columns', 'Hide and show columns from the Columns menu.'),
+  ('file-earmark-spreadsheet', 'CSV', 'Export the current view (filter, sort, columns) as CSV.'),
+  ('keyboard', 'Keyboard', 'Focus a table and use PageUp, PageDown, Home and End.'),
+], cols=3) }}
+{% endcall %}
+
+{% call step(4, 'Everything you see is an SDK call') %}
+<p>The web UI holds no privileges of its own: every screen calls the public Python SDK with your
+session. So anything you can click, a script can do.</p>
+{% call example('The same list the Catalog shows', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+for f in my.features.list(namespace="eq"):
+    print(f["name"], f["latest_state"])
+{% endcall %}
+<p>See <a href="/help/sdk">The Python SDK and REST API</a>; the live API reference is at
+<a href="/api/v1/docs">/api/v1/docs</a>.</p>
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('journal-bookmark', 'Glossary', 'Every term used on these screens, defined once.'),
+  ('pencil-square', 'Features and the designer', 'The full designer, field by field.'),
+  ('diagram-2', 'Workflow and policies', 'What the transition buttons do and who may press them.'),
+]) }}
+{% endblock %}

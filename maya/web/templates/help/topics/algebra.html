@@ -1,0 +1,123 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Operators closed over features') %}
+<p>A derived feature is not a copy of data and not a script. Its source is a <strong>derivation</strong>:
+an operator applied to other features. Every operator takes features and yields a feature
+definition, so results compose. Each operator has two halves: a <strong>typecheck</strong> that runs at
+submit time with no data at all (index compatibility, type unification, name clashes), and an
+<strong>execute</strong> that replays the operator over the resolved operands whenever the feature is
+read or pinned. Mistakes surface when you submit, not in a nightly job.</p>
+{% endcall %}
+
+{{ cards([
+  ('diagram-3', 'Lineage for free', 'Each operand becomes an operand_of edge, so the lineage graph shows exactly what a derived feature is built from.'),
+  ('check2-circle', 'Checked at submit', 'Incompatible indexes, clashing names or unknown attributes refuse the submit with the reason named.'),
+  ('clock-history', 'Causality propagates', 'If any operand is non-causal, so is the result: look-ahead cannot hide inside a derivation.'),
+]) }}
+
+<h2>The operators</h2>
+{{ fields([
+  ('project', 'π[attrs](F): keep only the named attributes. Options: attrs'),
+  ('rename', 'ρ[a→b](F): rename attributes (never index columns). Options: mapping'),
+  ('transform', 'τ[pipeline](F): run a transformation pipeline over one feature. Options: pipeline'),
+  ('union', 'F₁ ∪ F₂ ∪ …: stack features with identical indexes. Options: collision = error | prefer_left | prefer_right'),
+  ('intersect', 'F₁ ∩ F₂: rows present in both. Options: priority = left | right'),
+  ('difference', 'F₁ ∖ F₂: rows of the first not in the second'),
+  ('compose', 'F₁ ⋈ F₂: join side by side on the index. Options: prefixes, broadcast'),
+  ('coalesce', '⊕(F₁, F₂, …): first non-null value, operand by operand'),
+  ('aggregate', 'γ[by, agg](F): group by part of the index. Options: by, agg'),
+  ('lag', 'lag[n](F): shift values n steps back. Options: n (never negative), attrs'),
+  ('resample', 'resample[freq](F): to weekly, monthly or quarterly. Options: freq = W | M | Q, agg'),
+  ('case', 'σ[cond](F₁, F₂): take F₁ where the condition holds, else F₂. Options: cond'),
+]) }}
+
+{% call step(1, 'Write the derivation') %}
+<p>Choose <strong>Derived</strong> as the kind of definition in the
+{{ screen('/workbench/features/new', 'Workbench → Feature designer') }}, pick the operator, list the
+operands one per line, and give options as JSON. The same definition in JSON:</p>
+{% call example('Union of two vendors, preferring the first on collision', 'json') %}
+{
+  "index": ["date", "symbol"],
+  "index_types": {"date": "date", "symbol": "string"},
+  "schema": [{"name": "close", "type": "float64"}],
+  "source": {
+    "type": "derived",
+    "derivation": {
+      "operator": "union",
+      "operands": ["maya://feature/eq/px_vendor_a@v2",
+                   "maya://feature/eq/px_vendor_b@v1"],
+      "options": {"collision": "prefer_left"}
+    }
+  },
+  "resolution": {"grid": "as_is", "rules": {}},
+  "transform": [], "quality": []
+}
+{% endcall %}
+{% call tip('Reference versions, not the moving head') %}
+<p>Operands name a version (<code>@v2</code>) or a pin. The derived feature's definition hash covers the
+operator, its canonical options and the operands, so a different operand is a different version. For
+commutative operators such as <code>union</code> the operand order does not change the hash.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Create and submit it') %}
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+my.features.create("eq", "px_best", definition)          # the JSON above
+my.features.transition("eq/px_best", 1, "submit")         # typecheck runs here
+print(my.features.preview("maya://feature/eq/px_best@v1")["plan"])
+{% endcall %}
+<p>If the typecheck fails, the submit is refused with the operator's own message, for example
+<em>"compose attribute name clash ['close']; declare prefixes"</em>.</p>
+{% endcall %}
+
+{% call step(3, 'More worked options') %}
+{% call example('Join prices with volumes, prefixing both sides', 'json') %}
+{"operator": "compose",
+ "operands": ["maya://feature/eq/px@v2", "maya://feature/eq/vol@v1"],
+ "options": {"prefixes": ["px_", "vol_"]}}
+{% endcall %}
+{% call example('Month-end aggregate of a daily feature', 'json') %}
+{"operator": "resample",
+ "operands": ["maya://feature/eq/px@v2"],
+ "options": {"freq": "M", "agg": {"close": "last"}}}
+{% endcall %}
+{% call example("Yesterday's close, and a regime switch", 'json') %}
+{"operator": "lag", "operands": ["maya://feature/eq/px@v2"], "options": {"n": 1}}
+
+{"operator": "case",
+ "operands": ["maya://feature/eq/px_live@v1", "maya://feature/eq/px_eod@v1"],
+ "options": {"cond": "close > 0"}}
+{% endcall %}
+{% endcall %}
+
+<h2>Rolling windows and other row-level steps</h2>
+<p>Windows, casts, filters and derived columns are <strong>transformation pipeline</strong> steps rather
+than operators. Use them inside a feature's <code>transform</code> list, or wrap another feature with the
+<code>transform</code> operator. Steps: <code>rename</code>, <code>cast</code>, <code>filter</code>,
+<code>derive</code>, <code>aggregate</code>, <code>pivot</code>, <code>unpivot</code>, <code>window</code>,
+<code>lag</code>, <code>resample</code>, <code>dedupe</code>, <code>clip</code>, <code>winsorize</code>.</p>
+{% call example('A 20-day rolling mean over a derived feature', 'json') %}
+{"operator": "transform",
+ "operands": ["maya://feature/eq/px@v2"],
+ "options": {"pipeline": [
+   {"op": "window", "attr": "close", "fn": "mean", "size": 20, "name": "close_ma20"}
+ ]}}
+{% endcall %}
+
+{% call warn('Look-ahead is refused, not warned about') %}
+<p>A negative <code>lag</code> reads the future and is rejected at submit. Resolution rules that look
+forward (such as a backward fill) mark the feature non-causal, and that flag travels through every
+derivation built on it, into feature sets and the leakage certificate of a training warrant.</p>
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('pencil-square', 'Features and the designer', 'Index, schema, resolution rules and quality contracts.'),
+  ('file-earmark-lock', 'Data licences', 'A vendor that forbids derived works stops a derivation at submit.'),
+  ('diagram-3', 'Lineage', 'Every operand appears upstream of the derived feature.'),
+]) }}
+{% endblock %}

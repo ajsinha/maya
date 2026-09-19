@@ -1,0 +1,112 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Every batch is a knowledge-time layer') %}
+<p>Data reaches a feature as <strong>ingests</strong>: batches of rows, each stamped with one
+<strong>knowledge time</strong> — when MAYA could first have known them. Batches are appended to the
+feature's bitemporal log and never edited. A later batch that covers the same index keys is a
+<strong>restatement</strong>: it adds a newer layer, and the older layer stays readable forever.</p>
+{% endcall %}
+
+{{ cards([
+  ('cloud-upload', 'Upload', 'csv, parquet or json files, from the ingest page, the CLI or the SDK.'),
+  ('server', 'Pull', 'A sql source runs its reviewed, read-only query and appends the result.'),
+  ('layers', 'Read live', 'A delta source is read from its table at resolution time.'),
+]) }}
+
+{% call step(1, 'Upload a file') %}
+<p>Open the feature and use <strong>Ingest data</strong>, or go straight to
+<code>/workbench/features/&lt;ns&gt;/&lt;name&gt;/ingest</code>. Choose the file and its format,
+optionally a knowledge time and a note, and submit. The upload must contain every index and schema
+column the definition declares; extra columns are ignored, missing ones are named in the error.</p>
+{% call example('prices-2026-01-06.csv', 'csv') %}
+date,symbol,close
+2026-01-06,AAA,102.9
+2026-01-06,BBB,51.8
+{% endcall %}
+{% call example('Command line', 'bash') %}
+python -m maya.cli feature upload eq/prices prices-2026-01-06.csv
+# ingested 2 rows
+{% endcall %}
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+row = my.features.ingest("eq/prices", open("prices-2026-01-06.csv", "rb").read(),
+                         fmt="csv", filename="prices-2026-01-06.csv",
+                         note="EOD file from the vendor")
+print(row["rows"], row["restatement"], row["knowledge_time"])
+{% endcall %}
+<p>The CLI takes the format from the file extension. Uploads are stored by content hash, so uploading
+the same bytes twice is recognised: the result names the earlier upload in
+<code>duplicate_upload_of</code>.</p>
+{% endcall %}
+
+{% call step(2, 'Say when it was known') %}
+<p>Three ways, in order of precedence:</p>
+{{ fields([
+  ('knowledge_time_column', 'a column in the file (declared in source) giving each row its own knowledge time; blanks are refused'),
+  ('knowledge_time', 'one ISO instant for the whole batch, e.g. 2026-01-06T18:00:00Z (the --knowledge-time CLI flag)'),
+  ('(neither)', 'the instant of the upload'),
+]) }}
+{% call example('Backfilling history with the real publication time', 'bash') %}
+python -m maya.cli feature upload eq/prices march.csv --knowledge-time 2026-04-01T18:00:00Z
+{% endcall %}
+{% call warn('Backfills without a knowledge time look as if they were always known') %}
+<p>Loading five years of history "now" stamps every row with today's knowledge time. That is honest —
+MAYA did only learn it today — but a question like "what did we know in 2024?" will then see none of
+it. When you have the true publication times, supply them.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Restate a value') %}
+<p>When a vendor corrects a figure, ingest the corrected rows. MAYA detects that the index keys overlap
+earlier rows, marks the ingest as a restatement, and keeps both. Resolution takes, for each key, the
+row with the latest knowledge time that is not after your <code>as_of_known</code> cut.</p>
+{% call example('A correction to one close', 'csv') %}
+date,symbol,close
+2026-01-05,AAA,102.4
+{% endcall %}
+{% call example('Upload it as a restatement', 'bash') %}
+python -m maya.cli feature upload eq/prices fix.csv --knowledge-time 2026-01-09T09:00:00Z
+# ingested 1 rows (a restatement)
+{% endcall %}
+<p>If the original close was loaded with knowledge time <code>2026-01-05T18:00:00Z</code>, reading
+the data as of 8 January still gives 102.1; reading it as of now gives 102.4. See
+<a href="/help/bitemporal">Bitemporality and as-of</a>.</p>
+{% endcall %}
+
+{% call step(4, 'Pull from a SQL source') %}
+<p>A feature whose <code>source.type</code> is <code>sql</code> names a connection (managed under
+{{ screen('/admin/sources', 'Admin → Sources') }}) and one reviewed <code>SELECT</code> with
+<code>:name</code> parameters. Pulling runs that query read-only and appends the rows as an ingest,
+noting the connection and a hash of the query.</p>
+{% call example('Pull now', 'python') %}
+row = my.features.pull("eq/prices_db")                 # knowledge time = now
+row = my.features.pull("eq/prices_db", knowledge_time="2026-01-06T18:00:00Z")
+{% endcall %}
+<p>The query is part of the definition, so changing it needs a new version and a review. See
+<a href="/help/sources">SQL sources</a>.</p>
+{% endcall %}
+
+{% call step(5, 'Where ingest does not apply') %}
+{{ fields([
+  ('delta', 'read from source.path whenever the feature is resolved, stamped with the time of reading; there is no upload and no knowledge-time history'),
+  ('derived', 'has no rows of its own; it is computed from its operands'),
+  ('extends', 'reads its parent\'s rows; ingest into the parent instead'),
+]) }}
+{% endcall %}
+
+{% call tip('Every ingest is on the record') %}
+<p>The feature's Overview tab lists each ingest with its knowledge time, rows, source, restatement flag,
+blob hash, note and who loaded it, and each one is an audit entry (<code>feature.ingested</code> or
+<code>feature.pulled</code>).</p>
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('clock-history', 'Bitemporality and as-of', 'Read the data as it was known on any date.'),
+  ('cloud-upload', 'Upload wizard', 'Not sure of the schema? Let MAYA infer it from a file first.'),
+  ('pin-angle', 'Pins', 'Freeze what you ingested into sealed, citable data.'),
+]) }}
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A log nobody can quietly edit') %}
+<p>Every state-changing action in MAYA appends an entry to the <strong>audit log</strong> inside the same
+database transaction as the change itself, so a change without its entry cannot commit. Entries are
+<strong>hash-chained</strong>: each one's hash covers its content and the previous entry's hash, so
+altering or deleting any entry breaks every link after it. The table is append-only at the database level
+too — an update or delete is refused by a trigger.</p>
+<p>That proves the log is <em>internally consistent</em>. It does not stop someone with direct database
+access from rewriting history <em>and recomputing every hash after it</em>: the result is consistent too.
+<strong>Custody anchors</strong> close that gap by pinning the chain head in places the database cannot
+reach.</p>
+{% endcall %}
+
+{{ cards([
+  ('link-45deg', 'Hash-chained', 'sha256 over the previous hash and the entry — one edit breaks every later link.'),
+  ('shield-lock', 'Anchored outside', 'The chain head is signed, written to a separate file and announced as an event.'),
+  ('exclamation-octagon', 'Refusals are kept', 'Denials and licence refusals are written even though the request itself rolled back.'),
+]) }}
+
+<h2>What an entry holds</h2>
+{{ fields([
+  ('seq', 'its position in the chain'),
+  ('at / actor / principal_type / channel', 'when, who, and through which surface (web, api, sdk, scheduler…)'),
+  ('action', 'what happened, for example access.granted, workspace.submitted, licence.refused'),
+  ('object_type / object_ref', 'what it happened to'),
+  ('detail', 'the specifics, as JSON'),
+  ('request_id / ip', 'the W3C trace id of the request, and where it came from'),
+  ('prev_hash / hash', 'the chain links'),
+]) }}
+
+{% call step(1, 'Explore the log') %}
+<p>{{ screen('/admin/audit', 'Admin → Audit') }} searches actor, action and object, newest first. The
+explorer is for administrators and techops.</p>
+{% call example('Search the log from Python', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
+for e in my.admin.audit(action="licence.refused", limit=50):
+    print(e["seq"], e["at"], e["actor"], e["object_ref"], e["detail"])
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Verify the chain') %}
+<p>Walking the chain recomputes every hash from the first entry and reports the first broken link, if
+any. The home page and System health show the result too.</p>
+{% call example('Verify the chain', 'python') %}
+print(my.admin.verify_audit())
+# {'ok': True, 'checked': 18244, 'head': '9f3c…'}
+{% endcall %}
+{% call example('Or, with pin integrity, from the command line', 'bash') %}
+python -m maya.cli admin verify-integrity
+# 412 pin(s) checked; drift: 0; audit chain ok: True
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Anchor the head outside the database') %}
+<p>Every hour the scheduler anchors the current chain head — its sequence number and hash — using each
+configured method. Administrators can also anchor on demand from
+{{ screen('/admin/custody', 'Admin → Custody') }}.</p>
+{{ fields([
+  ('signature', 'an Ed25519 signature over {seq, head, at}'),
+  ('file', 'a JSON line appended to custody.anchor.file — point it at WORM or off-host storage'),
+  ('event', 'an audit.anchored event, so every webhook subscriber holds a copy MAYA\'s administrators do not control'),
+  ('rfc3161', 'a timestamp token from the authority at custody.anchor.tsa_url (off by default: it sends the head hash to a third party)'),
+]) }}
+{% call example('config/application.yaml', 'yaml') %}
+custody:
+  anchor:
+    methods: "signature,file,event"
+    file: "${MAYA_ANCHOR_FILE:}"        # empty: <storage.root>/anchors.jsonl
+    tsa_url: "${MAYA_TSA_URL:}"         # required if methods names rfc3161
+    interval_seconds: 3600
+{% endcall %}
+{% call example('Anchor now, and list anchors', 'python') %}
+row = my.custody.anchor()
+print(row["seq"], row["head_hash"], row["methods"])
+print(my.custody.anchors()["anchors"][:3])
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Verify the anchors') %}
+<p>Verification checks each anchor against the live chain: is the hash it pinned still the hash at that
+sequence number, does its signature verify, is it still in the anchor file, and — for a timestamp token —
+does the token carry this head's imprint.</p>
+{% call example('Verify chain and anchors', 'bash') %}
+curl https://maya.example.com/api/v1/custody/verify -H "Authorization: Bearer $MAYA_API_KEY"
+{% endcall %}
+{% call example('A rewritten history, caught', 'json') %}
+{
+  "ok": false,
+  "verdict": "TAMPERING: 2 anchor(s) contradict the chain",
+  "chain": {"ok": true, "checked": 18244, "head": "…"},
+  "broken": [{"seq": 17006, "problems": [
+    "the live chain no longer has this head at this position: history before it was rewritten"]}]
+}
+{% endcall %}
+<p>Note <code>chain.ok</code> is <code>true</code>: the chain alone was fooled. The anchors were not.</p>
+{% endcall %}
+
+{% call warn('An anchor is only as external as you make it') %}
+<p>On the same disk as the database, the anchor file only raises the bar. Put it on write-once or
+off-host storage, subscribe an independent system to <code>audit.anchored</code> webhooks, or enable
+RFC 3161. MAYA checks a timestamp token's status and imprint; checking the authority's own signature
+needs its certificate chain — use <code>openssl ts -verify</code>.</p>
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('broadcast-pin', 'Events and webhooks', 'Subscribe an outside system to audit.anchored.'),
+  ('file-earmark-lock', 'Data licences', 'Why licence.refused entries survive a failed request.'),
+  ('sliders', 'Configuration', 'Where custody settings live, and how to override them.'),
+]) }}
+{% endblock %}
