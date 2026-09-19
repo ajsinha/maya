@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from maya.core import parameters
 from maya.core.errors import MayaError
 
 EXIT_OK, EXIT_REFUSED, EXIT_USAGE, EXIT_NETWORK = 0, 1, 2, 3
@@ -296,13 +297,29 @@ def warrant_fetch(args: argparse.Namespace) -> int:
 
 
 def warrant_upload_params(args: argparse.Namespace) -> int:
-    body = json.loads(Path(args.file).read_text())
+    """Upload fitted parameters. A `.json` file may carry metrics, a checksum and notes
+    beside the values; an `.npz`, a scanned pickle or an ONNX graph carries values only
+    (§9.3), so give --data-checksum and --notes on the command line for those."""
+    raw = Path(args.file).read_bytes()
+    fmt = args.format or _format_of(args.file)
+    if fmt == "json":
+        body = json.loads(raw.decode("utf-8"))
+        values = body["values"] if "values" in body else parameters.read(raw, "json")
+        metrics = body.get("metrics", {}) if isinstance(body, dict) else {}
+        checksum = args.data_checksum or (
+            body.get("data_checksum") if isinstance(body, dict) else None
+        )
+        notes = args.notes or (body.get("notes", "") if isinstance(body, dict) else "")
+    else:
+        values = parameters.read(raw, fmt)
+        metrics, checksum, notes = {}, args.data_checksum, args.notes or ""
     result = _client(args).training.upload_parameters(
         args.id,
-        body["values"],
-        metrics=body.get("metrics", {}),
-        data_checksum=body.get("data_checksum"),
-        notes=body.get("notes", ""),
+        values,
+        metrics=metrics,
+        data_checksum=checksum,
+        notes=notes,
+        **({"member_alias": args.member_alias} if args.member_alias else {}),
     )
     _out(
         args,
@@ -318,6 +335,22 @@ def warrant_upload_params(args: argparse.Namespace) -> int:
 def warrant_seal(args: argparse.Namespace) -> int:
     _out(args, _client(args).training.seal(args.id))
     return EXIT_OK
+
+
+def _format_of(path: str) -> str:
+    """The parameter format a file name implies (§9.3)."""
+    for fmt, suffixes in (
+        ("npz", (".npz",)),
+        ("pickle", (".pkl", ".pickle")),
+        ("onnx", (".onnx",)),
+        ("json", (".json",)),
+    ):
+        if path.endswith(suffixes):
+            return fmt
+    raise MayaError(
+        f"Cannot tell the parameter format of '{path}'; pass --format "
+        f"({', '.join(parameters.FORMATS)})"
+    )
 
 
 def job_watch(args: argparse.Namespace) -> int:
@@ -733,7 +766,17 @@ def _parser() -> argparse.ArgumentParser:
         (("--spec",), {"help": "spec as JSON or YAML; overrides --target"}),
     )
     cmd(w, "fetch", warrant_fetch, (("id",), {}), (("--out",), {"required": True}))
-    cmd(w, "upload-params", warrant_upload_params, (("id",), {}), (("file",), {}))
+    cmd(
+        w,
+        "upload-params",
+        warrant_upload_params,
+        (("id",), {}),
+        (("file",), {}),
+        (("--format",), {"choices": list(parameters.FORMATS), "help": "default: by file name"}),
+        (("--data-checksum",), {"dest": "data_checksum"}),
+        (("--notes",), {}),
+        (("--member-alias",), {"dest": "member_alias", "help": "for one member of a composite"}),
+    )
     cmd(w, "seal", warrant_seal, (("id",), {}))
 
     j = groups.add_parser("job").add_subparsers(dest="cmd", required=True)

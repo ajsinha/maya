@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import datetime as dt
+import math
 from typing import Any
 
 from maya.core import djson
@@ -38,10 +39,14 @@ LIMIT_KEYS = ("max_calls_per_day", "max_rows_per_call", "max_rows_per_day")
 COVENANT_KINDS = (
     "input_null_rate",
     "input_range",
+    "input_psi",
     "output_range",
     "max_rows_per_day",
     "staleness_days",
 )
+PSI_BINS = 10
+PSI_DEFAULT_MAX = 0.25  # the usual "population has moved, look at it" threshold
+_PSI_EPSILON = 1e-6
 ENVIRONMENTS = ("dev", "uat", "prod")
 TOKEN_MINUTES = 15
 
@@ -181,6 +186,7 @@ class ExecutionService:
                     "Name a training warrant, or a model for a non-trainable one"
                 )
             ps = uow.repo("parameter_sets").require(parameter_set_id) if parameter_set_id else None
+            spec = self._psi_baselines(spec, tw)
             if _trainable(mv) and ps is None:
                 raise ValidationFailed(
                     "The model declares parameters: name the approved "
@@ -218,6 +224,40 @@ class ExecutionService:
             uow.audit("warrant.exec_created", object_type="execution_warrant", object_ref=me)
             return ew
 
+    def _psi_baselines(self, spec: dict[str, Any], tw: dict[str, Any] | None) -> dict[str, Any]:
+        """A PSI covenant that declares no baseline gets one from the data the warrant was
+        drawn on — the population the model was fitted against, which is the only baseline
+        that makes drift mean anything. Fixed here, at creation, so it is auditable and
+        cannot move later; a covenant that declares its own baseline is left alone."""
+        wanted = [
+            c
+            for c in spec["covenants"]
+            if c["kind"] == "input_psi" and not c.get("baseline") and c.get("attr")
+        ]
+        if not wanted:
+            return spec
+        if tw is None:
+            raise ValidationFailed(
+                "an input_psi covenant needs a baseline: either declare one, or draw this "
+                "warrant from a training warrant, whose data is the baseline",
+                attrs=[c["attr"] for c in wanted],
+            )
+        frame, _ = self.p.warrants.training_frame(tw, include_test=True)
+        covenants = []
+        for c in spec["covenants"]:
+            if c in wanted:
+                if c["attr"] not in frame.columns:
+                    raise ValidationFailed(
+                        f"an input_psi covenant watches '{c['attr']}', which the training "
+                        "data does not carry",
+                        attr=c["attr"],
+                        available=sorted(frame.columns),
+                    )
+                base = psi_baseline(frame[c["attr"]].tolist())
+                c = {**c, "baseline": base["counts"], "bin_edges": base["edges"]}
+            covenants.append(c)
+        return {**spec, "covenants": covenants}
+
     def _spec(self, spec: dict[str, Any]) -> dict[str, Any]:
         out: dict[str, Any] = {
             "valid_days": 90,
@@ -242,6 +282,12 @@ class ExecutionService:
         for c in out["covenants"]:
             if c.get("kind") not in COVENANT_KINDS:
                 raise ValidationFailed(f"Covenant kind must be one of {', '.join(COVENANT_KINDS)}")
+            if c["kind"] == "input_psi":
+                if not c.get("attr"):
+                    raise ValidationFailed("an input_psi covenant names the attribute it watches")
+                c.setdefault("max", PSI_DEFAULT_MAX)
+                if not 0 < float(c["max"]) <= 10:
+                    raise ValidationFailed("an input_psi threshold is between 0 and 10")
         return out
 
     def _manifest(
@@ -685,6 +731,20 @@ def evaluate_covenants(
                     "detail": f"{rows_today} rows today exceed the limit of {c['max']}",
                 }
             )
+        elif kind == "input_psi":
+            observed, baseline = stats.get("histogram"), c.get("baseline")
+            if observed and baseline:
+                index = psi(observed, baseline)
+                if index > float(c.get("max", PSI_DEFAULT_MAX)):
+                    out.append(
+                        {
+                            **c,
+                            "observed": round(index, 4),
+                            "detail": f"population stability index of '{attr}' {index:.3f} "
+                            f"> {c.get('max', PSI_DEFAULT_MAX)}: the inputs this warrant "
+                            "sees are no longer the population it was fitted on",
+                        }
+                    )
         elif kind == "staleness_days" and stats.get("age_days", 0) > c.get("max", 0):
             out.append(
                 {
@@ -694,6 +754,46 @@ def evaluate_covenants(
                 }
             )
     return out
+
+
+def psi(observed: list[float], baseline: list[float]) -> float:
+    """Population stability index between two binned distributions (§29.5).
+
+    Both are read as counts or proportions over the *same* bins — the bin edges live in the
+    covenant's baseline, taken from the data the warrant was drawn on. Empty bins are
+    smoothed, because one empty bin would otherwise make the index infinite and suspend a
+    warrant over a single missing value.
+    """
+    if not observed or not baseline or len(observed) != len(baseline):
+        raise ValidationFailed(
+            "a PSI comparison needs two distributions over the same bins",
+            observed_bins=len(observed or []),
+            baseline_bins=len(baseline or []),
+        )
+    a_total = float(sum(observed)) or 1.0
+    b_total = float(sum(baseline)) or 1.0
+    total = 0.0
+    for a_count, b_count in zip(observed, baseline):
+        a = max(a_count / a_total, _PSI_EPSILON)
+        b = max(b_count / b_total, _PSI_EPSILON)
+        total += (a - b) * math.log(a / b)
+    return float(total)
+
+
+def psi_baseline(values: Any, bins: int = PSI_BINS) -> dict[str, Any]:
+    """The baseline a PSI covenant compares against: quantile bin edges of ``values`` and
+    the count in each, so a later run's histogram over the same edges is comparable."""
+    import numpy as np
+
+    series = np.asarray([v for v in values if v is not None], dtype="float64")
+    series = series[~np.isnan(series)]
+    if series.size == 0:
+        raise ValidationFailed("a PSI baseline needs values to bin")
+    edges = np.unique(np.quantile(series, np.linspace(0, 1, bins + 1)))
+    if edges.size < 2:  # a constant column: one bin, and any change is a change
+        edges = np.array([series[0], series[0] + 1.0])
+    counts, _ = np.histogram(series, bins=edges)
+    return {"edges": [float(e) for e in edges], "counts": [int(c) for c in counts]}
 
 
 def over_limits(limits: dict[str, int], rows: int, used: dict[str, int]) -> list[dict[str, Any]]:

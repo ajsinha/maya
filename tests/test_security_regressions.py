@@ -24,6 +24,7 @@ from maya.core.crypto import Signer
 from maya.core.errors import ValidationFailed
 from maya.services.execution import evaluate_covenants, over_limits
 from tests.conftest import build_platform
+from tests.test_warrants import complete_spec, journey  # noqa: F401 - the fixture, reused
 
 EVIL = "import pathlib\npathlib.Path('{marker}').write_text('pwned')\n"
 
@@ -220,3 +221,80 @@ def test_each_covenant(covenant, rows, inputs, outputs, today, breached):
 )
 def test_execution_limits(limits, rows, used, exceeded):
     assert sorted(x["limit"] for x in over_limits(limits, rows, used)) == sorted(exceeded)
+
+
+# -- the PSI covenant (§29.5), which the specification asked for and nothing built --------
+
+
+def test_psi_is_zero_for_the_same_population_and_grows_as_it_moves():
+    from maya.services.execution import psi
+
+    same = [10, 20, 30, 20, 10]
+    assert psi(same, same) == pytest.approx(0.0)
+    shifted = [30, 25, 20, 15, 5]
+    moved = psi(shifted, same)
+    assert moved > 0
+    gone = psi([0, 0, 0, 10, 80], same)
+    assert gone > moved, "a population that has left its bins scores higher"
+    assert psi([100, 0, 0, 0, 0], same) < 100, "an empty bin is smoothed, not infinite"
+    with pytest.raises(ValidationFailed, match="same bins"):
+        psi([1, 2], [1, 2, 3])
+
+
+def test_a_psi_covenant_breaches_when_the_inputs_have_moved():
+    from maya.services.execution import evaluate_covenants
+
+    covenant = {"kind": "input_psi", "attr": "x", "max": 0.2, "baseline": [25, 25, 25, 25]}
+    steady = {"x": {"histogram": [24, 26, 25, 25]}}
+    assert evaluate_covenants([covenant], 10, steady, {}, rows_today=10) == []
+    moved = {"x": {"histogram": [90, 5, 3, 2]}}
+    breach = evaluate_covenants([covenant], 10, moved, {}, rows_today=10)
+    assert breach and "population stability index" in breach[0]["detail"]
+    nothing_reported = {"x": {"null_rate": 0.0}}
+    assert evaluate_covenants([covenant], 10, nothing_reported, {}, rows_today=10) == []
+
+
+def test_a_psi_baseline_is_taken_from_the_data_the_warrant_was_drawn_on(journey):  # noqa: F811
+    """A covenant that declares no baseline gets the training population's, fixed at
+    creation. Without a training warrant there is no baseline, and MAYA says so."""
+    from maya.core.errors import ValidationFailed as VF
+
+    w = journey
+    w.p.models.create(w.mona, namespace="quant", name="psi_model", formula="yhat = 2*x")
+    w.p.models.update_draft(w.mona, "quant/psi_model", spec_latex=complete_spec("psi_model"))
+    w.p.models.transition(w.mona, "quant/psi_model", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/psi_model", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="psi_tw",
+        model="quant/psi_model@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y"},
+    )
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="psi_live",
+        training_warrant_id=tw["id"],
+        spec={"covenants": [{"kind": "input_psi", "attr": "x"}]},
+    )
+    covenant = ew["spec"]["covenants"][0]
+    assert covenant["baseline"] and covenant["bin_edges"], covenant
+    assert sum(covenant["baseline"]) > 0 and covenant["max"] == 0.25
+    with pytest.raises(VF, match="needs a baseline"):
+        w.p.execution.create(
+            w.mgr,
+            namespace="quant",
+            name="psi_nobase",
+            model="quant/psi_model@v1",
+            spec={"covenants": [{"kind": "input_psi", "attr": "x"}]},
+        )
+    with pytest.raises(VF, match="names the attribute"):
+        w.p.execution.create(
+            w.mgr,
+            namespace="quant",
+            name="psi_noattr",
+            training_warrant_id=tw["id"],
+            spec={"covenants": [{"kind": "input_psi"}]},
+        )

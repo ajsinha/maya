@@ -797,6 +797,7 @@ class FeatureService:
                 )
             eff = catalog.effective_feature_definition(uow, version["definition"])
             quota.check(uow, ns, self.pin_estimate(uow, feature, eff)["bytes"])
+            fresh = self.freshness(uow, feature, eff)
             # one request per series and date at a time (§15.3): a racer waits here, then
             # sees the winner's pin and is refused as a conflict
             uow.lock(f"pin:feature:{feature['id']}:{pin_name}:{as_of}")
@@ -833,7 +834,10 @@ class FeatureService:
                 object_ref=refs.pin_ref("feature", ns["name"], feature["name"], pin_name, as_of),
                 detail={"direct": direct},
             )
-            return {"pin": pin, "job": job}
+            out = {"pin": pin, "job": job}
+            if fresh["stale"]:
+                out["warning"] = fresh["message"]
+            return out
 
     def approve_pin_request(self, p: Principal, pin_id: str) -> dict[str, Any]:
         with self.p.uow(p.username) as uow:
@@ -861,6 +865,54 @@ class FeatureService:
             uow, feature_id=feature["id"], rows=rows, schema=eff.get("schema") or []
         )
 
+    def freshness(self, uow: Any, feature: dict[str, Any], eff: dict[str, Any]) -> dict[str, Any]:
+        """How stale the newest data MAYA holds for this feature is, against whatever the
+        definition's `freshness_within` check asks for (§5.3).
+
+        This is a **warning**, not a refusal: the quality contract refuses at pin time, and
+        by then a reviewer has already waited for a resolution. Saying "the newest rows
+        arrived nine days ago and your contract wants three" before the pin is asked for is
+        the difference between a refusal that looks like a bug and one that was expected.
+        """
+        latest = uow.repo("feature_ingests").list(
+            feature_id=feature["id"], order_by=["-knowledge_time"], limit=1
+        )
+        contract = next(
+            (
+                int(c.get("days", 0))
+                for c in (eff.get("quality") or [])
+                if c.get("check") == "freshness_within"
+            ),
+            None,
+        )
+        if not latest:
+            return {
+                "last_ingest_at": None,
+                "days_since_ingest": None,
+                "contract_days": contract,
+                "stale": False,
+                "message": "no data has been ingested for this feature yet",
+            }
+        arrived = latest[0]["knowledge_time"]
+        age = (utcnow() - arrived).days
+        stale = contract is not None and age > contract
+        if stale:
+            message = (
+                f"the newest rows arrived {age} day(s) ago; this feature's freshness "
+                f"contract allows {contract}. A pin will be refused by the quality contract"
+            )
+        elif contract is None:
+            message = f"the newest rows arrived {age} day(s) ago; no freshness contract is set"
+        else:
+            message = f"the newest rows arrived {age} day(s) ago, within the {contract} allowed"
+        return {
+            "last_ingest_at": arrived,
+            "days_since_ingest": age,
+            "contract_days": contract,
+            "stale": stale,
+            "message": message,
+        }
+
     def footprint(self, p: Principal, ref: str) -> dict[str, Any]:
         """A feature's pins, what they store, and what one more would cost (§16.4)."""
         with self.p.uow() as uow:
@@ -872,11 +924,13 @@ class FeatureService:
             eff = catalog.effective_feature_definition(uow, version["definition"])
             estimate = self.pin_estimate(uow, feature, eff)
             held = quota.usage(uow, ns["id"])
+            fresh = self.freshness(uow, feature, eff)
         return {
             "namespace": ns["name"],
             "quota_bytes": ns.get("quota_bytes"),
             "held": held,
             "next_pin_estimate": estimate,
+            "freshness": fresh,
         }
 
     def run_pin_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:

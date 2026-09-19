@@ -17,6 +17,27 @@
   request past `api.limits.timeout_seconds` is answered `504`. All three count per
   process, so several web processes multiply them.
 
+**Warrants, bundles and parameters**
+
+- **The reproducibility bundle carries what §18.4 asks for.** It omitted the uploaded code
+  artifact, the feature-set definition and the member pins behind it; all three are in,
+  each hashed in the manifest. Member *data* is not copied twice: the training frame is
+  that data, and each member pin's identity and manifest are enough to say which bytes it
+  came from.
+- **The PSI covenant (§29.5) exists.** `input_psi` watches an attribute's distribution
+  against the population the warrant was drawn on — the baseline is taken from the training
+  data at creation, so it is fixed and auditable — and a breach suspends the warrant like
+  any other. Empty bins are smoothed, so one missing value cannot suspend a warrant, and a
+  covenant with no training warrant to take a baseline from is refused with that reason.
+- **A stale feature is warned about before the pin, not only after.** The quality contract
+  still refuses, but a request now answers "the newest rows arrived 9 days ago; this
+  feature's freshness contract allows 2", and a feature's footprint says the same.
+- **Fitted parameters can arrive as a file (§9.3):** `.npz` (read with pickle disabled),
+  a pickle — **scanned first and refused if it would import or construct anything**, with
+  the offending opcode named — or an ONNX graph's initializers, when `onnx` is installed.
+  `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
+  `--data-checksum`, `--notes` and `--member-alias`.
+
 **Quotas, and what a pin will cost (§7.3)**
 
 - A namespace's `quota_bytes` was stored and read by nothing. It is now checked when a pin

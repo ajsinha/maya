@@ -178,3 +178,45 @@ def test_the_escrowed_holdout_is_fixed_when_the_warrant_is_drawn(journey):  # no
         uow.repo("training_warrants").update(tw["id"], {"holdout_hash": "0" * 64})
     with pytest.raises(ValidationFailed, match="not the one this warrant was drawn on"):
         w.p.warrants.score_holdout(w.devi, tw["id"])
+
+
+def test_a_bundle_carries_the_artifact_the_set_definition_and_the_member_pins(journey):  # noqa: F811
+    """§18.4: the bundle omitted the uploaded code artifact, the feature-set definition and
+    the member pins behind it, so a reader could not say which bytes the frame came from."""
+    import io
+    import json
+    import zipfile
+
+    w = journey
+    w.p.models.create(w.mona, namespace="quant", name="cg_bundle", formula="y = 2*x")
+    w.p.models.update_draft(w.mona, "quant/cg_bundle", spec_latex=complete_spec("cg_bundle"))
+    artifact = (
+        "import numpy as np\n\nclass Model:\n    def fit(self, X, y, ctx):\n        return {}\n\n"
+        "    def predict(self, X, params, ctx):\n        return [2.0 * v for v in X['x']]\n"
+    )
+    w.p.models.upload_artifact(w.mona, "quant/cg_bundle", artifact)
+    w.drain()
+    w.p.models.transition(w.mona, "quant/cg_bundle", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/cg_bundle", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="cg_bundle_tw",
+        model="quant/cg_bundle@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y"},
+    )
+    exported = w.p.bundles.export(w.devi, tw["id"])
+    data = w.p.blobs.get(exported["blob"])
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        names = set(z.namelist())
+        assert {"model/artifact.py", "model/artifact_report.json"} <= names
+        assert b"class Model" in z.read("model/artifact.py")
+        definition = json.loads(z.read("featureset/definition.json"))
+        assert definition["name"] == "panel" and definition["effective"]["members"]
+        members = json.loads(z.read("featureset/member_pins.json"))
+        assert members and all(m["content_hash"] and m["member"] for m in members)
+        assert json.loads(z.read("featureset/pin.json"))["pin_name"] == "q1"
+    manifest = exported["manifest"]
+    for name in ("model/artifact.py", "featureset/definition.json", "featureset/member_pins.json"):
+        assert name in manifest["files"], "every added file is hashed in the manifest"

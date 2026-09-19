@@ -33,7 +33,7 @@ import pyarrow.parquet as pq
 
 from maya.core import canonical, chunker, djson
 from maya.core import archives
-from maya.core.errors import ValidationFailed
+from maya.core.errors import MayaError, ValidationFailed
 from maya.core.version import VERSION
 from maya.formula import ir as irmod
 from maya.formula.codegen import to_python, to_python_composite
@@ -201,6 +201,7 @@ class BundleService:
                 files["model/reference_model.py"] = to_python(ir).encode()
                 inputs = [c["name"] for c in irmod.input_contract(ir)]
         files.update(self._documents(w, mv, params, values))
+        files.update(self._inputs_and_artifact(w, mv))
         files["lib/canonical.py"] = Path(canonical.__file__).read_bytes()
         files["lib/chunker.py"] = Path(chunker.__file__).read_bytes()
         files["verify.py"] = VERIFY_PY.encode()
@@ -276,6 +277,89 @@ class BundleService:
         if irmod.parameter_inputs(ir) and not params:
             return False, "no parameter set has been uploaded against this warrant"
         return True, None
+
+    def _inputs_and_artifact(self, w: dict[str, Any], mv: dict[str, Any]) -> dict[str, bytes]:
+        """The three things §18.4 asks for and the bundle did not carry: the code artifact
+        that was uploaded and validated, the feature-set definition the warrant was drawn
+        on, and the member pins behind that feature set.
+
+        Member *data* is not copied: the training frame in the bundle already is that data,
+        resolved and pinned, and copying every member pin again would multiply a bundle's
+        size for no new fact. What is copied is each member pin's identity and manifest, so
+        a reader can say exactly which bytes the frame came from and check them against a
+        MAYA that still holds them.
+        """
+        out: dict[str, bytes] = {}
+        if mv.get("artifact_hash"):
+            try:
+                out["model/artifact.py"] = self.p.blobs.get(mv["artifact_hash"])
+            except Exception as exc:  # noqa: BLE001 - a missing blob must not lose the bundle
+                out["model/artifact.missing.txt"] = (
+                    f"the uploaded artifact {mv['artifact_hash'][:16]} is no longer in the "
+                    f"blob store: {exc}"
+                ).encode()
+            out["model/artifact_report.json"] = djson.dumps(
+                mv.get("artifact_report") or {}, indent=2
+            ).encode()
+        try:
+            fs, ns, version, pin, eff, inherited = self.p.featuresets.load(w["featureset_ref"])
+        except MayaError as exc:
+            out["featureset/missing.txt"] = (
+                f"{w['featureset_ref']} could not be read at export: {exc.message}"
+            ).encode()
+            return out
+        out["featureset/definition.json"] = djson.dumps(
+            {
+                "ref": w["featureset_ref"],
+                "namespace": ns["name"],
+                "name": fs["name"],
+                "version_no": version["version_no"],
+                "written": version["definition"],
+                "effective": eff,
+                "inherited_policies": inherited,
+            },
+            indent=2,
+        ).encode()
+        if pin is not None:
+            # member_pin_ids maps each member reference to the pin row that fixed it
+            with self.p.uow() as uow:
+                members = [
+                    {"member": ref, **(uow.repo("feature_pins").get(pin_id) or {"missing": True})}
+                    for ref, pin_id in sorted((pin.get("member_pin_ids") or {}).items())
+                ]
+            out["featureset/pin.json"] = djson.dumps(
+                {
+                    "pin_name": pin["pin_name"],
+                    "as_of_date": pin["as_of_date"],
+                    "as_of_known": pin["as_of_known"],
+                    "content_hash": pin["content_hash"],
+                    "row_count": pin["row_count"],
+                    "manifest": pin.get("manifest") or {},
+                },
+                indent=2,
+            ).encode()
+            out["featureset/member_pins.json"] = djson.dumps(
+                [
+                    {
+                        k: m.get(k)
+                        for k in (
+                            "member",
+                            "id",
+                            "feature_id",
+                            "pin_name",
+                            "as_of_date",
+                            "as_of_known",
+                            "content_hash",
+                            "row_count",
+                            "fragments",
+                            "missing",
+                        )
+                    }
+                    for m in members
+                ],
+                indent=2,
+            ).encode()
+        return out
 
     def _documents(
         self,
