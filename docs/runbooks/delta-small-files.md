@@ -25,8 +25,11 @@ there wastes a maintenance window.
   ```text
   maya_delta_files{table="raw/eq/volumes/308e5cb1b5ef"} 9
   maya_delta_small_file_ratio{table="raw/eq/volumes/308e5cb1b5ef"} 1
-  maya_delta_bytes{table="raw/eq/volumes/308e5cb1b5ef"} 15246
   ```
+
+  A ratio of 1 means every file is under the compaction target, which on a pin table is
+  true of a healthy one too — every fragment is far below 128 MB. Read the ratio together
+  with the count, which is what the shipped alert does.
 
 - The `MayaDeltaSmallFileExplosion` alert fires
   ([the rules file](../../config/prometheus/maya-slo.rules.yml)): ratio above 0.9 with more than
