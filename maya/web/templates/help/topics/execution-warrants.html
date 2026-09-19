@@ -113,6 +113,13 @@ out = my.execution.report(
     output_stats={"pd": {"min": 0.0004, "max": 0.61}})
 print(out["status"], out["breaches"])           # live []
 {% endcall %}
+{% call warn('Offline copies are unattested') %}
+<p>A copy of the warrant for use without MAYA —
+<code>my.execution.bundle(ew["id"], "prod", offline=True)</code> — has no token, and nothing run from it
+is reported, so no covenant or limit is checked on those runs. MAYA issues it, but labels the copy
+<code>unattested</code>, records it on the custody trail, audits it, and from then on shows the
+warrant itself as <strong>unattested</strong>, so the weaker mode is visible rather than assumed.</p>
+{% endcall %}
 {% endcall %}
 
 <h2>When it refuses you</h2>

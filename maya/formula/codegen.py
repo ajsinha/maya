@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from maya.core.errors import ValidationFailed
-from maya.formula.ir import let_order, validate_ir
+from maya.formula.ir import let_order, refs_of, validate_ir
 
 _BIN = {"add": "+", "sub": "-", "mul": "*", "div": "/", "pow": "**",
         "gt": ">", "lt": "<", "ge": ">=", "le": "<=", "eq": "=="}
@@ -73,12 +73,56 @@ def _npdf(x):
 
 def to_python(ir: dict[str, Any]) -> str:
     """Source of a module defining ``predict(X: dict, params: dict) -> dict``."""
+    return _HEADER + _function(ir, "predict")
+
+
+def to_python_composite(ir: dict[str, Any], member_irs: dict[str, dict[str, Any]]) -> str:
+    """The same for a composite of closed-form members: one function per member, and a
+    ``predict`` that runs them as ``maya.formula.evaluate.evaluate_composite`` does —
+    members in training order (else declaration order), each seeing the inputs and the
+    earlier members' outputs as ``alias.output``, member parameters taken from
+    ``alias.name``, then the combine expression over all of it."""
+    comp = ir["composite"]
+    order = comp.get("train", {}).get("order") or [m["alias"] for m in comp["members"]]
+    parts = [_HEADER, _MEMBER_PARAMS]
+    for alias in order:
+        member = member_irs[alias]
+        if "body" not in member:
+            raise ValidationFailed(f"member '{alias}' is not closed-form; a composite is "
+                                   "re-executable only over closed-form members")
+        parts.append(_function(member, _member_fn(alias)) + "\n\n")
+    lines = ["def predict(X, params):",
+             "    env = {k: np.asarray(v, dtype=float) for k, v in X.items()}"]
+    for alias in order:
+        lines += [f"    for _k, _v in {_member_fn(alias)}(env, "
+                  f"_member_params(params, {alias!r})).items():",
+                  f"        env[{alias!r} + '.' + _k] = np.asarray(_v, dtype=float)"]
+    lines += [f"    {_ident(ref)} = env[{ref!r}]" for ref in sorted(refs_of(comp["combine"]))]
+    out = ir["outputs"][0]["name"] if ir.get("outputs") else "y"
+    lines.append(f"    return {{{out!r}: np.asarray({py_expr(comp['combine'])}, dtype=float)}}")
+    return "".join(parts) + "\n".join(lines) + "\n"
+
+
+_MEMBER_PARAMS = '''def _member_params(params, alias):
+    prefix = alias + "."
+    return {k[len(prefix):]: v for k, v in params.items() if k.startswith(prefix)}
+
+
+'''
+
+
+def _member_fn(alias: str) -> str:
+    return "_member_" + "".join(c if c.isalnum() else "_" for c in alias)
+
+
+def _function(ir: dict[str, Any], name: str) -> str:
+    """``def name(X, params)`` for one closed-form IR."""
     if "body" not in ir:
         raise ValidationFailed("only closed-form models have a reference implementation")
     errors = validate_ir(ir)
     if errors:
         raise ValidationFailed("invalid IR", errors=errors)
-    lines = [_HEADER + "def predict(X, params):"]
+    lines = [f"def {name}(X, params):"]
     for inp in ir.get("inputs", []):
         name = inp["name"]
         if inp.get("role") == "constant" and "value" in inp:

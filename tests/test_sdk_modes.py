@@ -106,6 +106,44 @@ def test_a_cassette_never_holds_a_credential(api, tmp_path):
     assert token not in text and "<redacted>" in text
 
 
+def test_the_async_client_records_and_replays_and_shares_cassettes(api, tmp_path):
+    """AsyncClient.record / replay, and a cassette from either client replays in the other."""
+    import asyncio
+
+    from maya.sdk import AsyncClient
+    _, app = api
+    token = _login(app, "dana")
+
+    async def record_async(tape):
+        live = AsyncClient.record(tape, app=app, token=token)
+        assert live.mode == "record (inproc)"
+        shown = await live.features.get("eq/taped")
+        with pytest.raises(NotFound):
+            await live.features.get("eq/nowhere")
+        await live.aclose()
+        return shown
+
+    async def replay_async(tape):
+        replayed = AsyncClient.replay(tape)
+        shown = await replayed.features.get("eq/taped")
+        with pytest.raises(NotFound, match="nowhere"):
+            await replayed.features.get("eq/nowhere")
+        with pytest.raises(ReplayMiss):
+            await replayed.features.list()
+        await replayed.aclose()
+        return shown
+
+    async_tape, sync_tape = tmp_path / "async.json", tmp_path / "sync.json"
+    shown = asyncio.run(record_async(async_tape))
+    assert asyncio.run(replay_async(async_tape)) == shown
+    assert Client.replay(async_tape).features.get("eq/taped") == shown     # async -> sync
+    live = Client.record(sync_tape, app=app, token=token)
+    live.features.get("eq/taped")
+    with pytest.raises(NotFound):
+        live.features.get("eq/nowhere")
+    assert asyncio.run(replay_async(sync_tape)) == shown                   # sync -> async
+
+
 def test_a_file_that_is_not_a_cassette_is_refused(tmp_path):
     bogus = tmp_path / "x.json"
     bogus.write_text('{"entries": []}')
@@ -133,6 +171,55 @@ def bundle(journey):  # noqa: F811
     w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
     exported = w.p.bundles.export(w.devi, tw["id"])
     return w, tw, w.p.blobs.get(exported["blob"])
+
+
+def test_a_composite_model_is_re_executed_by_the_bundle_verifier(bundle):
+    """A composite of closed-form members ships generated code for the whole DAG, and
+    the bundle's own verify.py re-executes it to the exported output hash."""
+    import json as _json
+
+    from maya.services.bundle import run_verifier
+    w, _, _ = bundle
+    w.p.models.create(w.mona, namespace="quant", name="lift", formula="z = c*x",
+                      roles={"c": "parameter"})
+    for name in ("lift",):
+        w.p.models.update_draft(w.mona, f"quant/{name}", spec_latex=complete_spec(name))
+        w.p.models.transition(w.mona, f"quant/{name}", 1, "submit")
+        w.p.models.transition(w.mgr, f"quant/{name}", 1, "approve")
+    ir = {"outputs": [{"name": "yhat", "type": "float64"}],
+          "inputs": [{"name": "w", "type": "float64", "role": "parameter"}],
+          "composite": {"kind": "ensemble", "members": [
+              {"alias": "lin", "ref": "maya://model/quant/offline_lin@v1"},
+              {"alias": "lift", "ref": "maya://model/quant/lift@v1"}],
+              "combine": {"op": "add", "args": [{"ref": "lin.yhat"}, {"op": "mul", "args": [
+                  {"param": "w"}, {"ref": "lift.z"}]}]}}}
+    w.p.models.create(w.mona, namespace="quant", name="blend", kind="composite")
+    w.p.models.update_draft(w.mona, "quant/blend", ir=ir, spec_latex=complete_spec("blend"))
+    w.p.models.transition(w.mona, "quant/blend", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/blend", 1, "approve")
+    tw = w.p.warrants.create(w.devi, namespace="quant", name="blend_calib",
+                             model="quant/blend@v1",
+                             featureset="maya://featureset/quant/panel#q1/2026-02-28",
+                             spec={"target": "y", "seed": 3})
+    data = w.p.warrants.data(w.devi, tw["id"])
+    w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"lin.a": 2.0, "lin.b": 0.5, "lift.c": 0.1, "w": 0.3},
+        data_checksum=data["manifest"]["checksum"])
+    exported = w.p.bundles.export(w.devi, tw["id"])
+    manifest = exported["manifest"]
+    assert manifest["reexecutable"] and manifest["model_inputs"] == ["x"], manifest
+    raw = w.p.blobs.get(exported["blob"])
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        assert "def _member_lin" in z.read("model/reference_model.py").decode()
+        assert set(_json.loads(z.read("model/member_irs.json"))) == {"lin", "lift"}
+        script = z.read("verify.py").decode()
+    report = run_verifier(raw, script)
+    assert report["verified"], report
+    check = next(c for c in report["checks"] if c["check"] == "re-execution output hash")
+    assert check["ok"] and check["detail"] == manifest["output_hash"]
+    x = np.array([1.0, 2.0, 3.0])
+    got = offline(raw).predict({"x": x})["yhat"]            # the SDK, offline, same answer
+    np.testing.assert_allclose(got, 2.0 * x + 0.5 + 0.3 * 0.1 * x)
 
 
 def test_offline_serves_the_read_api_from_a_verified_bundle(bundle, tmp_path):

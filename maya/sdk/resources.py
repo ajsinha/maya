@@ -745,9 +745,12 @@ class ExecutionWarrants(_Resource):
                        params={"environment": environment})
 
     @endpoint("GET", "/warrants/execution/{ew_id}/bundle")
-    def bundle(self, ew_id: str, environment: str) -> Any:
+    def bundle(self, ew_id: str, environment: str, offline: bool = False) -> Any:
+        """``offline=True``: a copy to run without MAYA. Nothing it runs is reported, so
+        MAYA labels it — and the warrant — ``unattested``."""
         return self._c("GET", f"/warrants/execution/{seg(ew_id)}/bundle",
-                       params={"environment": environment})
+                       params={"environment": environment,
+                               "offline": "true" if offline else None})
 
     @endpoint("POST", "/warrants/execution/{ew_id}/report")
     def report(self, ew_id: str, environment: str, rows: int,

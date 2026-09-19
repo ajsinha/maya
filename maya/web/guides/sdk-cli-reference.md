@@ -32,7 +32,7 @@ The client is a context manager (`with maya.Client(...) as my:`) and has `close(
 
 ### AsyncClient
 
-`maya.sdk.AsyncClient(base_url="http://127.0.0.1:8600", *, api_key=None, token=None, app=None, timeout=120.0, channel="sdk")` has the same namespaces and methods, each a coroutine. Close it with `await client.aclose()` or use `async with`. It does not retry, and it has no `wait`, `training_data`, `record` or `replay`.
+`maya.sdk.AsyncClient(base_url="http://127.0.0.1:8600", *, api_key=None, token=None, app=None, timeout=120.0, channel="sdk")` has the same namespaces and methods, each a coroutine. Close it with `await client.aclose()` or use `async with`. It does not retry, and it has no `wait` or `training_data`. `AsyncClient.record(path, …)` and `AsyncClient.replay(path)` work as they do for `Client`, and a cassette recorded by either client replays in the other.
 
 ```python
 # The async client
@@ -156,7 +156,7 @@ assert tape.features.preview("maya://feature/eq/prices@v1") == panel
 | `json(name)`, `table()` | A named JSON file from the bundle; the data table. |
 | `close()` | Also usable as a context manager. |
 
-The bundle's `reference_model.py` is never imported: opening a bundle never runs code it carries. Anything a bundle does not hold — the catalog, workflow, other warrants — raises `maya.sdk.offline.NotInBundle`, as does `predict` on a black box or a composite model.
+The bundle's `reference_model.py` is never imported: opening a bundle never runs code it carries. Anything a bundle does not hold — the catalog, workflow, other warrants — raises `maya.sdk.offline.NotInBundle`, as does `predict` on a black box or on a composite with a member that is not closed-form. A composite of closed-form members is evaluated from its signed member IRs.
 
 ## SDK namespaces
 

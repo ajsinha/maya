@@ -73,8 +73,9 @@ still matches its signed hash, and then with MAYA's own verifier, never the uplo
 {% endcall %}
 
 {% call warn('When re-execution is impossible, the bundle says so') %}
-<p>A declared black box has no executable specification, a composite model's re-execution is not
-shipped in this build, and a model with parameters needs an uploaded parameter set. In those cases
+<p>A declared black box has no executable specification; a composite is re-executed only when every
+member is closed-form (not a black box or a nested composite); and a model with parameters needs an
+uploaded parameter set. In those cases
 <code>reexecutable</code> is false and <code>not_reexecutable_reason</code> explains why; the verifier
 reports that check as not performed instead of implying a verification it cannot do.</p>
 {% endcall %}

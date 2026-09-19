@@ -84,11 +84,15 @@ class ExecutionService:
         with self.p.uow() as uow:
             ew, ns = self._load(uow, ew_id)
             self.p.access.require(uow, p, "read", "execution_warrant", ew)
+            custody = uow.repo("custody_events").list(warrant_type="exec", warrant_id=ew_id,
+                                                      order_by=["created_at"])
+            offline = [c for c in custody if c["event"] == "offline_issued"]
             return {**ew, "namespace": ns["name"], "status": self.status(ew),
-                    "uri": self.uri(ew, ns),
-                    "custody": uow.repo("custody_events").list(warrant_type="exec",
-                                                               warrant_id=ew_id,
-                                                               order_by=["created_at"]),
+                    "uri": self.uri(ew, ns), "custody": custody,
+                    "offline_use": {"label": "unattested" if offline else None,
+                                    "copies_issued": len(offline),
+                                    "last_issued_at": offline[-1]["created_at"]
+                                    if offline else None},
                     "reports": uow.repo("execution_reports").list(
                         execution_warrant_id=ew_id, order_by=["-created_at"], limit=200),
                     "transitions": self.p.workflow.available(uow, self.subject(uow, ew, ns))}
@@ -274,8 +278,15 @@ class ExecutionService:
         return {"token": base64.urlsafe_b64encode(payload).decode() + "." + sig["signature"],
                 "claims": claims, "public_key": sig["public_key"]}
 
-    def bundle(self, p: Principal, ew_id: str, environment: str) -> dict[str, Any]:
-        """Everything the SDK needs to run the warrant in one call."""
+    def bundle(self, p: Principal, ew_id: str, environment: str, *,
+               offline: bool = False) -> dict[str, Any]:
+        """Everything the SDK needs to run the warrant in one call.
+
+        ``offline`` asks for a copy to run without MAYA: no live token, nothing
+        reported back, so no covenant or limit can be checked on its use. It is still
+        issued — the requirement is that the weaker mode be visible, not forbidden —
+        but it is recorded on the warrant's custody trail and audited, the bundle is
+        labelled ``unattested``, and so is the warrant from then on (``offline_use``)."""
         with self.p.uow() as uow:
             ew, ns = self._load(uow, ew_id)
             self.p.access.require(uow, p, "read", "execution_warrant", ew)
@@ -286,11 +297,22 @@ class ExecutionService:
                 if "composite" in (mv["formula_ir"] or {}) else {}
             self.check(ew, environment)
             self.check_allowance(uow, ew)
-        return {"warrant": self.uri(ew, ns), "id": ew_id, "manifest": ew["manifest"],
-                "formula_ir": mv["formula_ir"], "member_irs": members,
-                "parameters": ps["values"] if ps else {},
-                "token": self.token(p, ew_id, environment)["token"],
-                "status": self.status(ew)}
+        out = {"warrant": self.uri(ew, ns), "id": ew_id, "manifest": ew["manifest"],
+               "formula_ir": mv["formula_ir"], "member_irs": members,
+               "parameters": ps["values"] if ps else {}, "status": self.status(ew)}
+        if not offline:
+            return {**out, "attestation": "attested",
+                    "token": self.token(p, ew_id, environment)["token"]}
+        with self.p.uow(p.username) as uow:
+            self.p.warrants._custody(uow, ew_id, "offline_issued", p.username,
+                                     detail={"environment": environment},
+                                     warrant_type="exec")
+            uow.audit("warrant.offline_issued", object_type="execution_warrant",
+                      object_ref=out["warrant"], detail={"environment": environment})
+        return {**out, "attestation": "unattested", "token": None,
+                "notice": "Runs from this copy are not reported to MAYA: no covenant or "
+                          "limit is checked on them, and the warrant shows it was issued "
+                          "for offline use."}
 
     def report(self, p: Principal, ew_id: str, *, environment: str, rows: int,
                input_stats: dict[str, Any], output_stats: dict[str, Any] | None = None

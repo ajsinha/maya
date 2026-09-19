@@ -181,6 +181,13 @@ def test_an_execution_warrant_lifecycle_through_forms(site):
         "input_stats": json.dumps({"x": {"null_rate": 0.5}})})
     assert "SUSPENDED" in r.text
     assert w.p.execution.get(w.mgr, eid)["status"] == "suspended"
+    assert "Unattested offline use" not in mgr.get(f"/warrants/execution/{eid}").text
+    w.p.execution.reinstate(w.admin, eid, "reset for the offline check")
+    w.p.execution.bundle(w.mgr, eid, "dev", offline=True)
+    page = mgr.get(f"/warrants/execution/{eid}").text
+    assert "Unattested offline use" in page and "1 copy of this warrant was issued" in page
+    w.p.execution.report(w.mgr, eid, environment="dev", rows=10,
+                         input_stats={"x": {"null_rate": 0.5}})           # suspended again
     admin = Browser(app, "admin", "maya-dev-admin-2")
     admin.post(f"/warrants/execution/{eid}/reinstate", {"reason": "vendor file was late"},
                expect="success")

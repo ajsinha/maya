@@ -158,6 +158,30 @@ def test_composite_union_maturity_seeds_and_eval() -> None:
         comp.check_structure({"a": ["b"], "b": ["c"], "c": ["d"], "d": ["e"], "e": ["f"]}, "a")
 
 
+def test_composite_reference_code_matches_the_evaluator() -> None:
+    """The generated composite module (what a bundle ships) gives what MAYA computes."""
+    from maya.formula.codegen import to_python_composite
+    base = parse_model("price = S*a + c", roles={"a": "parameter", "c": "parameter"})
+    skew = parse_model("adj = S*b + v", roles={"b": "parameter"})
+    ir = {"outputs": [{"name": "price"}], "inputs": [{"name": "w_skew", "role": "parameter"}],
+          "composite": {"kind": "pipeline", "members": [{"alias": "base", "ref": "maya://model/b@v1"},
+                                                        {"alias": "skew", "ref": "maya://model/s@v1"}],
+                        "combine": {"op": "add", "args": [{"ref": "base.price"}, {"op": "mul", "args": [
+                            {"param": "w_skew"}, {"ref": "skew.adj"}]}, {"ref": "v"}]},
+                        "train": {"order": ["skew", "base"]}}}
+    rng = np.random.default_rng(7)
+    X = {"S": rng.normal(100, 10, 500), "v": rng.normal(0, 1, 500)}
+    params = {"base.a": 1.5, "base.c": -2.0, "skew.b": 0.25, "w_skew": 0.4}
+    namespace: dict = {}
+    exec(compile(to_python_composite(ir, {"base": base, "skew": skew}), "<t>", "exec"), namespace)
+    generated = namespace["predict"](X, params)["price"]
+    expected = evaluate_composite(ir, {"base": base, "skew": skew}, X, params)["price"]
+    np.testing.assert_allclose(generated, expected, rtol=0, atol=1e-12)
+    black = {"black_box": {"name": "vendor"}, "outputs": [{"name": "adj"}], "inputs": []}
+    with pytest.raises(ValidationFailed, match="not closed-form"):
+        to_python_composite(ir, {"base": base, "skew": black})
+
+
 def test_conformance_finds_counterexample() -> None:
     ir = parse_model(BS_PY, roles=ROLES)
     good = compile_reference(ir)

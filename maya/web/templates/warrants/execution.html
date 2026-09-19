@@ -3,10 +3,11 @@
 {% from "_macros/ui.html" import pill, kv, json_block %}
 {% block title %}{{ ew.name }}{% endblock %}
 {% block content %}
-<h1>{{ ew.name }}@v{{ ew.version_no }} {{ pill(ew.status) }}</h1>
+<h1>{{ ew.name }}@v{{ ew.version_no }} {{ pill(ew.status) }}{% if ew.offline_use and ew.offline_use.label %} {{ pill('unattested') }}{% endif %}</h1>
 <div class="small-muted mono mb-2">{{ ew.uri }}</div>
 {% if ew.suspended_at %}<div class="alert alert-danger">SUSPENDED: {{ ew.suspend_reason }}</div>{% endif %}
 {% if ew.revoked_at %}<div class="alert alert-danger">Revoked: {{ ew.revoke_reason }}</div>{% endif %}
+{% if ew.offline_use and ew.offline_use.label %}<div class="alert alert-warning"><strong>Unattested offline use.</strong> {{ ew.offline_use.copies_issued }} {{ 'copy' if ew.offline_use.copies_issued == 1 else 'copies' }} of this warrant {{ 'was' if ew.offline_use.copies_issued == 1 else 'were' }} issued to run without MAYA (last {{ ew.offline_use.last_issued_at|dt }}). Runs from them are not reported back, so no covenant or limit is checked on them; the reports below cover attested runs only.</div>{% endif %}
 {% if token %}<div class="alert alert-info"><strong>Token</strong> (expires {{ token.claims.exp }}):<pre class="mono mb-0">{{ token.token }}</pre></div>{% endif %}
 <div class="row g-3"><div class="col-lg-6">
 {{ kv([('Namespace', ew.namespace), ('Valid from', ew.valid_from|dt), ('Valid to', ew.valid_to|dt), ('Environments', ew.spec.environments|join(', ')), ('Contact', ew.spec.contact), ('Executions', ew.executions), ('Sealed', ew.sealed_at|dt)]) }}

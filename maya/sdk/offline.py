@@ -174,13 +174,20 @@ class Offline:
         return self.json("certificate.json")
 
     def predict(self, X: dict[str, Any], params: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Evaluate the signed formula IR (never the bundle's Python) on ``X``."""
-        from maya.formula.evaluate import evaluate
+        """Evaluate the signed formula IR (never the bundle's Python) on ``X``; for a
+        composite, the signed member IRs too."""
+        from maya.formula.evaluate import evaluate, evaluate_composite
         ir = self.json("model/formula_ir.json")
+        values = self.parameters() if params is None else params
+        if ir and "composite" in ir and "model/member_irs.json" in self.files:
+            members = self.json("model/member_irs.json")
+            if all("body" in m for m in members.values()):
+                return evaluate_composite(ir, members, X, values)
         if not ir or "body" not in ir:
-            raise NotInBundle("This model has no closed form in the bundle (a black box or a "
-                              "composite): it cannot be evaluated offline")
-        return evaluate(ir, X, self.parameters() if params is None else params)
+            raise NotInBundle("This model has no closed form in the bundle (a black box, or a "
+                              "composite with a member that is not closed-form): it cannot be "
+                              "evaluated offline")
+        return evaluate(ir, X, values)
 
     def close(self) -> None:
         self.files = {}
