@@ -21,8 +21,14 @@ They are procedures, not explanations. The why of each subsystem is in the
 | [Integrity drift](integrity-drift.md) | `verify-integrity` exits 1, or an `integrity_drift` notification arrives |
 | [Audit chain break and custody anchors](audit-chain-and-custody.md) | The chain does not verify, custody verification says `TAMPERING`, or anchoring is refused |
 | [Stuck or failed jobs and pins](stuck-or-failed-jobs-and-pins.md) | A job sits `running` or `queued`, dead-letters, or a pin is stuck `materializing` or `failed` |
+| [Orphaned pin partitions](orphaned-pin-partitions.md) | The lake is bigger than the pins in it: fragments no sealed pin references |
+| [Delta small-file explosion](delta-small-files.md) | Reads slow down while row counts do not, or a lake table is thousands of tiny files |
+| [Database failover](database-failover.md) | PostgreSQL has gone away, or a standby has been promoted |
 | [A suspended execution warrant](suspended-execution-warrant.md) | A consumer is refused with `warrant_suspended` (HTTP 423) |
 | [SSO outage](sso-outage.md) | The identity provider is down or misbehaving, or sign-out does not behave as expected |
+| [Suspected sandbox escape](sandbox-escape.md) | User-supplied Python may have got out of its jail, or the sandbox tier has fallen |
+| [Storage quota exhaustion](quota-exhaustion.md) | The lake is filling up, one namespace is consuming it, or the job queue is shedding |
+| [Default-password remediation](default-password.md) | MAYA refuses to start on the shipped admin password, or a running instance still has it |
 | [Restore drill](restore-drill.md) | Quarterly, and after any change to how backups are taken |
 
 ## Conventions every runbook uses
@@ -41,7 +47,7 @@ interchangeable:
 
 | Mode | How | Use for |
 |---|---|---|
-| Beside the database | `admin init-db`, `admin export-estate`, `admin import-estate` — no flags | Rebuilding a database. These open the database directly and never start a platform, because they must work exactly when the platform refuses to start. **Stop MAYA first.** |
+| Beside the database | `admin init-db`, `admin export-estate`, `admin import-estate`, `admin record-drill`, `admin drills` — no flags | Rebuilding a database, and recording a restore drill on the instance that was backed up. These open the database directly and never go through a server, because they must work exactly when the platform refuses to start. **Stop MAYA first** for the three that rebuild; the two drill commands only read and append, and `MAYA_USER` names who is acting. |
 | Remote | `MAYA_URL` and `MAYA_API_KEY` in the environment (or `--profile`) | Everything else, against a running server. Needs an administrator's or `techops` key. |
 | In process | `--local`, with `MAYA_USER` and `MAYA_PASSWORD` | A server that is not running. Signs in with a password, so it needs a database account — it is refused when `auth.mode` is `sso`, and by an account whose second factor is pending. **It starts the job workers, the webhook dispatcher and the scheduler**, so never use it on a copy of production without disarming webhooks first (see the [restore drill](restore-drill.md)). |
 
@@ -56,24 +62,47 @@ date — say so.
 **Commands that were run.** Every command in these runbooks was run against a throwaway
 `MAYA_HOME` on SQLite when they were written, except where a runbook marks one as not
 exercised — PostgreSQL commands and anything needing a real identity provider or timestamp
-authority.
+authority. Each runbook says at the end of its verification section which of its own
+commands were run and which were not, so a command you are about to trust at two in the
+morning is not one nobody has ever typed.
+
+## Alerts
+
+§20 asks that "each SLO has an alert with a runbook link", and
+[`config/prometheus/maya-slo.rules.yml`](../../config/prometheus/maya-slo.rules.yml) is that
+file: recording rules for the four objectives and alerts that each carry a `runbook_url`
+pointing into this directory. Load it beside your Prometheus configuration:
+
+```yaml
+rule_files:
+  - /etc/prometheus/maya-slo.rules.yml
+```
+
+`tests/test_slo_rules.py` fails if an alert names a runbook that does not exist, or an
+expression names a metric MAYA does not export — so a renamed metric or a moved runbook breaks
+the build rather than the alert. Every threshold in the file is a starting point from a
+laptop-sized estate and is meant to be edited. Prometheus itself, and where the alerts go, are
+still yours.
 
 ## What these runbooks do not cover
 
-Specification §20 lists runbooks these do not yet include, and they are named here so nobody
-assumes otherwise:
+The nine runbooks §20 asks for are all here. What is not covered is narrower, and named here so
+nobody assumes otherwise:
 
-- **Orphaned pin partitions** — only in part: the [jobs and pins](stuck-or-failed-jobs-and-pins.md)
-  runbook covers the orphan fragments a failed pin leaves; MAYA reports them and never deletes
-  them, and there is no supported command to collect them.
-- **Delta small-file explosion** — lake maintenance (compaction and vacuum) is described in the
-  operations guide; there is no runbook for diagnosing it.
-- **Database failover** — not written. MAYA has no failover of its own; it is whatever the
-  PostgreSQL deployment provides.
-- **Sandbox escape suspicion** — not written.
-- **Storage quota exhaustion** — not written.
-- **Default-password remediation** — not written. Outside `dev`, MAYA refuses to start while
-  the bootstrap admin has the default password; the banner and health page say so.
-
-There are no alerts wired to these runbooks: §20's "each SLO has an alert with a runbook link"
-is not built. MAYA exposes the metrics (`/metrics`); the alerting is yours.
+- **There is no supported garbage collection of orphaned fragments.** The
+  [orphaned partitions](orphaned-pin-partitions.md) runbook has a manual rewrite procedure and
+  says plainly that it is unsupported; §29.3's provably-safe collector is not built.
+- **Pin tables cannot be compacted.** They are partitioned one file per fragment, so the
+  [small-files](delta-small-files.md) runbook's lever there is the fragment size, for new pins
+  only.
+- **Storage quotas are not enforced.** `quota_bytes` is stored and never read, so
+  [quota exhaustion](quota-exhaustion.md) is about seeing consumption and surviving a full
+  filesystem, not about a limit MAYA applies.
+- **MAYA has no database failover of its own**, and every PostgreSQL command in
+  [that runbook](database-failover.md) is marked as not exercised: no server was available when
+  it was written.
+- **The sandbox is tested against a fixed list of attacks.** §26 puts an external security
+  review out of scope, so [suspected escape](sandbox-escape.md) is measurement against that
+  list, not a proof.
+- **RPO and RTO have never been measured** at production size (§20 states 5 minutes and 1 hour).
+  The [restore drill](restore-drill.md) records a duration for a tiny estate only.
