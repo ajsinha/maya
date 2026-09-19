@@ -10,7 +10,7 @@
   <h2 class="h5">Pull from the SQL source</h2>
   <p class="small-muted mb-2">Runs the reviewed query read-only on connection <span class="mono">{{ src.connection }}</span> and appends the rows as a knowledge-time batch.</p>
   <pre class="mono small mb-2">{{ src.query }}</pre>
-  <button class="btn btn-primary" type="submit"><i class="bi bi-database-down" aria-hidden="true"></i> Pull now</button>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-download" aria-hidden="true"></i> Pull now</button>
 </form>
 {% endif %}
 <form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest" enctype="multipart/form-data" class="card card-body" style="max-width:720px">

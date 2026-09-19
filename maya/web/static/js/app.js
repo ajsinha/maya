@@ -31,6 +31,28 @@
     });
   }
 
+  // Mega menu: on a wide screen a panel opens on hover as well as on click/keyboard.
+  var wide = window.matchMedia('(min-width: 992px)');
+  document.querySelectorAll('.maya-nav .mega').forEach(function (li) {
+    var toggle = li.querySelector('[data-bs-toggle="dropdown"]');
+    var timer = null;
+    if (!toggle || !window.bootstrap) return;
+    var dd = window.bootstrap.Dropdown.getOrCreateInstance(toggle);
+    li.addEventListener('mouseenter', function () {
+      if (!wide.matches) return;
+      clearTimeout(timer);
+      document.querySelectorAll('.maya-nav .mega .dropdown-toggle.show').forEach(function (t) {
+        if (t !== toggle) window.bootstrap.Dropdown.getOrCreateInstance(t).hide();
+      });
+      timer = setTimeout(function () { dd.show(); }, 90);
+    });
+    li.addEventListener('mouseleave', function () {
+      if (!wide.matches) return;
+      clearTimeout(timer);
+      timer = setTimeout(function () { dd.hide(); }, 180);
+    });
+  });
+
   document.addEventListener('keydown', function (ev) {
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') {
       var s = document.getElementById('global-search');

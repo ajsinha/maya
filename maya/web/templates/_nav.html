@@ -1,0 +1,129 @@
+{# The top navigation: one menu, defined once as data, rendered as mega-menu panels.
+   Each top-level entry: (label, icon, [(column title, [(href, icon, label, description, match)])]). #}
+{% set staff = user and ('admin' in my_roles or 'techops' in my_roles) %}
+{% set MENU = [
+  ('Catalog', 'boxes', [
+    ('Browse', [
+      ('/catalog/features', 'boxes', 'Features', 'Every governed feature, its versions, pins and data', '/catalog/features'),
+      ('/catalog/featuresets', 'grid-3x3-gap', 'Feature sets', 'Bundles of features mapped to model inputs', '/catalog/featuresets'),
+      ('/lineage', 'diagram-3', 'Lineage', 'What feeds what, upstream and downstream', '/lineage'),
+      ('/search', 'search', 'Search', 'Find features, sets, models and warrants', '/search')])]),
+  ('Workbench', 'tools', [
+    ('Design', [
+      ('/workbench', 'tools', 'Overview', 'Your drafts and what to do next', None),
+      ('/workbench/features/new', 'pencil-square', 'Feature designer', 'Schema, source, resolution rules, quality', '/workbench/features'),
+      ('/workbench/featuresets/new', 'grid-1x2', 'Feature set builder', 'Map feature attributes to model inputs', '/workbench/featuresets')]),
+    ('Bring data in', [
+      ('/workbench/upload', 'cloud-upload', 'Upload wizard', 'Infer a schema from a file, then refine it', '/workbench/upload'),
+      ('/workbench/quick', 'lightning', 'Quick feature', 'One CSV, one minute, one governed feature', '/workbench/quick')]),
+    ('Change safely', [
+      ('/workbench/workspaces', 'diagram-2', 'Workspaces', 'Stage changes and replay their impact first', '/workbench/workspaces')])]),
+  ('Models', 'calculator', [
+    ('Registry', [
+      ('/models', 'calculator', 'All models', 'Formulas, specifications, artifacts, diffs', '/models/'),
+      ('/models/new', 'plus-square', 'New model', 'From LaTeX, Python or a declared black box', None)])]),
+  ('Warrants', 'file-earmark-lock', [
+    ('Issue', [
+      ('/warrants/training/new', 'mortarboard', 'Training warrant', 'Freeze a model against a feature set', '/warrants/training/new'),
+      ('/warrants/execution/new', 'play-circle', 'Execution warrant', 'License a trained model to run', '/warrants/execution/new')]),
+    ('Inspect', [
+      ('/warrants', 'file-earmark-lock', 'All warrants', 'Live, expired and revoked instruments', None),
+      ('/warrants/verify', 'shield-check', 'Verify a bundle', 'Check a reproducibility bundle offline', None)])]),
+  ('Workflow', 'inbox', [
+    ('My work', [
+      ('/workflow', 'inbox', 'My queue', 'Everything waiting for your decision', None),
+      ('/inbox', 'bell', 'Notifications', 'What happened to your objects', None),
+      ('/workflow/delegations', 'person-badge', 'Delegations', 'Who approves for you while you are away', None)]),
+    ('Governance', [
+      ('/workflow/policies', 'diagram-2', 'Policies', 'Approval paths and separation of duties', '/workflow/policies'),
+      ('/workflow/campaigns', 'collection', 'Campaigns', 'Periodic re-certification of access and models', None),
+      ('/workflow/aging', 'hourglass', 'SLA aging', 'Reviews running late, by age', None),
+      ('/workflow/break-glass', 'exclamation-triangle', 'Break-glass report', 'Every forced approval, for review', None)])]),
+] %}
+{% if staff %}{% set MENU = MENU + [
+  ('Admin', 'shield-lock', [
+    ('People & access', [
+      ('/admin/users', 'people', 'Users & roles', 'Accounts, groups, sessions', '/admin/users'),
+      ('/admin/namespaces', 'folder2', 'Namespaces', 'Presets and separation-of-duties strictness', None),
+      ('/admin/grants', 'key', 'Grants', 'Object access, conditions and expiry', '/admin/grants')]),
+    ('Integration', [
+      ('/admin/sources', 'server', 'Sources', 'Read-only SQL connections', '/admin/sources'),
+      ('/admin/webhooks', 'broadcast-pin', 'Webhooks', 'Signed event delivery to your systems', None),
+      ('/admin/events', 'activity', 'Events', 'The durable, ordered event stream', None)]),
+    ('Operations', [
+      ('/admin/health', 'speedometer2', 'System health', 'Database, seams, sandbox, audit chain', None),
+      ('/admin/jobs', 'cpu', 'Jobs', 'Pins, validations and exports in flight', None),
+      ('/admin/storage', 'hdd-stack', 'Storage', 'Blobs, fragments and reclaimable space', None),
+      ('/admin/config', 'sliders', 'Configuration', 'Effective settings and where they came from', None)]),
+    ('Evidence', [
+      ('/admin/audit', 'journal-text', 'Audit', 'The hash-chained record of every action', None),
+      ('/admin/custody', 'shield-lock', 'Custody', 'Chain anchors held outside the database', None)])])] %}{% endif %}
+{% set MENU = MENU + [
+  ('Help', 'question-circle', [
+    ('Learn', [
+      ('/help', 'question-circle', 'Concepts', 'Features, pins, warrants, and why', '/help'),
+      ('/about', 'info-circle', 'About MAYA', 'Version, licence and credits', None)])])] %}
+
+{% macro _on(href, match) -%}{{ 'yes' if (path == href) or (match and path.startswith(match)) else '' }}{%- endmacro %}
+
+<nav class="navbar navbar-expand-lg maya-nav fixed-top" aria-label="Main">
+  <div class="container-fluid">
+    <a class="navbar-brand maya-brand" href="/"><img src="/static/img/maya-mark-white.svg" alt="">
+      <span><span class="name">MAYA</span><small>{{ APP_TAGLINE }}</small></span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#maya-menu"
+            aria-controls="maya-menu" aria-expanded="false" aria-label="Toggle navigation">
+      <i class="bi bi-list" aria-hidden="true"></i></button>
+    <div class="collapse navbar-collapse" id="maya-menu">
+      <ul class="navbar-nav me-auto">
+      {% for label, icon, columns in MENU %}
+        {% set ns = namespace(active=False) %}
+        {% for _t, items in columns %}{% for href, _i, _l, _d, match in items %}{% if _on(href, match) %}{% set ns.active = True %}{% endif %}{% endfor %}{% endfor %}
+        <li class="nav-item dropdown mega">
+          <a class="nav-link dropdown-toggle {% if ns.active %}active{% endif %}" href="#" role="button"
+             data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+             {% if ns.active %}aria-current="true"{% endif %}>
+            <i class="bi bi-{{ icon }}" aria-hidden="true"></i> {{ label }}</a>
+          <div class="dropdown-menu mega-panel cols-{{ columns|length }}">
+            {% for title, items in columns %}
+            <div class="mega-col">
+              <div class="mega-title">{{ title }}</div>
+              {% for href, i, l, d, match in items %}
+              {% set on = _on(href, match) %}
+              <a class="mega-item {% if on %}active{% endif %}" href="{{ href }}" {% if on %}aria-current="page"{% endif %}>
+                <span class="mega-icon"><i class="bi bi-{{ i }}" aria-hidden="true"></i></span>
+                <span><span class="mega-label">{{ l }}</span><span class="mega-desc">{{ d }}</span></span></a>
+              {% endfor %}
+            </div>
+            {% endfor %}
+          </div>
+        </li>
+      {% endfor %}
+      </ul>
+      <form class="maya-search" action="/search" method="get" role="search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="visually-hidden" for="global-search">Search the catalog</label>
+        <input id="global-search" name="q" type="search" placeholder="Search…  Ctrl-K" value="{{ q or '' }}">
+      </form>
+      <div class="maya-tools">
+        <a class="tool" href="/inbox" aria-label="Inbox, {{ unread }} unread"><i class="bi bi-bell" aria-hidden="true"></i>
+          {% if unread %}<span class="dot">{{ unread }}</span>{% endif %}</a>
+        <button class="tool" type="button" id="theme-toggle" aria-label="Toggle light and dark theme">
+          <i class="bi bi-circle-half" aria-hidden="true"></i></button>
+        <div class="dropdown">
+          <button class="tool user dropdown-toggle" data-bs-toggle="dropdown" type="button" aria-expanded="false">
+            <span class="avatar" aria-hidden="true">{{ (user or '?')[:1]|upper }}</span><span class="uname">{{ user }}</span></button>
+          <div class="dropdown-menu dropdown-menu-end maya-user-menu">
+            <div class="px-3 py-2"><div class="fw-semibold">{{ user }}</div><div class="small-muted">{{ my_roles|join(', ') or 'no roles' }}</div></div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="/account/keys"><i class="bi bi-key" aria-hidden="true"></i> My API keys</a>
+            <a class="dropdown-item" href="/account/password"><i class="bi bi-lock" aria-hidden="true"></i> Change password</a>
+            <a class="dropdown-item" href="/account/mfa"><i class="bi bi-phone" aria-hidden="true"></i> Two-factor authentication</a>
+            <div class="dropdown-divider"></div>
+            <form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+              <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</button></form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
