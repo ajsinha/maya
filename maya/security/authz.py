@@ -198,7 +198,7 @@ def _acl(
     if obj.get("owner_id") and obj["owner_id"] == p.user_id:
         return _level_decision(action, "own", "owner")
     default = (namespace or {}).get("default_visibility", "private")
-    if default in ("namespace_read", "public_read"):
+    if default == "public_read" or (default == "namespace_read" and belongs(p, namespace)):
         # Review actions follow the role, not a per-object grant: in a namespace
         # whose default is not private, a holder of the role capability (checked
         # above as the ceiling) may approve, pin and seal. Editing still needs
@@ -206,7 +206,31 @@ def _acl(
         if action in REVIEW_ACTIONS:
             return Decision(True, f"namespace default ({default}) + role capability")
         return _level_decision(action, "read", f"namespace default ({default})")
+    if default == "namespace_read":
+        return Decision(False, "namespace is readable by its own people, and you are not one")
     return Decision(False, "no grant and namespace is private")
+
+
+def belongs(p: Principal, namespace: dict[str, Any] | None) -> bool:
+    """Whether ``p`` is one of this namespace's people — what `namespace_read` means, and
+    what makes it different from `public_read` (§11.1).
+
+    MAYA has no membership list; a namespace declares the roles it is set up for (its
+    preset), and it has an owner. So belonging is: an administrator, the namespace's
+    owner, or a holder of a role that namespace expects. Someone signed in with roles the
+    namespace does not use — another desk's developer, a service account scoped
+    elsewhere — is not one of its people, and `namespace_read` no longer reads to them as
+    `public_read` did. An explicit grant is decided before this and still lets anyone in.
+    """
+    if namespace is None:
+        return False
+    if p.is_admin or (namespace.get("owner_id") and namespace["owner_id"] == p.user_id):
+        return True
+    from maya.security.roles import PRESETS
+
+    # a namespace always carries a preset; a view built without one reads as the default
+    expected = set(PRESETS.get(namespace.get("preset") or "standard", {}).get("roles") or [])
+    return bool(expected & set(p.roles))
 
 
 def _granted(action: str, grants: list[dict[str, Any]], via: str) -> Decision:

@@ -10,7 +10,11 @@
 > eighteen, not ten (§26.1); OIDC logout runs both ways (§12); tables page on the server
 > by table, not past a threshold (§16.7); break-glass sign-in during an IdP outage is
 > `mode: hybrid` (§13.3); catalog search is MAYA's own index everywhere (§24.5, §25); and
-> Revision 2.2's summary below called that index a scan.
+> Revision 2.2's summary below called that index a scan. Two more, from closing those
+> gaps: §10.2's example asked the model owner to approve while §11's matrix gave that role
+> no approval capability, so a production namespace could approve no execution warrant at
+> all — the matrix now grants it (§11, §3); and `namespace_read` behaved exactly like
+> `public_read`, so §11.1 now says who a namespace's people are.
 >
 > **Revision 2.3 — 2026-09-19.** Three decisions from building and measuring version 0.2,
 > each marked *Revision 2.3* where it lands: several web processes on one node require
@@ -377,6 +381,18 @@ Feature sets are closed under the same operator family, applied to sets of attri
 | `pivot / unpivot(S)` | Long ↔ wide across an index column | Index changes; `breaking` |
 | `sample(S, spec)` | Deterministic subset — by date range, universe, or seeded fraction | Subset of the index |
 
+*Revision 2.4:* every operator above is built. A set that is an operation over other sets
+carries a `derivation` block — `{operator, operands, options}` — instead of `members`, and
+resolves by resolving its operands and applying the operator; `union`, `intersect`,
+`difference`, `join` (§6.2's alignment modes), `project`, `pivot`, `unpivot` and `sample`
+are the feature algebra's own executors, so a set operation and the equivalent feature
+operation cannot drift apart. `override` re-resolves one operand under a replaced policy,
+filter, grid or alignment. `sample` is deterministic: a date range, a universe, or a
+seeded fraction chosen by hashing each row's index, so the same spec keeps the same rows
+on any machine. A derived set pins only over operands that are themselves pinned, and
+refuses by name otherwise — there is no cascade, because pinning somebody else's feature
+set is their decision.
+
 **Inheritance and override.** `extend` is the workhorse. A firm-wide `market_panel` is inherited by a desk, which overrides two resolution rules, drops an attribute it cannot see, and adds three of its own. The child stores only the diff, so a correction to the parent reaches every desk. Parent binding is `pinned` or `tracking`, exactly as for features.
 
 Inherited policy inserts one layer into the precedence stack of section 6.4, between the set's own global policy and the member feature's policy:
@@ -679,7 +695,7 @@ model_version:
     submit:   {from: draft, to: in_review, requires_role: [model_designer, admin]}
     approve:  {from: in_review, to: approved,
                approvals: [{role: model_manager, count: 1},
-                           {role: model_owner, count: 1, when: "env == 'prod'"}],
+                           {role: model_owner, count: 1, when: "env == 'prod'"}],   # Revision 2.4: the owner holds 'A' (§3)
                segregation: strict,
                checks: [spec_document_complete, code_artifact_validated,
                         formula_typechecks, no_open_blocking_comments]}
@@ -687,6 +703,14 @@ model_version:
   sla: {in_review: 5d}
   on_enter_in_review: notify(model_manager, channel: [inbox, email])
 ```
+
+*Revision 2.4:* an approval's `when` is read, not guessed: `prod`, `env == 'prod'`,
+`env != 'prod'` and the `nonprod` forms. A namespace marked `production` is env `prod`.
+Any other form is refused when the policy is saved, and a stored form MAYA cannot read
+asks for the approval rather than dropping it — before this, every form but the bare word
+`prod` silently made the approval unconditional. A policy whose approver could never hold
+the capability (§11's ceiling) is also refused, rather than leaving its objects stuck in
+review.
 
 **Checks** are named, pluggable predicates evaluated at transition time; a failing check blocks the transition and explains which one failed. This is how "you cannot approve a model whose spec document has an empty limitations section" becomes enforceable.
 
@@ -743,7 +767,7 @@ Access is decided by a single function evaluated on every request: `can(principa
 
 1. **Role capabilities** from the user's roles (section 3), which say what kinds of action are possible at all.
 2. **Object ACL**: per object, a list of grants. A grant is `(principal, level, expiry?, conditions?)` where principal is a user, a group, a role or `everyone`, and level is `read`, `read_write`, `approve`, `own` or `admin`. This satisfies the notes directly: a model owner restricts a model to selected users or opens it to everyone, at read-only or read-write.
-3. **Namespace default**: a namespace declares whether new objects are `private` (owner only), `namespace_read` or `public_read`. Owners can always tighten or widen an individual object.
+3. **Namespace default**: a namespace declares whether new objects are `private` (owner only), `namespace_read` or `public_read`. Owners can always tighten or widen an individual object. *Revision 2.4:* the two open levels behaved identically, because MAYA had no notion of belonging to a namespace. A namespace's **people** are its owner, anyone holding a grant on it, and holders of the roles its preset staffs (§28.9); `namespace_read` reads to them, `public_read` to anyone signed in. An explicit grant is decided first either way.
 4. **Object state**: sealed and pinned objects are read-only to everyone including their owner; retired objects are readable only with an explicit audit grant.
 
 ### 11.2 Resolution order

@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from maya.core.errors import NotFound
-from tests.conftest import PX_DEF, price_csv
+from maya.core.errors import NotFound, PermissionDenied
+from tests.conftest import PASSWORD, PX_DEF, price_csv
 
 
 @pytest.fixture(scope="module")
@@ -80,3 +80,36 @@ def test_lineage_leaves_out_what_the_caller_may_not_read(shut):
     }
     with pytest.raises(NotFound):
         w.p.ops.lineage("maya://feature/rs_shut/rs_px", p=w.devi)
+
+
+def test_namespace_read_is_the_namespace_people_and_public_read_is_everyone(world):
+    """§11.1 names three visibilities; `namespace_read` and `public_read` behaved
+    identically, because MAYA had no notion of belonging to a namespace. A namespace's
+    people are its owner, anyone granted on it, and holders of the roles it staffs."""
+    w = world
+    w.p.access.create_user(w.admin, username="outsider", password=PASSWORD, roles=["techops"])
+    w.p.access.create_namespace(
+        w.admin, name="rs_small", preset="small_team", default_visibility="namespace_read"
+    )
+    w.p.access.create_namespace(
+        w.admin, name="rs_public", preset="small_team", default_visibility="public_read"
+    )
+    for ns in ("rs_small", "rs_public"):
+        w.p.features.create(w.dana, namespace=ns, name="rs_vis", definition=PX_DEF)
+    outsider = w.principal("outsider")  # techops: not a role a small team staffs
+    with pytest.raises(PermissionDenied, match="its own people"):
+        w.p.features.get(outsider, "rs_small/rs_vis")
+    assert w.p.features.get(outsider, "rs_public/rs_vis")["name"] == "rs_vis"
+    assert w.p.features.get(w.dana, "rs_small/rs_vis"), "a role the namespace staffs reads it"
+    obj = w.p.access.resolve_object("feature", "rs_small/rs_vis")
+    with w.p.uow() as uow:
+        who = uow.repo("users").find_one(username="outsider")
+    w.p.access.grant(
+        w.admin,
+        kind="feature",
+        obj=obj,
+        principal_type="user",
+        principal_id=who["id"],
+        level="read",
+    )
+    assert w.p.features.get(outsider, "rs_small/rs_vis"), "an explicit grant still lets you in"

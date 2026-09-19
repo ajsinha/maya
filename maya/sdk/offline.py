@@ -22,10 +22,10 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-import zipfile
 from pathlib import Path
 from typing import Any
 
+from maya.core import archives
 from maya.core.errors import CapabilityRefused, MayaError, NotFound, ValidationFailed
 
 
@@ -100,11 +100,8 @@ class Offline:
 
     def __init__(self, bundle: str | Path | bytes) -> None:
         raw = bundle if isinstance(bundle, bytes) else Path(bundle).read_bytes()
-        try:
-            with zipfile.ZipFile(io.BytesIO(raw)) as z:
-                self.files = {n: z.read(n) for n in z.namelist()}
-        except zipfile.BadZipFile as exc:
-            raise ValidationFailed("Not a MAYA reproducibility bundle (not a zip)") from exc
+        z = archives.opened(raw, what="bundle")
+        self.files = {n: archives.read(z, n, what="bundle") for n in z.namelist()}
         if "manifest.json" not in self.files:
             raise ValidationFailed("Not a MAYA reproducibility bundle (no manifest.json)")
         self.manifest = json.loads(self.files["manifest.json"])

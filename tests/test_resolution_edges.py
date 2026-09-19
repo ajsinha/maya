@@ -437,6 +437,9 @@ def test_every_operator_is_registered_and_unknown_ones_are_refused():
         "lag",
         "resample",
         "case",
+        "pivot",
+        "unpivot",
+        "sample",
     }
     with pytest.raises(ValidationFailed, match="unknown algebra operator"):
         algebra.typecheck("zip", {}, [meta("px")])

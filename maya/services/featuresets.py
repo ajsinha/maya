@@ -23,7 +23,7 @@ import pandas as pd
 from maya.core import djson
 from maya.core.errors import ConflictError, NotApproved, ValidationFailed
 from maya.core.clock import utcnow
-from maya.resolution import shapes
+from maya.resolution import algebra, shapes
 from maya.resolution.featureset import resolve_featureset
 from maya.resolution.resolver import KT
 from maya.security.authz import Principal
@@ -34,6 +34,37 @@ from maya.workflow.engine import Subject
 
 EDITABLE = ("draft", "changes_requested")
 MAX_SET_DEPTH = 8
+
+# §6.8's operators over whole feature sets, and how many operands each takes. All but
+# `override` are the feature algebra applied to sets, by the mapping below.
+SET_OPERATORS: dict[str, tuple[int, int | None]] = {
+    "union": (2, None),
+    "intersect": (2, 2),
+    "difference": (2, 2),
+    "join": (2, None),
+    "project": (1, 1),
+    "override": (1, 1),
+    "pivot": (1, 1),
+    "unpivot": (1, 1),
+    "sample": (1, 1),
+}
+# what each operator cannot be written without; the rest is typed when it resolves,
+# because it depends on the operands' schemas
+REQUIRED_OPTIONS: dict[str, tuple[str, ...]] = {
+    "project": ("attrs",),
+    "pivot": ("on", "value", "values"),
+    "unpivot": ("into",),
+}
+ALGEBRA_FOR_SET = {
+    "union": "union",
+    "intersect": "intersect",
+    "difference": "difference",
+    "join": "compose",  # §6.2 alignment modes, as the feature algebra composes
+    "project": "project",
+    "pivot": "pivot",
+    "unpivot": "unpivot",
+    "sample": "sample",
+}
 
 
 class FeatureSetService:
@@ -73,6 +104,8 @@ class FeatureSetService:
     def validate(self, d: dict[str, Any]) -> list[str]:
         if d.get("extends"):
             return [] if d["extends"].get("parent") else ["extends.parent is required"]
+        if d.get("derivation"):
+            return self._validate_derivation(d["derivation"])
         errors = []
         if not d.get("index"):
             errors.append("a feature set declares its index, e.g. [date, symbol]")
@@ -89,6 +122,34 @@ class FeatureSetService:
         mode = (d.get("alignment") or {}).get("mode", "inner")
         if mode not in ("inner", "outer", "left", "asof"):
             errors.append("alignment.mode must be inner, outer, left or asof")
+        return errors
+
+    def _validate_derivation(self, derivation: dict[str, Any]) -> builtins.list[str]:
+        """A feature set built from other feature sets (§6.8): the operator, its operands
+        and their number, checked while it is a definition — the types are checked when it
+        resolves, because they depend on the operands' own schemas."""
+        errors = []
+        operator = derivation.get("operator")
+        if operator not in SET_OPERATORS:
+            return [f"derivation.operator must be one of {', '.join(sorted(SET_OPERATORS))}"]
+        operands = derivation.get("operands") or []
+        lo, hi = SET_OPERATORS[operator]
+        if len(operands) < lo or (hi is not None and len(operands) > hi):
+            want = f"{lo}" if hi == lo else f"{lo}..{hi or 'n'}"
+            errors.append(f"'{operator}' takes {want} operand(s), got {len(operands)}")
+        for operand in operands:
+            if not isinstance(operand, str) or not operand:
+                errors.append(f"derivation operand {operand!r} is not a feature set reference")
+        options = derivation.get("options") or {}
+        if operator == "override" and not options:
+            errors.append("'override' declares what it overrides (options: {...})")
+        for key in REQUIRED_OPTIONS.get(operator, ()):
+            if options.get(key) in (None, [], {}):
+                errors.append(f"'{operator}' requires option '{key}'")
+        if operator == "sample" and not any(
+            options.get(k) is not None for k in ("start", "end", "universe", "fraction")
+        ):
+            errors.append("'sample' declares at least one of start, end, universe, fraction")
         return errors
 
     # -- read --------------------------------------------------------------------
@@ -365,7 +426,9 @@ class FeatureSetService:
             if v["state"] not in EDITABLE:
                 return
             eff, inherited = self.effective(uow, v["definition"])
-            errors = self.validate(v["definition"]) + self.validate(eff)
+            # the written definition and its effective form are both checked; an error in
+            # both is one error to the person reading it
+            errors = list(dict.fromkeys(self.validate(v["definition"]) + self.validate(eff)))
             if errors:
                 raise ValidationFailed(
                     "The feature set definition is not valid: " + "; ".join(errors), errors=errors
@@ -414,7 +477,12 @@ class FeatureSetService:
         end: dt.date | None = None,
         member_override: dict[str, str] | None = None,
     ) -> Resolved:
-        """Resolve members (withholding what ``p`` cannot read), then assemble."""
+        """Resolve members (withholding what ``p`` cannot read), then assemble. A set built
+        from other sets (§6.8) resolves its operands first and applies the operator."""
+        if eff.get("derivation"):
+            return self._resolve_derived(
+                p, eff, as_of_known=as_of_known, start=start, end=end, depth=0
+            )
         member_override = member_override or {}
         members: dict[str, Any] = {}
         inputs, plan, withheld = [], [], []
@@ -466,6 +534,103 @@ class FeatureSetService:
         }
         manifest["plan"] = plan + manifest.get("plan", [])
         return Resolved(df, meta, manifest, inputs, manifest["plan"])
+
+    def _resolve_derived(
+        self,
+        p: Principal | None,
+        eff: dict[str, Any],
+        *,
+        as_of_known: Any = None,
+        start: dt.date | None = None,
+        end: dt.date | None = None,
+        depth: int = 0,
+    ) -> Resolved:
+        """One §6.8 operator over resolved operand sets.
+
+        `union`, `intersect`, `difference`, `join`, `project`, `pivot`, `unpivot` and
+        `sample` are the feature algebra applied to whole sets — the same executors, so a
+        set operation and the equivalent feature operation cannot drift apart. `override`
+        is different in kind: it re-resolves one operand under a different policy, filter
+        or grid, which is why it takes options rather than a second operand.
+        """
+        if depth >= MAX_SET_DEPTH:
+            raise ValidationFailed("Feature set derivation exceeds the depth cap (8)")
+        derivation = eff["derivation"]
+        operator = derivation["operator"]
+        options = dict(derivation.get("options") or {})
+        operands = [
+            self.resolve_ref(p, ref, as_of_known=as_of_known) for ref in derivation["operands"]
+        ]
+        plan = [step for res in operands for step in res.plan]
+        inputs = [ref for ref in derivation["operands"]]
+        if operator == "override":
+            return self._resolve_override(
+                p, operands[0], inputs[0], options, as_of_known=as_of_known, start=start, end=end
+            )
+        frames = [res.df for res in operands]
+        metas = [res.meta for res in operands]
+        op = ALGEBRA_FOR_SET[operator]
+        meta = algebra.typecheck(op, options, metas)
+        df = algebra.execute(op, options, frames, metas)
+        plan.append(
+            f"set algebra: {algebra.OPERATORS[op].notation} over "
+            + ", ".join(inputs)
+            + f" -> {len(df)} rows"
+        )
+        manifest = {
+            "derivation": algebra.canonical_derivation(op, options, inputs),
+            "plan": plan,
+            "non_causal": bool(meta.get("non_causal")),
+            "change_class": meta.get("change_class"),
+        }
+        index_types = {}
+        for res in operands:
+            index_types.update(
+                {k: v for k, v in (res.meta.get("index_types") or {}).items() if k in meta["index"]}
+            )
+        out_meta = {
+            "index": meta["index"],
+            "index_types": index_types,
+            "schema": meta["schema"],
+            "non_causal": bool(meta.get("non_causal")),
+            "policy": {},
+        }
+        return Resolved(df, out_meta, manifest, inputs, plan)
+
+    def _resolve_override(
+        self,
+        p: Principal | None,
+        operand: Resolved,
+        ref: str,
+        options: dict[str, Any],
+        *,
+        as_of_known: Any = None,
+        start: dt.date | None = None,
+        end: dt.date | None = None,
+    ) -> Resolved:
+        """The same attributes under a different policy, filter or grid: the operand's own
+        definition is re-resolved with the named parts replaced, so the override is applied
+        where resolution happens rather than patched onto the result."""
+        allowed = {"global_policy", "group_policies", "filters", "grid", "alignment"}
+        unknown = sorted(set(options) - allowed)
+        if unknown:
+            raise ValidationFailed(
+                f"override may replace {', '.join(sorted(allowed))}; not {', '.join(unknown)}",
+                unknown=unknown,
+            )
+        del operand
+        fs, ns, version, pin, eff, inherited = self.load(ref)
+        del fs, ns, version, pin
+        out = self.resolve_definition(
+            p, {**eff, **options}, inherited, as_of_known=as_of_known, start=start, end=end
+        )
+        out.plan.append(f"set algebra: override[{', '.join(sorted(options))}]({ref})")
+        out.fill_report["derivation"] = {
+            "operator": "override",
+            "operands": [ref],
+            "options": options,
+        }
+        return out
 
     def _readable_members(self, p: Principal, eff: dict[str, Any]) -> set[str]:
         ok = set()
@@ -731,7 +896,23 @@ class FeatureSetService:
                 uow, p, "update" if ns["is_scratch"] else "pin", "featureset", fs
             )  # scratch: its owner pins
             eff, _ = self.effective(uow, v["definition"])
-            unpinned = [m["ref"] for m in eff["members"] if not refs.parse(m["ref"]).is_pin]
+            if eff.get("derivation"):
+                # a derived set's inputs are whole feature sets, each pinnable in its own
+                # right: it pins only over pinned operands, and there is no cascade to
+                # give — pinning someone else's feature set is their decision, not a
+                # side effect of pinning this one
+                loose = [
+                    ref
+                    for ref in eff["derivation"]["operands"]
+                    if not refs.parse(ref, "featureset").is_pin
+                ]
+                if loose:
+                    raise NotApproved(
+                        "A derived feature set pins over pinned operands. Pin these first, "
+                        "then point this set at their pins: " + ", ".join(sorted(loose)),
+                        unpinned=loose,
+                    )
+            unpinned = [m["ref"] for m in eff.get("members", []) if not refs.parse(m["ref"]).is_pin]
             if unpinned and not cascade:
                 raise NotApproved(
                     "A feature set refuses to pin unless every member is pinned. "
@@ -892,7 +1073,7 @@ class FeatureSetService:
         member_pins: dict[str, str] = {}
         todo = []
         with self.p.uow(ctx.actor) as uow:
-            for ref in sorted({m["ref"] for m in eff["members"]}):
+            for ref in sorted({m["ref"] for m in eff.get("members", [])}):
                 r = refs.parse(ref, "feature")
                 feature, ns = catalog.find_object(uow, "features", "feature", r)
                 if r.is_pin:
@@ -1093,6 +1274,16 @@ def equivalence_body(eff: dict[str, Any], inherited: list[dict[str, Any]]) -> di
         "group_policies": eff.get("group_policies") or {},
     }
     body["members"] = sorted(eff.get("members", []), key=lambda m: m["attr"])
+    if eff.get("derivation"):
+        # a derived set means its operator over its operands, so two derived sets are
+        # near-copies only when both of those match (without this, every derived set
+        # hashed alike, because none of them has members)
+        derivation = eff["derivation"]
+        body["derivation"] = {
+            "operator": derivation.get("operator"),
+            "operands": list(derivation.get("operands") or []),
+            "options": derivation.get("options") or {},
+        }
     layers = [{k: v for k, v in layer.items() if k != "source"} for layer in inherited]
     body["inherited"] = [layer for layer in layers if layer]
     return body

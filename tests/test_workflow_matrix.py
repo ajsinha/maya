@@ -233,8 +233,11 @@ def _model(w, submitted: bool) -> str:
     "transition,submitted,allowed",
     [
         ("submit", False, {"model_designer", "admin"}),
+        # the owner holds 'A' on a model too (§10.2 asks them to sign off in production),
+        # so they can also send it back; approving alone does not move it, because the
+        # policy still wants the manager's approval
         ("approve", True, {"model_manager"}),
-        ("request_changes", True, {"model_manager"}),
+        ("request_changes", True, {"model_manager", "model_owner"}),
     ],
 )
 def test_model_transitions_by_role(w, transition, submitted, allowed):

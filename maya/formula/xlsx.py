@@ -39,6 +39,7 @@ from typing import Any
 
 import numpy as np
 
+from maya.core import archives
 from maya.core.errors import CapabilityRefused, ValidationFailed
 
 MAX_BYTES = 20 * 1024 * 1024
@@ -632,6 +633,12 @@ def lift_workbook(
         raise CapabilityRefused("Spreadsheet import needs openpyxl (pip install openpyxl)")
     if len(data) > MAX_BYTES:
         raise ValidationFailed(f"The workbook is over {MAX_BYTES // 2**20} MB; refused")
+    try:  # an .xlsx is a zip: bound its expansion before openpyxl reads it
+        archives.opened(data, what="workbook").close()
+    except ValidationFailed as exc:
+        if "not a readable zip" in exc.message:
+            raise ValidationFailed(f"Not a readable .xlsx workbook: {exc.message}") from exc
+        raise
     import openpyxl
 
     try:

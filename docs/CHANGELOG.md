@@ -2,6 +2,71 @@
 
 ## Unreleased
 
+**Limits on what one caller can ask (§13.2, §21.1, §24.4)**
+
+- **Uploads are bounded.** A request body past `api.limits.max_body_bytes` (256 MB) is
+  refused, by its header or as it streams in.
+- **Archives from outside are bounded.** A reproducibility bundle, an estate and an
+  `.xlsx` are all zip files; each is now checked before it is read — entry count,
+  expanded size, expansion ratio, and no entry that would be written outside it. A
+  member is read no further than its entry table declares. The verifier a bundle carries
+  checks the same before extracting.
+- **Rate, concurrency and time.** A token bucket per caller (the API key id, else the
+  session, else the peer) answers `429` with `Retry-After`; above
+  `api.limits.max_concurrent` in flight a process answers `503` rather than queueing; a
+  request past `api.limits.timeout_seconds` is answered `504`. All three count per
+  process, so several web processes multiply them.
+
+**The feature-set algebra (§6.8), which was only `extend` and `project`**
+
+- A feature set can now be **an operation over other feature sets**: it carries a
+  `derivation` block (`{operator, operands, options}`) instead of `members`.
+  - `union`, `intersect`, `difference`, `join` (under §6.2's alignment modes), `project`,
+    `pivot`, `unpivot` and `sample` are the feature algebra's own executors applied to
+    whole sets, so a set operation and the equivalent feature operation cannot drift apart.
+    `pivot`, `unpivot` and `sample` are new to the algebra, and so are available to
+    features too.
+  - `override` re-resolves one operand with its policy, filters, grid or alignment
+    replaced — applied where resolution happens, not patched onto the result.
+  - `sample` is deterministic: a date range, a universe, or a seeded fraction chosen by
+    hashing each row's index, so the same spec keeps the same rows on any machine.
+  - A derived set pins only over operands that are themselves pinned, and says which are
+    not. There is no cascade: pinning another team's feature set is their decision.
+  - The near-copy check counts a derived set by its operator and operands, so two
+    different derivations are two sets and two identical ones are still refused.
+
+**Governance defects**
+
+- **An approval's `when` condition is read, not guessed.** `prod`, `env == 'prod'`,
+  `env != 'prod'` and the `nonprod` forms are understood; the specification's own
+  `env == 'prod'` was not, and silently made the approval unconditional. An unreadable
+  form is refused when the policy is saved; a stored one asks for the approval rather
+  than dropping it.
+- **A policy whose approver could never approve is refused.** It saved, and then nothing
+  it governed could leave review. MAYA's own shipped policy had this shape: it asks the
+  model owner to sign off in a production namespace, and §11's role matrix gave that role
+  no approval capability, so **a production namespace could approve no execution warrant
+  at all**. The matrix now gives the model owner approval on models and execution
+  warrants, and the `standard` namespace preset staffs the owner and techops.
+- **A composite is governed as one.** Its structure is checked while it is still a draft
+  (cycles — including a reference to an older version of itself — and nesting depth);
+  writing one requires read on every member; each member gets a seed derived from the
+  warrant's seed; and a training warrant seals only when every trainable member has an
+  approved parameter set, whether fitted per member or in one combined set.
+- **The escrowed holdout is escrowed.** Its content hash and row count are fixed when the
+  warrant is drawn. Scoring recomputes the partition and refuses to answer if it no
+  longer hashes the same, because a score against data that moved is not comparable with
+  the scores before it.
+- **`namespace_read` and `public_read` now differ.** They behaved identically. A
+  namespace's people are its owner, anyone granted on it, and holders of the roles its
+  preset staffs; `public_read` is anyone signed in.
+- **The `delta` source is a source, not a peephole.** It read any path on the server,
+  ignored the version asked for, and stamped every row as known *now* — so a resolution
+  as of a past instant returned rows that did not exist then. It now reads only inside
+  `sources.delta.roots` (the lake root by default), honours an explicit `version` or the
+  last commit at or before `as_of_known`, and takes each row's knowledge time from its
+  own column or the commit that wrote it.
+
 **Access and governance**
 
 - **The review queue, the SLA aging list and the break-glass report name only what

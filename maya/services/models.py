@@ -320,6 +320,13 @@ class ModelService:
                     raise ValidationFailed(
                         "The formula IR is not valid: " + "; ".join(errors), errors=errors
                     )
+                if "composite" in new_ir:
+                    # cycles and over-deep nesting, refused while it is still a draft, and
+                    # read access to every member: a composite makes its members' shape and
+                    # behaviour visible to whoever holds it (§8.7)
+                    root = f"{ns['name']}/{model['name']}"
+                    comp.check_structure(self.member_graph(uow, new_ir, root), root)
+                    self._require_member_reads(uow, p, new_ir)
                 changes.update(
                     formula_ir=new_ir,
                     ir_hash=irmod.ir_hash(new_ir),
@@ -359,6 +366,51 @@ class ModelService:
             return irmod.input_contract(ir) if "body" in ir or irmod.is_opaque(ir) else []
         members = self._member_irs(uow, ir)
         return comp.union_contract(members)
+
+    def _require_member_reads(self, uow: Any, p: Principal, ir: dict[str, Any]) -> None:
+        """A composite exposes its members: whoever writes one must be able to read each.
+        Without this, a composite is a way to use — and, through its contract and its
+        diagnostics, to learn about — a model you were never granted (§8.7, §11)."""
+        for m in ir["composite"]["members"]:
+            r = refs.parse(m["ref"], "model")
+            member, _ = catalog.find_object(uow, "models", "model", r)
+            self.p.access.require(uow, p, "read", "model", member)
+
+    def member_irs(self, uow: Any, ir: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        """Each composite member's IR by alias (public: warrants ask what must be fitted)."""
+        return self._member_irs(uow, ir)
+
+    def member_graph(
+        self, uow: Any, ir: dict[str, Any], root: str = ""
+    ) -> dict[str, builtins.list[str]]:
+        """``{node: [children]}`` over a composite and the composites inside it, so cycles
+        and nesting depth can be seen (§8.7). A node is a model — ``namespace/name``, not a
+        reference — so a composite that names an older version of itself is still a cycle.
+        """
+        graph: dict[str, builtins.list[str]] = {}
+
+        def node_of(ref: str) -> tuple[str, dict[str, Any] | None]:
+            r = refs.parse(ref, "model")
+            model, ns = catalog.find_object(uow, "models", "model", r)
+            version = catalog.version_of(uow, "model_versions", "model_id", model, r.version)
+            return f"{ns['name']}/{model['name']}", version["formula_ir"]
+
+        def walk(name: str, node_ir: dict[str, Any] | None) -> None:
+            if name in graph:
+                return
+            if not node_ir or "composite" not in node_ir:
+                graph[name] = []
+                return
+            children = []
+            for member in node_ir["composite"]["members"]:
+                child, child_ir = node_of(member["ref"])
+                children.append(child)
+                graph[name] = children  # recorded before recursing, so a loop is visible
+                walk(child, child_ir)
+            graph[name] = children
+
+        walk(root or "(this model)", ir)
+        return graph
 
     def _member_irs(self, uow: Any, ir: dict[str, Any]) -> dict[str, dict[str, Any]]:
         out = {}

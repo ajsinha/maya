@@ -15,6 +15,7 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from maya.api import limits
 from maya.api.app import create_api
 
 
@@ -27,6 +28,7 @@ def build_app(platform: Any) -> FastAPI:
         secret_key=platform.settings.session_secret(),
         secure_cookies=platform.settings.environment != "dev",
     )
+    limits.install(app, platform.settings)  # body size, rate, concurrency, deadline
     return app
 
 

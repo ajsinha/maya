@@ -23,6 +23,7 @@ from typing import Any
 
 from sqlalchemy import Integer
 
+from maya.core import archives
 from maya.core.errors import ValidationFailed
 from maya.persistence.models import Base
 from maya.persistence.types import utcnow
@@ -107,7 +108,7 @@ def load(db: Any, data: bytes, *, allow_drop: bool = False) -> dict[str, Any]:
     bundle's hashes, that the target is empty, that the estate's own audit chain links,
     and — unless ``allow_drop`` — that it carries no table or column this code does not
     know (which would otherwise be lost without a word)."""
-    with zipfile.ZipFile(io.BytesIO(data)) as z:
+    with archives.opened(data, what="estate") as z:
         manifest = json.loads(z.read("manifest.json"))
         if manifest.get("format") != FORMAT:
             raise ValidationFailed("Not a MAYA estate bundle")

@@ -23,6 +23,7 @@ from typing import Any, Callable
 
 from maya.core.errors import NotApproved, PermissionDenied, ValidationFailed
 from maya.security.authz import Principal, can
+from maya.workflow import policy as policy_mod
 from maya.workflow.policy import transitions_from
 
 CheckFn = Callable[[Any, dict[str, Any]], tuple[bool, str]]
@@ -318,8 +319,7 @@ class WorkflowEngine:
     def _requirements(self, t: dict[str, Any], subject: Subject) -> list[dict[str, Any]]:
         out = []
         for a in t.get("approvals") or []:
-            when = a.get("when")
-            if when == "prod" and not subject.namespace.get("production"):
+            if not policy_mod.when_applies(a.get("when"), subject.namespace):
                 continue
             out.append({"role": a["role"], "count": int(a.get("count", 1))})
         return out

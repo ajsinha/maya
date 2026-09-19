@@ -96,15 +96,20 @@ MATRIX: dict[str, dict[str, str]] = {
         "execution_warrant": "CRUAP",
         "jobs": "R",
     },
+    # The owner is accountable for a model's use, and both §10.2's example policy and the
+    # shipped execution-warrant policy ask the owner to approve in a production namespace.
+    # Without 'A' here that approval could never be given, so a production namespace could
+    # not approve an execution warrant at all. 'A' on the model and on its execution
+    # warrant, not on training or parameters, which stay the manager's.
     "model_owner": {
         "feature": _R,
         "featureset": _R,
-        "model": "RG",
+        "model": "RAG",
         "artifact": _R,
         "specdoc": _R,
         "training_warrant": "RG",
         "parameter_set": _R,
-        "execution_warrant": "RG",
+        "execution_warrant": "RAG",
         "jobs": "R",
     },
     "techops": {
@@ -135,7 +140,15 @@ DESCRIPTIONS = {
 
 # Namespace presets (§28.9): which roles a namespace expects, and its SoD level.
 PRESETS = {
-    "small_team": {"roles": ["admin", "feature_designer", "model_manager"], "sod": "none"},
+    # Even a small team needs someone who can approve a feature and a model, so the
+    # preset staffs both managers; its SoD is "none", so one person may hold several roles.
+    "small_team": {
+        "roles": ["admin", "feature_designer", "feature_manager", "model_manager"],
+        "sod": "none",
+    },
+    # A standard namespace staffs the whole review chain — including the model owner, whom
+    # the shipped execution-warrant policy asks to sign off in production — and techops,
+    # who run it. The list is also what `namespace_read` means: these are its people (§11.1).
     "standard": {
         "roles": [
             "admin",
@@ -144,6 +157,8 @@ PRESETS = {
             "model_designer",
             "model_developer",
             "model_manager",
+            "model_owner",
+            "techops",
         ],
         "sod": "two_person",
     },

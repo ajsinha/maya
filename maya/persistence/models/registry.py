@@ -108,6 +108,12 @@ class TrainingWarrant(Tracked, Base):
     revoke_reason: Mapped[str | None] = mapped_column(Text)
     clone_of: Mapped[str | None] = mapped_column(PortableUUID)
     holdout_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    # The escrowed holdout, fixed when the warrant is drawn: the content hash of the test
+    # partition and its row count. Scoring recomputes the partition and refuses to answer
+    # if it no longer hashes the same, so "escrowed" means the numbers cannot move under a
+    # warrant that has already been scored against them (§29.4).
+    holdout_hash: Mapped[str | None] = mapped_column(String(64))
+    holdout_rows: Mapped[int | None] = mapped_column(Integer)
     force_approved: Mapped[bool] = mapped_column(Boolean, default=False)
 
 

@@ -33,6 +33,7 @@ from maya.core.errors import (
     ValidationFailed,
     WarrantExpired,
 )
+from maya.formula import composite as comp
 from maya.formula import ir as irmod
 from maya.formula.evaluate import evaluate, evaluate_composite
 from maya.core.clock import utcnow
@@ -206,6 +207,13 @@ class WarrantService:
                 **report,
             )
         certificate = self.leakage_certificate(res, spec)
+        with self.p.uow() as uow:
+            ir = mv["formula_ir"] or {}
+            if "composite" in ir:
+                # each member is fitted separately, so each gets its own seed, derived from
+                # the warrant's seed so the whole is still reproducible from one number
+                aliases = sorted(self.p.models.member_irs(uow, ir))
+                spec = {**spec, "member_seeds": comp.member_seeds(int(spec["seed"]), aliases)}
         fsp_id = self._fs_pin_id(featureset)
         with self.p.uow(p.username) as uow:
             prior = uow.repo("training_warrants").list(
@@ -224,6 +232,7 @@ class WarrantService:
                     "spec": {**spec, "model_ref": model_uri},
                     "contract_report": report,
                     "leakage_certificate": certificate,
+                    **self._escrowed_holdout(res, spec),
                     "backends": Backends.provenance(),
                     "expires_at": utcnow() + dt.timedelta(days=int(spec["expiry_days"])),
                 }
@@ -518,6 +527,52 @@ class WarrantService:
             )
             return {**ps, "flag": None if verified else "unverified_data"}
 
+    def _escrowed_holdout(self, res: Any, spec: dict[str, Any]) -> dict[str, Any]:
+        """The escrowed test partition, fixed at this moment: its content hash and row
+        count. ``holdout: none`` escrows nothing, and neither does a warrant with no
+        target to score against."""
+        if spec.get("holdout") != "escrowed":
+            return {}
+        df = res.df.copy()
+        df[SPLIT_COL] = assign_splits(df, res.meta["index"], spec["split"], spec["seed"])
+        test = df[df[SPLIT_COL] == "test"].drop(columns=[SPLIT_COL]).reset_index(drop=True)
+        table = pa.Table.from_pandas(test, preserve_index=False).replace_schema_metadata(None)
+        return {"holdout_hash": table_checksum(table), "holdout_rows": table.num_rows}
+
+    def outstanding_parameters(
+        self, uow: Any, warrant_id: str, mv: dict[str, Any]
+    ) -> builtins.list[str]:
+        """What still has to be fitted and approved before this warrant can seal.
+
+        A plain model needs one approved parameter set. A composite needs one **per
+        trainable member**: its members are fitted separately, under their own aliases,
+        and sealing on the first one approved would license the rest untrained. The names
+        returned are what a reviewer sees.
+        """
+        ir = mv["formula_ir"] or {}
+        sets = uow.repo("parameter_sets").list(
+            training_warrant_id=warrant_id, state__in=builtins.list(catalog.APPROVED_STATES)
+        )
+        if "composite" in ir:
+            members = self.p.models.member_irs(uow, ir)
+            outstanding = []
+            for alias, member_ir in sorted(members.items()):
+                wanted = {i["name"] for i in irmod.parameter_inputs(member_ir or {})}
+                if not wanted:
+                    continue
+                # a member is covered by a set fitted under its alias, or by a combined
+                # set that carries every one of its parameters as `alias.name`
+                if any(
+                    ps["member_alias"] == alias
+                    or wanted
+                    <= {k.split(".", 1)[1] for k in ps["values"] if k.startswith(alias + ".")}
+                    for ps in sets
+                ):
+                    continue
+                outstanding.append(alias)
+            return outstanding
+        return ["this model's parameters"] if irmod.parameter_inputs(ir) and not sets else []
+
     @staticmethod
     def check_bounds(
         ir: dict[str, Any], values: dict[str, Any], alias: str | None = None
@@ -602,6 +657,19 @@ class WarrantService:
         test = df[df["_split"] == "test"]
         if test.empty:
             raise ValidationFailed("The holdout partition is empty")
+        if w["holdout_hash"]:
+            fresh = pa.Table.from_pandas(
+                test.drop(columns=["_split"]).reset_index(drop=True), preserve_index=False
+            ).replace_schema_metadata(None)
+            if table_checksum(fresh) != w["holdout_hash"]:
+                raise ValidationFailed(
+                    "The escrowed holdout is not the one this warrant was drawn on: it now "
+                    f"has {fresh.num_rows} rows hashing differently (escrowed: "
+                    f"{w['holdout_rows']} rows). Scoring against data that moved would make "
+                    "every earlier score incomparable; draw a new warrant.",
+                    escrowed_rows=w["holdout_rows"],
+                    found_rows=fresh.num_rows,
+                )
         pred = self.predict(mv, test, w["spec"].get("bindings", {}), values or {})
         y = test[target].astype(float).to_numpy()
         err = pred - y
@@ -703,13 +771,12 @@ class WarrantService:
             if w["sealed_at"]:
                 raise NotApproved("Already sealed")
             mv = uow.repo("model_versions").require(w["model_version_id"])
-            trainable = bool(irmod.parameter_inputs(mv["formula_ir"] or {}))
-            accepted = uow.repo("parameter_sets").count(
-                training_warrant_id=warrant_id, state__in=catalog.APPROVED_STATES
-            )
-            if trainable and not accepted:
+            outstanding = self.outstanding_parameters(uow, warrant_id, mv)
+            if outstanding:
                 raise NotApproved(
-                    "A trainable model's warrant seals only with an approved parameter set"
+                    "A trainable model's warrant seals only with an approved parameter set; "
+                    "still to fit: " + ", ".join(outstanding),
+                    outstanding=outstanding,
                 )
             row = uow.repo("training_warrants").update(warrant_id, {"sealed_at": utcnow()})
             self._custody(uow, warrant_id, "sealed", p.username)

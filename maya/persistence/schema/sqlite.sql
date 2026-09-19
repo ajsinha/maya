@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 7144e883404d2f75574e587a174ccc499c272387441e509fd30f06e5d463adfd
+-- schema-hash: 1b83c8adc9ac7f0efa09736c281da2d392972ac6fe991818aae6a026549ce678
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -1106,6 +1106,8 @@ CREATE TABLE training_warrants (
 	revoke_reason TEXT, 
 	clone_of CHAR(36), 
 	holdout_attempts INTEGER NOT NULL, 
+	holdout_hash VARCHAR(64), 
+	holdout_rows INTEGER, 
 	force_approved BOOLEAN NOT NULL, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 

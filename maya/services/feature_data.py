@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import datetime as dt
 import io
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -126,15 +128,84 @@ class FeatureData:
         schema = full_schema(eff) + [{"name": KT, "type": "timestamp"}]
         return shapes.parquet_safe(shapes.to_arrow(out, schema))
 
-    def raw_frame(self, ns: str, name: str, eff: dict[str, Any]) -> pd.DataFrame | None:
+    def raw_frame(
+        self, ns: str, name: str, eff: dict[str, Any], as_of_known: Any = None
+    ) -> pd.DataFrame | None:
         src = eff.get("source") or {}
         if src.get("type") == "delta":
-            table = self.p.lake.delta.read(src["path"])
-            df = table.to_pandas()
-            df[KT] = pd.Timestamp(utcnow())
-            return df
+            return self.delta_frame(src, as_of_known)
         table = self.p.lake.read_raw(ns, f"{name}/{schema_generation(eff)}")
         return None if table is None else table.to_pandas()
+
+    def delta_frame(self, src: dict[str, Any], as_of_known: Any = None) -> pd.DataFrame:
+        """A Delta table read as a source (§5.2).
+
+        Three things this must get right, and got wrong:
+
+        * **Which bytes.** A Delta table has versions. The source may pin one
+          (``version``), and otherwise a resolution with a knowledge cutoff reads the last
+          version committed at or before that instant — so ``as_of_known`` answers what was
+          there then, rather than what is there now.
+        * **What was knowable.** Each row's knowledge time is the source's own column when
+          it declares one, else the commit time of the version the row came from. Stamping
+          "now" made every row look as though it had always been known, which is exactly
+          what the leakage certificate exists to catch.
+        * **Which path.** The path is resolved inside the roots MAYA is configured to read
+          (``sources.delta.roots``, the lake root by default), so a definition cannot name
+          an arbitrary directory on the server.
+        """
+        path = self.delta_path(src["path"])
+        delta = self.p.lake.delta
+        history = delta.history(path)
+        version = src.get("version")
+        if version is None and as_of_known is not None:
+            cutoff = pd.Timestamp(as_of_known)
+            cutoff = (
+                cutoff.tz_localize("UTC") if cutoff.tzinfo is None else cutoff.tz_convert("UTC")
+            )
+            at = [h for h in history if _commit_time(h) is not None and _commit_time(h) <= cutoff]
+            if not at:
+                raise ValidationFailed(
+                    f"The Delta table at {src['path']} has no version committed by "
+                    f"{cutoff.isoformat()}; nothing was knowable then",
+                    path=src["path"],
+                )
+            version = at[-1]["version"]
+        table = delta.read(path, version=version)
+        df = table.to_pandas()
+        kcol = src.get("knowledge_time_column")
+        if kcol and kcol in df.columns:
+            df[KT] = pd.to_datetime(df[kcol], utc=True)
+            if df[KT].isna().any():
+                raise ValidationFailed(f"Column '{kcol}' has missing knowledge times")
+            return df
+        read_version = version if version is not None else delta.version(path)
+        commit = next(
+            (_commit_time(h) for h in reversed(history) if h["version"] == read_version), None
+        )
+        df[KT] = commit if commit is not None else pd.Timestamp(utcnow())
+        return df
+
+    def delta_path(self, given: str) -> Path:
+        """``given`` resolved inside the configured roots, or refused by name."""
+        roots = [
+            Path(r).resolve()
+            for r in (self.p.settings.get("sources.delta.roots", "") or "").split(os.pathsep)
+            if r.strip()
+        ] or [Path(self.p.lake.root).resolve()]
+        candidate = Path(given)
+        tries = [candidate] if candidate.is_absolute() else [root / candidate for root in roots]
+        for attempt in tries:
+            resolved = attempt.resolve()
+            if any(resolved == root or root in resolved.parents for root in roots):
+                if not (resolved / "_delta_log").is_dir():
+                    raise ValidationFailed(f"There is no Delta table at '{given}'", path=given)
+                return resolved
+        raise ValidationFailed(
+            f"A delta source may only read inside {', '.join(str(r) for r in roots)}; "
+            f"'{given}' is outside it",
+            path=given,
+        )
 
     # -- resolution ---------------------------------------------------------------
     def resolve_ref(
@@ -225,7 +296,7 @@ class FeatureData:
             src_ns, src_name = (
                 eff["data_from"].split("/", 1) if eff.get("data_from") else (ns, name)
             )
-            raw = self.raw_frame(src_ns, src_name, eff)
+            raw = self.raw_frame(src_ns, src_name, eff, as_of_known)
             index = eff["index"]
             if raw is None:
                 raw = pd.DataFrame({c: [] for c in index + attrs + [KT]})
@@ -486,3 +557,12 @@ class FeatureData:
             uow.audit(
                 "pin.failed", object_type="feature_pin", object_ref=pin_id, detail={"reason": why}
             )
+
+
+def _commit_time(entry: dict[str, Any]) -> Any:
+    """A history entry's commit instant as a UTC timestamp, or None when it has none."""
+    raw = entry.get("timestamp")
+    if raw is None:
+        return None
+    stamp = pd.Timestamp(raw, unit="ms") if isinstance(raw, (int, float)) else pd.Timestamp(raw)
+    return stamp.tz_localize("UTC") if stamp.tzinfo is None else stamp.tz_convert("UTC")

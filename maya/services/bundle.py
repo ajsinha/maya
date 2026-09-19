@@ -32,6 +32,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from maya.core import canonical, chunker, djson
+from maya.core import archives
 from maya.core.errors import ValidationFailed
 from maya.core.version import VERSION
 from maya.formula import ir as irmod
@@ -56,6 +57,17 @@ def main(bundle):
     report = {"bundle": str(bundle), "checks": []}
     ok = True
     with zipfile.ZipFile(bundle) as z, tempfile.TemporaryDirectory() as tmp:
+        infos = z.infolist()
+        expanded = sum(i.file_size for i in infos)
+        compressed = sum(i.compress_size for i in infos) or 1
+        if len(infos) > 5000 or expanded > 2 * 1024**3 or expanded // compressed > 200:
+            print(json.dumps({"verified": False, "error": "this bundle expands far past "
+                              "what a MAYA bundle holds; refusing to read it"}))
+            return
+        if any(n.startswith("/") or ".." in n.split("/") for n in z.namelist()):
+            print(json.dumps({"verified": False, "error": "this bundle holds an entry that "
+                              "would be written outside it; refusing to read it"}))
+            return
         z.extractall(tmp)
         root = pathlib.Path(tmp)
         manifest = json.loads((root / "manifest.json").read_text())
@@ -110,6 +122,17 @@ if __name__ == "__main__":
 def output_hash(values: Any) -> str:
     arr = np.round(np.asarray(values, dtype="float64"), 10)
     return hashlib.sha256(arr.astype(">f8").tobytes()).hexdigest()
+
+
+def bounded(data: bytes, settings: Any = None) -> Any:
+    """The bundle as a bounded zip (§21.1). Anything that is not one is refused by name, in
+    the words a caller who offered a bundle expects."""
+    try:
+        return archives.opened(data, settings=settings, what="bundle")
+    except ValidationFailed as exc:
+        if "not a readable zip" in exc.message:
+            raise ValidationFailed(f"Not a MAYA bundle: {exc.message}") from exc
+        raise
 
 
 def run_verifier(data: bytes, script: str) -> dict[str, Any]:
@@ -316,6 +339,7 @@ class BundleService:
         ``verify.py``, never the uploaded one. Anything else is reported, not executed:
         verifying a stranger's bundle is for ``python verify.py`` on your own machine.
         """
+        bounded(data, self.p.settings)  # bounded before anything reads or runs it
         refusal = self._untrusted(data)
         if refusal is not None:
             return {"verified": False, "checks": [refusal], "executed": False}
@@ -325,10 +349,10 @@ class BundleService:
     def verify_offline(data: bytes) -> dict[str, Any]:
         """``maya export verify`` on your own machine: the bundle's own ``verify.py``, run
         by you on a bundle you chose — exactly what ``python verify.py`` would do."""
+        z = bounded(data)
         try:
-            with zipfile.ZipFile(io.BytesIO(data)) as z:
-                script = z.read("verify.py").decode("utf-8")
-        except (zipfile.BadZipFile, KeyError) as exc:
+            script = archives.read(z, "verify.py", what="bundle").decode("utf-8")
+        except KeyError as exc:
             raise ValidationFailed(f"Not a MAYA bundle: {exc}") from exc
         return run_verifier(data, script)
 
@@ -337,10 +361,10 @@ class BundleService:
         from maya.core.crypto import verify as verify_signature
 
         try:
-            z = zipfile.ZipFile(io.BytesIO(data))
-            manifest = json.loads(z.read("manifest.json"))
+            z = bounded(data, self.p.settings)
+            manifest = json.loads(archives.read(z, "manifest.json", what="bundle"))
             files, sig = manifest["files"], manifest.get("signature") or {}
-        except (zipfile.BadZipFile, KeyError, ValueError, TypeError) as exc:
+        except (KeyError, ValueError, TypeError) as exc:
             raise ValidationFailed(f"Not a MAYA bundle: {exc}") from exc
         why = "not executed on the server"
         signer = self.p.signer_or_none()

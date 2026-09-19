@@ -17,6 +17,8 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import datetime as dt
+import hashlib
 import json
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -222,6 +224,58 @@ def _tc_case(o: dict[str, Any], m: list[Meta]) -> Meta:
     return _meta(_same_index("case", m), _unify_schemas("case", m), m)
 
 
+def _tc_pivot(o: dict[str, Any], m: list[Meta]) -> Meta:
+    """long → wide: one index column's values become attributes (§6.8). Breaking: the
+    index loses a dimension and the schema is only known once the values are read, so the
+    declared `values` list is what the definition promises."""
+    _arity("pivot", m, 1, 1)
+    on, value = o.get("on"), o.get("value")
+    if on not in m[0]["index"]:
+        raise ValidationFailed(f"pivot needs an index column to spread; '{on}' is not one")
+    if value not in _attrs(m[0]):
+        raise ValidationFailed(f"pivot needs an attribute to spread; '{value}' is not one")
+    names = list(o.get("values") or [])
+    if not names:
+        raise ValidationFailed(
+            "pivot declares the values it spreads to (values: [...]), so the output schema "
+            "is known before the data is read"
+        )
+    kind = _by_name(m[0])[value].get("type", "float64")
+    index = [c for c in m[0]["index"] if c != on]
+    return _meta(index, [{"name": n, "type": kind} for n in names], m, "breaking")
+
+
+def _tc_unpivot(o: dict[str, Any], m: list[Meta]) -> Meta:
+    """wide → long: attributes become rows under a new index column."""
+    _arity("unpivot", m, 1, 1)
+    into, value = o.get("into"), o.get("value") or "value"
+    attrs = list(o.get("attrs") or _attrs(m[0]))
+    if not into:
+        raise ValidationFailed("unpivot names the index column it folds attributes into (into:)")
+    unknown = sorted(set(attrs) - set(_attrs(m[0])))
+    if unknown:
+        raise ValidationFailed(f"unpivot names unknown attribute(s) {unknown}")
+    kinds = {_by_name(m[0])[a].get("type", "float64") for a in attrs}
+    kind = kinds.pop() if len(kinds) == 1 else "float64"
+    return _meta(list(m[0]["index"]) + [into], [{"name": value, "type": kind}], m, "breaking")
+
+
+def _tc_sample(o: dict[str, Any], m: list[Meta]) -> Meta:
+    """A deterministic subset: a date range, a universe of index values, or a seeded
+    fraction of the index. Same schema, fewer rows."""
+    _arity("sample", m, 1, 1)
+    fraction = o.get("fraction")
+    if fraction is not None and not 0 < float(fraction) <= 1:
+        raise ValidationFailed("sample fraction is in (0, 1]")
+    for key in ("on", "universe_on"):
+        column = o.get(key)
+        if column is not None and column not in m[0]["index"]:
+            raise ValidationFailed(f"sample {key} '{column}' is not an index column")
+    if not any(o.get(k) is not None for k in ("start", "end", "universe", "fraction")):
+        raise ValidationFailed("sample declares at least one of start, end, universe, fraction")
+    return _meta(m[0]["index"], m[0]["schema"], m, "breaking")
+
+
 # ------------------------------------------------------------------ execute
 
 
@@ -347,6 +401,62 @@ def _ex_case(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.Data
     return both[idx + attrs]
 
 
+def _ex_pivot(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
+    on, value, names = o["on"], o["value"], list(o["values"])
+    index = [c for c in m[0]["index"] if c != on]
+    frame = _prep(f[0], m[0])
+    wide = frame.pivot_table(index=index, columns=on, values=value, aggfunc="last")
+    wide = wide.reindex(columns=names)  # declared order, missing values as null
+    wide.columns = [str(c) for c in wide.columns]
+    out = wide.reset_index()
+    if KT in frame.columns:  # a row is knowable when its latest part is
+        out = out.merge(frame.groupby(index, as_index=False)[KT].max(), on=index, how="left")
+    return out.sort_values(index, kind="mergesort").reset_index(drop=True)
+
+
+def _ex_unpivot(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
+    into, value = o["into"], o.get("value") or "value"
+    attrs = list(o.get("attrs") or _attrs(m[0]))
+    index = list(m[0]["index"])
+    frame = _prep(f[0], m[0])
+    keep = index + ([KT] if KT in frame.columns else [])
+    long = frame.melt(id_vars=keep, value_vars=attrs, var_name=into, value_name=value)
+    return long.sort_values(index + [into], kind="mergesort").reset_index(drop=True)
+
+
+def _ex_sample(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
+    index = list(m[0]["index"])
+    out = _prep(f[0], m[0])
+    on = o.get("on") or index[0]
+    if o.get("start") is not None:
+        out = out[out[on] >= _as_bound(o["start"], out[on])]
+    if o.get("end") is not None:
+        out = out[out[on] <= _as_bound(o["end"], out[on])]
+    if o.get("universe") is not None:
+        column = o.get("universe_on") or (index[1] if len(index) > 1 else index[0])
+        out = out[out[column].isin(list(o["universe"]))]
+    if o.get("fraction") is not None:
+        # deterministic: hash each row's index, keep the fraction below the cut. The same
+        # spec over the same rows keeps the same rows, on any machine and in any order.
+        seed = int(o.get("seed", 42))
+        keys = out[index].astype(str).agg("\x1f".join, axis=1)
+        digest = keys.map(
+            lambda k: int.from_bytes(hashlib.sha256(f"{seed}:{k}".encode()).digest()[:8], "big")
+        )
+        cut = float(o["fraction"]) * float(2**64)
+        out = out[digest < cut]
+    return out.sort_values(index, kind="mergesort").reset_index(drop=True)
+
+
+def _as_bound(value: Any, column: pd.Series) -> Any:
+    """A start/end bound read in the column's own type (dates stay dates)."""
+    if pd.api.types.is_datetime64_any_dtype(column):
+        return pd.Timestamp(value)
+    if column.dtype == object and len(column) and isinstance(column.iloc[0], dt.date):
+        return pd.Timestamp(value).date()
+    return value
+
+
 @dataclass(frozen=True)
 class Operator:
     """One algebra operator: its notation, typing rule and executor."""
@@ -373,6 +483,9 @@ OPERATORS: dict[str, Operator] = {
         Operator("lag", "lag[n](F)", _tc_lag, _ex_lag),
         Operator("resample", "resample[freq](F)", _tc_resample, _ex_resample),
         Operator("case", "σ[cond](F₁, F₂)", _tc_case, _ex_case),
+        Operator("pivot", "pivot[on, value](F)", _tc_pivot, _ex_pivot),
+        Operator("unpivot", "unpivot[into](F)", _tc_unpivot, _ex_unpivot),
+        Operator("sample", "sample[spec](F)", _tc_sample, _ex_sample),
     )
 }
 

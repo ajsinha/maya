@@ -13,8 +13,31 @@
 > The restore drill has been performed on SQLite and PostgreSQL 17 and recorded in
 > [the runbook](../runbooks/restore-drill.md#5-record-the-result), which answers part of
 > gap 33, and `bench_capacity.py` has been run ([BENCHMARKS](../BENCHMARKS.md)), which
-> answers part of gap 34. Everything else below stands as written; line numbers are as
-> of b30a428.
+> answers part of gap 34.
+>
+> **Batch 1 (security and correctness) is now closed**, each item with a test:
+> gap 3 — upload size, archive expansion, request rate, concurrency and deadline limits
+> (`maya/api/limits.py`, `maya/core/archives.py`, `tests/test_limits.py`);
+> gap 4 — the `delta` source reads inside configured roots only, honours the version or a
+> point in time, and takes knowledge time from the commit (`tests/test_delta_source.py`);
+> gap 6 — the workflow `when` condition is read, unreadable forms are refused when a
+> policy is saved, and an approver who could never approve is named
+> (`tests/test_approval_conditions.py`);
+> gaps 7 and 8 — composite structure is checked while it is a draft, writing a composite
+> requires read on every member, each member gets a derived seed, and a warrant seals only
+> when every trainable member is fitted (`tests/test_composite_governance.py`);
+> gap 9 — the escrowed holdout is hashed when the warrant is drawn and scoring refuses a
+> holdout that moved (same file);
+> `namespace_read` now means the namespace's own people, not everyone
+> (`tests/test_read_scoping.py`).
+>
+> Two contradictions the batch had to settle, both marked *Revision 2.4* in the
+> specification: the model owner now holds approval capability on models and execution
+> warrants (§10.2 asked them to sign off where §11 forbade it, so a production namespace
+> could approve no execution warrant), and the `standard` namespace preset now staffs the
+> model owner and techops.
+>
+> Everything else below stands as written; line numbers are as of b30a428.
 
 This audit was read-only; no repository file was edited. Every section §1–§30 was checked against maya/, maya_delta/, tools/ and tests/. §1–§9 and §26–§30 were audited directly, §10–§16 and §17–§25 by two parallel sub-audits. Their detailed tables are appended below, and the top findings of each were re-verified by reading code.
 Excluded as out of scope by the owner's decision: Windows/macOS (SC-14), live Claude API, a dedicated benchmark host, SC-9, and an external security review.
