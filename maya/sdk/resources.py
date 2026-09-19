@@ -259,6 +259,11 @@ class Admin(_Resource):
     def config(self) -> Any:
         return self._c("GET", "/system/config")
 
+    @endpoint("POST", "/system/lake/maintain")
+    def lake_maintain(self) -> Any:
+        """Compact every lake table and vacuum unreferenced files past retention."""
+        return self._c("POST", "/system/lake/maintain")
+
     @endpoint("GET", "/system/storage")
     def storage(self) -> Any:
         return self._c("GET", "/system/storage")

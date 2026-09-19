@@ -289,6 +289,11 @@ def system_config(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.settings.effective())
 
 
+@router.post("/system/lake/maintain", tags=["ops"])
+def lake_maintain(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.ops.lake_maintenance(me))
+
+
 @router.get("/system/storage", tags=["ops"])
 def storage(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.ops.storage_report())

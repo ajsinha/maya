@@ -54,6 +54,8 @@ def wire(platform: Any) -> None:
     platform.scheduler = Scheduler()
     platform.scheduler.every("workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue)
     platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
+    platform.scheduler.every("lake.maintenance", platform.settings.int(
+        "lake.maintenance.interval_seconds", 86400), platform.ops.lake_maintenance)
     platform.scheduler.every("custody.anchor", platform.settings.int(
         "custody.anchor.interval_seconds", 3600), platform.custody.anchor)
     platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: \

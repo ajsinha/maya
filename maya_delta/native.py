@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import pyarrow as pa
 
@@ -140,6 +141,46 @@ class NativeBackend:
         except Exception as exc:
             raise _wrap(exc) from exc
         return self.version(path)
+
+    def optimize(self, path: Path, *, target_size: int) -> dict[str, Any]:
+        """delta-rs compaction; metrics normalised to the pure backend's names."""
+        dt = self._table(path)
+        try:
+            m = dt.optimize.compact(target_size=target_size)
+        except Exception as exc:
+            raise _wrap(exc) from exc
+        return {"version": self.version(path), "numFilesRemoved": int(m.get("numFilesRemoved", 0)),
+                "numFilesAdded": int(m.get("numFilesAdded", 0)),
+                "partitionsOptimized": int(m.get("partitionsOptimized", 0)),
+                "numRows": None}
+
+    def vacuum(self, path: Path, *, retention_hours: float, dry_run: bool,
+               enforce_retention: bool) -> list[str]:
+        if enforce_retention and retention_hours < 168:
+            raise MayaDeltaError(f"Retention of {retention_hours}h is below the 168h minimum; "
+                                 "pass enforce_retention=False to vacuum more aggressively "
+                                 "(time travel past it stops working)")
+        # delta-rs lists every expired tombstone, including files already gone; report only
+        # files that exist, relative to the table root, as the pure backend does
+        try:
+            planned = self._table(path).vacuum(retention_hours=int(retention_hours),
+                                               dry_run=True, enforce_retention_duration=False)
+        except Exception as exc:
+            raise _wrap(exc) from exc
+        root = Path(path).resolve()
+        present = []
+        for f in planned:
+            full = Path(unquote(str(f)))
+            full = full if full.is_absolute() else root / full
+            if full.exists():
+                present.append(full.resolve().relative_to(root).as_posix())
+        if present and not dry_run:
+            try:
+                self._table(path).vacuum(retention_hours=int(retention_hours), dry_run=False,
+                                         enforce_retention_duration=False)
+            except Exception as exc:
+                raise _wrap(exc) from exc
+        return sorted(present)
 
     def create_checkpoint(self, path: Path) -> None:
         """Ask delta-rs for a checkpoint (used to prove the pure reader reads them)."""

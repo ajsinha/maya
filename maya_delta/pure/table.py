@@ -224,6 +224,18 @@ class PureBackend:
             if "remove" in action:
                 raise ConcurrentModification(f"Concurrent commit {version} removed files")
 
+    # ------------------------------------------------------------ maintenance
+
+    def optimize(self, path: Path, *, target_size: int) -> dict[str, Any]:
+        from maya_delta.pure import maintenance
+        return maintenance.optimize(self, path, target_size=target_size)
+
+    def vacuum(self, path: Path, *, retention_hours: float, dry_run: bool,
+               enforce_retention: bool) -> list[str]:
+        from maya_delta.pure import maintenance
+        return maintenance.vacuum(self, path, retention_hours=retention_hours, dry_run=dry_run,
+                                  enforce_retention=enforce_retention)
+
     def _maybe_checkpoint(self, path: Path, version: int) -> None:
         if version > 0 and version % dlog.CHECKPOINT_INTERVAL == 0:
             dlog.write_checkpoint(path, self.snapshot(path, version))

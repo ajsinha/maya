@@ -123,3 +123,72 @@ def test_missing_table(tmp_path: Path) -> None:
         assert not lake.exists(tmp_path / "nope")
         with pytest.raises(MayaDeltaError):
             lake.read(tmp_path / "nope")
+
+
+# -- maintenance: compaction and vacuum ---------------------------------------------------
+def _small_writes(lake: DeltaLake, path: Path, n: int, partitioned: bool) -> pa.Table:
+    part = ["part"] if partitioned else None
+    for k in range(n):
+        lake.write(path, sample_table(3, offset=3 * k), partition_by=part)
+    return lake.read(path)
+
+
+def _same(a: pa.Table, b: pa.Table) -> bool:
+    key = [(c, "ascending") for c in ("id",)]
+    return a.sort_by(key).equals(b.sort_by(key))
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("partitioned", [False, True])
+def test_optimize_compacts_without_changing_content(lakes: dict[str, DeltaLake], backend: str,
+                                                    partitioned: bool, tmp_path: Path) -> None:
+    lake = lakes[backend]
+    path = tmp_path / "t"
+    before = _small_writes(lake, path, 12, partitioned)
+    files_before, version_before = len(lake.files(path)), lake.version(path)
+    out = lake.optimize(path, target_size=64 * 1024 * 1024)
+    assert out["numFilesRemoved"] == files_before and out["numFilesAdded"] < files_before
+    assert len(lake.files(path)) == out["numFilesAdded"] and lake.version(path) == version_before + 1
+    assert _same(lake.read(path), before)
+    assert lake.history(path)[-1]["operation"] == "OPTIMIZE"
+    assert _same(lake.read(path, version=version_before), before)   # time travel still works
+    other = lakes["pure" if backend == "native" else "native"]
+    assert _same(other.read(path), before)                           # the other backend agrees
+    again = lake.optimize(path, target_size=64 * 1024 * 1024)
+    assert again["numFilesRemoved"] == 0 and lake.version(path) == version_before + 1
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_vacuum_removes_only_unreferenced_files_past_retention(lakes: dict[str, DeltaLake],
+                                                               backend: str,
+                                                               tmp_path: Path) -> None:
+    lake = lakes[backend]
+    path = tmp_path / "t"
+    before = _small_writes(lake, path, 6, partitioned=True)
+    old_files = {f["path"] for f in lake.files(path)}
+    lake.optimize(path, target_size=64 * 1024 * 1024)
+    assert lake.vacuum(path) == []                       # just removed: inside the 7-day window
+    with pytest.raises(MayaDeltaError, match="below the 168h minimum"):
+        lake.vacuum(path, retention_hours=0)
+    planned = lake.vacuum(path, retention_hours=0, enforce_retention=False, dry_run=True)
+    assert len(planned) == len(old_files) and all((path / p).exists() for p in planned)
+    deleted = lake.vacuum(path, retention_hours=0, enforce_retention=False)
+    assert deleted == planned and not any((path / p).exists() for p in deleted)
+    assert _same(lake.read(path), before)                # the current snapshot is untouched
+    assert lake.vacuum(path, retention_hours=0, enforce_retention=False) == []
+
+
+def test_pure_vacuum_also_clears_old_orphans_but_not_new_ones(tmp_path: Path) -> None:
+    import os
+    import time as _time
+    lake = DeltaLake("pure")
+    path = tmp_path / "t"
+    _small_writes(lake, path, 2, partitioned=False)
+    stale = path / "part-00000-orphan-old.snappy.parquet"
+    fresh = path / "part-00000-orphan-new.snappy.parquet"
+    for f in (stale, fresh):
+        f.write_bytes(b"left by a failed write")
+    long_ago = _time.time() - 30 * 24 * 3600
+    os.utime(stale, (long_ago, long_ago))
+    assert lake.vacuum(path) == ["part-00000-orphan-old.snappy.parquet"]
+    assert fresh.exists() and not stale.exists()
