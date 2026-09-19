@@ -105,8 +105,10 @@ execution warrant → reproducibility bundle.
   startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
   is not built.
 - **Source drivers** `sql` and `python` are refused by name. Shipped: csv, parquet, json, delta, derived.
-- **Sandbox tier is `minimal`** (rlimits in a subprocess; network blocking is best effort).
-  It is named as such on the health page and on every validation report.
+- **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
+  seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
+  claimed only when a probe child fails to escape. macOS runs at `moderate`
+  (`sandbox-exec`); Windows at `minimal` (Job Objects are not built).
 - **No Tectonic here**, so spec PDFs are watermarked drafts. `typeset.require_true_build`
   forbids approval on a draft render outside dev.
 - **Not built:** licence algebra and

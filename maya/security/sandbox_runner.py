@@ -38,6 +38,50 @@ def _limit(cpu_seconds: int, memory_mb: int) -> list[str]:
     return applied
 
 
+# Syscalls the artifact may never make, per architecture (Linux). Each is refused with
+# EPERM: networking, tracing, mounting and namespace escapes, kernel keyrings and
+# modules, kexec/reboot, cross-process memory access, and exec of anything else.
+_DENY = {
+    "x86_64": (0xC000003E, [41, 42, 43, 44, 45, 46, 47, 49, 50, 53, 101, 288, 165, 166, 272,
+                            308, 321, 250, 248, 249, 175, 313, 176, 246, 320, 169, 59, 322, 310,
+                            311, 298, 323, 135, 161, 155, 425]),
+    "aarch64": (0xC00000B7, [198, 199, 200, 201, 202, 203, 204, 206, 207, 211, 212, 242, 117,
+                             40, 39, 97, 268, 280, 219, 217, 218, 105, 273, 106, 104, 294, 142,
+                             221, 281, 270, 271, 241, 282, 92, 51, 41, 425]),
+}
+
+
+def _seccomp() -> bool:
+    """Install a seccomp-bpf deny-list filter. True when the kernel accepted it."""
+    import ctypes
+    import platform
+    import struct
+    arch = _DENY.get(platform.machine())
+    if arch is None or not sys.platform.startswith("linux"):
+        return False
+    audit_arch, denied = arch
+    ld_w_abs, jeq, jge, ret = 0x20, 0x15, 0x35, 0x06
+    allow, errno_eperm, kill = 0x7FFF0000, 0x00050001, 0x80000000
+    prog = [(ld_w_abs, 0, 0, 4), (jeq, 1, 0, audit_arch), (ret, 0, 0, kill),
+            (ld_w_abs, 0, 0, 0)]
+    if audit_arch == 0xC000003E:            # refuse the x32 ABI outright
+        prog += [(jge, 0, 1, 0x40000000), (ret, 0, 0, errno_eperm)]
+    for nr in denied:
+        prog += [(jeq, 0, 1, nr), (ret, 0, 0, errno_eperm)]
+    prog.append((ret, 0, 0, allow))
+    raw = b"".join(struct.pack("HBBI", *ins) for ins in prog)
+    buf = ctypes.create_string_buffer(raw, len(raw))
+
+    class Fprog(ctypes.Structure):
+        _fields_ = [("len", ctypes.c_ushort), ("filter", ctypes.c_void_p)]
+
+    fprog = Fprog(len(prog), ctypes.addressof(buf))
+    libc = ctypes.CDLL(None, use_errno=True)
+    if libc.prctl(38, 1, 0, 0, 0) != 0:          # PR_SET_NO_NEW_PRIVS
+        return False
+    return libc.prctl(22, 2, ctypes.byref(fprog), 0, 0) == 0   # PR_SET_SECCOMP, FILTER
+
+
 def _block_network() -> None:
     import socket
 
@@ -92,6 +136,8 @@ def main() -> None:
             pass
     applied = _limit(int(limits.get("cpu_seconds", 10)), int(limits.get("memory_mb", 512)))
     _block_network()
+    if request.get("seccomp") and _seccomp():
+        applied.append("seccomp")
     response: dict[str, Any] = {"ok": False, "limits_applied": applied}
     try:
         namespace: dict[str, Any] = {"__name__": "maya_artifact"}
