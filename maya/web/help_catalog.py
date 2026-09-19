@@ -96,9 +96,9 @@ CATEGORIES: list[dict[str, Any]] = [
          {"slug": "sdk", "title": "The Python SDK and REST API", "icon": "code-square",
           "summary": "Everything the UI does, a script can do: sessions, API keys, and "
                      "worked examples."},
-         {"slug": "sources", "title": "SQL sources", "icon": "server",
-          "summary": "Read-only queries, reviewed at approval, pulled into the "
-                     "bitemporal log on demand."},
+         {"slug": "sources", "title": "SQL and Python sources", "icon": "server",
+          "summary": "Reviewed read-only queries and sandboxed producer functions, pulled "
+                     "into the bitemporal log on demand."},
          {"slug": "events", "title": "Events and webhooks", "icon": "broadcast-pin",
           "summary": "A durable ordered event stream, server-sent events, and HMAC-signed "
                      "webhooks with retries."},

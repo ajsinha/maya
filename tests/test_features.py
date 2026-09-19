@@ -221,10 +221,10 @@ def test_download_formats_and_csv_encoding(world):
 
 
 def test_unsupported_source_is_refused_by_name(world):
-    d = dict(PX_DEF, source={"type": "python"})
-    world.p.features.create(world.dana, namespace="eq", name="pysrc", definition=d)
-    with pytest.raises(ValidationFailed, match="python"):
-        world.p.features.transition(world.dana, "eq/pysrc", 1, "submit")
+    d = dict(PX_DEF, source={"type": "ftp"})
+    world.p.features.create(world.dana, namespace="eq", name="ftpsrc", definition=d)
+    with pytest.raises(ValidationFailed, match="source.type must be one of .*python"):
+        world.p.features.transition(world.dana, "eq/ftpsrc", 1, "submit")
 
 
 def test_quality_failure_raised_directly_by_materialize(world):

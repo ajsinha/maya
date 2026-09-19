@@ -34,5 +34,6 @@ HIGHLIGHTS = {
         "Top navigation with mega-menus, and a card-based help system with worked examples",
         "Spreadsheet import: an Excel formula graph lifted into the IR, checked cell by cell "
         "against the workbook's own results",
+        "The python source driver: a reviewed producer function run in the sandbox on each pull",
     ],
 }
