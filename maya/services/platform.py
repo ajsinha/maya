@@ -48,12 +48,13 @@ class Platform:
                 settings.int("lake.fragment.max_rows", 8192),
             ),
         )
-        from maya.jobs.queue import JobQueue
+        from maya.jobs.queue import Fairness, JobQueue
 
         self.jobs = JobQueue(
             self.uow,
             workers=settings.int("jobs.workers", 2),
             max_attempts=settings.int("jobs.max_attempts", 3),
+            fairness=Fairness.from_settings(settings),
         )
         from maya.workflow.engine import WorkflowEngine
 
@@ -63,6 +64,7 @@ class Platform:
         )
         self._services: dict[str, Any] = {}
         self.primary = True  # False in an extra web process (see ``build``)
+        self.role = "primary"  # primary | web | worker
 
     # -- construction ------------------------------------------------------
     @classmethod
@@ -73,33 +75,53 @@ class Platform:
         init_if_empty: bool = True,
         start_workers: bool | str = True,
         primary: bool = True,
+        role: str | None = None,
     ) -> "Platform":
-        """A running MAYA. ``primary=False`` is an extra web process (``server.workers``
-        above 1): it serves requests over the database the primary prepared — no schema
-        creation, seeding, job reaping, job workers, webhooks or scheduler of its own."""
+        """A running MAYA, in one of three roles (§15.1, §24.1).
+
+        ``primary`` is the launching process: it creates and verifies the schema, seeds,
+        reaps jobs left running by a process that died, and runs the job workers, the
+        webhook dispatcher and the scheduler. ``web`` is an extra web process
+        (``server.workers`` above 1): it serves requests over the database the primary
+        prepared and owns none of that. ``worker`` is a job worker process with no HTTP
+        server at all — the shape §15.1 asks for, where a long pin cannot compete with
+        interactive traffic for the same interpreter. A worker joins an estate the
+        primary has already prepared, so it neither creates the schema nor seeds, and it
+        runs the job queue *only*: the scheduler's sweeps and the webhook dispatcher stay
+        with the launching process, because two of them would compact the same lake table
+        and chase the same webhook at once. Nor does a worker reap — reaping requeues
+        everything marked ``running``, and from a second process that would steal the
+        jobs the first is halfway through.
+        """
+        role = role or ("primary" if primary else "web")
+        owns_estate = role == "primary"
+        runs_jobs = role in ("primary", "worker")
+        if role == "worker":
+            start_workers = "jobs" if start_workers else False
         Backends.resolve(pins_from_config(settings.props))
         db = database_from_settings(settings)
-        if primary and not db.is_initialized():
+        if owns_estate and not db.is_initialized():
             if not init_if_empty:
                 db.verify_schema()
             db.init_schema()
         db.verify_schema()
         platform = cls(settings, db)
-        platform.primary = primary
-        if primary:
+        platform.primary = owns_estate
+        platform.role = role
+        if owns_estate:
             platform.ensure_search_index()
         from maya.observability import tracing
 
         tracing.configure(settings.get("observability.otlp.endpoint") or None)
         platform.wire()
-        if primary:
+        if owns_estate:
             from maya.services.seed import seed
 
             seed(platform)
         platform.startup_checks()
-        if primary:
+        if owns_estate:
             platform.jobs.reap()
-        if start_workers and primary:
+        if runs_jobs and start_workers:
             platform.jobs.start()
             if start_workers != "jobs":  # "jobs": no webhook delivery, no scheduler
                 platform.webhooks.start()
