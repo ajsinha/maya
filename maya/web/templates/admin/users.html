@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Users and roles{% endblock %}
+{% block content %}
+<h1>Users</h1>
+{% call(u) table("users", ["Username", "Display name", "Roles", "Status", "Service", "Last login", "!Roles", "!Password", "!Status"], rows, empty="No users.") %}
+  <td>{{ u.username }}</td><td>{{ u.display_name }}</td><td>{{ u.roles|join(', ') }}</td><td>{{ pill(u.status) }}{% if u.must_change_password %} <span class="pill warn">must change password</span>{% endif %}</td><td>{{ 'yes' if u.is_service else '' }}</td><td>{{ u.last_login_at|dt }}</td>
+  <td><form method="post" action="/admin/users/{{ u.username }}/roles" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <select class="form-select form-select-sm" name="roles" multiple size="2" aria-label="Roles of {{ u.username }}">{% for r in roles %}<option {% if r.name in u.roles %}selected{% endif %}>{{ r.name }}</option>{% endfor %}</select>
+    <button class="btn btn-sm btn-outline-secondary" type="submit">Set</button></form></td>
+  <td><form method="post" action="/admin/users/{{ u.username }}/password" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" type="password" name="new_password" placeholder="new password" aria-label="New password for {{ u.username }}" autocomplete="new-password"><button class="btn btn-sm btn-outline-secondary" type="submit">Reset</button></form></td>
+  <td><form method="post" action="/admin/users/{{ u.username }}/status"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="status" value="{{ 'active' if u.status != 'active' else 'disabled' }}"><button class="btn btn-sm btn-outline-secondary" type="submit">{{ 'Enable' if u.status != 'active' else 'Disable' }}</button></form></td>
+{% endcall %}
+<form method="post" action="/admin/users" class="card card-body mb-4"><input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create a user</h3>
+  <div class="row g-2"><div class="col-md-2"><label class="form-label" for="un">Username</label><input class="form-control" id="un" name="username" required></div>
+  <div class="col-md-2"><label class="form-label" for="dn">Display name</label><input class="form-control" id="dn" name="display_name"></div>
+  <div class="col-md-2"><label class="form-label" for="em">Email</label><input class="form-control" id="em" name="email"></div>
+  <div class="col-md-2"><label class="form-label" for="pw">Initial password</label><input class="form-control" id="pw" name="password" type="password" autocomplete="new-password"></div>
+  <div class="col-md-2"><label class="form-label" for="rl">Roles</label><select class="form-select" id="rl" name="roles" multiple size="3">{% for r in roles %}<option>{{ r.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label" for="dk">Desk</label><input class="form-control" id="dk" name="desk"><div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="is_service" value="1" id="svc"><label class="form-check-label" for="svc">Service account</label></div></div></div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Create</button></div></form>
+<h2 id="roles">Roles — capability matrix</h2>
+<p class="small-muted">C create · R read · U update · A approve · P pin/seal · G grant · Q request a pin. A role is a ceiling: an object grant never exceeds it.</p>
+{% set cols = ["Role"] + object_types %}
+{% call(r) table("roles", cols, roles, empty="No roles.") %}
+  <td><strong>{{ r.name }}</strong>{% if not r.builtin %} <span class="pill">custom</span>{% endif %}<div class="small-muted">{{ r.description or '' }}</div></td>
+  {% for t in object_types %}<td class="mono">{{ r.capabilities.get(t, '') }}</td>{% endfor %}
+{% endcall %}
+<form method="post" action="/admin/roles" class="card card-body mb-4"><input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create a custom role</h3>
+  <div class="row g-2"><div class="col-md-3"><label class="form-label" for="rn">Name</label><input class="form-control" id="rn" name="name" required></div>
+  <div class="col-md-3"><label class="form-label" for="rd">Description</label><input class="form-control" id="rd" name="description"></div>
+  <div class="col-md-6"><label class="form-label" for="rc">Capabilities (JSON object type → letters)</label><textarea class="form-control mono" id="rc" name="capabilities" rows="2" data-json placeholder='{"feature": "R", "featureset": "R"}'></textarea></div></div>
+  <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Create role</button></div></form>
+<h2 id="groups">Groups</h2>
+{% call(g) table("groups", ["Group", "Roles", "Members", "Description"], groups, empty="No groups.") %}<td>{{ g.name }}</td><td>{{ g.roles|join(', ') }}</td><td>{{ g.members|join(', ') }}</td><td>{{ g.description or '' }}</td>{% endcall %}
+<form method="post" action="/admin/groups" class="card card-body mb-4"><input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create a group</h3>
+  <div class="row g-2"><div class="col-md-3"><label class="form-label" for="gn">Name</label><input class="form-control" id="gn" name="name" required></div>
+  <div class="col-md-3"><label class="form-label" for="gr">Roles</label><select class="form-select" id="gr" name="roles" multiple size="3">{% for r in roles %}<option>{{ r.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label" for="gm">Members (usernames, comma-separated)</label><input class="form-control" id="gm" name="members"></div>
+  <div class="col-md-3"><label class="form-label" for="gd">Description</label><input class="form-control" id="gd" name="description"></div></div>
+  <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Create group</button></div></form>
+<h2 id="sessions">Active sessions</h2>
+{% call(s) table("sessions", ["User", "Channel", "Started", "Last seen", "Expires", "IP", "!End"], sessions, empty="No active sessions visible (administrators only).") %}
+  <td>{{ s.username }}</td><td>{{ s.channel }}</td><td>{{ s.created_at|dt }}</td><td>{{ s.last_seen_at|dt }}</td><td>{{ s.expires_at|dt }}</td><td>{{ s.ip or '' }}</td>
+  <td><form method="post" action="/admin/sessions/{{ s.id }}/end"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Terminate</button></form></td>
+{% endcall %}
+{% endblock %}

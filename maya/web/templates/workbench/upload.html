@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Upload wizard{% endblock %}
+{% block content %}
+<h1>Upload wizard</h1>
+{% if not proposal %}
+<p class="lead-slate">Step 1 of 2: upload a file. MAYA proposes a schema; you confirm it.</p>
+<form method="post" action="/workbench/upload" enctype="multipart/form-data" class="card card-body" style="max-width:620px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="mb-2"><label class="form-label" for="ufile">File</label><input class="form-control" id="ufile" name="file" type="file" required></div>
+  <div class="mb-3"><label class="form-label" for="ufmt">Format</label><select class="form-select" id="ufmt" name="fmt"><option>csv</option><option>parquet</option><option>json</option></select></div>
+  <button class="btn btn-primary" type="submit">Propose a schema</button>
+</form>
+{% else %}
+<p class="lead-slate">Step 2 of 2: confirm the proposal. {{ proposal.rows }} row(s) read. The inferred schema is a proposal, not a decision.</p>
+{% for w in proposal.warnings %}<div class="alert alert-warning py-2">{{ w }}</div>{% endfor %}
+<h3>Sample</h3>
+{% set cols = proposal.schema|map(attribute='name')|list %}
+{% call(r) table("sample", cols, proposal.preview, empty="The file had no rows.") %}{% for c in cols %}<td class="mono">{{ r[c] }}</td>{% endfor %}{% endcall %}
+<form method="post" action="/workbench/upload/confirm">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="key" value="{{ key }}">
+  <input type="hidden" name="mode" value="source"><input type="hidden" name="source_type" value="{{ fmt }}">
+  <div class="row g-2 mb-2">
+    <div class="col-md-3"><label class="form-label" for="namespace">Namespace</label><select class="form-select" id="namespace" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="name">Feature name</label><input class="form-control" id="name" name="name" value="{{ stem }}" required></div>
+    <div class="col-md-3"><label class="form-label" for="grid">Grid</label><select class="form-select" id="grid" name="grid"><option value="as_is">as_is</option>{% for c in calendars %}<option>{{ c }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="kt">Knowledge time (optional)</label><input class="form-control" id="kt" name="knowledge_time" placeholder="now"></div>
+  </div>
+  <h3>Index — first column is the event time</h3>
+  {% for col in proposal.suggested_index or [cols[0]] %}
+    <div class="d-flex gap-1 mb-1" style="max-width:420px"><input class="form-control form-control-sm" name="index_name" value="{{ col }}" aria-label="Index column">
+    <select class="form-select form-select-sm" name="index_type" aria-label="Index type">{% set want = 'date' if loop.first else 'string' %}{% for t in ['date','timestamp','string','int64'] %}<option {% if t == want %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  {% endfor %}
+  <h3 class="mt-2">Attributes</h3>
+  {% for a in proposal.schema if a.name not in (proposal.suggested_index or []) %}
+    <div class="row g-1 mb-1" style="max-width:900px">
+      <div class="col-3"><input class="form-control form-control-sm" name="attr_name" value="{{ a.name }}" aria-label="Attribute"></div>
+      <div class="col-3"><input class="form-control form-control-sm mono" name="attr_type" value="{{ a.type }}" aria-label="Type"></div>
+      <div class="col-2"><input class="form-control form-control-sm" name="attr_unit" placeholder="unit" aria-label="Unit"></div>
+      <div class="col-2"><input class="form-control form-control-sm" name="attr_tag" placeholder="tag" aria-label="Tag"></div>
+      <div class="col-2"><input class="form-control form-control-sm mono" name="attr_rule" placeholder="rule" aria-label="Rule"></div>
+    </div>
+  {% endfor %}
+  <button class="btn btn-primary mt-2" type="submit">Create feature and ingest</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Feature sets{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Feature sets</h1><a class="btn btn-sm btn-primary" href="/workbench/featuresets/new">New feature set</a></div>
+{% call(s) table("featuresets", ["Name", "Namespace", "Latest", "State", "Attributes", "Sealed pins", "Updated"], rows, empty="No feature sets yet. Build one from approved features in the Feature set builder.") %}
+  <td><a href="/catalog/featuresets/{{ s.namespace }}/{{ s.name }}">{{ s.name }}</a></td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td>
+  <td>{{ pill(s.latest_state) }}</td><td>{{ s.members }}</td><td>{{ s.pins }}</td><td>{{ s.updated_at|dt }}</td>
+{% endcall %}
+{% endblock %}

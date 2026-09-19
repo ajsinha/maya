@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}New training warrant{% endblock %}
+{% block content %}
+<h1>Draw a training warrant</h1>
+<p class="lead-slate">MAYA validates the model's input contract against the feature set before issuing, listing every mismatch, and signs a leakage certificate over every row.</p>
+<form method="post" action="/warrants/training/new" class="card card-body">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<div class="row g-2">
+  <div class="col-md-3"><label class="form-label" for="ns">Namespace</label><select class="form-select" id="ns" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label" for="wname">Name</label><input class="form-control" id="wname" name="name" required></div>
+  <div class="col-md-6"><label class="form-label" for="model">Model version (approved)</label><input class="form-control mono" id="model" name="model" list="models" required placeholder="maya://model/ns/name@v1"><datalist id="models">{% for m in models %}<option value="{{ m }}">{% endfor %}</datalist></div>
+  <div class="col-md-6"><label class="form-label" for="fs">Feature set (a sealed pin is best: it never moves)</label><input class="form-control mono" id="fs" name="featureset" list="fsets" required><datalist id="fsets">{% for f in fsets %}<option value="{{ f }}">{% endfor %}</datalist></div>
+  <div class="col-md-3"><label class="form-label" for="target">Target attribute</label><input class="form-control" id="target" name="target"></div>
+  <div class="col-md-3"><label class="form-label" for="seed">Seed</label><input class="form-control" id="seed" name="seed" type="number" value="42"></div>
+  <div class="col-md-2"><label class="form-label" for="train">Train</label><input class="form-control" id="train" name="train" value="0.7"></div>
+  <div class="col-md-2"><label class="form-label" for="val">Validation</label><input class="form-control" id="val" name="validation" value="0.15"></div>
+  <div class="col-md-2"><label class="form-label" for="test">Test</label><input class="form-control" id="test" name="test" value="0.15"></div>
+  <div class="col-md-3"><label class="form-label" for="holdout">Holdout</label><select class="form-select" id="holdout" name="holdout"><option value="escrowed">escrowed — MAYA scores; test rows never leave</option><option value="none">none — test rows downloadable</option></select></div>
+  <div class="col-md-3"><label class="form-label" for="lag">Leakage lag (days)</label><input class="form-control" id="lag" name="leakage_lag_days" type="number" value="1"></div>
+  <div class="col-md-3"><label class="form-label" for="exp">Expires in (days)</label><input class="form-control" id="exp" name="expiry_days" type="number" value="365"></div>
+  <div class="col-md-6"><label class="form-label" for="bind">Bindings: model input → feature set attribute (JSON)</label><textarea class="form-control mono" id="bind" name="bindings" rows="2" data-json placeholder='{"S": "px"}'></textarea></div>
+  <div class="col-md-6"><label class="form-label" for="obj">Objective</label><textarea class="form-control" id="obj" name="objective" rows="2"></textarea></div>
+  <div class="col-md-4 form-check ms-2"><input class="form-check-input" type="checkbox" id="anc" name="allow_non_causal" value="1"><label class="form-check-label" for="anc">Allow non-causal fills (needs a justification)</label></div>
+  <div class="col-md-4"><label class="form-label" for="ncj">Non-causal justification</label><input class="form-control" id="ncj" name="non_causal_justification"></div>
+  <div class="col-md-4"><label class="form-label" for="lj">Leakage exception justification</label><input class="form-control" id="lj" name="leakage_justification"></div>
+</div>
+<div class="mt-3"><button class="btn btn-primary" type="submit">Validate and draw</button></div>
+</form>
+{% endblock %}

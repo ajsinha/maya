@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Quick feature{% endblock %}
+{% block content %}
+<h1>Quick feature</h1>
+<p class="lead-slate">Zero ceremony (§28.1): one file becomes a typed, resolvable, shareable feature in your personal <code>scratch.{{ user }}</code> namespace — no review, no approval, clearly marked <em>ungoverned</em>. Promote it later by cloning into a governed namespace.</p>
+<form method="post" action="/workbench/quick" enctype="multipart/form-data" class="card card-body" style="max-width:620px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="mb-2"><label class="form-label" for="qname">Feature name</label><input class="form-control" id="qname" name="name" required pattern="[A-Za-z0-9_]+"></div>
+  <div class="mb-2"><label class="form-label" for="qfile">File (needs a date, as_of or timestamp column)</label><input class="form-control" id="qfile" name="file" type="file" required></div>
+  <div class="mb-3"><label class="form-label" for="qfmt">Format</label><select class="form-select" id="qfmt" name="fmt"><option>csv</option><option>parquet</option><option>json</option></select></div>
+  <button class="btn btn-primary" type="submit">Create</button>
+</form>
+{% endblock %}

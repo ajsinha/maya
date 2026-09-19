@@ -1,0 +1,68 @@
+/*
+ * MAYA — Harvard Crimson token set (spec §16.6). The ONLY place colours are
+ * defined. --maya-heading exists because the spec's dark crimson-deep (#A51C30)
+ * is 2.44:1 on the dark canvas: fine for rules, too faint for heading text.
+ * tools/ci/contrast.py recomputes every foreground/background pair.
+ * Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+ */
+:root {
+  --maya-crimson: #A51C30;
+  --maya-crimson-strong: #8A1626;
+  --maya-crimson-deep: #6E1120;
+  --maya-crimson-tint: #FBEEF0;
+  --maya-ink: #1A1A1A;
+  --maya-slate: #6B7480;
+  --maya-surface: #FFFFFF;
+  --maya-canvas: #F7F5F2;
+  --maya-indigo: #293352;
+  --maya-on-crimson: #FFFFFF;
+  --maya-border: #E3DED7;
+  --maya-ok: #1E6B3A;
+  --maya-warn: #7A5200;
+  --maya-bad: #8A1626;
+  --maya-highlight: #F4DDA0;
+  --maya-heading: #6E1120;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --maya-crimson: #DE6B81;
+    --maya-crimson-strong: #D4526A;
+    --maya-crimson-deep: #E07A8E;  /* spec §16.6 says #A51C30: 2.20:1 on the dark surface, fails the gate */
+    --maya-crimson-tint: #2A1A1E;
+    --maya-ink: #ECECEF;
+    --maya-slate: #8996A0;
+    --maya-surface: #1F1F23;
+    --maya-canvas: #151517;
+    --maya-indigo: #A9B6D6;
+    --maya-on-crimson: #151517;
+    --maya-border: #34343A;
+    --maya-ok: #7FD39B;
+    --maya-warn: #E8C26A;
+    --maya-bad: #F08A9C;
+  --maya-highlight: #5A4712;
+  --maya-heading: #DE6B81;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --maya-crimson: #DE6B81;
+  --maya-crimson-strong: #D4526A;
+  --maya-crimson-deep: #E07A8E;  /* spec §16.6 says #A51C30: 2.20:1 on the dark surface, fails the gate */
+  --maya-crimson-tint: #2A1A1E;
+  --maya-ink: #ECECEF;
+  --maya-slate: #8996A0;
+  --maya-surface: #1F1F23;
+  --maya-canvas: #151517;
+  --maya-indigo: #A9B6D6;
+  --maya-on-crimson: #151517;
+  --maya-border: #34343A;
+  --maya-ok: #7FD39B;
+  --maya-warn: #E8C26A;
+  --maya-bad: #F08A9C;
+  --maya-highlight: #5A4712;
+  --maya-heading: #DE6B81;
+  color-scheme: dark;
+}

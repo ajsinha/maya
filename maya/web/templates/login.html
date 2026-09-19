@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="text-center mb-4 maya-hero">
+      <img src="/static/img/maya-lockup.svg" alt="MAYA">
+      <div class="mt-2 small-muted">{{ APP_TAGLINE }}</div>
+      <div class="fst-italic">{{ APP_SLOGAN }}</div>
+    </div>
+    <div class="card"><div class="card-body">
+      <h1 class="h3 mb-3">Sign in</h1>
+      {% if error %}<div class="alert alert-danger py-2" role="alert">{{ error }}</div>{% endif %}
+      <form method="post" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <input type="hidden" name="next" value="{{ next or '/' }}">
+        <div class="mb-2"><label class="form-label" for="username">Username</label>
+          <input class="form-control" id="username" name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></div>
+        <div class="mb-3"><label class="form-label" for="password">Password</label>
+          <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primary w-100" type="submit">Sign in</button>
+      </form>
+    </div></div>
+    <p class="small-muted text-center mt-3">MAYA {{ VERSION }} · database authentication</p>
+  </div>
+</div>
+{% endblock %}

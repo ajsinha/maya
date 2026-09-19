@@ -1,0 +1,125 @@
+# ==========================================================================
+# MAYA — Model & AI Lifecycle Assurance · configuration
+# ==========================================================================
+# Loaded by maya/core/properties_configurator.py (adopted from DishtaYantra).
+#
+# Precedence, lowest to highest:
+#   this file -> config/application.local.yaml (git-ignored overlay)
+#             -> environment variables (the full dotted key, e.g. db.dialect)
+#             -> command-line flags   (python run_maya_web.py --db.dialect=postgresql)
+#
+# ${VAR} and ${VAR:default} resolve against other keys, the environment and
+# --key=value flags. Values are strings, coerced on access.
+#
+# THIS FILE IS TRACKED AND CARRIES NO SECRET. A test enforces it. Put secrets
+# in config/application.local.yaml or the environment.
+# ==========================================================================
+
+app:
+  name: MAYA
+  # dev | uat | prod. Outside dev: the default admin password refuses to start,
+  # SQLite refuses to start in prod, and the sandbox minimum tier is enforced.
+  environment: "${MAYA_ENV:dev}"
+  # Session-signing secret. Deliberately empty here. In dev, when unset, MAYA
+  # generates one under storage.root/keys/ (never in this file). Outside dev an
+  # unset secret refuses to start.
+  secret_key: "${MAYA_SECRET_KEY:}"
+  allow_default_admin_password: "false"
+
+server:
+  host: "${MAYA_HOST:127.0.0.1}"
+  port: "${MAYA_PORT:8600}"
+  workers: 1
+
+logging:
+  level: INFO
+  format: text            # text | json
+  file: "${storage.root}/logs/maya.log"
+
+# --------------------------------------------------------------------------
+# Database. Switch dialect here; nothing else changes.
+#   sqlite      -> schema from maya/persistence/schema/sqlite.sql
+#   postgresql  -> schema from maya/persistence/schema/postgresql.sql
+# There is no migration framework (spec §14.3). On a schema-hash mismatch MAYA
+# refuses to start and names the export -> init-db -> import commands.
+# --------------------------------------------------------------------------
+db:
+  dialect: "${MAYA_DB_DIALECT:sqlite}"
+  echo: "false"
+  sqlite:
+    path: "${storage.root}/maya.db"
+    busy_timeout_ms: 30000
+  postgresql:
+    host: "${MAYA_PG_HOST:localhost}"
+    port: "${MAYA_PG_PORT:5432}"
+    database: "${MAYA_PG_DATABASE:maya}"
+    user: "${MAYA_PG_USER:maya}"
+    # The password comes from the environment or the local overlay, never here.
+    password: "${MAYA_PG_PASSWORD:}"
+    pool_size: 10
+    max_overflow: 10
+
+storage:
+  # Root of the local stores: blobs, the Delta lake, keys, logs, the SQLite file.
+  root: "${MAYA_HOME:data}"
+
+lake:
+  # auto | native | pure  (maya_delta, spec §7.4)
+  backend: auto
+  fragment:
+    target_rows: 512
+    min_rows: 32
+    max_rows: 8192
+
+auth:
+  # db | sso | hybrid
+  mode: db
+  session:
+    idle_timeout_minutes: 30
+    absolute_timeout_hours: 12
+    token_ttl_minutes: 15
+  password:
+    min_length: 12
+  lockout:
+    attempts: 5
+    window_minutes: 15
+    duration_minutes: 30
+  api_keys:
+    max_days: 365
+  sso:
+    protocol: oidc
+    issuer: ""
+    client_id: maya
+    client_secret: "${MAYA_OIDC_CLIENT_SECRET:}"
+    redirect_uri: "http://127.0.0.1:8600/auth/sso/callback"
+    username_claim: preferred_username
+    groups_claim: groups
+    jit_provision: "true"
+
+sandbox:
+  # strong | moderate | minimal. Outside dev, MAYA refuses to start below this.
+  min_tier: strong
+
+workflow:
+  # Only honoured when app.environment is dev (spec §3).
+  allow_self_approval: "false"
+
+typeset:
+  # When true, a model cannot be approved on a draft (non-Tectonic) render.
+  # The spec's rule; relaxed in dev only if you set it to false explicitly.
+  require_true_build: "${MAYA_REQUIRE_TECTONIC:false}"
+
+jobs:
+  workers: 2
+  max_attempts: 3
+
+featureset:
+  pin:
+    materialize: always
+
+# Dependency seams (spec §13.4). auto, or pin a backend to force it.
+seams:
+  json: auto
+  frames: auto
+  compress: auto
+  kdf: auto

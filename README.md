@@ -20,7 +20,7 @@ It exists because four things are true in almost every quantitative shop, and ea
 The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes a model version against a feature set version and receives the parameters that training produced. An *execution warrant* packages a model, its parameters and its input contract into a licence that can be handed to a downstream system or a regulator — and, because it is a live instrument rather than a document, withdrawn on a Friday afternoon when the model is found to be wrong. Warrants make *who was allowed to run what, on which data, with whose approval* a query rather than an archaeology project.
 
 [![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/MAYA_Requirements_and_Design.md)
-[![Implementation](https://img.shields.io/badge/implementation-not%20started-lightgrey.svg)](docs/IMPLEMENTATION_PLAN.md)
+[![Implementation](https://img.shields.io/badge/implementation-v0.1.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
@@ -28,19 +28,63 @@ The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes
 
 ## Status — read this first
 
-**This repository currently contains a specification and a brand, and no product.**
-
-On 2026-09-17 the previous build of MAYA was deleted in full and the platform restarted from the specification up. What survived is deliberate and small: the logo set in `assets/logo/`, the name, the tagline and the slogan (`assets/BRAND.md`), and the legal files. Everything else — every module, test, template, deck and paper — was removed.
+**Version 0.1.0 (2026-09-19): the first end-to-end build from specification revision 2.1.**
+The whole spine runs through the web UI, the REST API, the SDK and the CLI:
+source → feature → feature set → pin → model → training warrant → parameter set →
+execution warrant → reproducibility bundle.
 
 | | |
 |---|---|
-| **Specification** | Complete. [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — 30 sections, also published as `.docx` and `.pdf` |
-| **Implementation plan** | Complete. [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — milestones M0–M8, the 28-rung CI gate ladder, the six one-way doors, and the decision register |
-| **Code** | None yet. There is no package, no test suite, no server to run |
-| **Decisions** | **All closed**, 2026-09-17 (spec §26.3, plan §4). Fourteen calls taken before any code: pin series, always-materialize, no database migrations, `maya_delta`, three-platform parity, Bootstrap + Harvard Crimson, the table contract, workflow managed in the UI, and the rest |
-| **Deferred** | The research paper and the presentation decks, to be rewritten against this specification |
+| **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
+| **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
+| **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
+| **Tests** | 242 passing on SQLite, Linux. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 122 endpoints, schema drift) |
 
-Nothing below describes behaviour that exists today. Where this README states a capability, it is stating a **commitment made by the specification**, and the section it comes from is cited so the claim can be checked against its source rather than believed. When a capability ships, its row moves from the plan into a *What's shipped* section and acquires a test that proves it. That order — spec, then plan, then code, then a test, then the claim — is not ceremony; it is the same discipline MAYA sells.
+### What's shipped, and the test that proves it
+
+| Claim | Proved by |
+|---|---|
+| SC-1: re-pinning is byte-identical, and changed data hashes differently | `tests/test_features.py::test_sc1_repin_is_byte_identical_and_changed_data_is_not` |
+| SC-11: point-in-time values after a restatement | `test_sc11_point_in_time_after_restatement` |
+| SC-12: a month whose history is unchanged costs under 5% of the full pin | `test_sc12_unchanged_month_costs_under_five_percent` |
+| SC-15: both schema files match the ORM metadata; a hand edit fails the build | `test_foundation.py`, `test_api_and_gates.py::test_schema_drift_gate_fails_after_a_hand_edit` |
+| SC-16: the two `maya_delta` backends are equivalent and read each other's tables | `tests/test_maya_delta.py` (38 tests) |
+| SC-17: every table comes from the one macro | `tools/ci/table_contract.py`, `tests/test_web.py` |
+| SC-13: every endpoint has an SDK method and every method an endpoint | `tools/ci/sdk_parity.py` |
+| SC-7: no role exceeds its ceiling, deny wins, API-key scope holds | `test_foundation.py::test_role_ceiling_is_never_exceeded` and others |
+| SC-8: the audit chain is append-only and hash-linked; tampering is detected | `test_workflow_and_estate.py::test_estate_round_trip_and_audit_tamper_detection` |
+| Migration-free upgrade: export → recreate → import, with the audit chain intact | same test |
+| Quality contracts block pins; a failed cascade pin rolls back entirely | `test_quality_contract_blocks_the_pin`, `test_cascade_rolls_back_entirely_on_a_member_failure` |
+| Leakage certificate (signed): refused on late knowledge | `test_leakage_certificate_refuses_late_knowledge` |
+| Warrant checksum cycle, blind holdout scoring, covenant breach suspends, bundle verifies offline and fails when tampered | `test_warrants.py::test_the_checksum_cycle_seal_score_execute_and_bundle` |
+| Workflow policy validated at edit time, activated by a second admin, changes behaviour; YAML round-trip is byte-identical; break-glass is permanent | `tests/test_workflow_and_estate.py` |
+| `run_maya_web.py` serves a real socket, driven by the SDK and the CLI | `test_api_and_gates.py::test_real_server_over_http_with_sdk_and_cli` |
+| Every gate is shown to fail on a planted violation | `test_gate_fails_on_a_planted_violation` |
+
+### Not yet — stated so nobody has to discover it
+
+- **PostgreSQL has not been run live.** `schema/postgresql.sql` is generated and the
+  dialect switch works (`db.dialect: postgresql`), but no server was available where this
+  was built. Run the suite with `MAYA_TEST_PG_URL=postgresql+psycopg://…` (the CI workflow
+  does this).
+- **Only Linux has been exercised.** `.github/workflows/ci.yml` covers Windows and macOS
+  but has not run yet.
+- **SSO (OIDC/SAML) and MFA are not shipped.** `auth.mode` other than `db` is refused at startup.
+- **Grant conditions** (row filters, column masks, time bounds, §11.4) are refused
+  rather than stored unenforced.
+- **Source drivers** `sql` and `python` are refused by name. Shipped: csv, parquet, json, delta, derived.
+- **Sandbox tier is `minimal`** (rlimits in a subprocess; network blocking is best effort).
+  It is named as such on the health page and on every validation report.
+- **No Tectonic here**, so spec PDFs are watermarked drafts. `typeset.require_true_build`
+  forbids approval on a draft render outside dev.
+- **Not built:** workspaces and shadow replay (§28.3, §29.2); licence algebra and
+  external audit anchoring (§29.6); the assistant (§29.8); spreadsheet import (§29.9);
+  webhooks; OpenTelemetry and Prometheus; delegation; server-side table paging; SDK
+  record/replay and `offline()`; performance benchmarks (SC-3/4/5).
+- **Deviations from the spec:** CodeMirror 5 instead of 6 (6 needs a bundler). The
+  dark-mode `--maya-crimson-deep` is `#E07A8E`, because the spec's `#A51C30` measures
+  2.20:1 and fails the spec's own contrast gate. Search is a `LIKE` scan, not FTS.
 
 ---
 
@@ -155,51 +199,31 @@ database engines — and why, because a pattern applied everywhere stops being a
 
 ## Repository layout
 
-What exists today:
-
 ```
+run_maya_web.py            # the one supported way to start MAYA
+config/application.yaml    # tracked, no secrets; application.local.yaml overlay is git-ignored
 maya/
-├── assets/
-│   ├── logo/                 # the mark, lockup, mono and white variants, raster fallbacks
-│   └── BRAND.md              # name, tagline, slogan, and which mark to use where
-├── docs/
-│   ├── MAYA_Requirements_and_Design.md   # the specification — 30 sections
-│   ├── MAYA_Requirements_and_Design.pdf  #   and .docx, same content
-│   ├── IMPLEMENTATION_PLAN.md            # milestones, gates, blocking decisions
-│   └── README.md
-├── LICENSE · NOTICE · README.md
-└── .gitignore · .python-version
-```
-
-The target layout, once M0 lands (spec §22.3, §14, §16, §18.2.6 — reproduced with its rationale in the implementation plan):
-
-```
-maya/
-├── run_maya_web.py        # the one supported way to start MAYA
-├── maya/
-│   ├── core/version.py    # VERSION, BUILD_DATE, APP_NAME — the only authority
-│   ├── domain/            # entities, value objects, policies, state machines — no I/O
-│   ├── ports/             # protocols the domain requires
-│   ├── services/          # use cases, transactions, orchestration
-│   ├── resolution/        # planner, kernels, rules, shape handling
-│   ├── storage/           # lake (via maya_delta), object store, cache adapters
-│   ├── persistence/       # SQLAlchemy and nowhere else; schema/ holds the two
-│   │                      #   GENERATED .sql files — never hand-edited
-│   ├── workflow/          # engine, policies, checks, the policy editor's model
-│   ├── security/          # authn providers, authz evaluator, per-platform sandbox
-│   ├── api/               # FastAPI routers, schemas
-│   ├── web/               # templates, static, routes — imports maya.sdk, nothing deeper
-│   ├── jobs/              # queue, workers, handlers
-│   ├── sdk/  cli/         # client surfaces
-│   └── config/  observability/
-├── maya_delta/            # the lakehouse layer — its own top-level package
-│   ├── native.py          #   deltalake-backed
-│   ├── pure/              #   MAYA's own Delta protocol implementation
-│   └── conformance/       #   the suite both backends must pass identically
-├── config/                # application.yaml (+ .local.yaml overlay, git-ignored)
-├── tests/                 # unit, property, repository × both backends, authz matrix, e2e
-├── tools/ci/              # the gates — Python, not shell, so they run on all three OSes
-└── docs/                  # spec, plan, ADRs, design notes, runbooks
+├── core/                  # version, configurator (from DishtaYantra), seams: backends,
+│                          #   djson, canonical, chunker, kdf, crypto, compress, typeset, calendars
+├── config/                # typed settings over the configurator
+├── persistence/           # SQLAlchemy and nowhere else
+│   ├── models/            #   the ORM metadata: the single source of the schema
+│   ├── repositories/      #   dict-returning repositories, hash-chained audit, job claim
+│   └── schema/            #   sqlite.sql, postgresql.sql, both GENERATED
+├── security/              # roles matrix, can(), per-platform sandbox
+├── resolution/            # expressions, rules, grids, transforms, quality, algebra, shapes
+├── formula/               # formula IR, parser, LaTeX, evaluator, diff, codegen, artifacts
+├── workflow/              # engine, policy validation, default policies
+├── storage/               # blob store, LakeStore (fragments over maya_delta)
+├── services/              # use cases: features, featuresets, models, warrants, …
+├── jobs/                  # queue and workers
+├── api/                   # FastAPI routers under /api/v1
+├── sdk/                   # the only client: Client, AsyncClient, inproc and http transports
+├── web/                   # Jinja2 + vendored Bootstrap 5/jQuery; imports maya.sdk only
+└── cli/                   # python -m maya.cli …
+maya_delta/                # Delta Lake: native (delta-rs) and pure-Python backends
+tools/ci/                  # the gates, in Python so they run on every OS
+tests/
 ```
 
 Two structural rules are worth stating in the README because they are load-bearing and non-negotiable (§14, §13, §16):
@@ -252,16 +276,28 @@ GitOps, not as a second authority. Spec §10.6.
 
 ## Getting started
 
-There is nothing to run yet. The productive thing to do today is read, in this order:
+```bash
+python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+python run_maya_web.py                 # http://127.0.0.1:8600 — log in as admin / maya-dev-admin
+```
 
-1. **[`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md)** — §1–§4 for the vision, the personas and the domain language; §5–§9 for the four subsystems; §28 for the design read adversarially; §29 for what is genuinely new.
-2. **[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)** — the sequence, the gates, and the eight decisions that block Phase 1.
-3. **[`assets/BRAND.md`](assets/BRAND.md)** — the name, the slogan, and which mark to use where.
+Change the admin password when prompted. To switch the database, set `db.dialect` in
+`config/application.yaml`, set `MAYA_DB_DIALECT`, or pass
+`python run_maya_web.py --db.dialect=postgresql`, then supply `db.postgresql.*`, with the
+password from `MAYA_PG_PASSWORD` or `config/application.local.yaml`. The schema is created
+from the matching `.sql` file on first start, and verified by hash on every start.
 
-When M0 lands, this section becomes an installation and a first-run walkthrough —
-`pip install -r requirements.txt -r requirements-dev.txt` then `python run_maya_web.py`,
-identically on Windows, Linux and macOS — and the specification's §2 success criteria
-start appearing as measured numbers rather than targets.
+```bash
+python -m maya.cli feature quick prices.csv        # a scratch feature in one command
+python -m maya.cli admin export-estate --out e.mayabundle   # the upgrade path, with
+python -m maya.cli admin init-db --force                    #   no migrations (§14.3)
+python -m maya.cli admin import-estate --in e.mayabundle
+python -m maya.cli export verify bundle.zip        # offline; needs no MAYA
+python tools/ci/gates.py --tests                   # the gate ladder
+git config core.hooksPath .githooks                # commit-msg and pre-commit hooks
+```
+
+API documentation: `/api/v1/docs`. SDK: `from maya.sdk import connect`.
 
 ---
 

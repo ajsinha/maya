@@ -1,0 +1,33 @@
+[project]
+name = "maya"
+description = "MAYA — Model & AI Lifecycle Assurance. Evidence, not assertion."
+requires-python = ">=3.13"
+dynamic = ["version", "dependencies"]
+authors = [{ name = "Ashutosh Sinha", email = "ajsinha@gmail.com" }]
+license = { file = "LICENSE" }
+
+[project.scripts]
+maya = "maya.cli.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "maya.core.version.VERSION" }
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["maya*", "maya_delta*"]
+
+[tool.setuptools.package-data]
+"maya.persistence" = ["schema/*.sql"]
+"maya.workflow" = ["*.yaml"]
+"maya.web" = ["templates/**/*", "static/**/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90"]
+ignore = ["E501"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12

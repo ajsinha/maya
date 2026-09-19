@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}My queue{% endblock %}
+{% block content %}
+<h1>My queue</h1>
+<p class="lead-slate">Everything in review. Items you submitted are marked: segregation of duties stops you approving them.</p>
+{% call(i) table("queue", ["Object", "Type", "Submitted by", "Since", "Age (days)", "Yours"], items, empty="Nothing is waiting for review.") %}
+  <td><a href="/workflow/review/{{ i.object_type }}/{{ i.id }}">{{ i.ref }}</a></td><td>{{ i.object_type }}</td><td>{{ i.submitted_by }}</td><td>{{ i.since|dt }}</td><td>{{ i.age_days }}</td><td>{{ 'yes — you cannot approve' if i.mine else '' }}</td>
+{% endcall %}
+{% endblock %}

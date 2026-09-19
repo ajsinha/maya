@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Inbox{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Inbox</h1>
+<form method="post" action="/inbox/read"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Mark all read</button></form></div>
+{% call(n) table("inbox", ["When", "Kind", "Message", "Object", "Read"], items, empty="No notifications. Workflow steps, covenant breaches and expiries arrive here.") %}
+  <td>{{ n.created_at|dt }}</td><td>{{ n.kind }}</td><td>{{ n.message }}</td><td class="mono">{{ n.object_ref or '' }}</td><td>{{ pill('true' if n.read_at else 'false', 'read' if n.read_at else 'unread') }}</td>
+{% endcall %}
+{% endblock %}

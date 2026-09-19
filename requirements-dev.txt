@@ -1,0 +1,6 @@
+# What the documented workflows need, on top of requirements.txt.
+# Install BOTH, or the suite goes green at a smaller count (plan §7.3).
+-r requirements.txt
+pytest==9.1.1
+hypothesis==6.168.0
+ruff==0.16.6

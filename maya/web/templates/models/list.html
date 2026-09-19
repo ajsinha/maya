@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Models{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Models</h1><a class="btn btn-sm btn-primary" href="/models/new">New model</a></div>
+{% call(m) table("models", ["Name", "Namespace", "Kind", "Latest", "State", "Maturity", "Opaque", "Updated"], rows, empty="No models yet. A model's mathematics is stored as a formula IR, parsed from what you write.") %}
+  <td><a href="/models/{{ m.namespace }}/{{ m.name }}">{{ m.name }}</a></td><td>{{ m.namespace }}</td><td>{{ m.kind }}</td><td>v{{ m.latest_version }}</td>
+  <td>{{ pill(m.latest_state) }}</td><td>{{ pill(m.maturity) }}</td><td>{{ 'declared black box' if m.opaque else 'no' }}</td><td>{{ m.updated_at|dt }}</td>
+{% endcall %}
+{% endblock %}

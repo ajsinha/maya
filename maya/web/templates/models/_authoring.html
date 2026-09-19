@@ -1,0 +1,23 @@
+{# Three ways to write the same IR — nobody authors the IR by hand (§28.6). Needs: v (optional) #}
+<label class="form-label" for="authoring">How to express the mathematics</label>
+<select class="form-select mb-2" id="authoring" name="authoring" data-toggle-show="auth" style="max-width:420px">
+  <option value="formula">Formula text (Python-ish or LaTeX-lite)</option>
+  <option value="python">Lift from a Python function</option>
+  <option value="ir">Formula IR JSON (black box, composite, vendor)</option></select>
+<div data-show-group="auth" data-show-when="formula">
+  <label class="form-label" for="formula">Formula — lets first, the output last</label>
+  <textarea class="form-control mono" id="formula" name="formula" rows="6" placeholder="d1 = (log(S/K) + (r + sigma^2/2)*T) / (sigma*sqrt(T))
+d2 = d1 - sigma*sqrt(T)
+price = S*ncdf(d1) - K*exp(-r*T)*ncdf(d2)"></textarea>
+  <label class="form-label mt-2" for="roles">Input roles (one "name: feature|parameter|constant" per line; default feature)</label>
+  <textarea class="form-control mono" id="roles" name="roles" rows="3" placeholder="sigma: parameter
+r: constant"></textarea>
+</div>
+<div data-show-group="auth" data-show-when="python">
+  <label class="form-label" for="pysrc">Python function (assignments + a return of an arithmetic expression)</label>
+  <textarea class="form-control mono" id="pysrc" name="python_source" rows="6" data-editor="python"></textarea>
+</div>
+<div data-show-group="auth" data-show-when="ir">
+  <label class="form-label" for="ir">Formula IR (JSON)</label>
+  <textarea class="form-control mono" id="ir" name="ir" rows="8" data-json placeholder='{"outputs": [{"name": "pd", "type": "float64"}], "inputs": [...], "black_box": {"architecture": "GBM", "hyperparameters": {}, "estimates": "12-month probability of default"}}'>{{ v.formula_ir|tojson_pretty if v and v.formula_ir else '' }}</textarea>
+</div>

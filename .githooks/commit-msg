@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+"""Refuse assistant attribution trailers: authorship of MAYA is Ashutosh Sinha's alone
+(plan §2.1). Enable with: git config core.hooksPath .githooks"""
+import re
+import sys
+
+message = open(sys.argv[1], encoding="utf-8").read()
+if re.search(r"Co-Authored-By:\s*Claude|Claude-Session:|Generated with \[Claude", message, re.I):
+    sys.stderr.write("commit-msg: assistant attribution trailers are not allowed in MAYA.\n")
+    sys.exit(1)

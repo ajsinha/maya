@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Verify a bundle{% endblock %}
+{% block content %}
+<h1>Verify a reproducibility bundle</h1>
+<p class="lead-slate">MAYA runs the bundle's own <code>verify.py</code> in a clean interpreter, exactly as it would run offline on a machine with no MAYA at all.</p>
+<form method="post" action="/warrants/verify" enctype="multipart/form-data" class="card card-body mb-3" style="max-width:620px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <label class="form-label" for="bfile">Bundle (.zip)</label><input class="form-control mb-2" id="bfile" name="file" type="file" required>
+  <div><button class="btn btn-primary" type="submit">Verify</button></div></form>
+{% if report %}
+<h2>{{ pill('ok' if report.verified else 'bad', 'VERIFIED' if report.verified else 'NOT VERIFIED') }}</h2>
+{% if report.error %}<pre>{{ report.error }}</pre>{% endif %}
+{% call(c) table("checks", ["Check", "Result", "Detail"], report.checks or [], empty="No checks ran.") %}
+  <td>{{ c.check }}</td><td>{% if c.ok is sameas true %}{{ pill('ok','ok') }}{% elif c.ok is sameas false %}{{ pill('bad','failed') }}{% else %}{{ pill('', 'not checked') }}{% endif %}</td><td class="mono">{{ c.detail or '' }}</td>
+{% endcall %}
+{% endif %}
+{% endblock %}

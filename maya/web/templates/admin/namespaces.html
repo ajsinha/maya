@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Namespaces{% endblock %}
+{% block content %}
+<h1>Namespaces</h1>
+<p class="lead-slate">The unit of permission, quota and export. Presets set the expected roles and the segregation-of-duties level; SoD is shown on every review screen.</p>
+{% call(n) table("namespaces", ["Name", "Preset", "SoD", "Visibility", "Classification", "Production", "Objects", "!Edit"], rows, empty="No namespaces yet. Create one below.") %}
+  <td>{{ n.name }}{% if n.is_scratch %} <span class="pill warn">scratch — ungoverned</span>{% endif %}<div class="small-muted">{{ n.description or '' }}</div></td>
+  <td>{{ n.preset }}</td><td>{{ n.sod }}</td><td>{{ n.default_visibility }}</td><td>{{ n.classification }}</td><td>{{ pill('true' if n.production else 'false', 'yes' if n.production else 'no') }}</td>
+  <td>{{ n.counts.get('features', 0) }} features · {{ n.counts.get('feature_sets', 0) }} sets · {{ n.counts.get('models', 0) }} models</td>
+  <td><form method="post" action="/admin/namespaces/{{ n.name }}" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <select class="form-select form-select-sm" name="sod" aria-label="SoD for {{ n.name }}">{% for s in ['strict','two_person','none'] %}<option {% if s == n.sod %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    <select class="form-select form-select-sm" name="default_visibility" aria-label="Visibility for {{ n.name }}">{% for s in ['private','namespace_read','public_read'] %}<option {% if s == n.default_visibility %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    <button class="btn btn-sm btn-outline-secondary" type="submit">Save</button></form></td>
+{% endcall %}
+<form method="post" action="/admin/namespaces" class="card card-body"><input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create a namespace</h3>
+  <div class="row g-2">
+  <div class="col-md-3"><label class="form-label" for="nn">Name</label><input class="form-control" id="nn" name="name" required placeholder="equity.pricing"></div>
+  <div class="col-md-2"><label class="form-label" for="np">Parent (one level)</label><input class="form-control" id="np" name="parent"></div>
+  <div class="col-md-2"><label class="form-label" for="npr">Preset</label><select class="form-select" id="npr" name="preset"><option value="small_team">Small team (3 roles, SoD none)</option><option value="standard" selected>Standard (6 roles, two-person)</option><option value="regulated">Regulated (8 roles, strict)</option></select></div>
+  <div class="col-md-2"><label class="form-label" for="nv">Default visibility</label><select class="form-select" id="nv" name="default_visibility"><option>namespace_read</option><option>private</option><option>public_read</option></select></div>
+  <div class="col-md-2"><label class="form-label" for="nc">Classification</label><select class="form-select" id="nc" name="classification"><option>internal</option><option>public</option><option>confidential</option><option>restricted</option></select></div>
+  <div class="col-md-1 form-check mt-4"><input class="form-check-input" type="checkbox" name="production" value="1" id="nprod"><label class="form-check-label" for="nprod">Prod</label></div>
+  <div class="col-12"><label class="form-label" for="nd">Description</label><input class="form-control" id="nd" name="description"></div></div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Create</button></div></form>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Lineage{% endblock %}
+{% block content %}
+<h1>Lineage and algebra canvas</h1>
+<p class="lead-slate">Object versions and pins are nodes; algebra operators are diamonds. Click a node to re-root the view. Upstream answers "what built this"; downstream answers "what breaks if I change this".</p>
+<form class="row g-2 align-items-end mb-2" method="get" action="/lineage">
+  <div class="col-md-6"><label class="form-label" for="root">Root reference</label><input class="form-control mono" id="root" name="root" value="{{ root }}" placeholder="maya://feature/ns/name@v1"></div>
+  <div class="col-md-2"><label class="form-label" for="direction">Direction</label>
+    <select class="form-select" id="direction" name="direction">{% for d in ['both','upstream','downstream'] %}<option {% if d == direction %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label" for="depth">Depth</label>
+    <select class="form-select" id="depth" name="depth">{% for d in ['1','2','3','4','6','8'] %}<option {% if d == depth %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Draw</button></div>
+</form>
+{% include "_lineage_canvas.html" %}
+{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}

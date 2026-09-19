@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<h1>Search</h1>
+<p class="lead-slate">{% if q %}Results for <strong>{{ q }}</strong> across features, feature sets, models, warrants and namespaces.{% else %}Type at least two characters in the search box (Ctrl-K / ⌘K).{% endif %}</p>
+{% call(h) table("search", ["Name", "Kind", "Namespace", "Description"], hits, empty="No objects match. Try a shorter term, or a namespace name.") %}
+  <td><a href="{{ h.href }}">{{ h.name }}</a></td><td>{{ h.kind }}</td><td>{{ h.namespace or '—' }}</td><td>{{ h.description or '' }}</td>
+{% endcall %}
+{% endblock %}

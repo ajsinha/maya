@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Configuration{% endblock %}
+{% block content %}
+<h1>Effective configuration</h1>
+<p class="lead-slate">Every setting with where its value came from: file, environment or command line. Secrets are redacted. Switch the database with <code>db.dialect: sqlite | postgresql</code> in <code>config/application.yaml</code>.</p>
+{% call(c) table("config", ["Key", "Value", "Source"], rows, empty="No settings.") %}<td class="mono">{{ c.key }}</td><td class="mono">{{ c.value }}</td><td>{{ c.source }}</td>{% endcall %}
+{% endblock %}

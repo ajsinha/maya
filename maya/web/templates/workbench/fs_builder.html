@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Feature set builder{% endblock %}
+{% block content %}
+{% set ext = d.get('extends') %}{% set al = d.get('alignment') or {} %}{% set fl = d.get('filters') or {} %}{% set gp = d.get('global_policy') or {} %}
+{% if fs %}
+<div class="d-flex align-items-center gap-2 mb-2"><h1 class="me-auto mb-0">Edit {{ fs.name }} <small class="small-muted">v{{ draft.version_no }} {{ pill(draft.state) }}</small></h1>
+<a class="btn btn-sm btn-outline-secondary" href="/workbench/featuresets/{{ fs.namespace }}/{{ fs.name }}/preview">Preview draft</a>
+<a class="btn btn-sm btn-outline-secondary" href="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}">Open in catalog</a></div>
+<form method="post" action="/workbench/featuresets/{{ fs.namespace }}/{{ fs.name }}/edit">
+{% else %}<h1>Feature set builder</h1><form method="post" action="/workbench/featuresets/new">{% endif %}
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<div class="row g-2 mb-3">
+  <div class="col-md-3"><label class="form-label" for="namespace">Namespace</label>{% if fs %}<input class="form-control" value="{{ fs.namespace }}" disabled id="namespace">{% else %}<select class="form-select" id="namespace" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select>{% endif %}</div>
+  <div class="col-md-3"><label class="form-label" for="name">Name</label><input class="form-control" id="name" name="name" value="{{ fs.name if fs else '' }}" {% if fs %}disabled{% else %}required{% endif %}></div>
+  <div class="col-md-6"><label class="form-label" for="description">Description</label><input class="form-control" id="description" name="description" value="{{ fs.description if fs else '' }}"></div>
+</div>
+<div class="mb-3"><label class="form-label" for="mode">Kind</label><select class="form-select" id="mode" name="mode" data-toggle-show="fsmode" style="max-width:380px">
+  <option value="direct">Direct — map attributes of member features</option><option value="extends" {% if ext %}selected{% endif %}>Extends a parent feature set — store the diff</option></select></div>
+<div data-show-group="fsmode" data-show-when="extends" class="card card-body mb-3"><div class="row g-2">
+  <div class="col-md-6"><label class="form-label" for="parent">Parent</label><input class="form-control mono" id="parent" name="parent" value="{{ ext.parent if ext else '' }}" placeholder="maya://featureset/ns/market_panel@v2"></div>
+  <div class="col-md-3"><label class="form-label" for="binding">Binding</label><select class="form-select" id="binding" name="binding"><option>pinned</option><option>tracking</option></select></div>
+  <div class="col-12"><label class="form-label" for="override">Override (JSON: add_members, drop_attributes, attribute_rules, global_policy, filters, grid, alignment)</label><textarea class="form-control mono" id="override" name="override" rows="4" data-json>{{ ext.override|tojson_pretty if ext else '' }}</textarea></div>
+</div></div>
+<div data-show-group="fsmode" data-show-when="direct">
+<datalist id="feature-refs">{% for r in refs %}<option value="{{ r }}">{% endfor %}</datalist>
+<div class="card card-body mb-3"><h3>Attribute mapping</h3>
+  <div class="row g-1 small-muted"><div class="col-2">Attribute</div><div class="col-4">Member reference (version or pin)</div><div class="col-2">Source attribute</div><div class="col-1">Cast</div><div class="col-2">Rule override</div></div>
+  <div id="member-rows">
+  {% for m in (d.get('members') or [{'attr': '', 'ref': '', 'source_attr': ''}]) %}
+    <div class="row g-1 mb-1" data-row>
+      <div class="col-2"><input class="form-control form-control-sm" name="m_attr" value="{{ m.attr }}" aria-label="Attribute"></div>
+      <div class="col-4"><input class="form-control form-control-sm mono" name="m_ref" value="{{ m.ref }}" list="feature-refs" aria-label="Member reference"></div>
+      <div class="col-2"><input class="form-control form-control-sm" name="m_source" value="{{ m.source_attr }}" aria-label="Source attribute"></div>
+      <div class="col-1"><input class="form-control form-control-sm mono" name="m_cast" value="{{ m.cast or '' }}" aria-label="Cast"></div>
+      <div class="col-2"><input class="form-control form-control-sm mono" name="m_rule" value="{{ m.rule or '' }}" aria-label="Rule override"></div>
+      <div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary remove-row" aria-label="Remove">×</button></div>
+    </div>
+  {% endfor %}</div>
+  <template id="tpl-member"><div class="row g-1 mb-1" data-row><div class="col-2"><input class="form-control form-control-sm" name="m_attr" aria-label="Attribute"></div><div class="col-4"><input class="form-control form-control-sm mono" name="m_ref" list="feature-refs" aria-label="Member reference"></div><div class="col-2"><input class="form-control form-control-sm" name="m_source" aria-label="Source attribute"></div><div class="col-1"><input class="form-control form-control-sm mono" name="m_cast" aria-label="Cast"></div><div class="col-2"><input class="form-control form-control-sm mono" name="m_rule" aria-label="Rule override"></div><div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary remove-row" aria-label="Remove">×</button></div></div></template>
+  <div><button type="button" class="btn btn-sm btn-outline-secondary" data-add-row="tpl-member" data-target="member-rows">+ attribute</button></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card card-body h-100"><h3>Index, grid and alignment</h3>
+    <label class="form-label" for="index">Index (comma-separated)</label><input class="form-control mb-2" id="index" name="index" value="{{ (d.get('index') or ['date','symbol'])|join(', ') }}">
+    <label class="form-label" for="grid">Grid</label><select class="form-select mb-2" id="grid" name="grid"><option value="as_is">as_is</option>{% for c in calendars %}<option {% if d.get('grid') is mapping and d.get('grid').get('calendar') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+    <label class="form-label" for="align">Alignment</label><select class="form-select mb-2" id="align" name="align_mode" data-toggle-show="align">{% for m in ['inner','outer','left','asof'] %}<option {% if al.get('mode') == m %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+    <div data-show-group="align" data-show-when="left"><label class="form-label" for="amember">Driving member reference</label><input class="form-control mono mb-2" id="amember" name="align_member" value="{{ al.get('member', '') }}"></div>
+    <div data-show-group="align" data-show-when="asof" class="row g-2"><div class="col"><label class="form-label" for="tol">Tolerance (days)</label><input class="form-control" id="tol" name="tolerance_days" type="number" value="{{ al.get('tolerance_days', 5) }}"></div>
+      <div class="col"><label class="form-label" for="adir">Direction</label><select class="form-select" id="adir" name="asof_direction"><option>backward</option><option>forward</option></select></div></div>
+  </div></div>
+  <div class="col-lg-6"><div class="card card-body h-100"><h3>Filters and policy</h3>
+    <div class="row g-2"><div class="col"><label class="form-label" for="start">Start</label><input class="form-control" id="start" name="start" type="date" value="{{ fl.get('start', '') }}"></div>
+      <div class="col"><label class="form-label" for="end">End</label><input class="form-control" id="end" name="end" type="date" value="{{ fl.get('end', '') }}"></div></div>
+    <label class="form-label mt-2" for="universe">Universe (comma-separated keys)</label><input class="form-control" id="universe" name="universe" value="{{ (fl.get('universe') or [])|join(', ') if fl.get('universe') is sequence and fl.get('universe') is not string else '' }}">
+    <label class="form-label mt-2" for="expr">Row filter expression</label><input class="form-control mono" id="expr" name="expr" value="{{ fl.get('expr', '') }}" placeholder="px > 0">
+    <label class="form-label mt-2" for="gdef">Global default rule</label><input class="form-control mono" id="gdef" name="global_default" value="{{ gp.get('default') or '' }}">
+    <label class="form-label mt-2" for="grules">Global rules per attribute (JSON)</label><textarea class="form-control mono" id="grules" name="global_rules" rows="2" data-json>{{ gp.get('rules')|tojson_pretty if gp.get('rules') else '' }}</textarea>
+    <label class="form-label mt-2" for="gpol">Member-group policies (JSON list of {attrs, rule})</label><textarea class="form-control mono" id="gpol" name="group_policies" rows="2" data-json>{{ d.get('group_policies')|tojson_pretty if d.get('group_policies') else '' }}</textarea>
+    <p class="small-muted mt-2 mb-0">Precedence: attribute override › group › global › inherited (nearest ancestor) › member's own policy › leave null. The preview shows which layer won for every attribute.</p>
+  </div></div>
+</div></div>
+<div class="d-flex gap-2 mt-3"><button class="btn btn-primary" type="submit">{{ 'Save draft' if fs else 'Create draft' }}</button>
+{% if fs %}<button class="btn btn-outline-primary" type="submit" name="then" value="submit">Save and submit for review</button>{% endif %}</div>
+</form>
+{% endblock %}

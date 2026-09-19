@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Warrants{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Warrants</h1>
+<a class="btn btn-sm btn-outline-secondary me-2" href="/warrants/execution/new">New execution warrant</a>
+<a class="btn btn-sm btn-primary" href="/warrants/training/new">New training warrant</a></div>
+<h2>Training warrants</h2>
+{% call(w) table("training", ["Warrant", "Namespace", "Status", "Feature set", "Leakage certificate", "Holdout attempts", "Expires"], training, empty="No training warrants. A training warrant binds an approved model version to a feature set pin.") %}
+  <td><a href="/warrants/training/{{ w.id }}">{{ w.name }}@v{{ w.version_no }}</a></td><td>{{ w.namespace }}</td><td>{{ pill(w.status) }}</td>
+  <td class="mono">{{ w.featureset_ref }}</td><td>{{ pill(w.leakage_certificate.status) }}</td><td>{{ w.holdout_attempts }}</td><td>{{ w.expires_at|dt }}</td>
+{% endcall %}
+<h2>Execution warrants</h2>
+{% call(e) table("execution", ["Warrant", "Namespace", "Status", "Environments", "Valid to", "Executions"], execution, empty="No execution warrants. Draw one from a training warrant with an approved parameter set.") %}
+  <td><a href="/warrants/execution/{{ e.id }}">{{ e.name }}@v{{ e.version_no }}</a></td><td>{{ e.namespace }}</td><td>{{ pill(e.status) }}</td>
+  <td>{{ e.spec.environments|join(', ') }}</td><td>{{ e.valid_to|dt }}</td><td>{{ e.executions }}</td>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}New execution warrant{% endblock %}
+{% block content %}
+<h1>Draw an execution warrant</h1>
+<p class="lead-slate">What can be run, on what inputs, by whom, until when. Once sealed it is a live instrument: short-lived signed tokens, covenants that suspend it on breach, revocation that fails every consuming call closed.</p>
+<form method="post" action="/warrants/execution/new" class="card card-body">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<div class="row g-2">
+  <div class="col-md-3"><label class="form-label" for="ns">Namespace</label><select class="form-select" id="ns" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label" for="ename">Name</label><input class="form-control" id="ename" name="name" required></div>
+  <div class="col-md-6"><label class="form-label" for="choice">Training warrant and parameter set</label><select class="form-select" id="choice" name="choice"><option value="">— none: a non-trainable model (enter it below) —</option>
+    {% for o in options %}<option value="{{ o.warrant.id }}|{{ o.ps.id }}" {% if o.warrant.id == preselect %}selected{% endif %}>{{ o.warrant.name }}@v{{ o.warrant.version_no }} · {{ o.ps.name }} ({{ o.ps.state }})</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label" for="emodel">Model (only for a non-trainable model)</label><input class="form-control mono" id="emodel" name="model" placeholder="maya://model/ns/name@v1"></div>
+  <div class="col-md-2"><label class="form-label" for="vd">Valid (days)</label><input class="form-control" id="vd" name="valid_days" type="number" value="90"></div>
+  <div class="col-md-4"><label class="form-label" for="env">Permitted environments</label><select class="form-select" id="env" name="environments" multiple size="3"><option selected>dev</option><option>uat</option><option>prod</option></select></div>
+  <div class="col-md-4"><label class="form-label" for="contact">Escalation contact</label><input class="form-control" id="contact" name="contact"></div>
+  <div class="col-md-8"><label class="form-label" for="cov">Covenants (JSON list)</label><textarea class="form-control mono" id="cov" name="covenants" rows="3" data-json placeholder='[{"kind": "input_null_rate", "attr": "S", "max": 0.05}, {"kind": "output_range", "attr": "price", "min": 0, "max": 1000}]'></textarea></div>
+</div>
+<div class="mt-3"><button class="btn btn-primary" type="submit">Draw</button></div>
+</form>
+{% endblock %}

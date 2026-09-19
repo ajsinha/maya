@@ -1,0 +1,3 @@
+<div id="cy" role="img" aria-label="Lineage graph for {{ root }}" data-root="{{ root }}" data-direction="{{ direction or 'both' }}" data-depth="{{ depth or 3 }}"></div>
+<p class="small-muted mt-1" id="cy-status" aria-live="polite">{% if not root %}Enter a reference to draw its lineage.{% endif %}</p>
+<p class="small-muted">Edges: <strong>extends</strong> solid with hollow arrow · <strong>derived_from</strong> solid · <strong>operand_of</strong> thin, numbered · <strong>member_of</strong> dashed · <strong>composite_member</strong> double · <strong>pinned_as</strong> dotted · <strong>trained_on / executed_under</strong> bold.</p>

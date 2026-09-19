@@ -1,0 +1,67 @@
+{#
+  THE table macro (spec §16.7). Every table in MAYA is produced here and nowhere
+  else; tools/ci/table_contract.py fails the build on a <table> in any other
+  template. Behaviour (paging, search, whole-set sort, column toggles, CSV
+  export, keyboard) lives in static/js/table.js.
+
+  Usage:
+    {% from "_macros/table.html" import table %}
+    {% call(row) table("features", ["Name", "Namespace", "!Actions"], rows,
+                       empty="No features yet. Create one in Workbench → Feature designer.") %}
+      <td>{{ row.name }}</td><td>{{ row.namespace }}</td><td>…</td>
+    {% endcall %}
+  A header starting with "!" is not sortable and is left out of CSV export.
+  Give a cell data-sort="…" when its display text is not its sort key.
+#}
+{% macro table(id, headers, rows, empty="Nothing to show yet.", caption=None) -%}
+<div class="mt-wrap mb-3" data-maya-table data-table-id="{{ id }}">
+  <div class="mt-tools">
+    <label class="visually-hidden" for="mt-search-{{ id }}">Search {{ caption or id }}</label>
+    <input id="mt-search-{{ id }}" class="form-control form-control-sm mt-search" type="search"
+           placeholder="Search…" autocomplete="off">
+    <span class="mt-note" aria-live="polite"></span>
+    <span class="ms-auto d-flex gap-2 align-items-center">
+      <label class="small-muted" for="mt-size-{{ id }}">Rows</label>
+      <select id="mt-size-{{ id }}" class="form-select form-select-sm mt-size" style="width:auto">
+        <option value="25">25</option><option value="50">50</option><option value="100">100</option>
+        <option value="250">250</option><option value="0">All</option>
+      </select>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+          <i class="bi bi-layout-three-columns" aria-hidden="true"></i> Columns</button>
+        <div class="dropdown-menu dropdown-menu-end mt-cols"></div>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary mt-csv" type="button" title="Export the current view as CSV">
+        <i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV</button>
+    </span>
+  </div>
+  <div class="mt-scroll">
+    <table class="maya-table" data-rows="{{ rows|length }}">
+      {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
+      <thead><tr>
+        {% for h in headers %}
+          {% if h.startswith('!') %}
+            <th scope="col" data-label="{{ h[1:] }}" data-noexport>{{ h[1:] }}</th>
+          {% else %}
+            <th scope="col" data-label="{{ h }}" data-sortable>{{ h }} <span class="mt-dir" aria-hidden="true"></span></th>
+          {% endif %}
+        {% endfor %}
+      </tr></thead>
+      <tbody>
+        {% for row in rows %}<tr>{{ caller(row) }}</tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-empty" {% if rows %}hidden{% endif %}>{{ empty }}</div>
+  <div class="mt-foot">
+    <span class="mt-info" aria-live="polite"></span>
+    <span class="btn-group btn-group-sm" role="group" aria-label="Pages">
+      <button type="button" class="btn btn-outline-secondary mt-first" aria-label="First page">«</button>
+      <button type="button" class="btn btn-outline-secondary mt-prev" aria-label="Previous page">‹</button>
+      <button type="button" class="btn btn-outline-secondary mt-next" aria-label="Next page">›</button>
+      <button type="button" class="btn btn-outline-secondary mt-last" aria-label="Last page">»</button>
+    </span>
+  </div>
+</div>
+{%- endmacro %}

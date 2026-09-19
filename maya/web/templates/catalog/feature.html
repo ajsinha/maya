@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv, transitions, tabs, json_block %}
+{% block title %}{{ f.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-1">
+  <div class="me-auto"><h1 class="mb-0">{{ f.name }}</h1>
+    <div class="small-muted mono">{{ f.ref }}</div></div>
+  {% if f.can_edit %}<form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Edit draft</button></form>
+  <a class="btn btn-sm btn-outline-secondary" href="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest">Ingest data</a>{% endif %}
+  <a class="btn btn-sm btn-outline-secondary" href="/catalog/features/{{ f.namespace }}/{{ f.name }}/compare">Compare versions</a>
+</div>
+{% if f.ungoverned %}<div class="alert alert-warning py-2">Ungoverned: this lives in a scratch namespace — no review, no approval, no SoD. Promote it by cloning into a governed namespace.</div>{% endif %}
+{% include "_job.html" %}
+{{ tabs([('overview','Overview'),('definition','Definition'),('data','Data'),('pins','Pins'),('lineage','Lineage'),('history','History & Comments')], tab) }}
+<div class="tab-content">
+<div class="tab-pane {% if tab == 'overview' %}show active{% endif %}" id="tab-overview" role="tabpanel">
+  <div class="row g-3"><div class="col-lg-5">
+  {{ kv([('Namespace', f.namespace), ('Owner', f.owner), ('Status', pill(f.status)), ('Index', f.index_spec|join(', ')), ('Tags', f.tags|join(', ')), ('Description', f.description), ('Updated', f.updated_at|dt)]) }}
+  </div><div class="col-lg-7">
+  <h3>Versions</h3>
+  {% call(v) table("versions", ["Version", "State", "Change", "Definition hash", "Submitted", "Approved", "!Actions"], f.versions, empty="No versions.") %}
+    <td data-sort="{{ v.version_no }}">v{{ v.version_no }}{% if v.force_approved %} {{ pill('bad', 'force-approved') }}{% endif %}</td><td>{{ pill(v.state) }}</td>
+    <td>{{ v.change_class or '—' }}{% if v.non_causal %} {{ pill('warn', 'non-causal') }}{% endif %}</td>
+    <td class="mono">{{ v.definition_hash|short }}</td><td>{{ v.submitted_by or '' }} {{ v.submitted_at|dt }}</td><td>{{ v.approved_by or '' }} {{ v.approved_at|dt }}</td>
+    <td><form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/transition" class="d-flex gap-1 flex-wrap">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version_no" value="{{ v.version_no }}">
+      <input class="form-control form-control-sm" name="rationale" placeholder="rationale" aria-label="Rationale for v{{ v.version_no }}" style="max-width:130px">
+      {% for t in v.transitions %}<button class="btn btn-sm {% if t in ('approve','submit') %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ t }}" type="submit">{{ t.replace('_',' ') }}</button>{% endfor %}
+      {% if is_admin and v.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass</label>{% endif %}
+    </form></td>
+  {% endcall %}
+  {% if f.versions and f.versions[0].needs_reapproval %}<div class="alert alert-warning py-2">{{ f.versions[0].needs_reapproval }}</div>{% endif %}
+  </div></div>
+  <h3>Ingests (knowledge-time batches)</h3>
+  {% call(i) table("ingests", ["Knowledge time", "Rows", "Source", "Restatement", "Blob", "Note", "By"], f.ingests, empty="No data ingested yet. Use Ingest data; a restatement appends, it never overwrites.") %}
+    <td>{{ i.knowledge_time|dt }}</td><td>{{ i.rows }}</td><td>{{ i.source_type }}</td><td>{{ pill('warn', 'restatement') if i.restatement else '—' }}</td>
+    <td class="mono">{{ i.blob_hash|short }}</td><td>{{ i.note or '' }}</td><td>{{ i.created_by }}</td>
+  {% endcall %}
+  {% if f.can_edit %}<details class="mt-2"><summary>Clone or extend</summary>
+  <form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/clone" class="row g-2 mt-1">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="col-md-3"><label class="form-label" for="cl-name">New name</label><input class="form-control form-control-sm" id="cl-name" name="new_name" required></div>
+    <div class="col-md-3"><label class="form-label" for="cl-ns">Namespace (blank = same)</label><input class="form-control form-control-sm" id="cl-ns" name="namespace"></div>
+    <div class="col-md-4 form-check mt-4"><input class="form-check-input" type="checkbox" name="extend" value="1" id="cl-ext"><label class="form-check-label" for="cl-ext">Extend (store a diff over this version, pinned binding) instead of copying</label></div>
+    <div class="col-md-2 mt-4"><button class="btn btn-sm btn-outline-primary" type="submit">Create</button></div>
+  </form></details>{% endif %}
+</div>
+<div class="tab-pane {% if tab == 'definition' %}show active{% endif %}" id="tab-definition" role="tabpanel">
+  {% for v in f.versions %}<h3>v{{ v.version_no }} — {{ pill(v.state) }}</h3>{{ json_block(v.definition) }}{% endfor %}
+</div>
+<div class="tab-pane {% if tab == 'data' %}show active{% endif %}" id="tab-data" role="tabpanel">
+  <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="tab" value="data">
+    <div class="col-md-6"><label class="form-label" for="dref">Version or pin</label>
+      <select class="form-select mono" id="dref" name="ref">
+      {% for v in f.versions if v.state in ('approved','published') %}<option value="{{ f.ref }}@v{{ v.version_no }}" {% if data_ref == f.ref ~ '@v' ~ v.version_no %}selected{% endif %}>{{ f.ref }}@v{{ v.version_no }} (live)</option>{% endfor %}
+      {% for p in f.pins if p.state == 'sealed' %}<option value="{{ p.ref }}" {% if data_ref == p.ref %}selected{% endif %}>{{ p.ref }} (sealed pin)</option>{% endfor %}
+      </select></div>
+    <div class="col-md-4"><label class="form-label" for="aok">As of known (optional, ISO instant)</label><input class="form-control" id="aok" name="as_of_known" value="{{ as_of_known }}" placeholder="2026-03-31T18:00:00Z"></div>
+    <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Resolve</button></div>
+  </form>
+  {% if not data_ref %}<p class="small-muted">No approved version or sealed pin yet: preview the draft from the Workbench.</p>{% endif %}
+  {% set kind = 'feature' %}{% include "_download.html" %}
+  {% include "_preview.html" %}
+</div>
+<div class="tab-pane {% if tab == 'pins' %}show active{% endif %}" id="tab-pins" role="tabpanel">
+  {% call(p) table("pins", ["Series", "As of", "Version", "State", "Rows", "Content hash", "New bytes", "Sealed", "!Actions"], f.pins, empty="No pins. Pin an approved version to freeze its values forever.") %}
+    <td>{{ p.pin_name }}</td><td>{{ p.as_of_date }}</td><td>v{{ p.version_no }}</td><td>{{ pill(p.state) }}{% if p.failure %}<div class="small-muted">{{ p.failure }}</div>{% endif %}</td>
+    <td>{{ p.row_count }}</td><td class="mono">{{ p.content_hash|short }}</td><td data-sort="{{ p.bytes_new }}">{{ p.bytes_new }} / {{ p.bytes_total }}</td><td>{{ p.sealed_at|dt }}</td>
+    <td class="d-flex gap-1">{% if p.state == 'sealed' %}<a class="btn btn-sm btn-outline-secondary" href="?tab=data&ref={{ p.ref|urlq }}">Data</a>{% endif %}
+      {% if p.state == 'requested' %}<form method="post" action="/catalog/pins/{{ p.id }}/approve"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-primary" type="submit">Approve pin</button></form>{% endif %}
+      {% if p.state == 'sealed' and is_admin %}<form method="post" action="/catalog/pins/{{ p.id }}/retire" data-confirm="Retire this pin? It stays resolvable for audit."><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="reason" value="retired from the UI"><button class="btn btn-sm btn-outline-secondary" type="submit">Retire</button></form>{% endif %}</td>
+  {% endcall %}
+  {% if f.can_pin %}
+  <form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/pin" class="card card-body">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <h3>Pin a version</h3>
+    <div class="row g-2">
+      <div class="col-md-2"><label class="form-label" for="pv">Version</label><select class="form-select" id="pv" name="version_no">{% for v in f.versions if v.state in ('approved','published') %}<option value="{{ v.version_no }}">v{{ v.version_no }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label" for="pn">Pin series name</label><input class="form-control" id="pn" name="pin_name" placeholder="eom" required></div>
+      <div class="col-md-2"><label class="form-label" for="pa">As of date</label><input class="form-control" id="pa" name="as_of" type="date" required></div>
+      <div class="col-md-3"><label class="form-label" for="pk">As of known (optional)</label><input class="form-control" id="pk" name="as_of_known" placeholder="now"></div>
+      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Pin</button></div>
+    </div>
+    <p class="small-muted mb-0 mt-1">Pinning resolves, runs the quality contract (a failure blocks the pin), writes only fragments the store has never seen, re-reads to verify the hash, and seals.</p>
+  </form>{% endif %}
+</div>
+<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">
+  {% include "_lineage_canvas.html" %}<a href="/lineage?root={{ root|urlq }}">Open the full canvas</a>
+</div>
+<div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
+  {% set object_type = 'feature_version' %}{% set object_id = latest.id if latest else '' %}{% include "_history.html" %}
+</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}

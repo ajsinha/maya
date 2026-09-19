@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv, tabs, json_block %}
+{% block title %}{{ m.name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ m.name }}</h1><div class="small-muted mono">{{ m.ref }}{% if v %}@v{{ v.version_no }}{% endif %}</div></div>
+  <form method="get" class="d-flex gap-1"><label class="visually-hidden" for="vsel">Version</label><select class="form-select form-select-sm" id="vsel" name="v">{% for x in m.versions %}<option value="{{ x.version_no }}" {% if v and x.version_no == v.version_no %}selected{% endif %}>v{{ x.version_no }} · {{ x.state }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form>
+  {% if m.can_edit %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">New draft</button></form>{% endif %}
+  <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/diff">Diff versions</a>
+</div>
+{% include "_job.html" %}
+{% if v %}
+{{ tabs([('overview','Overview'),('definition','Definition'),('spec','Specification'),('code','Code'),('params','Parameters'),('lineage','Lineage'),('history','History & Comments')], tab) }}
+<div class="tab-content">
+<div class="tab-pane {% if tab == 'overview' %}show active{% endif %}" id="tab-overview" role="tabpanel">
+  <div class="row g-3"><div class="col-lg-5">
+  {{ kv([('Namespace', m.namespace), ('Kind', m.kind), ('State', pill(v.state)), ('Maturity', pill(v.maturity)), ('Opaque', 'declared black box — MAYA records it as opaque' if v.opaque else 'no'), ('IR hash', v.ir_hash|short(16)), ('Artifact hash', v.artifact_hash|short(16) if v.artifact_hash else 'no code artifact'), ('Definition hash', v.definition_hash|short(16) if v.definition_hash else 'minted on submit'), ('Successor', v.successor_ref)]) }}
+  <h3>Transitions</h3>
+  <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/transition" class="d-flex flex-wrap gap-1 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version_no" value="{{ v.version_no }}">
+    <input class="form-control form-control-sm" name="rationale" placeholder="rationale" aria-label="Rationale" style="max-width:200px">
+    <input class="form-control form-control-sm" name="successor" placeholder="successor (deprecate)" aria-label="Successor" style="max-width:200px">
+    {% for t in v.transitions %}<button class="btn btn-sm {% if t in ('approve','submit') %}btn-primary{% else %}btn-outline-secondary{% endif %}" name="transition" value="{{ t }}" type="submit">{{ t.replace('_',' ') }}</button>{% else %}<span class="small-muted">No transition from {{ v.state }}.</span>{% endfor %}
+    {% if is_admin and v.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass</label>{% endif %}
+  </form>
+  </div><div class="col-lg-7">
+  <h3>Formula</h3>
+  {% if v.latex %}<div class="formula-box" data-latex="{{ v.latex }}">{{ v.latex }}</div>{% else %}<p class="small-muted">No closed form{% if v.opaque %} — declared black box{% endif %}.</p>{% endif %}
+  <h3 class="mt-3">Input contract</h3>
+  {% call(c) table("contract", ["Input", "Type", "Role", "Unit", "Bounds", "Description"], v.input_contract, empty="No inputs declared.") %}
+    <td class="mono">{{ c.name }}</td><td>{{ c.type }}</td><td>{{ c.role or 'feature' }}</td><td>{{ c.unit or '' }}</td><td>{{ c.bounds or '' }}</td><td>{{ c.desc or '' }}</td>
+  {% endcall %}
+  </div></div>
+</div>
+<div class="tab-pane {% if tab == 'definition' %}show active{% endif %}" id="tab-definition" role="tabpanel">
+  {% if editable %}
+  <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/formula" class="card card-body mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    {% include "models/_authoring.html" %}
+    <div class="row g-2 mt-1"><div class="col-md-3"><label class="form-label" for="mat">Maturity</label><select class="form-select" id="mat" name="maturity">{% for x in maturities %}<option {% if x == v.maturity %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div></div>
+    <div class="mt-2"><button class="btn btn-primary" type="submit">Save draft</button></div>
+  </form>{% else %}<div class="alert alert-info py-2">v{{ v.version_no }} is {{ v.state }} and immutable. Open a new draft to change it.</div>{% endif %}
+  <h3>Formula IR (the authority; everything else is generated from it)</h3>{{ json_block(v.formula_ir) }}
+</div>
+<div class="tab-pane {% if tab == 'spec' %}show active{% endif %}" id="tab-spec" role="tabpanel">
+  {% set st = v.spec_state or {} %}
+  {% if st.needs_review %}<div class="alert alert-warning py-2">The formula IR changed under this document: {{ st.review_reason }}. Review and save it.</div>{% endif %}
+  <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+    <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/render/{{ v.version_no }}"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Render PDF</button></form>
+    {% if st.pdf_blob %}<a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/spec/{{ v.version_no }}.pdf">Download PDF</a>
+      {% if st.draft_render %}<span class="pill bad"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>DRAFT RENDER — not a LaTeX build; refused as evidence</span>{% else %}<span class="pill ok"><i class="bi bi-check2" aria-hidden="true"></i>true LaTeX build</span>{% endif %}{% endif %}
+    <span class="small-muted">Typesetting backend: {{ m.typeset.backend }}{% if m.typeset.detail %} — {{ m.typeset.detail }}{% endif %}</span>
+  </div>
+  <h3>Required sections</h3>
+  <div class="d-flex flex-wrap gap-1 mb-2">{% for s in v.completeness %}{{ pill('ok' if s.present and not s.empty else 'bad', s.section ~ (' ✓' if s.present and not s.empty else (' — empty' if s.present else ' — missing'))) }}{% endfor %}</div>
+  <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/spec">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="split">
+      <div><label class="form-label" for="spec">LaTeX source (<code>\mayaformula{body}</code> binds the document to the IR)</label>
+        <textarea class="form-control mono" id="spec" name="spec_latex" rows="22" data-editor="stex" data-preview="spec-preview" {% if not editable %}readonly{% endif %}>{{ v.spec_latex or '' }}</textarea></div>
+      <div><div class="form-label">Live preview (KaTeX for math; structure only — the PDF is the build)</div><div class="spec-preview" id="spec-preview" data-formula="{{ v.latex }}" aria-live="off"></div></div>
+    </div>
+    {% if editable %}<button class="btn btn-primary mt-2" type="submit">Save document</button>{% endif %}
+  </form>
+</div>
+<div class="tab-pane {% if tab == 'code' %}show active{% endif %}" id="tab-code" role="tabpanel">
+  {% set rep = v.artifact_report or {} %}
+  {% if rep.rungs %}<h3>Validation ladder {{ pill('ok' if rep.passed else 'bad', 'passed' if rep.passed else 'failed') }} <small class="small-muted">sandbox tier <strong>{{ rep.tier }}</strong> — {{ rep.tier_reason }}</small></h3>
+  {% call(r) table("ladder", ["Rung", "Check", "Result", "Detail"], rep.rungs, empty="Not validated.") %}
+    <td>{{ r.rung }}</td><td>{{ r.name }}</td><td>{% if r.passed is sameas true %}{{ pill('ok', 'passed') }}{% elif r.passed is sameas false %}{{ pill('bad', 'failed') }}{% else %}{{ pill('', 'not run / warning') }}{% endif %}</td><td>{{ r.detail }}</td>
+  {% endcall %}{% elif rep.status %}<p>{{ pill('running', rep.status) }}</p>{% endif %}
+  {% if editable %}
+  <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/artifact" class="card card-body mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label class="form-label" for="src">Python artifact — a class <code>Model</code> with <code>fit(self, X, y, ctx)</code> and <code>predict(self, X, params, ctx)</code></label>
+    <textarea class="form-control mono" id="src" name="source" rows="16" data-editor="python">import numpy as np
+
+
+class Model:
+    def fit(self, X, y, ctx):
+        return {}
+
+    def predict(self, X, params, ctx):
+        return np.asarray(list(X.values())[0], dtype=float)
+</textarea>
+    <div class="row g-2 mt-1"><div class="col-md-6"><label class="form-label" for="sample">Smoke sample (JSON, optional)</label><textarea class="form-control mono" id="sample" name="sample" rows="2" data-json></textarea></div>
+      <div class="col-md-6"><label class="form-label" for="params">Smoke parameters (JSON, optional)</label><textarea class="form-control mono" id="params" name="params" rows="2" data-json></textarea></div></div>
+    <div class="mt-2"><button class="btn btn-primary" type="submit">Upload and validate</button></div>
+  </form>{% endif %}
+  {% if v.artifact_hash %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/conformance/{{ v.version_no }}" class="d-flex gap-2 align-items-end mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><div><label class="form-label" for="cn">Samples</label><input class="form-control form-control-sm" id="cn" name="n" type="number" value="500"></div>
+    <button class="btn btn-sm btn-outline-primary" type="submit">Run spec–code conformance test</button></form>{% endif %}
+  {% if reference %}<h3>Reference implementation, generated from the IR</h3><pre>{{ reference }}</pre>{% endif %}
+</div>
+<div class="tab-pane {% if tab == 'params' %}show active{% endif %}" id="tab-params" role="tabpanel">
+  {% call(p) table("params", ["Name", "State", "Verified data", "Values hash", "Metrics", "Warrant", "Created"], v.parameter_sets, empty="No parameter sets. They are uploaded against a training warrant.") %}
+    <td>{{ p.name }}</td><td>{{ pill(p.state) }}</td><td>{{ pill('ok' if p.verified_data else 'bad', 'verified' if p.verified_data else 'unverified_data') }}</td>
+    <td class="mono">{{ p.values_hash|short }}</td><td class="mono">{{ p.metrics|tojson }}</td>
+    <td>{% if p.training_warrant_id %}<a href="/warrants/training/{{ p.training_warrant_id }}">warrant</a>{% endif %}</td><td>{{ p.created_at|dt }}</td>
+  {% endcall %}
+</div>
+<div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{% include "_lineage_canvas.html" %}</div>
+<div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
+  {% set object_type = 'model_version' %}{% set object_id = v.id %}{% include "_history.html" %}
+</div>
+</div>
+{% else %}<p>No versions.</p>{% endif %}
+{% endblock %}
+{% block scripts %}{% include "_editor_scripts.html" %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Campaigns{% endblock %}
+{% block content %}
+<h1>Campaigns</h1>
+<p class="lead-slate">One transition over many objects, with per-item status and one audit record — quarter-end work as a single act.</p>
+<form method="post" action="/workflow/campaigns" class="card card-body mb-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  {% call(i) table("campaign-items", ["!Select", "Object", "Type", "Age (days)"], items, empty="Nothing in review to put in a campaign.") %}
+    <td><input class="form-check-input" type="checkbox" name="item" value="{{ i.object_type }}|{{ i.id }}" aria-label="Include {{ i.ref }}"></td><td>{{ i.ref }}</td><td>{{ i.object_type }}</td><td>{{ i.age_days }}</td>
+  {% endcall %}
+  <div class="row g-2"><div class="col-md-3"><label class="form-label" for="cname">Name</label><input class="form-control" id="cname" name="name" value="quarter-end"></div>
+  <div class="col-md-3"><label class="form-label" for="ctr">Transition</label><select class="form-select" id="ctr" name="transition"><option>approve</option><option>request_changes</option><option>publish</option><option>deprecate</option></select></div>
+  <div class="col-md-4"><label class="form-label" for="crat">Rationale</label><input class="form-control" id="crat" name="rationale"></div>
+  <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Run</button></div></div>
+</form>
+{% call(c) table("campaigns", ["When", "Name", "Transition", "Items", "Succeeded", "By"], rows, empty="No campaigns run yet.") %}
+  <td>{{ c.created_at|dt }}</td><td>{{ c.name }}</td><td>{{ c.transition }}</td><td>{{ c['items']|length }}</td><td>{{ c.results|selectattr('ok')|list|length }} / {{ c.results|length }}</td><td>{{ c.created_by }}</td>
+{% endcall %}
+{% endblock %}

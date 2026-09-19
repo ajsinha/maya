@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Ingest {{ f.name }}{% endblock %}
+{% block content %}
+<h1>Ingest data — {{ f.name }}</h1>
+<p class="lead-slate">An ingest is a knowledge-time batch. Uploading values for keys that already exist is a <strong>restatement</strong>: it appends; the earlier values stay resolvable as of any earlier knowledge instant.</p>
+<form method="post" action="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest" enctype="multipart/form-data" class="card card-body" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="mb-2"><label class="form-label" for="file">File</label><input class="form-control" id="file" name="file" type="file" required></div>
+  <div class="mb-2"><label class="form-label" for="fmt">Format</label><select class="form-select" id="fmt" name="fmt"><option>csv</option><option>parquet</option><option>json</option></select></div>
+  <div class="mb-2"><label class="form-label" for="kt">Knowledge time (optional ISO instant; default: now, or the definition's knowledge-time column)</label><input class="form-control" id="kt" name="knowledge_time" placeholder="2026-04-02T18:00:00Z"></div>
+  <div class="mb-3"><label class="form-label" for="note">Note</label><input class="form-control" id="note" name="note" placeholder="Vendor restatement of March volumes"></div>
+  <button class="btn btn-primary" type="submit">Ingest</button>
+</form>
+{% endblock %}

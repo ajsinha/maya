@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}New model{% endblock %}
+{% block content %}
+<h1>New model</h1>
+<p class="lead-slate">A model version is its mathematics (a typed formula IR), its code, its parameters and its specification document, versioned together.</p>
+<form method="post" action="/models/new" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="row g-2 mb-2">
+    <div class="col-md-3"><label class="form-label" for="ns">Namespace</label><select class="form-select" id="ns" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="mname">Name</label><input class="form-control" id="mname" name="name" required pattern="[A-Za-z0-9_]+"></div>
+    <div class="col-md-2"><label class="form-label" for="kind">Kind</label><select class="form-select" id="kind" name="kind">{% for k in kinds %}<option>{{ k }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="mdesc">Description</label><input class="form-control" id="mdesc" name="description"></div>
+  </div>
+  {% set v = none %}{% include "models/_authoring.html" %}
+  <label class="form-label mt-2" for="vendor">Vendor details (vendor models, JSON)</label>
+  <textarea class="form-control mono" id="vendor" name="vendor" rows="2" data-json placeholder='{"vendor": "Acme", "version": "4.2", "unverifiable": ["source", "training data"]}'></textarea>
+  <div class="mt-3"><button class="btn btn-primary" type="submit">Create model</button></div>
+</form>
+{% endblock %}
+{% block scripts %}{% include "_editor_scripts.html" %}{% endblock %}

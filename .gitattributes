@@ -1,0 +1,12 @@
+# Normalise line endings (spec §24.5). Content hashes are computed over canonical
+# Arrow values, never over text files, so CRLF cannot alter a pin.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.woff2 binary
+*.woff binary
+*.ttf binary
+*.parquet binary
+*.docx binary
+*.pdf binary
+*.zip binary

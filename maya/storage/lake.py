@@ -1,0 +1,137 @@
+"""
+The ``LakeStore`` port over ``maya_delta`` (§7.1, §7.4, §29.3).
+
+Two kinds of Delta table per feature or feature set:
+
+* ``raw/<namespace>/<name>`` — the bitemporal ingest log. Every upload is
+  appended with its ``_knowledge_time``; a restatement is a new append, never
+  an overwrite (§29.1).
+* ``pins/<namespace>/<name>`` — the fragment store. One Delta table, one
+  partition per content-addressed fragment. A pin is an ordered list of
+  fragment hashes; pinning writes only fragments the table has never seen,
+  so an unchanged month costs its delta rather than its size (SC-12).
+
+Content hashes are computed by ``maya.core.canonical`` over values, never
+over file bytes, so they do not depend on which Delta backend wrote them.
+
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import pyarrow as pa
+
+from maya.core import canonical
+from maya.core.chunker import ChunkParams, boundaries
+
+FRAGMENT_COL = "_fragment"
+ROW_COL = "_row"
+
+
+@dataclass
+class FragmentWrite:
+    """What pinning a table wrote and what it references."""
+
+    content_hash: str
+    schema_digest: str
+    fragments: list[str]
+    new_fragments: list[tuple[str, int, int]]   # (hash, rows, bytes)
+    rows: int
+    bytes_total: int
+    bytes_new: int
+
+
+class LakeStore:
+    """MAYA's adapter over ``maya_delta``. The only module that touches it."""
+
+    def __init__(self, root: Path, backend: str = "auto",
+                 chunk: ChunkParams | None = None) -> None:
+        from maya_delta import DeltaLake
+        self.root = root / "lake"
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.delta = DeltaLake(backend)
+        self.chunk = chunk or ChunkParams()
+
+    @property
+    def backend_name(self) -> str:
+        return self.delta.info.name
+
+    def table_path(self, kind: str, namespace: str, name: str) -> Path:
+        return self.root / kind / namespace / name
+
+    def rel(self, path: Path) -> str:
+        return path.relative_to(self.root).as_posix()
+
+    # -- raw, bitemporal ingest ------------------------------------------
+    def append_raw(self, namespace: str, name: str, table: pa.Table) -> int:
+        return self.delta.write(self.table_path("raw", namespace, name), table, mode="append")
+
+    def read_raw(self, namespace: str, name: str) -> pa.Table | None:
+        path = self.table_path("raw", namespace, name)
+        if not self.delta.exists(path):
+            return None
+        return self.delta.read(path)
+
+    # -- content-addressed pins --------------------------------------------
+    def plan_fragments(self, table: pa.Table) -> tuple[str, list[tuple[str, int, int]]]:
+        """Schema digest and ``(hash, start, end)`` runs for an index-sorted table."""
+        cols = canonical.table_columns(table)
+        digests = canonical.row_digests(cols)
+        runs = boundaries(digests, self.chunk)
+        schema_hex = canonical.schema_digest(
+            (f.name, str(f.type)) for f in table.schema)
+        return schema_hex, [(canonical.fragment_hash(digests[s:e]), s, e) for s, e in runs]
+
+    def write_pin(self, kind: str, namespace: str, name: str, table: pa.Table,
+                  known: set[str]) -> FragmentWrite:
+        """Write the fragments of ``table`` that ``known`` does not already hold."""
+        schema_hex, runs = self.plan_fragments(table)
+        path = self.table_path(kind, namespace, name)
+        new: list[tuple[str, int, int]] = []
+        batches = []
+        seen_now: set[str] = set()
+        total = 0
+        for digest, start, end in runs:
+            part = table.slice(start, end - start)
+            size = part.nbytes
+            total += size
+            if digest in known or digest in seen_now:
+                continue
+            seen_now.add(digest)
+            part = part.append_column(ROW_COL, pa.array(range(end - start), pa.int64()))
+            part = part.append_column(FRAGMENT_COL, pa.array([digest] * (end - start)))
+            batches.append(part)
+            new.append((digest, end - start, size))
+        if batches:
+            self.delta.write(path, pa.concat_tables(batches), mode="append",
+                             partition_by=[FRAGMENT_COL])
+        hashes = [d for d, _, _ in runs]
+        return FragmentWrite(canonical.content_hash(schema_hex, hashes), schema_hex, hashes,
+                             new, table.num_rows, total, sum(b for _, _, b in new))
+
+    def read_pin(self, kind: str, namespace: str, name: str,
+                 fragments: list[str]) -> pa.Table:
+        """Reassemble a pin from its manifest, in manifest order."""
+        path = self.table_path(kind, namespace, name)
+        if not fragments:
+            raise ValueError("empty fragment manifest")
+        data = self.delta.read(path, partitions={FRAGMENT_COL: sorted(set(fragments))})
+        pieces = []
+        for digest in fragments:
+            mask = pa.compute.equal(data.column(FRAGMENT_COL), digest)
+            part = data.filter(mask)
+            part = part.take(pa.compute.sort_indices(part.column(ROW_COL)))
+            pieces.append(part.drop_columns([FRAGMENT_COL, ROW_COL]))
+        return pa.concat_tables(pieces)
+
+    def verify_pin(self, kind: str, namespace: str, name: str, fragments: list[str],
+                   expected_hash: str) -> dict[str, Any]:
+        """Re-read a pin and recompute its content hash (integrity verification)."""
+        table = self.read_pin(kind, namespace, name, fragments)
+        schema_hex, runs = self.plan_fragments(table)
+        actual = canonical.content_hash(schema_hex, [d for d, _, _ in runs])
+        return {"ok": actual == expected_hash, "expected": expected_hash, "actual": actual,
+                "rows": table.num_rows}

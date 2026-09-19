@@ -1,0 +1,33 @@
+# The gate ladder on all three platforms (plan §7, SC-14), SQLite everywhere and
+# PostgreSQL on Linux (SC-10). One entry point: python tools/ci/gates.py --tests.
+name: gates
+on: [push, pull_request]
+jobs:
+  gates:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python tools/ci/gates.py --tests
+  postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: maya, POSTGRES_PASSWORD: maya, POSTGRES_DB: maya }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest -q
+        env:
+          MAYA_TEST_PG_URL: postgresql+psycopg://maya:maya@localhost:5432/maya

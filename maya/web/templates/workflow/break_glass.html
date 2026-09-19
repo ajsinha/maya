@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Break-glass report{% endblock %}
+{% block content %}
+<h1>Break-glass report</h1>
+<p class="lead-slate">Every forced transition in the last {{ days }} days. Break-glass is never silent and never erasable; this report is reviewed monthly.</p>
+{% call(e) table("breakglass", ["When", "Object", "Transition", "From", "To", "Administrator", "Reason"], rows, empty="No break-glass use in this period.") %}
+  <td>{{ e.created_at|dt }}</td><td class="mono">{{ e.object_ref }}</td><td>{{ e.transition }}</td><td>{{ e.from_state }}</td><td>{{ e.to_state }}</td><td>{{ e.actor }}</td><td>{{ e.rationale }}</td>
+{% endcall %}
+{% endblock %}

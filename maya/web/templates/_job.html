@@ -1,0 +1,7 @@
+{% if job_id %}
+<div class="card card-body mb-3" data-job-id="{{ job_id }}" data-reload>
+  <div class="d-flex justify-content-between"><strong>Job {{ job_id|short(8) }}</strong><a href="/admin/jobs">Jobs console</a></div>
+  <div class="progress my-2" role="progressbar" aria-label="Job progress"><div class="progress-bar" style="width:0%">0%</div></div>
+  <div class="job-msg small-muted" aria-live="polite">queued…</div>
+</div>
+{% endif %}

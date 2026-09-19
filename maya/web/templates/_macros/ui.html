@@ -1,0 +1,67 @@
+{# Shared UI pieces. Status is never carried by colour alone: glyph + word. #}
+{% set PILLS = {
+  'draft': ('', 'pencil', ''), 'in_review': ('warn', 'hourglass-split', ''),
+  'changes_requested': ('warn', 'arrow-counterclockwise', ''), 'approved': ('ok', 'check-circle', ''),
+  'published': ('ok', 'broadcast', ''), 'deprecated': ('warn', 'archive', ''),
+  'retired': ('', 'x-octagon', ''), 'withdrawn': ('', 'dash-circle', ''),
+  'sealed': ('ok', 'lock-fill', ''), 'materializing': ('warn', 'gear', ''),
+  'requested': ('warn', 'hand-index', ''), 'failed': ('bad', 'x-circle', ''),
+  'queued': ('warn', 'clock', ''), 'running': ('warn', 'arrow-repeat', ''),
+  'succeeded': ('ok', 'check2', ''), 'cancelled': ('', 'slash-circle', ''),
+  'dead_letter': ('bad', 'exclamation-octagon', ''), 'live': ('ok', 'lightning-charge', ''),
+  'suspended': ('bad', 'pause-circle', ''), 'expired': ('bad', 'calendar-x', ''),
+  'revoked': ('bad', 'x-octagon-fill', ''), 'active': ('ok', 'check-circle', ''),
+  'superseded': ('', 'archive', ''), 'certified': ('ok', 'patch-check', ''),
+  'certified_with_exceptions': ('warn', 'patch-exclamation', ''), 'refused': ('bad', 'patch-minus', ''),
+  'locked': ('bad', 'lock', ''), 'disabled': ('bad', 'slash-circle', ''),
+  'experimental': ('warn', 'flask', ''), 'candidate': ('warn', 'star-half', ''),
+  'restricted': ('bad', 'shield-exclamation', ''), 'true': ('ok', 'check2', ''), 'false': ('bad', 'x', ''),
+} %}
+
+{% macro pill(state, label=None) -%}
+{% set s = (state|string)|lower %}
+{% set p = PILLS.get(s, ('', 'circle', '')) %}
+<span class="pill {{ p[0] }}" data-sort="{{ s }}"><i class="bi bi-{{ p[1] }}" aria-hidden="true"></i>{{ label or s.replace('_', ' ') }}</span>
+{%- endmacro %}
+
+{% macro csrf_field(csrf) -%}<input type="hidden" name="csrf_token" value="{{ csrf }}">{%- endmacro %}
+
+{% macro kv(pairs) -%}
+<dl class="kv mb-2">{% for k, v in pairs %}<dt>{{ k }}</dt><dd>{{ v if v not in (None, '') else '—' }}</dd>{% endfor %}</dl>
+{%- endmacro %}
+
+{# Transition buttons with rationale; admins also get break-glass (force + reason). #}
+{% macro transitions(action_url, names, csrf, is_admin=False, extra_fields=None) -%}
+{% if names %}
+<form method="post" action="{{ action_url }}" class="d-flex flex-wrap gap-2 align-items-end">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div><label class="form-label">Rationale</label>
+    <input class="form-control form-control-sm" name="rationale" placeholder="Why (recorded in the audit)"></div>
+  {% if extra_fields %}{{ extra_fields }}{% endif %}
+  {% for t in names %}
+    <button class="btn btn-sm {% if t == 'approve' or t == 'submit' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+            name="transition" value="{{ t }}" type="submit">{{ t.replace('_', ' ')|capitalize }}</button>
+  {% endfor %}
+  {% if is_admin %}
+  <div class="form-check ms-2 mb-1">
+    <input class="form-check-input" type="checkbox" name="force" value="1" id="force-{{ action_url|urlq }}">
+    <label class="form-check-label small-muted" for="force-{{ action_url|urlq }}">Break-glass (admin; loud, permanent, needs a reason)</label>
+  </div>
+  {% endif %}
+</form>
+{% else %}<span class="small-muted">No transition available from this state.</span>{% endif %}
+{%- endmacro %}
+
+{% macro json_block(value) -%}<pre class="mono">{{ value|tojson_pretty }}</pre>{%- endmacro %}
+
+{% macro tabs(names, active='overview') -%}
+<ul class="nav nav-tabs mb-3" role="tablist">
+{% for key, label in names %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if key == active %}active{% endif %}" data-bs-toggle="tab"
+            data-bs-target="#tab-{{ key }}" type="button" role="tab" aria-controls="tab-{{ key }}"
+            aria-selected="{{ 'true' if key == active else 'false' }}">{{ label }}</button>
+  </li>
+{% endfor %}
+</ul>
+{%- endmacro %}

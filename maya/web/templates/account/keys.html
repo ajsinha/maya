@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}My API keys{% endblock %}
+{% block content %}
+<h1>My API keys</h1>
+<p class="lead-slate">Keys are shaped <code>maya_&lt;env&gt;_&lt;key_id&gt;_&lt;secret&gt;</code>, shown once, stored as a hash, and always expire. A key can carry no role you do not hold.</p>
+{% if new_key %}
+<div class="alert alert-warning"><strong>Your new key — copy it now, it will not be shown again:</strong><pre class="mono mb-0">{{ new_key }}</pre></div>
+{% endif %}
+{% call(k) table("keys", ["Key id", "Name", "Env", "Roles", "Namespaces", "Actions", "Expires", "Last used", "Status", "!Revoke"], keys, empty="No keys yet. Create one below to script MAYA from a notebook or CI.") %}
+  <td class="mono">{{ k.key_id }}</td><td>{{ k.name }}</td><td>{{ k.env }}</td>
+  <td>{{ k.roles|join(', ') or 'all of yours' }}</td><td>{{ k.namespaces|join(', ') or 'any' }}</td>
+  <td>{{ k.actions|join(', ') or 'any' }}</td><td>{{ k.expires_at|dt }}</td><td>{{ k.last_used_at|dt or 'never' }}</td>
+  <td>{{ pill('revoked' if k.revoked_at else 'active') }}</td>
+  <td>{% if not k.revoked_at %}<form method="post" action="/account/keys/{{ k.key_id }}/revoke" data-confirm="Revoke this key now?"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form>{% endif %}</td>
+{% endcall %}
+<div class="card"><div class="card-header">Create a key</div><div class="card-body">
+<form method="post" action="/account/keys" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <div class="col-md-3"><label class="form-label" for="kname">Name</label><input class="form-control" id="kname" name="name" required></div>
+  <div class="col-md-2"><label class="form-label" for="kdays">Expires in (days)</label><input class="form-control" id="kdays" name="days" type="number" value="90" min="1"></div>
+  <div class="col-md-3"><label class="form-label" for="kroles">Roles (subset of yours; none = all)</label>
+    <select class="form-select" id="kroles" name="roles" multiple size="3">{% for r in my_roles %}<option>{{ r }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label" for="kns">Namespaces</label>
+    <select class="form-select" id="kns" name="namespaces" multiple size="3">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label" for="kact">Action allowlist</label><input class="form-control" id="kact" name="actions" placeholder="read,download"></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Create key</button></div>
+</form></div></div>
+{% endblock %}
