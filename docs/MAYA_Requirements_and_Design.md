@@ -338,7 +338,7 @@ A feature set resolves to a tensor. In practice it is a matrix — rows on the i
 
 As the notes require: **a feature set will refuse to pin unless every member is pinned.** MAYA makes that easy rather than annoying. When a user pins a feature set whose members are unpinned versions, the UI offers **cascade pin**: create a pin of each member under a shared pin name and as-of date, in one transaction, with one approval, then pin the set. If any member pin fails a quality check the whole cascade rolls back.
 
-A feature set pin stores the list of member pin references, the fully resolved policy and filter set, the resolution manifest, a content hash of the resolved output and, by default, the resolved output itself in Delta Lake as a convenience materialization. That last point is a deliberate change from the notes: storing the resolved frame costs disk but removes join-time ambiguity forever, and it is the difference between "we can probably reproduce it" and "here are the bytes". It is configurable per namespace (`featureset.pin.materialize: always | on_demand | never`); when `never`, resolution replays deterministically from member pins.
+A feature set pin stores the list of member pin references, the fully resolved policy and filter set, the resolution manifest, a content hash of the resolved output and, by default, the resolved output itself in Delta Lake as a convenience materialization. That last point is a deliberate change from the notes: storing the resolved frame costs disk but removes join-time ambiguity forever, and it is the difference between "we can probably reproduce it" and "here are the bytes". It is configurable per namespace (`featureset.pin.materialize: always | on_demand | never`); when `never`, resolution replays deterministically from member pins. *Revision 2.3:* the setting is the namespace's `materialize_policy`, not a configuration key. Version 0.2 stores it but always materializes: `on_demand` and `never` are not yet built.
 
 Resolution of an unpinned feature set uses pinned members where the mapping names them and live versions otherwise, exactly as the notes specify.
 
@@ -794,8 +794,8 @@ which is how this dependency is usually discovered. *Revision 2.3:* sign-in is
 SP-initiated only (an unsolicited Response cannot be tied to a request). AuthnRequests and
 logout messages may be signed with MAYA's own key pair. Single logout runs in both
 directions over HTTP-Redirect: signing out of MAYA ends the session and asks the IdP to
-end its own, and the IdP's LogoutRequest ends every MAYA session of that sign-in, but
-only when the IdP signed it. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
+end its own, and the IdP's LogoutRequest ends every MAYA session of the person it names
+(only the named IdP session, when it names one), but only when the IdP signed it. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
 
 **Service principals.** API keys and OAuth2 client credentials, scoped to roles and namespaces, with mandatory expiry, last-used tracking, one-click revocation and a rotation reminder. Keys are shown once at creation and stored only as hashes.
 
@@ -1003,7 +1003,7 @@ The two backends differ in ways that bite, so each difference is handled once, i
 | `NUMERIC` precision | `decimal` mapped to `NUMERIC(38,12)` on PG; on SQLite stored as text and converted, never float |
 | Concurrent writers | PG: row locks and advisory locks. SQLite: WAL mode, `busy_timeout`, one writer, serialized through a write mutex. *Revision 2.3:* that mutex lives in one process and is what keeps read-then-write steps (linking the audit chain, numbering versions) atomic, so SQLite is **one writing process**: `server.workers` above 1 requires PostgreSQL, and MAYA refuses to start the combination |
 | `SKIP LOCKED` job queue | PG native; SQLite uses an in-process queue with the same interface |
-| Full-text search | PG `tsvector`; SQLite FTS5 — both behind a `SearchIndex` port |
+| Full-text search | PG `tsvector`; SQLite FTS5 — both behind a `SearchIndex` port. *Revision 2.2:* shipped instead as MAYA's own inverted index on both backends (§13.4.2) |
 
 SQLite is supported for single-node, small-team and development use, and MAYA says so plainly in the UI when running on it, including its concurrency ceiling. PostgreSQL 14+ is the supported production backend.
 

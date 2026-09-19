@@ -38,7 +38,7 @@ python run_maya_web.py --config=/etc/maya/application.yaml
 python run_maya_web.py --db.dialect=postgresql --server.port=9000
 ```
 
-`run_maya_web.py` is the only supported entry point. It sets the `spawn` multiprocessing start method, loads and validates the configuration, configures logging, builds the platform, prints a banner and serves the web UI and the API from one process on `server.host:server.port` (default `127.0.0.1:8600`). The API explorer is at `/api/v1/docs`.
+`run_maya_web.py` is the only supported entry point. It sets the `spawn` multiprocessing start method, loads and validates the configuration, configures logging, builds the platform, prints a banner and serves the web UI and the API on `server.host:server.port` (default `127.0.0.1:8600`) — from one process unless `server.workers` asks for more. The API explorer is at `/api/v1/docs`.
 
 At startup MAYA, in order:
 
@@ -51,6 +51,16 @@ At startup MAYA, in order:
 7. starts the job workers, the webhook dispatcher and the scheduler.
 
 The banner reports the environment, the database and its schema file, the lake backend, the sandbox tier, the storage root, the number of job workers, and every seam running on a fallback. It warns while the bootstrap admin still has its default password.
+
+### Several web processes
+
+One Python process serves roughly 40 page requests a second. `server.workers` (`MAYA_WEB_WORKERS`) above 1 runs that many web processes on the one port; the launching process alone prepares the database, seeds, and keeps the job workers, the webhook dispatcher and the scheduler, and a job submitted through any web process is a row its workers pick up. On Linux each web process binds its own `SO_REUSEPORT` socket, so the kernel spreads connections evenly — behind one shared socket a few processes took most of the long-lived connections while the rest idled — and the launcher restarts any web process that dies. Elsewhere the processes share one socket. Prometheus metrics are per process.
+
+Several web processes need PostgreSQL. SQLite's unit of work holds a mutex inside one process, and that mutex is what keeps linking the audit chain and numbering versions atomic; across processes that guarantee does not hold. So on SQLite MAYA refuses to start:
+
+```text
+server.workers is 4, but the database is SQLite, which admits one writing process. Use PostgreSQL (db.dialect: postgresql) for several web processes, or set server.workers: 1.
+```
 
 `SIGINT` and `SIGTERM` shut MAYA down cleanly: job workers drain, the webhook dispatcher and scheduler stop, and the database pool closes.
 
@@ -88,8 +98,8 @@ There are no migrations. Upgrading MAYA to a version whose schema changed, and m
 
 The **estate** is every table of the database, dialect-neutral, as JSON lines per table in dependency order inside a zip (format `maya-estate-v1`), with a manifest recording each table's row count and SHA-256. The import verifies every table's hash, loads everything in one transaction, then verifies the audit chain; on PostgreSQL it also advances every auto-numbered key past the loaded rows.
 
-!!! warning "Export with the code that matches the database"
-    `export-estate` opens the database with the running code, and a schema mismatch refuses to open. Export **before** installing the new version (or with the old version's checkout), then upgrade, then create and import.
+!!! note "The export works across a schema change"
+    `export-estate` reads the database as it is, without the schema check that makes startup refuse, because it is the way out of exactly that refusal: it can run with the new version already installed. Each table is read through the running code's column types, for the columns the database really has. A column the new code added takes its default on import. A column or table the new code no longer has is not carried: the manifest names it under `not_carried` rather than dropping it silently, so read the manifest before you discard the old database.
 
 ### Moving from SQLite to PostgreSQL
 

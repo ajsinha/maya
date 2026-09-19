@@ -36,7 +36,10 @@ from, with passwords, secrets and tokens redacted.</p>
 ]) }}
 {% call warn('Production refuses SQLite') %}
 <p><code>app.environment: prod</code> with <code>db.dialect: sqlite</code> does not start. SQLite is for a
-single node and a small team: one writer at a time.</p>
+single node and a small team: one writer at a time. For the same reason SQLite refuses several web
+processes: <code>server.workers</code> above 1 needs PostgreSQL, because the lock that keeps linking the
+audit chain and numbering versions atomic lives inside one process. See the
+<a href="/help/guides/operations-guide">operations guide</a>.</p>
 {% endcall %}
 {% endcall %}
 
@@ -64,7 +67,9 @@ python run_maya_web.py
 {% call step(4, 'Upgrade without migrations') %}
 <p>MAYA has no migration framework. The hash of the schema is stamped into the database; if the code
 expects a different schema, MAYA refuses to start and prints these three commands. The same route moves
-an estate from SQLite to PostgreSQL.</p>
+an estate from SQLite to PostgreSQL. The export reads the database as it is, so it runs with the new
+version already installed; anything the new code no longer has is named in the bundle's manifest under
+<code>not_carried</code>, never dropped silently.</p>
 {% call example('Export, rebuild, import', 'bash') %}
 python -m maya.cli admin export-estate --out estate.mayabundle
 python -m maya.cli admin init-db --force

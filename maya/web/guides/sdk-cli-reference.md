@@ -176,6 +176,7 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 | `saml_metadata()` | `GET /auth/sso/saml/metadata` |
 | `saml_start(relay_state="")` | `POST /auth/sso/saml/start` |
 | `saml_acs(saml_response)` | `POST /auth/sso/saml/acs` |
+| `saml_sls(query_string)` | `POST /auth/sso/saml/sls` — the IdP's single-logout redirect query string, unaltered |
 | `mfa_status()` | `GET /auth/mfa` |
 | `mfa_verify(code)` | `POST /auth/mfa/verify` |
 | `mfa_enroll()` | `POST /auth/mfa/enroll` |
@@ -254,7 +255,7 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 
 | Method | Endpoint |
 |---|---|
-| `list(namespace=None, q=None, status=None)` | `GET /features` |
+| `list(namespace=None, q=None, status=None, state=None)` | `GET /features` — `state` keeps features whose latest version is in one of the named states, e.g. `"draft,changes_requested"` |
 | `page(...)`, `iter(...)` | `GET /features` with paging |
 | `create(namespace, name, definition, **kw)` | `POST /features` — `description`, `tags` |
 | `infer(data, fmt="csv", filename="upload")` | `POST /features/infer` |
@@ -278,7 +279,7 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 
 | Method | Endpoint |
 |---|---|
-| `list(namespace=None, q=None)` | `GET /featuresets` |
+| `list(namespace=None, q=None, state=None)` | `GET /featuresets` — `state` as for features |
 | `page(...)`, `iter(...)` | `GET /featuresets` with paging |
 | `create(namespace, name, definition, **kw)` | `POST /featuresets` |
 | `get(ref)` | `GET /featuresets/{ns}/{name}` |
@@ -393,7 +394,7 @@ Training warrants and their parameter sets. The warrants reference covers each f
 
 | Method | Endpoint |
 |---|---|
-| `list(after=0, limit=500, type=None)` | `GET /events` |
+| `list(after=0, limit=500, type=None)` | `GET /events` — `type` is a prefix: `"pin."` gives every pin event |
 | `page(type=None, ...)`, `iter(...)` | `GET /events` with paging |
 | `stream(after=0)` | `GET /events/stream` |
 | `webhooks()` | `GET /webhooks` |
@@ -435,6 +436,7 @@ python -m maya.cli [--json] [--profile NAME] [--local] [--config PATH] <group> <
 | `--profile NAME` | Connect with a profile from `~/.maya/config.toml`. Without it the CLI calls `connect()`: `MAYA_URL` and `MAYA_API_KEY`. |
 | `--local` | Start an in-process platform from the configuration file instead of calling a server. Signs in as `MAYA_USER` (default `admin`) with `MAYA_PASSWORD`, which is required. |
 | `--config PATH` | The configuration file for `--local` and for the `admin` database commands (default `config/application.yaml`). |
+| `--section.key=value` | Overrides one setting for `--local` and the `admin` database commands, exactly as it does for `run_maya_web.py`; for example `--db.dialect=postgresql`. It may go anywhere on the line. Any other unrecognised flag is a usage error. |
 
 ### Exit codes
 

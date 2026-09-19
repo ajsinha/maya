@@ -248,14 +248,14 @@ Every past workflow event records the id of the policy that governed it, so the 
 | View | What it lists |
 |---|---|
 | `GET /workflow/queue` | Every object in `in_review`, oldest first, with who submitted it, since when, its age in days and `mine` when you submitted it. |
-| `GET /workflow/aging` | Items in review longer than the global policy's `sla_days.in_review` for their type. |
+| `GET /workflow/aging` | Items in review longer than `sla_days.in_review` in the policy that governs them. |
 | `GET /workflow/population/{object_type}` | How many objects are in each state. |
 | `GET /workflow/history?object_type=&object_id=` | Every transition and every approval, in order. |
 
 Every hour the scheduler escalates each overdue item to its namespace's owner — or, when the namespace has none, to every administrator — once per item, and audits `workflow.escalated`.
 
-!!! note "SLA comes from the global policy"
-    Aging and escalation read `sla_days` from the active global (`*`) policy of each type; a namespace-scoped policy's `sla_days` is not used for them.
+!!! note "SLA comes from the governing policy"
+    Aging and escalation read `sla_days` from the same policy the workflow engine applies to the item: the active policy scoped to its namespace when there is one, otherwise the global (`*`) policy of its type. A namespace that shortens its review SLA is escalated on its own clock.
 
 ## Comments
 

@@ -129,8 +129,10 @@ Someone holding the pin capability starts the pin job at once (state
 `materializing`). Anyone else with the request right creates a pin in state
 `requested`; a pin authorizer approves it with `my.features.approve_pin(pin_id)`
 (**Catalog → Features → Pins**), and the requester can never approve their own
-request. In your `scratch.<you>` namespace you always pin directly. Feature-set
-pins have no request path: they need the pin permission.
+request. In your `scratch.<you>` namespace you always pin directly, features and
+feature sets alike, because nobody but you (and an administrator) may edit
+there. Outside scratch, feature-set pins have no request path: they need the
+pin permission.
 
 ### The pin saga
 
