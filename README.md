@@ -116,9 +116,9 @@ execution warrant → reproducibility bundle.
   external audit anchoring (§29.6); the assistant (§29.8); spreadsheet import (§29.9);
   delegation; server-side table paging; SDK
   record/replay and `offline()`; performance benchmarks (SC-3/4/5).
-- **Deviations from the spec:** CodeMirror 5 instead of 6 (6 needs a bundler). The
-  dark-mode `--maya-crimson-deep` is `#E07A8E`, because the spec's `#A51C30` measures
-  2.20:1 and fails the spec's own contrast gate. Search is a `LIKE` scan, not FTS.
+- **Search is a `LIKE` scan, not full-text search.** This, CodeMirror 5 instead of 6, and
+  the corrected dark `--maya-crimson-deep` token are recorded in the specification as
+  revision 2.2.
 
 ---
 
