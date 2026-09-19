@@ -238,9 +238,11 @@ class WarrantService:
         return body
 
     # -- data, the checksum cycle -------------------------------------------------------
-    def training_frame(self, w: dict[str, Any], *, include_test: bool) -> tuple[pd.DataFrame,
-                                                                               dict[str, Any]]:
-        res = self.p.featuresets.resolve_ref(None, w["featureset_ref"])
+    def training_frame(self, w: dict[str, Any], *, include_test: bool,
+                       principal: Principal | None = None) -> tuple[pd.DataFrame, dict[str, Any]]:
+        """The warrant's data. With a principal, that person's §11.4 conditions apply:
+        a download never shows what a direct read would have withheld."""
+        res = self.p.featuresets.resolve_ref(principal, w["featureset_ref"])
         df = res.df.copy()
         df[SPLIT_COL] = assign_splits(df, res.meta["index"], w["spec"]["split"], w["spec"]["seed"])
         if not include_test:
@@ -253,7 +255,7 @@ class WarrantService:
             self.p.access.require(uow, p, "download", "training_warrant", w)
         self._live(w)
         escrow = w["spec"].get("holdout") == "escrowed"
-        df, meta = self.training_frame(w, include_test=not escrow)
+        df, meta = self.training_frame(w, include_test=not escrow, principal=p)
         table = pa.Table.from_pandas(df, preserve_index=False).replace_schema_metadata(None)
         checksum = table_checksum(table)
         buf = io.BytesIO()

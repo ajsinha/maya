@@ -10,8 +10,8 @@
   <div class="col-md-6"><label class="form-label" for="gref">Reference (ns/name, maya://…, namespace name, or warrant id)</label><input class="form-control mono" id="gref" name="ref" value="{{ ref }}"></div>
   <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="submit">Show grants</button></div></form>
 {% if ref %}
-{% call(g) table("grants", ["Principal", "Level", "Deny", "Expires", "Inert", "Granted by", "!Revoke"], rows, empty="No explicit grants: the namespace default applies.") %}
-  <td>{{ g.principal_type }}:{{ g.principal_id }}</td><td>{{ g.level }}</td><td>{{ pill('bad', 'deny') if g.deny else '' }}</td><td>{{ g.expires_at|dt or 'never' }}</td><td>{{ g.inert_reason or '' }}</td><td>{{ g.created_by }}</td>
+{% call(g) table("grants", ["Principal", "Level", "Deny", "Conditions", "Expires", "Inert", "Granted by", "!Revoke"], rows, empty="No explicit grants: the namespace default applies.") %}
+  <td>{{ g.principal_type }}:{{ g.principal_id }}</td><td>{{ g.level }}</td><td>{{ pill('bad', 'deny') if g.deny else '' }}</td><td class="small">{% if g.conditions %}{% if g.conditions.row_filter %}<div>rows: <code>{{ g.conditions.row_filter }}</code></div>{% endif %}{% if g.conditions.time_bound %}<div>until {{ g.conditions.time_bound.until }}</div>{% endif %}{% for a, h in (g.conditions.column_mask or {}).items() %}<div>mask {{ a }} → {{ h }}</div>{% endfor %}{% endif %}</td><td>{{ g.expires_at|dt or 'never' }}</td><td>{{ g.inert_reason or '' }}</td><td>{{ g.created_by }}</td>
   <td><form method="post" action="/admin/grants/{{ g.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form></td>
 {% endcall %}
 <form method="post" action="/admin/grants" class="card card-body mb-3"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="ref" value="{{ ref }}">
@@ -21,7 +21,14 @@
   <div class="col-md-2"><label class="form-label" for="lv">Level</label><select class="form-select" id="lv" name="level">{% for l in levels %}<option>{{ l }}</option>{% endfor %}</select></div>
   <div class="col-md-2"><label class="form-label" for="gd">Days (blank = no expiry)</label><input class="form-control" id="gd" name="days" type="number" value="90"></div>
   <div class="col-md-1 form-check mt-4"><input class="form-check-input" type="checkbox" name="deny" value="1" id="gdeny"><label class="form-check-label" for="gdeny">Deny</label></div>
-  <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Grant</button></div></div></form>
+  <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Grant</button></div></div>
+  <details class="mt-2"><summary>Conditions (§11.4) — narrow what this grant gives</summary>
+  <div class="row g-2 mt-1">
+    <div class="col-md-6"><label class="form-label" for="grf">Row filter (expression; may use @user.username, @user.desk)</label><input class="form-control mono" id="grf" name="row_filter" placeholder="symbol in ['AAA', 'BBB']"></div>
+    <div class="col-md-2"><label class="form-label" for="gun">No data after</label><input class="form-control" id="gun" name="until" type="date"></div>
+    <div class="col-md-4"><label class="form-label" for="gms">Column masks (attr:null or attr:hash, comma-separated)</label><input class="form-control mono" id="gms" name="masks" placeholder="close:null, account:hash"></div>
+  </div>
+  <div class="small-muted mt-1">Applied on every read and download of this object, live or pinned, and of any feature set or warrant built on it.</div></details></form>
 {% endif %}
 <h2>Access recertification — grants on objects you own</h2>
 {% call(g) table("recert", ["Object", "Kind", "Principal", "Level", "Expires", "!Revoke"], recert, empty="No grants on objects you own.") %}

@@ -355,8 +355,39 @@ class FeatureSetService:
         if pin is not None:
             table = self.p.lake.read_pin("fspins", ns["name"], fs["name"], pin["fragments"])
             meta = pin["manifest"].get("meta") or {}
-            return Resolved(table.to_pandas(), meta, pin["manifest"], [], [f"{ref}: sealed pin"])
-        return self.resolve_definition(p, eff, inherited, as_of_known=as_of_known)
+            res = Resolved(table.to_pandas(), meta, dict(pin["manifest"]), [],
+                           [f"{ref}: sealed pin"])
+        else:
+            res = self.resolve_definition(p, eff, inherited, as_of_known=as_of_known)
+        if p is not None:
+            res.fill_report["access_conditions"] = self.condition(p, fs, eff, res)
+        return res
+
+    def condition(self, p: Principal, fs: dict[str, Any], eff: dict[str, Any],
+                  res: Resolved) -> list[dict[str, Any]]:
+        """Apply every §11.4 condition that governs ``p``'s read, member by member, then
+        the set's own — on live and pinned data alike, so no path escapes a mask."""
+        from maya.security.conditions import apply, apply_mapped
+        user = self.p.access.user_context(p)
+        index = res.meta.get("index") or eff.get("index") or []
+        applied: list[dict[str, Any]] = []
+        with self.p.uow() as uow:
+            by_member: dict[str, list[tuple[str, str]]] = {}
+            for m in eff.get("members", []):
+                by_member.setdefault(m["ref"], []).append((m["source_attr"], m["attr"]))
+            for ref, pairs in sorted(by_member.items()):
+                feature, _ = catalog.find_object(uow, "features", "feature",
+                                                 refs.parse(ref, "feature"))
+                cond = self.p.access.read_conditions(uow, p, "feature", feature)
+                if cond:
+                    res.df, report = apply_mapped(res.df, cond, pairs, index=index, user=user)
+                    applied.append({"member": ref, **report})
+            cond = self.p.access.read_conditions(uow, p, "featureset", fs)
+        if cond:
+            res.df, report = apply(res.df, cond, event_col=index[0] if index else None,
+                                   user=user)
+            applied.append({"featureset": fs["name"], **report})
+        return applied
 
     def preview(self, p: Principal, ref: str, *, as_of_known: Any = None) -> dict[str, Any]:
         res = self.resolve_ref(p, ref, as_of_known=as_of_known)
@@ -524,7 +555,8 @@ class FeatureSetService:
             payload, axis = shapes.export(res.df, schema, fmt, csv_encoding), None
         manifest = {"ref": ref, "rows": len(res.df), "format": fmt, "shape": shape,
                     "exported_at": utcnow().isoformat(), "exported_by": p.username,
-                    "withheld": res.fill_report.get("withheld", []), "axis": axis}
+                    "withheld": res.fill_report.get("withheld", []), "axis": axis,
+                    "access_conditions": res.fill_report.get("access_conditions", [])}
         with self.p.uow(p.username) as uow:
             uow.audit("data.downloaded", object_type="featureset", object_ref=ref,
                       detail=_jsonsafe(manifest))

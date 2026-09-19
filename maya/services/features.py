@@ -358,11 +358,26 @@ class FeatureService:
     def preview(self, p: Principal, ref: str, *, as_of_known: Any = None,
                 start: dt.date | None = None, end: dt.date | None = None,
                 limit: int = PREVIEW_ROWS) -> dict[str, Any]:
-        self._require_read(p, ref)
+        conditions = self._read_conditions(p, ref)
         res = self.data.resolve_ref(ref, as_of_known=as_of_known, start=start, end=end)
+        applied = self._condition(res, conditions, p)
         return {"rows": _records(res.df.head(limit)), "total_rows": len(res.df),
                 "columns": list(res.df.columns), "fill_report": res.fill_report,
-                "plan": res.plan, "non_causal": res.meta["non_causal"]}
+                "plan": res.plan, "non_causal": res.meta["non_causal"],
+                "access_conditions": applied}
+
+    def _read_conditions(self, p: Principal, ref: str) -> dict[str, Any]:
+        """Authorize the read and return the conditions it carries (§11.4)."""
+        with self.p.uow() as uow:
+            feature, _ = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
+            self.p.access.require(uow, p, "read", "feature", feature)
+            return self.p.access.read_conditions(uow, p, "feature", feature)
+
+    def _condition(self, res: Any, conditions: dict[str, Any], p: Principal) -> dict[str, Any]:
+        from maya.security.conditions import apply
+        res.df, applied = apply(res.df, conditions, event_col=res.meta["index"][0],
+                                user=self.p.access.user_context(p))
+        return applied
 
     def draft_preview(self, p: Principal, ref: str, *, as_of_known: Any = None) -> dict[str, Any]:
         """Live resolution of the editable draft, so a policy edit shows its fill report."""
@@ -376,11 +391,6 @@ class FeatureService:
         return {"rows": _records(res.df.head(PREVIEW_ROWS)), "total_rows": len(res.df),
                 "columns": list(res.df.columns), "fill_report": res.fill_report,
                 "plan": res.plan}
-
-    def _require_read(self, p: Principal, ref: str) -> None:
-        with self.p.uow() as uow:
-            feature, _ = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
-            self.p.access.require(uow, p, "read", "feature", feature)
 
     def pin(self, p: Principal, ref: str, *, version_no: int, pin_name: str,
             as_of: dt.date, as_of_known: dt.datetime | None = None,
@@ -460,7 +470,14 @@ class FeatureService:
         with self.p.uow() as uow:
             feature, _ = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "download", "feature", feature)
+            conditions = self.p.access.read_conditions(uow, p, "feature", feature)
         res = self.data.resolve_ref(ref, as_of_known=as_of_known)
+        applied = self._condition(res, conditions, p)
+        if any(how == "hash" for how in (conditions.get("column_mask") or {}).values()):
+            # a hashed column is text now: describe it as such, so export types match values
+            res.meta = {**res.meta, "schema": [
+                {**a, "type": "string"} if conditions["column_mask"].get(a["name"]) == "hash"
+                else a for a in res.meta["schema"]]}
         table = self.data.to_table(res)
         _, runs = self.p.lake.plan_fragments(table)
         from maya.core import canonical
@@ -469,7 +486,8 @@ class FeatureService:
         payload = shapes.export(res.df, res.full_schema, fmt, csv_encoding)
         manifest = {"ref": ref, "content_hash": content, "rows": len(res.df), "format": fmt,
                     "csv_encoding": csv_encoding, "exported_at": utcnow().isoformat(),
-                    "exported_by": p.username, "as_of_known": str(as_of_known or "now")}
+                    "exported_by": p.username, "as_of_known": str(as_of_known or "now"),
+                    "access_conditions": applied}
         with self.p.uow(p.username) as uow:
             uow.audit("data.downloaded", object_type="feature", object_ref=ref, detail=manifest)
         return {"data": payload, "manifest": manifest}
