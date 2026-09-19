@@ -2,6 +2,11 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.2 — 2026-09-19.** Three corrections from the first build, each marked
+> *Revision 2.2* where it lands: the dark `--maya-crimson-deep` token (§16.6), which failed
+> this document's own contrast gate; CodeMirror 5 in place of 6 (§17), which the
+> no-build rule requires; and catalog search shipping as a scan before FTS (§13.4.2).
+>
 > **Revision 2.1 — 2026-09-17.** The eight open decisions of §26.3 are closed and that
 > section now records them as taken. Six further calls are folded in throughout:
 > **no database migrations** (§14.3), **`maya_delta`** as the lakehouse layer in place of
@@ -885,7 +890,7 @@ substitution.
 | `maya/core/frames` | **A** | `polars` | Arrow compute kernels via `pyarrow` | Slower resolution. The expression compiler already targets Arrow kernels (§5.4), so this is an accelerator, not a second engine |
 | `maya/core/pushdown` | **A** | `duckdb` | MAYA's own predicate and projection pushdown over Parquet statistics | Wider scans. Plans state which path ran |
 | PostgreSQL driver | **A** | `psycopg` (v3) | `pg8000`, pure Python | Slower; no binary COPY. SQLAlchemy dialect selection only — no MAYA code changes |
-| `maya/core/search` | **A** | PostgreSQL `tsvector`; SQLite **FTS5** | MAYA's own inverted index over the metadata store | Slower catalog search. FTS5 is **not compiled into every Python's bundled SQLite**, so this is detected at startup, not assumed |
+| `maya/core/search` | **A** | PostgreSQL `tsvector`; SQLite **FTS5** | MAYA's own scan over the metadata store | Slower catalog search. FTS5 is **not compiled into every Python's bundled SQLite**, so this is detected at startup, not assumed. *Revision 2.2:* version 0.1 ships the scan (a case-insensitive `LIKE` over names and descriptions) on both databases; the FTS backends follow once catalog size makes them matter |
 | `maya/core/compress` | **A** | `zstandard` / Arrow's zstd | stdlib `zlib` | Larger wire payloads. Already negotiated by content encoding (§18.2.3) |
 | `maya/core/tzdb` | **A** | system tz database via `zoneinfo` | the `tzdata` wheel | **Windows ships no system tz database at all.** A bitemporal platform with tz-aware timestamps everywhere cannot treat this as optional; `tzdata` is a hard requirement on Windows and the startup check says so |
 | `maya/core/procstat` | **A** | `psutil` | per-platform `/proc`, `sysctl`, Job Object queries | Coarser resource accounting. The sandbox's *caps* never depend on it — only its *reporting* does |
@@ -1179,13 +1184,17 @@ these tokens so the framework and the product cannot disagree.
 | --- | --- | --- | --- |
 | `--maya-crimson` | `#A51C30` | `#DE6B81` | Primary action, active nav, focus ring, chart series 1 |
 | `--maya-crimson-strong` | `#8A1626` | `#D4526A` | Hover and pressed states |
-| `--maya-crimson-deep` | `#6E1120` | `#A51C30` | Headings that carry the brand, table header rules |
+| `--maya-crimson-deep` | `#6E1120` | `#E07A8E` | Headings that carry the brand, table header rules |
 | `--maya-crimson-tint` | `#FBEEF0` | `#2A1A1E` | Selected row, callout background |
 | `--maya-ink` | `#1A1A1A` | `#ECECEF` | Body text |
 | `--maya-slate` | `#6B7480` | `#8996A0` | Secondary text, muted labels, axis lines |
 | `--maya-surface` | `#FFFFFF` | `#1F1F23` | Cards, tables, panels |
 | `--maya-canvas` | `#F7F5F2` | `#151517` | Page background — parchment, not grey |
 | `--maya-indigo` | `#293352` | `#A9B6D6` | Informational accent, second chart series |
+
+*Revision 2.2:* the dark value of `--maya-crimson-deep` was `#A51C30`, which measures
+**2.20:1** on the dark surface and failed this section's own gate even as a non-text
+colour (3:1). The gate caught it on the first build; the value is now `#E07A8E` (5.74:1).
 
 **Contrast is checked, not asserted.** Crimson on white measures **7.48:1** and white on
 crimson the same, which clears WCAG AA and AAA for body text; the same crimson on the
@@ -1232,7 +1241,10 @@ a rule that is merely written down is a rule that holds until the first deadline
 
 ## 17. Embedded editors
 
-Both editors use CodeMirror 6, vendored, no build step, consistent with the UI rules above.
+Both editors use CodeMirror 5, vendored, no build step, consistent with the UI rules above.
+*Revision 2.2:* this section said CodeMirror 6, but CodeMirror 6 ships as ES modules meant to be
+bundled, which §16's no-build-pipeline rule forbids. CodeMirror 5 is a single vendored file
+with the Python and LaTeX (`stex`) modes, and is what ships.
 
 ### 17.1 LaTeX editor
 
