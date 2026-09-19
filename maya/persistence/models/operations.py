@@ -237,6 +237,30 @@ class Delegation(Tracked, Base):
     revoked_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
 
 
+class AccessRequest(Tracked, Base):
+    """A request for access and the owner's decision on it (§11.5).
+
+    Access is a workflow, not a conversation: the ask, who decided, when, and the
+    grant it produced are one durable row, so "who let them in and why" survives
+    the inbox message that announced it.
+    """
+
+    __tablename__ = "access_requests"
+    __table_args__ = (Index("ix_access_requests_object", "kind", "object_id"),)
+    kind: Mapped[str] = mapped_column(String(24))  # feature | featureset | model | …
+    object_id: Mapped[str] = mapped_column(PortableUUID)
+    object_ref: Mapped[str] = mapped_column(String(512))
+    requester_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    level: Mapped[str] = mapped_column(String(16), default="read")
+    reason: Mapped[str | None] = mapped_column(Text)
+    state: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    days: Mapped[int] = mapped_column(Integer, default=90)
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decided_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    grant_id: Mapped[str | None] = mapped_column(PortableUUID)
+
+
 class Anchor(Tracked, Base):
     """An audit-chain head pinned outside the database (§29.6)."""
 

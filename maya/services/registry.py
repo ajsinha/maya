@@ -8,6 +8,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from maya.core.errors import ValidationFailed
@@ -16,7 +17,11 @@ from maya.security.authz import Principal
 
 def wire(platform: Any) -> None:
     from maya.services.access import AccessService
+    from maya.services.access_requests import AccessRequestService
     from maya.services.auth import AuthService
+    from maya.services.catalog import CatalogService
+    from maya.services.subscriptions import SubscriptionService
+    from maya.services.tracking import TrackingService
     from maya.services.bundle import BundleService
     from maya.services.execution import ExecutionService
     from maya.services.feature_data import FeatureData
@@ -55,6 +60,10 @@ def wire(platform: Any) -> None:
         ("custody", CustodyService),
         ("passkeys", PasskeyService),
         ("assistant", AssistantService),
+        ("catalog", CatalogService),
+        ("subscriptions", SubscriptionService),
+        ("access_requests", AccessRequestService),
+        ("tracking", TrackingService),
     ):
         platform.register_service(name, cls(platform))
     _jobs(platform)
@@ -62,6 +71,10 @@ def wire(platform: Any) -> None:
     _collectors(platform)
     platform.workflow.principal_loader = platform.auth.build_principal
     platform.workflow.on_move(platform.assistant.on_move)
+    # An approved version has consequences: dependants that track it are marked for
+    # re-approval (§5.8, §8.7) and whoever follows the object is told (§5.7).
+    platform.workflow.on_move(platform.tracking.on_move)
+    platform.workflow.on_move(platform.subscriptions.on_move)
     from maya.jobs.scheduler import Scheduler
 
     platform.scheduler = Scheduler()
@@ -69,6 +82,7 @@ def wire(platform: Any) -> None:
         "workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue
     )
     platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
+    platform.scheduler.every("notices.sweep", 3600, platform.subscriptions.notices)
     platform.scheduler.every(
         "lake.maintenance",
         platform.settings.int("lake.maintenance.interval_seconds", 86400),
@@ -92,17 +106,34 @@ def _cancel_pin(uow: Any, table: str, params: dict[str, Any]) -> None:
         uow.repo(table).update(pin["id"], {"state": "failed", "failure": "cancelled before it ran"})
 
 
+def _announcing(platform: Any, kind: str, run: Any) -> Any:
+    """A pin job that also says what it did: subscribers hear about a sealed pin (§5.7)
+    and the owner about one the quality contract blocked (§5.5). The announcement runs
+    whether the job succeeded or failed, and never changes its outcome."""
+
+    def wrapped(ctx: Any, params: dict[str, Any]) -> Any:
+        try:
+            return run(ctx, params)
+        finally:
+            try:
+                platform.subscriptions.announce_pin(kind, params["pin_id"])
+            except Exception:  # noqa: BLE001 - a notification never fails a pin
+                logging.getLogger(__name__).exception("could not announce pin %s", params["pin_id"])
+
+    return wrapped
+
+
 def _jobs(platform: Any) -> None:
     q = platform.jobs
     q.register(
         "feature.pin",
-        platform.features.run_pin_job,
+        _announcing(platform, "feature", platform.features.run_pin_job),
         on_cancel=lambda uow, params: _cancel_pin(uow, "feature_pins", params),
     )
     q.register("assistant.challenge", platform.assistant.run_job)
     q.register(
         "featureset.pin",
-        platform.featuresets.run_pin_job,
+        _announcing(platform, "featureset", platform.featuresets.run_pin_job),
         on_cancel=lambda uow, params: _cancel_pin(uow, "feature_set_pins", params),
     )
     q.register("model.validate_artifact", platform.models.run_validation_job)
