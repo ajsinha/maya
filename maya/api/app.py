@@ -114,7 +114,7 @@ def install_handlers(app: FastAPI) -> None:
     @app.middleware("http")
     async def request_context(request: Request, call_next: Any) -> Any:
         import time
-        from maya.observability import tracing
+        from maya.observability import logs, tracing
         from maya.observability.metrics import METRICS
 
         parent = tracing.parse(request.headers.get("traceparent"))
@@ -125,6 +125,15 @@ def install_handlers(app: FastAPI) -> None:
             attributes={"http.method": request.method, "http.target": request.url.path},
         ) as ctx:
             request.state.request_id = request.headers.get("x-request-id") or ctx.trace_id
+            # §20: every log line carries the request id and the object it is about. The
+            # actor is bound by the unit of work instead, not here: authentication happens
+            # in a dependency FastAPI resolves in a worker thread, and a context variable
+            # set there does not survive back into the request.
+            logs.bind(
+                request_id=request.state.request_id,
+                object_ref=request.url.path,
+                channel=request.headers.get("x-maya-channel", "api"),
+            )
             response = await _inner(request, call_next)
             route = getattr(request.scope.get("route"), "path", None) or "unmatched"
             if request.url.path.startswith(PREFIX + "/") and not route.startswith(PREFIX):

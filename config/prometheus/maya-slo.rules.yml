@@ -1,0 +1,273 @@
+# MAYA service level objectives and their alerts (specification §20).
+#
+# Load this beside your Prometheus configuration:
+#
+#   rule_files:
+#     - /etc/prometheus/maya-slo.rules.yml
+#
+# §20 states four objectives and requires that "each SLO has an alert with a runbook
+# link". Every alert below therefore carries `runbook_url`, and every one of those
+# points at a runbook that ships in this repository under docs/runbooks/ — a test
+# (tests/test_slo_rules.py) fails if a link names a runbook that does not exist, and
+# fails if an expression names a metric MAYA does not export.
+#
+# What is honest and what is a substitution:
+#
+# * Availability and latency are measured on the metadata routes, which are the ones
+#   §20's objectives are about. The `maya_route_class` recording rules below name them
+#   by exclusion: everything that is not a pin, an upload, a download or a render.
+# * "99% of pin jobs finish within their estimated time x 2" is NOT measurable as
+#   written: MAYA does not estimate a job's duration before running it (the pin preview
+#   of §16.4 is not built), so there is no estimate to double. `MayaPinJobsSlow`
+#   substitutes a fixed budget you must set for your own estate from its own history.
+#   Until MAYA stores an estimate per job, that objective is approximated, not met.
+# * Availability is alerted on as a burn rate over an hour and a day, not as a monthly
+#   number. A monthly figure tells you at the end of the month; a burn rate tells you
+#   while you can still do something about it.
+#
+# Thresholds are starting points from a laptop-sized estate, not measurements of yours.
+# Every `for:` and every number below is meant to be edited.
+
+groups:
+  - name: maya-slo-recording
+    interval: 30s
+    rules:
+      - record: maya:metadata_requests:rate5m
+        expr: |
+          sum by (status) (
+            rate(maya_http_requests_total{route!~"/api/v1/(features|featuresets)/.*/(pins|data)|/api/v1/.*/upload.*"}[5m])
+          )
+      - record: maya:metadata_availability:ratio5m
+        expr: |
+          1 - (
+            sum(maya:metadata_requests:rate5m{status=~"5.."})
+            /
+            clamp_min(sum(maya:metadata_requests:rate5m), 1e-9)
+          )
+      - record: maya:metadata_latency:p95_5m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(maya_http_request_duration_seconds_bucket[5m]))
+          )
+      - record: maya:job_wait:p95_5m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, type) (rate(maya_job_wait_seconds_bucket[5m]))
+          )
+      - record: maya:resolution_rows_per_second:5m
+        expr: |
+          sum by (kind) (rate(maya_resolution_rows_total[5m]))
+          /
+          clamp_min(sum by (kind) (rate(maya_resolution_seconds_total[5m])), 1e-9)
+      - record: maya:resolution_bytes_per_second:5m
+        expr: |
+          sum by (kind) (rate(maya_resolution_bytes_total[5m]))
+          /
+          clamp_min(sum by (kind) (rate(maya_resolution_seconds_total[5m])), 1e-9)
+      - record: maya:cache_hit_ratio:5m
+        expr: |
+          sum by (cache) (rate(maya_cache_hits_total[5m]))
+          /
+          clamp_min(
+            sum by (cache) (rate(maya_cache_hits_total[5m]))
+            + sum by (cache) (rate(maya_cache_misses_total[5m])),
+            1e-9
+          )
+
+  - name: maya-slo-alerts
+    rules:
+      # SLO 1 — 99.9% monthly availability for metadata operations.
+      - alert: MayaMetadataAvailabilityBurn
+        expr: maya:metadata_availability:ratio5m < 0.99
+        for: 10m
+        labels:
+          severity: critical
+          slo: metadata-availability
+        annotations:
+          summary: "MAYA is failing metadata requests faster than the 99.9% monthly budget allows"
+          description: >-
+            Over the last five minutes {{ printf "%.2f" $value }} of metadata requests
+            succeeded. At this rate the monthly error budget is gone in under a day.
+          runbook_url: "docs/runbooks/database-failover.md"
+
+      # SLO 2 — p95 under 300 ms for metadata reads.
+      - alert: MayaMetadataLatencyHigh
+        expr: maya:metadata_latency:p95_5m > 0.3
+        for: 15m
+        labels:
+          severity: warning
+          slo: metadata-latency
+        annotations:
+          summary: "Metadata p95 is over the 300 ms objective"
+          description: >-
+            p95 is {{ printf "%.3f" $value }}s. Check the database pool
+            (maya_db_pool_connections) and the slow-query rate
+            (rate(maya_db_slow_queries_total[5m])) before blaming the application.
+          runbook_url: "docs/runbooks/database-failover.md"
+
+      # SLO 3 — pin jobs finish in a predictable time (see the note at the top).
+      - alert: MayaPinJobsSlow
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(maya_job_duration_seconds_bucket{type=~"feature.pin|featureset.pin"}[30m]))
+          ) > 1800
+        for: 30m
+        labels:
+          severity: warning
+          slo: pin-duration
+        annotations:
+          summary: "Pin jobs are taking far longer than this estate's budget"
+          description: >-
+            p99 pin duration is {{ printf "%.0f" $value }}s. Set this threshold from
+            your own history; MAYA does not yet estimate a job's duration, so it
+            cannot compare against "estimate x 2".
+          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+
+      - alert: MayaJobsWaitingTooLong
+        expr: maya_job_oldest_queued_seconds > 1800
+        for: 10m
+        labels:
+          severity: warning
+          slo: pin-duration
+        annotations:
+          summary: "A job has been queued for over half an hour"
+          description: >-
+            The oldest queued job is {{ printf "%.0f" $value }}s old. Either no worker
+            is draining the queue, or one owner's campaign is holding the concurrency
+            cap (jobs.per_user.max_concurrent).
+          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+
+      - alert: MayaJobsDeadLettered
+        expr: maya_jobs{state="dead_letter"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} job(s) have exhausted their retries"
+          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+
+      - alert: MayaQueueShedding
+        expr: sum(rate(maya_job_shed_total[10m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MAYA is refusing job submissions under backpressure"
+          description: >-
+            Submissions are being refused by {{ $labels.reason }}. Add job workers
+            (run_maya_web.py --worker) or raise jobs.queue.max_depth deliberately.
+          runbook_url: "docs/runbooks/quota-exhaustion.md"
+
+      # SLO 4 — zero unrecovered pin sagas.
+      - alert: MayaPinStuckMaterializing
+        expr: maya_pins{state="materializing"} > 0
+        for: 60m
+        labels:
+          severity: critical
+          slo: pin-sagas
+        annotations:
+          summary: "A pin has been materializing for an hour: the saga did not close"
+          description: >-
+            {{ $value }} {{ $labels.kind }} pin(s) are stuck. The metadata commit of the
+            pin saga never happened, and the partition it wrote is orphaned.
+          runbook_url: "docs/runbooks/orphaned-pin-partitions.md"
+
+      # Integrity, the lake, and the estate's security posture.
+      - alert: MayaIntegrityDrift
+        expr: increase(maya_integrity_drift_total[1h]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "A sealed pin no longer matches its seal"
+          runbook_url: "docs/runbooks/integrity-drift.md"
+
+      - alert: MayaIntegrityVerificationStalled
+        expr: increase(maya_integrity_verifications_total[36h]) == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No integrity verification has run for a day and a half"
+          description: >-
+            integrity.verify.interval_seconds defaults to a day. Either the scheduler is
+            not running (is any process the primary?) or verification was turned off.
+          runbook_url: "docs/runbooks/integrity-drift.md"
+
+      - alert: MayaDeltaSmallFileExplosion
+        expr: maya_delta_small_file_ratio > 0.9 and maya_delta_files > 200
+        for: 2h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lake table {{ $labels.table }} is almost all small files"
+          runbook_url: "docs/runbooks/delta-small-files.md"
+
+      - alert: MayaDatabasePoolSaturated
+        expr: |
+          maya_db_pool_connections{state="in_use"}
+          >= 0.9 * (maya_db_pool_limit{kind="size"} + maya_db_pool_limit{kind="max_overflow"})
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The database pool is nearly exhausted"
+          runbook_url: "docs/runbooks/database-failover.md"
+
+      - alert: MayaDefaultAdminPassword
+        expr: maya_default_admin_password > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The bootstrap administrator still has the shipped password"
+          runbook_url: "docs/runbooks/default-password.md"
+
+      - alert: MayaRestoreDrillOverdue
+        expr: maya_restore_drill_age_days > 92 or maya_restore_drill_age_days < 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No restore drill in the last quarter"
+          description: >-
+            §20 asks for a quarterly drill whose result is recorded. Record one with
+            `python -m maya.cli admin record-drill`. A negative value means none has ever
+            been recorded.
+          runbook_url: "docs/runbooks/restore-drill.md"
+
+      - alert: MayaWebhookBacklog
+        expr: maya_webhook_backlog{state="pending"} > 500
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhook deliveries are piling up"
+          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+
+      - alert: MayaSandboxTierDegraded
+        expr: maya_sandbox_tier{tier!="strong"} > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "User code is running under the {{ $labels.tier }} sandbox tier"
+          description: >-
+            Outside dev MAYA refuses to start below sandbox.min_tier, so seeing this
+            means the minimum was lowered. Treat any anomaly in a sandboxed run as a
+            possible escape.
+          runbook_url: "docs/runbooks/sandbox-escape.md"
+
+      - alert: MayaAuthorizationDenialSpike
+        expr: sum(rate(maya_authz_denials_total[5m])) > 5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Authorization denials are unusually frequent"
+          description: >-
+            Either a grant was removed that somebody still depends on, or something is
+            probing. The audit log names the actor and the action.
+          runbook_url: "docs/runbooks/quota-exhaustion.md"

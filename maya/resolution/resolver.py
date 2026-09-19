@@ -19,6 +19,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import time
 from datetime import date
 from typing import Any
 
@@ -27,6 +28,8 @@ import pandas as pd
 
 from maya.core.calendars import business_days
 from maya.core.errors import ValidationFailed
+from maya.observability.metrics import frame_bytes, observe_resolution
+from maya.observability.tracing import span
 from maya.resolution import grouped
 from maya.resolution.rules import apply_rule, parse_rule
 
@@ -195,6 +198,29 @@ def resolve_feature(
     end: date | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Resolve raw bitemporal rows into a feature frame plus its fill report."""
+    with span("resolve feature", attributes={"maya.rows_in": len(raw)}):
+        return _resolve_feature(
+            raw,
+            index=index,
+            attributes=attributes,
+            policy=policy,
+            as_of_known=as_of_known,
+            start=start,
+            end=end,
+        )
+
+
+def _resolve_feature(
+    raw: pd.DataFrame,
+    *,
+    index: list[str],
+    attributes: list[str],
+    policy: dict[str, Any] | None,
+    as_of_known: Any = None,
+    start: date | None = None,
+    end: date | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    started = time.perf_counter()
     policy = policy or {}
     missing = [c for c in index + attributes if c not in raw.columns]
     if missing:
@@ -222,4 +248,5 @@ def resolve_feature(
         "last_gap": last_gap,
         "non_causal": sorted(a for a, r in per_attr.items() if r["non_causal"]),
     }
+    observe_resolution("feature", len(df), frame_bytes(df), time.perf_counter() - started)
     return df, report
