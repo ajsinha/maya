@@ -249,3 +249,14 @@ class StageIn(BaseModel):
     ref: str
     definition: dict[str, Any]
     note: str = ""
+
+
+class ConnectionIn(BaseModel):
+    name: str
+    url: str
+    password_env: str | None = None
+    description: str = ""
+
+
+class PullIn(BaseModel):
+    knowledge_time: str | None = None

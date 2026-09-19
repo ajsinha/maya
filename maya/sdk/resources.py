@@ -187,6 +187,26 @@ class Admin(_Resource):
         return self._c("GET", f"/blobs/{seg(digest)}", raw=True)
 
 
+class Sources(_Resource):
+    @endpoint("GET", "/sql-connections")
+    def connections(self) -> Any:
+        return self._c("GET", "/sql-connections")
+
+    @endpoint("POST", "/sql-connections")
+    def create_connection(self, name: str, url: str, password_env: str | None = None,
+                          description: str = "") -> Any:
+        return self._c("POST", "/sql-connections", json_body={
+            "name": name, "url": url, "password_env": password_env, "description": description})
+
+    @endpoint("DELETE", "/sql-connections/{name}")
+    def delete_connection(self, name: str) -> Any:
+        return self._c("DELETE", f"/sql-connections/{seg(name)}")
+
+    @endpoint("POST", "/sql-connections/{name}/test")
+    def test_connection(self, name: str) -> Any:
+        return self._c("POST", f"/sql-connections/{seg(name)}/test")
+
+
 class Namespaces(_Resource):
     @endpoint("GET", "/namespaces")
     def list(self) -> Any:
@@ -286,6 +306,11 @@ class Features(_Resource):
             form["knowledge_time"] = knowledge_time
         return self._c("POST", f"/features/{_nn(ref, 'feature')}/ingest",
                        files=_files(data, filename), data=form)
+
+    @endpoint("POST", "/features/{namespace}/{name}/pull")
+    def pull(self, ref: str, knowledge_time: str | None = None) -> Any:
+        return self._c("POST", f"/features/{_nn(ref, 'feature')}/pull",
+                       json_body={"knowledge_time": knowledge_time})
 
     @endpoint("POST", "/features/{namespace}/{name}/versions/{version_no}/transitions/{transition}")
     def transition(self, ref: str, version_no: int, transition: str, **kw: Any) -> Any:

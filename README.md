@@ -104,7 +104,8 @@ execution warrant → reproducibility bundle.
   TOTP two-factor authentication. Configuring `auth.sso.protocol: saml2` is refused at
   startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
   is not built.
-- **Source drivers** `sql` and `python` are refused by name. Shipped: csv, parquet, json, delta, derived.
+- **The `python` source driver is refused by name.** Shipped: csv, parquet, json, sql
+  (SQLite and PostgreSQL, pulled read-only into the bitemporal log), delta, derived.
 - **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
   claimed only when a probe child fails to escape. macOS runs at `moderate`

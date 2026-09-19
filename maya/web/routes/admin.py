@@ -140,6 +140,46 @@ async def end_session(request: Request, session_id: str) -> Any:
     return RedirectResponse("/admin/users#sessions", status_code=303)
 
 
+# -- SQL source connections --------------------------------------------------------------------
+@router.get("/admin/sources")
+@page
+async def sources(request: Request) -> Any:
+    async with client(request) as sdk:
+        rows = await sdk.sources.connections()
+    return await render(request, "admin/sources.html", {"rows": rows})
+
+
+@router.post("/admin/sources")
+@action
+async def create_source(request: Request) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.sources.create_connection(data.get("name", ""), data.get("url", ""),
+                                            data.get("password_env") or None,
+                                            data.get("description", ""))
+    flash(request, "Connection saved.", "success")
+    return RedirectResponse("/admin/sources", status_code=303)
+
+
+@router.post("/admin/sources/{name}/test")
+@action
+async def test_source(request: Request, name: str) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.sources.test_connection(name)
+    flash(request, f"{name}: connected ({out['dialect']}, read-only)" if out["ok"]
+          else f"{name}: {out['error']}", "success" if out["ok"] else "danger")
+    return RedirectResponse("/admin/sources", status_code=303)
+
+
+@router.post("/admin/sources/{name}/delete")
+@action
+async def delete_source(request: Request, name: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.sources.delete_connection(name)
+    flash(request, f"Connection {name} deleted.", "info")
+    return RedirectResponse("/admin/sources", status_code=303)
+
+
 # -- namespaces and grants ----------------------------------------------------------------------
 @router.get("/admin/namespaces")
 @page

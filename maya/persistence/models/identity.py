@@ -151,3 +151,15 @@ class Blob(Base):
     filename: Mapped[str | None] = mapped_column(String(512))
     created_at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
     created_by: Mapped[str | None] = mapped_column(String(128))
+
+
+class SqlConnection(Tracked, Base):
+    """An administrator-managed source connection (§5.2). Never holds a password:
+    ``password_env`` names the environment variable that does."""
+
+    __tablename__ = "sql_connections"
+    name: Mapped[str] = mapped_column(String(128), unique=True)
+    url: Mapped[str] = mapped_column(String(1024))
+    password_env: Mapped[str | None] = mapped_column(String(128))
+    description: Mapped[str | None] = mapped_column(Text)
+    options: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
