@@ -4,9 +4,10 @@
 <div class="row justify-content-center mt-5">
   <div class="col-md-5 col-lg-4">
     <div class="text-center mb-4 maya-hero">
-      <img src="/static/img/maya-lockup.svg" alt="MAYA">
-      <div class="mt-2 small-muted">{{ APP_TAGLINE }}</div>
-      <div class="fst-italic">{{ APP_SLOGAN }}</div>
+      <img src="/static/img/maya-mark-white.svg" alt="" class="login-mark">
+      <div class="login-name">MAYA</div>
+      <div class="small-muted">{{ APP_TAGLINE }}</div>
+      <div class="fst-italic on-gradient">{{ APP_SLOGAN }}</div>
     </div>
     <div class="card"><div class="card-body">
       <h1 class="h3 mb-3">Sign in</h1>
@@ -28,7 +29,7 @@
       </form>
       {% endif %}
     </div></div>
-    <p class="small-muted text-center mt-3">MAYA {{ VERSION }} · {% if signin and signin.sso %}{{ signin.mode }} sign-in ({{ signin.protocol|upper }}){% else %}database authentication{% endif %}</p>
+    <p class="small text-center mt-3 on-gradient">MAYA {{ VERSION }} · {% if signin and signin.sso %}{{ signin.mode }} sign-in ({{ signin.protocol|upper }}){% else %}database authentication{% endif %}</p>
   </div>
 </div>
 {% endblock %}

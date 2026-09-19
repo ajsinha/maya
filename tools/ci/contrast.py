@@ -15,7 +15,9 @@ from _common import ROOT, report
 TOKENS = ROOT / "maya" / "web" / "static" / "css" / "tokens.css"
 TEXT_PAIRS = [("--maya-ink", "--maya-surface"), ("--maya-ink", "--maya-canvas"),
               ("--maya-crimson", "--maya-surface"), ("--maya-slate", "--maya-surface"),
-              ("--maya-crimson-deep", "--maya-surface"), ("--maya-ink", "--maya-crimson-tint")]
+              ("--maya-crimson-deep", "--maya-surface"), ("--maya-ink", "--maya-crimson-tint"),
+              ("--maya-on-nav", "--maya-nav-from"), ("--maya-on-nav", "--maya-nav-via"),
+              ("--maya-on-nav", "--maya-nav-to")]
 NON_TEXT = [("--maya-crimson", "--maya-canvas"), ("--maya-indigo", "--maya-surface")]
 
 

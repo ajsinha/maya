@@ -1123,7 +1123,7 @@ The cost is honest: on the clustered topology every page view becomes an HTTP ca
 
 ### 16.1 Information architecture
 
-A left rail with six areas — **Catalog**, **Workbench**, **Models**, **Warrants**, **Workflow**, **Admin** — plus a global command palette (`⌘K`) that searches every object by name, tag, owner and lineage. Every object page has the same five-tab shape: *Overview*, *Definition*, *Data*, *Lineage*, *History & Comments*. Learning one object teaches all of them.
+A fixed top navigation bar with six areas — **Catalog**, **Workbench**, **Models**, **Warrants**, **Workflow**, **Admin** — each opening a mega-menu panel whose entries carry an icon and a one-line description, plus a global command palette (`⌘K`) that searches every object by name, tag, owner and lineage. Every object page has the same five-tab shape: *Overview*, *Definition*, *Data*, *Lineage*, *History & Comments*. Learning one object teaches all of them.
 
 ### 16.2 Screen inventory
 

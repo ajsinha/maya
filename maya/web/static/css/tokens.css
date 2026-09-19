@@ -22,6 +22,12 @@
   --maya-bad: #8A1626;
   --maya-highlight: #F4DDA0;
   --maya-heading: #6E1120;
+  /* the navigation gradient: crimson-deep → crimson → indigo, white text on all three */
+  --maya-nav-from: #5C0E1B;
+  --maya-nav-via: #A51C30;
+  --maya-nav-to: #293352;
+  --maya-on-nav: #FFFFFF;
+  --maya-glow: #F3C6CF;
   color-scheme: light;
 }
 
@@ -43,6 +49,11 @@
     --maya-bad: #F08A9C;
   --maya-highlight: #5A4712;
   --maya-heading: #DE6B81;
+  --maya-nav-from: #2E0810;
+  --maya-nav-via: #6E1120;
+  --maya-nav-to: #1B2138;
+  --maya-on-nav: #FFFFFF;
+  --maya-glow: #4A2530;
     color-scheme: dark;
   }
 }
@@ -64,5 +75,10 @@
   --maya-bad: #F08A9C;
   --maya-highlight: #5A4712;
   --maya-heading: #DE6B81;
+  --maya-nav-from: #2E0810;
+  --maya-nav-via: #6E1120;
+  --maya-nav-to: #1B2138;
+  --maya-on-nav: #FFFFFF;
+  --maya-glow: #4A2530;
   color-scheme: dark;
 }

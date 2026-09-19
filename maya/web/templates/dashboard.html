@@ -3,18 +3,30 @@
 {% from "_macros/ui.html" import pill %}
 {% block title %}Home{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center gap-3 mb-3 maya-hero">
-  <img src="/static/img/maya-mark.svg" alt="">
-  <div><h1 class="mb-0">MAYA</h1><div class="lead-slate">{{ APP_TAGLINE }} · <em>{{ APP_SLOGAN }}</em></div></div>
-</div>
-<div class="row g-3 mb-3">
-  <div class="col-md-3"><div class="card card-body"><div class="small-muted">Features</div><div class="h2 mb-0">{{ counts.features }}</div><a href="/catalog/features">Browse the catalog</a></div></div>
-  <div class="col-md-3"><div class="card card-body"><div class="small-muted">Models</div><div class="h2 mb-0">{{ counts.models }}</div><a href="/models">Model registry</a></div></div>
-  <div class="col-md-3"><div class="card card-body"><div class="small-muted">In review</div><div class="h2 mb-0">{{ counts.queue }}</div><a href="/workflow">My queue</a></div></div>
-  <div class="col-md-3"><div class="card card-body"><div class="small-muted">System</div>
-    {% if health_full %}<div>{{ pill('ok' if health_full.database.ok else 'bad', 'database ' + health_full.database.dialect) }}</div>
-    <div>{{ pill('ok' if health_full.audit_chain.ok else 'bad', 'audit chain ' + ('verified' if health_full.audit_chain.ok else 'BROKEN')) }}</div>
-    <a href="/admin/health">System health</a>{% else %}<span class="small-muted">Health unavailable</span>{% endif %}</div></div>
+<section class="maya-welcome">
+  <div class="d-flex flex-wrap align-items-center gap-3 position-relative">
+    <img src="/static/img/maya-mark-white.svg" alt="">
+    <div class="me-auto"><h1>Welcome back, {{ user }}</h1>
+      <p class="lead">{{ APP_TAGLINE }} · <em>{{ APP_SLOGAN }}</em></p></div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-light" href="/workbench/quick"><i class="bi bi-lightning" aria-hidden="true"></i> Quick feature</a>
+      <a class="btn btn-outline-light" href="/models/new"><i class="bi bi-plus-square" aria-hidden="true"></i> New model</a>
+      <a class="btn btn-outline-light" href="/workflow"><i class="bi bi-inbox" aria-hidden="true"></i> My queue</a>
+    </div>
+  </div>
+</section>
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3"><a class="card stat-tile" href="/catalog/features"><span class="ico"><i class="bi bi-boxes" aria-hidden="true"></i></span>
+    <span><span class="lbl">Features</span><span class="num d-block">{{ counts.features }}</span><span class="small-muted">Browse the catalog</span></span></a></div>
+  <div class="col-sm-6 col-xl-3"><a class="card stat-tile" href="/models"><span class="ico"><i class="bi bi-calculator" aria-hidden="true"></i></span>
+    <span><span class="lbl">Models</span><span class="num d-block">{{ counts.models }}</span><span class="small-muted">Model registry</span></span></a></div>
+  <div class="col-sm-6 col-xl-3"><a class="card stat-tile" href="/workflow"><span class="ico"><i class="bi bi-inbox" aria-hidden="true"></i></span>
+    <span><span class="lbl">In review</span><span class="num d-block">{{ counts.queue }}</span><span class="small-muted">My queue</span></span></a></div>
+  <div class="col-sm-6 col-xl-3"><div class="card stat-tile"><span class="ico"><i class="bi bi-speedometer2" aria-hidden="true"></i></span>
+    <span><span class="lbl">System</span>
+    {% if health_full %}<span class="d-block">{{ pill('ok' if health_full.database.ok else 'bad', 'database ' + health_full.database.dialect) }}</span>
+    <span class="d-block mt-1">{{ pill('ok' if health_full.audit_chain.ok else 'bad', 'audit chain ' + ('verified' if health_full.audit_chain.ok else 'BROKEN')) }}</span>
+    <a class="small" href="/admin/health">System health</a>{% else %}<span class="small-muted d-block">Health unavailable</span>{% endif %}</span></div></div>
 </div>
 <div class="row g-3">
   <div class="col-lg-7"><h2>Recently changed features</h2>
