@@ -345,3 +345,15 @@ async def execution_revoke(request: Request, eid: str) -> Any:
     return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
 
 
+@router.get("/warrants/execution/{eid}/bundle.json")
+@page
+async def execution_bundle(request: Request, eid: str) -> Any:
+    """Everything needed to run the warrant; ``offline=1`` is the unattested copy."""
+    import json
+    qp = request.query_params
+    offline = qp.get("offline") == "1"
+    async with client(request) as sdk:
+        out = await sdk.execution.bundle(eid, qp.get("environment") or "dev", offline=offline)
+    name = f"execution-{eid[:8]}-{'offline-unattested' if offline else 'live'}.json"
+    return download({"data": json.dumps(out, indent=2, default=str).encode(),
+                     "content_type": "application/json"}, name)

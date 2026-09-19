@@ -16,6 +16,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import builtins
 import datetime as dt
 import hashlib
 import hmac
@@ -114,7 +115,7 @@ class WebhookService:
             uow.repo("webhook_deliveries").delete_where(webhook_id=webhook_id, state="pending")
             uow.audit("webhook.deactivated", object_ref=f"webhook:{row['name']}")
 
-    def deliveries(self, p: Principal, webhook_id: str) -> list[dict[str, Any]]:
+    def deliveries(self, p: Principal, webhook_id: str) -> builtins.list[dict[str, Any]]:
         self._admin(p)
         with self.p.uow() as uow:
             uow.repo("webhooks").require(webhook_id)
@@ -137,7 +138,7 @@ class WebhookService:
 
     # -- the event stream ---------------------------------------------------------------
     def events(self, p: Principal, *, after: int = 0, limit: int = 500,
-               type_prefix: str | None = None) -> list[dict[str, Any]]:
+               type_prefix: str | None = None) -> builtins.list[dict[str, Any]]:
         self._admin(p)
         with self.p.uow() as uow:
             filters: dict[str, Any] = {"seq__gt": after}

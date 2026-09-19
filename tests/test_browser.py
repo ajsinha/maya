@@ -242,3 +242,39 @@ def test_a_security_key_registers_and_then_answers_the_challenge(site, browser):
     assert page.locator(".maya-welcome").is_visible()
     assert page.errors == []
     ctx.close()
+
+
+JOURNEY = [("home", "/"), ("catalog", "/catalog/features"), ("feature", "/catalog/features/eq/feat_00"),
+           ("featuresets", "/catalog/featuresets"), ("models", "/models"),
+           ("workbench", "/workbench"), ("workflow", "/workflow"), ("warrants", "/warrants"),
+           ("search", "/search?q=feat"), ("health", "/admin/health"), ("help", "/help"),
+           ("about", "/about")]
+
+
+@pytest.mark.parametrize("viewport", [{"width": 1366, "height": 900},
+                                      {"width": 390, "height": 844}], ids=["desktop", "phone"])
+def test_the_main_journeys_render_and_are_captured(site, browser, viewport, tmp_path):
+    """Gate 24: every main screen, as a person sees it, in a real browser, saved as a
+    screenshot (to MAYA_SCREENSHOT_DIR when set). Each must load without a script error
+    or an error page, and its screenshot must be a real render, not a blank page."""
+    import os
+
+    from PIL import Image, ImageStat
+    base, _ = site
+    out = Path(os.environ.get("MAYA_SCREENSHOT_DIR") or tmp_path)
+    out.mkdir(parents=True, exist_ok=True)
+    ctx, page = _page(browser, viewport=viewport)
+    _login(page, base)
+    label = "desktop" if viewport["width"] > 800 else "phone"
+    for name, path in JOURNEY:
+        response = page.goto(f"{base}{path}")
+        page.wait_for_load_state("networkidle")
+        assert response is not None and response.status == 200, (path, response)
+        assert "/login" not in page.url, path
+        shot = out / f"{label}-{name}.png"
+        page.screenshot(path=str(shot), full_page=True)
+        with Image.open(shot) as img:
+            spread = ImageStat.Stat(img.convert("L")).stddev[0]
+        assert shot.stat().st_size > 5_000 and spread > 5, (path, "blank render")
+    assert page.errors == [], page.errors
+    ctx.close()

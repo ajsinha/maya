@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
-from typing import Any
+from typing import Any, Callable
 
 from maya.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from maya.persistence import external
@@ -33,6 +33,10 @@ from maya.services import catalog, refs
 from maya.services.feature_data import schema_generation
 
 PARAM_TYPES = ("string", "int", "float", "date", "bool")
+_PARAM_CASTS: dict[str, Callable[[Any], Any]] = {
+    "string": str, "int": int, "float": float,
+    "date": lambda v: dt.date.fromisoformat(str(v)),
+    "bool": lambda v: str(v).lower() in ("1", "true", "yes")}
 
 
 def bind_params(spec: dict[str, Any] | None) -> dict[str, Any]:
@@ -46,9 +50,7 @@ def bind_params(spec: dict[str, Any] | None) -> dict[str, Any]:
         if kind not in PARAM_TYPES:
             raise ValidationFailed(f"Parameter '{name}': type must be one of {PARAM_TYPES}")
         try:
-            out[name] = {"string": str, "int": int, "float": float,
-                         "date": lambda v: dt.date.fromisoformat(str(v)),
-                         "bool": lambda v: str(v).lower() in ("1", "true", "yes")}[kind](value)
+            out[name] = _PARAM_CASTS[kind](value)
         except (TypeError, ValueError) as exc:
             raise ValidationFailed(f"Parameter '{name}' is not a valid {kind}") from exc
     return out
@@ -181,7 +183,7 @@ class SourceService:
         with self.p.uow() as uow:
             feature, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "update", "feature", feature)
-            latest = catalog.latest_version(uow, "feature_versions", "feature_id", feature["id"])
+            latest = catalog.require_latest(uow, "feature_versions", "feature_id", feature["id"])
             eff = catalog.effective_feature_definition(uow, latest["definition"])
             src = eff.get("source") or {}
             if src.get("type") not in ("sql", "python"):

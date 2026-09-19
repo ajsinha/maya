@@ -13,6 +13,7 @@ import pytest
 
 from maya.web.guide_render import GUIDES_DIR, render
 from maya.web.help_catalog import COMPANIONS, GUIDES, all_topics
+from tests.test_web import env  # noqa: F401 - the web fixture, reused
 
 
 def test_guides_and_markdown_files_agree():
@@ -32,7 +33,7 @@ def test_each_guide_renders_with_contents_and_no_script(slug):
         len(re.findall(r'<table class="maya-table"', doc["html"]))
 
 
-def test_guides_are_served_to_anyone(env):
+def test_guides_are_served_to_anyone(env):  # noqa: F811 - the imported fixture
     from starlette.testclient import TestClient
     _, app, _, _ = env
     anon = TestClient(app)
@@ -44,5 +45,3 @@ def test_guides_are_served_to_anyone(env):
     page = anon.get("/help/features").text
     assert "Full reference:" in page and "/help/guides/features-reference" in page
 
-
-from tests.test_web import env  # noqa: E402,F401 - the web fixture, reused

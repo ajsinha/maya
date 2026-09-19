@@ -4,5 +4,6 @@
 {% block content %}
 <h1>Effective configuration</h1>
 <p class="lead-slate">Every setting with where its value came from: file, environment or command line. Secrets are redacted. Switch the database with <code>db.dialect: sqlite | postgresql</code> in <code>config/application.yaml</code>.</p>
+<p><a class="btn btn-sm btn-outline-primary" href="/admin/sso/saml-metadata.xml"><i class="bi bi-download" aria-hidden="true"></i> SAML service-provider metadata</a> <span class="small-muted">for your identity provider's administrator (with <code>auth.sso.protocol: saml2</code>)</span></p>
 {% call(c) table("config", ["Key", "Value", "Source"], rows, empty="No settings.") %}<td class="mono">{{ c.key }}</td><td class="mono">{{ c.value }}</td><td>{{ c.source }}</td>{% endcall %}
 {% endblock %}

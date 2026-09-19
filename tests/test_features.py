@@ -46,7 +46,7 @@ def test_sc1_hash_survives_reread_and_integrity_scan(world):
     result = world.p.ops.verify_integrity(world.admin)
     mine = [r for r in result["results"] if "/reread#" in r["pin"]]
     assert mine and all(r["ok"] for r in mine)
-    download = world.p.features.download(world.dana, f"maya://feature/eq/reread#eom/2026-01-10")
+    download = world.p.features.download(world.dana, "maya://feature/eq/reread#eom/2026-01-10")
     assert download["manifest"]["content_hash"] == pin["content_hash"]
 
 

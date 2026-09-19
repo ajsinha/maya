@@ -11,8 +11,10 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import builtins
 import copy
 import datetime as dt
+import time
 from typing import Any
 
 import pandas as pd
@@ -155,7 +157,7 @@ class FeatureSetService:
 
     # -- create and edit ----------------------------------------------------------
     def create(self, p: Principal, *, namespace: str, name: str, definition: dict[str, Any],
-               description: str = "", tags: list[str] | None = None) -> dict[str, Any]:
+               description: str = "", tags: builtins.list[str] | None = None) -> dict[str, Any]:
         with self.p.uow(p.username) as uow:
             ns = self.p.access.namespace(uow, namespace)
             self.p.access.require(uow, p, "create", "featureset",
@@ -190,7 +192,7 @@ class FeatureSetService:
             fs, _ = catalog.find_object(uow, "feature_sets", "feature set",
                                         refs.parse(ref, "featureset"))
             self.p.access.require(uow, p, "update", "featureset", fs)
-            latest = catalog.latest_version(uow, "feature_set_versions", "feature_set_id", fs["id"])
+            latest = catalog.require_latest(uow, "feature_set_versions", "feature_set_id", fs["id"])
             if latest["state"] in EDITABLE:
                 return latest
             return uow.repo("feature_set_versions").add({
@@ -241,11 +243,7 @@ class FeatureSetService:
             if errors:
                 raise ValidationFailed("The feature set definition is not valid: " +
                                        "; ".join(errors), errors=errors)
-            body = {k: eff.get(k) for k in ("index", "grid", "alignment", "filters",
-                                            "global_policy", "group_policies")}
-            body["members"] = sorted(eff.get("members", []), key=lambda m: m["attr"])
-            body["inherited"] = inherited
-            digest = djson.canonical_hash(body)
+            digest = djson.canonical_hash(equivalence_body(eff, inherited))
             dup = uow.repo("feature_set_versions").find_one(definition_hash=digest,
                                                             feature_set_id__ne=fs["id"])
             if dup:
@@ -275,7 +273,7 @@ class FeatureSetService:
 
     # -- resolution -------------------------------------------------------------------
     def resolve_definition(self, p: Principal | None, eff: dict[str, Any],
-                           inherited: list[dict[str, Any]], *, as_of_known: Any = None,
+                           inherited: builtins.list[dict[str, Any]], *, as_of_known: Any = None,
                            start: dt.date | None = None, end: dt.date | None = None,
                            member_override: dict[str, str] | None = None) -> Resolved:
         """Resolve members (withholding what ``p`` cannot read), then assemble."""
@@ -300,7 +298,7 @@ class FeatureSetService:
             raise ValidationFailed("You cannot read any member of this feature set",
                                    withheld=withheld)
         df, manifest = resolve_featureset(
-            members, mapping, index=eff["index"], alignment=eff.get("alignment"),
+            members, mapping, index=eff["index"], alignment=_aligned(eff, member_override),
             grid=eff.get("grid", "as_is"), global_policy=eff.get("global_policy"),
             group_policies=eff.get("group_policies"), inherited_policies=inherited,
             filters=eff.get("filters"))
@@ -328,8 +326,8 @@ class FeatureSetService:
         return ok
 
     @staticmethod
-    def _schema(eff: dict[str, Any], members: dict[str, Any], mapping: list[dict[str, Any]]
-                ) -> list[dict[str, Any]]:
+    def _schema(eff: dict[str, Any], members: dict[str, Any], mapping: builtins.list[dict[str, Any]]
+                ) -> builtins.list[dict[str, Any]]:
         out = []
         by_member = {ref: {a["name"]: a for a in meta["schema"]}
                      for ref, (_, meta) in members.items()}
@@ -344,7 +342,8 @@ class FeatureSetService:
         return out
 
     def load(self, ref: str) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any],
-                                      dict[str, Any] | None, dict[str, Any], list[Any]]:
+                                      dict[str, Any] | None, dict[str, Any],
+                                      builtins.list[Any]]:
         """fs, namespace, version, pin (or None), effective definition, inherited."""
         r = refs.parse(ref, "featureset")
         with self.p.uow() as uow:
@@ -390,7 +389,7 @@ class FeatureSetService:
         return (pin.get("manifest") or {}).get("materialization", {}).get("stored", True)
 
     def pin_table(self, pin: dict[str, Any], fs: dict[str, Any], ns: dict[str, Any],
-                  eff: dict[str, Any], inherited: list[Any]) -> Any:
+                  eff: dict[str, Any], inherited: builtins.list[Any]) -> Any:
         """A sealed pin's bytes: read from the lake, or — for a pin sealed under
         ``on_demand`` or ``never`` and not yet written — replayed from its member pins and
         accepted only if the replay reproduces the sealed content hash exactly. Under
@@ -413,7 +412,7 @@ class FeatureSetService:
                           detail={"content_hash": pin["content_hash"], "policy": policy})
         return table
 
-    def replay(self, pin: dict[str, Any], eff: dict[str, Any], inherited: list[Any]) -> Any:
+    def replay(self, pin: dict[str, Any], eff: dict[str, Any], inherited: builtins.list[Any]) -> Any:
         """Resolve a pin again over its recorded member pins; refuse unless it is the same
         content, byte for byte by the canonical hash."""
         res = self.resolve_definition(None, eff, inherited,
@@ -445,7 +444,7 @@ class FeatureSetService:
                 "rows": table.num_rows, "replayed": True}
 
     def condition(self, p: Principal, fs: dict[str, Any], eff: dict[str, Any],
-                  res: Resolved) -> list[dict[str, Any]]:
+                  res: Resolved) -> builtins.list[dict[str, Any]]:
         """Apply every §11.4 condition that governs ``p``'s read, member by member, then
         the set's own — on live and pinned data alike, so no path escapes a mask."""
         from maya.security.conditions import apply, apply_mapped
@@ -480,7 +479,7 @@ class FeatureSetService:
             fs, _ = catalog.find_object(uow, "feature_sets", "feature set",
                                         refs.parse(ref, "featureset"))
             self.p.access.require(uow, p, "read", "featureset", fs)
-            v = catalog.latest_version(uow, "feature_set_versions", "feature_set_id", fs["id"])
+            v = catalog.require_latest(uow, "feature_set_versions", "feature_set_id", fs["id"])
             eff, inherited = self.effective(uow, v["definition"])
         errors = self.validate(eff)
         if errors:
@@ -507,9 +506,15 @@ class FeatureSetService:
                 raise NotApproved("A feature set refuses to pin unless every member is pinned. "
                                   "Unpinned: " + ", ".join(sorted(set(unpinned))) +
                                   ". Use cascade pin to pin them together.", unpinned=unpinned)
-            if uow.repo("feature_set_pins").find_one(feature_set_id=fs["id"], pin_name=pin_name,
-                                                     as_of_date=as_of, state__ne="failed"):
-                raise ConflictError(f"Pin {pin_name}/{as_of} already exists")
+            # one request per series and date at a time (§15.3): a racer waits here, then
+            # sees the winner's pin and is refused as a conflict
+            uow.lock(f"pin:featureset:{fs['id']}:{pin_name}:{as_of}")
+            clash = uow.repo("feature_set_pins").find_one(feature_set_id=fs["id"],
+                                                          pin_name=pin_name, as_of_date=as_of)
+            if clash and clash["state"] != "failed":
+                raise ConflictError(f"Pin {pin_name}/{as_of} already exists ({clash['state']})")
+            if clash:              # a failed pin never blocks its name and date
+                uow.repo("feature_set_pins").delete(clash["id"])
             pin = uow.repo("feature_set_pins").add({
                 "feature_set_id": fs["id"], "feature_set_version_id": v["id"],
                 "pin_name": pin_name, "as_of_date": as_of, "as_of_known": as_of_known or utcnow(),
@@ -529,7 +534,7 @@ class FeatureSetService:
             self._rollback(ctx.actor, params["pin_id"], created, str(exc))
             raise
 
-    def _materialize(self, ctx: Any, pin_id: str, cascade: bool, created: list[str]
+    def _materialize(self, ctx: Any, pin_id: str, cascade: bool, created: builtins.list[str]
                      ) -> dict[str, Any]:
         with self.p.uow(ctx.actor) as uow:
             pin = uow.repo("feature_set_pins").require(pin_id)
@@ -557,6 +562,11 @@ class FeatureSetService:
                                                   "stored": policy == "always"}})
         provenance = self.p.feature_data.provenance(v["definition_hash"], res, write, ctx.actor)
         with self.p.uow(ctx.actor) as uow:
+            gone = sorted(ref for ref, pid in member_pins.items()
+                          if (uow.repo("feature_pins").get(pid) or {}).get("state") != "sealed")
+            if gone:        # never seal over a member pin that is no longer there
+                raise ConflictError("Member pin(s) removed or unsealed while this pin was being "
+                                    "made: " + ", ".join(gone), members=gone)
             uow.repo("feature_set_pins").update(pin_id, {
                 "state": "sealed", "member_pin_ids": member_pins,
                 "content_hash": write.content_hash, "schema_digest": write.schema_digest,
@@ -580,7 +590,7 @@ class FeatureSetService:
                 "cascaded_member_pins": len(created)}
 
     def _pin_members(self, ctx: Any, eff: dict[str, Any], pin: dict[str, Any], cascade: bool,
-                     created: list[str]) -> tuple[dict[str, str], dict[str, str]]:
+                     created: builtins.list[str]) -> tuple[dict[str, str], dict[str, str]]:
         """Pin every unpinned member, in sorted feature-id order (no deadlock, §15.3)."""
         override: dict[str, str] = {}
         member_pins: dict[str, str] = {}
@@ -600,32 +610,68 @@ class FeatureSetService:
                 todo.append((feature["id"], ref, feature, ns, version))
         for i, (_, ref, feature, ns, version) in enumerate(sorted(todo, key=lambda t: t[0])):
             ctx.progress(10 + int(40 * i / max(len(todo), 1)), f"cascade: pinning {ref}")
-            pid = self._cascade_one(ctx.actor, feature, ns, version, pin, created)
+            pid = self._cascade_one(ctx, feature, version, pin, created)
             override[ref] = refs.pin_ref("feature", ns["name"], feature["name"], pin["pin_name"],
                                          pin["as_of_date"])
             member_pins[ref] = pid
         return override, member_pins
 
-    def _cascade_one(self, actor: str, feature: dict[str, Any], ns: dict[str, Any],
-                     version: dict[str, Any], pin: dict[str, Any], created: list[str]) -> str:
-        with self.p.uow(actor) as uow:
-            existing = uow.repo("feature_pins").find_one(feature_id=feature["id"],
-                                                         pin_name=pin["pin_name"],
-                                                         as_of_date=pin["as_of_date"])
-            if existing and existing["state"] == "sealed":
-                return existing["id"]
-            if existing:
-                uow.repo("feature_pins").delete(existing["id"])
-            row = uow.repo("feature_pins").add({
-                "feature_id": feature["id"], "feature_version_id": version["id"],
-                "pin_name": pin["pin_name"], "as_of_date": pin["as_of_date"],
-                "as_of_known": pin["as_of_known"], "state": "materializing",
-                "provenance": {"cascade_of": pin["id"]}})
-        created.append(row["id"])      # recorded first, so a failure here is rolled back too
-        self.p.feature_data.materialize(row["id"], actor)
-        return row["id"]
+    def _cascade_one(self, ctx: Any, feature: dict[str, Any], version: dict[str, Any],
+                     pin: dict[str, Any], created: builtins.list[str]) -> str:
+        """Pin one member for a cascade, or reuse the member pin that already exists.
 
-    def _rollback(self, actor: str, pin_id: str, created: list[str], why: str) -> None:
+        A member pin another cascade is still making — or has sealed while its own set pin
+        is unsealed, and so may yet roll back — is waited for, never taken over or built on.
+        Members are visited in sorted id order, so two cascades never wait on each other
+        (§15.3); the wait is bounded and honours cancellation."""
+        wait = float(self.p.settings.int("featuresets.cascade_wait_seconds", 120))
+        deadline = time.monotonic() + wait
+        while True:
+            with self.p.uow(ctx.actor) as uow:
+                uow.lock(f"pin:feature:{feature['id']}:{pin['pin_name']}:{pin['as_of_date']}")
+                existing = uow.repo("feature_pins").find_one(feature_id=feature["id"],
+                                                             pin_name=pin["pin_name"],
+                                                             as_of_date=pin["as_of_date"])
+                action = self._member_action(uow, existing, pin["id"])
+                if action == "reuse":
+                    return str(existing["id"])
+                if action == "replace":
+                    uow.repo("feature_pins").delete(existing["id"])
+                if action != "wait":
+                    row = uow.repo("feature_pins").add({
+                        "feature_id": feature["id"], "feature_version_id": version["id"],
+                        "pin_name": pin["pin_name"], "as_of_date": pin["as_of_date"],
+                        "as_of_known": pin["as_of_known"], "state": "materializing",
+                        "provenance": {"cascade_of": pin["id"]}})
+                    break
+            if time.monotonic() > deadline:
+                raise ConflictError(f"Member '{feature['name']}' is still being pinned by another "
+                                    f"cascade after {wait:.0f}s; retry this pin",
+                                    member=feature["name"])
+            ctx.check_cancel()
+            time.sleep(0.05)
+        created.append(row["id"])      # recorded first, so a failure here is rolled back too
+        self.p.feature_data.materialize(row["id"], ctx.actor)
+        return str(row["id"])
+
+    @staticmethod
+    def _member_action(uow: Any, existing: dict[str, Any] | None, own: str) -> str:
+        """What a cascade does with a member's existing pin: create, reuse, replace, wait."""
+        if existing is None:
+            return "create"
+        owner = (existing.get("provenance") or {}).get("cascade_of")
+        other = uow.repo("feature_set_pins").get(owner) if owner and owner != own else None
+        busy = other is not None and other["state"] == "materializing"
+        if existing["state"] == "sealed":
+            return "wait" if busy else "reuse"
+        if existing["state"] == "materializing" and not owner:
+            raise ConflictError(f"Member pin {existing['pin_name']}/{existing['as_of_date']} is "
+                                "being made by a direct pin request; retry when it finishes")
+        if existing["state"] == "materializing" and busy:
+            return "wait"
+        return "replace"       # failed, requested, or a leftover of a finished cascade
+
+    def _rollback(self, actor: str, pin_id: str, created: builtins.list[str], why: str) -> None:
         """A failed cascade leaves nothing behind: its member pins are removed (§6.6)."""
         with self.p.uow(actor) as uow:
             for pid in created:
@@ -666,11 +712,38 @@ class FeatureSetService:
         return {"data": payload, "manifest": _jsonsafe(manifest)}
 
     @staticmethod
-    def _full_schema(res: Resolved) -> list[dict[str, Any]]:
+    def _full_schema(res: Resolved) -> builtins.list[dict[str, Any]]:
         idx = [{"name": c, "type": res.meta.get("index_types", {}).get(c, "string")}
                for c in res.meta["index"]]
         extra = [{"name": KT, "type": "timestamp"}] if KT in res.df.columns else []
         return idx + [a for a in res.meta["schema"] if a["name"] in res.df.columns] + extra
+
+
+def _aligned(eff: dict[str, Any], member_override: dict[str, str]) -> Any:
+    """The alignment, its driver member renamed as the members were (a pin resolves each
+    member through its member pin, so the driver is known by that pin's ref)."""
+    alignment = eff.get("alignment")
+    driver = (alignment or {}).get("member")
+    if alignment and driver in member_override:
+        return {**alignment, "member": member_override[driver]}
+    return alignment
+
+
+def equivalence_body(eff: dict[str, Any], inherited: list[dict[str, Any]]) -> dict[str, Any]:
+    """What a feature set *means*, for the near-copy check (§6.8).
+
+    Defaults are spelled out, so an omitted key and its default hash alike; members are
+    ordered by attribute; and an inherited layer counts by the policy it carries, not by
+    the ancestor that supplied it — an ``extend`` whose parent adds no policy means the
+    same as the directly written set, as ``project(extend(S, …), attrs)`` must."""
+    body = {"index": eff.get("index"), "grid": eff.get("grid") or "as_is",
+            "alignment": {"mode": "inner", **(eff.get("alignment") or {})},
+            "filters": eff.get("filters") or [], "global_policy": eff.get("global_policy") or {},
+            "group_policies": eff.get("group_policies") or {}}
+    body["members"] = sorted(eff.get("members", []), key=lambda m: m["attr"])
+    layers = [{k: v for k, v in layer.items() if k != "source"} for layer in inherited]
+    body["inherited"] = [layer for layer in layers if layer]
+    return body
 
 
 def shapes_infer(df: pd.DataFrame) -> list[dict[str, Any]]:

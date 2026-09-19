@@ -12,6 +12,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import builtins
 from typing import Any
 
 import numpy as np
@@ -185,7 +186,9 @@ class ModelService:
 
     def _version_fields(self, ir: dict[str, Any], name: str, author: str,
                         spec: str | None = None) -> dict[str, Any]:
-        contract = irmod.input_contract(ir) if ir and "body" in ir else []
+        # a declared black box (a vendor model, §29.10) still declares its inputs
+        contract = irmod.input_contract(ir) if ir and ("body" in ir or irmod.is_opaque(ir)) \
+            else []
         return {"formula_ir": ir, "input_contract": contract,
                 "ir_hash": irmod.ir_hash(ir) if ir else None,
                 "opaque": bool(ir) and irmod.is_opaque(ir),
@@ -201,7 +204,7 @@ class ModelService:
         with self.p.uow(p.username) as uow:
             model, ns = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
             self.p.access.require(uow, p, "update", "model", model)
-            draft = catalog.latest_version(uow, "model_versions", "model_id", model["id"])
+            draft = catalog.require_latest(uow, "model_versions", "model_id", model["id"])
             if draft["state"] not in EDITABLE:
                 raise NotApproved("There is no editable draft; start a new draft first")
             changes: dict[str, Any] = {}
@@ -232,9 +235,9 @@ class ModelService:
                       detail={"fields": sorted(changes)})
             return row
 
-    def _contract(self, uow: Any, ir: dict[str, Any]) -> list[dict[str, Any]]:
+    def _contract(self, uow: Any, ir: dict[str, Any]) -> builtins.list[dict[str, Any]]:
         if "composite" not in ir:
-            return irmod.input_contract(ir) if "body" in ir else []
+            return irmod.input_contract(ir) if "body" in ir or irmod.is_opaque(ir) else []
         members = self._member_irs(uow, ir)
         return comp.union_contract(members)
 
@@ -273,7 +276,7 @@ class ModelService:
         with self.p.uow(p.username) as uow:
             model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
             self.p.access.require(uow, p, "update", "model", model)
-            latest = catalog.latest_version(uow, "model_versions", "model_id", model["id"])
+            latest = catalog.require_latest(uow, "model_versions", "model_id", model["id"])
             if latest["state"] in EDITABLE:
                 return latest
             keep = {k: latest[k] for k in ("formula_ir", "input_contract", "ir_hash",
@@ -285,14 +288,14 @@ class ModelService:
 
     # -- code artifact ------------------------------------------------------------------
     def upload_artifact(self, p: Principal, ref: str, source: str, *,
-                        sample: dict[str, list[Any]] | None = None,
+                        sample: dict[str, builtins.list[Any]] | None = None,
                         params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Store the artifact by hash and run the six-rung ladder as a job (§17.2)."""
         digest = self.p.blobs.put(source.encode("utf-8"))
         with self.p.uow(p.username) as uow:
             model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
             self.p.access.require(uow, p, "update", "model", model, cap_type="artifact")
-            draft = catalog.latest_version(uow, "model_versions", "model_id", model["id"])
+            draft = catalog.require_latest(uow, "model_versions", "model_id", model["id"])
             if draft["state"] not in EDITABLE:
                 raise NotApproved("Artifacts attach to an editable draft")
             uow.repo("model_versions").update(draft["id"], {
@@ -307,7 +310,7 @@ class ModelService:
             return {"artifact_hash": digest, "job": job}
 
     @staticmethod
-    def _sample(version: dict[str, Any]) -> dict[str, list[Any]]:
+    def _sample(version: dict[str, Any]) -> dict[str, builtins.list[Any]]:
         rng = np.random.default_rng(0)
         return {c["name"]: [float(x) for x in rng.uniform(0.5, 1.5, 8)]
                 for c in version["input_contract"] or [{"name": "x"}]}

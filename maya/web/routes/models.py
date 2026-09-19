@@ -98,6 +98,19 @@ async def import_workbook(request: Request, ns: str, name: str) -> Any:
     if not workbook:
         flash(request, "Choose an .xlsx workbook to lift.", "danger")
         return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
+    if data.get("mode") == "preview":         # lift and check, import nothing
+        async with client(request) as sdk:
+            ir = await sdk.models.lift_workbook(workbook,
+                                                output=data.get("workbook_output") or None,
+                                                roles=_roles(data.get("workbook_roles", "")),
+                                                filename=upload.filename)
+        check = ir["lifted_from"]["workbook"]["check"]
+        inputs = ", ".join(f"{i['name']} ({i['role']})" for i in ir.get("inputs", []))
+        flash(request, f"Preview of {upload.filename}, nothing imported: output "
+                       f"{ir['outputs'][0]['name']}; inputs {inputs or 'none'}. "
+                       f"{check['statement']}",
+              "danger" if check["status"] == "disagreed" else "info")
+        return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
     async with client(request) as sdk:
         out = await sdk.models.import_workbook(f"{ns}/{name}", workbook,
                                                output=data.get("workbook_output") or None,

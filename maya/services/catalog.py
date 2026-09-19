@@ -96,6 +96,15 @@ def latest_version(uow: Any, table: str, fk: str, obj_id: str) -> dict[str, Any]
     return rows[0] if rows else None
 
 
+def require_latest(uow: Any, table: str, fk: str, obj_id: str) -> dict[str, Any]:
+    """The latest version, where the caller cannot go on without one: every catalog object
+    is created with v1, so its absence is a named NotFound, never a TypeError later."""
+    latest = latest_version(uow, table, fk, obj_id)
+    if latest is None:
+        raise NotFound(f"No version found in {table} for {obj_id}", id=str(obj_id))
+    return latest
+
+
 def in_state(uow: Any, table: str, fk: str, state: str | None, keep: Any) -> Any:
     """``keep``, narrowed to objects whose latest version is in ``state`` — one state or a
     comma-separated few ("draft,changes_requested"); ``keep`` itself when no state."""

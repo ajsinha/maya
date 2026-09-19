@@ -12,6 +12,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import builtins
 import datetime as dt
 import hashlib
 import io
@@ -330,7 +331,7 @@ class WarrantService:
 
     @staticmethod
     def check_bounds(ir: dict[str, Any], values: dict[str, Any],
-                     alias: str | None = None) -> list[str]:
+                     alias: str | None = None) -> builtins.list[str]:
         if not ir.get("body"):
             return []
         problems = []

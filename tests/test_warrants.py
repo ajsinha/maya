@@ -59,8 +59,8 @@ def journey(world):
     w.p.featuresets.create(w.devi, namespace="quant", name="panel", definition=fs_def)
     w.p.featuresets.transition(w.devi, "quant/panel", 1, "submit")
     w.p.featuresets.transition(w.mick, "quant/panel", 1, "approve")
-    out = w.p.featuresets.pin(w.mick, "quant/panel", version_no=1, pin_name="q1",
-                              as_of=dt.date(2026, 2, 28), cascade=True)
+    w.p.featuresets.pin(w.mick, "quant/panel", version_no=1, pin_name="q1",
+                        as_of=dt.date(2026, 2, 28), cascade=True)
     w.drain()
     w.p.models.create(w.mona, namespace="quant", name="linear", formula="yhat = a*x + b",
                       roles={"a": "parameter", "b": "parameter"})

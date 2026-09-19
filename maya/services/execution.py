@@ -142,8 +142,8 @@ class ExecutionService:
             return ew
 
     def _spec(self, spec: dict[str, Any]) -> dict[str, Any]:
-        out = {"valid_days": 90, "environments": ["dev"], "limits": {}, "contact": "",
-               "covenants": []}
+        out: dict[str, Any] = {"valid_days": 90, "environments": ["dev"], "limits": {},
+                               "contact": "", "covenants": []}
         out.update({k: v for k, v in spec.items() if v is not None})
         bad_env = set(out["environments"]) - set(ENVIRONMENTS)
         if bad_env:

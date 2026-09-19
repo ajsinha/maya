@@ -62,11 +62,22 @@ def wire(platform: Any) -> None:
         dispatch_transition(platform, p, object_type, object_id, name, **kw)
 
 
+def _cancel_pin(uow: Any, table: str, params: dict[str, Any]) -> None:
+    """A pin whose job is cancelled before it ran is failed, never left 'materializing':
+    a stuck pin would block its name and date for good."""
+    pin = uow.repo(table).get(params["pin_id"])
+    if pin is not None and pin["state"] == "materializing":
+        uow.repo(table).update(pin["id"], {"state": "failed",
+                                           "failure": "cancelled before it ran"})
+
+
 def _jobs(platform: Any) -> None:
     q = platform.jobs
-    q.register("feature.pin", platform.features.run_pin_job)
+    q.register("feature.pin", platform.features.run_pin_job,
+               on_cancel=lambda uow, params: _cancel_pin(uow, "feature_pins", params))
     q.register("assistant.challenge", platform.assistant.run_job)
-    q.register("featureset.pin", platform.featuresets.run_pin_job)
+    q.register("featureset.pin", platform.featuresets.run_pin_job,
+               on_cancel=lambda uow, params: _cancel_pin(uow, "feature_set_pins", params))
     q.register("model.validate_artifact", platform.models.run_validation_job)
     q.register("workspace.shadow_replay", platform.workspaces.run_replay_job)
     q.register("integrity.verify", lambda ctx, params: platform.ops.verify_integrity(

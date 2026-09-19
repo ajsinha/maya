@@ -81,3 +81,19 @@ def report(name: str, failures: list[str]) -> int:
         return 1
     print(f"ok   {name}")
     return 0
+
+
+API_PREFIX = "/api/v1"
+
+
+def api_app():  # type: ignore[no-untyped-def]
+    """Every API router on a bare FastAPI app — its OpenAPI document, with no platform."""
+    from fastapi import FastAPI
+    from maya.api.routers import (admin, assistant, catalog, custody, events, identity, registry,
+                                  workflow, workspaces)
+    app = FastAPI()
+    for r in (admin.router, catalog.router, registry.router, workflow.router,
+              workspaces.router, events.router, custody.router, identity.router,
+              assistant.router):
+        app.include_router(r, prefix=API_PREFIX)
+    return app

@@ -179,3 +179,26 @@ def test_web_login_redirects_to_the_idp_and_the_acs_signs_in():
     bad = fresh.post("/auth/sso/saml/acs", data={"SAMLResponse": idp.response(None, "sara")})
     assert bad.status_code == 401 and "nsolicited" in bad.text
     platform.shutdown()
+
+
+def test_the_admin_downloads_the_sp_metadata_from_the_ui(saml):
+    """SC-13: the SP metadata an IdP administrator needs is one click in the UI."""
+    import re
+    from starlette.testclient import TestClient
+    from maya.server import build_app
+    platform, _, _ = saml
+    web = TestClient(build_app(platform))
+    csrf = re.search(r'name="csrf_token" value="([^"]+)"', web.get("/login").text).group(1)
+    web.post("/login", data={"username": "admin", "password": "maya-dev-admin",
+                             "csrf_token": csrf})
+    r = web.get("/admin/sso/saml-metadata.xml", follow_redirects=False)
+    if r.status_code == 303:                           # first use: change the password
+        page = web.get("/account/password")
+        csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
+        web.post("/account/password", data={"old_password": "maya-dev-admin",
+                                            "new_password": "Admin-pass-2026",
+                                            "confirm_password": "Admin-pass-2026",
+                                            "csrf_token": csrf})
+        r = web.get("/admin/sso/saml-metadata.xml", follow_redirects=False)
+    assert r.status_code == 200 and "EntityDescriptor" in r.text, r.text[:300]
+    assert "attachment" in r.headers["content-disposition"]

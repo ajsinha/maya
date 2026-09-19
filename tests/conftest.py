@@ -45,7 +45,10 @@ def fresh_pg_database(url: str) -> str:
 
 
 def build_platform(extra_argv: list[str] | None = None, lake: str = "auto") -> Any:
-    sys.argv = ["pytest", f"--lake.backend={lake}"] + (extra_argv or [])
+    # MAYA_TEST_EXTRA_ARGV: settings for every platform in the run, e.g. the fallback
+    # matrix's seam pins (tools/ci/gates.py --fallback); they come last, so they win
+    sys.argv = ["pytest", f"--lake.backend={lake}"] + (extra_argv or []) + \
+        os.environ.get("MAYA_TEST_EXTRA_ARGV", "").split()
     os.environ["MAYA_HOME"] = tempfile.mkdtemp(prefix="maya-test-")
     pg = os.environ.get("MAYA_TEST_PG_URL")
     if pg:
