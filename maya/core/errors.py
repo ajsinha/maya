@@ -36,6 +36,11 @@ class MayaError(Exception):
         }
 
 
+class InvalidCursor(MayaError):
+    """A paging cursor that was tampered with, belongs to another query, or never was one."""
+    code, status = "invalid_cursor", 400
+
+
 class ValidationFailed(MayaError):
     code, status = "validation_failed", 422
 
@@ -100,6 +105,6 @@ ERRORS_BY_CODE: dict[str, type[MayaError]] = {
         MayaError, ValidationFailed, NotFound, NotAuthenticated, PermissionDenied,
         ConflictError, NotApproved, ContractMismatch, QualityCheckFailed,
         WarrantExpired, WarrantSuspended, QuotaExceeded, LicenceBreach,
-        CapabilityRefused, ConfigurationError,
+        CapabilityRefused, ConfigurationError, InvalidCursor,
     )
 }

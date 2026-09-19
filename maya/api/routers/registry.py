@@ -20,8 +20,11 @@ router = APIRouter()
 
 # -- models --------------------------------------------------------------------------
 @router.get("/models", tags=["models"])
-def list_models(namespace: str | None = None, q: str | None = None, me: Principal = Me,
-                plat: Any = Plat) -> Response:
+def list_models(namespace: str | None = None, q: str | None = None,
+                page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.models.page(me, namespace=namespace, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.models.list(me, namespace=namespace, q=q))
 
 
@@ -142,7 +145,11 @@ async def conformance(namespace: str, name: str, version_no: int, n: int = 500,
 
 # -- training warrants ---------------------------------------------------------------------
 @router.get("/warrants/training", tags=["warrants"])
-def list_training(me: Principal = Me, plat: Any = Plat) -> Response:
+def list_training(q: str | None = None, page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me,
+                  plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.warrants.page(me, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.warrants.list(me))
 
 
@@ -220,7 +227,11 @@ def parameter_transition(parameter_set_id: str, transition: str, body: s.Transit
 
 # -- execution warrants ------------------------------------------------------------------------
 @router.get("/warrants/execution", tags=["warrants"])
-def list_execution(me: Principal = Me, plat: Any = Plat) -> Response:
+def list_execution(q: str | None = None, page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me,
+                   plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.execution.page(me, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.execution.list(me))
 
 

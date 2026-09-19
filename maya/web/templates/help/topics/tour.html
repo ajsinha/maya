@@ -66,6 +66,22 @@ the policy allows you to take them, each with a rationale box.</p>
   ('file-earmark-spreadsheet', 'CSV', 'Export the current view (filter, sort, columns) as CSV.'),
   ('keyboard', 'Keyboard', 'Focus a table and use PageUp, PageDown, Home and End.'),
 ], cols=3) }}
+{% call concept('Big lists page from the server') %}
+<p>Features, feature sets, models, the audit explorer, the event stream and the jobs console can grow
+without bound, so they load one page at a time: the controls look the same, but search runs on the
+server over the whole list, sort applies to the columns with an arrow (one at a time), and
+<strong>All</strong> is not offered. <strong>CSV</strong> still exports the whole current view, fetching
+every page. From a script, the same lists page with a cursor:</p>
+{% endcall %}
+{% call example('Paging from Python', 'python') %}
+page = my.features.page(namespace="eq", page_size=100, sort="-updated")
+while page["next_cursor"]:
+    page = my.features.page(namespace="eq", page_size=100, sort="-updated",
+                            cursor=page["next_cursor"])
+
+for f in my.features.iter(namespace="eq"):     # or let the SDK follow the cursors
+    print(f["name"])
+{% endcall %}
 {% endcall %}
 
 {% call step(4, 'Everything you see is an SDK call') %}

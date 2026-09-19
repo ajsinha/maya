@@ -13,6 +13,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
+from maya.web.routes.tables import first_page
 from maya.web.routes.common import (action, client, download, flash, form, invalidate_health,
                                     page, parse_json, render)
 
@@ -191,9 +192,8 @@ async def delete_webhook(request: Request, webhook_id: str) -> Any:
 async def events_page(request: Request) -> Any:
     q = request.query_params
     async with client(request) as sdk:
-        rows = await sdk.events.list(after=int(q.get("after") or 0), limit=2000,
-                                     type=q.get("type") or None)
-    return await render(request, "admin/events.html", {"rows": list(reversed(rows)),
+        page = await first_page(request, sdk, "events", type=q.get("type") or None)
+    return await render(request, "admin/events.html", {"page": page,
                                                        "type": q.get("type", "")})
 
 
@@ -359,8 +359,8 @@ async def revoke_grant(request: Request, grant_id: str) -> Any:
 @page
 async def jobs(request: Request) -> Any:
     async with client(request) as sdk:
-        rows = await sdk.jobs.list(all=True)
-    return await render(request, "admin/jobs.html", {"rows": rows})
+        page = await first_page(request, sdk, "jobs")
+    return await render(request, "admin/jobs.html", {"page": page})
 
 
 @router.post("/admin/jobs/{job_id}/{verb}")
@@ -380,11 +380,11 @@ async def job_action(request: Request, job_id: str, verb: str) -> Any:
 async def audit(request: Request) -> Any:
     qp = request.query_params
     async with client(request) as sdk:
-        rows = await sdk.admin.audit(q=qp.get("q") or None, action=qp.get("action") or None,
-                                     limit=int(qp.get("limit") or 1000))
+        page = await first_page(request, sdk, "audit", q=qp.get("q") or None,
+                                action=qp.get("action") or None)
         chain = await sdk.admin.verify_audit()
     return await render(request, "admin/audit.html", {
-        "rows": rows, "chain": chain, "q": qp.get("q", ""), "action": qp.get("action", "")})
+        "page": page, "chain": chain, "q": qp.get("q", ""), "action": qp.get("action", "")})
 
 
 @router.get("/admin/config")

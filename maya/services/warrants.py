@@ -73,18 +73,28 @@ class WarrantService:
     def uri(self, w: dict[str, Any], ns: dict[str, Any]) -> str:
         return f"maya://warrant/train/{ns['name']}/{w['name']}@v{w['version_no']}"
 
+    def listing(self, uow: Any, p: Principal, *, q: str | None = None) -> Any:
+        from maya.services.paging import Listing
+        names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
+        return Listing(
+            "training_warrants", {"-created": "-created_at", "created": "created_at",
+                                  "name": "name", "-name": "-name"},
+            "-created", {}, (["name"], q or ""),
+            keep=lambda uow, w: self.p.access.allowed(uow, p, "read", "training_warrant", w),
+            enrich=lambda uow, w: {**w, "namespace": names.get(w["namespace_id"]),
+                                   "status": self.status(w),
+                                   "uri": f"maya://warrant/train/{names.get(w['namespace_id'])}/"
+                                          f"{w['name']}@v{w['version_no']}"})
+
     def list(self, p: Principal) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
-            rows = uow.repo("training_warrants").list(order_by=["-created_at"])
-            names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
-            out = []
-            for w in rows:
-                if self.p.access.allowed(uow, p, "read", "training_warrant", w):
-                    out.append({**w, "namespace": names.get(w["namespace_id"]),
-                                "status": self.status(w),
-                                "uri": f"maya://warrant/train/{names.get(w['namespace_id'])}/"
-                                       f"{w['name']}@v{w['version_no']}"})
-            return out
+            return self.listing(uow, p).collect(uow)
+
+    def page(self, p: Principal, *, q: str | None = None, page_size: int | None = None,
+             cursor: str | None = None, sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import run_page
+        return run_page(self.p, lambda uow: self.listing(uow, p, q=q), page_size=page_size,
+                        cursor=cursor, sort=sort, total=total)
 
     @staticmethod
     def status(w: dict[str, Any]) -> str:

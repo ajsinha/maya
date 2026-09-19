@@ -98,8 +98,35 @@ class Repository(Generic[M]):
             stmt = stmt.limit(limit)
         return [o.to_dict() for o in self.session.scalars(stmt).all()]
 
-    def count(self, **filters: Any) -> int:
-        stmt = self._where(select(func.count()).select_from(self.model), filters)
+    def keyset(self, order: str, *, after: tuple[Any, Any] | None = None, limit: int = 100,
+               search: tuple[list[str], str] | None = None,
+               **filters: Any) -> list[dict[str, Any]]:
+        """One keyset page: rows strictly after ``after`` = (sort value, primary key).
+
+        Ordered by the sort column then the primary key, both in the sort's direction,
+        so ties never repeat or skip a row and inserts elsewhere do not shift a page."""
+        desc = order.startswith("-")
+        col = getattr(self.model, order.lstrip("-"))
+        pk = self.model.__mapper__.primary_key[0]
+        stmt = self._search(self._where(select(self.model), filters), search)
+        if after is not None:
+            value, key = after
+            before = (col < value) if desc else (col > value)
+            tie = (pk < key) if desc else (pk > key)
+            stmt = stmt.where(or_(before, and_(col == value, tie)))
+        stmt = stmt.order_by(col.desc() if desc else col.asc(),
+                             pk.desc() if desc else pk.asc()).limit(limit)
+        return [o.to_dict() for o in self.session.scalars(stmt).all()]
+
+    def _search(self, stmt: Select[Any], search: tuple[list[str], str] | None) -> Select[Any]:
+        if search and search[1]:
+            cols, q = search
+            stmt = stmt.where(or_(*[_OPS["ilike"](getattr(self.model, c), q) for c in cols]))
+        return stmt
+
+    def count(self, *, search: tuple[list[str], str] | None = None, **filters: Any) -> int:
+        stmt = self._search(self._where(select(func.count()).select_from(self.model), filters),
+                            search)
         return int(self.session.execute(stmt).scalar_one())
 
     # -- writes ------------------------------------------------------------

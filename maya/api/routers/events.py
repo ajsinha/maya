@@ -20,8 +20,11 @@ router = APIRouter(tags=["events"])
 
 
 @router.get("/events")
-def events(after: int = 0, limit: int = 500, type: str | None = None, me: Principal = Me,
-           plat: Any = Plat) -> Response:
+def events(after: int = 0, limit: int = 500, type: str | None = None,
+           page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.webhooks.events_page(me, type_prefix=type, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.webhooks.events(me, after=after, limit=limit, type_prefix=type))
 
 

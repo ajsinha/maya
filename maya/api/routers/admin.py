@@ -205,8 +205,12 @@ def update_namespace(name: str, body: dict[str, Any], me: Principal = Me,
 
 
 @router.get("/grants", tags=["access"])
-def grants(kind: str, ref: str, me: Principal = Me, plat: Any = Plat) -> Response:
+def grants(kind: str, ref: str, page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me,
+           plat: Any = Plat) -> Response:
     obj = plat.access.resolve_object(kind, ref)
+    if page_size is not None or cursor is not None:
+        return ok(plat.access.grants_page(kind, obj["id"], page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.access.grants_for(kind, obj["id"]))
 
 
@@ -232,7 +236,10 @@ def recertification(me: Principal = Me, plat: Any = Plat) -> Response:
 # -- audit, inbox, search --------------------------------------------------------------
 @router.get("/audit", tags=["audit"])
 def audit(q: str | None = None, action: str | None = None, limit: int = 1000,
-          me: Principal = Me, plat: Any = Plat) -> Response:
+          page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.access.audit_page(me, q=q, action=action, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.access.audit_log(me, limit=limit, q=q, action=action))
 
 
@@ -242,7 +249,10 @@ def audit_verify(me: Principal = Me, plat: Any = Plat) -> Response:
 
 
 @router.get("/inbox", tags=["inbox"])
-def inbox(me: Principal = Me, plat: Any = Plat) -> Response:
+def inbox(page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.access.inbox_page(me, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.access.inbox(me))
 
 
@@ -297,7 +307,11 @@ def estate(me: Principal = Me, plat: Any = Plat) -> Response:
 
 
 @router.get("/jobs", tags=["jobs"])
-def jobs(all: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+def jobs(all: bool = False, q: str | None = None, page_size: int | None = None, cursor: str | None = None,
+                  sort: str | None = None, total: bool = False, me: Principal = Me,
+         plat: Any = Plat) -> Response:
+    if page_size is not None or cursor is not None:
+        return ok(plat.ops.jobs_page(me, all_users=all, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total))
     return ok(plat.ops.jobs(me, all_users=all))
 
 

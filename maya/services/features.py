@@ -33,32 +33,47 @@ class FeatureService:
         return self.p.feature_data
 
     # -- read ---------------------------------------------------------------------
+    def listing(self, uow: Any, p: Principal, *, namespace: str | None = None,
+                q: str | None = None, status: str | None = None) -> Any:
+        """What 'the features p may read' means, for the whole list or one page of it."""
+        from maya.services.paging import Listing
+        filters: dict[str, Any] = {}
+        if namespace:
+            filters["namespace_id"] = self.p.access.namespace(uow, namespace)["id"]
+        if status:
+            filters["status"] = status
+        names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
+        users = {u["id"]: u["username"] for u in uow.repo("users").list()}
+
+        def enrich(uow: Any, f: dict[str, Any]) -> dict[str, Any]:
+            latest = catalog.latest_version(uow, "feature_versions", "feature_id", f["id"])
+            return {**f, "namespace": names.get(f["namespace_id"]),
+                    "owner": users.get(f["owner_id"]),
+                    "latest_version": latest["version_no"] if latest else None,
+                    "latest_state": latest["state"] if latest else None,
+                    "pins": uow.repo("feature_pins").count(feature_id=f["id"], state="sealed"),
+                    "ref": refs.object_ref("feature", names.get(f["namespace_id"], ""),
+                                           f["name"])}
+        return Listing("features", {"name": "name", "-name": "-name",
+                                    "updated": "updated_at", "-updated": "-updated_at",
+                                    "created": "created_at", "-created": "-created_at"},
+                       "name", filters, (["name", "description"], q or ""),
+                       keep=lambda uow, f: self.p.access.allowed(uow, p, "read", "feature", f),
+                       enrich=enrich)
+
     def list(self, p: Principal, *, namespace: str | None = None, q: str | None = None,
              status: str | None = None) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
-            filters: dict[str, Any] = {}
-            if namespace:
-                filters["namespace_id"] = self.p.access.namespace(uow, namespace)["id"]
-            if status:
-                filters["status"] = status
-            rows = uow.repo("features").list(order_by=["name"],
-                                             search=(["name", "description"], q or ""), **filters)
-            names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
-            users = {u["id"]: u["username"] for u in uow.repo("users").list()}
-            out = []
-            for f in rows:
-                if not self.p.access.allowed(uow, p, "read", "feature", f):
-                    continue
-                latest = catalog.latest_version(uow, "feature_versions", "feature_id", f["id"])
-                out.append({**f, "namespace": names.get(f["namespace_id"]),
-                            "owner": users.get(f["owner_id"]),
-                            "latest_version": latest["version_no"] if latest else None,
-                            "latest_state": latest["state"] if latest else None,
-                            "pins": uow.repo("feature_pins").count(feature_id=f["id"],
-                                                                   state="sealed"),
-                            "ref": refs.object_ref("feature", names.get(f["namespace_id"], ""),
-                                                   f["name"])})
-            return out
+            return self.listing(uow, p, namespace=namespace, q=q, status=status).collect(uow)
+
+    def page(self, p: Principal, *, namespace: str | None = None, q: str | None = None,
+             status: str | None = None, page_size: int | None = None,
+             cursor: str | None = None, sort: str | None = None,
+             total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import run_page
+        return run_page(self.p, lambda uow: self.listing(uow, p, namespace=namespace, q=q,
+                                                         status=status),
+                        page_size=page_size, cursor=cursor, sort=sort, total=total)
 
     def get(self, p: Principal, ref: str) -> dict[str, Any]:
         with self.p.uow() as uow:

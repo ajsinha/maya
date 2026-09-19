@@ -404,6 +404,34 @@ class AccessService:
                 order_by=["-seq"], limit=limit,
                 search=(["actor", "action", "object_ref"], q or ""), **filters)
 
+    def audit_page(self, p: Principal, *, q: str | None = None, action: str | None = None,
+                   page_size: int | None = None, cursor: str | None = None,
+                   sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        """The audit explorer, one keyset page at a time (newest first by default)."""
+        from maya.services.paging import Listing, run_page
+        if not (p.is_admin or "techops" in p.roles):
+            raise PermissionDenied("The audit explorer is for administrators and techops")
+        filters = {"action__ilike": action} if action else {}
+        return run_page(self.p, lambda uow: Listing(
+            "audit_events", {"-seq": "-seq", "seq": "seq"}, "-seq", filters,
+            (["actor", "action", "object_ref"], q or "")),
+            page_size=page_size, cursor=cursor, sort=sort, total=total)
+
+    def inbox_page(self, p: Principal, *, page_size: int | None = None, cursor: str | None = None,
+                   sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import Listing, run_page
+        return run_page(self.p, lambda uow: Listing(
+            "notifications", {"-created": "-created_at", "created": "created_at"}, "-created",
+            {"user_id": p.user_id}), page_size=page_size, cursor=cursor, sort=sort, total=total)
+
+    def grants_page(self, kind: str, obj_id: str, *, page_size: int | None = None, cursor: str | None = None,
+                   sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import Listing, run_page
+        return run_page(self.p, lambda uow: Listing(
+            "grants", {"created": "created_at", "-created": "-created_at"}, "created",
+            {"object_type": kind, "object_id": obj_id}),
+            page_size=page_size, cursor=cursor, sort=sort, total=total)
+
     def verify_audit(self) -> dict[str, Any]:
         with self.p.uow() as uow:
             return uow.repo("audit_events").verify_chain()

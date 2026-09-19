@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Any, Callable
 
-from maya.sdk.transport import Call, seg, split_ref
+from maya.sdk.transport import AsyncTransport, Call, seg, split_ref
 
 ENDPOINTS: dict[tuple[str, str], str] = {}
 
@@ -27,12 +27,52 @@ def endpoint(method: str, path: str) -> Callable[[Any], Any]:
     return deco
 
 
+PAGE_SIZE = 100
+
+
 class _Resource:
     def __init__(self, transport: Any) -> None:
         self._t = transport
 
     def _c(self, method: str, path: str, **kw: Any) -> Any:
         return self._t.call(Call(method, path, **kw))
+
+    # -- cursor paging (opt-in on the list endpoints) ----------------------------------
+    def _page(self, path: str, params: dict[str, Any], page_size: int = PAGE_SIZE,
+              cursor: str | None = None, sort: str | None = None, total: bool = False) -> Any:
+        """One page: ``{items, next_cursor, page_size, sort[, total]}``."""
+        return self._c("GET", path, params={**params, "page_size": page_size, "cursor": cursor,
+                                            "sort": sort, "total": total or None})
+
+    def _iter(self, path: str, params: dict[str, Any], page_size: int = PAGE_SIZE,
+              sort: str | None = None) -> Any:
+        """Every item, fetched a page at a time by following ``next_cursor``.
+
+        A generator on a sync client, an async generator on an async one."""
+        if isinstance(self._t, AsyncTransport):
+            return self._aiter(path, params, page_size, sort)
+        return self._siter(path, params, page_size, sort)
+
+    def _siter(self, path: str, params: dict[str, Any], page_size: int,
+               sort: str | None) -> Any:
+        cursor = None
+        while True:
+            page = self._page(path, params, page_size, cursor, sort)
+            yield from page["items"]
+            cursor = page["next_cursor"]
+            if not cursor:
+                return
+
+    async def _aiter(self, path: str, params: dict[str, Any], page_size: int,
+                     sort: str | None) -> Any:
+        cursor = None
+        while True:
+            page = await self._page(path, params, page_size, cursor, sort)
+            for item in page["items"]:
+                yield item
+            cursor = page["next_cursor"]
+            if not cursor:
+                return
 
 
 def _nn(ref: str, kind: str) -> str:
@@ -200,6 +240,13 @@ class Admin(_Resource):
     def audit(self, q: str | None = None, action: str | None = None, limit: int = 1000) -> Any:
         return self._c("GET", "/audit", params={"q": q, "action": action, "limit": limit})
 
+    def audit_page(self, q: str | None = None, action: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/audit", {"q": q, "action": action}, page_size, cursor, sort, total)
+
+    def iter_audit(self, q: str | None = None, action: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/audit", {"q": q, "action": action}, page_size, sort)
+
     @endpoint("GET", "/audit/verify")
     def verify_audit(self) -> Any:
         return self._c("GET", "/audit/verify")
@@ -268,6 +315,13 @@ class Access(_Resource):
     def grants(self, kind: str, ref: str) -> Any:
         return self._c("GET", "/grants", params={"kind": kind, "ref": ref})
 
+    def grants_page(self, kind: str, ref: str, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/grants", {"kind": kind, "ref": ref}, page_size, cursor, sort, total)
+
+    def iter_grants(self, kind: str, ref: str, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/grants", {"kind": kind, "ref": ref}, page_size, sort)
+
     @endpoint("POST", "/grants")
     def grant(self, kind: str, object_ref: str, principal_type: str, principal_id: str,
               level: str, **kw: Any) -> Any:
@@ -286,6 +340,13 @@ class Access(_Resource):
     @endpoint("GET", "/inbox")
     def inbox(self) -> Any:
         return self._c("GET", "/inbox")
+
+    def inbox_page(self, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/inbox", {}, page_size, cursor, sort, total)
+
+    def iter_inbox(self, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/inbox", {}, page_size, sort)
 
     @endpoint("POST", "/inbox/read")
     def mark_read(self, ids: list[str] | None = None) -> Any:
@@ -311,6 +372,18 @@ class Features(_Resource):
              status: str | None = None) -> Any:
         return self._c("GET", "/features", params={"namespace": namespace, "q": q,
                                                    "status": status})
+
+    def page(self, namespace: str | None = None, q: str | None = None,
+             status: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        """One page of features; sort is name, -name, updated, -updated, created, -created."""
+        return self._page("/features", {"namespace": namespace, "q": q, "status": status},
+                          page_size, cursor, sort, total)
+
+    def iter(self, namespace: str | None = None, q: str | None = None,
+             status: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/features", {"namespace": namespace, "q": q, "status": status},
+                          page_size, sort)
 
     @endpoint("POST", "/features")
     def create(self, namespace: str, name: str, definition: dict[str, Any], **kw: Any) -> Any:
@@ -408,6 +481,14 @@ class FeatureSets(_Resource):
     def list(self, namespace: str | None = None, q: str | None = None) -> Any:
         return self._c("GET", "/featuresets", params={"namespace": namespace, "q": q})
 
+    def page(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/featuresets", {"namespace": namespace, "q": q}, page_size, cursor,
+                          sort, total)
+
+    def iter(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/featuresets", {"namespace": namespace, "q": q}, page_size, sort)
+
     @endpoint("POST", "/featuresets")
     def create(self, namespace: str, name: str, definition: dict[str, Any], **kw: Any) -> Any:
         return self._c("POST", "/featuresets", json_body={"namespace": namespace, "name": name,
@@ -461,6 +542,14 @@ class Models(_Resource):
     @endpoint("GET", "/models")
     def list(self, namespace: str | None = None, q: str | None = None) -> Any:
         return self._c("GET", "/models", params={"namespace": namespace, "q": q})
+
+    def page(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/models", {"namespace": namespace, "q": q}, page_size, cursor,
+                          sort, total)
+
+    def iter(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/models", {"namespace": namespace, "q": q}, page_size, sort)
 
     @endpoint("POST", "/models")
     def create(self, namespace: str, name: str, **kw: Any) -> Any:
@@ -538,6 +627,13 @@ class TrainingWarrants(_Resource):
     def list(self) -> Any:
         return self._c("GET", "/warrants/training")
 
+    def page(self, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/warrants/training", {"q": q}, page_size, cursor, sort, total)
+
+    def iter(self, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/warrants/training", {"q": q}, page_size, sort)
+
     @endpoint("POST", "/warrants/training")
     def create(self, namespace: str, name: str, model: str, featureset: str,
                spec: dict[str, Any] | None = None) -> Any:
@@ -600,6 +696,13 @@ class ExecutionWarrants(_Resource):
     @endpoint("GET", "/warrants/execution")
     def list(self) -> Any:
         return self._c("GET", "/warrants/execution")
+
+    def page(self, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/warrants/execution", {"q": q}, page_size, cursor, sort, total)
+
+    def iter(self, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/warrants/execution", {"q": q}, page_size, sort)
 
     @endpoint("POST", "/warrants/execution")
     def create(self, namespace: str, name: str, **kw: Any) -> Any:
@@ -801,6 +904,13 @@ class Events(_Resource):
     def list(self, after: int = 0, limit: int = 500, type: str | None = None) -> Any:
         return self._c("GET", "/events", params={"after": after, "limit": limit, "type": type})
 
+    def page(self, type: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/events", {"type": type}, page_size, cursor, sort, total)
+
+    def iter(self, type: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/events", {"type": type}, page_size, sort)
+
     @endpoint("GET", "/events/stream")
     def stream(self, after: int = 0) -> Any:
         return self._c("GET", "/events/stream", params={"after": after})
@@ -853,6 +963,13 @@ class Jobs(_Resource):
     @endpoint("GET", "/jobs")
     def list(self, all: bool = False) -> Any:
         return self._c("GET", "/jobs", params={"all": all})
+
+    def page(self, all: bool = False, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        return self._page("/jobs", {"all": all, "q": q}, page_size, cursor, sort, total)
+
+    def iter(self, all: bool = False, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+        return self._iter("/jobs", {"all": all, "q": q}, page_size, sort)
 
     @endpoint("GET", "/jobs/{job_id}")
     def get(self, job_id: str) -> Any:

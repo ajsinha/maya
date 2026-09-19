@@ -44,28 +44,41 @@ class ModelService:
         self.p = platform
 
     # -- read ---------------------------------------------------------------------
+    def listing(self, uow: Any, p: Principal, *, namespace: str | None = None,
+                q: str | None = None) -> Any:
+        from maya.services.paging import Listing
+        filters: dict[str, Any] = {}
+        if namespace:
+            filters["namespace_id"] = self.p.access.namespace(uow, namespace)["id"]
+        names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
+
+        def enrich(uow: Any, m: dict[str, Any]) -> dict[str, Any]:
+            latest = catalog.latest_version(uow, "model_versions", "model_id", m["id"])
+            return {**m, "namespace": names.get(m["namespace_id"]),
+                    "latest_version": latest["version_no"] if latest else None,
+                    "latest_state": latest["state"] if latest else None,
+                    "maturity": latest["maturity"] if latest else None,
+                    "opaque": latest["opaque"] if latest else None,
+                    "ref": refs.object_ref("model", names.get(m["namespace_id"], ""),
+                                           m["name"])}
+        return Listing("models", {"name": "name", "-name": "-name", "updated": "updated_at",
+                                  "-updated": "-updated_at", "created": "created_at",
+                                  "-created": "-created_at"},
+                       "name", filters, (["name", "description"], q or ""),
+                       keep=lambda uow, m: self.p.access.allowed(uow, p, "read", "model", m),
+                       enrich=enrich)
+
     def list(self, p: Principal, *, namespace: str | None = None, q: str | None = None
              ) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
-            filters: dict[str, Any] = {}
-            if namespace:
-                filters["namespace_id"] = self.p.access.namespace(uow, namespace)["id"]
-            rows = uow.repo("models").list(order_by=["name"],
-                                           search=(["name", "description"], q or ""), **filters)
-            names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
-            out = []
-            for m in rows:
-                if not self.p.access.allowed(uow, p, "read", "model", m):
-                    continue
-                latest = catalog.latest_version(uow, "model_versions", "model_id", m["id"])
-                out.append({**m, "namespace": names.get(m["namespace_id"]),
-                            "latest_version": latest["version_no"] if latest else None,
-                            "latest_state": latest["state"] if latest else None,
-                            "maturity": latest["maturity"] if latest else None,
-                            "opaque": latest["opaque"] if latest else None,
-                            "ref": refs.object_ref("model", names.get(m["namespace_id"], ""),
-                                                   m["name"])})
-            return out
+            return self.listing(uow, p, namespace=namespace, q=q).collect(uow)
+
+    def page(self, p: Principal, *, namespace: str | None = None, q: str | None = None,
+             page_size: int | None = None,
+             cursor: str | None = None, sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import run_page
+        return run_page(self.p, lambda uow: self.listing(uow, p, namespace=namespace, q=q),
+                        page_size=page_size, cursor=cursor, sort=sort, total=total)
 
     def get(self, p: Principal, ref: str) -> dict[str, Any]:
         with self.p.uow() as uow:

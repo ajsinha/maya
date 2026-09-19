@@ -87,6 +87,17 @@ class OpsService:
                 return uow.repo("jobs").list(order_by=["-created_at"], limit=1000)
             return uow.repo("jobs").list(owner=p.username, order_by=["-created_at"], limit=500)
 
+    def jobs_page(self, p: Principal, *, all_users: bool = False, q: str | None = None,
+                  page_size: int | None = None, cursor: str | None = None,
+                   sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import Listing, run_page
+        everyone = all_users and (p.is_admin or "techops" in p.roles)
+        filters = {} if everyone else {"owner": p.username}
+        return run_page(self.p, lambda uow: Listing(
+            "jobs", {"-created": "-created_at", "created": "created_at"}, "-created", filters,
+            (["job_type", "state", "owner"], q or "")),
+            page_size=page_size, cursor=cursor, sort=sort, total=total)
+
     def job(self, p: Principal, job_id: str) -> dict[str, Any]:
         with self.p.uow() as uow:
             job = uow.repo("jobs").require(job_id)
