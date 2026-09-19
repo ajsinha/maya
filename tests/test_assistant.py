@@ -15,7 +15,7 @@ from types import SimpleNamespace
 import pytest
 
 from maya.assistant import rules
-from maya.core.errors import PermissionDenied, ValidationFailed
+from maya.core.errors import ConfigurationError, PermissionDenied, ValidationFailed
 from tests.conftest import PX_DEF, price_csv
 from tests.test_warrants import complete_spec
 
@@ -305,7 +305,8 @@ def test_when_claude_cannot_answer_the_memo_keeps_the_deterministic_findings(cla
 def test_an_unknown_provider_is_refused_at_startup():
     from tests.conftest import build_platform
 
-    with pytest.raises(ValidationFailed, match="assistant.provider"):
+    # refused by the declared configuration schema (§24.2), before the service is built
+    with pytest.raises(ConfigurationError, match="assistant.provider"):
         build_platform(["--assistant.provider=oracle"])
 
 

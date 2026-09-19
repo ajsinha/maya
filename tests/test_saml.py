@@ -16,7 +16,12 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from maya.core.errors import CapabilityRefused, NotAuthenticated, ValidationFailed
+from maya.core.errors import (
+    CapabilityRefused,
+    ConfigurationError,
+    NotAuthenticated,
+    ValidationFailed,
+)
 from maya.sdk import Client
 from tests.conftest import build_platform
 from tests.saml_idp import ACS, SP, SamlIdP
@@ -162,7 +167,9 @@ def test_no_mapped_group_is_refused(saml):
 def test_startup_refuses_incomplete_or_unavailable_saml(monkeypatch):
     with pytest.raises(ValidationFailed, match="auth.sso.saml.sp_entity_id"):
         build_platform(["--auth.mode=sso", "--auth.sso.protocol=saml2"])
-    with pytest.raises(CapabilityRefused, match="must be 'oidc' or 'saml2'"):
+    # the declared schema (§24.2) refuses the unknown protocol before any service sees
+    # it, so this no longer reaches sso.check_startup's own CapabilityRefused
+    with pytest.raises(ConfigurationError, match="expected one of oidc, saml2"):
         build_platform(["--auth.mode=sso", "--auth.sso.protocol=ws-fed"])
     from maya.security import saml
 

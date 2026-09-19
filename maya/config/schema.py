@@ -1,0 +1,622 @@
+"""
+The declared configuration schema (§24.2): every setting, its type, what it is
+for, its default and its validator.
+
+Before this existed a setting was whatever ``settings.get(key, default)``
+happened to say at the call site, so the tracked ``config/application.yaml``,
+the documentation and the code could drift apart without anything noticing, and
+a typo in the file was simply a key nobody read. Declaring every setting in one
+place fixes three things at once:
+
+* a key in a configuration file that is not declared here is refused at startup,
+  with the nearest declared key named, so ``db.dialct`` stops MAYA instead of
+  silently leaving SQLite in place;
+* a setting's default lives here and nowhere else, so a call site cannot
+  introduce a second, different default (``tests/test_config_schema.py``
+  compares every code default against this table and fails on a difference);
+* a setting the specification says must exist is marked ``required``, and MAYA
+  refuses to start without it rather than guessing.
+
+``family`` covers the two shapes whose leaf names are not known in advance —
+seam pins and the IdP group-to-role map — and ``kind`` ``list`` accepts the
+``key.0``, ``key.1`` indices the YAML parser writes beside a joined list.
+
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+"""
+
+from __future__ import annotations
+
+import difflib
+import re
+from dataclasses import dataclass
+from typing import Any
+
+from maya.core.errors import ConfigurationError
+
+KINDS = ("string", "int", "float", "bool", "path", "choice", "list", "duration")
+_TRUE = ("1", "true", "yes", "on", "y", "t")
+_FALSE = ("0", "false", "no", "off", "n", "f")
+
+
+@dataclass(frozen=True)
+class Setting:
+    """One declared setting: what it is, what it defaults to, what it accepts."""
+
+    key: str
+    kind: str
+    description: str
+    default: str | None = None
+    required: bool = False
+    choices: tuple[str, ...] = ()
+    secret: bool = False
+    family: bool = False
+    minimum: float | None = None
+    maximum: float | None = None
+
+    def validate(self, value: str) -> None:
+        """Refuse a value this setting cannot hold, naming the key and what it accepts."""
+        if self.kind == "choice" and value.strip().lower() not in self.choices:
+            self._refuse(value, f"one of {', '.join(self.choices)}")
+        if self.kind == "bool" and value.strip().lower() not in _TRUE + _FALSE:
+            self._refuse(value, "a boolean (true/false)")
+        if self.kind in ("int", "duration"):
+            try:
+                number: float = int(value)
+            except ValueError:
+                self._refuse(value, "a whole number")
+        elif self.kind == "float":
+            try:
+                number = float(value)
+            except ValueError:
+                self._refuse(value, "a number")
+        else:
+            return
+        if self.minimum is not None and number < self.minimum:
+            self._refuse(value, f"at least {self.minimum:g}")
+        if self.maximum is not None and number > self.maximum:
+            self._refuse(value, f"at most {self.maximum:g}")
+
+    def _refuse(self, value: str, expected: str) -> None:
+        raise ConfigurationError(
+            f"Setting '{self.key}' is '{value}'; expected {expected}. {self.description}",
+            key=self.key,
+            expected=expected,
+        )
+
+
+def _s(*args: Any, **kw: Any) -> Setting:
+    return Setting(*args, **kw)
+
+
+SETTINGS: tuple[Setting, ...] = (
+    # -- the application ------------------------------------------------------
+    _s("app.name", "string", "The name in the banner and the page titles.", "MAYA"),
+    _s(
+        "app.environment",
+        "choice",
+        "dev, uat or prod. Outside dev the default admin password, SQLite and a weak "
+        "sandbox each refuse to start.",
+        required=True,
+        choices=("dev", "uat", "prod"),
+    ),
+    _s(
+        "app.secret_key",
+        "string",
+        "The session-signing secret. Empty in dev generates one under storage.root/keys; "
+        "outside dev an empty value refuses to start.",
+        "",
+        secret=True,
+    ),
+    _s(
+        "app.allow_default_admin_password",
+        "bool",
+        "Let a non-dev environment start with the bootstrap admin password unchanged. "
+        "Only ever true while a deployment is being set up.",
+        "false",
+    ),
+    # -- the server -----------------------------------------------------------
+    _s("server.host", "string", "The address the web server binds.", "127.0.0.1"),
+    _s("server.port", "int", "The port the web server binds.", "8600", minimum=1, maximum=65535),
+    _s(
+        "server.workers",
+        "int",
+        "Web processes. Above 1 needs PostgreSQL (ADR-022) and the launching process keeps "
+        "the job workers, webhooks and scheduler.",
+        "1",
+        minimum=1,
+    ),
+    # -- logging --------------------------------------------------------------
+    _s("logging.level", "string", "The root log level at startup.", "INFO"),
+    _s("logging.format", "choice", "Line format.", "text", choices=("text", "json")),
+    _s("logging.file", "path", "Where the log is written. Empty: stderr only.", ""),
+    # -- the database ---------------------------------------------------------
+    _s(
+        "db.dialect",
+        "choice",
+        "sqlite or postgresql, never mixed (ADR-013). The schema file follows from it.",
+        required=True,
+        choices=("sqlite", "postgresql"),
+    ),
+    _s("db.echo", "bool", "Log every SQL statement. Debugging only.", "false"),
+    _s(
+        "db.sqlite.path",
+        "path",
+        "The SQLite database file. No default: it is required when db.dialect is sqlite, and required() names it.",
+        None,
+    ),
+    _s(
+        "db.sqlite.busy_timeout_ms",
+        "int",
+        "How long a writer waits for SQLite's single write lock before failing.",
+        "30000",
+        minimum=0,
+    ),
+    _s("db.postgresql.host", "string", "The PostgreSQL host.", "localhost"),
+    _s("db.postgresql.port", "int", "The PostgreSQL port.", "5432", minimum=1, maximum=65535),
+    _s("db.postgresql.database", "string", "The PostgreSQL database name.", "maya"),
+    _s("db.postgresql.user", "string", "The PostgreSQL user.", "maya"),
+    _s(
+        "db.postgresql.password",
+        "string",
+        "The PostgreSQL password. From the environment or the local overlay, never the "
+        "tracked file.",
+        "",
+        secret=True,
+    ),
+    _s("db.postgresql.pool_size", "int", "Connections kept open.", "10", minimum=1),
+    _s(
+        "db.postgresql.max_overflow",
+        "int",
+        "Connections opened above the pool under load.",
+        "10",
+        minimum=0,
+    ),
+    # -- storage and the lake -------------------------------------------------
+    _s(
+        "storage.root",
+        "path",
+        "Root of the local stores: the lake, blobs, keys, logs and the SQLite file.",
+        required=True,
+    ),
+    _s(
+        "lake.backend",
+        "choice",
+        "The maya_delta backend (§7.4).",
+        "auto",
+        choices=("auto", "native", "pure"),
+    ),
+    _s(
+        "lake.maintenance.interval_seconds",
+        "duration",
+        "How often the scheduler compacts and vacuums every lake table.",
+        "86400",
+        minimum=0,
+    ),
+    _s(
+        "lake.maintenance.target_size_mb",
+        "int",
+        "Compaction's target file size.",
+        "128",
+        minimum=1,
+    ),
+    _s(
+        "lake.maintenance.vacuum_retention_hours",
+        "float",
+        "How long an unreferenced file is kept for time travel. Under 168 is allowed but "
+        "must be written out.",
+        "168",
+        minimum=0,
+    ),
+    _s("lake.fragment.target_rows", "int", "Rows per pin fragment, aimed at.", "512", minimum=1),
+    _s("lake.fragment.min_rows", "int", "Smallest pin fragment.", "32", minimum=1),
+    _s("lake.fragment.max_rows", "int", "Largest pin fragment.", "8192", minimum=1),
+    # -- authentication -------------------------------------------------------
+    _s(
+        "auth.mode",
+        "choice",
+        "db (passwords), sso (the IdP only) or hybrid.",
+        required=True,
+        choices=("db", "sso", "hybrid"),
+    ),
+    _s(
+        "auth.session.idle_timeout_minutes",
+        "int",
+        "A session idle this long ends.",
+        "30",
+        minimum=1,
+    ),
+    _s(
+        "auth.session.absolute_timeout_hours",
+        "int",
+        "A session ends this long after sign-in whatever it is doing.",
+        "12",
+        minimum=1,
+    ),
+    _s(
+        "auth.session.principal_cache_seconds",
+        "int",
+        "A signed-in session's principal is reused this long (0: never). ADR-026.",
+        "2",
+        minimum=0,
+    ),
+    _s("auth.password.min_length", "int", "Shortest password accepted.", "12", minimum=8),
+    _s("auth.lockout.attempts", "int", "Failed sign-ins before a lockout.", "5", minimum=1),
+    _s(
+        "auth.lockout.window_minutes", "int", "The window those attempts count in.", "15", minimum=1
+    ),
+    _s("auth.lockout.duration_minutes", "int", "How long a lockout lasts.", "30", minimum=1),
+    _s("auth.api_keys.max_days", "int", "Longest life of an API key.", "365", minimum=1),
+    _s(
+        "auth.sso.protocol",
+        "choice",
+        "The single sign-on protocol.",
+        "oidc",
+        choices=("oidc", "saml2"),
+    ),
+    _s("auth.sso.issuer", "string", "The OIDC issuer URL.", ""),
+    _s("auth.sso.client_id", "string", "MAYA's client id at the IdP.", "maya"),
+    _s("auth.sso.client_secret", "string", "MAYA's client secret at the IdP.", "", secret=True),
+    _s(
+        "auth.sso.redirect_uri",
+        "string",
+        "Where the IdP sends the authorization code.",
+        "http://127.0.0.1:8600/auth/sso/callback",
+    ),
+    _s(
+        "auth.sso.post_logout_redirect_uri",
+        "string",
+        "Set it to sign out at the IdP too (ADR-027). Empty: the MAYA session only.",
+        "",
+    ),
+    _s(
+        "auth.sso.scopes",
+        "string",
+        "Scopes requested, space separated.",
+        "openid profile email groups",
+    ),
+    _s(
+        "auth.sso.username_claim", "string", "The claim holding the username.", "preferred_username"
+    ),
+    _s("auth.sso.email_claim", "string", "The claim holding the email address.", "email"),
+    _s("auth.sso.groups_claim", "string", "The claim holding the group list.", "groups"),
+    _s("auth.sso.jit_provision", "bool", "Create a user on first successful sign-in.", "true"),
+    _s(
+        "auth.sso.on_missing_group",
+        "choice",
+        "What happens to someone none of whose IdP groups maps to a role.",
+        "deny",
+        choices=("deny", "allow"),
+    ),
+    _s(
+        "auth.sso.group_role_map",
+        "list",
+        "IdP group to MAYA roles, re-applied at every login. A family: one key per group.",
+        "",
+        family=True,
+    ),
+    _s("auth.sso.saml.sp_entity_id", "string", "MAYA's SAML entity id.", ""),
+    _s(
+        "auth.sso.saml.acs_url",
+        "string",
+        "MAYA's assertion consumer service URL.",
+        "http://127.0.0.1:8600/auth/sso/saml/acs",
+    ),
+    _s("auth.sso.saml.idp_entity_id", "string", "The IdP's SAML entity id.", ""),
+    _s("auth.sso.saml.idp_sso_url", "string", "The IdP's single sign-on endpoint.", ""),
+    _s("auth.sso.saml.idp_cert", "string", "The IdP's signing certificate, inline (public).", ""),
+    _s("auth.sso.saml.idp_cert_file", "path", "The IdP's signing certificate, as a file.", ""),
+    _s("auth.sso.saml.idp_slo_url", "string", "The IdP's single logout endpoint (ADR-024).", ""),
+    _s(
+        "auth.sso.saml.sls_url",
+        "string",
+        "MAYA's single logout service URL.",
+        "http://127.0.0.1:8600/auth/sso/saml/sls",
+    ),
+    _s("auth.sso.saml.sign_requests", "bool", "Sign AuthnRequests and logout messages.", "false"),
+    _s("auth.sso.saml.sp_cert", "string", "MAYA's SAML certificate, inline.", ""),
+    _s("auth.sso.saml.sp_cert_file", "path", "MAYA's SAML certificate, as a file.", ""),
+    _s("auth.sso.saml.sp_key", "string", "MAYA's SAML private key, inline.", "", secret=True),
+    _s("auth.sso.saml.sp_key_file", "path", "MAYA's SAML private key, as a file.", ""),
+    _s(
+        "auth.sso.saml.username_attribute",
+        "string",
+        "The assertion attribute holding the username. Empty: the NameID.",
+        "",
+    ),
+    _s("auth.sso.saml.groups_attribute", "string", "The attribute holding the groups.", "groups"),
+    _s("auth.sso.saml.email_attribute", "string", "The attribute holding the email.", "email"),
+    _s(
+        "auth.sso.saml.name_attribute",
+        "string",
+        "The attribute holding the display name.",
+        "displayName",
+    ),
+    _s(
+        "auth.webauthn.rp_id",
+        "string",
+        "The WebAuthn relying-party id: the site's domain, never an IP address.",
+        "localhost",
+    ),
+    _s("auth.webauthn.rp_name", "string", "The relying-party name shown by the browser.", "MAYA"),
+    _s(
+        "auth.webauthn.origins",
+        "string",
+        "Exact origins accepted, comma separated.",
+        "http://localhost:8600",
+    ),
+    _s(
+        "auth.mfa.enforce",
+        "choice",
+        "auto enforces the role requirement outside dev; true always; false never.",
+        "auto",
+        choices=("auto", "true", "false"),
+    ),
+    _s(
+        "auth.mfa.required_for_roles",
+        "list",
+        "Roles a second factor is required for.",
+        "admin,model_owner",
+    ),
+    _s("auth.mfa.issuer_name", "string", "The issuer shown in an authenticator app.", "MAYA"),
+    # -- the sandbox, workflow and typesetting --------------------------------
+    _s(
+        "sandbox.min_tier",
+        "choice",
+        "Outside dev MAYA refuses to start below this tier (§17.2).",
+        "strong",
+        choices=("strong", "moderate", "minimal"),
+    ),
+    _s(
+        "workflow.allow_self_approval",
+        "bool",
+        "Honoured in dev only: lets one person submit and approve.",
+        "false",
+    ),
+    _s(
+        "typeset.require_true_build",
+        "bool",
+        "A model cannot be approved on a draft (non-Tectonic) render.",
+        "false",
+    ),
+    # -- jobs (§15) -----------------------------------------------------------
+    _s("jobs.workers", "int", "Job worker threads in this process.", "2", minimum=0),
+    _s("jobs.max_attempts", "int", "Attempts before a job dead-letters.", "3", minimum=1),
+    _s(
+        "jobs.fair",
+        "bool",
+        "Claim jobs by weighted fair queueing across owners rather than strict arrival "
+        "order, so one person's campaign cannot starve everyone else (§15.2).",
+        "true",
+    ),
+    _s(
+        "jobs.per_user.max_concurrent",
+        "int",
+        "Jobs one owner may have running at once across the fleet. 0: no cap.",
+        "4",
+        minimum=0,
+    ),
+    _s(
+        "jobs.per_user.max_queued",
+        "int",
+        "Jobs one owner may have waiting. A further submission is refused with an "
+        "estimated wait. 0: no cap.",
+        "200",
+        minimum=0,
+    ),
+    _s(
+        "jobs.queue.max_depth",
+        "int",
+        "Queued jobs across everyone before MAYA sheds load and refuses new "
+        "submissions (§15.4). 0: no cap.",
+        "2000",
+        minimum=0,
+    ),
+    _s(
+        "jobs.queue.seconds_per_job",
+        "float",
+        "Assumed service time per job, used only for the honest wait estimate in a "
+        "backpressure refusal.",
+        "10",
+        minimum=0,
+    ),
+    _s(
+        "jobs.claim_candidates",
+        "int",
+        "Queued rows a worker ranks when claiming fairly. Larger is fairer and slower.",
+        "200",
+        minimum=1,
+    ),
+    _s(
+        "featuresets.cascade_wait_seconds",
+        "duration",
+        "How long a cascade pin waits for its member pins before giving up.",
+        "120",
+        minimum=1,
+    ),
+    # -- observability (§20) --------------------------------------------------
+    _s("observability.otlp.endpoint", "string", "OTLP/HTTP span endpoint. Empty: no export.", ""),
+    _s(
+        "observability.metrics.token_env",
+        "string",
+        "Name of an environment variable holding a bearer token for /metrics.",
+        "",
+    ),
+    _s(
+        "observability.metrics.namespace_gauges",
+        "bool",
+        "Collect pins and bytes stored per namespace at scrape time. It counts pin rows "
+        "on every scrape, so a very large estate may want it off.",
+        "true",
+    ),
+    _s(
+        "observability.metrics.cache_seconds",
+        "duration",
+        "How long the costly scrape-time gauges — lake file counts, pins per namespace — "
+        "are held before being recomputed.",
+        "60",
+        minimum=0,
+    ),
+    _s(
+        "observability.slow_query_ms",
+        "duration",
+        "A database statement slower than this counts as a slow query in /metrics.",
+        "500",
+        minimum=1,
+    ),
+    _s("observability.webhooks.max_attempts", "int", "Delivery attempts.", "8", minimum=1),
+    _s(
+        "observability.webhooks.timeout_seconds",
+        "float",
+        "Per-delivery timeout.",
+        "5",
+        minimum=0.1,
+    ),
+    _s(
+        "observability.webhooks.allow_private",
+        "bool",
+        "dev only: allow localhost and private addresses as webhook targets.",
+        "false",
+    ),
+    _s(
+        "health.audit_verify_seconds",
+        "duration",
+        "The health page re-walks the whole audit chain at most this often.",
+        "60",
+        minimum=0,
+    ),
+    _s(
+        "integrity.verify.interval_seconds",
+        "duration",
+        "How often the scheduler submits an integrity verification job (§20, §21.3). "
+        "0: only on demand.",
+        "86400",
+        minimum=0,
+    ),
+    # -- sources, the assistant, custody, workspaces --------------------------
+    _s("sources.python.cpu_seconds", "int", "CPU cap for a python source.", "30", minimum=1),
+    _s("sources.python.memory_mb", "int", "Memory cap for a python source.", "1024", minimum=64),
+    _s(
+        "sources.python.wall_seconds", "int", "Wall-clock cap for a python source.", "60", minimum=1
+    ),
+    _s("sources.python.max_output_mb", "int", "Largest output a python source may return.", "20"),
+    _s("assistant.enabled", "bool", "The recorded challenger writes a memo on submission.", "true"),
+    _s(
+        "assistant.provider",
+        "choice",
+        "rules is deterministic and offline; claude also asks Anthropic's API.",
+        "rules",
+        choices=("rules", "claude"),
+    ),
+    _s("assistant.claude.model", "string", "The Claude model asked.", "claude-opus-5"),
+    _s("assistant.claude.effort", "string", "The reasoning effort asked for.", "high"),
+    _s(
+        "assistant.claude.api_key_env",
+        "string",
+        "Environment variable holding the API key. Empty: the SDK's own resolution.",
+        "",
+    ),
+    _s("assistant.claude.timeout_seconds", "int", "Per-call timeout.", "300", minimum=1),
+    _s(
+        "custody.anchor.methods",
+        "string",
+        "Anchoring methods, comma separated: signature, file, event, rfc3161 (§29.6).",
+        "signature,file,event",
+    ),
+    _s(
+        "custody.anchor.file",
+        "path",
+        "The append-only anchor file. Empty: storage.root/anchors.jsonl.",
+        "",
+    ),
+    _s("custody.anchor.tsa_url", "string", "An RFC 3161 timestamp authority.", ""),
+    _s("custody.anchor.tsa_ca_file", "path", "The timestamp authority's CA certificate.", ""),
+    _s("custody.anchor.interval_seconds", "duration", "How often to anchor.", "3600", minimum=0),
+    _s(
+        "workspaces.shadow.sample_rows",
+        "int",
+        "Rows replayed per dependent warrant in a shadow replay.",
+        "5000",
+        minimum=1,
+    ),
+    _s(
+        "workspaces.shadow.materiality",
+        "float",
+        "An absolute output shift above this counts as material.",
+        "0.0001",
+        minimum=0,
+    ),
+    # -- dependency seams (§13.4) --------------------------------------------
+    _s(
+        "seams",
+        "string",
+        "Seam pins: auto, or a backend name to force it. One key per seam (§13.4).",
+        "auto",
+        family=True,
+    ),
+)
+
+BY_KEY: dict[str, Setting] = {s.key: s for s in SETTINGS}
+FAMILIES: tuple[Setting, ...] = tuple(s for s in SETTINGS if s.family)
+_INDEX = re.compile(r"\.\d+$")
+
+
+def find(key: str) -> Setting | None:
+    """The declaration for a configured key, following list indices and families."""
+    if key in BY_KEY:
+        return BY_KEY[key]
+    bare = _INDEX.sub("", key)
+    if bare in BY_KEY and BY_KEY[bare].kind == "list":
+        return BY_KEY[bare]
+    for fam in FAMILIES:
+        if key.startswith(fam.key + "."):
+            return fam
+    return None
+
+
+def default_for(key: str) -> str | None:
+    """The one declared default for a key, or None when the key has no default."""
+    setting = find(key)
+    return setting.default if setting is not None else None
+
+
+def unknown_keys(keys: Any) -> list[str]:
+    """Configured keys this schema does not declare, sorted."""
+    return sorted(k for k in keys if find(k) is None)
+
+
+def nearest(key: str) -> str | None:
+    """The declared key a mistyped one most likely meant."""
+    matches = difflib.get_close_matches(key, list(BY_KEY), n=1, cutoff=0.7)
+    return matches[0] if matches else None
+
+
+def refuse_unknown(keys: list[str], *, where: str) -> None:
+    """Stop startup on an undeclared key, naming it and what it was probably meant to be."""
+    if not keys:
+        return
+    named = []
+    for key in keys:
+        guess = nearest(key)
+        named.append(f"{key}" + (f" (did you mean '{guess}'?)" if guess else ""))
+    raise ConfigurationError(
+        f"{len(keys)} setting(s) in {where} are not declared in MAYA's configuration "
+        f"schema (maya/config/schema.py): " + "; ".join(named),
+        keys=keys,
+    )
+
+
+def required_keys() -> tuple[str, ...]:
+    return tuple(s.key for s in SETTINGS if s.required)
+
+
+__all__ = [
+    "SETTINGS",
+    "BY_KEY",
+    "Setting",
+    "find",
+    "default_for",
+    "unknown_keys",
+    "nearest",
+    "refuse_unknown",
+    "required_keys",
+]

@@ -179,10 +179,43 @@ typeset:
   require_true_build: "${MAYA_REQUIRE_TECTONIC:false}"
 
 jobs:
+  # Worker threads inside this process. A separate worker-only process — no port bound,
+  # the same queue, the same handlers — is `python run_maya_web.py --worker`, which is
+  # what §15.1 and §24.1 mean by a worker fleet; run as many as the database will carry
+  # (PostgreSQL: on SQLite a worker contends with the web process for the single writer).
   workers: 2
   max_attempts: 3
+  # Fair queueing (§15.2). A worker ranks the oldest queued jobs and takes the one whose
+  # owner is least far into their own queue, so one person's 10,000 pins interleave with
+  # everyone else's instead of running first. false: strict arrival order.
+  fair: "true"
+  claim_candidates: 200
+  per_user:
+    # Jobs one owner may have running at once across the fleet (0: no cap), and waiting
+    # (a further submission is refused with an estimated wait).
+    max_concurrent: 4
+    max_queued: 200
+  queue:
+    # Backpressure (§15.4): queued jobs across everyone before MAYA refuses new work
+    # rather than accepting what it cannot start. 0: no cap.
+    max_depth: 2000
+    # Assumed service time per job; used only for the wait estimate in that refusal.
+    seconds_per_job: 10
+
+featuresets:
+  # How long a cascade pin waits for its member pins before giving up.
+  cascade_wait_seconds: 120
+
+integrity:
+  # §20, §21.3: integrity verification on a schedule, not only on demand. The scheduler
+  # submits one `integrity.verify` job per interval, deduplicated by idempotency key so
+  # several nodes cannot queue the same sweep twice. 0: on demand only.
+  verify:
+    interval_seconds: 86400
 
 observability:
+  # The SLO and alert rules of §20 ship beside this file, in
+  # config/prometheus/maya-slo.rules.yml: load it from your Prometheus `rule_files`.
   # OpenTelemetry span export over OTLP/HTTP, e.g. http://collector:4318/v1/traces.
   # Unset: trace ids still propagate to responses, logs, audit and jobs.
   otlp:
@@ -190,6 +223,14 @@ observability:
   metrics:
     # Name an environment variable holding a bearer token to protect /metrics.
     token_env: ""
+    # Pins and bytes stored per namespace, counted at scrape time. Off on an estate
+    # large enough that counting pin rows on every scrape costs more than the answer.
+    namespace_gauges: "true"
+    # The costly gauges — lake file counts, pins per namespace — are held this long
+    # rather than recomputed on every scrape.
+    cache_seconds: 60
+  # A database statement slower than this counts as a slow query in /metrics.
+  slow_query_ms: 500
   webhooks:
     max_attempts: 8
     timeout_seconds: 5
