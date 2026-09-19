@@ -1,0 +1,37 @@
+{#
+  Row cells for the tables that page from the server (§16.7, §18.1). Each macro
+  is used twice: by its page for the first page, and by /ui/table/<name> for
+  every later one — so a row is written once and cannot render two ways.
+#}
+{% from "_macros/ui.html" import pill %}
+
+{% macro feature_row(f) -%}
+  <td><a href="/catalog/features/{{ f.namespace }}/{{ f.name }}">{{ f.name }}</a>{% if f.ungoverned %} <span class="pill warn">ungoverned</span>{% endif %}</td>
+  <td>{{ f.namespace }}</td><td>{{ f.owner }}</td><td data-sort="{{ f.latest_version }}">v{{ f.latest_version }}</td>
+  <td>{{ pill(f.latest_state) }}</td><td>{{ f.pins }}</td><td>{{ (f.tags or [])|join(', ') }}</td><td>{{ f.updated_at|dt }}</td>
+{%- endmacro %}
+
+{% macro featureset_row(s) -%}
+  <td><a href="/catalog/featuresets/{{ s.namespace }}/{{ s.name }}">{{ s.name }}</a></td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td>
+  <td>{{ pill(s.latest_state) }}</td><td>{{ s.members }}</td><td>{{ s.pins }}</td><td>{{ s.updated_at|dt }}</td>
+{%- endmacro %}
+
+{% macro model_row(m) -%}
+  <td><a href="/models/{{ m.namespace }}/{{ m.name }}">{{ m.name }}</a></td><td>{{ m.namespace }}</td><td>{{ m.kind }}</td><td>v{{ m.latest_version }}</td>
+  <td>{{ pill(m.latest_state) }}</td><td>{{ pill(m.maturity) }}</td><td>{{ 'declared black box' if m.opaque else 'no' }}</td><td>{{ m.updated_at|dt }}</td>
+{%- endmacro %}
+
+{% macro audit_row(e) -%}
+  <td data-sort="{{ e.seq }}">{{ e.seq }}</td><td>{{ e.at|dt }}</td><td>{{ e.actor }}</td><td>{{ e.channel }}</td><td>{{ e.action }}</td><td class="mono">{{ e.object_ref or '' }}</td><td class="mono small">{{ e.detail|tojson }}</td><td class="mono">{{ e.hash|short(10) }}</td>
+{%- endmacro %}
+
+{% macro event_row(e) -%}
+  <td data-sort="{{ e.seq }}">{{ e.seq }}</td><td>{{ e.at|dt }}</td><td class="mono">{{ e.type }}</td><td class="mono small">{{ e.object_ref or '' }}</td><td>{{ e.actor }}</td><td class="mono small">{{ e.trace_id|short(16) if e.trace_id else '' }}</td>
+{%- endmacro %}
+
+{% macro job_row(j, csrf) -%}
+  <td>{{ j.created_at|dt }}</td><td>{{ j.job_type }}</td><td>{{ j.owner }}</td><td>{{ pill(j.state) }}</td><td data-sort="{{ j.progress }}">{{ j.progress }}%</td><td>{{ j.attempts }}/{{ j.max_attempts }}</td>
+  <td>{{ j.message or '' }}{% if j.error %}<div class="small-muted">{{ j.error }}</div>{% endif %}</td><td class="mono">{{ j.trace_id }}</td>
+  <td class="d-flex gap-1">{% if j.state in ('queued','running') %}<form method="post" action="/admin/jobs/{{ j.id }}/cancel"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Cancel</button></form>{% endif %}
+    {% if j.state in ('failed','dead_letter') %}<form method="post" action="/admin/jobs/{{ j.id }}/retry"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Retry</button></form>{% endif %}</td>
+{%- endmacro %}

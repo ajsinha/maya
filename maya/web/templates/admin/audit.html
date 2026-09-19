@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
 {% from "_macros/ui.html" import pill %}
+{% from "_rows.html" import audit_row %}
 {% block title %}Audit{% endblock %}
 {% block content %}
 <h1>Audit explorer</h1>
@@ -8,7 +9,5 @@
 <form method="get" class="row g-2 align-items-end mb-2"><div class="col-md-5"><label class="form-label" for="aq">Search actor, action or object</label><input class="form-control" id="aq" name="q" value="{{ q }}"></div>
   <div class="col-md-3"><label class="form-label" for="aa">Action contains</label><input class="form-control" id="aa" name="action" value="{{ action }}"></div>
   <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Search</button></div></form>
-{% call(e) table("audit", ["#", "When", "Actor", "Channel", "Action", "Object", "Detail", "Hash"], rows, empty="No audit entries match.") %}
-  <td data-sort="{{ e.seq }}">{{ e.seq }}</td><td>{{ e.at|dt }}</td><td>{{ e.actor }}</td><td>{{ e.channel }}</td><td>{{ e.action }}</td><td class="mono">{{ e.object_ref or '' }}</td><td class="mono small">{{ e.detail|tojson }}</td><td class="mono">{{ e.hash|short(10) }}</td>
-{% endcall %}
+{% call(e) table("audit", ["#", "When", "Actor", "Channel", "Action", "Object", "Detail", "Hash"], page['items'], empty="No audit entries match.", page=page) %}{{ audit_row(e) }}{% endcall %}
 {% endblock %}

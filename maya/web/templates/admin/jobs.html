@@ -1,14 +1,9 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
-{% from "_macros/ui.html" import pill %}
+{% from "_rows.html" import job_row %}
 {% block title %}Jobs{% endblock %}
 {% block content %}
 <h1>Jobs console</h1>
 <p class="lead-slate">Idempotent, cancellable, retryable; failures dead-letter with the error kept. Administrators and techops see every job; others see their own.</p>
-{% call(j) table("jobs", ["Created", "Type", "Owner", "State", "Progress", "Attempts", "Message / error", "Trace", "!Actions"], rows, empty="No jobs.") %}
-  <td>{{ j.created_at|dt }}</td><td>{{ j.job_type }}</td><td>{{ j.owner }}</td><td>{{ pill(j.state) }}</td><td data-sort="{{ j.progress }}">{{ j.progress }}%</td><td>{{ j.attempts }}/{{ j.max_attempts }}</td>
-  <td>{{ j.message or '' }}{% if j.error %}<div class="small-muted">{{ j.error }}</div>{% endif %}</td><td class="mono">{{ j.trace_id }}</td>
-  <td class="d-flex gap-1">{% if j.state in ('queued','running') %}<form method="post" action="/admin/jobs/{{ j.id }}/cancel"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Cancel</button></form>{% endif %}
-    {% if j.state in ('failed','dead_letter') %}<form method="post" action="/admin/jobs/{{ j.id }}/retry"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Retry</button></form>{% endif %}</td>
-{% endcall %}
+{% call(j) table("jobs", ["Created", "Type", "Owner", "State", "Progress", "Attempts", "Message / error", "Trace", "!Actions"], page['items'], empty="No jobs.", page=page) %}{{ job_row(j, csrf) }}{% endcall %}
 {% endblock %}

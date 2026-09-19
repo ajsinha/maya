@@ -59,12 +59,26 @@ class ExecutionService:
             return "live"
         return ew["state"]
 
+    def listing(self, uow: Any, p: Principal, *, q: str | None = None) -> Any:
+        from maya.services.paging import Listing
+        names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
+        return Listing(
+            "execution_warrants", {"-created": "-created_at", "created": "created_at",
+                                   "name": "name", "-name": "-name"},
+            "-created", {}, (["name"], q or ""),
+            keep=lambda uow, ew: self.p.access.allowed(uow, p, "read", "execution_warrant", ew),
+            enrich=lambda uow, ew: {**ew, "namespace": names.get(ew["namespace_id"]),
+                                    "status": self.status(ew)})
+
     def list(self, p: Principal) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
-            names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
-            return [{**ew, "namespace": names.get(ew["namespace_id"]), "status": self.status(ew)}
-                    for ew in uow.repo("execution_warrants").list(order_by=["-created_at"])
-                    if self.p.access.allowed(uow, p, "read", "execution_warrant", ew)]
+            return self.listing(uow, p).collect(uow)
+
+    def page(self, p: Principal, *, q: str | None = None, page_size: int | None = None,
+             cursor: str | None = None, sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import run_page
+        return run_page(self.p, lambda uow: self.listing(uow, p, q=q), page_size=page_size,
+                        cursor=cursor, sort=sort, total=total)
 
     def get(self, p: Principal, ew_id: str) -> dict[str, Any]:
         with self.p.uow() as uow:

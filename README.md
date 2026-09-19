@@ -89,7 +89,7 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 477 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
+| **Tests** | 498 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
 | **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 172 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it
@@ -119,8 +119,16 @@ execution warrant → reproducibility bundle.
   it they are watermarked drafts, and `typeset.require_true_build` forbids approval on a
   draft outside dev. Tectonic downloads its TeX bundle on first use: an air-gapped server
   must be given a cached bundle.
-- **Not built:** the assistant (§29.8); server-side table paging; performance benchmarks
-  (SC-3/4/5). SDK record/replay is synchronous only (`Client`, not `AsyncClient`).
+- **Not built:** the assistant (§29.8); performance benchmarks (SC-3/4/5). SDK
+  record/replay is synchronous only (`Client`, not `AsyncClient`).
+- **Server-side paging is per page, not per threshold.** Features, feature sets, models,
+  audit, events and jobs always page from the server; smaller tables stay client-side. In
+  server mode a table sorts on the columns the server can order by (name, update time,
+  sequence), one key at a time, and its search runs on the server's fields (name and
+  description, or actor/action/object for audit), then highlights matches in what is
+  shown. Lists filtered row by row for authorization (features, feature sets, models,
+  warrants) compute an exact total by scanning; the rest count in the database. The
+  table script was exercised in headless Chrome against a harness, not in a user's browser.
 - **Spreadsheet import is v1 scope.** Arithmetic, standard functions, named cells and ranges,
   and VLOOKUP/HLOOKUP over constant tables lift into the formula IR; everything else is refused
   by cell. The check against a workbook's cached results was exercised on files written by
@@ -308,8 +316,9 @@ dropdown at 25 / 50 / 100 / 250 / All, remembered per table per user; search acr
 visible columns with the removed count stated; sort on every ordered column, applied to
 the *whole result set* rather than the visible page; column show/hide; export of the
 current view honouring the active filter and sort; keyboard paging for accessibility.
-Past a threshold the macro switches to server-side cursor pagination without changing how
-it looks or behaves. Spec §16.7 — and a crawler gate, because a rule that is merely
+Tables that can grow without bound (features, feature sets, models, audit, events, jobs)
+page from the server with signed cursors — the same macro, the same controls — and the
+API offers the same paging on every large list (`?page_size=&cursor=&sort=`). Spec §16.7 — and a crawler gate, because a rule that is merely
 written down is a rule that holds until the first deadline.
 
 **Workflow is something you operate, not something you configure in a file.** State

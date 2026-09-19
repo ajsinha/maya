@@ -12,9 +12,18 @@
     {% endcall %}
   A header starting with "!" is not sortable and is left out of CSV export.
   Give a cell data-sort="…" when its display text is not its sort key.
+
+  Server mode, for tables that can grow without bound: pass ``page``, the envelope
+  from maya.web.routes.tables.first_page() — {items, next_cursor, total, sort,
+  page_size, source, sorts}. The rows passed are page one; table.js fetches every
+  later page, search and sort from page.source (/ui/table/<name>). Only the headers
+  named in page.sorts sort, and they sort on the server.
 #}
-{% macro table(id, headers, rows, empty="Nothing to show yet.", caption=None) -%}
-<div class="mt-wrap mb-3" data-maya-table data-table-id="{{ id }}">
+{% macro table(id, headers, rows, empty="Nothing to show yet.", caption=None, page=None) -%}
+<div class="mt-wrap mb-3" data-maya-table data-table-id="{{ id }}"
+     {%- if page %} data-source="{{ page.source }}" data-next-cursor="{{ page.next_cursor or '' }}"
+     data-total="{{ page.total if page.total is not none else '' }}" data-sort="{{ page.sort }}"
+     data-page-size="{{ page.page_size }}"{% endif %}>
   <div class="mt-tools">
     <label class="visually-hidden" for="mt-search-{{ id }}">Search {{ caption or id }}</label>
     <input id="mt-search-{{ id }}" class="form-control form-control-sm mt-search" type="search"
@@ -24,7 +33,7 @@
       <label class="small-muted" for="mt-size-{{ id }}">Rows</label>
       <select id="mt-size-{{ id }}" class="form-select form-select-sm mt-size" style="width:auto">
         <option value="25">25</option><option value="50">50</option><option value="100">100</option>
-        <option value="250">250</option><option value="0">All</option>
+        <option value="250">250</option>{% if not page %}<option value="0">All</option>{% endif %}
       </select>
       <div class="dropdown">
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
@@ -43,6 +52,10 @@
         {% for h in headers %}
           {% if h.startswith('!') %}
             <th scope="col" data-label="{{ h[1:] }}" data-noexport>{{ h[1:] }}</th>
+          {% elif page and h not in page.sorts %}
+            <th scope="col" data-label="{{ h }}">{{ h }}</th>
+          {% elif page %}
+            <th scope="col" data-label="{{ h }}" data-sortable data-sort-key="{{ page.sorts[h] }}">{{ h }} <span class="mt-dir" aria-hidden="true"></span></th>
           {% else %}
             <th scope="col" data-label="{{ h }}" data-sortable>{{ h }} <span class="mt-dir" aria-hidden="true"></span></th>
           {% endif %}

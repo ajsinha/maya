@@ -14,6 +14,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.core.errors import MayaError
+from maya.web.routes.tables import first_page
 from maya.web.routes.common import (action, client, download, flash, form, is_admin, page,
                                     parse_json, render)
 
@@ -48,8 +49,8 @@ def _source_fields(data: dict[str, Any]) -> dict[str, Any]:
 @page
 async def models(request: Request) -> Any:
     async with client(request) as sdk:
-        rows = await sdk.models.list(q=request.query_params.get("q") or None)
-    return await render(request, "models/list.html", {"rows": rows})
+        page = await first_page(request, sdk, "models", q=request.query_params.get("q") or None)
+    return await render(request, "models/list.html", {"page": page})
 
 
 @router.get("/models/new")

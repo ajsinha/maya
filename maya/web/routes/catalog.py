@@ -13,6 +13,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.core.errors import MayaError
+from maya.web.routes.tables import first_page
 from maya.web.routes.common import (action, client, download, flash, form, is_admin, page,
                                     render)
 
@@ -36,11 +37,11 @@ async def _preview(fetch: Any) -> tuple[Any, str | None]:
 async def features(request: Request) -> Any:
     qp = request.query_params
     async with client(request) as sdk:
-        rows = await sdk.features.list(namespace=qp.get("namespace") or None,
-                                       q=qp.get("q") or None)
+        page = await first_page(request, sdk, "features",
+                                namespace=qp.get("namespace") or None, q=qp.get("q") or None)
         namespaces = await sdk.namespaces.list()
     return await render(request, "catalog/features.html",
-                        {"rows": rows, "namespaces": namespaces, "ns": qp.get("namespace", "")})
+                        {"page": page, "namespaces": namespaces, "ns": qp.get("namespace", "")})
 
 
 @router.get("/catalog/features/{ns}/{name}")
@@ -197,8 +198,9 @@ async def feature_compare(request: Request, ns: str, name: str) -> Any:
 @page
 async def featuresets(request: Request) -> Any:
     async with client(request) as sdk:
-        rows = await sdk.featuresets.list(q=request.query_params.get("q") or None)
-    return await render(request, "catalog/featuresets.html", {"rows": rows})
+        page = await first_page(request, sdk, "featuresets",
+                                q=request.query_params.get("q") or None)
+    return await render(request, "catalog/featuresets.html", {"page": page})
 
 
 @router.get("/catalog/featuresets/{ns}/{name}")

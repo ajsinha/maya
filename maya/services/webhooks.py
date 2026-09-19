@@ -144,6 +144,16 @@ class WebhookService:
                 filters["type__ilike"] = type_prefix
             return uow.repo("events").list(order_by=["seq"], limit=min(limit, 5000), **filters)
 
+    def events_page(self, p: Principal, *, type_prefix: str | None = None,
+                    page_size: int | None = None, cursor: str | None = None,
+                   sort: str | None = None, total: bool = False) -> dict[str, Any]:
+        from maya.services.paging import Listing, run_page
+        self._admin(p)
+        filters = {"type__ilike": type_prefix} if type_prefix else {}
+        return run_page(self.p, lambda uow: Listing(
+            "events", {"seq": "seq", "-seq": "-seq"}, "seq", filters),
+            page_size=page_size, cursor=cursor, sort=sort, total=total)
+
     # -- delivery -----------------------------------------------------------------------
     def deliver_due(self, limit: int = 100) -> int:
         """Attempt every due delivery once. Returns how many were attempted."""
