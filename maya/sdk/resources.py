@@ -762,6 +762,26 @@ class Events(_Resource):
         return self._c("POST", f"/webhooks/{seg(webhook_id)}/ping")
 
 
+class Custody(_Resource):
+    """Anchoring the audit chain outside MAYA, and effective licences (§29.6)."""
+
+    @endpoint("GET", "/custody/anchors")
+    def anchors(self) -> Any:
+        return self._c("GET", "/custody/anchors")
+
+    @endpoint("POST", "/custody/anchor")
+    def anchor(self) -> Any:
+        return self._c("POST", "/custody/anchor")
+
+    @endpoint("GET", "/custody/verify")
+    def verify(self) -> Any:
+        return self._c("GET", "/custody/verify")
+
+    @endpoint("GET", "/licences")
+    def licence(self, kind: str, ref: str) -> Any:
+        return self._c("GET", "/licences", params={"kind": kind, "ref": ref})
+
+
 class Jobs(_Resource):
     @endpoint("GET", "/jobs")
     def list(self, all: bool = False) -> Any:

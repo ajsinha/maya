@@ -191,7 +191,8 @@ def change_class(old: dict[str, Any] | None, new: dict[str, Any]) -> str | None:
 # -- validation -------------------------------------------------------------------
 def validate_feature_definition(d: dict[str, Any], *, production: bool = False) -> list[str]:
     """Every problem with a feature definition, at definition time (§5.8 typing)."""
-    errors: list[str] = []
+    from maya.security.licence import validate as validate_licence
+    errors: list[str] = [f"licence: {e}" for e in validate_licence(d.get("licence"))]
     index = d.get("index") or []
     index_types = d.get("index_types") or {}
     schema = d.get("schema") or []

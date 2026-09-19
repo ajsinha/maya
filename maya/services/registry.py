@@ -27,6 +27,8 @@ def wire(platform: Any) -> None:
     from maya.services.workspaces import WorkspaceService
     from maya.services.sources import SourceService
     from maya.services.webhooks import WebhookService
+    from maya.services.licensing import LicenceService
+    from maya.services.custody import CustodyService
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
 
@@ -37,7 +39,8 @@ def wire(platform: Any) -> None:
                       ("bundles", BundleService), ("workflow_svc", WorkflowService),
                       ("ops", OpsService), ("sso", SsoService),
                       ("workspaces", WorkspaceService), ("sources", SourceService),
-                      ("webhooks", WebhookService)):
+                      ("webhooks", WebhookService), ("licences", LicenceService),
+                      ("custody", CustodyService)):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)
@@ -47,6 +50,8 @@ def wire(platform: Any) -> None:
     platform.scheduler = Scheduler()
     platform.scheduler.every("workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue)
     platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
+    platform.scheduler.every("custody.anchor", platform.settings.int(
+        "custody.anchor.interval_seconds", 3600), platform.custody.anchor)
     platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: \
         dispatch_transition(platform, p, object_type, object_id, name, **kw)
 

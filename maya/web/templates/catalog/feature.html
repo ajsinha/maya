@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
-{% from "_macros/ui.html" import pill, kv, transitions, tabs, json_block %}
+{% from "_macros/ui.html" import pill, kv, licence_panel, transitions, tabs, json_block %}
 {% block title %}{{ f.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1">
@@ -30,6 +30,7 @@
       {% if is_admin and v.transitions %}<label class="small-muted"><input type="checkbox" name="force" value="1"> break-glass</label>{% endif %}
     </form></td>
   {% endcall %}
+  {{ licence_panel(licence) }}
   {% if f.versions and f.versions[0].needs_reapproval %}<div class="alert alert-warning py-2">{{ f.versions[0].needs_reapproval }}</div>{% endif %}
   </div></div>
   <h3>Ingests (knowledge-time batches)</h3>

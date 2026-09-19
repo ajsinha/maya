@@ -74,3 +74,13 @@
   </div>
 </div></div>
 </div></div>
+{% set lic = d.get('licence') or {} %}
+<details class="card card-body mt-3" {% if lic %}open{% endif %}><summary><strong>Licence</strong> — vendor terms that follow the data into everything built from it</summary>
+  <div class="row g-2 mt-1">
+    <div class="col-md-3"><label class="form-label" for="lic-vendor">Vendor</label><input class="form-control" id="lic-vendor" name="licence_vendor" value="{{ lic.get('vendor', '') }}"></div>
+    <div class="col-md-3"><label class="form-label" for="lic-redis">Redistribution</label><select class="form-select" id="lic-redis" name="licence_redistribution"><option value="">— unrestricted —</option>{% for o in ['none','internal','external','public'] %}<option {% if lic.get('redistribution') == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="lic-derived">Derived works</label><select class="form-select" id="lic-derived" name="licence_derived_works"><option value="">— allowed —</option>{% for o in ['forbidden','attribution','allowed'] %}<option {% if lic.get('derived_works') == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="lic-ret">Retention (days)</label><input class="form-control" type="number" min="1" id="lic-ret" name="licence_retention_days" value="{{ lic.get('retention_days', '') }}"></div>
+    <div class="col-md-6"><label class="form-label" for="lic-pop">Population (groups or desk:&lt;name&gt;, comma-separated; blank = anyone granted)</label><input class="form-control mono" id="lic-pop" name="licence_population" value="{{ lic.get('population', [])|join(', ') }}"></div>
+    <div class="col-md-6"><label class="form-label" for="lic-notes">Notes</label><input class="form-control" id="lic-notes" name="licence_notes" value="{{ lic.get('notes', '') }}"></div>
+  </div></details>

@@ -177,7 +177,8 @@ def _pages(ids) -> list[str]:
         "/workflow/break-glass",
         "/admin/health", "/admin/users", "/admin/namespaces", "/admin/grants",
         "/admin/grants?kind=feature&ref=eq/px", "/admin/jobs", "/admin/audit", "/admin/config",
-        "/admin/storage", "/account/keys", "/account/password",
+        "/admin/storage", "/admin/custody", "/admin/custody?verify=1", "/account/keys",
+        "/account/password",
     ]
     if "tw" in ids:
         pages += [f"/warrants/training/{ids['tw']}", f"/warrants/execution/{ids['ew']}",

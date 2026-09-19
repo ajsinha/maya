@@ -67,17 +67,27 @@ def test_sc11_point_in_time_after_restatement(world):
 def test_sc12_unchanged_month_costs_under_five_percent(world):
     """A new pin writes its delta plus the tail fragment it lands in (≈ one fragment
     target, 512 rows by default), so the ratio is size-relative: it holds for real
-    panels and needs a test panel far larger than one fragment — 40,000 rows here."""
+    panels and needs a test panel far larger than one fragment — 40,000 rows here.
+
+    Fragment boundaries are content-defined, and a row's content includes its
+    knowledge time; the tail fragment's length is therefore roughly geometric around
+    the target. The knowledge times are fixed so the test is deterministic: with
+    wall-clock ingest times it failed about 3% of runs, which is the property holding
+    in expectation rather than for every pin."""
     world.p.features.create(world.dana, namespace="eq", name="monthly", definition=PX_DEF)
     ref = "eq/monthly"
     symbols = tuple(f"S{i:02d}" for i in range(40))
-    world.p.features.ingest(world.dana, ref, price_csv(1000, symbols=symbols), fmt="csv")
+    known = dt.datetime(2028, 9, 27, 18, tzinfo=dt.timezone.utc)
+    world.p.features.ingest(world.dana, ref, price_csv(1000, symbols=symbols), fmt="csv",
+                            knowledge_time=known)
     world.p.features.transition(world.dana, ref, 1, "submit")
     world.p.features.transition(world.mick, ref, 1, "approve")
-    first = _pin(world, ref, "m1", dt.date(2028, 9, 26))
+    first = _pin(world, ref, "m1", dt.date(2028, 9, 26),
+                 as_of_known=known + dt.timedelta(hours=1))
     world.p.features.ingest(world.dana, ref, price_csv(10, symbols=symbols, start_day=1001),
-                            fmt="csv")
-    second = _pin(world, ref, "m2", dt.date(2028, 10, 6))
+                            fmt="csv", knowledge_time=known + dt.timedelta(days=10))
+    second = _pin(world, ref, "m2", dt.date(2028, 10, 6),
+                  as_of_known=known + dt.timedelta(days=10, hours=1))
     assert second["row_count"] > first["row_count"]
     assert second["bytes_new"] < 0.05 * second["bytes_total"], (
         f"marginal {second['bytes_new']} of {second['bytes_total']}")

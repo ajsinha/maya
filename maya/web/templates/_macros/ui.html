@@ -66,3 +66,16 @@
 {% endfor %}
 </ul>
 {%- endmacro %}
+
+{% macro licence_panel(lic) -%}
+{% if lic and (lic.sources or lic.vendors) %}
+<div class="card mt-3"><div class="card-body small">
+  <h3 class="h6"><i class="bi bi-file-earmark-lock"></i> Effective licence</h3>
+  <div>Redistribution: <strong>{{ lic.redistribution }}</strong>{% if lic.clauses.redistribution %} <span class="text-muted">— {{ lic.clauses.redistribution }}</span>{% endif %}</div>
+  <div>Derived works: <strong>{{ lic.derived_works }}</strong>{% if lic.clauses.derived_works %} <span class="text-muted">— {{ lic.clauses.derived_works }}</span>{% endif %}</div>
+  {% if lic.population is not none %}<div>Population: <span class="mono">{{ lic.population|join(', ') or 'nobody' }}</span> <span class="text-muted">— {{ lic.clauses.population }}</span>{% if not lic.you_may_receive %} {{ pill('bad', 'you are outside it') }}{% endif %}</div>{% endif %}
+  {% if lic.retention_days %}<div>Retention: {{ lic.retention_days }} days <span class="text-muted">— {{ lic.clauses.retention_days }}</span></div>{% endif %}
+  {% if lic.vendors %}<div>Vendors: {{ lic.vendors|join(', ') }}</div>{% endif %}
+</div></div>
+{% endif %}
+{%- endmacro %}

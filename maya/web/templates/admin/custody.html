@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Custody{% endblock %}
+{% block content %}
+<h1>Custody anchors</h1>
+<p class="lead-slate">The hash chain proves the audit log is internally consistent. An anchor pins its head at a sequence number in places the database cannot reach, so a history rewritten <em>and re-chained</em> is still caught.</p>
+<div class="card mb-3"><div class="card-body small">
+  <div><strong>Methods:</strong> <span class="mono">{{ methods|join(', ') }}</span></div>
+  <div><strong>Anchor file:</strong> <span class="mono">{{ file }}</span> <span class="text-muted">(put it on WORM or off-host storage)</span></div>
+  {% if tsa_url %}<div><strong>Timestamp authority:</strong> <span class="mono">{{ tsa_url }}</span></div>{% endif %}
+  {% if public_key %}<div><strong>Signing key:</strong> <span class="mono">{{ key_id }}</span> <span class="mono text-muted">{{ public_key }}</span></div>{% endif %}
+</div></div>
+<div class="d-flex gap-2 mb-3">
+  <form method="post" action="/admin/custody/anchor"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-primary" type="submit"><i class="bi bi-pin-angle"></i> Anchor now</button></form>
+  <a class="btn btn-outline-primary" href="/admin/custody?verify=1"><i class="bi bi-shield-check"></i> Verify chain and anchors</a>
+</div>
+{% if report %}
+<div class="alert {{ 'alert-success' if report.ok else 'alert-danger' }}" role="status">
+  <strong>{{ report.verdict }}</strong> — {{ report.chain.checked }} entries checked, {{ report.anchors }} anchor(s).
+  {% for b in report.broken %}<div class="mt-1 small">seq {{ b.seq }}: {{ b.problems|join('; ') }}</div>{% endfor %}
+</div>
+{% endif %}
+{% call(a) table("anchors", ["Seq", "At", "Head", "Methods", "Timestamp"], anchors, empty="No anchors yet. The scheduler anchors hourly; or anchor now.") %}
+  <td>{{ a.seq }}</td><td>{{ a.created_at|dt }}</td><td class="mono small">{{ a.head_hash|short(24) }}</td><td class="mono small">{{ a.methods|join(', ') }}</td><td class="small">{{ 'token held' if a.tsa_token else '—' }}</td>
+{% endcall %}
+{% endblock %}

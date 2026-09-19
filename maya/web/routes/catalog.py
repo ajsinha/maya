@@ -61,11 +61,12 @@ async def feature(request: Request, ns: str, name: str) -> Any:
         if data_ref:
             preview, preview_error = await _preview(sdk.features.preview(
                 data_ref, as_of_known=qp.get("as_of_known") or None))
+        licence = await sdk.custody.licence("feature", ref) if latest else None
     lineage_root = f"{ref}@v{latest['version_no']}" if latest else ref
     return await render(request, "catalog/feature.html", {
         "f": f, "latest": latest, "history": history, "comments": comments,
         "data_ref": data_ref, "preview": preview, "preview_error": preview_error,
-        "as_of_known": qp.get("as_of_known", ""), "root": lineage_root, "direction": "both",
+        "licence": licence, "as_of_known": qp.get("as_of_known", ""), "root": lineage_root, "direction": "both",
         "depth": "3", "is_admin": is_admin(request), "job_id": qp.get("job"),
         "tab": qp.get("tab", "overview")})
 
@@ -215,9 +216,10 @@ async def featureset(request: Request, ns: str, name: str) -> Any:
         preview, preview_error = (None, None)
         if data_ref:
             preview, preview_error = await _preview(sdk.featuresets.preview(data_ref))
+        licence = await sdk.custody.licence("featureset", ref) if latest else None
     return await render(request, "catalog/featureset.html", {
         "fs": fs, "latest": latest, "history": history, "comments": comments,
-        "data_ref": data_ref, "preview": preview, "preview_error": preview_error,
+        "licence": licence, "data_ref": data_ref, "preview": preview, "preview_error": preview_error,
         "root": f"{ref}@v{latest['version_no']}" if latest else ref, "direction": "both",
         "depth": "3", "is_admin": is_admin(request), "job_id": qp.get("job"),
         "tab": qp.get("tab", "overview")})

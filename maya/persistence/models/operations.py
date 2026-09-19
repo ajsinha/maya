@@ -233,3 +233,15 @@ class Delegation(Tracked, Base):
     object_types: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
     reason: Mapped[str | None] = mapped_column(Text)
     revoked_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+
+
+class Anchor(Tracked, Base):
+    """An audit-chain head pinned outside the database (§29.6)."""
+
+    __tablename__ = "anchors"
+    seq: Mapped[int] = mapped_column(BigInteger, index=True)
+    head_hash: Mapped[str] = mapped_column(String(64))
+    methods: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
+    signature: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    tsa_token: Mapped[str | None] = mapped_column(Text)            # base64 DER, RFC 3161
+    detail: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
