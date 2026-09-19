@@ -40,6 +40,33 @@
     <div class="row g-2 mt-1"><div class="col-md-3"><label class="form-label" for="mat">Maturity</label><select class="form-select" id="mat" name="maturity">{% for x in maturities %}<option {% if x == v.maturity %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div></div>
     <div class="mt-2"><button class="btn btn-primary" type="submit">Save draft</button></div>
   </form>{% else %}<div class="alert alert-info py-2">v{{ v.version_no }} is {{ v.state }} and immutable. Open a new draft to change it.</div>{% endif %}
+  {% set wb = ((v.formula_ir or {}).get('lifted_from') or {}).get('workbook') %}
+  {% if wb %}
+  <section class="card mb-3"><div class="card-header"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Lifted from {{ wb.filename }}</div>
+    <div class="card-body">
+      <div class="alert {{ {'agreed': 'alert-success', 'disagreed': 'alert-danger'}.get(wb.check.status, 'alert-warning') }} py-2" role="status">
+        <strong>{{ wb.check.status|capitalize }}.</strong> {{ wb.check.statement }}
+        {% for d in wb.check.disagreements %}<div class="small mono">{{ d.cell }}: workbook {{ d.workbook }}, lifted {{ d.lifted }}</div>{% endfor %}</div>
+      {{ kv([('Output', wb.output), ('Workbook hash', wb.sha256|short(16)), ('Lookups', (wb.lookups|length) ~ ' lifted' if wb.lookups else 'none')]) }}
+      <details class="mt-2"><summary>Cells and the names they were given ({{ wb.cells|length }})</summary>
+        <dl class="help-defs">{% for name, cell in wb.cells.items() %}<dt><code>{{ name }}</code></dt><dd class="mono">{{ cell }}{% if name in wb.get('values', {}) %} = {{ wb['values'][name] }}{% endif %}</dd>{% endfor %}</dl></details>
+      {% for w in wb.warnings %}<div class="small-muted"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ w }}</div>{% endfor %}
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        {% if wb.blob %}<a class="btn btn-sm btn-outline-primary" href="/models/{{ m.namespace }}/{{ m.name }}/versions/{{ v.version_no }}/workbook.xlsx"><i class="bi bi-download" aria-hidden="true"></i> Original workbook</a>{% endif %}
+      </div>
+    </div></section>
+  {% endif %}
+  {% if editable %}
+  <details class="card card-body mb-3" {% if wb %}open{% endif %}><summary><strong>{{ 'Re-import' if wb else 'Import' }} an Excel workbook</strong> into this draft</summary>
+    <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/workbook" enctype="multipart/form-data" class="row g-2 mt-1">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <div class="col-md-4"><label class="form-label" for="rewb">Workbook (.xlsx)</label><input class="form-control" type="file" id="rewb" name="workbook" accept=".xlsx" required></div>
+      <div class="col-md-3"><label class="form-label" for="rewbout">Output cell or name</label><input class="form-control mono" id="rewbout" name="workbook_output" value="{{ wb.output if wb else '' }}"></div>
+      <div class="col-md-3"><label class="form-label" for="rewbroles">Input roles ("name: role" per line)</label><textarea class="form-control mono" id="rewbroles" name="workbook_roles" rows="2">{% for i in (v.formula_ir or {}).get('inputs', []) if i.role != 'feature' %}{{ i.name }}: {{ i.role }}
+{% endfor %}</textarea></div>
+      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Lift</button></div>
+    </form></details>
+  {% endif %}
   <h3>Formula IR (the authority; everything else is generated from it)</h3>{{ json_block(v.formula_ir) }}
 </div>
 <div class="tab-pane {% if tab == 'spec' %}show active{% endif %}" id="tab-spec" role="tabpanel">

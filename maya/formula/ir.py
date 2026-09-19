@@ -26,6 +26,7 @@ OPS: dict[str, tuple[int, int | None]] = {
     "max": (2, None), "min": (2, None), "where": (3, 3),
     "gt": (2, 2), "lt": (2, 2), "ge": (2, 2), "le": (2, 2), "eq": (2, 2),
     "and": (2, None), "or": (2, None),
+    "na": (0, 0),               # "not available" (Excel's #N/A): evaluates to NaN
 }
 
 INPUT_ROLES = ("feature", "parameter", "constant")

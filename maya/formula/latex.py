@@ -69,6 +69,8 @@ def node_latex(node: dict[str, Any]) -> str:
         return latex_name(node["ref"])
     if "param" in node:
         return latex_name(node["param"])
+    if node["op"] == "na":
+        return r"\mathrm{N/A}"
     op, args = node["op"], node["args"]
     if op == "add":
         out = node_latex(args[0])

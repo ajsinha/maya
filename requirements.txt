@@ -37,6 +37,11 @@ psutil==7.2.2
 polars==1.44.2
 tzdata==2026.3     # hard requirement on Windows: no system tz database
 
+# Spreadsheet import (§29.9): openpyxl reads .xlsx; defusedxml makes it refuse XML bombs.
+# Without openpyxl, workbook import is refused by name; nothing else changes.
+openpyxl==3.1.5
+defusedxml==0.7.1
+
 # Tracing seam: OpenTelemetry span export over OTLP/HTTP (observability.otlp.endpoint).
 # Without it trace ids still propagate to responses, logs, audit and jobs.
 opentelemetry-api==1.44.0

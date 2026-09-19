@@ -64,6 +64,7 @@ _OPS: dict[str, Callable[[list[Any]], Any]] = {
     "eq": lambda v: np.equal(v[0], v[1]),
     "and": lambda v: _reduce(np.logical_and, v),
     "or": lambda v: _reduce(np.logical_or, v),
+    "na": lambda v: np.nan,
 }
 
 

@@ -46,6 +46,8 @@ def py_expr(node: dict[str, Any]) -> str:
         return out
     if op == "where":
         return f"np.where({args[0]}, {args[1]}, {args[2]})"
+    if op == "na":
+        return "np.nan"
     raise ValidationFailed(f"no Python rendering for op '{op}'")
 
 

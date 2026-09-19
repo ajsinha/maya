@@ -112,8 +112,12 @@ execution warrant → reproducibility bundle.
   (`sandbox-exec`); Windows at `minimal` (Job Objects are not built).
 - **No Tectonic here**, so spec PDFs are watermarked drafts. `typeset.require_true_build`
   forbids approval on a draft render outside dev.
-- **Not built:** the assistant (§29.8); spreadsheet import (§29.9); server-side table
-  paging; SDK record/replay and `offline()`; performance benchmarks (SC-3/4/5).
+- **Not built:** the assistant (§29.8); server-side table paging; SDK record/replay and
+  `offline()`; performance benchmarks (SC-3/4/5).
+- **Spreadsheet import is v1 scope.** Arithmetic, standard functions, named cells and ranges,
+  and VLOOKUP/HLOOKUP over constant tables lift into the formula IR; everything else is refused
+  by cell. The check against a workbook's cached results was exercised on files written by
+  openpyxl with injected results, not yet on workbooks saved by Excel itself.
 - **Custody anchors are only as external as you make them.** The chain head is signed,
   appended to `custody.anchor.file` and emitted as a webhook event hourly; RFC 3161
   timestamping is off by default. Point the file at WORM or off-host storage: on the

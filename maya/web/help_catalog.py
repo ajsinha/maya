@@ -53,8 +53,8 @@ CATEGORIES: list[dict[str, Any]] = [
      "blurb": "A model's mathematics, its code, and the instruments that license it.",
      "topics": [
          {"slug": "models", "title": "Models and the formula IR", "icon": "calculator",
-          "summary": "Author a model in LaTeX or Python; MAYA derives the typed expression "
-                     "tree that everything else uses."},
+          "summary": "Author a model in LaTeX or Python, or lift it from an Excel "
+                     "workbook; MAYA derives the typed expression tree everything uses."},
          {"slug": "conformance", "title": "Specifications and conformance", "icon": "file-earmark-check",
           "summary": "The spec document, the uploaded artifact, and the differential test "
                      "that holds them to each other."},

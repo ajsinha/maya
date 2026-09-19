@@ -18,6 +18,7 @@ SEAMS = {
     "duckdb": ("maya.core.pushdown",),
     "uvloop": ("maya.core.backends",),
     "opentelemetry": ("maya.observability.tracing",),
+    "openpyxl": ("maya.formula.xlsx",),
 }
 
 

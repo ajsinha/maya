@@ -60,7 +60,46 @@ my.models.create("quant", "tilt", python_source=open("tilt.py").read())
 {% endcall %}
 {% endcall %}
 
-{% call step(3, 'Read what MAYA derived') %}
+{% call step(3, 'Or lift it from an Excel workbook') %}
+<p>A large share of the models a bank actually runs are workbooks. On
+{{ screen('/models/new', 'Models → New model') }} choose <strong>Lift from an Excel workbook</strong>, or
+use the SDK or CLI. MAYA walks the formula graph back from one output cell: numeric cells it reaches
+become inputs, formula cells become lets, and defined names name them. The workbook itself is kept,
+by hash, and downloads from the model's Definition tab.</p>
+{{ cards([
+  ('check2-circle', 'Lifted', 'Arithmetic, comparisons, %, SUM PRODUCT MIN MAX AVERAGE (ranges too), ABS SQRT EXP LN LOG LOG10 POWER, IF AND OR NOT, NORM.S.DIST NORMSDIST NORM.DIST, named cells and ranges.'),
+  ('table', 'Simple lookups', 'VLOOKUP and HLOOKUP over a table of constants, exact or approximate; a miss is N/A, exactly as Excel.'),
+  ('x-circle', 'Refused by cell', 'Text, dates, &, array formulas, INDEX/MATCH, INDIRECT, volatile and financial functions, circular references — named, never approximated.'),
+]) }}
+{% call example('Lift, preview first', 'python') %}
+data = open("mortgage.xlsx", "rb").read()
+preview = my.models.lift_workbook(data, output="Model!B7", roles={"rate": "parameter"})
+print(preview["lifted_from"]["workbook"]["check"]["statement"])
+
+my.models.create("credit", "mortgage_payment")
+my.models.import_workbook("credit/mortgage_payment", data, output="Model!B7",
+                          roles={"rate": "parameter"}, filename="mortgage.xlsx")
+{% endcall %}
+{% call example('Command line', 'bash') %}
+python -m maya.cli model import-workbook credit/mortgage_payment mortgage.xlsx \
+    --output Model!B7 --role rate=parameter --preview
+{% endcall %}
+{% call concept('Checked against the workbook itself') %}
+<p>Every time Excel recalculates it stores each formula's result in the file. MAYA evaluates the lifted
+formula at the workbook's own inputs and compares it with those results, cell by cell. <strong>Agreed</strong>:
+it reproduces them all. <strong>Disagreed</strong>: the cells are listed and submission is blocked.
+<strong>Unchecked</strong>: the file was never recalculated in Excel (for example, written by a script),
+so there was nothing to compare — say so, rather than assume agreement.</p>
+{% endcall %}
+{% call tip('Name your cells') %}
+<p>A defined name (<code>rate</code>, <code>principal</code>) becomes the input's name in the formula, the
+document and the diff. Unnamed cells are named by their address, such as <code>B3</code>, or
+<code>Inputs_B3</code> when the model spans sheets. An empty cell reads as 0, as in Excel, and the report
+says which.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Read what MAYA derived') %}
 <p>The model page shows the rendered equations, the input contract and the IR itself. The IR's
 operators are:</p>
 <p><code>add</code> <code>sub</code> <code>mul</code> <code>div</code> <code>pow</code> <code>neg</code>
@@ -84,7 +123,7 @@ an equation does not look like a change to the mathematics.</p>
 {% endcall %}
 {% endcall %}
 
-{% call step(4, 'Compare two versions semantically') %}
+{% call step(5, 'Compare two versions semantically') %}
 <p>A reviewer is told what changed in the mathematics, such as an input added or a bound tightened,
 not shown a JSON diff.</p>
 {% call example('Command line', 'bash') %}
@@ -99,7 +138,7 @@ print(my.models.reference_code("quant/bs_call", 1)["source"])
 {% endcall %}
 {% endcall %}
 
-{% call step(5, 'Models without a closed form') %}
+{% call step(6, 'Models without a closed form') %}
 <p>A gradient-boosted tree or a vendor library has no formula to derive. Register it anyway: choose
 kind <code>black_box</code> or <code>vendor</code>. A black box must state, in prose, what it estimates
 and describe its architecture; a vendor model records the vendor's details and lists what cannot be
