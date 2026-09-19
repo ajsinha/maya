@@ -8,8 +8,8 @@ issuer, addressed to MAYA's SLS — ends every session of that sign-in and nothi
 else. Each refusal is attacked on its own: unsigned, signed by the wrong key,
 wrong issuer, wrong destination, an answer to no request, and a replayed answer.
 
-These are protocol tests against a simulated IdP; the features still await a
-test against a real identity provider.
+These are protocol tests against a simulated IdP. The same flows against a real
+one, Keycloak, are in tests/test_sso_keycloak.py (opt-in: MAYA_TEST_KEYCLOAK_URL).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """

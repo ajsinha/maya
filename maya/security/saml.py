@@ -103,6 +103,10 @@ class SamlSettings:
             "security": {"wantAssertionsSigned": True, "wantMessagesSigned": False,
                          "wantNameId": True, "rejectDeprecatedAlgorithm": True,
                          "requestedAuthnContext": False, "wantAttributeStatement": False,
+                         # An attribute may come as several same-named elements (Keycloak
+                         # sends one "Role" element per role, and a groups mapper can
+                         # do the same); their values are merged, not refused.
+                         "allowRepeatAttributeName": True,
                          "rejectUnsolicitedResponsesWithInResponseTo": True,
                          "authnRequestsSigned": self.sign_requests,
                          "logoutRequestSigned": self.sign_requests,

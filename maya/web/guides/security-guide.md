@@ -69,8 +69,8 @@ MAYA uses the authorization code flow with PKCE. Before it believes an ID token:
 
 ## Single sign-on with SAML 2.0
 
-!!! warning "SAML has not yet been tested against a real identity provider"
-    The SAML service provider is built and tested against a test IdP, not a commercial one. Treat it as unproven until it has been exercised with yours.
+!!! warning "Tested against one real identity provider"
+    SAML sign-in, signed requests and single logout have been exercised end to end against Keycloak 26.4 (see [Tested against Keycloak 26.4](#tested-against-keycloak-264)) and against a simulated IdP in the test suite. No other identity provider has been tried; treat yours as unproven until you have signed in and out with it.
 
 What is built:
 
@@ -92,7 +92,7 @@ Set `auth.sso.saml.idp_slo_url` (the IdP's logout endpoint) and MAYA's own singl
 
 Redirect signatures are checked over the query string exactly as received, so an IdP's own URL encoding cannot break them. A session opened by password, or by OIDC, signs out locally only.
 
-Every refusal is audited as `auth.sso_refused`. Not supported: IdP-initiated sign-in. Signed requests and single logout are code complete and tested against a simulated IdP; they await a test with a real one. SAML needs the `python3-saml` and `xmlsec` packages; with `protocol: saml2` and either missing, MAYA refuses to start.
+Every refusal is audited as `auth.sso_refused`. Not supported: IdP-initiated sign-in, and back-channel (server-to-server SOAP or POST) logout — MAYA's SLS takes front-channel redirects only, so an IdP that signs people out without their browser does not reach MAYA, and the MAYA session lasts until its own timeout or sign-out. An attribute sent as several same-named elements (Keycloak sends one `Role` element per role, for example) has its values merged. SAML needs the `python3-saml` and `xmlsec` packages; with `protocol: saml2` and either missing, MAYA refuses to start.
 
 ### Groups, roles and provisioning
 
@@ -103,6 +103,39 @@ For both protocols:
 - **Provisioning.** With `jit_provision: true`, the account is created at first sign-in with the mapped roles and no object grants. With `false`, a person without an account is refused.
 - **Name clashes.** If a local password account already has the username, SSO is refused until an administrator reconciles the two.
 - **Second factor.** SSO sessions take their second factor from the identity provider; MAYA does not challenge them again.
+
+## Tested against Keycloak 26.4
+
+MAYA's SSO was driven end to end in headless Chrome against Keycloak 26.4.7 in dev mode, with MAYA started by `run_maya_web.py` in `hybrid` mode on another host name, so the SAML POST and the logout redirects were cross-site as in production. `tests/test_sso_keycloak.py` repeats it against any Keycloak you point `MAYA_TEST_KEYCLOAK_URL` at; it builds the realm below through the admin REST API. This is one IdP at one version. Other IdPs, and other Keycloak versions, have not been tested.
+
+| Flow | Result with Keycloak 26.4.7 |
+|---|---|
+| OIDC sign-in (code flow, PKCE S256, confidential client) | Works; the `groups` claim maps to roles; a person in no mapped group is refused. |
+| OIDC sign-out | Local only: the MAYA session ends, Keycloak's does not, and the next SSO sign-in is silent while it lasts. MAYA does no OIDC logout of any kind. |
+| SAML sign-in, signed AuthnRequest | Works; groups arrive as one `groups` element per group or as one multi-valued element, both merged. |
+| SAML sign-out from MAYA (single logout) | Works: signed LogoutRequest to Keycloak, its signed LogoutResponse back to the SLS, Keycloak's session ended (the next sign-in asks for the password). |
+| Keycloak ends the session in the browser (its end-session page, or another application's logout) | Works: Keycloak redirects the browser to MAYA's SLS with a signed LogoutRequest, MAYA ends the session and answers. |
+| Keycloak administrator "Sign out" of a user | Does **not** reach MAYA: that is Keycloak's back channel, which MAYA does not offer (Keycloak logs "Some clients have not been logged out"). |
+
+**OIDC client** (Clients → Create, OpenID Connect):
+
+- Client ID `maya` (whatever `auth.sso.client_id` says); **Client authentication** on (confidential), its secret in `MAYA_OIDC_CLIENT_SECRET`; **Standard flow** only.
+- Valid redirect URI: exactly `auth.sso.redirect_uri`, e.g. `https://maya.example.com/auth/sso/callback`.
+- Advanced → **PKCE method `S256`**.
+- A **group membership** mapper, token claim name `groups`, **Full group path off** (with it on the claim carries `/maya-admins`, which `group_role_map` must then name), added to the ID token.
+- MAYA asks for the scopes `openid profile email groups`, and Keycloak refuses a scope it does not know (`invalid_scope`). Either create a client scope named `groups` holding the mapper and add it to the client (optional or default), or put the mapper on the client and set `auth.sso.scopes: "openid profile email"`. Both were tested.
+- `auth.sso.issuer` is the realm URL, `https://keycloak.example.com/realms/<realm>`, exactly as the discovery document's `issuer` says (the host name the browser uses).
+
+**SAML client** (Clients → Create, SAML):
+
+- Client ID = `auth.sso.saml.sp_entity_id`. Valid redirect URIs: MAYA's origin followed by `/*`.
+- **Name ID format** `username` with **Force name ID format** on (the NameID becomes the MAYA username).
+- **Sign documents** on and **Sign assertions** on, algorithm RSA_SHA256. Sign documents is what signs Keycloak's own LogoutRequests; with it off MAYA refuses them as unsigned and the MAYA session survives the IdP's logout.
+- **Force POST binding** on; **Front channel logout** on; Encrypt assertions off.
+- Advanced → Assertion Consumer Service POST Binding URL = `acs_url`; Logout Service Redirect Binding URL = `sls_url`.
+- With `sign_requests: true`: Keys → **Client signature required** on, and import MAYA's certificate (`sp_cert_file`). Unsigned requests (`sign_requests: false` with Client signature required off) were tested too.
+- A **Group list** mapper, SAML attribute name `groups`, Full group path off; a **User Property** mapper `email` → attribute `email`. Keycloak's default role-list scope adds `Role` attributes; MAYA ignores them.
+- MAYA's side: `idp_entity_id` is the realm URL; `idp_sso_url` and `idp_slo_url` are both `<realm URL>/protocol/saml`; `idp_cert_file` holds the realm's signing certificate from `<realm URL>/protocol/saml/descriptor`.
 
 ## Two-factor authentication
 

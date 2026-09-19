@@ -71,10 +71,12 @@ which must be signed, ends every MAYA session of the person it names (only the n
 when it names one). With
 <code>sign_requests: true</code> MAYA signs its AuthnRequests and logout messages with its own key
 pair (RSA-SHA256), and its metadata publishes the certificate.</p>
-{% call warn('Awaiting a real identity provider') %}
-<p>Signed requests and single logout are code complete and tested against a simulated IdP only, as
-is the rest of SAML. IdP-initiated sign-in is not supported, by design: it cannot be tied to a
-request MAYA made.</p>
+{% call warn('Tested against one real identity provider') %}
+<p>SAML sign-in, signed requests and single logout have been exercised end to end against Keycloak
+26.4 only, besides a simulated IdP in the test suite; the security guide gives the exact client
+settings. Logout reaches MAYA only through the browser (front channel): an IdP's server-to-server
+logout does not. IdP-initiated sign-in is not supported, by design: it cannot be tied to a request
+MAYA made.</p>
 {% endcall %}
 {% endcall %}
 

@@ -56,6 +56,23 @@ def test_signed_response_opens_a_session_with_mapped_roles(saml):
         assert uow.repo("audit_events").list(action="auth.sso_login")
 
 
+
+def test_repeated_attribute_elements_are_merged_not_refused(saml):
+    """Keycloak sends one ``Role`` Attribute element per role by default, and a groups
+    mapper without "single attribute" one ``groups`` element per group. python3-saml
+    refuses such a Response unless told otherwise; MAYA merges the values (found
+    against Keycloak 26.4)."""
+    platform, idp, app = saml
+    rid = _start(app)
+    out = Client(app=app).auth.saml_acs(idp.response(
+        rid, "kira", groups=("unmapped-team", "maya-admins"), repeat_attributes=True))
+    me = Client(app=app, token=out["token"]).auth.me()
+    assert me["username"] == "kira" and "admin" in me["roles"]
+    with platform.uow() as uow:
+        login = [a for a in uow.repo("audit_events").list(action="auth.sso_login")
+                 if a["object_ref"] == "user:kira"]
+        assert login and login[0]["detail"]["groups"] == ["unmapped-team", "maya-admins"]
+
 def test_the_sp_metadata_names_entity_and_acs(saml):
     _, _, app = saml
     raw = Client(app=app).auth.saml_metadata()
