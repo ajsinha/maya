@@ -102,7 +102,7 @@
         <li>Spreadsheet import lifts a deliberately narrow slice of Excel and refuses the rest by cell.</li>
         <li>SAML is refused at startup; OIDC SSO and TOTP are shipped. WebAuthn is not built.</li>
         <li>The strong sandbox tier is Linux-only; macOS runs at moderate, Windows at minimal.</li>
-        <li>Search is a <code>LIKE</code> scan, not full-text search.</li>
+        <li>Search is MAYA's own inverted index; PostgreSQL <code>tsvector</code> and SQLite FTS5 are not used.</li>
         <li>Custody anchors are only as external as the storage you point them at.</li>
       </ul>
     </div></section></div>

@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 0ab36292627b68d9e5988e056a83a35564a3e7755361dbf8107283cad0aa9f06
+-- schema-hash: 790dcd11fb4d61115b307c6cb068e1bc2e5ba38263b21f6c8e49ab32a92c437f
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -366,6 +366,20 @@ CREATE TABLE schema_meta (
 	value TEXT NOT NULL, 
 	CONSTRAINT pk_schema_meta PRIMARY KEY ("key")
 );
+
+CREATE TABLE search_terms (
+	id INTEGER NOT NULL, 
+	term VARCHAR(64) NOT NULL, 
+	kind VARCHAR(24) NOT NULL, 
+	object_id CHAR(36) NOT NULL, 
+	field VARCHAR(16) NOT NULL, 
+	weight INTEGER NOT NULL, 
+	CONSTRAINT pk_search_terms PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_search_terms_object_id ON search_terms (object_id);
+
+CREATE INDEX ix_search_terms_term ON search_terms (term);
 
 CREATE TABLE sql_connections (
 	name VARCHAR(128) NOT NULL, 

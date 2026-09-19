@@ -89,8 +89,8 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 447 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 171 endpoints, schema drift) |
+| **Tests** | 463 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 172 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it
 
@@ -127,9 +127,11 @@ execution warrant → reproducibility bundle.
   timestamping is off by default. Point the file at WORM or off-host storage: on the
   same disk as the database it only raises the bar. The TSA's own signature is checked
   with `openssl ts -verify`, not inside MAYA.
-- **Search is a `LIKE` scan, not full-text search.** This, CodeMirror 5 instead of 6, and
-  the corrected dark `--maya-crimson-deep` token are recorded in the specification as
-  revision 2.2.
+- **Search is MAYA's own inverted index**, identical on SQLite and PostgreSQL: ranked,
+  prefix-matched, every term required, filtered by read permission, kept current in the
+  writing transaction. PostgreSQL `tsvector` and SQLite FTS5 are not used. CodeMirror 5
+  instead of 6 and the corrected dark `--maya-crimson-deep` token are recorded in the
+  specification as revision 2.2.
 
 ---
 
