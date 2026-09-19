@@ -57,6 +57,26 @@ def saml_sls(body: s.SamlSlsIn, request: Request, plat: Any = Plat) -> Response:
     return ok(plat.sso.saml_sls(body.query_string, ip=_ip(request)))
 
 
+# -- OIDC back-channel logout --------------------------------------------------------------
+@router.post("/auth/sso/oidc/backchannel-logout")
+async def oidc_backchannel_logout(request: Request, plat: Any = Plat) -> Response:
+    """Public, server to server: the IdP POSTs a signed logout token (form field
+    ``logout_token``, OIDC Back-Channel Logout 1.0). An invalid token is a 400, as that
+    specification requires; the body names why."""
+    from fastapi.responses import JSONResponse
+    from maya.core.errors import NotAuthenticated
+    form = await request.form()
+    try:
+        out = plat.sso.oidc_backchannel_logout(str(form.get("logout_token") or ""),
+                                               ip=_ip(request))
+    except NotAuthenticated as exc:
+        return JSONResponse({**exc.to_problem(), "status": 400}, status_code=400,
+                            headers={"Cache-Control": "no-store"})
+    response = ok(out)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 # -- security keys -------------------------------------------------------------------------
 @router.get("/auth/mfa/webauthn")
 def webauthn_keys(me: Principal = Me, plat: Any = Plat) -> Response:

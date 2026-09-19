@@ -109,6 +109,10 @@ auth:
     client_id: "${MAYA_OIDC_CLIENT_ID:maya}"
     client_secret: "${MAYA_OIDC_CLIENT_SECRET:}"
     redirect_uri: "${MAYA_OIDC_REDIRECT_URI:http://127.0.0.1:8600/auth/sso/callback}"
+    # Set it (and register it with the IdP) to sign out at the IdP too when signing out
+    # of MAYA (RP-initiated logout). Empty: signing out ends the MAYA session only.
+    # The IdP's back-channel logout URL for MAYA is POST /api/v1/auth/sso/oidc/backchannel-logout.
+    post_logout_redirect_uri: "${MAYA_OIDC_POST_LOGOUT_URI:}"
     # Keycloak refuses a scope it does not know: give it a "groups" client scope, or
     # drop "groups" here and put the groups mapper on the client (security guide).
     scopes: "openid profile email groups"

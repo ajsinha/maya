@@ -12,6 +12,13 @@ by a key the issuer publishes (asymmetric only — ``none`` and HMAC refused),
 ``exp`` in the future and ``iat`` not in it (with a small skew), and the
 ``nonce`` MAYA sent.
 
+Logout, both directions (OpenID Connect RP-Initiated Logout 1.0 and Back-Channel
+Logout 1.0): ``logout_url`` sends the browser to the issuer's end-session endpoint;
+``validate_logout_token`` checks a logout token the issuer POSTs to MAYA server to
+server — the same signature, issuer and audience checks, a fresh ``iat``, the
+back-channel-logout event, a ``sub`` or ``sid``, a ``jti``, and no ``nonce`` (which
+would make it an ID token presented as a logout token).
+
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
@@ -32,6 +39,8 @@ from maya.core.errors import NotAuthenticated, ValidationFailed
 
 CLOCK_SKEW = 120
 JWKS_TTL = 3600
+LOGOUT_EVENT = "http://schemas.openid.net/event/backchannel-logout"
+LOGOUT_TOKEN_MAX_AGE = 300
 
 
 def _b64u_json(part: str) -> dict[str, Any]:
@@ -52,6 +61,7 @@ class OIDCSettings:
     client_secret: str
     redirect_uri: str
     scopes: str = "openid profile email groups"
+    post_logout_redirect_uri: str = ""
 
 
 class OIDCClient:
@@ -119,19 +129,60 @@ class OIDCClient:
         return self.validate(id_token, nonce)
 
     def validate(self, id_token: str, nonce: str, *, now: float | None = None) -> dict[str, Any]:
+        claims = self._verified(id_token, "ID token")
+        self._check_claims(claims, nonce, time.time() if now is None else now)
+        return claims
+
+    def _verified(self, token: str, what: str) -> dict[str, Any]:
+        """The claims of a JWT signed by one of the issuer's published keys."""
         try:
-            header_b64, payload_b64, sig_b64 = id_token.split(".")
+            header_b64, payload_b64, sig_b64 = token.split(".")
             header, claims = _b64u_json(header_b64), _b64u_json(payload_b64)
             signature = base64.urlsafe_b64decode(sig_b64 + "=" * (-len(sig_b64) % 4))
         except (ValueError, json.JSONDecodeError) as exc:
-            raise NotAuthenticated("The ID token is malformed") from exc
+            raise NotAuthenticated(f"The {what} is malformed") from exc
         alg = header.get("alg", "")
         if alg not in crypto.JWT_ALGORITHMS:
-            raise NotAuthenticated(f"ID token algorithm '{alg}' is not accepted")
+            raise NotAuthenticated(f"{what} algorithm '{alg}' is not accepted")
         signing_input = f"{header_b64}.{payload_b64}".encode()
         if not self._signature_ok(header, alg, signing_input, signature):
-            raise NotAuthenticated("The ID token signature does not verify")
-        self._check_claims(claims, nonce, time.time() if now is None else now)
+            raise NotAuthenticated(f"The {what} signature does not verify")
+        return claims
+
+    # -- logout ---------------------------------------------------------------------------
+    def logout_url(self) -> str | None:
+        """Where to send the browser so the issuer ends its session too; None when the
+        issuer publishes no end-session endpoint or no return address is configured."""
+        endpoint = self.metadata().get("end_session_endpoint")
+        if not endpoint or not self.cfg.post_logout_redirect_uri:
+            return None
+        return endpoint + "?" + urlencode({
+            "client_id": self.cfg.client_id,
+            "post_logout_redirect_uri": self.cfg.post_logout_redirect_uri})
+
+    def validate_logout_token(self, token: str, *, now: float | None = None
+                              ) -> dict[str, Any]:
+        """A back-channel logout token's claims, or NotAuthenticated naming what failed."""
+        claims = self._verified(token, "logout token")
+        now = time.time() if now is None else now
+        if str(claims.get("iss", "")).rstrip("/") != self.cfg.issuer.rstrip("/"):
+            raise NotAuthenticated("Logout token issuer mismatch")
+        aud = claims.get("aud")
+        if self.cfg.client_id not in (aud if isinstance(aud, list) else [aud]):
+            raise NotAuthenticated("Logout token audience does not include this client")
+        iat = float(claims.get("iat", 0))
+        if iat > now + CLOCK_SKEW or iat < now - LOGOUT_TOKEN_MAX_AGE - CLOCK_SKEW:
+            raise NotAuthenticated("Logout token is not fresh")
+        if "exp" in claims and float(claims["exp"]) < now - CLOCK_SKEW:
+            raise NotAuthenticated("Logout token has expired")
+        if LOGOUT_EVENT not in (claims.get("events") or {}):
+            raise NotAuthenticated("Not a back-channel logout token (no logout event)")
+        if "nonce" in claims:
+            raise NotAuthenticated("A logout token must not carry a nonce")
+        if not (claims.get("sub") or claims.get("sid")):
+            raise NotAuthenticated("A logout token must name a sub or a sid")
+        if not claims.get("jti"):
+            raise NotAuthenticated("A logout token must carry a jti")
         return claims
 
     def _signature_ok(self, header: dict[str, Any], alg: str, signing_input: bytes,
@@ -167,4 +218,6 @@ def settings_from(props: Any) -> OIDCSettings:
     return OIDCSettings(issuer=issuer, client_id=client_id,
                         client_secret=props.get("auth.sso.client_secret") or "",
                         redirect_uri=props.get("auth.sso.redirect_uri") or "",
-                        scopes=props.get("auth.sso.scopes") or "openid profile email groups")
+                        scopes=props.get("auth.sso.scopes") or "openid profile email groups",
+                        post_logout_redirect_uri=(props.get("auth.sso.post_logout_redirect_uri")
+                                                  or "").strip())
