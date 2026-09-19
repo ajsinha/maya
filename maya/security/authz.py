@@ -74,6 +74,8 @@ class Principal:
 class Decision:
     allowed: bool
     rule: str
+    # the §11.4 conditions of the grant that decided a read; empty means unconditioned
+    conditions: dict[str, Any] = field(default_factory=dict)
 
     def __bool__(self) -> bool:
         return self.allowed
@@ -142,15 +144,15 @@ def _acl(p: Principal, action: str, obj: dict[str, Any], grants: list[dict[str, 
     if any(g.get("deny") for g in mine):
         return Decision(False, "explicit deny for this user")
     if mine:
-        return _level_decision(action, _best(mine), "user grant")
+        return _granted(action, mine, "user grant")
     shared = [g for g in grants if not g.get("deny") and (
         (g["principal_type"] == "group" and g["principal_id"] in p.groups)
         or (g["principal_type"] == "role" and g["principal_id"] in p.roles))]
     if shared:
-        return _level_decision(action, _best(shared), "group/role grant")
+        return _granted(action, shared, "group/role grant")
     everyone = [g for g in grants if g["principal_type"] == "everyone" and not g.get("deny")]
     if everyone:
-        return _level_decision(action, _best(everyone), "everyone grant")
+        return _granted(action, everyone, "everyone grant")
     if obj.get("owner_id") and obj["owner_id"] == p.user_id:
         return _level_decision(action, "own", "owner")
     default = (namespace or {}).get("default_visibility", "private")
@@ -163,6 +165,17 @@ def _acl(p: Principal, action: str, obj: dict[str, Any], grants: list[dict[str, 
             return Decision(True, f"namespace default ({default}) + role capability")
         return _level_decision(action, "read", f"namespace default ({default})")
     return Decision(False, "no grant and namespace is private")
+
+
+def _granted(action: str, grants: list[dict[str, Any]], via: str) -> Decision:
+    """Decide by the strongest grant; its conditions (combined if tied) ride along."""
+    from maya.security.conditions import combine
+    best = _best(grants)
+    decision = _level_decision(action, best, via)
+    if decision.allowed:
+        decision.conditions = combine([g.get("conditions") or {} for g in grants
+                                       if g["level"] == best])
+    return decision
 
 
 def _best(grants: list[dict[str, Any]]) -> str:

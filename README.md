@@ -104,8 +104,6 @@ execution warrant → reproducibility bundle.
   TOTP two-factor authentication. Configuring `auth.sso.protocol: saml2` is refused at
   startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
   is not built.
-- **Grant conditions** (row filters, column masks, time bounds, §11.4) are refused
-  rather than stored unenforced.
 - **Source drivers** `sql` and `python` are refused by name. Shipped: csv, parquet, json, delta, derived.
 - **Sandbox tier is `minimal`** (rlimits in a subprocess; network blocking is best effort).
   It is named as such on the health page and on every validation report.

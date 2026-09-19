@@ -192,6 +192,23 @@ async def grants(request: Request) -> Any:
         "recert": recert})
 
 
+def _conditions(data: dict[str, Any]) -> dict[str, Any]:
+    """§11.4 conditions from the form: a row filter, a cut-off date, masks as attr:how."""
+    out: dict[str, Any] = {}
+    if (data.get("row_filter") or "").strip():
+        out["row_filter"] = data["row_filter"].strip()
+    if (data.get("until") or "").strip():
+        out["time_bound"] = {"until": data["until"].strip()}
+    masks = {}
+    for part in (data.get("masks") or "").split(","):
+        if ":" in part:
+            attr, how = (x.strip() for x in part.split(":", 1))
+            masks[attr] = how
+    if masks:
+        out["column_mask"] = masks
+    return out
+
+
 @router.post("/admin/grants")
 @action
 async def grant(request: Request) -> Any:
@@ -200,7 +217,8 @@ async def grant(request: Request) -> Any:
         row = await sdk.access.grant(data["kind"], data["ref"], data["principal_type"],
                                      data.get("principal_id") or "*", data["level"],
                                      days=int(data["days"]) if data.get("days") else None,
-                                     deny=bool(data.get("deny")))
+                                     deny=bool(data.get("deny")),
+                                     conditions=_conditions(data))
     if row.get("inert_reason"):
         flash(request, f"Grant recorded but INERT: {row['inert_reason']}", "warning")
     else:

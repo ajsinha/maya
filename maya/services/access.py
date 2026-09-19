@@ -66,6 +66,17 @@ class AccessService:
             raise PermissionDenied(f"You may not {action} {kind} '{label}': {decision.rule}",
                                    action=action, rule=decision.rule)
 
+    def read_conditions(self, uow: Any, p: Principal, kind: str,
+                        obj: dict[str, Any]) -> dict[str, Any]:
+        """The §11.4 conditions under which ``p`` reads ``obj`` (empty: unconditioned)."""
+        d = self.describe(uow, kind, obj)
+        decision = can(p, "read", d["obj"], d["grants"], d["namespace"])
+        return decision.conditions if decision.allowed else {}
+
+    @staticmethod
+    def user_context(p: Principal) -> dict[str, Any]:
+        return {"username": p.username, "desk": p.desk}
+
     def allowed(self, uow: Any, p: Principal, action: str, kind: str,
                 obj: dict[str, Any], **kw: Any) -> bool:
         try:
@@ -178,14 +189,15 @@ class AccessService:
         if principal_type not in ("user", "group", "role", "everyone"):
             raise ValidationFailed("principal_type must be user, group, role or everyone")
         if conditions:
-            raise ValidationFailed(
-                "Grant conditions (row filters, column masks, time bounds — §11.4) are not "
-                "enforced in this build. A mask that is stored but not applied would leak "
-                "data silently, so the grant is refused rather than accepted.")
+            from maya.security.conditions import validate as validate_conditions
+            validate_conditions(conditions)
         with self.p.uow(p.username) as uow:
             self.require(uow, p, "grant", kind, obj)
             if not p.is_admin and LEVELS.index(level) > LEVELS.index("own"):
                 raise PermissionDenied("Only administrators grant 'admin'")
+            if principal_type == "user":
+                # grants are matched on the user id; a name typed in the UI would never match
+                principal_id = self._user_id(uow, principal_id)
             inert = self._inert(uow, principal_type, principal_id, level, KINDS[kind][1])
             row = uow.repo("grants").add({
                 "object_type": kind, "object_id": obj["id"], "principal_type": principal_type,
@@ -196,6 +208,14 @@ class AccessService:
                       detail={"to": f"{principal_type}:{principal_id}", "level": level,
                               "deny": deny, "inert": inert})
             return row
+
+    @staticmethod
+    def _user_id(uow: Any, who: str) -> str:
+        user = uow.repo("users").find_one(id=who) if len(who) == 36 else None
+        user = user or uow.repo("users").find_one(username=who)
+        if user is None:
+            raise NotFound(f"User '{who}' does not exist")
+        return user["id"]
 
     def _inert(self, uow: Any, ptype: str, pid: str, level: str, cap_type: str) -> str | None:
         if ptype != "user":

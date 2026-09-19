@@ -235,3 +235,21 @@ def test_artifact_validation_ladder_runs_as_a_job(journey):
     w.drain()
     report = w.p.models.get(w.mona, "quant/coded")["versions"][0]["artifact_report"]
     assert not report["passed"]
+
+
+def test_training_data_download_honours_the_downloaders_masks(journey):
+    """A warrant is not a way around a column mask: the download is masked, and the
+    checksum MAYA issues is of what was actually delivered."""
+    import pyarrow.parquet as pq
+    w = journey
+    tw = w.p.warrants.create(w.devi, namespace="quant", name="masked", model="quant/linear@v1",
+                             featureset="maya://featureset/quant/panel#q1/2026-02-28",
+                             spec={"target": "y"})
+    obj = w.p.access.resolve_object("feature", "quant/xy")
+    w.p.access.grant(w.admin, kind="feature", obj=obj, principal_type="user",
+                     principal_id="devi", level="read", conditions={"column_mask": {"y": "null"}})
+    data = w.p.warrants.data(w.devi, tw["id"])
+    table = pq.read_table(io.BytesIO(data["data"]))
+    assert set(table.column("y").to_pylist()) == {None}
+    from maya.core.canonical import table_content_hash
+    assert table_content_hash(table) == data["manifest"]["checksum"]
