@@ -129,6 +129,48 @@ python -m maya.cli --json --profile prod export verify bundle.zip
 platform instead of a server (it needs <code>MAYA_USER</code> and <code>MAYA_PASSWORD</code>).</p>
 {% endcall %}
 
+{% call step(7, 'Record once, replay in tests') %}
+<p>Your own code that uses MAYA can be tested without a server. Record a session against a real MAYA
+once; replay the cassette forever after, in milliseconds, on a machine that has never seen MAYA.</p>
+{% call example('Record, then replay', 'python') %}
+import maya.sdk as maya
+
+live = maya.Client.record("tests/fixtures/prices.json",
+                          base_url="https://maya.example.com", api_key="maya_…")
+panel = live.features.preview("maya://feature/eq/prices@v1")      # a real call, recorded
+
+tape = maya.Client.replay("tests/fixtures/prices.json")            # no network at all
+assert tape.features.preview("maya://feature/eq/prices@v1") == panel
+{% endcall %}
+{{ fields([
+  ('matching', 'method, path, query and a hash of the body and files; identical calls replay in recorded order'),
+  ('refusals', 'replay as the same typed error with the same context: PermissionDenied stays PermissionDenied'),
+  ('credentials', 'never recorded: headers are not kept, and token, secret and password fields are redacted'),
+  ('a miss', 'an unrecorded request raises ReplayMiss naming it; a replay never guesses'),
+]) }}
+{% endcall %}
+
+{% call step(8, 'Offline: a bundle, with no MAYA at all') %}
+<p><code>maya.offline(bundle)</code> opens a <a href="/help/bundles">reproducibility bundle</a> and serves
+the same read calls from it. Every file hash and the signature are checked first; a tampered bundle is
+refused, not partly served.</p>
+{% call example('Read and evaluate a bundle on a laptop', 'python') %}
+import numpy as np
+import maya.sdk as maya
+
+with maya.offline("calibration.zip") as off:
+    print(off.verify()["verified"])                 # hashes, signature, canonical data hash
+    table, manifest = off.training_data()           # the rows, checksum-verified
+    params = off.parameters()
+    out = off.predict({"x": np.array([1.0, 2.0])})  # the signed formula IR, evaluated
+{% endcall %}
+{% call warn('It never runs the code a bundle carries') %}
+<p><code>predict</code> evaluates the signed formula IR with MAYA's own evaluator; the bundle's
+<code>reference_model.py</code> is not imported, because a bundle may come from outside. Calls a bundle
+cannot answer — the catalog, workflow, other warrants — raise <code>NotInBundle</code>.</p>
+{% endcall %}
+{% endcall %}
+
 {% call tip('Async, and in-process') %}
 <p><code>maya.sdk.AsyncClient</code> has the same surface for asyncio code — it is what the web tier
 itself uses. Passing <code>app=</code> to either client runs against an in-process ASGI app, which is how

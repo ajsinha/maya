@@ -38,6 +38,7 @@ TERMINAL = ("succeeded", "failed", "cancelled", "dead_letter")
 
 class _Namespaces:
     def _bind(self, transport: Any) -> None:
+        self._transport = transport
         self.auth = Auth(transport)
         self.admin = Admin(transport)
         self.namespaces = Namespaces(transport)
@@ -75,8 +76,30 @@ class Client(_Namespaces):
         self._http = http
         self._bind(SyncTransport(http, credential, channel))
 
+    # -- record / replay (§18.2.7) -----------------------------------------------------
+    @classmethod
+    def record(cls, cassette: str | Path, base_url: str = "http://127.0.0.1:8600",
+               **kw: Any) -> "Client":
+        """A live client that also writes every call and response to ``cassette``."""
+        from maya.sdk.replay import RecordingTransport
+        client = cls(base_url, **kw)
+        client._bind(RecordingTransport(client._transport, cassette))
+        client.mode = f"record ({client.mode})"
+        return client
+
+    @classmethod
+    def replay(cls, cassette: str | Path) -> "Client":
+        """A client served entirely from a recorded cassette: no server, no network."""
+        from maya.sdk.replay import ReplayTransport
+        client = cls.__new__(cls)
+        client._http = None
+        client.mode = "replay"
+        client._bind(ReplayTransport(cassette))
+        return client
+
     def close(self) -> None:
-        self._http.close()
+        if self._http is not None:
+            self._http.close()
 
     def __enter__(self) -> "Client":
         return self

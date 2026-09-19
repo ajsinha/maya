@@ -13,8 +13,9 @@ from maya.core.errors import (ConflictError, ContractMismatch, LicenceBreach, Ma
                               NotApproved, NotAuthenticated, NotFound, PermissionDenied,
                               QuotaExceeded, ValidationFailed, WarrantExpired, WarrantSuspended)
 from maya.sdk.client import AsyncClient, Client, connect
+from maya.sdk.offline import Offline, offline
 
-__all__ = ["AsyncClient", "Client", "connect", "MayaError", "PermissionDenied",
+__all__ = ["AsyncClient", "Client", "connect", "offline", "Offline", "MayaError", "PermissionDenied",
            "ContractMismatch", "WarrantExpired", "WarrantSuspended", "QuotaExceeded",
            "ValidationFailed", "ConflictError", "NotApproved", "LicenceBreach", "NotFound",
            "NotAuthenticated"]
