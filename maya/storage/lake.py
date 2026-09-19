@@ -27,6 +27,7 @@ import pyarrow as pa
 
 from maya.core import canonical
 from maya.core.chunker import ChunkParams, boundaries
+from maya.observability.tracing import span
 
 FRAGMENT_COL = "_fragment"
 ROW_COL = "_row"
@@ -151,9 +152,13 @@ class LakeStore:
             batches.append(part)
             new.append((digest, end - start, size))
         if batches:
-            self.delta.write(
-                path, pa.concat_tables(batches), mode="append", partition_by=[FRAGMENT_COL]
-            )
+            with span(
+                "lake write pin",
+                attributes={"maya.table": self.rel(path), "maya.fragments_new": len(batches)},
+            ):
+                self.delta.write(
+                    path, pa.concat_tables(batches), mode="append", partition_by=[FRAGMENT_COL]
+                )
         hashes = [d for d, _, _ in runs]
         return FragmentWrite(
             canonical.content_hash(schema_hex, hashes),
@@ -186,7 +191,11 @@ class LakeStore:
         path = self.table_path(kind, namespace, name)
         if not fragments:
             raise ValueError("empty fragment manifest")
-        data = self.delta.read(path, partitions={FRAGMENT_COL: sorted(set(fragments))})
+        with span(
+            "lake read pin",
+            attributes={"maya.table": self.rel(path), "maya.fragments": len(fragments)},
+        ):
+            data = self.delta.read(path, partitions={FRAGMENT_COL: sorted(set(fragments))})
         # one sort by (fragment, row), then each fragment is a contiguous slice
         data = data.take(
             pa.compute.sort_indices(

@@ -11,7 +11,31 @@ Guarantees: **idempotent** (a job with the same idempotency key is returned,
 not duplicated — a double-click never pins twice), **cancellable**
 (cooperative, checked between stages), **retryable** (exponential backoff
 with jitter, capped attempts, then dead-letter with the failure kept),
-**observable** (every job carries a trace id and a progress log).
+**fair** (see below), **observable** (every job carries a trace id and a
+progress log).
+
+**Fairness** (§15.2). Strict arrival order is not fair: one person cascade-pinning
+ten thousand features puts ten thousand rows in front of everyone else, and every
+other user's next pin waits behind all of them. Two limits together fix that
+without a priority field anyone has to set:
+
+* a **per-user concurrency cap** — one owner may have at most
+  ``jobs.per_user.max_concurrent`` jobs running at once, so a campaign cannot hold
+  every worker;
+* **weighted fair queueing** — a worker ranks the oldest queued rows by how much
+  of the fleet their owner already holds (jobs of theirs running, plus how many of
+  their own queued jobs are ahead of this one) and takes the lowest rank, oldest
+  first. So somebody with nothing running is served before the second job of
+  somebody already running one, and ten thousand jobs from one person interleave
+  with everyone else's instead of preceding them — while a campaign still gets
+  every idle worker when nobody else wants one. Turning ``jobs.fair`` off restores
+  arrival order.
+
+**Backpressure** (§15.4). Accepting work that cannot be started is a promise MAYA
+cannot keep, so a submission is refused — before the row is written — when the
+queue is deeper than ``jobs.queue.max_depth`` or the owner already has
+``jobs.per_user.max_queued`` waiting. The refusal carries an honest wait estimate
+from the queue's own depth rather than a bare "try again later".
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -25,10 +49,11 @@ import random
 import secrets
 import threading
 import traceback
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from maya.core import djson
-from maya.core.errors import ConflictError, MayaError
+from maya.core.errors import ConflictError, MayaError, QuotaExceeded
 from maya.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
@@ -41,6 +66,16 @@ def _current_trace() -> str | None:
     from maya.observability.tracing import current_trace_id
 
     return current_trace_id()
+
+
+def _waited(job: dict[str, Any]) -> float | None:
+    """How long the job sat in the queue: what §20 calls job wait time. A retried job
+    measures from its requeue, not its original submission, so backoff is not counted
+    as queueing pressure."""
+    started, created = job.get("started_at"), job.get("run_after") or job.get("created_at")
+    if not isinstance(started, dt.datetime) or not isinstance(created, dt.datetime):
+        return None
+    return max(0.0, (started - created).total_seconds())
 
 
 class JobCancelled(Exception):
@@ -72,17 +107,46 @@ class JobContext:
                 raise JobCancelled("cancelled")
 
 
+@dataclass
+class Fairness:
+    """The §15.2 caps, read from configuration once and passed to every claim."""
+
+    fair: bool = True
+    per_user_concurrent: int = 4
+    per_user_queued: int = 200
+    max_depth: int = 2000
+    seconds_per_job: float = 10.0
+    candidates: int = 200
+
+    @classmethod
+    def from_settings(cls, settings: Any) -> "Fairness":
+        return cls(
+            fair=settings.bool("jobs.fair", True),
+            per_user_concurrent=settings.int("jobs.per_user.max_concurrent", 4),
+            per_user_queued=settings.int("jobs.per_user.max_queued", 200),
+            max_depth=settings.int("jobs.queue.max_depth", 2000),
+            seconds_per_job=float(settings.get("jobs.queue.seconds_per_job", "10") or 10),
+            candidates=settings.int("jobs.claim_candidates", 200),
+        )
+
+
 class JobQueue:
     """Submission, claiming, execution, retry and cancellation."""
 
     def __init__(
-        self, uow_factory: Callable[..., Any], *, workers: int = 2, max_attempts: int = 3
+        self,
+        uow_factory: Callable[..., Any],
+        *,
+        workers: int = 2,
+        max_attempts: int = 3,
+        fairness: Fairness | None = None,
     ) -> None:
         self.uow_factory = uow_factory
         self.handlers: dict[str, Handler] = {}
         self.cancel_hooks: dict[str, CancelHook] = {}
         self.n_workers = workers
         self.max_attempts = max_attempts
+        self.fairness = fairness or Fairness()
         self._wake = threading.Event()
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
@@ -110,6 +174,7 @@ class JobQueue:
         """Enqueue inside the caller's transaction; dedupe on the idempotency key."""
         if job_type not in self.handlers:
             raise MayaError(f"No handler registered for job type '{job_type}'")
+        self.check_backpressure(uow, owner)
         params_hash = djson.canonical_hash(params)
         if idempotency_key:
             # concurrent submitters of one key queue here; the second then finds the first
@@ -134,8 +199,48 @@ class JobQueue:
                 "trace_id": _current_trace() or secrets.token_hex(16),
             }
         )
+        from maya.observability.metrics import METRICS
+
+        METRICS.inc("maya_job_submissions_total", {"type": job_type})
         uow.after_commit(self._wake.set)
         return job
+
+    def check_backpressure(self, uow: Any, owner: str) -> None:
+        """Refuse work MAYA cannot start, before the row is written (§15.4).
+
+        Two limits, both honest about what the caller should do next: the queue as a
+        whole, and this owner's share of it. The estimate is the queue's own depth
+        divided by the workers that will drain it, which is a guess — but a guess made
+        from the numbers the caller can see on the jobs page, not an arbitrary delay.
+        """
+        f = self.fairness
+        if f.max_depth <= 0 and f.per_user_queued <= 0:
+            return
+        depth = uow.repo("jobs").count(state="queued")
+        mine = uow.repo("jobs").count(state="queued", owner=owner)
+        for limit, seen, reason, what in (
+            (f.max_depth, depth, "queue_depth", "MAYA's job queue is full"),
+            (f.per_user_queued, mine, "per_user_queued", "You already have too many jobs waiting"),
+        ):
+            if 0 < limit <= seen:
+                from maya.observability.metrics import METRICS
+
+                METRICS.inc("maya_job_shed_total", {"reason": reason})
+                wait = self.wait_estimate(depth)
+                raise QuotaExceeded(
+                    f"{what} ({seen} queued, the limit is {limit}). Nothing was queued. "
+                    f"The queue should clear in about {wait} second(s); submit again then, "
+                    "or cancel jobs you no longer need.",
+                    reason=reason,
+                    queued=seen,
+                    limit=limit,
+                    estimated_wait_seconds=wait,
+                )
+
+    def wait_estimate(self, depth: int) -> int:
+        """Seconds the queue is expected to take to clear, given the workers draining it."""
+        workers = max(1, self.n_workers)
+        return int(depth * self.fairness.seconds_per_job / workers)
 
     def cancel(self, uow: Any, job_id: str) -> dict[str, Any]:
         job = uow.repo("jobs").require(job_id)
@@ -153,8 +258,14 @@ class JobQueue:
     # -- execution ---------------------------------------------------------
     def run_one(self, worker: str = "inline") -> bool:
         """Claim and run a single job. Returns False when the queue is empty."""
+        f = self.fairness
         with self.uow_factory("system") as uow:
-            job = uow.repo("jobs").claim_next(worker)
+            job = uow.repo("jobs").claim_next(
+                worker,
+                fair=f.fair,
+                max_per_user=f.per_user_concurrent,
+                candidates=f.candidates,
+            )
         if job is None:
             return False
         self._execute(job)
@@ -186,8 +297,22 @@ class JobQueue:
         METRICS.observe(
             "maya_job_duration_seconds", time.perf_counter() - started, {"type": job["job_type"]}
         )
+        waited = _waited(job)
+        if waited is not None:
+            METRICS.observe("maya_job_wait_seconds", waited, {"type": job["job_type"]})
 
     def _run_handler(self, job: dict[str, Any]) -> str:
+        from maya.observability import logs
+
+        with logs.bound(
+            request_id=job["trace_id"],
+            actor=job["owner"],
+            object_ref=f"maya://job/{job['id']}",
+            channel="worker",
+        ):
+            return self._handle(job)
+
+    def _handle(self, job: dict[str, Any]) -> str:
         ctx = JobContext(self, job)
         try:
             result = self.handlers[job["job_type"]](ctx, job["params"])

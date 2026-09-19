@@ -20,6 +20,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import time
 from datetime import date
 from typing import Any
 
@@ -27,6 +28,8 @@ import pandas as pd
 
 from maya.core.calendars import business_days
 from maya.core.errors import ValidationFailed
+from maya.observability.metrics import frame_bytes, observe_resolution
+from maya.observability.tracing import span
 from maya.resolution.expr import compile_expr
 from maya.resolution.resolver import KT, apply_rules, parse_grid, rule_for, to_event_dates
 from maya.resolution.rules import parse_rule
@@ -229,6 +232,33 @@ def resolve_featureset(
     filters: dict[str, Any] | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Assemble, align, filter and fill a feature set. Returns (frame, manifest)."""
+    with span("resolve feature set", attributes={"maya.members": len(members)}):
+        return _resolve_featureset(
+            members,
+            mapping,
+            index=index,
+            alignment=alignment,
+            grid=grid,
+            global_policy=global_policy,
+            group_policies=group_policies,
+            inherited_policies=inherited_policies,
+            filters=filters,
+        )
+
+
+def _resolve_featureset(
+    members: dict[str, Frame],
+    mapping: list[dict[str, Any]],
+    *,
+    index: list[str],
+    alignment: dict[str, Any] | None = None,
+    grid: Any = "as_is",
+    global_policy: dict[str, Any] | None = None,
+    group_policies: list[dict[str, Any]] | None = None,
+    inherited_policies: list[dict[str, Any]] | None = None,
+    filters: dict[str, Any] | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    started = time.perf_counter()
     alignment, filters, plan = dict(alignment or {"mode": "inner"}), dict(filters or {}), []
     by_member = _validate(members, mapping, index)
     frames = {a: _member_frame(a, members[a], e, index, plan) for a, e in by_member.items()}
@@ -262,6 +292,7 @@ def resolve_featureset(
         plan.append(f"row filter: {compile_expr(filters['expr']).canonical()}")
     out = base[index + attrs + [KT]].sort_values(index, kind="mergesort").reset_index(drop=True)
     manifest = _manifest(mapping, members, chosen, fill, plan, out)
+    observe_resolution("featureset", len(out), frame_bytes(out), time.perf_counter() - started)
     return out, manifest
 
 

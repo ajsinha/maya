@@ -9,7 +9,17 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, Date, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    Float,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from maya.persistence.models.base import Base, Tracked
@@ -145,6 +155,25 @@ class LineageEdge(Tracked, Base):
     dst_ref: Mapped[str] = mapped_column(String(512), index=True)
     edge_type: Mapped[str] = mapped_column(String(32))
     label: Mapped[str | None] = mapped_column(String(256))
+
+
+class RestoreDrill(Tracked, Base):
+    """One recorded restore drill (§20). The drill runs on a scratch copy that is then
+    deleted, so this row — written on the production instance by whoever ran it — is the
+    only place the estate remembers that recovery was tested, and what it found."""
+
+    __tablename__ = "restore_drills"
+    performed_at: Mapped[dt.datetime] = mapped_column(UTCDateTime, index=True)
+    backup_taken_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    dialect: Mapped[str] = mapped_column(String(16))
+    outcome: Mapped[str] = mapped_column(String(16), default="passed")  # passed | failed
+    pins_checked: Mapped[int] = mapped_column(Integer, default=0)
+    drift: Mapped[int] = mapped_column(Integer, default=0)
+    audit_chain_ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    anchors_ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    duration_seconds: Mapped[float] = mapped_column(Float, default=0.0)
+    verified_by: Mapped[str] = mapped_column(String(128))
+    notes: Mapped[str | None] = mapped_column(Text)
 
 
 class Subscription(Tracked, Base):

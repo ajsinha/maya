@@ -119,17 +119,85 @@ for _name, _kind, _text in (
     ("maya_http_request_duration_seconds", "histogram", "HTTP request latency"),
     ("maya_job_runs_total", "counter", "Jobs finished, by type and outcome"),
     ("maya_job_duration_seconds", "histogram", "Job run time by type"),
+    ("maya_job_wait_seconds", "histogram", "Time a job waited between submission and start"),
+    ("maya_job_submissions_total", "counter", "Jobs accepted onto the queue, by type"),
+    (
+        "maya_job_shed_total",
+        "counter",
+        "Submissions refused by backpressure, by the limit that refused them",
+    ),
     ("maya_pins_sealed_total", "counter", "Pins sealed, by kind"),
     ("maya_pin_new_bytes_total", "counter", "Bytes of new fragments written by pins"),
+    ("maya_resolution_rows_total", "counter", "Rows produced by resolution, by kind"),
+    ("maya_resolution_bytes_total", "counter", "Bytes of resolved frames in memory, by kind"),
+    ("maya_resolution_seconds_total", "counter", "Seconds spent resolving, by kind"),
+    ("maya_resolution_seconds", "histogram", "Resolution wall time, by kind"),
+    ("maya_db_slow_queries_total", "counter", "Statements slower than observability.slow_query_ms"),
+    ("maya_db_statements_total", "counter", "Statements executed"),
+    ("maya_cache_hits_total", "counter", "Cache lookups served from the cache, by cache"),
+    ("maya_cache_misses_total", "counter", "Cache lookups that had to be computed, by cache"),
     ("maya_authz_denials_total", "counter", "Authorization denials, by action"),
     ("maya_audit_events_total", "counter", "Audit entries appended"),
     ("maya_events_total", "counter", "Events emitted, by type"),
     ("maya_webhook_deliveries_total", "counter", "Webhook delivery attempts, by outcome"),
+    ("maya_integrity_verifications_total", "counter", "Integrity verification runs"),
+    (
+        "maya_integrity_drift_total",
+        "counter",
+        "Pins found not to match their seal, summed over every verification",
+    ),
     ("maya_jobs", "gauge", "Jobs by state, at scrape time"),
+    ("maya_pins", "gauge", "Pins by kind and state, at scrape time"),
+    (
+        "maya_default_admin_password",
+        "gauge",
+        "1 while the bootstrap administrator still has the shipped password",
+    ),
+    (
+        "maya_restore_drill_age_days",
+        "gauge",
+        "Days since the last recorded restore drill (-1 when none has been recorded)",
+    ),
+    ("maya_job_queue_depth", "gauge", "Jobs queued, by type, at scrape time"),
+    ("maya_job_queue_owners", "gauge", "Distinct owners with a job queued, at scrape time"),
+    ("maya_job_oldest_queued_seconds", "gauge", "Age of the oldest queued job"),
     ("maya_sessions_active", "gauge", "Unrevoked, unexpired sessions"),
     ("maya_webhook_backlog", "gauge", "Webhook deliveries waiting, by state"),
+    ("maya_namespace_pins", "gauge", "Sealed pins per namespace, by kind"),
+    ("maya_namespace_pin_bytes", "gauge", "Logical bytes of sealed pins per namespace, by kind"),
+    ("maya_delta_files", "gauge", "Data files in each lake table's current snapshot"),
+    ("maya_delta_bytes", "gauge", "Bytes of data files in each lake table's current snapshot"),
+    (
+        "maya_delta_small_file_ratio",
+        "gauge",
+        "Fraction of a lake table's files below the compaction target size",
+    ),
+    ("maya_db_pool_connections", "gauge", "Database connections, by state"),
+    ("maya_db_pool_limit", "gauge", "Configured pool size and overflow allowance"),
     ("maya_seam_backend", "gauge", "The resolved backend of each dependency seam (value 1)"),
     ("maya_sandbox_tier", "gauge", "The verified sandbox tier (value 1)"),
     ("maya_build_info", "gauge", "Version and build of the running MAYA (value 1)"),
 ):
     METRICS.describe(_name, _kind, _text)
+
+
+def frame_bytes(frame: Any) -> int:
+    """A resolved frame's size in memory, cheaply. ``deep=True`` would walk every Python
+    string object, which on a wide symbol panel costs more than the resolution did."""
+    try:
+        return int(frame.memory_usage(index=True).sum())
+    except Exception:  # noqa: BLE001 - a metric never breaks the caller
+        return 0
+
+
+def observe_resolution(kind: str, rows: int, nbytes: int, seconds: float) -> None:
+    """Record one resolution: rows, in-memory bytes and how long it took.
+
+    Rows and bytes per second (§20) are these three counters divided, which is the only
+    form that survives a scrape interval: a gauge of "the last resolution's rate" says
+    nothing about the minute Prometheus actually asked about.
+    """
+    METRICS.inc("maya_resolution_rows_total", {"kind": kind}, float(rows))
+    METRICS.inc("maya_resolution_bytes_total", {"kind": kind}, float(nbytes))
+    METRICS.inc("maya_resolution_seconds_total", {"kind": kind}, float(seconds))
+    METRICS.observe("maya_resolution_seconds", float(seconds), {"kind": kind})

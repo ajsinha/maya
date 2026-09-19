@@ -88,15 +88,77 @@ class JobRepository(Repository[operations.Job]):
     model = operations.Job
     label = "job"
 
-    def claim_next(self, worker: str) -> dict[str, Any] | None:
-        """Take the oldest runnable job. PostgreSQL skips rows other workers hold."""
+    def claim_next(
+        self,
+        worker: str,
+        *,
+        fair: bool = False,
+        max_per_user: int = 0,
+        candidates: int = 200,
+    ) -> dict[str, Any] | None:
+        """Take the next runnable job. PostgreSQL skips rows other workers hold.
+
+        With ``fair`` off this is arrival order, as it always was. With it on the
+        ranking is weighted fair queueing (§15.2): among the oldest ``candidates``
+        runnable rows, each is ranked by how much of the fleet its owner already holds —
+        the jobs of theirs that are running, plus how many of their own queued jobs are
+        ahead of this one — and the lowest rank wins, ties broken by arrival. So a person
+        with nothing running is served before the second job of somebody already running
+        one, and a ten-thousand-pin campaign interleaves with everybody else's work
+        instead of preceding it. Fairness is over the *running* share, so a campaign
+        still gets every idle worker when nobody else wants one. ``max_per_user`` is the
+        hard ceiling on top: an owner already at it is passed over entirely.
+        """
         now = utcnow()
-        stmt = (
-            select(operations.Job)
-            .where(operations.Job.state == "queued")
-            .where(or_(operations.Job.run_after.is_(None), operations.Job.run_after <= now))
-            .order_by(operations.Job.created_at)
-            .limit(1)
+        queued = self._runnable(now, 1 if not fair and not max_per_user else candidates)
+        if not queued:
+            return None
+        for job in self._in_fair_order(queued, fair=fair, max_per_user=max_per_user):
+            claimed = self._take(job.id, worker, now)
+            if claimed is not None:
+                return claimed
+        return None
+
+    def _runnable(self, now: dt.datetime, limit: int) -> list[Any]:
+        return list(
+            self.session.scalars(
+                select(operations.Job)
+                .where(operations.Job.state == "queued")
+                .where(or_(operations.Job.run_after.is_(None), operations.Job.run_after <= now))
+                .order_by(operations.Job.created_at)
+                .limit(limit)
+            )
+        )
+
+    def _in_fair_order(self, queued: list[Any], *, fair: bool, max_per_user: int) -> list[Any]:
+        if not fair and max_per_user <= 0:
+            return queued
+        running = self._running_per_owner()
+        busy = {o for o, n in running.items() if n >= max_per_user} if max_per_user > 0 else set()
+        eligible = [j for j in queued if j.owner not in busy]
+        if not fair:
+            return eligible
+        rank = dict(running)
+        ordered = []
+        for job in eligible:  # queued is already in arrival order
+            ordered.append((rank.get(job.owner, 0), job))
+            rank[job.owner] = rank.get(job.owner, 0) + 1
+        return [job for _, job in sorted(ordered, key=lambda pair: pair[0])]
+
+    def _running_per_owner(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for owner in self.session.scalars(
+            select(operations.Job.owner).where(operations.Job.state == "running")
+        ):
+            counts[owner] = counts.get(owner, 0) + 1
+        return counts
+
+    def _take(self, job_id: str, worker: str, now: dt.datetime) -> dict[str, Any] | None:
+        """Claim one row, losing the race gracefully: on PostgreSQL another worker may
+        hold it (``SKIP LOCKED`` returns nothing), and on either dialect it may no
+        longer be queued by the time we look again."""
+        stmt = select(operations.Job).where(
+            operations.Job.id == job_id, operations.Job.state == "queued"
         )
         if self.session.get_bind().dialect.name == "postgresql":
             stmt = stmt.with_for_update(skip_locked=True)

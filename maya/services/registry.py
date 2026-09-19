@@ -79,6 +79,11 @@ def wire(platform: Any) -> None:
         platform.settings.int("custody.anchor.interval_seconds", 3600),
         platform.custody.anchor,
     )
+    verify_every = platform.settings.int("integrity.verify.interval_seconds", 86400)
+    if verify_every > 0:
+        platform.scheduler.every(
+            "integrity.verify", verify_every, platform.ops.schedule_integrity_verification
+        )
     platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: (
         dispatch_transition(platform, p, object_type, object_id, name, **kw)
     )
@@ -159,14 +164,32 @@ def _collectors(platform: Any) -> None:
         ]
         return out
 
+    from maya.observability import caches
+    from maya.observability.collectors import Collectors
+
+    gauges = Collectors(platform)
     METRICS._collectors.clear()  # one platform per process owns the scrape
     METRICS.collector(state)
     METRICS.collector(static)
+    METRICS.collector(gauges.all)
+    caches.seed()  # every registered cache reports its zeros before its first lookup
 
 
 def _system_principal(platform: Any, username: str) -> Principal:
+    """The principal a job runs as. A job the *scheduler* queued has no person behind it
+    (owner ``system``), so it runs as techops rather than being attributed to whichever
+    administrator happened to exist — the audit entry then says plainly that MAYA did it."""
     with platform.uow() as uow:
         user = uow.repo("users").find_one(username=username)
+        if user is None:
+            return Principal(
+                user_id="system",
+                username=username,
+                roles=["techops"],
+                capabilities={},
+                principal_type="system",
+                channel="scheduler",
+            )
         return platform.auth.build_principal(uow, user["id"])
 
 

@@ -112,9 +112,47 @@ Check, and write down:
 
 ## 5. Record the result
 
-MAYA has nowhere to record a drill: the scratch copy's own `integrity.verified` audit entry is
-thrown away with the copy, and nothing in production learns the drill happened. Keep the
-record outside MAYA, where the model risk function can see it, one row per drill:
+The scratch copy's own `integrity.verified` audit entry is thrown away with the copy, so the
+record belongs to the **production** instance — entered there, by whoever ran the drill, beside
+its database:
+
+```bash
+# on the production host, with MAYA_HOME and the configuration production uses
+MAYA_USER=<you> python -m maya.cli admin record-drill \
+  --dialect=postgresql --pins=5 --drift=0 --duration=3.1 \
+  --notes="pg_dump/pg_restore into a scratch database; break-glass account signed in"
+# recorded restore drill 3d4f9ba9-…: passed, 5 pin(s), drift 0, 3.1s
+```
+
+A drill that did not pass is recorded as failed, with the cause, and repeated once the cause is
+fixed:
+
+```bash
+MAYA_USER=<you> python -m maya.cli admin record-drill --failed --pins=5 --drift=2 \
+  --duration=90 --anchors-broken \
+  --notes="two pins drifted: storage.root restored from an older moment than the database"
+```
+
+MAYA refuses a record that claims to have passed while reporting drift, so the two cannot
+disagree. Read the register back, and see whether the estate is inside its quarter:
+
+```bash
+python -m maya.cli admin drills
+# PERFORMED            DIALECT  OUTCOME  PINS  DRIFT  BY
+# 2026-09-19 22:26:03  sqlite   passed   0     0      admin
+#
+# last drill 0 day(s) ago: passed
+```
+
+It exits 1 when the last drill is over 92 days old, or when none has ever been recorded — so it
+can gate a script. The same age is a metric, `maya_restore_drill_age_days`, and the
+`MayaRestoreDrillOverdue` alert fires on it
+([the rules file](../../config/prometheus/maya-slo.rules.yml)). Every record is audited as
+`restore_drill.recorded` and names who made it: it is a statement by a person, not a measurement
+MAYA took.
+
+Keep the table below as well, for the drills performed before there was anywhere in the product
+to put them:
 
 | Date | Backup taken at | Dialect | Pins checked | Drift | Chain | Anchors | Duration | Performed by | Notes |
 |---|---|---|---|---|---|---|---|---|---|
@@ -123,8 +161,6 @@ record outside MAYA, where the model risk function can see it, one row per drill
 
 Duration is from "start restore" to "verification green", on a laptop, for a tiny estate: it
 says the procedure works, not what the recovery time of a real one would be.
-
-A failed drill is recorded as failed, with the cause, and repeated once the cause is fixed.
 
 ## 6. Tear down
 
@@ -148,6 +184,13 @@ and production's signing key.
   plan's M8 criterion *"the restore drill has been performed and its result recorded and
   visible"* is met for the procedure. A deployment's first drill, on its own backups, is still
   its operator's to perform and record.
+- **The record is entered by hand, and MAYA does not check it.** `admin record-drill` writes
+  what you type. It refuses only the one contradiction it can see — passed with drift — and has
+  no way to know that the pin count you claim is the count the scratch copy really verified.
+  It is a signed statement, not evidence.
+- **There is no web page or API for the register yet.** `admin record-drill` and `admin drills`
+  reach it beside the database, and `maya_restore_drill_age_days` puts the age on `/metrics`.
+  Reading it in the UI is not built.
 - **Recovery time and recovery point have never been measured** at production size.
 - **`verify-integrity` re-hashes sealed pins only** — not blobs, raw ingested data or keys. A
   backup that lost a model's specification PDF passes it.

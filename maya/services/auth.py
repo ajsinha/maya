@@ -23,6 +23,7 @@ from typing import Any
 from maya.core import kdf
 from maya.core.errors import NotAuthenticated, NotFound, PermissionDenied, ValidationFailed
 from maya.core.clock import utcnow
+from maya.observability import caches
 from maya.security.authz import Principal, merge_capabilities
 
 DEFAULT_ADMIN_PASSWORD = "maya-dev-admin"
@@ -55,6 +56,8 @@ class AuthService:
         self.env = s.environment
         self._key_cache: dict[str, tuple[float, str]] = {}
         self._lock = threading.Lock()
+        caches.register("session_principal")
+        caches.register("api_key_secret")
 
     # -- login -------------------------------------------------------------
     def login(
@@ -252,7 +255,9 @@ class AuthService:
         key = _sha(token)
         hit = self._principals.get(key)
         if hit and hit[0] > time.monotonic():
+            caches.hit("session_principal")
             return hit[1]
+        caches.miss("session_principal")
         principal, fully_signed_in = self._resolve_session(token, path)
         if self.principal_ttl > 0 and fully_signed_in:
             if len(self._principals) > 10_000:
@@ -327,7 +332,9 @@ class AuthService:
         with self._lock:
             cached = self._key_cache.get(key_id)
             if cached and cached[1] == probe and time.monotonic() - cached[0] < KEY_CACHE_TTL:
+                caches.hit("api_key_secret")
                 return True
+        caches.miss("api_key_secret")
         ok = kdf.verify_password(secret, stored)
         if ok:
             with self._lock:

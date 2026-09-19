@@ -20,6 +20,7 @@ from maya.core.compress import procstat
 from maya.core.errors import MayaError, NotFound, PermissionDenied, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
 from maya.core.version import BUILD_DATE, VERSION
+from maya.observability import caches
 from maya.persistence import estate
 from maya.security.authz import Principal
 from maya.security.sandbox import sandbox_tier
@@ -28,6 +29,7 @@ from maya.security.sandbox import sandbox_tier
 class OpsService:
     def __init__(self, platform: Any) -> None:
         self.p = platform
+        caches.register("audit_chain")  # so /metrics carries its zeros before the first scrape
 
     # -- health ------------------------------------------------------------------
     def health(self) -> dict[str, Any]:
@@ -72,14 +74,14 @@ class OpsService:
                 "queued": queued,
                 "running": running,
                 "dead_letter": dead,
-                "workers": self.p.jobs.n_workers if self.p.primary else 0,
+                "workers": self.p.jobs.n_workers if self.p.role in ("primary", "worker") else 0,
             },
             "seams": Backends.report(),
             "degraded": degraded,
             "process": {
                 **procstat(),
                 "pid": os.getpid(),
-                "role": "primary" if self.p.primary else "web",
+                "role": self.p.role,
             },
             "default_admin_password": self.p.auth.default_admin_password_active(),
             "tracing": _tracing_status(),
@@ -95,8 +97,11 @@ class OpsService:
         now = time.monotonic()
         cached = getattr(self, "_chain", None)
         if cached is None or now - cached[0] >= ttl or not cached[1]["ok"]:
+            caches.miss("audit_chain")
             result = dict(self.p.access.verify_audit(), verified_at=utcnow().isoformat())
             self._chain = cached = (now, result)
+        else:
+            caches.hit("audit_chain")
         return cached[1]
 
     def _db_ok(self) -> tuple[bool, str]:
@@ -215,6 +220,10 @@ class OpsService:
                 r = {"ok": False, "error": str(exc)}
             results.append({"pin": f"{ns}/{name}#{pin['pin_name']}/{pin['as_of_date']}", **r})
         drift = [r for r in results if not r["ok"]]
+        from maya.observability.metrics import METRICS
+
+        METRICS.inc("maya_integrity_verifications_total")
+        METRICS.inc("maya_integrity_drift_total", value=float(len(drift)))
         with self.p.uow(p.username) as uow:
             uow.audit("integrity.verified", detail={"pins": len(results), "drift": len(drift)})
             if drift:
@@ -234,6 +243,126 @@ class OpsService:
             "audit_chain": self.p.access.verify_audit(),
         }
 
+    def schedule_integrity_verification(self) -> dict[str, Any] | None:
+        """Queue the periodic integrity sweep (§20, §21.3).
+
+        §21.3 asks for *periodic* verification; until now it only ran when somebody
+        pressed the button, which means drift on a quiet estate could sit undetected for
+        as long as nobody thought to look. The sweep goes on the job queue rather than
+        running inline, because it re-reads every sealed pin and that belongs on a
+        worker, not in the scheduler thread. The idempotency key is the interval window,
+        so a second node — or a restart inside the same window — finds the first node's
+        job instead of queueing a second full re-read of the lake.
+        """
+        interval = self.p.settings.int("integrity.verify.interval_seconds", 86400)
+        if interval <= 0:
+            return None
+        window = int(utcnow().timestamp() // interval)
+        with self.p.uow("system") as uow:
+            return self.p.jobs.submit(
+                uow,
+                "integrity.verify",
+                {"scheduled": True},
+                owner="system",
+                idempotency_key=f"integrity.verify:{window}",
+            )
+
+    # -- restore drills (§20) --------------------------------------------------------
+    def record_restore_drill(self, p: Principal, **fields: Any) -> dict[str, Any]:
+        """Record that a restore drill was performed, and what it found.
+
+        §20 asks for a quarterly restore drill whose result is "recorded and visible".
+        The drill itself runs on a scratch copy that is thrown away afterwards, so the
+        copy's own ``integrity.verified`` audit entry goes with it and production learns
+        nothing. This is the row that stays behind: entered on the production instance by
+        whoever ran the drill, audited like any other administrative act, and readable by
+        anyone who may see the estate's operations. It is a statement by a person, not a
+        measurement MAYA took — ``verified_by`` says who made it.
+        """
+        self._techops(p, "Recording a restore drill is for administrators and techops")
+        outcome = str(fields.get("outcome") or "passed").lower()
+        if outcome not in ("passed", "failed"):
+            raise ValidationFailed("A drill outcome is 'passed' or 'failed'", outcome=outcome)
+        drift = int(fields.get("drift") or 0)
+        if outcome == "passed" and drift:
+            raise ValidationFailed(
+                "A drill that found drift did not pass; record it as failed with the cause",
+                drift=drift,
+            )
+        row = {
+            "performed_at": fields.get("performed_at") or utcnow(),
+            "backup_taken_at": fields.get("backup_taken_at"),
+            "dialect": str(fields.get("dialect") or self.p.db.dialect),
+            "outcome": outcome,
+            "pins_checked": int(fields.get("pins_checked") or 0),
+            "drift": drift,
+            "audit_chain_ok": bool(fields.get("audit_chain_ok", outcome == "passed")),
+            "anchors_ok": bool(fields.get("anchors_ok", outcome == "passed")),
+            "duration_seconds": float(fields.get("duration_seconds") or 0.0),
+            "verified_by": p.username,
+            "notes": fields.get("notes"),
+        }
+        with self.p.uow(p.username) as uow:
+            saved = uow.repo("restore_drills").add(row)
+            uow.audit(
+                "restore_drill.recorded",
+                object_type="restore_drill",
+                object_ref=f"maya://restore_drill/{saved['id']}",
+                detail={k: saved[k] for k in ("dialect", "outcome", "pins_checked", "drift")},
+            )
+        return saved
+
+    def restore_drills(self, p: Principal, limit: int = 50) -> list[dict[str, Any]]:
+        """Every recorded drill, newest first, and how long ago the last one was."""
+        self._techops(p, "Restore drill records are for administrators and techops")
+        with self.p.uow() as uow:
+            return uow.repo("restore_drills").list(order_by=["-performed_at"], limit=limit)
+
+    def restore_drill_status(self, p: Principal) -> dict[str, Any]:
+        """Whether the estate is inside its drill interval, for the health page (§20)."""
+        drills = self.restore_drills(p, limit=1)
+        last = drills[0] if drills else None
+        age = None
+        if last is not None:
+            age = int((utcnow() - last["performed_at"]).total_seconds() // 86400)
+        return {
+            "last": last,
+            "age_days": age,
+            "overdue": age is None or age > 92,  # §20: quarterly
+            "detail": "no restore drill has been recorded"
+            if last is None
+            else f"last drill {age} day(s) ago: {last['outcome']}",
+        }
+
+    # -- logging (§20) ---------------------------------------------------------------
+    def log_levels(self, p: Principal) -> dict[str, Any]:
+        """The root level and every per-module override in force in *this* process."""
+        self._techops(p, "Log levels are for administrators and techops")
+        from maya.observability import logs
+
+        return {"levels": logs.levels(), "pid": os.getpid(), "role": self.p.role}
+
+    def set_log_level(self, p: Principal, module: str, level: str) -> dict[str, Any]:
+        """Turn one module up or down without a restart (§20 "configurable per module at
+        runtime"). ``level='inherit'`` removes the override.
+
+        The catch, stated rather than discovered: an override applies to the process that
+        receives the call. With several web processes or a worker fleet, a change has to be
+        made on each, and the answer names the process it changed.
+        """
+        self._techops(p, "Changing a log level is for administrators and techops")
+        from maya.observability import logs
+
+        result = logs.set_level(module, level)
+        with self.p.uow(p.username) as uow:
+            uow.audit("log_level.set", detail={"module": module, "level": level.upper()})
+        return {"levels": result, "pid": os.getpid(), "role": self.p.role}
+
+    @staticmethod
+    def _techops(p: Principal, message: str) -> None:
+        if not (p.is_admin or "techops" in p.roles):
+            raise PermissionDenied(message)
+
     @staticmethod
     def _admins(uow: Any) -> set[str]:
         role = uow.repo("roles").find_one(name="admin")
@@ -247,15 +376,21 @@ class OpsService:
                 "feature_set_pins"
             ).list(state="sealed")
         logical = sum(p["bytes_total"] for p in pins)
-        stored = sum(f["bytes"] for f in frags)
         referenced = {h for p in pins for h in p["fragments"]}
         orphans = [f for f in frags if f["hash"] not in referenced]
+        stored = sum(f["bytes"] for f in frags)
+        # The saving is what sharing achieved among the fragments sealed pins actually
+        # reference. Charging orphans (a failed pin's leftovers) against it made the ratio
+        # go negative on an estate with a few failed pins, which read as a bug in content
+        # addressing rather than as rubbish waiting to be collected.
+        shared = sum(f["bytes"] for f in frags if f["hash"] in referenced)
         return {
             "pins": len(pins),
             "fragments": len(frags),
             "logical_bytes": logical,
             "stored_bytes": stored,
-            "saved_ratio": (1 - stored / logical) if logical else 0.0,
+            "referenced_bytes": shared,
+            "saved_ratio": (1 - shared / logical) if logical else 0.0,
             "orphan_fragments": len(orphans),
             "orphan_bytes": sum(f["bytes"] for f in orphans),
             "gc_note": "Orphans are fragments no sealed pin references (left by failed "

@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 1b83c8adc9ac7f0efa09736c281da2d392972ac6fe991818aae6a026549ce678
+-- schema-hash: 9ccbac96d9dd25254f91443e84f196cb23f2538cb76e0a775b492ed3f225a0d0
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -373,6 +373,29 @@ CREATE TABLE notifications (
 );
 
 CREATE INDEX ix_notifications_user_id ON notifications (user_id);
+
+CREATE TABLE restore_drills (
+	performed_at DATETIME NOT NULL, 
+	backup_taken_at DATETIME, 
+	dialect VARCHAR(16) NOT NULL, 
+	outcome VARCHAR(16) NOT NULL, 
+	pins_checked INTEGER NOT NULL, 
+	drift INTEGER NOT NULL, 
+	audit_chain_ok BOOLEAN NOT NULL, 
+	anchors_ok BOOLEAN NOT NULL, 
+	duration_seconds FLOAT NOT NULL, 
+	verified_by VARCHAR(128) NOT NULL, 
+	notes TEXT, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_restore_drills PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_restore_drills_performed_at ON restore_drills (performed_at);
 
 CREATE TABLE roles (
 	name VARCHAR(64) NOT NULL, 

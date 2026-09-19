@@ -4,11 +4,29 @@
 The gates import MAYA, so they run with the project's virtualenv when there is one
 (.venv on POSIX or Windows), falling back to the interpreter that runs this hook.
 """
+
 import subprocess
 import sys
 from pathlib import Path
 
-root = Path(__file__).resolve().parents[1]
-candidates = [root / ".venv" / "bin" / "python", root / ".venv" / "Scripts" / "python.exe"]
+# The tree being committed, not the tree this file lives in: with core.hooksPath set, one
+# hook serves every worktree, and computing the root from __file__ would gate the main
+# checkout while committing somewhere else — which reports green for code nobody is
+# committing, and red for changes that are not in this commit.
+tree = subprocess.run(
+    ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False
+)
+root = Path(tree.stdout.strip()) if tree.returncode == 0 and tree.stdout.strip() else Path.cwd()
+here = Path(__file__).resolve().parents[1]
+candidates = [
+    root / ".venv" / "bin" / "python",
+    root / ".venv" / "Scripts" / "python.exe",
+    here / ".venv" / "bin" / "python",  # a worktree shares the main checkout's venv
+    here / ".venv" / "Scripts" / "python.exe",
+]
 python = next((str(p) for p in candidates if p.exists()), sys.executable)
-sys.exit(subprocess.call([python, str(root / "tools" / "ci" / "gates.py")], cwd=root))
+gates = root / "tools" / "ci" / "gates.py"
+if not gates.exists():  # a worktree of an older commit, or a partial checkout
+    print(f"pre-commit: no gate ladder at {gates}; skipping", file=sys.stderr)
+    sys.exit(0)
+sys.exit(subprocess.call([python, str(gates)], cwd=root))

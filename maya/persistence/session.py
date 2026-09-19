@@ -18,6 +18,7 @@ from typing import Any
 from sqlalchemy import event, text
 from sqlalchemy.orm import Session
 
+from maya.observability import logs
 from maya.persistence.engine import Database
 from maya.persistence.repositories import repository_class
 
@@ -67,11 +68,17 @@ class UnitOfWork:
         self.session: Any = None
         self._after_commit: list[Any] = []
         self._durable: list[dict[str, Any]] = []
+        self._log_context: dict[str, str] = {}
 
     def __enter__(self) -> "UnitOfWork":
         if self.db.is_sqlite:
             self.db.write_mutex.acquire()
         self.session = self.db.session_factory()
+        # §20 asks every log line to name the actor. The HTTP middleware cannot bind it —
+        # authentication happens in a dependency that FastAPI runs in a worker thread, whose
+        # context copy is discarded — but the unit of work knows who it is for and runs in
+        # the same context as the code that logs.
+        self._log_context = logs.bind(actor=self.actor)
         return self
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
@@ -91,6 +98,7 @@ class UnitOfWork:
                 self._write_durable()
         finally:
             self.session.close()
+            logs.restore(self._log_context)
             if self.db.is_sqlite:
                 self.db.write_mutex.release()
 
