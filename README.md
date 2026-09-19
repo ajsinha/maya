@@ -96,10 +96,11 @@ execution warrant → reproducibility bundle.
 
 - **PostgreSQL has not been run live.** `schema/postgresql.sql` is generated and the
   dialect switch works (`db.dialect: postgresql`), but no server was available where this
-  was built. Run the suite with `MAYA_TEST_PG_URL=postgresql+psycopg://…` (the CI workflow
-  does this).
-- **Only Linux has been exercised.** `.github/workflows/ci.yml` covers Windows and macOS
-  but has not run yet.
+  was built. Run the suite against one with `MAYA_TEST_PG_URL=postgresql+psycopg://…
+  python -m pytest`.
+- **Only Linux has been exercised.** There is no hosted CI: the gate ladder runs locally,
+  in the pre-commit hook on every commit and as `python tools/ci/gates.py --tests`. Windows
+  and macOS need a run on those machines.
 - **SAML 2.0 is not shipped.** OIDC single sign-on is (`auth.mode: sso` or `hybrid`), as is
   TOTP two-factor authentication. Configuring `auth.sso.protocol: saml2` is refused at
   startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
