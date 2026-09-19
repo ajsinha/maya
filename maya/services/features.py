@@ -5,6 +5,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import builtins
 import datetime as dt
 from typing import Any
 
@@ -113,7 +114,7 @@ class FeatureService:
                     p.has_capability("feature_pin", "Q")}
 
     def _transitions(self, uow: Any, feature: dict[str, Any], ns: dict[str, Any],
-                     v: dict[str, Any]) -> list[str]:
+                     v: dict[str, Any]) -> builtins.list[str]:
         if ns["is_scratch"]:
             return ["submit"] if v["state"] in EDITABLE else []
         subject = self.subject(uow, feature, ns, v)
@@ -121,7 +122,7 @@ class FeatureService:
 
     # -- create and edit ----------------------------------------------------------------
     def create(self, p: Principal, *, namespace: str, name: str, definition: dict[str, Any],
-               description: str = "", tags: list[str] | None = None) -> dict[str, Any]:
+               description: str = "", tags: builtins.list[str] | None = None) -> dict[str, Any]:
         with self.p.uow(p.username) as uow:
             ns = self.p.access.namespace(uow, namespace)
             self.p.access.require(uow, p, "create", "feature",
@@ -140,7 +141,7 @@ class FeatureService:
 
     def update_draft(self, p: Principal, ref: str, definition: dict[str, Any], *,
                      expected_version: int | None = None, description: str | None = None,
-                     tags: list[str] | None = None) -> dict[str, Any]:
+                     tags: builtins.list[str] | None = None) -> dict[str, Any]:
         with self.p.uow(p.username) as uow:
             feature, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "update", "feature", feature)
@@ -180,12 +181,12 @@ class FeatureService:
         with self.p.uow() as uow:
             src, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "read", "feature", src)
-            latest = catalog.latest_version(uow, "feature_versions", "feature_id", src["id"])
+            latest = catalog.require_latest(uow, "feature_versions", "feature_id", src["id"])
             # extend the latest *approved* version: a draft can still change under the child
             parent = catalog.version_of(uow, "feature_versions", "feature_id", src, None) \
                 if extend else None
         target_ns = namespace or ns["name"]
-        if extend:
+        if parent is not None:          # extending: version_of never returns None
             definition = {"extends": {"parent": refs.version_ref(
                 "feature", ns["name"], src["name"], parent["version_no"]),
                 "binding": "pinned", "override": {}}}
@@ -220,7 +221,7 @@ class FeatureService:
         with self.p.uow() as uow:
             feature, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "update", "feature", feature)
-            latest = catalog.latest_version(uow, "feature_versions", "feature_id", feature["id"])
+            latest = catalog.require_latest(uow, "feature_versions", "feature_id", feature["id"])
             eff = catalog.effective_feature_definition(uow, latest["definition"])
         if (eff.get("source") or {}).get("type") not in ("csv", "parquet", "json"):
             raise ValidationFailed("Only csv, parquet and json sources take uploads")
@@ -419,7 +420,7 @@ class FeatureService:
         with self.p.uow() as uow:
             feature, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "read", "feature", feature)
-            latest = catalog.latest_version(uow, "feature_versions", "feature_id", feature["id"])
+            latest = catalog.require_latest(uow, "feature_versions", "feature_id", feature["id"])
             eff = catalog.effective_feature_definition(uow, latest["definition"])
         res = self.data.resolve_definition(ns["name"], feature["name"], eff,
                                            as_of_known=as_of_known, label=f"{ref} (draft)")
@@ -449,6 +450,9 @@ class FeatureService:
                 direct = p.has_capability("feature_pin", "P")
                 self.p.access.require(uow, p, "pin" if direct else "request_pin", "feature",
                                       feature, cap_type="feature_pin")
+            # one request per series and date at a time (§15.3): a racer waits here, then
+            # sees the winner's pin and is refused as a conflict
+            uow.lock(f"pin:feature:{feature['id']}:{pin_name}:{as_of}")
             clash = uow.repo("feature_pins").find_one(feature_id=feature["id"], pin_name=pin_name,
                                                       as_of_date=as_of)
             if clash and clash["state"] != "failed":
@@ -484,8 +488,8 @@ class FeatureService:
             return {"pin_id": pin_id, "job": job}
 
     def run_pin_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
-        ctx.progress(10, "resolving")
         try:
+            ctx.progress(10, "resolving")          # may raise JobCancelled: the pin fails too
             pin = self.data.materialize(params["pin_id"], ctx.actor)
         except Exception as exc:
             # A failure materialize did not itself record (a resolver or lake error) must

@@ -76,6 +76,7 @@ A setting that changes MAYA's behaviour materially is checked when MAYA starts, 
 | `auth.mfa.enforce` not `auto`, `true` or `false` | refused |
 | `assistant.provider` not `rules` or `claude` | refused |
 | `custody.anchor.methods` names `rfc3161` without `custody.anchor.tsa_url` | refused |
+| `custody.anchor.tsa_ca_file` set, but the file does not exist or `openssl` is not installed | refused |
 
 ### Seeing the effective configuration
 
@@ -193,6 +194,7 @@ Used when `auth.mode` is `sso` or `hybrid` and `auth.sso.protocol` is `oidc`.
 | `auth.sso.client_id` | `maya` | `MAYA_OIDC_CLIENT_ID` | MAYA's client id at the identity provider. Required. |
 | `auth.sso.client_secret` | empty | `MAYA_OIDC_CLIENT_SECRET` | The client secret, when the provider issues one. Environment or overlay only. |
 | `auth.sso.redirect_uri` | `http://127.0.0.1:8600/auth/sso/callback` | `MAYA_OIDC_REDIRECT_URI` | Where the provider returns the browser. Register exactly this URL. Required. |
+| `auth.sso.post_logout_redirect_uri` | empty | `MAYA_OIDC_POST_LOGOUT_URI` | Set, and registered with the provider, signing out of MAYA also sends the browser to the provider's end-session endpoint, which ends its session and returns here. Empty: signing out ends the MAYA session only. The provider's back-channel logout URL for MAYA is `POST /api/v1/auth/sso/oidc/backchannel-logout`, which needs no setting (see the security guide). |
 | `auth.sso.scopes` | `openid profile email groups` | — | Scopes requested. |
 | `auth.sso.username_claim` | `preferred_username` | — | The claim that becomes the MAYA username. |
 | `auth.sso.email_claim` | `email` | — | The claim that becomes the email address. |
@@ -320,6 +322,7 @@ The recorded challenger writes a memo on every submission into review. It never 
 | `custody.anchor.methods` | `signature,file,event` | — | How the audit chain head is anchored: any of `signature` (Ed25519), `file` (an append-only JSON-lines file), `event` (an `audit.anchored` event, visible to webhooks), `rfc3161` (a timestamp authority; sends the head hash to it). |
 | `custody.anchor.file` | empty | `MAYA_ANCHOR_FILE` | The anchor file. Empty: `<storage.root>/anchors.jsonl`. Point it at write-once or off-host storage. |
 | `custody.anchor.tsa_url` | empty | `MAYA_TSA_URL` | The RFC 3161 timestamp authority. Required when `methods` names `rfc3161`. |
+| `custody.anchor.tsa_ca_file` | empty | `MAYA_TSA_CA_FILE` | The TSA's CA certificate, PEM. Set, MAYA checks the TSA's signature on each token with `openssl ts -verify`, when it anchors and at every custody verification. Empty, it checks the token's status and imprint only, and names the `openssl` command to run by hand — a token whose signature nobody checked is a claim, not a timestamp. |
 | `custody.anchor.interval_seconds` | `3600` | — | How often the scheduler anchors the head. |
 
 ## workspaces
@@ -368,14 +371,14 @@ curl -s http://localhost:8600/api/v1/system/health -H "Authorization: Bearer $MA
 | `MAYA_DB_DIALECT` | `db.dialect` |
 | `MAYA_PG_HOST`, `MAYA_PG_PORT`, `MAYA_PG_DATABASE`, `MAYA_PG_USER`, `MAYA_PG_PASSWORD` | `db.postgresql.*` |
 | `MAYA_SSO_PROTOCOL` | `auth.sso.protocol` |
-| `MAYA_OIDC_ISSUER`, `MAYA_OIDC_CLIENT_ID`, `MAYA_OIDC_CLIENT_SECRET`, `MAYA_OIDC_REDIRECT_URI` | `auth.sso.*` |
+| `MAYA_OIDC_ISSUER`, `MAYA_OIDC_CLIENT_ID`, `MAYA_OIDC_CLIENT_SECRET`, `MAYA_OIDC_REDIRECT_URI`, `MAYA_OIDC_POST_LOGOUT_URI` | `auth.sso.*` |
 | `MAYA_SAML_SP_ENTITY_ID`, `MAYA_SAML_ACS_URL`, `MAYA_SAML_IDP_ENTITY_ID`, `MAYA_SAML_IDP_SSO_URL`, `MAYA_SAML_IDP_CERT`, `MAYA_SAML_IDP_CERT_FILE`, `MAYA_SAML_IDP_SLO_URL`, `MAYA_SAML_SLS_URL`, `MAYA_SAML_SIGN_REQUESTS`, `MAYA_SAML_SP_CERT`, `MAYA_SAML_SP_CERT_FILE`, `MAYA_SAML_SP_KEY`, `MAYA_SAML_SP_KEY_FILE` | `auth.sso.saml.*` |
 | `MAYA_WEBAUTHN_RP_ID`, `MAYA_WEBAUTHN_ORIGINS` | `auth.webauthn.*` |
 | `MAYA_MFA_ENFORCE` | `auth.mfa.enforce` |
 | `MAYA_REQUIRE_TECTONIC` | `typeset.require_true_build` |
 | `MAYA_OTLP_ENDPOINT` | `observability.otlp.endpoint` |
 | `MAYA_ASSISTANT_PROVIDER` | `assistant.provider` |
-| `MAYA_ANCHOR_FILE`, `MAYA_TSA_URL` | `custody.anchor.file`, `custody.anchor.tsa_url` |
+| `MAYA_ANCHOR_FILE`, `MAYA_TSA_URL`, `MAYA_TSA_CA_FILE` | `custody.anchor.file`, `custody.anchor.tsa_url`, `custody.anchor.tsa_ca_file` |
 
 The SDK and CLI read their own variables — `MAYA_URL`, `MAYA_API_KEY`, `MAYA_CONFIG`, `MAYA_DEBUG_AUTH`, and for `--local` `MAYA_USER` and `MAYA_PASSWORD` — described in the Python SDK and CLI reference.
 

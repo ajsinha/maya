@@ -7,7 +7,11 @@
 > PostgreSQL, and MAYA refuses them over SQLite (§14.1); the estate export reads the
 > database as it is, so the one upgrade path works across the schema change that needs
 > it (§14.3); and SAML adds signed requests and single logout in both directions, an
-> IdP's logout request accepted only when signed (§12).
+> IdP's logout request accepted only when signed (§12). Two more, from version 0.3, are
+> marked the same way: feature-set pin materialization is the namespace's
+> `materialize_policy`, and a pin not written is sealed by hash and replayed (§6.6,
+> §26.3); and a signed-in session's principal is reused for up to two seconds, so a
+> session ended in another web process can outlive its end by that long (§12).
 >
 > **Revision 2.2 — 2026-09-19.** Three corrections from the first build, each marked
 > *Revision 2.2* where it lands: the dark `--maya-crimson-deep` token (§16.6), which failed
@@ -801,7 +805,7 @@ end its own, and the IdP's LogoutRequest ends every MAYA session of the person i
 
 **API keys in detail.** A key is `maya_<env>_<key_id>_<secret>`: the environment segment stops a UAT key from ever being accepted in production, the key id is the audit handle and the lookup index, and only the secret is sensitive. Keys are shown once at creation and stored as Argon2id hashes. Each key carries an owning principal, a role subset no larger than that principal holds, a namespace scope, an optional action allowlist (for example `read` and `resolve` but not `pin`), an optional CIDR allowlist, a mandatory expiry no further out than the namespace policy permits, and its own rate-limit budget. Every use updates a last-used timestamp, and keys unused for a configurable period are reported for revocation. Revocation is immediate and propagates through the authorization cache within its TTL of a few seconds. Creating, rotating, scoping and revoking keys is itself an SDK capability, so credential management is scriptable.
 
-**Session tokens for the web tier.** The UI authenticates people, not machines: at login MAYA issues a short-lived token bound to the server-side session, carrying the user's own roles and grants and no more, silently refreshed while the session lives and dead the moment the session ends. The web tier holds no shared key, and an audit entry raised through it names the human as actor with the channel recorded as `web`, which is what makes "who did this" answerable no matter which surface they used.
+**Session tokens for the web tier.** The UI authenticates people, not machines: at login MAYA issues a short-lived token bound to the server-side session, carrying the user's own roles and grants and no more, silently refreshed while the session lives and dead the moment the session ends. *Revision 2.3:* one page makes several internal calls, so a fully signed-in session's principal is reused for `auth.session.principal_cache_seconds` (default 2; 0 turns it off). A sign-out, revocation or access change applies at once in the web process that made it, and at most that many seconds late in any other; a session still owing a second factor is never reused. Before, the home page resolved the same session six times. The window is accepted deliberately, as the price of that, and is the one place a session outlives its end. The web tier holds no shared key, and an audit entry raised through it names the human as actor with the channel recorded as `web`, which is what makes "who did this" answerable no matter which surface they used.
 
 **Sessions.** Server-side session records so an administrator can list and terminate sessions. Cookies are `HttpOnly`, `Secure`, `SameSite=Lax`, with CSRF tokens on all state-changing requests; API clients use bearer tokens and never cookies. Every authentication event — success, failure, lockout, MFA challenge, token issuance, revocation — is audited.
 
@@ -1794,7 +1798,7 @@ becomes a numbered ADR in `docs/adr/` during Phase 0; this table is the register
 
 | # | Decision | Taken | Consequence carried into the design |
 | --- | --- | --- | --- |
-| D-1 | Feature set pin materialization default | **Always materialize** the resolved frame | Reproducibility over disk. `featureset.pin.materialize` remains per-namespace, but the default is `always` (§6.6) |
+| D-1 | Feature set pin materialization default | **Always materialize** the resolved frame | Reproducibility over disk. `featureset.pin.materialize` remains per-namespace, but the default is `always` (§6.6). *Revision 2.3:* the setting is the namespace's `materialize_policy`; `on_demand` and `never` seal by hash and replay from the member pins (§6.6) |
 | D-2 | Pin uniqueness | **A pin series.** `(feature, pin_name)` is the series; `as_of_date` selects within it | "The month-end series" is a browsable, subscribable object. Fixes the `feature_pins` key and the `#` URI form before any pin exists (§4, §30 A) |
 | D-3 | Non-causal fill inside a training set | **Override with written justification**, never a silent allow and never a bare block | The justification is surfaced on the warrant *and* recorded as an exception on the leakage certificate (§5.3, §29.1) |
 | D-4 | Model runtime in v2.0 | **Out of scope**, with exactly one conceded exception: blind scoring against an escrowed holdout | The warrant boundary is what keeps MAYA coherent. The exception is narrow, bounded, and runs in the same sandbox as §17.2 (§2, §29.4) |

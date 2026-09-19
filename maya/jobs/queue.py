@@ -33,6 +33,7 @@ from maya.core.clock import utcnow
 logger = logging.getLogger(__name__)
 
 Handler = Callable[["JobContext", dict[str, Any]], dict[str, Any]]
+CancelHook = Callable[[Any, dict[str, Any]], None]
 
 
 def _current_trace() -> str | None:
@@ -75,14 +76,21 @@ class JobQueue:
                  max_attempts: int = 3) -> None:
         self.uow_factory = uow_factory
         self.handlers: dict[str, Handler] = {}
+        self.cancel_hooks: dict[str, CancelHook] = {}
         self.n_workers = workers
         self.max_attempts = max_attempts
         self._wake = threading.Event()
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
 
-    def register(self, job_type: str, handler: Handler) -> None:
+    def register(self, job_type: str, handler: Handler, *,
+                 on_cancel: CancelHook | None = None) -> None:
+        """``on_cancel(uow, params)`` runs, in the cancelling transaction, when a job of this
+        type is cancelled before it ran — so what it would have finished (a pin row) is
+        closed rather than left waiting for a run that will never come."""
         self.handlers[job_type] = handler
+        if on_cancel is not None:
+            self.cancel_hooks[job_type] = on_cancel
 
     # -- submission --------------------------------------------------------
     def submit(self, uow: Any, job_type: str, params: dict[str, Any], *, owner: str,
@@ -92,6 +100,8 @@ class JobQueue:
             raise MayaError(f"No handler registered for job type '{job_type}'")
         params_hash = djson.canonical_hash(params)
         if idempotency_key:
+            # concurrent submitters of one key queue here; the second then finds the first
+            uow.lock(f"job:idempotency:{idempotency_key}")
             existing = uow.repo("jobs").find_one(idempotency_key=idempotency_key)
             if existing:
                 if existing["params_hash"] != params_hash:
@@ -110,6 +120,9 @@ class JobQueue:
     def cancel(self, uow: Any, job_id: str) -> dict[str, Any]:
         job = uow.repo("jobs").require(job_id)
         if job["state"] == "queued":
+            hook = self.cancel_hooks.get(job["job_type"])
+            if hook is not None:
+                hook(uow, job["params"])
             return uow.repo("jobs").update(job_id, {"state": "cancelled", "cancel_requested": True,
                                                     "finished_at": utcnow()})
         if job["state"] == "running":

@@ -142,5 +142,5 @@ def _function(ir: dict[str, Any], name: str) -> str:
 def compile_reference(ir: dict[str, Any]) -> Any:
     """Compile the generated source and return its ``predict`` callable."""
     namespace: dict[str, Any] = {}
-    exec(compile(to_python(ir), "<maya-reference>", "exec"), namespace)  # noqa: S102 - our own generated code
+    exec(compile(to_python(ir), "<maya-reference>", "exec"), namespace)  # noqa: S102  # nosec B102 - MAYA's own code, generated from a validated IR
     return namespace["predict"]

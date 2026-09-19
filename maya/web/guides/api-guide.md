@@ -81,7 +81,7 @@ People normally sign in through the browser. The same flows are exposed for clie
 | Begin | `POST /auth/sso/start` (public) — returns the IdP URL with state, nonce and PKCE verifier to keep | `POST /auth/sso/start` is OIDC only; `POST /auth/sso/saml/start` (public) returns the IdP URL with a recorded AuthnRequest |
 | Finish | `POST /auth/sso/callback` with `code`, `code_verifier`, `nonce` (public) | `POST /auth/sso/saml/acs` with `saml_response` (public) |
 | Metadata | — | `GET /auth/sso/saml/metadata` (public, XML) |
-| Single logout | — | `POST /auth/sso/saml/sls` with `query_string`, the IdP's redirect query string exactly as received (public; only when `auth.sso.saml.idp_slo_url` is set). An IdP LogoutRequest must be signed. Returns `outcome` (`signed_out` or `idp_logout`, with `sessions_ended`) and `redirect_url`, where the browser goes next |
+| Single logout | `POST /auth/sso/oidc/backchannel-logout` with the form field `logout_token` (public; the IdP calls it server to server). Returns `sessions_ended`; a token that fails a check is a `400` with `Cache-Control: no-store`. Sign-out at the IdP is the `slo_redirect` of `POST /auth/logout` | `POST /auth/sso/saml/sls` with `query_string`, the IdP's redirect query string exactly as received (public; only when `auth.sso.saml.idp_slo_url` is set). An IdP LogoutRequest must be signed. Returns `outcome` (`signed_out` or `idp_logout`, with `sessions_ended`) and `redirect_url`, where the browser goes next |
 
 Both end with a session token, exactly like a password login. SSO sessions take their second factor from the identity provider.
 
@@ -235,10 +235,10 @@ curl -N https://maya.example.com/api/v1/jobs/$JOB/events -H "Authorization: Bear
 | Method and path | Purpose |
 |---|---|
 | `POST /auth/login` | Password sign-in (public). |
-| `POST /auth/logout` | End this session. After a SAML sign-in with single logout configured, `slo_redirect` is the IdP URL that ends the IdP's session too; otherwise it is `null`. |
+| `POST /auth/logout` | End this session. After a SAML sign-in with single logout configured, or an OIDC sign-in with `auth.sso.post_logout_redirect_uri` set, `slo_redirect` is the IdP URL that ends the IdP's session too; otherwise it is `null`. |
 | `GET /auth/me` | You: roles, capabilities, groups, channel. |
 | `POST /auth/password` | Change your password (`old_password`, `new_password`). |
-| `GET /auth/sso/config`, `POST /auth/sso/start`, `POST /auth/sso/callback` | OIDC (public). |
+| `GET /auth/sso/config`, `POST /auth/sso/start`, `POST /auth/sso/callback`, `POST /auth/sso/oidc/backchannel-logout` | OIDC, including back-channel logout (public). |
 | `GET /auth/sso/saml/metadata`, `POST /auth/sso/saml/start`, `POST /auth/sso/saml/acs`, `POST /auth/sso/saml/sls` | SAML, including single logout (public). |
 | `GET /auth/mfa`, `POST /auth/mfa/verify`, `POST /auth/mfa/enroll`, `POST /auth/mfa/confirm` | TOTP status, challenge and enrollment. |
 | `GET /auth/mfa/webauthn`, `DELETE /auth/mfa/webauthn/{key_id}` | Your security keys. |

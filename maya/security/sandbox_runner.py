@@ -145,7 +145,7 @@ def main() -> None:
     response: dict[str, Any] = {"ok": False, "limits_applied": applied}
     try:
         namespace: dict[str, Any] = {"__name__": "maya_artifact"}
-        exec(compile(request["source"], "<artifact>", "exec"), namespace)  # noqa: S102 - this IS the sandbox
+        exec(compile(request["source"], "<artifact>", "exec"), namespace)  # noqa: S102  # nosec B102 - this IS the sandbox
         response["result"] = _jsonable(_call(namespace, request["entry"], request.get("payload", {})))
         response["ok"] = True
     except MemoryError:

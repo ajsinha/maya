@@ -123,10 +123,11 @@ def _linux_prefix(workdir: str, memory_mb: int, cpu_seconds: int) -> tuple[list[
     if caps["bwrap"]:
         prefix += [shutil.which("bwrap") or "bwrap", "--unshare-all", "--die-with-parent",
                    "--new-session", "--uid", str(SANDBOX_UID), "--gid", str(SANDBOX_UID),
-                   "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp",
+                   "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp",  # nosec B108 - jail's own
                    *[arg for var in BUS_VARS for arg in ("--unsetenv", var)]]
-        prefix += _binds()
-        prefix += ["--ro-bind", workdir, "/sandbox", "--remount-ro", "/", "--chdir", "/tmp"]
+        prefix += _binds()  # nosec B108 - /tmp here is the jail's own tmpfs, not the host's
+        prefix += ["--ro-bind", workdir, "/sandbox", "--remount-ro", "/",  # nosec B108
+                   "--chdir", "/tmp"]
         runner = "/sandbox/sandbox_runner.py"
     return prefix, runner
 

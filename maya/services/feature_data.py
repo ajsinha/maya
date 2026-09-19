@@ -295,6 +295,10 @@ class FeatureData:
               ) -> dict[str, Any]:
         provenance = self.provenance(version["definition_hash"], res, write, actor)
         with self.p.uow(actor) as uow:
+            # keep what was recorded at request time (a cascade's owner, a defaulted
+            # as_of_known) alongside the seal's own provenance
+            provenance = {**(uow.repo("feature_pins").require(pin_id)["provenance"] or {}),
+                          **provenance}
             pin = uow.repo("feature_pins").update(pin_id, {
                 "state": "sealed", "content_hash": write.content_hash,
                 "schema_digest": write.schema_digest, "fragments": write.fragments,

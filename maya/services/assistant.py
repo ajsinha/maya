@@ -50,7 +50,8 @@ class AssistantService:
         self.client: Any = None             # tests inject a Claude client
 
     # -- the dossier: exactly what the challenger may read ---------------------------------
-    def _load(self, uow: Any, object_type: str, object_id: str) -> tuple[dict, dict, dict]:
+    def _load(self, uow: Any, object_type: str, object_id: str
+              ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         if object_type not in TARGETS:
             raise ValidationFailed(f"No challenger for '{object_type}'",
                                    supported=sorted(TARGETS))
@@ -62,7 +63,8 @@ class AssistantService:
         ns = uow.repo("namespaces").require(parent["namespace_id"])
         return v, parent, ns
 
-    def _previous(self, uow: Any, object_type: str, v: dict, parent: dict) -> dict | None:
+    def _previous(self, uow: Any, object_type: str, v: dict[str, Any],
+                  parent: dict[str, Any]) -> dict[str, Any] | None:
         table, fk, _, _ = TARGETS[object_type]
         earlier = [x for x in uow.repo(table).list(**{fk: parent["id"]}, order_by=["-version_no"])
                    if x["version_no"] < v["version_no"] and x["state"] in catalog.APPROVED_STATES]

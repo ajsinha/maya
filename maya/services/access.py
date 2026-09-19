@@ -189,7 +189,7 @@ class AccessService:
     def list_namespaces(self) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
             rows = uow.repo("namespaces").list(order_by=["name"])
-            counts = {}
+            counts: dict[Any, dict[str, int]] = {}
             for tbl in ("features", "feature_sets", "models"):
                 for r in uow.repo(tbl).list():
                     counts.setdefault(r["namespace_id"], {}).setdefault(tbl, 0)

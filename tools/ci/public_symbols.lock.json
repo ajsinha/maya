@@ -1,0 +1,597 @@
+{
+ "AsyncClient": {
+  "methods": {
+   "aclose": "(self)",
+   "record": "(cassette, base_url='http://127.0.0.1:8600', **kw)",
+   "replay": "(cassette)"
+  },
+  "namespaces": {
+   "access": {
+    "class": "Access",
+    "methods": {
+     "grant": "(self, kind, object_ref, principal_type, principal_id, level, **kw)",
+     "grants": "(self, kind, ref)",
+     "grants_page": "(self, kind, ref, page_size=100, cursor=None, sort=None, total=False)",
+     "inbox": "(self)",
+     "inbox_page": "(self, page_size=100, cursor=None, sort=None, total=False)",
+     "iter_grants": "(self, kind, ref, page_size=100, sort=None)",
+     "iter_inbox": "(self, page_size=100, sort=None)",
+     "lineage": "(self, root, direction='both', depth=3)",
+     "mark_read": "(self, ids=None)",
+     "recertification": "(self)",
+     "reindex_search": "(self)",
+     "revoke": "(self, grant_id)",
+     "search": "(self, q, limit=50)"
+    }
+   },
+   "admin": {
+    "class": "Admin",
+    "methods": {
+     "audit": "(self, q=None, action=None, limit=1000)",
+     "audit_page": "(self, q=None, action=None, page_size=100, cursor=None, sort=None, total=False)",
+     "blob": "(self, digest)",
+     "config": "(self)",
+     "create_group": "(self, name, **kw)",
+     "create_role": "(self, name, capabilities, description='')",
+     "create_user": "(self, username, **kw)",
+     "export_estate": "(self)",
+     "groups": "(self)",
+     "health": "(self)",
+     "iter_audit": "(self, q=None, action=None, page_size=100, sort=None)",
+     "lake_maintain": "(self)",
+     "reset_mfa": "(self, username)",
+     "reset_password": "(self, username, new_password)",
+     "roles": "(self)",
+     "set_roles": "(self, username, roles)",
+     "storage": "(self)",
+     "update_user": "(self, username, **changes)",
+     "users": "(self)",
+     "verify_audit": "(self)",
+     "verify_integrity": "(self)"
+    }
+   },
+   "assistant": {
+    "class": "Assistant",
+    "methods": {
+     "memos": "(self, object_type, object_id)",
+     "request": "(self, object_type, object_id)",
+     "respond": "(self, memo_id, stance, note='')"
+    }
+   },
+   "auth": {
+    "class": "Auth",
+    "methods": {
+     "api_keys": "(self, all=False)",
+     "change_password": "(self, old_password, new_password)",
+     "create_api_key": "(self, name, **kw)",
+     "end_session": "(self, session_id)",
+     "login": "(self, username, password)",
+     "logout": "(self)",
+     "me": "(self)",
+     "mfa_confirm": "(self, code)",
+     "mfa_enroll": "(self)",
+     "mfa_status": "(self)",
+     "mfa_verify": "(self, code)",
+     "oidc_backchannel_logout": "(self, logout_token)",
+     "register_security_key": "(self, credential, name='security key')",
+     "remove_security_key": "(self, key_id)",
+     "revoke_api_key": "(self, key_id)",
+     "saml_acs": "(self, saml_response)",
+     "saml_metadata": "(self)",
+     "saml_sls": "(self, query_string)",
+     "saml_start": "(self, relay_state='')",
+     "security_key_options": "(self)",
+     "security_key_register_options": "(self)",
+     "security_key_verify": "(self, credential)",
+     "security_keys": "(self)",
+     "sessions": "(self)",
+     "sso_callback": "(self, code, code_verifier, nonce)",
+     "sso_config": "(self)",
+     "sso_start": "(self)"
+    }
+   },
+   "custody": {
+    "class": "Custody",
+    "methods": {
+     "anchor": "(self)",
+     "anchors": "(self)",
+     "licence": "(self, kind, ref)",
+     "verify": "(self)"
+    }
+   },
+   "events": {
+    "class": "Events",
+    "methods": {
+     "create_webhook": "(self, name, url, event_types=None, description='')",
+     "delete_webhook": "(self, webhook_id)",
+     "deliveries": "(self, webhook_id)",
+     "iter": "(self, type=None, page_size=100, sort=None)",
+     "list": "(self, after=0, limit=500, type=None)",
+     "page": "(self, type=None, page_size=100, cursor=None, sort=None, total=False)",
+     "ping": "(self, webhook_id)",
+     "stream": "(self, after=0)",
+     "webhooks": "(self)"
+    }
+   },
+   "execution": {
+    "class": "ExecutionWarrants",
+    "methods": {
+     "bundle": "(self, ew_id, environment, offline=False)",
+     "create": "(self, namespace, name, **kw)",
+     "get": "(self, ew_id)",
+     "iter": "(self, q=None, page_size=100, sort=None)",
+     "list": "(self)",
+     "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "reinstate": "(self, ew_id, reason)",
+     "report": "(self, ew_id, environment, rows, input_stats=None, output_stats=None)",
+     "revoke": "(self, ew_id, reason)",
+     "seal": "(self, ew_id)",
+     "token": "(self, ew_id, environment)",
+     "transition": "(self, ew_id, transition, **kw)"
+    }
+   },
+   "features": {
+    "class": "Features",
+    "methods": {
+     "approve_pin": "(self, pin_id)",
+     "clone": "(self, ref, name, namespace=None, extend=False)",
+     "compare": "(self, ref, v1, v2)",
+     "create": "(self, namespace, name, definition, **kw)",
+     "download": "(self, ref, format='parquet', csv_encoding=None, as_of_known=None)",
+     "draft_preview": "(self, ref, as_of_known=None)",
+     "get": "(self, ref)",
+     "infer": "(self, data, fmt='csv', filename='upload')",
+     "ingest": "(self, ref, data, fmt='csv', filename='upload', knowledge_time=None, note='')",
+     "iter": "(self, namespace=None, q=None, status=None, page_size=100, sort=None, state=None)",
+     "list": "(self, namespace=None, q=None, status=None, state=None)",
+     "new_draft": "(self, ref)",
+     "page": "(self, namespace=None, q=None, status=None, page_size=100, cursor=None, sort=None, total=False, state=None)",
+     "pin": "(self, ref, version_no, pin_name, as_of, as_of_known=None, idempotency_key=None)",
+     "preview": "(self, ref, as_of_known=None, start=None, end=None)",
+     "pull": "(self, ref, knowledge_time=None)",
+     "quick": "(self, data, name, fmt='csv')",
+     "retire_pin": "(self, pin_id, reason)",
+     "transition": "(self, ref, version_no, transition, **kw)",
+     "update_draft": "(self, ref, definition, **kw)"
+    }
+   },
+   "featuresets": {
+    "class": "FeatureSets",
+    "methods": {
+     "create": "(self, namespace, name, definition, **kw)",
+     "download": "(self, ref, format='parquet', shape='tabular', csv_encoding=None)",
+     "draft_preview": "(self, ref)",
+     "get": "(self, ref)",
+     "iter": "(self, namespace=None, q=None, page_size=100, sort=None, state=None)",
+     "list": "(self, namespace=None, q=None, state=None)",
+     "new_draft": "(self, ref)",
+     "page": "(self, namespace=None, q=None, page_size=100, cursor=None, sort=None, total=False, state=None)",
+     "pin": "(self, ref, version_no, pin_name, as_of, cascade=False, as_of_known=None, idempotency_key=None)",
+     "preview": "(self, ref, as_of_known=None)",
+     "transition": "(self, ref, version_no, transition, **kw)",
+     "update_draft": "(self, ref, definition, **kw)"
+    }
+   },
+   "jobs": {
+    "class": "Jobs",
+    "methods": {
+     "cancel": "(self, job_id)",
+     "events": "(self, job_id)",
+     "get": "(self, job_id)",
+     "iter": "(self, all=False, q=None, page_size=100, sort=None)",
+     "list": "(self, all=False)",
+     "page": "(self, all=False, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "retry": "(self, job_id)"
+    }
+   },
+   "models": {
+    "class": "Models",
+    "methods": {
+     "conformance": "(self, ref, version_no, n=500)",
+     "create": "(self, namespace, name, **kw)",
+     "diff": "(self, ref, v1, v2)",
+     "get": "(self, ref)",
+     "import_workbook": "(self, ref, data, output=None, roles=None, filename='workbook.xlsx')",
+     "iter": "(self, namespace=None, q=None, page_size=100, sort=None)",
+     "lift_workbook": "(self, data, output=None, roles=None, filename='workbook.xlsx')",
+     "list": "(self, namespace=None, q=None)",
+     "new_draft": "(self, ref)",
+     "page": "(self, namespace=None, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "reference_code": "(self, ref, version_no)",
+     "render_spec": "(self, ref, version_no)",
+     "spec_pdf": "(self, ref, version_no)",
+     "transition": "(self, ref, version_no, transition, **kw)",
+     "update_draft": "(self, ref, **kw)",
+     "upload_artifact": "(self, ref, source, sample=None, params=None)",
+     "workbook": "(self, ref, version_no)"
+    }
+   },
+   "namespaces": {
+    "class": "Namespaces",
+    "methods": {
+     "create": "(self, name, **kw)",
+     "list": "(self)",
+     "update": "(self, name, **changes)"
+    }
+   },
+   "sources": {
+    "class": "Sources",
+    "methods": {
+     "connections": "(self)",
+     "create_connection": "(self, name, url, password_env=None, description='')",
+     "delete_connection": "(self, name)",
+     "test_connection": "(self, name)"
+    }
+   },
+   "training": {
+    "class": "TrainingWarrants",
+    "methods": {
+     "clone": "(self, warrant_id, **changes)",
+     "create": "(self, namespace, name, model, featureset, spec=None)",
+     "data": "(self, warrant_id)",
+     "export_bundle": "(self, warrant_id)",
+     "get": "(self, warrant_id)",
+     "iter": "(self, q=None, page_size=100, sort=None)",
+     "list": "(self)",
+     "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "parameter_transition": "(self, parameter_set_id, transition, **kw)",
+     "revoke": "(self, warrant_id, reason)",
+     "score_holdout": "(self, warrant_id, parameter_set_id=None, values=None)",
+     "seal": "(self, warrant_id)",
+     "transition": "(self, warrant_id, transition, **kw)",
+     "upload_parameters": "(self, warrant_id, values, **kw)",
+     "verify_bundle": "(self, data)"
+    }
+   },
+   "workflow": {
+    "class": "Workflow",
+    "methods": {
+     "activate_policy": "(self, policy_id)",
+     "aging": "(self)",
+     "break_glass": "(self, days=31)",
+     "campaigns": "(self)",
+     "comment": "(self, object_type, object_id, body, blocking=False, anchor=None)",
+     "comments": "(self, object_type, object_id)",
+     "delegate": "(self, to, starts_on, ends_on, object_types=None, reason='')",
+     "delegations": "(self)",
+     "draft_policy": "(self, object_type, policy, scope='*', note='')",
+     "history": "(self, object_type, object_id)",
+     "import_policy": "(self, object_type, yaml, scope='*')",
+     "policies": "(self)",
+     "policy": "(self, policy_id)",
+     "policy_yaml": "(self, policy_id)",
+     "population": "(self, object_type)",
+     "queue": "(self)",
+     "resolve_comment": "(self, comment_id)",
+     "revoke_delegation": "(self, delegation_id)",
+     "run_campaign": "(self, name, transition, items, rationale='')",
+     "transition": "(self, object_type, object_id, transition, rationale=None, force=False)",
+     "validate_policy": "(self, object_type, policy)"
+    }
+   },
+   "workspaces": {
+    "class": "Workspaces",
+    "methods": {
+     "abandon": "(self, ws_id)",
+     "create": "(self, name, description='')",
+     "get": "(self, ws_id)",
+     "impact": "(self, ws_id)",
+     "list": "(self)",
+     "preview": "(self, ws_id, ref)",
+     "shadow_replay": "(self, ws_id)",
+     "stage": "(self, ws_id, kind, ref, definition, note='')",
+     "submit": "(self, ws_id)",
+     "unstage": "(self, ws_id, change_id)"
+    }
+   }
+  }
+ },
+ "Client": {
+  "methods": {
+   "close": "(self)",
+   "record": "(cassette, base_url='http://127.0.0.1:8600', **kw)",
+   "replay": "(cassette)",
+   "training_data": "(self, warrant_id)",
+   "wait": "(self, job, *, timeout=600.0, progress=None)"
+  },
+  "namespaces": {
+   "access": {
+    "class": "Access",
+    "methods": {
+     "grant": "(self, kind, object_ref, principal_type, principal_id, level, **kw)",
+     "grants": "(self, kind, ref)",
+     "grants_page": "(self, kind, ref, page_size=100, cursor=None, sort=None, total=False)",
+     "inbox": "(self)",
+     "inbox_page": "(self, page_size=100, cursor=None, sort=None, total=False)",
+     "iter_grants": "(self, kind, ref, page_size=100, sort=None)",
+     "iter_inbox": "(self, page_size=100, sort=None)",
+     "lineage": "(self, root, direction='both', depth=3)",
+     "mark_read": "(self, ids=None)",
+     "recertification": "(self)",
+     "reindex_search": "(self)",
+     "revoke": "(self, grant_id)",
+     "search": "(self, q, limit=50)"
+    }
+   },
+   "admin": {
+    "class": "Admin",
+    "methods": {
+     "audit": "(self, q=None, action=None, limit=1000)",
+     "audit_page": "(self, q=None, action=None, page_size=100, cursor=None, sort=None, total=False)",
+     "blob": "(self, digest)",
+     "config": "(self)",
+     "create_group": "(self, name, **kw)",
+     "create_role": "(self, name, capabilities, description='')",
+     "create_user": "(self, username, **kw)",
+     "export_estate": "(self)",
+     "groups": "(self)",
+     "health": "(self)",
+     "iter_audit": "(self, q=None, action=None, page_size=100, sort=None)",
+     "lake_maintain": "(self)",
+     "reset_mfa": "(self, username)",
+     "reset_password": "(self, username, new_password)",
+     "roles": "(self)",
+     "set_roles": "(self, username, roles)",
+     "storage": "(self)",
+     "update_user": "(self, username, **changes)",
+     "users": "(self)",
+     "verify_audit": "(self)",
+     "verify_integrity": "(self)"
+    }
+   },
+   "assistant": {
+    "class": "Assistant",
+    "methods": {
+     "memos": "(self, object_type, object_id)",
+     "request": "(self, object_type, object_id)",
+     "respond": "(self, memo_id, stance, note='')"
+    }
+   },
+   "auth": {
+    "class": "Auth",
+    "methods": {
+     "api_keys": "(self, all=False)",
+     "change_password": "(self, old_password, new_password)",
+     "create_api_key": "(self, name, **kw)",
+     "end_session": "(self, session_id)",
+     "login": "(self, username, password)",
+     "logout": "(self)",
+     "me": "(self)",
+     "mfa_confirm": "(self, code)",
+     "mfa_enroll": "(self)",
+     "mfa_status": "(self)",
+     "mfa_verify": "(self, code)",
+     "oidc_backchannel_logout": "(self, logout_token)",
+     "register_security_key": "(self, credential, name='security key')",
+     "remove_security_key": "(self, key_id)",
+     "revoke_api_key": "(self, key_id)",
+     "saml_acs": "(self, saml_response)",
+     "saml_metadata": "(self)",
+     "saml_sls": "(self, query_string)",
+     "saml_start": "(self, relay_state='')",
+     "security_key_options": "(self)",
+     "security_key_register_options": "(self)",
+     "security_key_verify": "(self, credential)",
+     "security_keys": "(self)",
+     "sessions": "(self)",
+     "sso_callback": "(self, code, code_verifier, nonce)",
+     "sso_config": "(self)",
+     "sso_start": "(self)"
+    }
+   },
+   "custody": {
+    "class": "Custody",
+    "methods": {
+     "anchor": "(self)",
+     "anchors": "(self)",
+     "licence": "(self, kind, ref)",
+     "verify": "(self)"
+    }
+   },
+   "events": {
+    "class": "Events",
+    "methods": {
+     "create_webhook": "(self, name, url, event_types=None, description='')",
+     "delete_webhook": "(self, webhook_id)",
+     "deliveries": "(self, webhook_id)",
+     "iter": "(self, type=None, page_size=100, sort=None)",
+     "list": "(self, after=0, limit=500, type=None)",
+     "page": "(self, type=None, page_size=100, cursor=None, sort=None, total=False)",
+     "ping": "(self, webhook_id)",
+     "stream": "(self, after=0)",
+     "webhooks": "(self)"
+    }
+   },
+   "execution": {
+    "class": "ExecutionWarrants",
+    "methods": {
+     "bundle": "(self, ew_id, environment, offline=False)",
+     "create": "(self, namespace, name, **kw)",
+     "get": "(self, ew_id)",
+     "iter": "(self, q=None, page_size=100, sort=None)",
+     "list": "(self)",
+     "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "reinstate": "(self, ew_id, reason)",
+     "report": "(self, ew_id, environment, rows, input_stats=None, output_stats=None)",
+     "revoke": "(self, ew_id, reason)",
+     "seal": "(self, ew_id)",
+     "token": "(self, ew_id, environment)",
+     "transition": "(self, ew_id, transition, **kw)"
+    }
+   },
+   "features": {
+    "class": "Features",
+    "methods": {
+     "approve_pin": "(self, pin_id)",
+     "clone": "(self, ref, name, namespace=None, extend=False)",
+     "compare": "(self, ref, v1, v2)",
+     "create": "(self, namespace, name, definition, **kw)",
+     "download": "(self, ref, format='parquet', csv_encoding=None, as_of_known=None)",
+     "draft_preview": "(self, ref, as_of_known=None)",
+     "get": "(self, ref)",
+     "infer": "(self, data, fmt='csv', filename='upload')",
+     "ingest": "(self, ref, data, fmt='csv', filename='upload', knowledge_time=None, note='')",
+     "iter": "(self, namespace=None, q=None, status=None, page_size=100, sort=None, state=None)",
+     "list": "(self, namespace=None, q=None, status=None, state=None)",
+     "new_draft": "(self, ref)",
+     "page": "(self, namespace=None, q=None, status=None, page_size=100, cursor=None, sort=None, total=False, state=None)",
+     "pin": "(self, ref, version_no, pin_name, as_of, as_of_known=None, idempotency_key=None)",
+     "preview": "(self, ref, as_of_known=None, start=None, end=None)",
+     "pull": "(self, ref, knowledge_time=None)",
+     "quick": "(self, data, name, fmt='csv')",
+     "retire_pin": "(self, pin_id, reason)",
+     "transition": "(self, ref, version_no, transition, **kw)",
+     "update_draft": "(self, ref, definition, **kw)"
+    }
+   },
+   "featuresets": {
+    "class": "FeatureSets",
+    "methods": {
+     "create": "(self, namespace, name, definition, **kw)",
+     "download": "(self, ref, format='parquet', shape='tabular', csv_encoding=None)",
+     "draft_preview": "(self, ref)",
+     "get": "(self, ref)",
+     "iter": "(self, namespace=None, q=None, page_size=100, sort=None, state=None)",
+     "list": "(self, namespace=None, q=None, state=None)",
+     "new_draft": "(self, ref)",
+     "page": "(self, namespace=None, q=None, page_size=100, cursor=None, sort=None, total=False, state=None)",
+     "pin": "(self, ref, version_no, pin_name, as_of, cascade=False, as_of_known=None, idempotency_key=None)",
+     "preview": "(self, ref, as_of_known=None)",
+     "transition": "(self, ref, version_no, transition, **kw)",
+     "update_draft": "(self, ref, definition, **kw)"
+    }
+   },
+   "jobs": {
+    "class": "Jobs",
+    "methods": {
+     "cancel": "(self, job_id)",
+     "events": "(self, job_id)",
+     "get": "(self, job_id)",
+     "iter": "(self, all=False, q=None, page_size=100, sort=None)",
+     "list": "(self, all=False)",
+     "page": "(self, all=False, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "retry": "(self, job_id)"
+    }
+   },
+   "models": {
+    "class": "Models",
+    "methods": {
+     "conformance": "(self, ref, version_no, n=500)",
+     "create": "(self, namespace, name, **kw)",
+     "diff": "(self, ref, v1, v2)",
+     "get": "(self, ref)",
+     "import_workbook": "(self, ref, data, output=None, roles=None, filename='workbook.xlsx')",
+     "iter": "(self, namespace=None, q=None, page_size=100, sort=None)",
+     "lift_workbook": "(self, data, output=None, roles=None, filename='workbook.xlsx')",
+     "list": "(self, namespace=None, q=None)",
+     "new_draft": "(self, ref)",
+     "page": "(self, namespace=None, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "reference_code": "(self, ref, version_no)",
+     "render_spec": "(self, ref, version_no)",
+     "spec_pdf": "(self, ref, version_no)",
+     "transition": "(self, ref, version_no, transition, **kw)",
+     "update_draft": "(self, ref, **kw)",
+     "upload_artifact": "(self, ref, source, sample=None, params=None)",
+     "workbook": "(self, ref, version_no)"
+    }
+   },
+   "namespaces": {
+    "class": "Namespaces",
+    "methods": {
+     "create": "(self, name, **kw)",
+     "list": "(self)",
+     "update": "(self, name, **changes)"
+    }
+   },
+   "sources": {
+    "class": "Sources",
+    "methods": {
+     "connections": "(self)",
+     "create_connection": "(self, name, url, password_env=None, description='')",
+     "delete_connection": "(self, name)",
+     "test_connection": "(self, name)"
+    }
+   },
+   "training": {
+    "class": "TrainingWarrants",
+    "methods": {
+     "clone": "(self, warrant_id, **changes)",
+     "create": "(self, namespace, name, model, featureset, spec=None)",
+     "data": "(self, warrant_id)",
+     "export_bundle": "(self, warrant_id)",
+     "get": "(self, warrant_id)",
+     "iter": "(self, q=None, page_size=100, sort=None)",
+     "list": "(self)",
+     "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
+     "parameter_transition": "(self, parameter_set_id, transition, **kw)",
+     "revoke": "(self, warrant_id, reason)",
+     "score_holdout": "(self, warrant_id, parameter_set_id=None, values=None)",
+     "seal": "(self, warrant_id)",
+     "transition": "(self, warrant_id, transition, **kw)",
+     "upload_parameters": "(self, warrant_id, values, **kw)",
+     "verify_bundle": "(self, data)"
+    }
+   },
+   "workflow": {
+    "class": "Workflow",
+    "methods": {
+     "activate_policy": "(self, policy_id)",
+     "aging": "(self)",
+     "break_glass": "(self, days=31)",
+     "campaigns": "(self)",
+     "comment": "(self, object_type, object_id, body, blocking=False, anchor=None)",
+     "comments": "(self, object_type, object_id)",
+     "delegate": "(self, to, starts_on, ends_on, object_types=None, reason='')",
+     "delegations": "(self)",
+     "draft_policy": "(self, object_type, policy, scope='*', note='')",
+     "history": "(self, object_type, object_id)",
+     "import_policy": "(self, object_type, yaml, scope='*')",
+     "policies": "(self)",
+     "policy": "(self, policy_id)",
+     "policy_yaml": "(self, policy_id)",
+     "population": "(self, object_type)",
+     "queue": "(self)",
+     "resolve_comment": "(self, comment_id)",
+     "revoke_delegation": "(self, delegation_id)",
+     "run_campaign": "(self, name, transition, items, rationale='')",
+     "transition": "(self, object_type, object_id, transition, rationale=None, force=False)",
+     "validate_policy": "(self, object_type, policy)"
+    }
+   },
+   "workspaces": {
+    "class": "Workspaces",
+    "methods": {
+     "abandon": "(self, ws_id)",
+     "create": "(self, name, description='')",
+     "get": "(self, ws_id)",
+     "impact": "(self, ws_id)",
+     "list": "(self)",
+     "preview": "(self, ws_id, ref)",
+     "shadow_replay": "(self, ws_id)",
+     "stage": "(self, ws_id, kind, ref, definition, note='')",
+     "submit": "(self, ws_id)",
+     "unstage": "(self, ws_id, change_id)"
+    }
+   }
+  }
+ },
+ "maya.sdk.__all__": [
+  "AsyncClient",
+  "Client",
+  "ConflictError",
+  "ContractMismatch",
+  "LicenceBreach",
+  "MayaError",
+  "NotApproved",
+  "NotAuthenticated",
+  "NotFound",
+  "Offline",
+  "PermissionDenied",
+  "QuotaExceeded",
+  "ValidationFailed",
+  "WarrantExpired",
+  "WarrantSuspended",
+  "connect",
+  "offline"
+ ]
+}

@@ -140,6 +140,7 @@ def _advance_sequences(conn: Any) -> None:
     for table in Base.metadata.sorted_tables:
         for col in table.primary_key.columns:
             if isinstance(col.type, Integer) and col.autoincrement in (True, "auto"):
+                # names from the ORM metadata, never input
                 conn.exec_driver_sql(
-                    f"SELECT setval(pg_get_serial_sequence('{table.name}', '{col.name}'), "
+                    f"SELECT setval(pg_get_serial_sequence('{table.name}', '{col.name}'), "  # nosec B608
                     f"COALESCE((SELECT MAX({col.name}) FROM {table.name}), 1))")

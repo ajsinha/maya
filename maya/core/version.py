@@ -24,6 +24,8 @@ HIGHLIGHTS = {
         "every mode sealed by the same hash",
         "A signed-in session's principal reused for two seconds; access changes apply "
         "at once in the same process",
+        "OIDC logout both ways: sign-out at the IdP, and back-channel logout tokens",
+        "Custody timestamps: the TSA's signature verified against its CA inside MAYA",
         "The specification's PDF and DOCX rebuilt from the Markdown by a script",
     ],
     "0.2.0": [

@@ -173,6 +173,10 @@ def test_an_execution_warrant_lifecycle_through_forms(site):
     r = mgr.post(f"/warrants/execution/{eid}/token", {"environment": "dev"})
     assert "live-web" in r.text and re.search(r"[A-Za-z0-9_-]{40,}\.[A-Za-z0-9+/=_-]{40,}",
                                               r.text)
+    live = mgr.get(f"/warrants/execution/{eid}/bundle.json?environment=dev")
+    assert "attachment" in live.headers["content-disposition"]
+    assert live.json()["attestation"] == "attested" and live.json()["token"]
+    assert "Offline copy (unattested)" in mgr.get(f"/warrants/execution/{eid}").text
     mgr.post(f"/warrants/execution/{eid}/report", {
         "environment": "dev", "rows": "10", "input_stats": json.dumps({"x": {"null_rate": 0.0}})},
         expect="success")
@@ -183,7 +187,8 @@ def test_an_execution_warrant_lifecycle_through_forms(site):
     assert w.p.execution.get(w.mgr, eid)["status"] == "suspended"
     assert "Unattested offline use" not in mgr.get(f"/warrants/execution/{eid}").text
     w.p.execution.reinstate(w.admin, eid, "reset for the offline check")
-    w.p.execution.bundle(w.mgr, eid, "dev", offline=True)
+    copy = mgr.get(f"/warrants/execution/{eid}/bundle.json?environment=dev&offline=1")
+    assert copy.json()["attestation"] == "unattested" and copy.json()["token"] is None
     page = mgr.get(f"/warrants/execution/{eid}").text
     assert "Unattested offline use" in page and "1 copy of this warrant was issued" in page
     w.p.execution.report(w.mgr, eid, environment="dev", rows=10,
@@ -251,6 +256,31 @@ def test_administration_forms(site):
     assert "Integrity verified" not in admin.get("/admin/storage").text     # shown once
     estate = admin.get("/admin/estate")
     assert estate.content[:2] == b"PK"
+
+
+def test_actions_the_ui_gained_for_sdk_parity(site):
+    """SC-13: what the SDK can do, the UI can — search reindex, a policy's YAML, and a
+    spreadsheet lift previewed before anything is imported."""
+    from tests.test_spreadsheet import LOAN, FEES, LOAN_NAMES, book
+    w, app = site
+    admin = Browser(app, "admin", "maya-dev-admin-2")
+    assert "Rebuild the search index" in admin.get("/admin/storage").text
+    admin.post("/admin/search/reindex", expect="success")
+    policies = w.p.workflow_svc.policies()
+    pid = policies[0]["id"]
+    assert f"/workflow/policies/{pid}/policy.yaml" in admin.get(f"/workflow/policies/{pid}").text
+    y = admin.get(f"/workflow/policies/{pid}/policy.yaml")
+    assert y.headers["content-type"].startswith("application/yaml") and "states" in y.text
+    w.p.models.create(w.mona, namespace="quant", name="loanwb", formula="y = a*x",
+                      roles={"a": "parameter"})
+    mona = Browser(app, "mona", PASSWORD)
+    r = mona.c.post("/models/quant/loanwb/workbook", data={
+        "csrf_token": mona.csrf("/models/quant/loanwb"), "mode": "preview",
+        "workbook_output": "B7", "workbook_roles": "rate: parameter"},
+        files={"workbook": ("loan.xlsx", book(LOAN, {"Fees": FEES}, LOAN_NAMES))})
+    assert r.status_code == 200 and "Preview of loan.xlsx, nothing imported" in r.text
+    ir = w.p.models.get(w.mona, "quant/loanwb")["versions"][0]["formula_ir"]
+    assert "lifted_from" not in ir, "a preview imports nothing"
 
 
 def test_admin_forms_refuse_a_non_administrator(site):

@@ -26,12 +26,27 @@ line-length = 100
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "C90"]
+select = ["E", "F", "W", "C90", "PLR0915"]
 ignore = ["E501"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
+[tool.ruff.lint.pylint]
+max-statements = 50        # function length (plan gate 1)
+
 [tool.coverage.run]
 # the sandbox child runs in its own interpreter; its paths are proved by test_sandbox_linux
 omit = ["maya/security/sandbox_runner.py"]
+
+[tool.mypy]
+# The typed layer (plan gate 2): `mypy --strict` on maya/services, run by gates.py.
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true      # pyarrow, deltalake, onelogin, ... ship no stubs
+follow_imports = "silent"          # check services; use, not re-report, what they import
+# One relaxation, deliberately: repositories are looked up by name through the unit of
+# work (uow.repo("features")), which is typed Any, so their rows reach callers as Any.
+# Returning such a row from a function annotated dict[str, Any] is correct, and 100+
+# casts to say so would add noise, not safety.
+warn_return_any = false

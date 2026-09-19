@@ -204,9 +204,9 @@ Anchors pin the chain head outside the database so a consistent rewrite of histo
 | `signature` | an Ed25519 signature over the head's sequence number, hash and time |
 | `file` | a JSON line appended to `custody.anchor.file` (default `<storage.root>/anchors.jsonl`) |
 | `event` | an `audit.anchored` event, delivered to webhook subscribers |
-| `rfc3161` | a timestamp token from `custody.anchor.tsa_url` (off by default) |
+| `rfc3161` | a timestamp token from `custody.anchor.tsa_url` (off by default); with `custody.anchor.tsa_ca_file` set, the TSA's signature on it is checked first, and a token that fails is not kept — the anchor records why |
 
-MAYA refuses to anchor a chain that does not verify. Administrators and techops can anchor on demand (`POST /api/v1/custody/anchor`), list anchors (`GET /api/v1/custody/anchors`) and verify them (`GET /api/v1/custody/verify`): each anchor must still match the live chain at its sequence number, its signature must verify, it must still be in the anchor file, and a timestamp token must carry its imprint. A disagreement is reported as `TAMPERING`.
+MAYA refuses to anchor a chain that does not verify. Administrators and techops can anchor on demand (`POST /api/v1/custody/anchor`), list anchors (`GET /api/v1/custody/anchors`) and verify them (`GET /api/v1/custody/verify`): each anchor must still match the live chain at its sequence number, its signature must verify, it must still be in the anchor file, and a timestamp token must carry its imprint — and, with `custody.anchor.tsa_ca_file` set, a TSA signature that chains to that CA. A disagreement is reported as `TAMPERING`.
 
 ## Health and readiness
 

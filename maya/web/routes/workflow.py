@@ -236,3 +236,14 @@ async def respond_challenge(request: Request, object_type: str, object_id: str,
         await sdk.assistant.respond(memo_id, data.get("stance", ""), data.get("note", ""))
     flash(request, "Your response to the challenge is recorded.", "success")
     return RedirectResponse(f"/workflow/review/{object_type}/{object_id}", status_code=303)
+
+
+@router.get("/workflow/policies/{policy_id}/policy.yaml")
+@page
+async def policy_yaml(request: Request, policy_id: str) -> Any:
+    from fastapi.responses import Response
+    async with client(request) as sdk:
+        text = await sdk.workflow.policy_yaml(policy_id)
+    return Response(text if isinstance(text, (bytes, str)) else str(text),
+                    media_type="application/yaml",
+                    headers={"Content-Disposition": f'attachment; filename="policy-{policy_id[:8]}.yaml"'})

@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="#status--read-this-first">Status</a> ·
+  <a href="#whats-shipped">What's shipped</a> ·
   <a href="#the-name">The name</a> ·
   <a href="#what-makes-it-different">What makes it different</a> ·
   <a href="#getting-started">Getting started</a> ·
@@ -30,7 +31,7 @@ It exists because four things are true in almost every quantitative shop, and ea
 The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes a model version against a feature set version and receives the parameters that training produced. An *execution warrant* packages a model, its parameters and its input contract into a licence that can be handed to a downstream system or a regulator — and, because it is a live instrument rather than a document, withdrawn on a Friday afternoon when the model is found to be wrong. Warrants make *who was allowed to run what, on which data, with whose approval* a query rather than an archaeology project.
 
 [![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/MAYA_Requirements_and_Design.md)
-[![Implementation](https://img.shields.io/badge/implementation-v0.2.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
+[![Implementation](https://img.shields.io/badge/implementation-v0.3.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
@@ -79,63 +80,93 @@ That is māyā, and it is model risk, in one figure.
 
 ## Status — read this first
 
-**Version 0.2.0 (2026-09-19), built from specification revision 2.3.**
+**Version 0.3.0 (2026-09-19), built from specification revision 2.3.**
 The whole spine runs through the web UI, the REST API, the SDK and the CLI:
 source → feature → feature set → pin → model → training warrant → parameter set →
-execution warrant → reproducibility bundle.
+execution warrant → reproducibility bundle. The SDK's own version, `CLIENT_VERSION`, is
+0.2.0: nothing in it changed in 0.3.0.
 
 | | |
 |---|---|
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
-| **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
+| **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — each milestone marked with what it delivered and what it did not |
+| **Shipped** | [What's shipped](#whats-shipped), below — every capability with the tests that prove it |
+| **Measured** | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) — SC-4, SC-5 and 100k-object search pass; SC-3 is not met reliably |
+| **Changes** | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 1,115 on Linux, all passing on PostgreSQL 16, 17 and 18. On SQLite 1,113 pass and two are skipped: the multi-process server tests, which need PostgreSQL. They include real-browser tests in headless Chrome, a multi-process server, and LibreOffice Calc as a judge of spreadsheet lifts. 92.8% line coverage, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 177 endpoints, schema drift) |
+| **Tests** | 1,149 on Linux. On SQLite 1,139 pass and 10 are skipped: the eight Keycloak tests (`tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`) and the two multi-process server tests (`tests/test_web_processes.py`), which need PostgreSQL. On PostgreSQL 16, 17 and 18 the suite last ran at 1,135 tests, every one but the Keycloak tests passing; the thirteen added since — the TSA signature check and OIDC logout — have run on SQLite only. They include real-browser tests in headless Chrome, a multi-process server, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. 92.9% line coverage, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 178 endpoints, schema drift) |
+
+### Out of scope by decision
+
+Three things the specification or the plan asks for will not be done, by the owner's
+decision. They are stated as decisions, not as work in progress, and each costs
+something that should be read plainly:
+
+- **The assistant is not tested against the live Claude API.** With
+  `assistant.provider: claude` the request — Claude Opus 5, structured JSON output,
+  server-side refusal fallbacks — is verified against a stub of the Anthropic client,
+  and only against that. Whether the live service answers the way the stub does is
+  unproven. The deterministic `rules` provider, the default, is unaffected.
+- **Windows and macOS are not exercised.** Only Linux is. The specification's SC-14 —
+  the full suite green on all three — is therefore not met, and the code paths that
+  exist only for the other two (`sandbox-exec` at `moderate` on macOS, the wall-clock
+  `minimal` tier on Windows, the `tzdata` package Windows depends on for time zones)
+  have never run. There is no
+  hosted CI either: the gate ladder runs locally, in the pre-commit hook on every commit
+  and as `python tools/ci/gates.py --tests`.
+- **There is no dedicated benchmark host.** Every figure in
+  [docs/BENCHMARKS.md](docs/BENCHMARKS.md) comes from one shared workstation. SC-3,
+  200 users on one node, is not met reliably there: on PostgreSQL with 8 web processes,
+  three runs gave p95 0.34 s, 0.22 s and 0.43 s against 0.3 s, at 93–97 requests/s with
+  no errors. Without a quiet host that verdict will not be settled either way.
 
 ### Not yet — stated so nobody has to discover it
 
-- **PostgreSQL is verified on 16, 17 and 18.** The whole suite passes on PostgreSQL 16.15,
-  17.11 and 18.6, as well as SQLite. Run it with
-  `MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test platform
-  gets its own freshly created database. Version 14, the documented floor, and version 15
-  have not been run.
-- **Only Linux has been exercised.** There is no hosted CI: the gate ladder runs locally,
-  in the pre-commit hook on every commit and as `python tools/ci/gates.py --tests`. Windows
-  and macOS need a run on those machines.
-- **Single sign-on has been tested against one real IdP: Keycloak 26.4.** Single sign-on
-  is OIDC or SAML 2.0 (`auth.sso.protocol: oidc | saml2`, SP-initiated; the IdP must sign
-  assertions). Against Keycloak 26.4.7, driven in headless Chrome, these all worked:
-  OIDC sign-in with group-mapped roles; SAML sign-in with signed requests; single logout
-  started from MAYA; and logout started from Keycloak's end-session page. That run
-  found and fixed one defect: SAML refused repeated attribute elements. Rerun with
-  `MAYA_TEST_KEYCLOAK_URL=… pytest tests/test_sso_keycloak.py`. Not supported:
-  back-channel (server-to-server) logout, and OIDC sign-out at the IdP; signing out of
-  MAYA over OIDC ends only the MAYA session. No commercial IdP (Okta, Entra ID, ADFS)
-  has been tried, and only over http on loopback. The simulated-IdP tests attack every
-  SAML check on its own. Second factors are TOTP and WebAuthn keys/passkeys, tested
-  with a software ES256 authenticator, not hardware. Attestation is not requested, so
-  MAYA does not claim a key is hardware-backed.
+- **PostgreSQL 14 and 15 have not been run.** The whole suite passes on PostgreSQL
+  16.15, 17.11 and 18.6, as well as SQLite; 14 is the documented floor. Run it with
+  `MAYA_TEST_PG_URL=postgresql+psycopg://user@host/db python -m pytest`; each test
+  platform gets its own freshly created database.
+- **Single sign-on is proven against one real IdP, Keycloak 26.4.** Single sign-on is
+  OIDC or SAML 2.0 (`auth.sso.protocol: oidc | saml2`, SP-initiated; the IdP must sign
+  assertions). Against Keycloak 26.4.7, driven in headless Chrome, OIDC sign-in with
+  group-mapped roles, SAML sign-in with signed requests, single logout started from MAYA
+  and logout started from Keycloak all worked, and so did OIDC logout both ways:
+  signing out of MAYA ended the Keycloak session (`auth.sso.post_logout_redirect_uri`),
+  and ending a session in Keycloak's admin console ended the MAYA session by back
+  channel. The security guide has the settings. Keycloak's "sign out all sessions" of a
+  user was seen to send a logout token for one of that user's sessions only. No
+  commercial IdP (Okta, Entra ID, ADFS) has been tried, and Keycloak only over http on
+  loopback. Not supported: SAML back-channel (SOAP) logout, so a SAML IdP that signs
+  someone out without their browser does not reach MAYA. The simulated-IdP tests attack
+  every SAML, OIDC and logout-token check on its own. Second factors are
+  TOTP and WebAuthn keys/passkeys, tested with a software ES256 authenticator, not
+  hardware. Attestation is not requested, so MAYA does not claim a key is
+  hardware-backed.
+- **A sign-out can take two seconds to reach another web process.** A signed-in
+  session's principal is reused for `auth.session.principal_cache_seconds` (default 2),
+  because one page makes several internal calls. A sign-out, revocation or access
+  change applies at once in the process that made it, and up to that long later in the
+  others. Set it to 0 where that window matters more than the page cost.
+- **A feature-set pin that is not written is only as readable as its replay.** Under a
+  namespace's `materialize_policy` of `on_demand` or `never`, a pin is sealed by the
+  hash of its output and rebuilt from its member pins when read. If a later MAYA ever
+  resolved those inputs differently by one byte, the read would fail with
+  `integrity_error` rather than serve other numbers — safe, but unavailable. `always`,
+  the default, has no such dependency.
 - **The `strong` sandbox tier is Linux-only.** On Linux, bubblewrap namespaces, a
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
-  claimed only when a probe child fails to escape. macOS runs at `moderate`
+  claimed only when a probe child fails to escape. macOS would run at `moderate`
   (`sandbox-exec`); Windows at `minimal` (Job Objects are not built).
 - **True PDF builds need Tectonic on each server.** Install the static binary (verified
-  here with Tectonic 0.17.0 on Linux) and specification PDFs are real LaTeX builds; without
-  it they are watermarked drafts, and `typeset.require_true_build` forbids approval on a
-  draft outside dev. Tectonic downloads its TeX bundle on first use: an air-gapped server
-  must be given a cached bundle.
-- **Benchmarks were measured on one shared workstation, not the specified cluster**
-  ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)). SC-5, SC-4 and 100k-object search pass;
-  SC-5 and search were measured on SQLite only. SC-3 (200 users) is not met reliably: on
-  PostgreSQL with 8 web processes, three runs gave p95 0.34 s, 0.22 s and 0.43 s against
-  0.3 s (one passes), at 93–97 requests/s with no errors. A dedicated host will settle it. Several web processes need PostgreSQL;
-  MAYA refuses them over SQLite. The rest of §24.3 — pin write throughput, object
-  counts beyond search, job throughput, cold start, Delta table size — has not been
-  measured.
-- **The challenger's Claude provider is tested against a stub, not the live API.** The
-  deterministic provider is the default. With `assistant.provider: claude`, the request
-  (Claude Opus 5, structured JSON output, server-side refusal fallbacks) is verified against
-  a stub of the Anthropic client; no Claude credentials were available where this was built.
+  here with Tectonic 0.17.0 on Linux) and specification PDFs are real LaTeX builds;
+  without it they are watermarked drafts, and `typeset.require_true_build` forbids
+  approval on a draft outside dev. Tectonic downloads its TeX bundle on first use: an
+  air-gapped server must be given a cached bundle.
+- **Most of §24.3 has not been measured.** SC-5 and 100k-object search were measured on
+  SQLite only, and the per-pod figure of §24.3 not at all. Pin write throughput, object
+  counts beyond search, job throughput, cold start and Delta table size have not been
+  measured. Several web processes need PostgreSQL; MAYA refuses them over SQLite.
 - **Server-side paging is per page, not per threshold.** Features, feature sets, models,
   audit, events and jobs always page from the server; smaller tables stay client-side. In
   server mode a table sorts on the columns the server can order by (name, update time,
@@ -147,18 +178,82 @@ execution warrant → reproducibility bundle.
 - **Spreadsheet import is v1 scope.** Arithmetic, standard functions, named cells and ranges,
   and VLOOKUP/HLOOKUP over constant tables lift into the formula IR; everything else is refused
   by cell. Every supported construct, the lookups and a multi-sheet model have been checked
-  against LibreOffice Calc's own results (recalculated headless). They have not yet been
+  against LibreOffice Calc's own results (recalculated headless). They have not been
   checked against workbooks saved by Microsoft Excel.
 - **Custody anchors are only as external as you make them.** The chain head is signed,
   appended to `custody.anchor.file` and emitted as a webhook event hourly; RFC 3161
   timestamping is off by default. Point the file at WORM or off-host storage: on the
-  same disk as the database it only raises the bar. The TSA's own signature is checked
-  with `openssl ts -verify`, not inside MAYA.
+  same disk as the database it only raises the bar. A timestamp authority's own
+  signature is checked, through `openssl ts -verify`, only when
+  `custody.anchor.tsa_ca_file` names its CA certificate; without it MAYA checks the
+  token's status and imprint and leaves the signature to you.
 - **Search is MAYA's own inverted index**, identical on SQLite and PostgreSQL: ranked,
   prefix-matched, every term required, filtered by read permission, kept current in the
   writing transaction. PostgreSQL `tsvector` and SQLite FTS5 are not used. CodeMirror 5
   instead of 6 and the corrected dark `--maya-crimson-deep` token are recorded in the
   specification as revision 2.2.
+
+---
+
+## What's shipped
+
+The implementation plan's milestones, as delivered. Each row names where the capability
+lives and the tests that prove it; a capability without a test that exercises it is not
+listed, because on this platform an untested claim is an assertion. What a milestone
+promised and did not deliver is marked in
+[the plan](docs/IMPLEMENTATION_PLAN.md#6-milestones), milestone by milestone.
+
+| Capability | Where it lives | Proved by |
+|---|---|---|
+| **M0** The gate ladder, each gate seen to fail on a planted violation | `tools/ci/` | `tests/test_api_and_gates.py` (`test_gate_fails_on_a_planted_violation`, `test_web_import_boundary_fails_when_web_reaches_past_the_sdk`, `test_schema_drift_gate_fails_after_a_hand_edit`) |
+| **M0** Type B seams: canonical bytes and content-defined fragments, MAYA's own implementation authoritative | `maya/core/canonical.py`, `maya/core/chunker.py` | `tests/test_foundation.py` (`test_canonical_bytes_are_fixed`, `test_chunker_is_content_defined`), `tests/test_properties.py` |
+| **M0** Configuration with no secret in the tracked file and no silent default | `maya/core/properties_configurator.py`, `config/` | `tests/test_foundation.py` (`test_tracked_config_carries_no_secret`, `test_local_overlay_wins_and_no_silent_defaults`), `tests/test_core_utilities.py` |
+| **M1** Two generated schema files, drift refused, a mismatched database refused at startup | `maya/persistence/models/`, `maya/persistence/schema/` | `tests/test_foundation.py` (`test_shipped_schema_files_match_the_metadata`, `test_hand_edit_is_detected`), `tests/test_workflow_and_estate.py` (`test_schema_mismatch_refuses_to_start`) |
+| **M1** The upgrade path with no migrations: estate export → recreate → import | `maya/persistence/estate.py` | `tests/test_workflow_and_estate.py` (`test_estate_round_trip_and_audit_tamper_detection`, `test_a_database_from_another_schema_still_exports_and_loads`, `test_a_required_column_the_estate_cannot_fill_is_named`) |
+| **M1** Hash-chained audit, tampering detected | `maya/persistence/repositories/` | `tests/test_workflow_and_estate.py` (`test_estate_round_trip_and_audit_tamper_detection`), `tests/test_api_and_gates.py` (`test_denials_are_audited_even_though_they_roll_back`) |
+| **M1** One authorization function, the role ceiling, the ACL order | `maya/security/authz.py`, `maya/security/roles.py` | `tests/test_foundation.py` (`test_role_ceiling_is_never_exceeded`, `test_acl_resolution_order`), `tests/test_api_contract.py` (every route as anonymous, no-role and administrator), `tests/test_workflow_matrix.py` |
+| **M1** Stored-KDF passwords that rehash upward; a signer that refuses rather than downgrades | `maya/core/kdf.py`, `maya/core/crypto.py` | `tests/test_foundation.py` (`test_kdf_records_its_algorithm_and_rehashes_upward`, `test_crypto_refuses_rather_than_downgrading`) |
+| **M1** Sessions, API keys, lockout; the two-second principal cache | `maya/services/auth.py` | `tests/test_api_and_gates.py` (`test_lockout_after_repeated_failures`, `test_api_key_scope_environment_and_revocation`), `tests/test_principal_cache.py` |
+| **M1** OIDC and SAML 2.0 single sign-on, logout in both directions, TOTP and WebAuthn | `maya/security/oidc.py`, `maya/security/saml.py`, `maya/security/passkeys.py`, `maya/services/sso.py` | `tests/test_sso_mfa.py`, `tests/test_oidc_logout.py`, `tests/test_saml.py`, `tests/test_saml_slo.py`, `tests/test_webauthn.py`; against Keycloak 26.4, `tests/test_sso_keycloak.py` (opt-in) |
+| **M1** The table contract, every table from one macro | `maya/web/templates/`, `tools/ci/table_contract.py` | `tests/test_web.py` (`test_only_the_macro_emits_tables`), `tests/test_browser.py` (`test_a_server_paged_table_pages_searches_and_sorts`) |
+| **M1** The UI as an SDK client, with no private path | `maya/web/`, `maya/sdk/` | `tests/test_web.py` (`test_web_imports_only_the_sdk`, `test_every_page_renders`), `tests/test_web_journeys.py`, `tests/test_web_catalog_models.py`, `tests/test_web_workbench.py` |
+| **M2** `maya_delta`: one conformance suite on both backends, cross-backend reads, refusal by name (SC-16) | `maya_delta/` | `tests/test_maya_delta.py` |
+| **M2** Lake compaction and vacuum that change nothing anyone can read | `maya_delta/`, `maya/services/ops.py` | `tests/test_lake_maintenance.py` |
+| **M3** Byte-identical re-resolution, with the negative case (SC-1) | `maya/services/features.py`, `maya/storage/lake.py` | `tests/test_features.py` (`test_sc1_repin_is_byte_identical_and_changed_data_is_not`) |
+| **M3** Point-in-time after a restatement (SC-11); an unchanged month costs its delta (SC-12) | `maya/resolution/resolver.py`, `maya/core/chunker.py` | `tests/test_features.py` (`test_sc11_point_in_time_after_restatement`, `test_sc12_unchanged_month_costs_under_five_percent`), `tests/test_properties.py` (`test_a_restatement_never_overwrites`) |
+| **M3** Resolution rules, calendars, quality contracts that block a pin | `maya/resolution/` | `tests/test_resolution_core.py`, `tests/test_resolution_edges.py`, `tests/test_resolution_grouped.py`, `tests/test_features.py` (`test_quality_contract_blocks_the_pin`) |
+| **M3** The feature algebra; every logical type round-trips in every format | `maya/resolution/algebra.py`, `maya/resolution/shapes.py` | `tests/test_resolution_algebra.py` (`test_property_round_trip`, `test_tensor_round_trip_every_format`) |
+| **M3** Sources: files, read-only SQL, a sandboxed Python producer | `maya/services/sources.py` | `tests/test_sql_source.py`, `tests/test_python_source.py`, `tests/test_features.py` (`test_unsupported_source_is_refused_by_name`) |
+| **M3** The scratch namespace and `maya feature quick` | `maya/services/features.py`, `maya/cli/` | `tests/test_features.py` (`test_scratch_quick_feature_has_zero_ceremony`), `tests/test_cli.py` (`test_quick_upload_and_restatement`) |
+| **M3** Catalog search, filtered by read permission | `maya/persistence/search_index.py` | `tests/test_search.py` |
+| **M4** Feature sets: policy precedence, alignment, broadcast, refusal of an unaggregated index | `maya/resolution/featureset.py`, `maya/services/featuresets.py` | `tests/test_resolution_algebra.py` (`test_featureset_precedence_layers_and_broadcast`, `test_featureset_refuses_unaggregated_extra_index`) |
+| **M4** Cascade pin that rolls back entirely | `maya/services/featuresets.py` | `tests/test_warrants.py` (`test_cascade_rolls_back_entirely_on_a_member_failure`), `tests/test_cli.py` (`test_featureset_pin_cascade_and_download_shapes`) |
+| **M4** Pin materialization `always`, `on_demand`, `never`, one hash for all three | `maya/services/featuresets.py` | `tests/test_materialization.py` |
+| **M4** Grant conditions: row filters, column masks, time bounds | `maya/security/conditions.py` | `tests/test_conditions.py` |
+| **M5** Workflow as data: edit-time validation, governed activation, byte-identical YAML, break-glass, campaigns | `maya/workflow/`, `maya/services/workflow_service.py` | `tests/test_workflow_and_estate.py` |
+| **M5** Every transition, every role; separation of duties per preset; delegation and escalation | `maya/workflow/engine.py` | `tests/test_workflow_matrix.py`, `tests/test_delegation.py` |
+| **M5** Workspaces and shadow replay; approval is the merge | `maya/services/workspaces.py` | `tests/test_workspaces.py` |
+| **M6** The formula IR: parse, render, evaluate, diff, codegen, lift, composites, conformance | `maya/formula/` | `tests/test_formula.py`, `tests/test_language_tables.py` |
+| **M6** Artifact validation, one refusal per rung; the Linux sandbox attacked | `maya/security/sandbox.py`, `maya/security/sandbox_runner.py` | `tests/test_sandbox.py`, `tests/test_sandbox_linux.py` |
+| **M6** Specification documents: true Tectonic builds, labelled drafts without it | `maya/core/typeset.py`, `maya/formula/specdoc.py` | `tests/test_typeset.py`, `tests/test_warrants.py` (`test_model_submission_is_blocked_by_an_incomplete_spec`) |
+| **M6** Spreadsheets as models, checked against the workbook and against LibreOffice Calc | `maya/formula/xlsx.py` | `tests/test_spreadsheet.py`, `tests/test_spreadsheet_libreoffice.py` |
+| **M7** Warrants: the checksum cycle, the leakage certificate, blind scoring, covenants that suspend, unattested offline copies | `maya/services/warrants.py`, `maya/services/execution.py` | `tests/test_warrants.py` (`test_the_checksum_cycle_seal_score_execute_and_bundle`, `test_leakage_certificate_refuses_late_knowledge`), `tests/test_security_regressions.py` (`test_each_covenant`) |
+| **M7** Signed bundles that verify offline, re-execute composites and fail on one changed byte | `maya/services/bundle.py`, `maya/sdk/offline.py` | `tests/test_warrants.py`, `tests/test_sdk_modes.py` (`test_a_composite_model_is_re_executed_by_the_bundle_verifier`, `test_a_tampered_bundle_is_refused_before_anything_is_read`), `tests/test_cli.py` (`test_warrant_fetch_params_seal_bundle_and_offline_verify`) |
+| **M8** SDK record/replay, sync and async; `maya.offline(bundle)` | `maya/sdk/replay.py`, `maya/sdk/offline.py` | `tests/test_sdk_modes.py` |
+| **M8** Server-side cursor paging | `maya/services/paging.py`, `maya/web/routes/tables.py` | `tests/test_paging.py` |
+| **M8** The CLI end to end, integrity verification | `maya/cli/` | `tests/test_cli.py` (`test_verify_integrity`) |
+| **M8** Several web processes on one node over PostgreSQL | `maya/server.py`, `run_maya_web.py` | `tests/test_web_processes.py` |
+| **M8** Metrics, tracing, events, signed webhooks | `maya/observability/`, `maya/services/webhooks.py` | `tests/test_observability.py` |
+| §29.6 Licence algebra and custody anchors, with the TSA's signature checked | `maya/security/licence.py`, `maya/services/custody.py` | `tests/test_custody.py` (`test_an_anchor_catches_a_rechained_rewrite`, `test_a_real_tsa_signature_is_verified_against_its_ca`) |
+| §29.8 The assistant as a recorded challenger | `maya/assistant/`, `maya/services/assistant.py` | `tests/test_assistant.py` (the Claude provider against a stub only) |
+| Measured against §3 and §24.3 | `tools/bench/` | Not tests: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), from the result files in `docs/benchmarks/` |
+
+**Promised by the plan and not delivered.** SC-9 — a new designer publishing a first
+model in under an hour, timed with a real person — has not been measured. The
+fallback matrix (the whole suite with every Type A seam pinned to its fallback, gate
+11b) is not built. No external security review has been done, and no restore drill has
+been performed. The three-platform matrix is out of scope by decision (above). The plan
+marks each of these where it was promised.
 
 ---
 
@@ -226,7 +321,7 @@ Four risks have no clean fix and are accepted with mitigation rather than waved 
 |---|---|---|
 | Language | Python 3.13 (`.python-version`) | Matches the estate; `.venv` is git-ignored |
 | API | FastAPI + Pydantic v2, OpenAPI 3.1 | Typed contracts, generated spec, async where it helps |
-| Platforms | **Windows, Linux and macOS, equally first-class** | Not "Linux, and it probably works elsewhere" — the requirement is all three green before a release (SC-14). So far only Linux has been run, and there is no hosted CI (see *Not yet*) |
+| Platforms | **Windows, Linux and macOS, equally first-class** | Not "Linux, and it probably works elsewhere" — the specification requires all three green before a release (SC-14). By the owner's decision only Linux is exercised, so SC-14 is not met, and there is no hosted CI (see *Out of scope by decision*) |
 | ORM | SQLAlchemy 2.0, typed | Confined to one package, enforced by a gate (`tools/ci/import_boundaries.py`) |
 | Schema | **Two generated DDL files, no migration framework** | One typed metadata is the source; `schema/postgresql.sql` and `schema/sqlite.sql` are generated from it and CI fails on drift. Two files maintained by hand are two files that will disagree |
 | Database | PostgreSQL 14+ in production, SQLite for laptop and dev | Full suite green on both, or the build fails. Run so far on PostgreSQL 16, 17 and 18, not 14 or 15 |
@@ -284,20 +379,29 @@ maya/
 │   ├── models/            #   the ORM metadata: the single source of the schema
 │   ├── repositories/      #   dict-returning repositories, hash-chained audit, job claim
 │   └── schema/            #   sqlite.sql, postgresql.sql, both GENERATED
-├── security/              # roles matrix, can(), per-platform sandbox
+├── security/              # roles matrix, can(), grant conditions, licences, OIDC, SAML,
+│                          #   WebAuthn, the per-platform sandbox
 ├── resolution/            # expressions, rules, grids, transforms, quality, algebra, shapes
 ├── formula/               # formula IR, parser, LaTeX, evaluator, diff, codegen, artifacts
 ├── workflow/              # engine, policy validation, default policies
 ├── storage/               # blob store, LakeStore (fragments over maya_delta)
 ├── services/              # use cases: features, featuresets, models, warrants, …
-├── jobs/                  # queue and workers
+├── jobs/                  # queue, workers and the maintenance scheduler
+├── assistant/             # the recorded challenger: deterministic rules, and Claude (opt-in)
+├── observability/         # metrics, tracing, structured logs, the event stream
 ├── api/                   # FastAPI routers under /api/v1
 ├── sdk/                   # the only client: Client, AsyncClient, inproc and http transports
 ├── web/                   # Jinja2 + vendored Bootstrap 5/jQuery; imports maya.sdk only
-└── cli/                   # python -m maya.cli …
+├── cli/                   # python -m maya.cli …
+└── server.py              # the application factory each web process runs (server.workers)
 maya_delta/                # Delta Lake: native (delta-rs) and pure-Python backends
 tools/ci/                  # the gates, in Python so they run on every OS
-tests/
+tools/bench/               # the benchmarks behind docs/BENCHMARKS.md
+tools/docs/                # build_spec.py: the specification's .docx and .pdf from the Markdown
+docs/                      # the specification, the plan, BENCHMARKS.md, CHANGELOG.md
+└── benchmarks/            #   the unedited JSON result of every benchmark run
+tests/                     # the suite; test_sso_keycloak.py runs only against a live
+                           #   Keycloak (MAYA_TEST_KEYCLOAK_URL)
 ```
 
 Two structural rules are worth stating in the README because they are load-bearing and non-negotiable (§14, §13, §16):

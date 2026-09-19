@@ -205,7 +205,7 @@ def main() -> None:
         one = asyncio.run(single_user(base, pages, a.repeats))
         single_p95 = h.pct([s["p95"] for s in one.values()], 95)
         loaded = asyncio.run(load(base, pages, a.users, a.duration,
-                                  (a.think_min, a.think_max)))
+                                  (a.think_min, a.think_max))) if a.users else None
     finally:
         if a.workers > 1:
             proc.terminate()
@@ -221,8 +221,10 @@ def main() -> None:
                  "pass": all(s["p95"] < 0.3 for s in one.values())},
         "SC-3": {"target": "p95 under 0.3 s with 200 users; no material degradation",
                  "single_user_p95": round(single_p95, 4), "loaded": loaded,
-                 "degradation_ratio": round(loaded["p95"] / single_p95, 2) if single_p95 else None,
-                 "pass": loaded["p95"] < 0.3 and loaded["errors"] == 0},
+                 "degradation_ratio": round(loaded["p95"] / single_p95, 2)
+                 if loaded and single_p95 else None,
+                 "pass": loaded["p95"] < 0.3 and loaded["errors"] == 0} if loaded else
+        {"skipped": "--users 0"},
     }
     if a.workers == 1:
         p.shutdown()

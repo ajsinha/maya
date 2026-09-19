@@ -64,7 +64,7 @@
       <div class="col-md-3"><label class="form-label" for="rewbout">Output cell or name</label><input class="form-control mono" id="rewbout" name="workbook_output" value="{{ wb.output if wb else '' }}"></div>
       <div class="col-md-3"><label class="form-label" for="rewbroles">Input roles ("name: role" per line)</label><textarea class="form-control mono" id="rewbroles" name="workbook_roles" rows="2">{% for i in (v.formula_ir or {}).get('inputs', []) if i.role != 'feature' %}{{ i.name }}: {{ i.role }}
 {% endfor %}</textarea></div>
-      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Lift</button></div>
+      <div class="col-md-2 d-flex align-items-end gap-1"><button class="btn btn-outline-primary w-50" type="submit" name="mode" value="preview" title="Lift and check against the workbook, import nothing">Preview</button><button class="btn btn-primary w-50" type="submit">Lift</button></div>
     </form></details>
   {% endif %}
   <h3>Formula IR (the authority; everything else is generated from it)</h3>{{ json_block(v.formula_ir) }}

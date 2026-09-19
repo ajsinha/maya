@@ -25,6 +25,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import builtins
 from typing import Any
 
 import numpy as np
@@ -119,7 +120,7 @@ class WorkspaceService:
                       detail={"object": row["object_ref"], "base": base["version_no"]})
             return row
 
-    def _validate(self, kind: str, definition: dict[str, Any]) -> list[str]:
+    def _validate(self, kind: str, definition: dict[str, Any]) -> builtins.list[str]:
         if kind == "featureset":
             return self.p.featuresets.validate(definition)
         return catalog.blocking_errors(catalog.validate_feature_definition(definition))
@@ -135,7 +136,7 @@ class WorkspaceService:
             return {(c["object_kind"], c["object_id"]): c for c in
                     uow.repo("workspace_changes").list(workspace_id=ws_id)}
 
-    def _diff(self, change: dict[str, Any]) -> list[dict[str, Any]]:
+    def _diff(self, change: dict[str, Any]) -> builtins.list[dict[str, Any]]:
         from maya.services.features import diff_definitions
         with self.p.uow() as uow:
             base = uow.repo(KINDS[change["object_kind"]][1]).get(change["base_version_id"])
@@ -233,7 +234,7 @@ class WorkspaceService:
                 "rows_removed": int((joined["_merge"] == "left_only").sum()),
                 **self._stats(np.asarray(new) - np.asarray(old), both, index)}
 
-    def _stats(self, delta: np.ndarray, rows: pd.DataFrame, index: list[str]) -> dict[str, Any]:
+    def _stats(self, delta: np.ndarray, rows: pd.DataFrame, index: builtins.list[str]) -> dict[str, Any]:
         finite = np.abs(delta[np.isfinite(delta)])
         if not len(finite):
             return {"rows_compared": int(len(delta)), "median_abs_shift": None}
@@ -326,7 +327,7 @@ class WorkspaceService:
                       detail={"versions": submitted})
         return {"submitted": submitted}
 
-    def _check_bases(self, changes: list[dict[str, Any]]) -> None:
+    def _check_bases(self, changes: builtins.list[dict[str, Any]]) -> None:
         with self.p.uow() as uow:
             for c in changes:
                 table, vtable, fk = KINDS[c["object_kind"]]

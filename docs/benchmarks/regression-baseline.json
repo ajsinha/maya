@@ -1,0 +1,9 @@
+{
+ "measured": "2026-09-19",
+ "medians": {
+  "resolution_warm_p95_s": 0.2841,
+  "resolution_cold_s": 0.34,
+  "search_p95_s": 0.0128,
+  "page_worst_p95_s": 0.0306
+ }
+}

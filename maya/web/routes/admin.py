@@ -436,3 +436,22 @@ async def estate(request: Request) -> Any:
     async with client(request) as sdk:
         result = await sdk.admin.export_estate()
     return download({**result, "content_type": "application/zip"}, "estate.mayabundle")
+
+
+@router.post("/admin/search/reindex")
+@action
+async def search_reindex(request: Request) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.access.reindex_search()
+    flash(request, f"Search index rebuilt over {out['objects']} catalog objects.", "success")
+    return RedirectResponse("/admin/storage", status_code=303)
+
+
+@router.get("/admin/sso/saml-metadata.xml")
+@page
+async def saml_metadata(request: Request) -> Any:
+    """MAYA's SAML service-provider metadata, for the identity provider's administrator."""
+    async with client(request) as sdk:
+        result = await sdk.auth.saml_metadata()
+    return download({**result, "content_type": "application/samlmetadata+xml"},
+                    "maya-sp-metadata.xml")

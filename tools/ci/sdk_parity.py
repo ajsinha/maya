@@ -9,23 +9,15 @@ from __future__ import annotations
 
 import sys
 
-from _common import report
+from _common import api_app, report
 
 PREFIX = "/api/v1"
 UNVERSIONED = {"/healthz", "/readyz"}
 
 
 def server_endpoints() -> set[tuple[str, str]]:
-    from fastapi import FastAPI
-    from maya.api.routers import (admin, assistant, catalog, custody, events, identity, registry,
-                                  workflow, workspaces)
-    app = FastAPI()
-    for r in (admin.router, catalog.router, registry.router, workflow.router,
-              workspaces.router, events.router, custody.router, identity.router,
-              assistant.router):
-        app.include_router(r, prefix=PREFIX)
     out = set()
-    for path, ops in app.openapi()["paths"].items():
+    for path, ops in api_app().openapi()["paths"].items():
         for method in ops:
             out.add((method.upper(), path[len(PREFIX):] if path.startswith(PREFIX) else path))
     return out
