@@ -10,7 +10,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from maya.persistence.models.base import Base, Tracked
@@ -123,6 +123,10 @@ class Namespace(Tracked, Base):
     production: Mapped[bool] = mapped_column(Boolean, default=False)
     owner_id: Mapped[str | None] = mapped_column(PortableUUID, ForeignKey(FK_USER))
     materialize_policy: Mapped[str] = mapped_column(String(16), default="always")
+    # What counts as a material shift when a change is replayed here (§29.2). A desk whose
+    # numbers are basis points and one whose numbers are prices cannot share one threshold;
+    # unset falls back to workspaces.shadow.materiality.
+    shadow_materiality: Mapped[float | None] = mapped_column(Float)
 
 
 class Grant(Tracked, Base):

@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 9ccbac96d9dd25254f91443e84f196cb23f2538cb76e0a775b492ed3f225a0d0
+-- schema-hash: 39fbf16ad6989040235072f68794975ac3f1e5a830d8e42ac338e9a54e89f443
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -694,6 +694,7 @@ CREATE TABLE namespaces (
 	production BOOLEAN NOT NULL, 
 	owner_id CHAR(36), 
 	materialize_policy VARCHAR(16) NOT NULL, 
+	shadow_materiality FLOAT, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 

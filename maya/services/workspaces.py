@@ -295,17 +295,26 @@ class WorkspaceService:
             "featureset": fs_ref,
             "rows_added": int((joined["_merge"] == "right_only").sum()),
             "rows_removed": int((joined["_merge"] == "left_only").sum()),
-            **self._stats(np.asarray(new) - np.asarray(old), both, index),
+            **self._stats(np.asarray(new) - np.asarray(old), both, index, self._budget(w, fs_ref)),
         }
 
     def _stats(
-        self, delta: np.ndarray, rows: pd.DataFrame, index: builtins.list[str]
+        self,
+        delta: np.ndarray,
+        rows: pd.DataFrame,
+        index: builtins.list[str],
+        materiality: float | None = None,
     ) -> dict[str, Any]:
+        budget = self.materiality if materiality is None else materiality
         finite = np.abs(delta[np.isfinite(delta)])
         if not len(finite):
-            return {"rows_compared": int(len(delta)), "median_abs_shift": None}
+            return {
+                "rows_compared": int(len(delta)),
+                "median_abs_shift": None,
+                "materiality": budget,
+            }
         worst = int(np.nanargmax(np.where(np.isfinite(delta), np.abs(delta), -1)))
-        over = int((finite > self.materiality).sum())
+        over = int((finite > budget).sum())
         return {
             "rows_compared": int(len(delta)),
             "median_abs_shift": float(np.median(finite)),
@@ -314,7 +323,20 @@ class WorkspaceService:
             "worst_row": {c: str(rows.iloc[worst][c]) for c in index},
             "rows_over_materiality": over,
             "share_over_materiality": over / len(delta),
+            "materiality": budget,
         }
+
+    def _budget(self, w: dict[str, Any], fs_ref: str) -> float:
+        """The materiality budget in force for this warrant: its namespace's, where the
+        namespace sets one, else the global default. A desk whose numbers are basis points
+        and one whose numbers are prices cannot share a threshold, and a report that used
+        the wrong one reads as "nothing moved"."""
+        with self.p.uow() as uow:
+            ns = uow.repo("namespaces").get(w.get("namespace_id") or "")
+        if ns and ns.get("shadow_materiality"):
+            return float(ns["shadow_materiality"])
+        del fs_ref
+        return self.materiality
 
     def _target(self, uow: Any, uri: str) -> tuple[dict[str, Any] | None, str]:
         """What to replay for a warrant URI: a training warrant as it is; an execution

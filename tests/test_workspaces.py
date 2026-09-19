@@ -12,9 +12,11 @@ from __future__ import annotations
 import copy
 import datetime as dt
 
+import pandas as pd
+
 import pytest
 
-from maya.core.errors import ConflictError, PermissionDenied
+from maya.core.errors import ConflictError, PermissionDenied, ValidationFailed
 from tests.test_warrants import XY_DEF, complete_spec, xy_csv
 
 CLIPPED = dict(copy.deepcopy(XY_DEF), transform=[{"op": "clip", "attr": "x", "lo": 0, "hi": 3}])
@@ -182,3 +184,40 @@ def test_approval_is_the_merge_and_a_moved_base_is_a_conflict(branch):
     assert w.p.workspaces.get(w.dana, ws["id"])["state"] == "merged"
     with pytest.raises(ConflictError, match="rebase"):
         w.p.workspaces.submit(w.dana, stale["id"])
+
+
+def test_a_namespace_can_set_what_counts_as_a_material_shift(branch):
+    """§29.2 had one global materiality threshold. A desk whose numbers are basis points and
+    one whose numbers are prices cannot share it, and a report that used the wrong one reads
+    as "nothing moved"."""
+    import numpy as np
+
+    w, tw = branch
+    svc = w.p.workspaces
+    with w.p.uow() as uow:
+        warrant = uow.repo("training_warrants").require(tw["id"])
+    assert svc._budget(warrant, "") == svc.materiality, "the global default, unset"
+    w.p.access.update_namespace(w.admin, "wsn", {"shadow_materiality": 100.0})
+    assert svc._budget(warrant, "") == 100.0
+    shifts = np.array([0.5, 2.0, 200.0])
+    rows = pd.DataFrame({"date": ["d1", "d2", "d3"], "symbol": ["A", "A", "A"]})
+    lenient = svc._stats(shifts, rows, ["date", "symbol"], 100.0)
+    strict = svc._stats(shifts, rows, ["date", "symbol"], 1e-9)
+    assert lenient["materiality"] == 100.0 and lenient["rows_over_materiality"] == 1
+    assert strict["rows_over_materiality"] == 3, "every shift is material at a tiny budget"
+    with pytest.raises(ValidationFailed, match="above zero"):
+        w.p.access.update_namespace(w.admin, "wsn", {"shadow_materiality": 0})
+    w.p.access.update_namespace(w.admin, "wsn", {"shadow_materiality": None})
+    assert svc._budget(warrant, "") == svc.materiality, "unset falls back again"
+
+
+def test_every_replay_report_states_the_budget_it_used(branch):
+    w, _ = branch
+    ws = w.p.workspaces.create(w.dana, "clip-x-states-budget")
+    w.p.workspaces.stage(w.dana, ws["id"], kind="feature", ref="wsn/xy", definition=CLIPPED)
+    w.p.workspaces.request_replay(w.dana, ws["id"])
+    w.drain()
+    report = w.p.workspaces.get(w.dana, ws["id"])["replay"]
+    for entry in report["warrants"]:
+        if entry.get("rows_compared"):
+            assert entry["materiality"] > 0, entry

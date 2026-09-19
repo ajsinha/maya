@@ -264,6 +264,7 @@ class AccessService:
             "production",
             "preset",
             "materialize_policy",
+            "shadow_materiality",
         }
         bad = set(changes) - allowed
         if bad:
@@ -276,6 +277,14 @@ class AccessService:
         ):
             raise ValidationFailed(
                 "materialize_policy must be one of " + ", ".join(MATERIALIZE_POLICIES)
+            )
+        if (
+            changes.get("shadow_materiality") is not None
+            and float(changes["shadow_materiality"]) <= 0
+        ):
+            raise ValidationFailed(
+                "shadow_materiality is the shift this namespace calls material; it is "
+                "above zero, or unset to use the global default"
             )
         with self.p.uow(p.username) as uow:
             ns = self.namespace(uow, name)
