@@ -79,7 +79,9 @@ def to_python(ir: dict[str, Any]) -> str:
     lines = [_HEADER + "def predict(X, params):"]
     for inp in ir.get("inputs", []):
         name = inp["name"]
-        if inp.get("role") in ("parameter", "constant"):
+        if inp.get("role") == "constant" and "value" in inp:
+            lines.append(f"    {_ident(name)} = params.get({name!r}, {inp['value']!r})")
+        elif inp.get("role") in ("parameter", "constant"):
             lines.append(f"    {_ident(name)} = params[{name!r}]")
         else:
             lines.append(f"    {_ident(name)} = np.asarray(X[{name!r}], dtype=float)")

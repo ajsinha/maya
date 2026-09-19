@@ -44,6 +44,7 @@ ew = my.execution.create(
   ('valid_days', 'validity from the moment it is sealed (default 90)'),
   ('contact', 'who callers are told to contact when it refuses them'),
   ('covenants', 'the list of bounds evaluated on every execution report'),
+  ('limits', 'rate and volume limits: max_calls_per_day, max_rows_per_call, max_rows_per_day'),
 ]) }}
 {% endcall %}
 
@@ -57,6 +58,17 @@ against the statistics you report with each execution:</p>
   ('max_rows_per_day', 'breached when today\'s reported rows, summed, exceed max'),
   ('staleness_days', 'breached when the reported age_days of attr exceeds max'),
 ]) }}
+{% call concept('Limits throttle; covenants suspend') %}
+<p><code>limits</code> are an allowance, not a judgement about the model. Once today's
+<code>max_calls_per_day</code> or <code>max_rows_per_day</code> is used, no token or run bundle is
+issued until tomorrow (UTC) — the call fails with <code>QuotaExceeded</code>, naming the contact. A run
+reported over <code>max_rows_per_call</code> is still recorded, since it happened; the response lists it
+under <code>limits_exceeded</code> and a <code>warrant.limit_exceeded</code> audit entry and event are
+written. Nothing is suspended.</p>
+{% endcall %}
+{% call example('Limits on a warrant', 'json') %}
+"limits": {"max_calls_per_day": 24, "max_rows_per_call": 50000, "max_rows_per_day": 500000}
+{% endcall %}
 {% call warn('A breach suspends immediately') %}
 <p>The report is accepted and recorded, the warrant moves to <strong>suspended</strong>, a custody
 event and an audit entry are written, and the owner is notified. Every later call fails with
@@ -109,6 +121,7 @@ print(out["status"], out["breaches"])           # live []
   ('WarrantSuspended', 'a covenant was breached; the message carries the reason and the contact'),
   ('WarrantExpired', 'past its validity date; draft a new version'),
   ('PermissionDenied', 'the environment you named is not one the warrant allows'),
+  ('QuotaExceeded', "today's run or row allowance under limits is used; it resets at midnight UTC"),
 ]) }}
 {% call example('Lift a suspension, or end the warrant', 'python') %}
 my.execution.reinstate(ew["id"], reason="Upstream LTV feed fixed; null rate back to 0.1%")

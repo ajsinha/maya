@@ -334,6 +334,10 @@ class WarrantService:
             if isinstance(v, (int, float)) and ((lo is not None and v < lo) or
                                                 (hi is not None and v > hi)):
                 problems.append(f"'{key}'={v} outside [{lo}, {hi}]")
+        for inp in irmod.constant_inputs(ir):
+            key = f"{alias}.{inp['name']}" if alias else inp["name"]
+            if "value" not in inp and key not in values and inp["name"] not in values:
+                problems.append(f"missing constant '{key}' (the model declares no value for it)")
         return problems
 
     def parameter_subject(self, uow: Any, ps: dict[str, Any]) -> Subject:

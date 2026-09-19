@@ -258,9 +258,14 @@ class ModelService:
 
     @staticmethod
     def _default_params(version: dict[str, Any]) -> dict[str, Any]:
+        """Values for everything a parameter set supplies: a constant's declared value, else
+        the midpoint of the declared bounds (conformance only needs both sides to agree)."""
         out = {}
-        for inp in irmod.parameter_inputs(version["formula_ir"] or {}) \
+        for inp in irmod.supplied_inputs(version["formula_ir"] or {}) \
                 if version["formula_ir"] and "body" in version["formula_ir"] else []:
+            if "value" in inp:
+                out[inp["name"]] = float(inp["value"])
+                continue
             lo, hi = (inp.get("bounds") or [0.0, 1.0])[:2]
             out[inp["name"]] = (float(lo) + float(hi)) / 2
         return out

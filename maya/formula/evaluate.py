@@ -107,6 +107,8 @@ def evaluate(ir: dict[str, Any], inputs: dict[str, Any],
     for inp in ir.get("inputs", []):
         if inp.get("role") in ("parameter", "constant") and inp["name"] in params:
             env.setdefault(inp["name"], params[inp["name"]])
+        elif inp.get("role") == "constant" and "value" in inp:
+            env.setdefault(inp["name"], inp["value"])
     lets = ir.get("lets") or {}
     for name in let_order(lets):
         env[name] = eval_node(lets[name], env, params)

@@ -264,3 +264,38 @@ def test_featureset_download_refuses_a_shape_it_cannot_write(journey):
     for bad in ("tensor", "cube"):
         with pytest.raises(ValidationFailed, match="tabular or wide"):
             w.p.featuresets.download(w.mick, ref, shape=bad)
+
+
+def test_execution_limits_throttle_and_record_overage(journey):
+    """Rate and volume limits (§9.2): unknown or non-positive limits are refused; once today's
+    allowance is spent, no token or bundle is issued; an over-limit run is recorded, not hidden."""
+    from maya.core.errors import QuotaExceeded
+    w = journey
+    with w.p.uow() as uow:
+        tw = uow.repo("training_warrants").find_one(name="calib")
+        ps = next(p for p in uow.repo("parameter_sets").list(training_warrant_id=tw["id"])
+                  if p["state"] == "approved")
+    for bad in ({"max_calls_per_week": 5}, {"max_calls_per_day": 0}):
+        with pytest.raises(ValidationFailed, match="[Ll]imit"):
+            w.p.execution.create(w.mgr, namespace="quant", name="badlim",
+                                 training_warrant_id=tw["id"], parameter_set_id=ps["id"],
+                                 spec={"limits": bad})
+    ew = w.p.execution.create(w.mgr, namespace="quant", name="metered",
+                              training_warrant_id=tw["id"], parameter_set_id=ps["id"],
+                              spec={"environments": ["dev"], "contact": "desk@example.com",
+                                    "limits": {"max_calls_per_day": 2, "max_rows_per_call": 100}})
+    assert ew["manifest"]["limits"] == {"max_calls_per_day": 2, "max_rows_per_call": 100}
+    w.p.execution.transition(w.mgr, ew["id"], "submit")
+    w.p.execution.transition(w.principal("mgr2"), ew["id"], "approve")
+    w.p.execution.seal(w.mgr, ew["id"])
+    first = w.p.execution.report(w.devi, ew["id"], environment="dev", rows=50, input_stats={})
+    assert first["limits_exceeded"] == [] and first["status"] == "live"
+    big = w.p.execution.report(w.devi, ew["id"], environment="dev", rows=500, input_stats={})
+    assert big["limits_exceeded"] == [{"limit": "max_rows_per_call", "max": 100, "observed": 500}]
+    for issue in (lambda: w.p.execution.bundle(w.devi, ew["id"], "dev"),
+                  lambda: w.p.execution.token(w.devi, ew["id"], "dev")):
+        with pytest.raises(QuotaExceeded, match="desk@example.com"):
+            issue()
+    with w.p.uow() as uow:
+        assert uow.repo("audit_events").list(action="warrant.limit_exceeded")
+        assert uow.repo("events").list(type="warrant.limit_exceeded")
