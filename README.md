@@ -89,7 +89,7 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 463 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
+| **Tests** | 467 passing on SQLite and on PostgreSQL 18, Linux. `python -m pytest -q` |
 | **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 172 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it
@@ -114,8 +114,11 @@ execution warrant → reproducibility bundle.
   seccomp-bpf filter and a cgroup v2 scope are applied unprivileged, and the tier is
   claimed only when a probe child fails to escape. macOS runs at `moderate`
   (`sandbox-exec`); Windows at `minimal` (Job Objects are not built).
-- **No Tectonic here**, so spec PDFs are watermarked drafts. `typeset.require_true_build`
-  forbids approval on a draft render outside dev.
+- **True PDF builds need Tectonic on each server.** Install the static binary (verified
+  here with Tectonic 0.17.0 on Linux) and specification PDFs are real LaTeX builds; without
+  it they are watermarked drafts, and `typeset.require_true_build` forbids approval on a
+  draft outside dev. Tectonic downloads its TeX bundle on first use: an air-gapped server
+  must be given a cached bundle.
 - **Not built:** the assistant (§29.8); server-side table paging; SDK record/replay and
   `offline()`; performance benchmarks (SC-3/4/5).
 - **Spreadsheet import is v1 scope.** Arithmetic, standard functions, named cells and ranges,
