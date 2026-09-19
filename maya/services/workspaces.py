@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 from maya.core.errors import ConflictError, NotApproved, PermissionDenied, ValidationFailed
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
 

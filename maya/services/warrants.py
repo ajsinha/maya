@@ -28,7 +28,7 @@ from maya.core.errors import (ContractMismatch, NotApproved, PermissionDenied,
                               ValidationFailed, WarrantExpired)
 from maya.formula import ir as irmod
 from maya.formula.evaluate import evaluate, evaluate_composite
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.resolution.resolver import KT
 from maya.security.authz import Principal
 from maya.services import catalog, refs

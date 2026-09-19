@@ -129,6 +129,9 @@ def test_estate_round_trip_and_audit_tamper_detection():
     assert result["audit_chain"]["ok"] and result["audit_chain"]["head"] == before["head"]
     assert platform.features.get(w.admin, "eq/estate_px")["versions"][0]["state"] == "approved"
     platform.db.verify_schema()
+    # every auto-numbered key moved past the loaded rows: new audit, event and index rows insert
+    approved_feature(w, "after_import", price_csv(3))
+    assert platform.ops.search(w.admin, "after_import")[0]["name"] == "after_import"
     # tamper: bypass the append-only trigger and rewrite one entry
     with platform.db.engine.begin() as conn:
         pg = conn.dialect.name == "postgresql"

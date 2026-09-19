@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import importlib.util
 import logging
-import sqlite3
 import sys
 import threading
 from dataclasses import asdict, dataclass, field
@@ -58,16 +57,6 @@ def has_module(name: str) -> bool:
         return False
 
 
-def _fts5_available() -> bool:
-    try:
-        con = sqlite3.connect(":memory:")
-        con.execute("CREATE VIRTUAL TABLE t USING fts5(x)")
-        con.close()
-        return True
-    except sqlite3.OperationalError:
-        return False
-
-
 @dataclass
 class _SeamSpec:
     name: str
@@ -91,8 +80,8 @@ def _specs() -> list[_SeamSpec]:
                   "Wider scans; partition pruning still applies"),
         _SeamSpec("pg_driver", "A", "psycopg", "pg8000",
                   lambda: has_module("psycopg"), "Slower PostgreSQL I/O"),
-        _SeamSpec("search", "A", "fts", "maya", lambda: True,
-                  "Slower catalog search"),
+        _SeamSpec("search", "A", "inverted-index", "inverted-index", lambda: True,
+                  "none: MAYA's own index is the one search backend on both databases"),
         _SeamSpec("compress", "A", "zstandard", "zlib",
                   lambda: has_module("zstandard"), "Larger payloads"),
         _SeamSpec("tzdb", "A", "system", "tzdata", _system_tz_available,
@@ -153,7 +142,6 @@ class Backends:
         pins = {k: v for k, v in (pins or {}).items() if v and v != "auto"}
         with cls._lock:
             choices = {s.name: cls._resolve_one(s, pins.get(s.name)) for s in _specs()}
-            choices["search"].extra["sqlite_fts5"] = _fts5_available()
             cls._choices = choices
         for c in choices.values():
             if c.selected != c.preferred:

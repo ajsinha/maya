@@ -63,6 +63,8 @@ def imports_of(path: Path) -> list[tuple[str, int]]:
             out += [(a.name, node.lineno) for a in node.names]
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             out.append((node.module, node.lineno))
+            # "from pkg import mod" names pkg.mod too, so a boundary can see which module
+            out += [(f"{node.module}.{a.name}", node.lineno) for a in node.names]
     return out
 
 

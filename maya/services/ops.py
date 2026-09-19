@@ -7,14 +7,8 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
-import datetime as dt
-import decimal
-import hashlib
-import io
-import json
 import platform as pyplatform
 import sys
-import zipfile
 from typing import Any
 
 from maya.core.backends import Backends
@@ -22,14 +16,9 @@ from maya.core.compress import procstat
 from maya.core.errors import PermissionDenied, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
 from maya.core.version import BUILD_DATE, VERSION
-from maya.persistence import schema
-from maya.persistence.models import Base, MODELS
-from maya.persistence.types import utcnow
+from maya.persistence import estate
 from maya.security.authz import Principal
 from maya.security.sandbox import sandbox_tier
-
-ESTATE_FORMAT = "maya-estate-v1"
-
 
 class OpsService:
     def __init__(self, platform: Any) -> None:
@@ -53,7 +42,7 @@ class OpsService:
             "version": VERSION, "build_date": BUILD_DATE, "environment": s.environment,
             "python": sys.version.split()[0], "platform": pyplatform.platform(),
             "database": {"dialect": self.p.db.dialect, "ok": db_ok, "detail": db_detail,
-                         "schema_hash": schema.stored_hash(self.p.db.engine),
+                         "schema_hash": self.p.db.schema_hash(),
                          "schema_file": f"maya/persistence/schema/{self.p.db.dialect}.sql"},
             "lake": {"backend": self.p.lake.backend_name, "detail": self.p.lake.delta.info.reason,
                      "root": str(self.p.lake.root)},
@@ -239,48 +228,11 @@ class OpsService:
     # -- estate (§14.3) -------------------------------------------------------------------
     def export_estate(self) -> bytes:
         """Dialect-neutral dump of every table, hashed per table, in dependency order."""
-        tables = [t.name for t in Base.metadata.sorted_tables]
-        out = io.BytesIO()
-        manifest: dict[str, Any] = {"format": ESTATE_FORMAT, "maya_version": VERSION,
-                                    "exported_at": utcnow().isoformat(),
-                                    "source_dialect": self.p.db.dialect, "tables": {}}
-        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z, self.p.uow() as uow:
-            for name in tables:
-                rows = uow.repo(name).list() if name not in ("audit_events",) else \
-                    uow.repo(name).list(order_by=["seq"])
-                body = "\n".join(json.dumps(r, default=_enc, sort_keys=True) for r in rows)
-                z.writestr(f"tables/{name}.jsonl", body)
-                manifest["tables"][name] = {"rows": len(rows),
-                                            "sha256": hashlib.sha256(body.encode()).hexdigest()}
-            z.writestr("manifest.json", json.dumps(manifest, indent=2, sort_keys=True))
-        return out.getvalue()
+        return estate.export(self.p.db, self.p.uow, VERSION)
 
     def import_estate(self, data: bytes) -> dict[str, Any]:
         """Load an estate into an empty, freshly created schema, verifying every hash."""
-        with zipfile.ZipFile(io.BytesIO(data)) as z:
-            manifest = json.loads(z.read("manifest.json"))
-            if manifest.get("format") != ESTATE_FORMAT:
-                raise ValidationFailed("Not a MAYA estate bundle")
-            counts = {}
-            with self.p.db.engine.begin() as conn:
-                for t in Base.metadata.sorted_tables:
-                    if t.name not in manifest["tables"]:
-                        continue
-                    body = z.read(f"tables/{t.name}.jsonl").decode()
-                    if hashlib.sha256(body.encode()).hexdigest() != \
-                            manifest["tables"][t.name]["sha256"]:
-                        raise ValidationFailed(f"Table {t.name} failed its hash check")
-                    if t.name == "schema_meta":
-                        continue
-                    rows = [_decode(t, json.loads(line)) for line in body.splitlines() if line]
-                    if rows:
-                        conn.execute(t.insert(), rows)
-                    counts[t.name] = len(rows)
-                if self.p.db.dialect == "postgresql":
-                    # explicit seq values leave the BIGSERIAL sequence behind; advance it
-                    conn.exec_driver_sql(
-                        "SELECT setval(pg_get_serial_sequence('audit_events', 'seq'), "
-                        "COALESCE((SELECT MAX(seq) FROM audit_events), 1))")
+        counts = estate.load(self.p.db, data)
         with self.p.uow() as uow:
             chain = uow.repo("audit_events").verify_chain()
         if not chain["ok"]:
@@ -305,25 +257,4 @@ def _kind(ref: str) -> str:
     return "other"
 
 
-def _enc(v: Any) -> Any:
-    if isinstance(v, (dt.datetime, dt.date)):
-        return {"$dt": v.isoformat()}
-    if isinstance(v, decimal.Decimal):
-        return {"$dec": str(v)}
-    raise TypeError(type(v).__name__)
-
-
-def _decode(table: Any, row: dict[str, Any]) -> dict[str, Any]:
-    out = {}
-    for k, v in row.items():
-        if isinstance(v, dict) and set(v) == {"$dt"}:
-            text = v["$dt"]
-            out[k] = dt.datetime.fromisoformat(text) if "T" in text else dt.date.fromisoformat(text)
-        elif isinstance(v, dict) and set(v) == {"$dec"}:
-            out[k] = decimal.Decimal(v["$dec"])
-        else:
-            out[k] = v
-    return out
-
-
-__all__ = ["OpsService", "MODELS"]
+__all__ = ["OpsService"]

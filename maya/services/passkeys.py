@@ -23,7 +23,7 @@ from typing import Any
 
 from maya.core.errors import (ConflictError, NotAuthenticated, NotFound, PermissionDenied,
                               ValidationFailed)
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security import passkeys
 from maya.security.authz import Principal
 

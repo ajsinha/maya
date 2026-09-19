@@ -35,7 +35,7 @@ from maya.core.errors import ValidationFailed
 from maya.core.version import VERSION
 from maya.formula import ir as irmod
 from maya.formula.codegen import to_python
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 
 VERIFY_PY = r'''"""Offline verifier for a MAYA reproducibility bundle. Needs pyarrow + numpy only."""

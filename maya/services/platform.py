@@ -87,10 +87,8 @@ class Platform:
 
     def ensure_search_index(self) -> None:
         """Rebuild the derived search index when it is empty but the catalog is not."""
-        from maya.persistence import search_index
         with self.uow("system") as uow:
-            if search_index.needs_rebuild(uow.session):
-                search_index.rebuild(uow.session)
+            uow.repo("search").ensure_current()
 
     def signer_or_none(self) -> Any:
         try:

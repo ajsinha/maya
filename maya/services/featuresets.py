@@ -19,7 +19,7 @@ import pandas as pd
 
 from maya.core import djson
 from maya.core.errors import ConflictError, NotApproved, ValidationFailed
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.resolution import shapes
 from maya.resolution.featureset import resolve_featureset
 from maya.resolution.resolver import KT

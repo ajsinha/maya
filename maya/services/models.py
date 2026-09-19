@@ -29,7 +29,7 @@ from maya.formula.latex import to_latex
 from maya.formula.parse import parse_model
 from maya.formula.pylift import lift_python
 from maya.formula.specdoc import default_document, expand_macros, section_completeness
-from maya.persistence.types import utcnow
+from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
 from maya.workflow.engine import Subject

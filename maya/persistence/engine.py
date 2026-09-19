@@ -51,6 +51,10 @@ class Database:
     def is_initialized(self) -> bool:
         return schema.stored_hash(self.engine) is not None
 
+    def schema_hash(self) -> str | None:
+        """The schema hash stamped when this database was created from its schema file."""
+        return schema.stored_hash(self.engine)
+
     def init_schema(self, *, force: bool = False) -> str:
         return schema.create_all(self.engine, force=force)
 

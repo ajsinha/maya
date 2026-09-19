@@ -274,7 +274,7 @@ class WorkflowEngine:
 
     @staticmethod
     def _state_changes(p: Principal, name: str, target: str, forced: bool) -> dict[str, Any]:
-        from maya.persistence.types import utcnow
+        from maya.core.clock import utcnow
         changes: dict[str, Any] = {"state": target}
         if name == "submit":
             changes.update(submitted_by=p.username, submitted_at=utcnow())
