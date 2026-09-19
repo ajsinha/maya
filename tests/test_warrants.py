@@ -184,7 +184,18 @@ def test_the_checksum_cycle_seal_score_execute_and_bundle(journey, tmp_path):
     with pytest.raises(WarrantSuspended, match="risk@example.com"):
         w.p.execution.bundle(w.devi, ew["id"], "dev")
     w.p.execution.reinstate(w.admin, ew["id"], "false positive: vendor file late")
-    assert w.p.execution.bundle(w.devi, ew["id"], "dev")["status"] == "live"
+    live = w.p.execution.bundle(w.devi, ew["id"], "dev")
+    assert live["status"] == "live" and live["attestation"] == "attested" and live["token"]
+    assert w.p.execution.get(w.devi, ew["id"])["offline_use"]["label"] is None
+    # offline use is allowed, and visible: unattested on the copy and on the warrant
+    copy = w.p.execution.bundle(w.devi, ew["id"], "dev", offline=True)
+    assert copy["attestation"] == "unattested" and copy["token"] is None
+    shown = w.p.execution.get(w.devi, ew["id"])
+    assert shown["offline_use"]["label"] == "unattested"
+    assert shown["offline_use"]["copies_issued"] == 1
+    assert shown["custody"][-1]["event"] == "offline_issued"
+    with w.p.uow() as uow:
+        assert uow.repo("audit_events").find_one(action="warrant.offline_issued")
 
     exported = w.p.bundles.export(w.devi, tw["id"])
     raw = w.p.blobs.get(exported["blob"])

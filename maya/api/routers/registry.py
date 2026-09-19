@@ -263,9 +263,11 @@ def execution_token(ew_id: str, environment: str, me: Principal = Me, plat: Any 
 
 
 @router.get("/warrants/execution/{ew_id}/bundle", tags=["warrants"])
-def execution_bundle(ew_id: str, environment: str, me: Principal = Me,
-                     plat: Any = Plat) -> Response:
-    return ok(plat.execution.bundle(me, ew_id, environment))
+def execution_bundle(ew_id: str, environment: str, offline: bool = False,
+                     me: Principal = Me, plat: Any = Plat) -> Response:
+    """What the SDK needs to run the warrant. ``offline=true``: a copy to run without
+    MAYA, labelled unattested on the bundle and on the warrant."""
+    return ok(plat.execution.bundle(me, ew_id, environment, offline=offline))
 
 
 @router.post("/warrants/execution/{ew_id}/report", tags=["warrants"])

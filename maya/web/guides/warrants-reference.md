@@ -233,7 +233,8 @@ The computed `status` is, in order: `revoked`, `suspended`, `expired` (past `val
 | Call | Returns |
 |---|---|
 | `execution.token(id, environment)` | A signed token valid for 15 minutes, its claims and the public key. |
-| `execution.bundle(id, environment)` | Everything needed to run: the manifest, the formula IR (and member IRs for a composite), the parameter values, a token and the status. |
+| `execution.bundle(id, environment)` | Everything needed to run: the manifest, the formula IR (and member IRs for a composite), the parameter values, a token, the status and `attestation: "attested"`. |
+| `execution.bundle(id, environment, offline=True)` | The same without a token, labelled `attestation: "unattested"`: a copy to run without MAYA. Nothing run from it is reported, so no covenant or limit applies to those runs. The issue is recorded on the custody trail (`offline_issued`) and audited (`warrant.offline_issued`), and the warrant's `offline_use` shows `label: "unattested"` and how many copies were issued. |
 | `execution.report(id, environment, rows, input_stats, output_stats)` | Whether it was accepted, any breaches, any limits exceeded, and the resulting status. |
 
 Every one of these first checks the warrant, failing closed and naming the contact:
@@ -319,7 +320,7 @@ The manifest's signature is Ed25519 over the canonical JSON of the file-hash lis
 | Case | `not_reexecutable_reason` |
 |---|---|
 | A declared black box | MAYA holds no executable specification; the bundle verifies inputs only and says so. |
-| A composite model | Composite re-execution in `verify.py` is not shipped in this build. |
+| A composite with a member that is not closed-form | A black-box or nested-composite member cannot be re-executed; the bundle verifies inputs only. A composite of closed-form members *is* re-executed: the bundle ships generated code for every member and the combine step (`model/reference_model.py`) and the member IRs (`model/member_irs.json`). |
 | A trainable model with no parameter set | No parameter set has been uploaded against the warrant. |
 
 ### Verifying a bundle

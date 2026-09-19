@@ -161,8 +161,30 @@ class AsyncClient(_Namespaces):
         self._http = http
         self._bind(AsyncTransport(http, credential, channel))
 
+    # -- record / replay (§18.2.7) -----------------------------------------------------
+    @classmethod
+    def record(cls, cassette: str | Path, base_url: str = "http://127.0.0.1:8600",
+               **kw: Any) -> "AsyncClient":
+        """A live asynchronous client that also writes every call to ``cassette``."""
+        from maya.sdk.replay import AsyncRecordingTransport
+        client = cls(base_url, **kw)
+        client._bind(AsyncRecordingTransport(client._transport, cassette))
+        client.mode = f"record ({client.mode})"
+        return client
+
+    @classmethod
+    def replay(cls, cassette: str | Path) -> "AsyncClient":
+        """An asynchronous client served entirely from a cassette (either client's)."""
+        from maya.sdk.replay import AsyncReplayTransport
+        client = cls.__new__(cls)
+        client._http = None
+        client.mode = "replay"
+        client._bind(AsyncReplayTransport(cassette))
+        return client
+
     async def aclose(self) -> None:
-        await self._http.aclose()
+        if self._http is not None:
+            await self._http.aclose()
 
     async def __aenter__(self) -> "AsyncClient":
         return self

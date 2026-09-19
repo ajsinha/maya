@@ -4,7 +4,9 @@ Record and replay (§18.2.3, §18.2.7): SDK fixtures for tests, with no server.
 ``Client.record(path, …)`` sends every call for real and writes each request
 and its response to a JSON *cassette*; ``Client.replay(path)`` serves the
 cassette back with no network at all. A test that recorded once replays in
-milliseconds, on a machine that has never seen MAYA.
+milliseconds, on a machine that has never seen MAYA. ``AsyncClient.record`` and
+``AsyncClient.replay`` do the same for the asynchronous client, and a cassette
+recorded by either replays in either.
 
 * A request is matched by method, path, query parameters and a hash of its
   body and uploaded files. Identical requests replay their recorded responses
@@ -97,24 +99,40 @@ class RecordingTransport:
         self._save()
 
     def call(self, call: Call) -> Any:
-        entry: dict[str, Any] = {"key": request_key(call)}
         try:
             result = self.inner.call(call)
         except MayaError as exc:
-            entry["error"] = {"code": exc.code, "status": getattr(exc, "status", 0),
-                              "message": exc.message, "context": _redact(exc.context)}
-            self.entries.append(entry)
-            self._save()
+            self._failed(call, exc)
             raise
-        entry.update(_encode(result))
-        self.entries.append(entry)
+        return self._answered(call, result)
+
+    def _answered(self, call: Call, result: Any) -> Any:
+        self.entries.append({"key": request_key(call), **_encode(result)})
         self._save()
         return result
+
+    def _failed(self, call: Call, exc: MayaError) -> None:
+        self.entries.append({"key": request_key(call), "error": {
+            "code": exc.code, "status": getattr(exc, "status", 0), "message": exc.message,
+            "context": _redact(exc.context)}})
+        self._save()
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps({"format": FORMAT, "entries": self.entries},
                                         indent=1, default=str), encoding="utf-8")
+
+
+class AsyncRecordingTransport(RecordingTransport):
+    """The same recording around an asynchronous transport."""
+
+    async def call(self, call: Call) -> Any:  # type: ignore[override]
+        try:
+            result = await self.inner.call(call)
+        except MayaError as exc:
+            self._failed(call, exc)
+            raise
+        return self._answered(call, result)
 
 
 class ReplayTransport:
@@ -130,15 +148,24 @@ class ReplayTransport:
         self.last: dict[str, dict[str, Any]] = {}
 
     def call(self, call: Call) -> Any:
+        return _decode(self._next(call))
+
+    def _next(self, call: Call) -> dict[str, Any]:
         key = request_key(call)
         queue = self.queues.get(key)
         if queue:
             entry = queue.pop(0)
             self.last[key] = entry
-        elif call.method == "GET" and key in self.last:
-            entry = self.last[key]          # a read polled more often than it was recorded
-        else:
-            raise ReplayMiss(f"No recorded response for {call.method} {call.path}"
-                             + (" (every recording of it was used)" if key in self.last
-                                else ""), request=key)
-        return _decode(entry)
+            return entry
+        if call.method == "GET" and key in self.last:
+            return self.last[key]          # a read polled more often than it was recorded
+        raise ReplayMiss(f"No recorded response for {call.method} {call.path}"
+                         + (" (every recording of it was used)" if key in self.last
+                            else ""), request=key)
+
+
+class AsyncReplayTransport(ReplayTransport):
+    """The same cassette served to the asynchronous client."""
+
+    async def call(self, call: Call) -> Any:  # type: ignore[override]
+        return _decode(self._next(call))

@@ -34,7 +34,7 @@ from maya.core import canonical, chunker, djson
 from maya.core.errors import ValidationFailed
 from maya.core.version import VERSION
 from maya.formula import ir as irmod
-from maya.formula.codegen import to_python
+from maya.formula.codegen import to_python, to_python_composite
 from maya.core.clock import utcnow
 from maya.security.authz import Principal
 
@@ -145,13 +145,27 @@ class BundleService:
         table = pq.read_table(io.BytesIO(buf.getvalue()))
         files: dict[str, bytes] = {"data/training.parquet": buf.getvalue()}
         ir = mv["formula_ir"] or {}
-        reexec, why = self._reexecutable(ir, params)
+        members: dict[str, Any] = {}
+        if "composite" in ir:
+            with self.p.uow() as uow:
+                members = self.p.models._member_irs(uow, ir)
+            files["model/member_irs.json"] = djson.dumps(members, indent=2).encode()
+        reexec, why = self._reexecutable(ir, params, members)
         values = params["values"] if params else {}
+        bindings = w["spec"].get("bindings", {})
         out_hash = None
+        inputs: list[str] = []
         if reexec:
-            pred = self.p.warrants.predict(mv, df, w["spec"].get("bindings", {}), values)
+            pred = self.p.warrants.predict(mv, df, bindings, values)
             out_hash = output_hash(pred)
-            files["model/reference_model.py"] = to_python(ir).encode()
+            if members:
+                files["model/reference_model.py"] = to_python_composite(ir, members).encode()
+                inputs = sorted({c["name"] for m in members.values()
+                                 for c in irmod.input_contract(m)
+                                 if bindings.get(c["name"], c["name"]) in df.columns})
+            else:
+                files["model/reference_model.py"] = to_python(ir).encode()
+                inputs = [c["name"] for c in irmod.input_contract(ir)]
         files.update(self._documents(w, mv, params, values))
         files["lib/canonical.py"] = Path(canonical.__file__).read_bytes()
         files["lib/chunker.py"] = Path(chunker.__file__).read_bytes()
@@ -162,7 +176,7 @@ class BundleService:
             "files": {k: hashlib.sha256(v).hexdigest() for k, v in sorted(files.items())},
             "data_content_hash": self._content(table), "reexecutable": reexec,
             "not_reexecutable_reason": why, "output_hash": out_hash,
-            "model_inputs": [c["name"] for c in irmod.input_contract(ir)] if reexec else [],
+            "model_inputs": inputs,
             "bindings": w["spec"].get("bindings", {}),
             "sealed_featureset_pin": w["featureset_ref"],
         }
@@ -190,12 +204,21 @@ class BundleService:
         return canonical.table_content_hash(table)
 
     @staticmethod
-    def _reexecutable(ir: dict[str, Any], params: dict[str, Any] | None) -> tuple[bool, str | None]:
+    def _reexecutable(ir: dict[str, Any], params: dict[str, Any] | None,
+                      members: dict[str, Any] | None = None) -> tuple[bool, str | None]:
         if not ir or irmod.is_opaque(ir):
             return False, ("declared black box: MAYA holds no executable specification, so "
                            "this bundle verifies inputs only and says so")
         if "composite" in ir:
-            return False, "composite re-execution in verify.py is not shipped in this build"
+            opaque = sorted(a for a, m in (members or {}).items() if "body" not in m)
+            if opaque:
+                return False, ("composite with members that are not closed-form ("
+                               + ", ".join(opaque) + "): nested composites and black boxes "
+                               "cannot be re-executed, so this bundle verifies inputs only")
+            needs_params = bool(irmod.parameter_inputs(ir)) or any(
+                irmod.parameter_inputs(m) for m in (members or {}).values())
+            return (False, "no parameter set has been uploaded against this warrant") \
+                if needs_params and not params else (True, None)
         if irmod.parameter_inputs(ir) and not params:
             return False, "no parameter set has been uploaded against this warrant"
         return True, None
