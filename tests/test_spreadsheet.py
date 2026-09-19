@@ -169,7 +169,7 @@ def test_bad_outputs_are_refused(output, message):
 X = {"A1": 2.0, "A2": 3.0, "A3": -1.5, "A4": 0.25}
 
 
-@pytest.mark.parametrize("formula, expected", [
+SEMANTICS = [
     ("=A1+A2*A3", 2 + 3 * -1.5),
     ("=(A1+A2)/A4", 20.0),
     ("=-A1^2", 4.0),                       # Excel: negation binds tighter than ^
@@ -208,12 +208,22 @@ X = {"A1": 2.0, "A2": 3.0, "A3": -1.5, "A4": 0.25}
     ("=NORM.DIST(A2, A1, A4, TRUE)", float(ncdf(4.0))),
     ("=NORM.DIST(A2, A1, A4, FALSE)", float(npdf(4.0)) / 0.25),
     ("=TRUE + TRUE()", 2.0),
-])
+]
+
+
+@pytest.mark.parametrize("formula, expected", SEMANTICS)
 def test_excel_semantics_are_reproduced(formula, expected):
     ir = one(formula, X)
     assert value_of(ir) == pytest.approx(expected, rel=1e-12, abs=1e-15)
     wb = cached(book({**X, "Z1": formula}), {"Z1": expected})
     assert lift_workbook(wb, output="Z1")["lifted_from"]["workbook"]["check"]["status"] == "agreed"
+
+
+def test_true_and_false_written_as_functions_are_literals():
+    """LibreOffice saves the literal TRUE as TRUE(); both mean the same to Excel."""
+    assert value_of(one("=NORM.S.DIST(A4, TRUE())", X)) == pytest.approx(float(ncdf(0.25)))
+    table = {"A1": 1, "B1": 100, "A2": 2, "B2": 200}
+    assert value_of(one("=VLOOKUP(2, A1:B2, 2, FALSE())", table)) == 200.0
 
 
 def test_empty_cells_read_as_zero_and_are_skipped_in_aggregates():

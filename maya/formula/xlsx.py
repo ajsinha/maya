@@ -396,6 +396,8 @@ class _Lift:
     def literal_bool(ast: Any, fn: str, here: str) -> bool:
         if ast[0] == "name" and ast[1].upper() in ("TRUE", "FALSE"):
             return ast[1].upper() == "TRUE"
+        if ast[0] == "call" and ast[1] in ("TRUE", "FALSE") and not ast[2]:
+            return ast[1] == "TRUE"      # TRUE() / FALSE(): how LibreOffice writes the literals
         if ast[0] == "num" and ast[1] in (0.0, 1.0):
             return bool(ast[1])
         raise _refuse(here, f"a {fn} whose TRUE/FALSE argument is not written literally")

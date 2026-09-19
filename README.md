@@ -137,8 +137,9 @@ execution warrant → reproducibility bundle.
   table script was exercised in headless Chrome against a harness, not in a user's browser.
 - **Spreadsheet import is v1 scope.** Arithmetic, standard functions, named cells and ranges,
   and VLOOKUP/HLOOKUP over constant tables lift into the formula IR; everything else is refused
-  by cell. The check against a workbook's cached results was exercised on files written by
-  openpyxl with injected results, not yet on workbooks saved by Excel itself.
+  by cell. Every supported construct, the lookups and a multi-sheet model have been checked
+  against LibreOffice Calc's own results (recalculated headless). They have not yet been
+  checked against workbooks saved by Microsoft Excel.
 - **Custody anchors are only as external as you make them.** The chain head is signed,
   appended to `custody.anchor.file` and emitted as a webhook event hourly; RFC 3161
   timestamping is off by default. Point the file at WORM or off-host storage: on the
