@@ -47,7 +47,29 @@ def render_pdf(latex: str, *, timeout: int = 120, force_draft: bool = False) -> 
                  "log": "structural draft renderer (Tectonic unavailable)"}
 
 
+FRAGMENT_PREAMBLE = ("\\documentclass[11pt]{article}\n\\usepackage{amsmath,amssymb}\n"
+                     "\\begin{document}\n")
+
+
+def as_document(latex: str) -> str:
+    """A specification saved as a fragment (sections only) is wrapped in the standard
+    preamble; the draft renderer always accepted fragments, and a true build must too."""
+    if "\\documentclass" in latex:
+        return latex
+    return FRAGMENT_PREAMBLE + latex.rstrip() + "\n\\end{document}\n"
+
+
+def _first_error(log: str) -> str:
+    """The line a reviewer needs: Tectonic's first 'error:' or TeX's first '!' line."""
+    for line in log.splitlines():
+        s = line.strip()
+        if s.startswith("error:") and "halted" not in s or s.startswith("!"):
+            return s.removeprefix("error:").strip()[:300]
+    return ""
+
+
 def _tectonic(latex: str, timeout: int) -> tuple[bytes, dict[str, Any]]:
+    latex = as_document(latex)
     exe = shutil.which("tectonic") or "tectonic"
     with tempfile.TemporaryDirectory(prefix="maya-tex-") as tmp:
         src = Path(tmp) / "doc.tex"
@@ -60,7 +82,9 @@ def _tectonic(latex: str, timeout: int) -> tuple[bytes, dict[str, Any]]:
         pdf_path = Path(tmp) / "doc.pdf"
         if proc.returncode != 0 or not pdf_path.exists():
             from maya.core.errors import ValidationFailed
-            raise ValidationFailed("LaTeX build failed", log=log[-4000:])
+            first = _first_error(log)
+            raise ValidationFailed("LaTeX build failed" + (f": {first}" if first else ""),
+                                   log=log[-4000:])
         return pdf_path.read_bytes(), {"draft_render": False, "backend": "tectonic", "log": log[-4000:]}
 
 
