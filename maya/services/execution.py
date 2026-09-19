@@ -66,7 +66,7 @@ class ExecutionService:
             "execution_warrants", {"-created": "-created_at", "created": "created_at",
                                    "name": "name", "-name": "-name"},
             "-created", {}, (["name"], q or ""),
-            keep=lambda uow, ew: self.p.access.allowed(uow, p, "read", "execution_warrant", ew),
+            keep=self.p.access.reader(uow, p, "execution_warrant"),
             enrich=lambda uow, ew: {**ew, "namespace": names.get(ew["namespace_id"]),
                                     "status": self.status(ew)})
 

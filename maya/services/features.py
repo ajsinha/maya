@@ -34,7 +34,8 @@ class FeatureService:
 
     # -- read ---------------------------------------------------------------------
     def listing(self, uow: Any, p: Principal, *, namespace: str | None = None,
-                q: str | None = None, status: str | None = None) -> Any:
+                q: str | None = None, status: str | None = None,
+                state: str | None = None) -> Any:
         """What 'the features p may read' means, for the whole list or one page of it."""
         from maya.services.paging import Listing
         filters: dict[str, Any] = {}
@@ -45,34 +46,42 @@ class FeatureService:
         names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
         users = {u["id"]: u["username"] for u in uow.repo("users").list()}
 
-        def enrich(uow: Any, f: dict[str, Any]) -> dict[str, Any]:
-            latest = catalog.latest_version(uow, "feature_versions", "feature_id", f["id"])
-            return {**f, "namespace": names.get(f["namespace_id"]),
-                    "owner": users.get(f["owner_id"]),
-                    "latest_version": latest["version_no"] if latest else None,
-                    "latest_state": latest["state"] if latest else None,
-                    "pins": uow.repo("feature_pins").count(feature_id=f["id"], state="sealed"),
-                    "ref": refs.object_ref("feature", names.get(f["namespace_id"], ""),
-                                           f["name"])}
+        def enrich_many(uow: Any, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            ids = [f["id"] for f in rows]
+            latest = uow.repo("feature_versions").latest_per("feature_id", ids)
+            pins = uow.repo("feature_pins").count_per("feature_id", ids, state="sealed")
+            out = []
+            for f in rows:
+                v = latest.get(f["id"])
+                out.append({**f, "namespace": names.get(f["namespace_id"]),
+                            "owner": users.get(f["owner_id"]),
+                            "latest_version": v["version_no"] if v else None,
+                            "latest_state": v["state"] if v else None,
+                            "pins": pins.get(f["id"], 0),
+                            "ref": refs.object_ref("feature", names.get(f["namespace_id"], ""),
+                                                   f["name"])})
+            return out
         return Listing("features", {"name": "name", "-name": "-name",
                                     "updated": "updated_at", "-updated": "-updated_at",
                                     "created": "created_at", "-created": "-created_at"},
                        "name", filters, (["name", "description"], q or ""),
-                       keep=lambda uow, f: self.p.access.allowed(uow, p, "read", "feature", f),
-                       enrich=enrich)
+                       keep=catalog.in_state(uow, "feature_versions", "feature_id", state,
+                                             self.p.access.reader(uow, p, "feature")),
+                       enrich_many=enrich_many, scope={"state": state} if state else {})
 
     def list(self, p: Principal, *, namespace: str | None = None, q: str | None = None,
-             status: str | None = None) -> list[dict[str, Any]]:
+             status: str | None = None, state: str | None = None) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
-            return self.listing(uow, p, namespace=namespace, q=q, status=status).collect(uow)
+            return self.listing(uow, p, namespace=namespace, q=q, status=status,
+                                state=state).collect(uow)
 
     def page(self, p: Principal, *, namespace: str | None = None, q: str | None = None,
-             status: str | None = None, page_size: int | None = None,
-             cursor: str | None = None, sort: str | None = None,
+             status: str | None = None, state: str | None = None,
+             page_size: int | None = None, cursor: str | None = None, sort: str | None = None,
              total: bool = False) -> dict[str, Any]:
         from maya.services.paging import run_page
         return run_page(self.p, lambda uow: self.listing(uow, p, namespace=namespace, q=q,
-                                                         status=status),
+                                                         status=status, state=state),
                         page_size=page_size, cursor=cursor, sort=sort, total=total)
 
     def get(self, p: Principal, ref: str) -> dict[str, Any]:
@@ -470,7 +479,14 @@ class FeatureService:
 
     def run_pin_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
         ctx.progress(10, "resolving")
-        pin = self.data.materialize(params["pin_id"], ctx.actor)
+        try:
+            pin = self.data.materialize(params["pin_id"], ctx.actor)
+        except Exception as exc:
+            # A failure materialize did not itself record (a resolver or lake error) must
+            # still leave the pin 'failed', never 'materializing': a stuck pin blocks that
+            # name and date for good. A retry of the job may yet seal it.
+            self.data.fail_if_unfinished(params["pin_id"], ctx.actor, exc)
+            raise
         return {"pin_id": pin["id"], "content_hash": pin["content_hash"],
                 "rows": pin["row_count"], "bytes_new": pin["bytes_new"]}
 

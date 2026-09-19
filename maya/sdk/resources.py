@@ -374,21 +374,24 @@ class Access(_Resource):
 class Features(_Resource):
     @endpoint("GET", "/features")
     def list(self, namespace: str | None = None, q: str | None = None,
-             status: str | None = None) -> Any:
+             status: str | None = None, state: str | None = None) -> Any:
+        """Features you may read; ``state`` keeps those whose latest version is in it,
+        e.g. ``"draft,changes_requested"``."""
         return self._c("GET", "/features", params={"namespace": namespace, "q": q,
-                                                   "status": status})
+                                                   "status": status, "state": state})
 
     def page(self, namespace: str | None = None, q: str | None = None,
              status: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+             sort: str | None = None, total: bool = False, state: str | None = None) -> Any:
         """One page of features; sort is name, -name, updated, -updated, created, -created."""
-        return self._page("/features", {"namespace": namespace, "q": q, "status": status},
-                          page_size, cursor, sort, total)
+        return self._page("/features", {"namespace": namespace, "q": q, "status": status,
+                                        "state": state}, page_size, cursor, sort, total)
 
     def iter(self, namespace: str | None = None, q: str | None = None,
-             status: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
-        return self._iter("/features", {"namespace": namespace, "q": q, "status": status},
-                          page_size, sort)
+             status: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None,
+             state: str | None = None) -> Any:
+        return self._iter("/features", {"namespace": namespace, "q": q, "status": status,
+                                        "state": state}, page_size, sort)
 
     @endpoint("POST", "/features")
     def create(self, namespace: str, name: str, definition: dict[str, Any], **kw: Any) -> Any:
@@ -483,16 +486,20 @@ class Features(_Resource):
 
 class FeatureSets(_Resource):
     @endpoint("GET", "/featuresets")
-    def list(self, namespace: str | None = None, q: str | None = None) -> Any:
-        return self._c("GET", "/featuresets", params={"namespace": namespace, "q": q})
+    def list(self, namespace: str | None = None, q: str | None = None,
+             state: str | None = None) -> Any:
+        return self._c("GET", "/featuresets", params={"namespace": namespace, "q": q,
+                                                      "state": state})
 
     def page(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
-        return self._page("/featuresets", {"namespace": namespace, "q": q}, page_size, cursor,
-                          sort, total)
+             sort: str | None = None, total: bool = False, state: str | None = None) -> Any:
+        return self._page("/featuresets", {"namespace": namespace, "q": q, "state": state},
+                          page_size, cursor, sort, total)
 
-    def iter(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
-        return self._iter("/featuresets", {"namespace": namespace, "q": q}, page_size, sort)
+    def iter(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None,
+             state: str | None = None) -> Any:
+        return self._iter("/featuresets", {"namespace": namespace, "q": q, "state": state},
+                          page_size, sort)
 
     @endpoint("POST", "/featuresets")
     def create(self, namespace: str, name: str, definition: dict[str, Any], **kw: Any) -> Any:

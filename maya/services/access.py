@@ -91,6 +91,24 @@ class AccessService:
         except PermissionDenied:
             return False
 
+    def reader(self, uow: Any, p: Principal, kind: str) -> Any:
+        """``keep(uow, obj)``: may ``p`` read ``obj``? — ``allowed(..., "read", kind, obj)``
+        for a whole list, with the namespaces and grants loaded once rather than per row."""
+        namespaces = {n["id"]: n for n in uow.repo("namespaces").list()}
+        grants: dict[tuple[str, Any], list[dict[str, Any]]] = {}
+        for g in uow.repo("grants").list(object_type__in=[kind, "namespace"]):
+            grants.setdefault((g["object_type"], g["object_id"]), []).append(g)
+
+        def keep(_uow: Any, obj: dict[str, Any]) -> bool:
+            ns = namespaces.get(obj.get("namespace_id"))
+            found = list(grants.get((kind, obj["id"]), ()))
+            if ns:
+                found += grants.get(("namespace", ns["id"]), [])
+            view = {"type": KINDS[kind][1], "id": obj["id"], "owner_id": obj.get("owner_id"),
+                    "state": None, "namespace_name": ns["name"] if ns else None}
+            return bool(can(p, "read", view, found, ns))
+        return keep
+
     def require_capability(self, p: Principal, object_type: str, letter: str) -> None:
         if not p.has_capability(object_type, letter):
             raise PermissionDenied(f"Your roles carry no '{letter}' on {object_type}")

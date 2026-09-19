@@ -80,6 +80,30 @@ def test_impact_and_shadow_replay_measure_the_shift(branch):
     assert report["sample_rows"] == 5000 and "not proof" in report["basis"]
 
 
+def test_shadow_replay_reaches_execution_warrants(branch):
+    """An execution warrant is replayed through the training warrant it was issued from,
+    scored with its own sealed parameters — never reported as 'warrant not found'."""
+    w, tw = branch
+    with w.p.uow() as uow:
+        ps = uow.repo("parameter_sets").find_one(training_warrant_id=tw["id"])
+    ew = w.p.execution.create(w.mgr, namespace="wsn", name="live", training_warrant_id=tw["id"],
+                              parameter_set_id=ps["id"])
+    ws = w.p.workspaces.create(w.dana, "clip-x-exec")
+    w.p.workspaces.stage(w.dana, ws["id"], kind="feature", ref="wsn/xy", definition=CLIPPED)
+    uri = "maya://warrant/exec/wsn/live@v1"
+    assert uri in w.p.workspaces.impact(w.dana, ws["id"])["warrants"]
+    w.p.workspaces.request_replay(w.dana, ws["id"])
+    w.drain()
+    report = w.p.workspaces.get(w.dana, ws["id"])["replay"]
+    entry = next(r for r in report["warrants"] if r["warrant"] == uri)
+    assert entry["replayed"], entry
+    train = next(r for r in report["warrants"] if r["warrant"].endswith("train/wsn/tw@v1"))
+    assert entry["max_abs_shift"] == pytest.approx(train["max_abs_shift"])
+    with w.p.uow() as uow:
+        uow.repo("execution_warrants").update(ew["id"], {"training_warrant_id": None})
+        assert "no feature set to replay" in w.p.workspaces._target(uow, uri)[1]
+
+
 def test_workspace_pages_render(branch):
     """Runs before the merge test: once xy v2 is approved, the feature set (bound to
     xy@v1) is no longer downstream of a change staged against v2 — correctly."""

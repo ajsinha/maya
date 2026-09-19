@@ -96,6 +96,15 @@ def latest_version(uow: Any, table: str, fk: str, obj_id: str) -> dict[str, Any]
     return rows[0] if rows else None
 
 
+def in_state(uow: Any, table: str, fk: str, state: str | None, keep: Any) -> Any:
+    """``keep``, narrowed to objects whose latest version is in ``state`` — one state or a
+    comma-separated few ("draft,changes_requested"); ``keep`` itself when no state."""
+    if not state:
+        return keep
+    ids = uow.repo(table).latest_in(fk, "state", [s.strip() for s in state.split(",")])
+    return lambda uow, row: row["id"] in ids and keep(uow, row)
+
+
 # -- effective definitions -------------------------------------------------------
 def effective_feature_definition(uow: Any, definition: dict[str, Any], *,
                                  depth: int = 0) -> dict[str, Any]:

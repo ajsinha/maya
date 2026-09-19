@@ -23,18 +23,18 @@ router = APIRouter()
 async def dashboard(request: Request) -> Any:
     async with client(request) as sdk:
         queue = await sdk.workflow.queue()
-        features = await sdk.features.list()
-        models = await sdk.models.list()
+        features = await sdk.features.page(page_size=10, sort="-updated", total=True)
+        models = await sdk.models.page(page_size=10, total=True)
         jobs = await sdk.jobs.list()
         try:
             health = await sdk.admin.health()
         except MayaError:
             health = None
-    recent = sorted(features, key=lambda f: str(f.get("updated_at")), reverse=True)[:10]
     return await render(request, "dashboard.html", {
-        "queue": queue, "recent": recent, "models": models[:10], "jobs": jobs[:10],
-        "health_full": health, "counts": {"features": len(features), "models": len(models),
-                                          "queue": len(queue)}})
+        "queue": queue, "recent": features["items"], "models": models["items"],
+        "jobs": jobs[:10], "health_full": health,
+        "counts": {"features": features["total"], "models": models["total"],
+                   "queue": len(queue)}})
 
 
 @router.get("/search")

@@ -36,13 +36,17 @@ def _data_response(result: dict[str, Any], fmt: str, stem: str) -> Response:
 # -- features --------------------------------------------------------------------------
 @router.get("/features", tags=["features"])
 def list_features(namespace: str | None = None, q: str | None = None,
-                  status: str | None = None, page_size: int | None = None, cursor: str | None = None,
+                  status: str | None = None, state: str | None = None,
+                  page_size: int | None = None, cursor: str | None = None,
                   sort: str | None = None, total: bool = False, me: Principal = Me,
                   plat: Any = Plat) -> Response:
-    """The features you may read. Opt-in cursor paging: pass ``page_size`` or ``cursor``."""
+    """The features you may read. Opt-in cursor paging: pass ``page_size`` or ``cursor``.
+    ``state`` keeps those whose latest version is in it (``draft,changes_requested``)."""
     if page_size is not None or cursor is not None:
-        return ok(plat.features.page(me, namespace=namespace, q=q, status=status, page_size=page_size, cursor=cursor, sort=sort, total=total))
-    return ok(plat.features.list(me, namespace=namespace, q=q, status=status))
+        return ok(plat.features.page(me, namespace=namespace, q=q, status=status, state=state,
+                                     page_size=page_size, cursor=cursor, sort=sort,
+                                     total=total))
+    return ok(plat.features.list(me, namespace=namespace, q=q, status=status, state=state))
 
 
 @router.post("/features", tags=["features"], status_code=201)
@@ -192,11 +196,14 @@ def feature_data(ref: str, format: str = "parquet", csv_encoding: str | None = N
 # -- feature sets -------------------------------------------------------------------------
 @router.get("/featuresets", tags=["featuresets"])
 def list_featuresets(namespace: str | None = None, q: str | None = None,
-                     page_size: int | None = None, cursor: str | None = None,
-                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+                     state: str | None = None, page_size: int | None = None,
+                     cursor: str | None = None, sort: str | None = None, total: bool = False,
+                     me: Principal = Me, plat: Any = Plat) -> Response:
     if page_size is not None or cursor is not None:
-        return ok(plat.featuresets.page(me, namespace=namespace, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total))
-    return ok(plat.featuresets.list(me, namespace=namespace, q=q))
+        return ok(plat.featuresets.page(me, namespace=namespace, q=q, state=state,
+                                        page_size=page_size, cursor=cursor, sort=sort,
+                                        total=total))
+    return ok(plat.featuresets.list(me, namespace=namespace, q=q, state=state))
 
 
 @router.post("/featuresets", tags=["featuresets"], status_code=201)

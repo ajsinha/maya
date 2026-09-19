@@ -105,6 +105,28 @@ def test_the_page_is_cut_after_the_authorization_filter(paged):
     assert dana.features.page(page_size=3, total=True)["total"] == len(visible)
 
 
+def test_state_keeps_objects_whose_latest_version_is_in_it(paged):
+    """The workbench's filter: the latest version's state, one or several, paged or not;
+    a cursor issued for one state is refused for another."""
+    w, _, admin = paged
+    w.p.features.transition(w.dana, "pg/f00", 1, "submit")
+    try:
+        drafts = {f["name"] for f in admin.features.list(namespace="pg", state="draft")}
+        assert "f00" not in drafts and len(drafts) == 22
+        both = admin.features.page(namespace="pg", state="draft,in_review", page_size=5,
+                                   total=True)
+        assert both["total"] == 23 and len(both["items"]) == 5
+        assert [f["name"] for f in admin.features.list(namespace="pg", state="in_review")] \
+            == ["f00"]
+        first = admin.features.page(namespace="pg", state="draft", page_size=5)
+        with pytest.raises(InvalidCursor):
+            admin.features.page(namespace="pg", state="in_review", page_size=5,
+                                cursor=first["next_cursor"])
+        assert admin.featuresets.list(state="approved") == []
+    finally:
+        w.p.features.transition(w.dana, "pg/f00", 1, "withdraw")
+
+
 def test_inserts_between_pages_neither_repeat_nor_skip(paged):
     w, _, admin = paged
     first = admin.features.page(namespace="pg", page_size=10)

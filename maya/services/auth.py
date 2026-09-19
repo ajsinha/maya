@@ -37,6 +37,7 @@ class AuthService:
 
     def __init__(self, platform: Any) -> None:
         self.p = platform
+        self._default_pw: tuple[str | None, bool] = (None, False)
         s = platform.settings
         self.idle = dt.timedelta(minutes=s.int("auth.session.idle_timeout_minutes", 30))
         self.absolute = dt.timedelta(hours=s.int("auth.session.absolute_timeout_hours", 12))
@@ -254,10 +255,16 @@ class AuthService:
             uow.audit("auth.password_changed", object_ref=f"user:{p.username}")
 
     def default_admin_password_active(self) -> bool:
+        """Does 'admin' still have the shipped password? The answer is remembered per
+        stored hash, so the deliberately slow key derivation runs once per change."""
         with self.p.uow() as uow:
             admin = uow.repo("users").find_one(username="admin")
-        return bool(admin and admin["password_hash"]
-                    and kdf.verify_password(DEFAULT_ADMIN_PASSWORD, admin["password_hash"]))
+        stored = admin["password_hash"] if admin else None
+        if not stored:
+            return False
+        if self._default_pw[0] != stored:
+            self._default_pw = (stored, kdf.verify_password(DEFAULT_ADMIN_PASSWORD, stored))
+        return self._default_pw[1]
 
     # -- API keys ----------------------------------------------------------------
     def create_api_key(self, p: Principal, *, name: str, roles: list[str] | None = None,

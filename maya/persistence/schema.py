@@ -14,6 +14,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 from pathlib import Path
 
@@ -71,7 +72,9 @@ def ddl_body(dialect_name: str) -> str:
     return "".join(stmt + ";\n\n" for stmt in statements(dialect_name))
 
 
+@functools.lru_cache(maxsize=None)
 def schema_hash(dialect_name: str) -> str:
+    """The digest of the schema this code defines — fixed for the life of the process."""
     return hashlib.sha256(ddl_body(dialect_name).encode("utf-8")).hexdigest()
 
 
