@@ -33,6 +33,9 @@ class User(Tracked, Base):
     last_login_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     password_changed_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_secret: Mapped[str | None] = mapped_column(Text)            # sealed by SecretBox
+    mfa_last_step: Mapped[int | None] = mapped_column(BigInteger)   # replay guard
+    external_subject: Mapped[str | None] = mapped_column(String(256), index=True)
     is_service: Mapped[bool] = mapped_column(Boolean, default=False)
     desk: Mapped[str | None] = mapped_column(String(128))
 
@@ -75,6 +78,9 @@ class Session(Tracked, Base):
     user_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey(FK_USER), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     channel: Mapped[str] = mapped_column(String(16), default="web")
+    # ok · challenge (password accepted, TOTP outstanding) · enroll (MFA required, not set up)
+    mfa_state: Mapped[str] = mapped_column(String(16), default="ok")
+    auth_method: Mapped[str] = mapped_column(String(16), default="password")
     last_seen_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     expires_at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
     absolute_expires_at: Mapped[dt.datetime] = mapped_column(UTCDateTime)

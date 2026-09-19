@@ -88,6 +88,7 @@
         <span class="dropdown-item-text small-muted">Roles: {{ my_roles|join(', ') or 'none' }}</span>
         <a class="dropdown-item" href="/account/keys">My API keys</a>
         <a class="dropdown-item" href="/account/password">Change password</a>
+        <a class="dropdown-item" href="/account/mfa">Two-factor authentication</a>
         <form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf }}">
           <button class="dropdown-item" type="submit">Log out</button></form>
       </div>

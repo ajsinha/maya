@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Two-factor authentication{% endblock %}
+{% block content %}
+<h1>Two-factor authentication</h1>
+{% if forced %}
+<div class="alert alert-warning" role="alert"><i class="bi bi-shield-lock" aria-hidden="true"></i>
+  Your role requires a second factor. Set up an authenticator app to continue.</div>
+{% endif %}
+<div class="card card-body mb-3" style="max-width:640px">
+  <p class="mb-1"><strong>Status:</strong>
+    {% if status.enrolled %}<span class="badge text-bg-success"><i class="bi bi-check-circle" aria-hidden="true"></i> enabled</span>
+    {% else %}<span class="badge text-bg-secondary"><i class="bi bi-dash-circle" aria-hidden="true"></i> not enabled</span>{% endif %}
+    {% if status.required %}<span class="badge text-bg-warning ms-1"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> required</span>{% endif %}
+  </p>
+  <p class="small-muted mb-0">Sign-in method: {{ status.auth_method }}.
+    {% if status.auth_method == "sso" %}Single sign-on takes its second factor from your identity provider.{% endif %}</p>
+</div>
+
+{% if enrollment %}
+<div class="card card-body mb-3" style="max-width:640px">
+  <h2 class="h5">Add MAYA to your authenticator</h2>
+  <p>In your authenticator app, add an account by entering this key. It is shown once.</p>
+  <p class="font-monospace fs-5 user-select-all">{{ enrollment.secret }}</p>
+  <p class="small-muted">Or open this setup link on a device where the app is installed:<br>
+    <span class="font-monospace small user-select-all">{{ enrollment.otpauth_uri }}</span></p>
+  <form method="post" action="/account/mfa/confirm">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label class="form-label" for="code">Enter the current code to confirm</label>
+    <div class="input-group" style="max-width:320px">
+      <input class="form-control" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required>
+      <button class="btn btn-primary" type="submit">Confirm</button>
+    </div>
+  </form>
+</div>
+{% elif status.auth_method != "sso" %}
+<form method="post" action="/account/mfa/enroll">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <button class="btn {{ 'btn-outline-secondary' if status.enrolled else 'btn-primary' }}" type="submit">
+    {% if status.enrolled %}Replace authenticator{% else %}Set up an authenticator{% endif %}</button>
+  {% if status.enrolled %}<div class="small-muted mt-1">Replacing the authenticator switches two-factor off until you confirm the new one.</div>{% endif %}
+</form>
+{% endif %}
+{% endblock %}

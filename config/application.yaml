@@ -86,15 +86,30 @@ auth:
     duration_minutes: 30
   api_keys:
     max_days: 365
+  # mode: sso or hybrid needs these. OIDC authorization code flow with PKCE.
+  # SAML 2.0 (protocol: saml2) is not shipped and is refused at startup.
   sso:
     protocol: oidc
-    issuer: ""
-    client_id: maya
+    issuer: "${MAYA_OIDC_ISSUER:}"
+    client_id: "${MAYA_OIDC_CLIENT_ID:maya}"
     client_secret: "${MAYA_OIDC_CLIENT_SECRET:}"
-    redirect_uri: "http://127.0.0.1:8600/auth/sso/callback"
+    redirect_uri: "${MAYA_OIDC_REDIRECT_URI:http://127.0.0.1:8600/auth/sso/callback}"
+    scopes: "openid profile email groups"
     username_claim: preferred_username
+    email_claim: email
     groups_claim: groups
     jit_provision: "true"
+    # deny: a person none of whose IdP groups maps to a role cannot sign in
+    on_missing_group: deny
+    # IdP group -> MAYA roles, re-applied at every login
+    group_role_map:
+      maya-admins: [admin]
+  mfa:
+    # TOTP for password logins. auto = enforce the role requirement outside dev
+    # (in dev only users who enrolled are challenged); true; false.
+    enforce: "${MAYA_MFA_ENFORCE:auto}"
+    required_for_roles: [admin, model_owner]
+    issuer_name: MAYA
 
 sandbox:
   # strong | moderate | minimal. Outside dev, MAYA refuses to start below this.

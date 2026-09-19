@@ -227,3 +227,13 @@ class CampaignIn(BaseModel):
 
 class ReadIn(BaseModel):
     ids: list[str] | None = None
+
+
+class SsoCallbackIn(BaseModel):
+    code: str
+    code_verifier: str
+    nonce: str
+
+
+class CodeIn(BaseModel):
+    code: str

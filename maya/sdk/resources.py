@@ -48,6 +48,35 @@ class Auth(_Resource):
     def login(self, username: str, password: str) -> Any:
         return self._c("POST", "/auth/login", json_body={"username": username, "password": password})
 
+    @endpoint("GET", "/auth/sso/config")
+    def sso_config(self) -> Any:
+        return self._c("GET", "/auth/sso/config")
+
+    @endpoint("POST", "/auth/sso/start")
+    def sso_start(self) -> Any:
+        return self._c("POST", "/auth/sso/start")
+
+    @endpoint("POST", "/auth/sso/callback")
+    def sso_callback(self, code: str, code_verifier: str, nonce: str) -> Any:
+        return self._c("POST", "/auth/sso/callback", json_body={
+            "code": code, "code_verifier": code_verifier, "nonce": nonce})
+
+    @endpoint("GET", "/auth/mfa")
+    def mfa_status(self) -> Any:
+        return self._c("GET", "/auth/mfa")
+
+    @endpoint("POST", "/auth/mfa/verify")
+    def mfa_verify(self, code: str) -> Any:
+        return self._c("POST", "/auth/mfa/verify", json_body={"code": code})
+
+    @endpoint("POST", "/auth/mfa/enroll")
+    def mfa_enroll(self) -> Any:
+        return self._c("POST", "/auth/mfa/enroll")
+
+    @endpoint("POST", "/auth/mfa/confirm")
+    def mfa_confirm(self, code: str) -> Any:
+        return self._c("POST", "/auth/mfa/confirm", json_body={"code": code})
+
     @endpoint("POST", "/auth/logout")
     def logout(self) -> Any:
         return self._c("POST", "/auth/logout")
@@ -103,6 +132,10 @@ class Admin(_Resource):
     def reset_password(self, username: str, new_password: str) -> Any:
         return self._c("POST", f"/users/{seg(username)}/password-reset",
                        json_body={"new_password": new_password})
+
+    @endpoint("POST", "/users/{username}/mfa-reset")
+    def reset_mfa(self, username: str) -> Any:
+        return self._c("POST", f"/users/{seg(username)}/mfa-reset")
 
     @endpoint("GET", "/roles")
     def roles(self) -> Any:

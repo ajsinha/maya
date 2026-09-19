@@ -107,11 +107,7 @@ class Platform:
         """Refusals that must happen at startup, never at first use (§12, §17.2)."""
         from maya.security.sandbox import sandbox_tier, tier_at_least
         env = self.settings.environment
-        if self.settings.auth_mode != "db":
-            raise CapabilityRefused(
-                f"auth.mode is '{self.settings.auth_mode}', but no SSO provider (OIDC or "
-                "SAML) ships in this build. Use auth.mode: db. Refused at startup rather "
-                "than at the first person's login (spec §12).", setting="auth.mode")
+        self.service("sso").check_startup()
         tier = sandbox_tier()
         minimum = self.settings.get("sandbox.min_tier", "strong") or "strong"
         if env != "dev" and not tier_at_least(tier["tier"], minimum):

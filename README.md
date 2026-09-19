@@ -92,27 +92,6 @@ execution warrant → reproducibility bundle.
 | **Tests** | 242 passing on SQLite, Linux. `python -m pytest -q` |
 | **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 122 endpoints, schema drift) |
 
-### What's shipped, and the test that proves it
-
-| Claim | Proved by |
-|---|---|
-| SC-1: re-pinning is byte-identical, and changed data hashes differently | `tests/test_features.py::test_sc1_repin_is_byte_identical_and_changed_data_is_not` |
-| SC-11: point-in-time values after a restatement | `test_sc11_point_in_time_after_restatement` |
-| SC-12: a month whose history is unchanged costs under 5% of the full pin | `test_sc12_unchanged_month_costs_under_five_percent` |
-| SC-15: both schema files match the ORM metadata; a hand edit fails the build | `test_foundation.py`, `test_api_and_gates.py::test_schema_drift_gate_fails_after_a_hand_edit` |
-| SC-16: the two `maya_delta` backends are equivalent and read each other's tables | `tests/test_maya_delta.py` (38 tests) |
-| SC-17: every table comes from the one macro | `tools/ci/table_contract.py`, `tests/test_web.py` |
-| SC-13: every endpoint has an SDK method and every method an endpoint | `tools/ci/sdk_parity.py` |
-| SC-7: no role exceeds its ceiling, deny wins, API-key scope holds | `test_foundation.py::test_role_ceiling_is_never_exceeded` and others |
-| SC-8: the audit chain is append-only and hash-linked; tampering is detected | `test_workflow_and_estate.py::test_estate_round_trip_and_audit_tamper_detection` |
-| Migration-free upgrade: export → recreate → import, with the audit chain intact | same test |
-| Quality contracts block pins; a failed cascade pin rolls back entirely | `test_quality_contract_blocks_the_pin`, `test_cascade_rolls_back_entirely_on_a_member_failure` |
-| Leakage certificate (signed): refused on late knowledge | `test_leakage_certificate_refuses_late_knowledge` |
-| Warrant checksum cycle, blind holdout scoring, covenant breach suspends, bundle verifies offline and fails when tampered | `test_warrants.py::test_the_checksum_cycle_seal_score_execute_and_bundle` |
-| Workflow policy validated at edit time, activated by a second admin, changes behaviour; YAML round-trip is byte-identical; break-glass is permanent | `tests/test_workflow_and_estate.py` |
-| `run_maya_web.py` serves a real socket, driven by the SDK and the CLI | `test_api_and_gates.py::test_real_server_over_http_with_sdk_and_cli` |
-| Every gate is shown to fail on a planted violation | `test_gate_fails_on_a_planted_violation` |
-
 ### Not yet — stated so nobody has to discover it
 
 - **PostgreSQL has not been run live.** `schema/postgresql.sql` is generated and the
@@ -121,7 +100,10 @@ execution warrant → reproducibility bundle.
   does this).
 - **Only Linux has been exercised.** `.github/workflows/ci.yml` covers Windows and macOS
   but has not run yet.
-- **SSO (OIDC/SAML) and MFA are not shipped.** `auth.mode` other than `db` is refused at startup.
+- **SAML 2.0 is not shipped.** OIDC single sign-on is (`auth.mode: sso` or `hybrid`), as is
+  TOTP two-factor authentication. Configuring `auth.sso.protocol: saml2` is refused at
+  startup, naming the `python3-saml` and `xmlsec` dependencies it would need. WebAuthn
+  is not built.
 - **Grant conditions** (row filters, column masks, time bounds, §11.4) are refused
   rather than stored unenforced.
 - **Source drivers** `sql` and `python` are refused by name. Shipped: csv, parquet, json, delta, derived.
