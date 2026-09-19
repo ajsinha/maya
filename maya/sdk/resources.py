@@ -658,6 +658,21 @@ class Workflow(_Resource):
             "object_type": object_type, "object_id": object_id, "transition": transition,
             "rationale": rationale, "force": force})
 
+    @endpoint("GET", "/workflow/delegations")
+    def delegations(self) -> Any:
+        return self._c("GET", "/workflow/delegations")
+
+    @endpoint("POST", "/workflow/delegations")
+    def delegate(self, to: str, starts_on: str, ends_on: str,
+                 object_types: list[str] | None = None, reason: str = "") -> Any:
+        return self._c("POST", "/workflow/delegations", json_body={
+            "to": to, "starts_on": starts_on, "ends_on": ends_on,
+            "object_types": object_types or [], "reason": reason})
+
+    @endpoint("DELETE", "/workflow/delegations/{delegation_id}")
+    def revoke_delegation(self, delegation_id: str) -> Any:
+        return self._c("DELETE", f"/workflow/delegations/{seg(delegation_id)}")
+
     @endpoint("GET", "/workflow/campaigns")
     def campaigns(self) -> Any:
         return self._c("GET", "/workflow/campaigns")

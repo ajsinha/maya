@@ -181,3 +181,35 @@ async def break_glass(request: Request) -> Any:
     async with client(request) as sdk:
         rows = await sdk.workflow.break_glass(days)
     return await render(request, "workflow/break_glass.html", {"rows": rows, "days": days})
+
+
+@router.get("/workflow/delegations")
+@page
+async def delegations_page(request: Request) -> Any:
+    async with client(request) as sdk:
+        rows = await sdk.workflow.delegations()
+        users = await sdk.admin.users()
+    return await render(request, "workflow/delegations.html", {
+        "rows": rows, "users": [u["username"] for u in users
+                                if u["username"] != request.session.get("username")]})
+
+
+@router.post("/workflow/delegations")
+@action
+async def delegate(request: Request) -> Any:
+    data = await request.form()
+    async with client(request) as sdk:
+        await sdk.workflow.delegate(data.get("to", ""), data.get("starts_on", ""),
+                                    data.get("ends_on", ""), data.getlist("object_types"),
+                                    data.get("reason", ""))
+    flash(request, f"Approvals delegated to {data.get('to')}.", "success")
+    return RedirectResponse("/workflow/delegations", status_code=303)
+
+
+@router.post("/workflow/delegations/{delegation_id}/revoke")
+@action
+async def revoke_delegation(request: Request, delegation_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.workflow.revoke_delegation(delegation_id)
+    flash(request, "Delegation revoked.", "info")
+    return RedirectResponse("/workflow/delegations", status_code=303)

@@ -73,6 +73,7 @@ class Platform:
         if start_workers:
             platform.jobs.start()
             platform.webhooks.start()
+            platform.scheduler.start()
         return platform
 
     def uow(self, actor: str | None = None) -> UnitOfWork:
@@ -126,4 +127,6 @@ class Platform:
     def shutdown(self) -> None:
         self.jobs.stop()
         self.service("webhooks").stop()
+        if getattr(self, "scheduler", None) is not None:
+            self.scheduler.stop()
         self.db.dispose()

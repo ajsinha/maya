@@ -42,6 +42,11 @@ def wire(platform: Any) -> None:
     _jobs(platform)
     _checks(platform)
     _collectors(platform)
+    platform.workflow.principal_loader = platform.auth.build_principal
+    from maya.jobs.scheduler import Scheduler
+    platform.scheduler = Scheduler()
+    platform.scheduler.every("workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue)
+    platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
     platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: \
         dispatch_transition(platform, p, object_type, object_id, name, **kw)
 
