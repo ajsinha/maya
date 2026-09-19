@@ -5,6 +5,7 @@ role, and helpers to build principals and seed data.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import atexit
@@ -22,9 +23,16 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 PASSWORD = "Test-password-1"
-ROLES = {"dana": ["feature_designer"], "mick": ["feature_manager"], "mona": ["model_designer"],
-         "devi": ["model_developer"], "mgr": ["model_manager"], "owen": ["model_owner"],
-         "tess": ["techops"], "admin2": ["admin"]}
+ROLES = {
+    "dana": ["feature_designer"],
+    "mick": ["feature_manager"],
+    "mona": ["model_designer"],
+    "devi": ["model_developer"],
+    "mgr": ["model_manager"],
+    "owen": ["model_owner"],
+    "tess": ["techops"],
+    "admin2": ["admin"],
+}
 
 
 def fresh_pg_database(url: str) -> str:
@@ -37,6 +45,7 @@ def fresh_pg_database(url: str) -> str:
 
     from sqlalchemy import create_engine, text
     from sqlalchemy.engine import make_url
+
     base = make_url(url)
     name = f"{base.database}_{uuid.uuid4().hex[:10]}"
     admin = create_engine(base.set(database="postgres"), isolation_level="AUTOCOMMIT")
@@ -50,6 +59,7 @@ def fresh_pg_database(url: str) -> str:
 def _drop_pg_database(server: Any, name: str) -> None:
     """The run's own database, dropped when the run ends (the server is left as found)."""
     from sqlalchemy import create_engine, text
+
     try:
         admin = create_engine(server, isolation_level="AUTOCOMMIT")
         with admin.connect() as conn:
@@ -59,20 +69,25 @@ def _drop_pg_database(server: Any, name: str) -> None:
         pass
 
 
-def build_platform(extra_argv: list[str] | None = None, lake: str = "auto",
-                   start_workers: bool | str = False) -> Any:
+def build_platform(
+    extra_argv: list[str] | None = None, lake: str = "auto", start_workers: bool | str = False
+) -> Any:
     # MAYA_TEST_EXTRA_ARGV: settings for every platform in the run, e.g. the fallback
     # matrix's seam pins (tools/ci/gates.py --fallback); they come last, so they win
-    sys.argv = ["pytest", f"--lake.backend={lake}"] + (extra_argv or []) + \
-        os.environ.get("MAYA_TEST_EXTRA_ARGV", "").split()
+    sys.argv = (
+        ["pytest", f"--lake.backend={lake}"]
+        + (extra_argv or [])
+        + os.environ.get("MAYA_TEST_EXTRA_ARGV", "").split()
+    )
     home = tempfile.mkdtemp(prefix="maya-test-")
-    atexit.register(shutil.rmtree, home, True)         # gone when the run ends
+    atexit.register(shutil.rmtree, home, True)  # gone when the run ends
     os.environ["MAYA_HOME"] = home
     pg = os.environ.get("MAYA_TEST_PG_URL")
     if pg:
         sys.argv.append("--db.dialect=postgresql")
     from maya.config import load_settings
     from maya.services.platform import Platform
+
     settings = load_settings(ROOT / "config" / "application.yaml", fresh=True)
     if pg:
         # The full suite on PostgreSQL (SC-10): each platform gets a freshly created
@@ -80,6 +95,7 @@ def build_platform(extra_argv: list[str] | None = None, lake: str = "auto",
         own = fresh_pg_database(pg)
         settings.database_url = lambda: own  # type: ignore[method-assign]
         from maya.persistence.engine import database_from_settings
+
         db = database_from_settings(settings)
         db.init_schema(force=True)
         db.dispose()
@@ -118,15 +134,22 @@ def world() -> Any:
     platform.shutdown()
 
 
-PX_DEF = {"index": ["date", "symbol"], "index_types": {"date": "date", "symbol": "string"},
-          "schema": [{"name": "close", "type": "float64"}], "source": {"type": "csv"},
-          "resolution": {"grid": "as_is", "rules": {"close": "forward_fill(limit=3)"}},
-          "transform": [], "quality": [{"check": "not_null", "attr": "close"}]}
+PX_DEF = {
+    "index": ["date", "symbol"],
+    "index_types": {"date": "date", "symbol": "string"},
+    "schema": [{"name": "close", "type": "float64"}],
+    "source": {"type": "csv"},
+    "resolution": {"grid": "as_is", "rules": {"close": "forward_fill(limit=3)"}},
+    "transform": [],
+    "quality": [{"check": "not_null", "attr": "close"}],
+}
 
 
-def price_csv(days: int = 20, symbols: tuple[str, ...] = ("AAA", "BBB"), bump: float = 0.0,
-              start_day: int = 1) -> bytes:
+def price_csv(
+    days: int = 20, symbols: tuple[str, ...] = ("AAA", "BBB"), bump: float = 0.0, start_day: int = 1
+) -> bytes:
     import datetime as dt
+
     lines = ["date,symbol,close"]
     d0 = dt.date(2026, 1, 1)
     for i in range(start_day - 1, start_day - 1 + days):
@@ -136,8 +159,13 @@ def price_csv(days: int = 20, symbols: tuple[str, ...] = ("AAA", "BBB"), bump: f
     return ("\n".join(lines) + "\n").encode()
 
 
-def approved_feature(w: World, name: str, csv: bytes | None = None,
-                     definition: dict[str, Any] | None = None, ns: str = "eq") -> str:
+def approved_feature(
+    w: World,
+    name: str,
+    csv: bytes | None = None,
+    definition: dict[str, Any] | None = None,
+    ns: str = "eq",
+) -> str:
     """Create, ingest, submit (designer) and approve (manager) a feature. Returns its ref."""
     w.p.features.create(w.dana, namespace=ns, name=name, definition=definition or PX_DEF)
     ref = f"{ns}/{name}"

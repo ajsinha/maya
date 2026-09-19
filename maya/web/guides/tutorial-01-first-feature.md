@@ -46,12 +46,14 @@ import maya.sdk as maya
 URL = "http://127.0.0.1:8600"
 PW = "Tutorial-pass-1"
 
+
 def connect_as(user, password=PW):
     token = maya.Client(URL).auth.login(user, password)["token"]
     key = maya.Client(URL, token=token).auth.create_api_key("tutorial")["api_key"]
     return maya.connect(base_url=URL, api_key=key)
 
-admin = connect_as("admin", "maya-dev-admin")   # use your new admin password
+
+admin = connect_as("admin", "maya-dev-admin")  # use your new admin password
 admin.admin.create_user("dana", password=PW, roles=["feature_designer"])
 admin.admin.create_user("mick", password=PW, roles=["feature_manager"])
 ns = admin.namespaces.create("eq", preset="standard")
@@ -84,11 +86,15 @@ definition = {
     "index_types": {"date": "date", "symbol": "string"},
     "schema": [{"name": "close", "type": "float64", "unit": "USD"}],
     "source": {"type": "csv"},
-    "resolution": {"grid": {"calendar": "ISO_business_days"},
-                   "rules": {"close": "forward_fill(limit=3, max_age=5)"}},
+    "resolution": {
+        "grid": {"calendar": "ISO_business_days"},
+        "rules": {"close": "forward_fill(limit=3, max_age=5)"},
+    },
     "transform": [],
-    "quality": [{"check": "not_null", "attr": "close"},
-                {"check": "range", "attr": "close", "min": 0, "max": 100000}],
+    "quality": [
+        {"check": "not_null", "attr": "close"},
+        {"check": "range", "attr": "close", "min": 0, "max": 100000},
+    ],
 }
 ```
 
@@ -131,8 +137,13 @@ knowledge time is what later lets MAYA answer "what did we know then?".
 
 ```python
 # Ingest with the real publication time
-out = dana.features.ingest("eq/prices", open("prices.csv", "rb").read(), fmt="csv",
-                           filename="prices.csv", knowledge_time="2026-01-09T18:00:00Z")
+out = dana.features.ingest(
+    "eq/prices",
+    open("prices.csv", "rb").read(),
+    fmt="csv",
+    filename="prices.csv",
+    knowledge_time="2026-01-09T18:00:00Z",
+)
 print(out["rows"], out["knowledge_time"], out["restatement"])
 ```
 
@@ -328,8 +339,12 @@ correction with its own knowledge time:
 
 ```python
 # Ingest the correction
-out = dana.features.ingest("eq/prices", b"date,symbol,close\n2026-01-06,AAA,101.7\n",
-                           fmt="csv", knowledge_time="2026-01-12T09:00:00Z")
+out = dana.features.ingest(
+    "eq/prices",
+    b"date,symbol,close\n2026-01-06,AAA,101.7\n",
+    fmt="csv",
+    knowledge_time="2026-01-12T09:00:00Z",
+)
 print(out["rows"], out["restatement"])
 ```
 
@@ -345,8 +360,9 @@ Nothing was overwritten. Ask for the value now, and as it was known on
 # Two readings of the same day
 ref = "maya://feature/eq/prices@v1"
 now = dana.features.preview(ref, start="2026-01-06", end="2026-01-06")["rows"]
-then = dana.features.preview(ref, as_of_known="2026-01-10T00:00:00Z",
-                             start="2026-01-06", end="2026-01-06")["rows"]
+then = dana.features.preview(
+    ref, as_of_known="2026-01-10T00:00:00Z", start="2026-01-06", end="2026-01-06"
+)["rows"]
 print([(r["symbol"], r["close"]) for r in now])
 print([(r["symbol"], r["close"]) for r in then])
 ```

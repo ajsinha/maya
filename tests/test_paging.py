@@ -5,6 +5,7 @@ filter applied before a page is cut, and the SDK iterators that follow cursors.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,16 +21,23 @@ from tests.conftest import PX_DEF
 @pytest.fixture(scope="module")
 def paged(world):
     from maya.api.app import create_api
+
     w = world
     w.p.access.create_namespace(w.admin, name="pg", preset="standard")
     for i in range(23):
-        w.p.features.create(w.dana, namespace="pg", name=f"f{i:02d}", definition=PX_DEF,
-                            description="even" if i % 2 == 0 else "odd")
+        w.p.features.create(
+            w.dana,
+            namespace="pg",
+            name=f"f{i:02d}",
+            definition=PX_DEF,
+            description="even" if i % 2 == 0 else "odd",
+        )
     with w.p.uow() as uow:
         w.p.access.ensure_scratch(uow, w.admin)
     for i in range(7):
-        w.p.features.create(w.admin, namespace="scratch.admin", name=f"hidden{i}",
-                            definition=PX_DEF)
+        w.p.features.create(
+            w.admin, namespace="scratch.admin", name=f"hidden{i}", definition=PX_DEF
+        )
     app = create_api(w.p)
     admin = Client(app=app, token=Client(app=app).auth.login("admin", "maya-dev-admin")["token"])
     return w, app, admin
@@ -55,14 +63,13 @@ def test_without_paging_params_the_response_shape_is_unchanged(paged):
 
 def test_pages_follow_cursors_to_exactly_the_whole_list(paged):
     _, _, admin = paged
-    pages = _walk(lambda cursor: admin.features.page(namespace="pg", page_size=10,
-                                                     cursor=cursor))
+    pages = _walk(lambda cursor: admin.features.page(namespace="pg", page_size=10, cursor=cursor))
     assert [len(p["items"]) for p in pages] == [10, 10, 3]
     assert pages[-1]["next_cursor"] is None and pages[0]["sort"] == "name"
     names = [f["name"] for p in pages for f in p["items"]]
     assert names == [f["name"] for f in admin.features.list(namespace="pg")]
     assert names == sorted(names) and len(set(names)) == 23
-    assert {"latest_state", "pins", "ref"} <= set(pages[0]["items"][0])     # enriched
+    assert {"latest_state", "pins", "ref"} <= set(pages[0]["items"][0])  # enriched
 
 
 def test_an_exact_page_boundary_has_no_empty_trailing_page(paged):
@@ -71,13 +78,20 @@ def test_an_exact_page_boundary_has_no_empty_trailing_page(paged):
     assert len(first["items"]) == 23 and first["next_cursor"] is None
 
 
-@pytest.mark.parametrize("sort, key, reverse", [
-    ("-name", "name", True), ("created", "created_at", False),
-    ("-created", "created_at", True), ("updated", "updated_at", False)])
+@pytest.mark.parametrize(
+    "sort, key, reverse",
+    [
+        ("-name", "name", True),
+        ("created", "created_at", False),
+        ("-created", "created_at", True),
+        ("updated", "updated_at", False),
+    ],
+)
 def test_every_offered_sort_walks_in_order_with_an_id_tiebreak(paged, sort, key, reverse):
     _, _, admin = paged
-    pages = _walk(lambda cursor: admin.features.page(namespace="pg", page_size=4, sort=sort,
-                                                     cursor=cursor))
+    pages = _walk(
+        lambda cursor: admin.features.page(namespace="pg", page_size=4, sort=sort, cursor=cursor)
+    )
     rows = [f for p in pages for f in p["items"]]
     assert len(rows) == 23 and len({r["id"] for r in rows}) == 23
     keys = [(r[key], r["id"]) for r in rows]
@@ -98,9 +112,11 @@ def test_the_page_is_cut_after_the_authorization_filter(paged):
     dana = Client(app=app, token=Client(app=app).auth.login("dana", "Test-password-1")["token"])
     visible = [f["ref"] for f in dana.features.list()]
     assert visible and not any("scratch.admin" in r for r in visible)
-    walked = [f["ref"] for p in _walk(lambda cursor: dana.features.page(page_size=3,
-                                                                        cursor=cursor))
-              for f in p["items"]]
+    walked = [
+        f["ref"]
+        for p in _walk(lambda cursor: dana.features.page(page_size=3, cursor=cursor))
+        for f in p["items"]
+    ]
     assert walked == visible
     assert dana.features.page(page_size=3, total=True)["total"] == len(visible)
 
@@ -113,15 +129,16 @@ def test_state_keeps_objects_whose_latest_version_is_in_it(paged):
     try:
         drafts = {f["name"] for f in admin.features.list(namespace="pg", state="draft")}
         assert "f00" not in drafts and len(drafts) == 22
-        both = admin.features.page(namespace="pg", state="draft,in_review", page_size=5,
-                                   total=True)
+        both = admin.features.page(namespace="pg", state="draft,in_review", page_size=5, total=True)
         assert both["total"] == 23 and len(both["items"]) == 5
-        assert [f["name"] for f in admin.features.list(namespace="pg", state="in_review")] \
-            == ["f00"]
+        assert [f["name"] for f in admin.features.list(namespace="pg", state="in_review")] == [
+            "f00"
+        ]
         first = admin.features.page(namespace="pg", state="draft", page_size=5)
         with pytest.raises(InvalidCursor):
-            admin.features.page(namespace="pg", state="in_review", page_size=5,
-                                cursor=first["next_cursor"])
+            admin.features.page(
+                namespace="pg", state="in_review", page_size=5, cursor=first["next_cursor"]
+            )
         assert admin.featuresets.list(state="approved") == []
     finally:
         w.p.features.transition(w.dana, "pg/f00", 1, "withdraw")
@@ -132,12 +149,15 @@ def test_inserts_between_pages_neither_repeat_nor_skip(paged):
     first = admin.features.page(namespace="pg", page_size=10)
     w.p.features.create(w.dana, namespace="pg", name="a_before", definition=PX_DEF)
     w.p.features.create(w.dana, namespace="pg", name="z_after", definition=PX_DEF)
-    rest = _walk(lambda cursor: admin.features.page(namespace="pg", page_size=10,
-                                                    cursor=cursor or first["next_cursor"]))
+    rest = _walk(
+        lambda cursor: admin.features.page(
+            namespace="pg", page_size=10, cursor=cursor or first["next_cursor"]
+        )
+    )
     later = [f["name"] for p in rest for f in p["items"]]
     seen = [f["name"] for f in first["items"]]
     assert not set(seen) & set(later)
-    assert "z_after" in later and "a_before" not in later       # it sorts before the cursor
+    assert "z_after" in later and "a_before" not in later  # it sorts before the cursor
     assert later == sorted(later) and later[0] > seen[-1]
 
 
@@ -160,9 +180,11 @@ def test_a_tampered_or_foreign_cursor_is_a_400(paged):
     cursor = admin.features.page(namespace="pg", page_size=5)["next_cursor"]
     payload, sig = cursor.split(".")
     flipped = payload[:-2] + ("A" if payload[-2] != "A" else "B") + payload[-1]
-    for bad, why in ((f"{flipped}.{sig}", "not one MAYA issued"),
-                     (f"{payload}.{sig[:-1]}", "not one MAYA issued"),
-                     ("garbage", "not one MAYA issued")):
+    for bad, why in (
+        (f"{flipped}.{sig}", "not one MAYA issued"),
+        (f"{payload}.{sig[:-1]}", "not one MAYA issued"),
+        ("garbage", "not one MAYA issued"),
+    ):
         with pytest.raises(InvalidCursor, match=why):
             admin.features.page(namespace="pg", page_size=5, cursor=bad)
     with pytest.raises(InvalidCursor, match="different query"):
@@ -172,9 +194,11 @@ def test_a_tampered_or_foreign_cursor_is_a_400(paged):
     with pytest.raises(InvalidCursor, match="different query"):
         admin.models.page(page_size=5, cursor=cursor)
     from starlette.testclient import TestClient
+
     token = Client(app=app).auth.login("admin", "maya-dev-admin")["token"]
-    r = TestClient(app).get("/api/v1/features", params={"cursor": "x.y"},
-                            headers={"Authorization": f"Bearer {token}"})
+    r = TestClient(app).get(
+        "/api/v1/features", params={"cursor": "x.y"}, headers={"Authorization": f"Bearer {token}"}
+    )
     assert r.status_code == 400 and r.json()["type"] == "invalid_cursor"
 
 
@@ -188,8 +212,10 @@ def test_audit_pages_newest_first_and_counts_exactly(paged):
     assert len(everything) == page["total"] >= 7
     oldest = admin.admin.audit_page(page_size=3, sort="seq")["items"]
     assert [e["seq"] for e in oldest] == sorted(e["seq"] for e in everything)[:3]
-    assert all("feature" in e["action"] for e in
-               admin.admin.audit_page(action="feature", page_size=20)["items"])
+    assert all(
+        "feature" in e["action"]
+        for e in admin.admin.audit_page(action="feature", page_size=20)["items"]
+    )
 
 
 def test_models_warrants_jobs_events_inbox_and_grants_page(paged):
@@ -203,11 +229,13 @@ def test_models_warrants_jobs_events_inbox_and_grants_page(paged):
     assert isinstance(admin.jobs.page(all=True, page_size=5)["items"], list)
     events = admin.events.page(page_size=5, sort="-seq")
     assert [e["seq"] for e in events["items"]] == sorted(
-        (e["seq"] for e in events["items"]), reverse=True)
+        (e["seq"] for e in events["items"]), reverse=True
+    )
     assert admin.access.inbox_page(page_size=5)["items"] == admin.access.inbox()[:5]
     obj = w.p.access.resolve_object("feature", "pg/f00")
-    w.p.access.grant(w.admin, kind="feature", obj=obj, principal_type="user",
-                     principal_id="mick", level="read")
+    w.p.access.grant(
+        w.admin, kind="feature", obj=obj, principal_type="user", principal_id="mick", level="read"
+    )
     grants = admin.access.grants_page("feature", "pg/f00", total=True)
     assert grants["total"] == len(admin.access.grants("feature", "pg/f00")) >= 1
 
@@ -221,6 +249,7 @@ def test_the_sdk_iterators_follow_cursors_sync_and_async(paged):
         token = Client(app=app).auth.login("admin", "maya-dev-admin")["token"]
         async with AsyncClient(app=app, token=token) as client:
             return [f["name"] async for f in client.features.iter(namespace="pg", page_size=4)]
+
     assert asyncio.run(collect()) == names
 
 
@@ -230,14 +259,17 @@ def web(paged):
     from starlette.testclient import TestClient
 
     from maya.server import build_app
+
     w, _, _ = paged
-    with w.p.uow() as uow:                  # not under test: skip the first-login change
-        uow.repo("users").update(uow.repo("users").find_one(username="admin")["id"],
-                                 {"must_change_password": False})
+    with w.p.uow() as uow:  # not under test: skip the first-login change
+        uow.repo("users").update(
+            uow.repo("users").find_one(username="admin")["id"], {"must_change_password": False}
+        )
     browser = TestClient(build_app(w.p))
     token = re.search(r'name="csrf_token" value="([^"]+)"', browser.get("/login").text).group(1)
-    browser.post("/login", data={"username": "admin", "password": "maya-dev-admin",
-                                 "csrf_token": token})
+    browser.post(
+        "/login", data={"username": "admin", "password": "maya-dev-admin", "csrf_token": token}
+    )
     return w, browser
 
 
@@ -250,20 +282,25 @@ def test_big_pages_render_page_one_in_server_mode(web):
     html = browser.get("/catalog/features").text
     wrap = re.search(r'<div class="mt-wrap[^>]*>', html, re.S).group(0)
     assert 'data-source="/ui/table/features"' in wrap and 'data-sort="name"' in wrap
-    assert re.search(r'data-next-cursor="[^"]+\.[^"]+"', wrap)       # more than one page
+    assert re.search(r'data-next-cursor="[^"]+\.[^"]+"', wrap)  # more than one page
     assert re.search(r'data-total="\d+"', wrap)
-    body = html[html.index("<tbody>"):html.index("</tbody>")]
+    body = html[html.index("<tbody>") : html.index("</tbody>")]
     assert body.count("<tr>") == 25
     assert 'data-sort-key="name"' in html and 'data-sort-key="updated"' in html
-    assert '<th scope="col" data-label="Owner">' in html               # not server-sortable
+    assert '<th scope="col" data-label="Owner">' in html  # not server-sortable
     assert '<option value="0">All</option>' not in html
-    for path, source, sort in (("/catalog/featuresets", "featuresets", "name"),
-                               ("/models", "models", "name"), ("/admin/audit", "audit", "-seq"),
-                               ("/admin/events", "events", "-seq"),
-                               ("/admin/jobs", "jobs", "-created")):
+    for path, source, sort in (
+        ("/catalog/featuresets", "featuresets", "name"),
+        ("/models", "models", "name"),
+        ("/admin/audit", "audit", "-seq"),
+        ("/admin/events", "events", "-seq"),
+        ("/admin/jobs", "jobs", "-created"),
+    ):
         page = browser.get(path)
         assert page.status_code == 200, path
-        assert f'data-source="/ui/table/{source}' in page.text and f'data-sort="{sort}"' in page.text
+        assert (
+            f'data-source="/ui/table/{source}' in page.text and f'data-sort="{sort}"' in page.text
+        )
 
 
 def test_the_table_route_serves_later_pages_as_rendered_rows(web):
@@ -277,12 +314,14 @@ def test_the_table_route_serves_later_pages_as_rendered_rows(web):
     assert not set(_names(first["rows"])) & set(_names(second["rows"]))
     everything = _names(browser.get("/ui/table/features", params={"page_size": 250}).json()["rows"])
     assert everything[:25] == _names(first["rows"])
-    assert everything[25:25 + len(second["rows"])] == _names(second["rows"])
-    hits = browser.get("/ui/table/features", params={"page_size": 25, "namespace": "pg",
-                                                     "q": "odd", "total": "1"}).json()
+    assert everything[25 : 25 + len(second["rows"])] == _names(second["rows"])
+    hits = browser.get(
+        "/ui/table/features", params={"page_size": 25, "namespace": "pg", "q": "odd", "total": "1"}
+    ).json()
     assert hits["total"] == 11 and len(hits["rows"]) == 11
-    back = _names(browser.get("/ui/table/features", params={"page_size": 25,
-                                                            "sort": "-name"}).json()["rows"])
+    back = _names(
+        browser.get("/ui/table/features", params={"page_size": 25, "sort": "-name"}).json()["rows"]
+    )
     assert back == sorted(back, reverse=True)
     audit = browser.get("/ui/table/audit", params={"page_size": 50, "action": "feature"}).json()
     assert audit["rows"] and all("feature" in r for r in audit["rows"])
@@ -293,6 +332,7 @@ def test_the_table_route_refuses_what_it_should(web):
     from starlette.testclient import TestClient
 
     from maya.server import build_app
+
     w, browser = web
     bad = browser.get("/ui/table/features", params={"page_size": 30})
     assert bad.status_code == 422 and "page_size is one of" in bad.json()["error"]

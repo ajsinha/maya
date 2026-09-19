@@ -8,6 +8,7 @@ answer or begin a second factor are reachable from a session still owing it
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -46,8 +47,11 @@ def saml_start(body: s.SamlStartIn, plat: Any = Plat) -> Response:
 @router.post("/auth/sso/saml/acs")
 def saml_acs(body: s.SamlAcsIn, request: Request, plat: Any = Plat) -> Response:
     """Public: validate the IdP's posted Response and open a session."""
-    return ok(plat.sso.saml_acs(body.saml_response, ip=_ip(request),
-                                user_agent=request.headers.get("user-agent")))
+    return ok(
+        plat.sso.saml_acs(
+            body.saml_response, ip=_ip(request), user_agent=request.headers.get("user-agent")
+        )
+    )
 
 
 @router.post("/auth/sso/saml/sls")
@@ -65,13 +69,16 @@ async def oidc_backchannel_logout(request: Request, plat: Any = Plat) -> Respons
     specification requires; the body names why."""
     from fastapi.responses import JSONResponse
     from maya.core.errors import NotAuthenticated
+
     form = await request.form()
     try:
-        out = plat.sso.oidc_backchannel_logout(str(form.get("logout_token") or ""),
-                                               ip=_ip(request))
+        out = plat.sso.oidc_backchannel_logout(str(form.get("logout_token") or ""), ip=_ip(request))
     except NotAuthenticated as exc:
-        return JSONResponse({**exc.to_problem(), "status": 400}, status_code=400,
-                            headers={"Cache-Control": "no-store"})
+        return JSONResponse(
+            {**exc.to_problem(), "status": 400},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
     response = ok(out)
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -90,16 +97,19 @@ def webauthn_remove(key_id: str, me: Principal = Me, plat: Any = Plat) -> Respon
 
 
 @router.post("/auth/mfa/webauthn/register/options")
-def webauthn_register_options(request: Request, me: Principal = Me,
-                              plat: Any = Plat) -> Response:
+def webauthn_register_options(request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.passkeys.register_options(me, _bearer(request)))
 
 
 @router.post("/auth/mfa/webauthn/register")
-def webauthn_register(body: s.WebAuthnRegisterIn, request: Request, me: Principal = Me,
-                      plat: Any = Plat) -> Response:
-    return ok(plat.passkeys.register(me, _bearer(request), body.credential, name=body.name,
-                                     ip=_ip(request)))
+def webauthn_register(
+    body: s.WebAuthnRegisterIn, request: Request, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    return ok(
+        plat.passkeys.register(
+            me, _bearer(request), body.credential, name=body.name, ip=_ip(request)
+        )
+    )
 
 
 @router.post("/auth/mfa/webauthn/options")
@@ -108,6 +118,7 @@ def webauthn_options(request: Request, me: Principal = Me, plat: Any = Plat) -> 
 
 
 @router.post("/auth/mfa/webauthn/verify")
-def webauthn_verify(body: s.WebAuthnVerifyIn, request: Request, me: Principal = Me,
-                    plat: Any = Plat) -> Response:
+def webauthn_verify(
+    body: s.WebAuthnVerifyIn, request: Request, me: Principal = Me, plat: Any = Plat
+) -> Response:
     return ok(plat.passkeys.login(_bearer(request), body.credential, ip=_ip(request)))

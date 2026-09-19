@@ -20,6 +20,7 @@ guarantee; pass ``sort_by`` when order matters.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -29,20 +30,31 @@ from typing import Any, Protocol
 
 import pyarrow as pa
 
-from maya_delta.errors import (ConcurrentModification, MayaDeltaError, TableNotFound,
-                               UnsupportedFeature)
+from maya_delta.errors import (
+    ConcurrentModification,
+    MayaDeltaError,
+    TableNotFound,
+    UnsupportedFeature,
+)
 
-__all__ = ["DeltaLake", "LakeBackendInfo", "select_backend", "MayaDeltaError",
-           "UnsupportedFeature", "ConcurrentModification", "TableNotFound"]
+__all__ = [
+    "DeltaLake",
+    "LakeBackendInfo",
+    "select_backend",
+    "MayaDeltaError",
+    "UnsupportedFeature",
+    "ConcurrentModification",
+    "TableNotFound",
+]
 
 
 @dataclass(frozen=True)
 class LakeBackendInfo:
     """Which backend is in use, what it is, and why it was chosen."""
 
-    name: str      # "native" | "pure"
-    detail: str    # e.g. "deltalake 1.6.3"
-    reason: str    # why this backend and not the other
+    name: str  # "native" | "pure"
+    detail: str  # e.g. "deltalake 1.6.3"
+    reason: str  # why this backend and not the other
 
 
 class _Backend(Protocol):
@@ -50,22 +62,33 @@ class _Backend(Protocol):
 
     def exists(self, path: Path) -> bool: ...
     def version(self, path: Path) -> int: ...
-    def read(self, path: Path, *, partitions: dict[str, list[str]] | None = ...,
-             columns: list[str] | None = ..., version: int | None = ...) -> pa.Table: ...
-    def write(self, path: Path, table: pa.Table, *, mode: str = ...,
-              partition_by: list[str] | None = ...) -> int: ...
-    def files(self, path: Path, partitions: dict[str, list[str]] | None = ...) -> list[dict[str, Any]]: ...
+    def read(
+        self,
+        path: Path,
+        *,
+        partitions: dict[str, list[str]] | None = ...,
+        columns: list[str] | None = ...,
+        version: int | None = ...,
+    ) -> pa.Table: ...
+    def write(
+        self, path: Path, table: pa.Table, *, mode: str = ..., partition_by: list[str] | None = ...
+    ) -> int: ...
+    def files(
+        self, path: Path, partitions: dict[str, list[str]] | None = ...
+    ) -> list[dict[str, Any]]: ...
     def history(self, path: Path) -> list[dict[str, Any]]: ...
     def protocol(self, path: Path) -> dict[str, Any]: ...
     def optimize(self, path: Path, *, target_size: int) -> dict[str, Any]: ...
-    def vacuum(self, path: Path, *, retention_hours: float, dry_run: bool,
-               enforce_retention: bool) -> list[str]: ...
+    def vacuum(
+        self, path: Path, *, retention_hours: float, dry_run: bool, enforce_retention: bool
+    ) -> list[str]: ...
 
 
 def _native_problem() -> str | None:
     """None if the native backend is usable here, else why not."""
     try:
         from maya_delta import native
+
         backend = native.NativeBackend()
     except Exception as exc:  # ImportError, or a broken wheel
         return f"deltalake does not import ({type(exc).__name__}: {exc})"
@@ -87,21 +110,27 @@ def select_backend(preference: str = "auto") -> LakeBackendInfo:
     if preference in _SELECTION_CACHE:
         return _SELECTION_CACHE[preference]
     if preference == "pure":
-        info = LakeBackendInfo("pure", "maya_delta pure-Python Delta protocol subset",
-                               "pinned by configuration")
+        info = LakeBackendInfo(
+            "pure", "maya_delta pure-Python Delta protocol subset", "pinned by configuration"
+        )
     else:
         problem = _native_problem()
         if problem is None:
             from maya_delta import native
+
             detail = f"deltalake {native.NativeBackend().library_version}"
-            why = "pinned by configuration" if preference == "native" else \
-                "deltalake imports and passed the self-check"
+            why = (
+                "pinned by configuration"
+                if preference == "native"
+                else "deltalake imports and passed the self-check"
+            )
             info = LakeBackendInfo("native", detail, why)
         elif preference == "native":
             raise MayaDeltaError(f"lake backend pinned to 'native' but {problem}")
         else:
-            info = LakeBackendInfo("pure", "maya_delta pure-Python Delta protocol subset",
-                                   f"fallback: {problem}")
+            info = LakeBackendInfo(
+                "pure", "maya_delta pure-Python Delta protocol subset", f"fallback: {problem}"
+            )
     _SELECTION_CACHE[preference] = info
     return info
 
@@ -109,8 +138,10 @@ def select_backend(preference: str = "auto") -> LakeBackendInfo:
 def _make(name: str) -> _Backend:
     if name == "native":
         from maya_delta.native import NativeBackend
+
         return NativeBackend()
     from maya_delta.pure.table import PureBackend
+
     return PureBackend()
 
 
@@ -125,14 +156,26 @@ class DeltaLake:
     def backend_name(self) -> str:
         return self.info.name
 
-    def write(self, path: str | Path, table: pa.Table, *, mode: str = "append",
-              partition_by: list[str] | None = None) -> int:
+    def write(
+        self,
+        path: str | Path,
+        table: pa.Table,
+        *,
+        mode: str = "append",
+        partition_by: list[str] | None = None,
+    ) -> int:
         """Write ``table``; returns the new table version."""
         return self._b.write(Path(path), table, mode=mode, partition_by=partition_by)
 
-    def read(self, path: str | Path, *, partitions: dict[str, list[str]] | None = None,
-             columns: list[str] | None = None, version: int | None = None,
-             sort_by: list[str] | None = None) -> pa.Table:
+    def read(
+        self,
+        path: str | Path,
+        *,
+        partitions: dict[str, list[str]] | None = None,
+        columns: list[str] | None = None,
+        version: int | None = None,
+        sort_by: list[str] | None = None,
+    ) -> pa.Table:
         """Read the table (pruned to ``partitions``, projected to ``columns``, at ``version``)."""
         out = self._b.read(Path(path), partitions=partitions, columns=columns, version=version)
         if sort_by:
@@ -148,7 +191,9 @@ class DeltaLake:
     def history(self, path: str | Path) -> list[dict[str, Any]]:
         return self._b.history(Path(path))
 
-    def files(self, path: str | Path, partitions: dict[str, list[str]] | None = None) -> list[dict[str, Any]]:
+    def files(
+        self, path: str | Path, partitions: dict[str, list[str]] | None = None
+    ) -> list[dict[str, Any]]:
         return self._b.files(Path(path), partitions)
 
     def partition_values(self, path: str | Path, column: str) -> set[str]:
@@ -159,8 +204,7 @@ class DeltaLake:
         return self._b.protocol(Path(path))
 
     # -- maintenance -------------------------------------------------------------------
-    def optimize(self, path: str | Path, *, target_size: int = 128 * 1024 * 1024
-                 ) -> dict[str, Any]:
+    def optimize(self, path: str | Path, *, target_size: int = 128 * 1024 * 1024) -> dict[str, Any]:
         """Compact each partition's small files into files of about ``target_size`` bytes.
 
         One commit, ``dataChange: false``: the content is unchanged, only the layout.
@@ -168,13 +212,23 @@ class DeltaLake:
         """
         return self._b.optimize(Path(path), target_size=target_size)
 
-    def vacuum(self, path: str | Path, *, retention_hours: float = 168, dry_run: bool = False,
-               enforce_retention: bool = True) -> list[str]:
+    def vacuum(
+        self,
+        path: str | Path,
+        *,
+        retention_hours: float = 168,
+        dry_run: bool = False,
+        enforce_retention: bool = True,
+    ) -> list[str]:
         """Delete data files no longer referenced and older than the retention window.
 
         Returns the files deleted (or, with ``dry_run``, that would be). Retention under
         168 hours is refused unless ``enforce_retention=False``: time travel to versions
         whose files are vacuumed stops working.
         """
-        return self._b.vacuum(Path(path), retention_hours=retention_hours, dry_run=dry_run,
-                              enforce_retention=enforce_retention)
+        return self._b.vacuum(
+            Path(path),
+            retention_hours=retention_hours,
+            dry_run=dry_run,
+            enforce_retention=enforce_retention,
+        )

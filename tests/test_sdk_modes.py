@@ -3,6 +3,7 @@ SDK modes (§18.2.3, §18.2.7): record/replay fixtures and ``offline(bundle)``.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import io
@@ -24,6 +25,7 @@ from tests.test_warrants import complete_spec, journey  # noqa: F401 - the fixtu
 @pytest.fixture(scope="module")
 def api(world):
     from maya.api.app import create_api
+
     app = create_api(world.p)
     approved_feature(world, "taped", price_csv(4))
     return world, app
@@ -64,8 +66,7 @@ def test_a_refusal_replays_as_the_same_typed_error(api, tmp_path):
     with pytest.raises(PermissionDenied) as recorded:
         live.admin.create_user("mallory", password="Mallory-pass-1", roles=["admin"])
     with pytest.raises(PermissionDenied) as replayed:
-        Client.replay(tape).admin.create_user("mallory", password="Mallory-pass-1",
-                                              roles=["admin"])
+        Client.replay(tape).admin.create_user("mallory", password="Mallory-pass-1", roles=["admin"])
     assert replayed.value.message == recorded.value.message
 
 
@@ -77,7 +78,7 @@ def test_unrecorded_and_exhausted_requests_fail_loudly(api, tmp_path):
     with pytest.raises(ReplayMiss, match="No recorded response for GET /features"):
         replay.features.list(namespace="other")
     replay.features.list(namespace="eq")
-    replay.features.list(namespace="eq")         # a read polled more than recorded repeats
+    replay.features.list(namespace="eq")  # a read polled more than recorded repeats
     with pytest.raises(ReplayMiss, match="POST /features"):
         replay.features.create("eq", "never", {})
 
@@ -111,6 +112,7 @@ def test_the_async_client_records_and_replays_and_shares_cassettes(api, tmp_path
     import asyncio
 
     from maya.sdk import AsyncClient
+
     _, app = api
     token = _login(app, "dana")
 
@@ -136,12 +138,12 @@ def test_the_async_client_records_and_replays_and_shares_cassettes(api, tmp_path
     async_tape, sync_tape = tmp_path / "async.json", tmp_path / "sync.json"
     shown = asyncio.run(record_async(async_tape))
     assert asyncio.run(replay_async(async_tape)) == shown
-    assert Client.replay(async_tape).features.get("eq/taped") == shown     # async -> sync
+    assert Client.replay(async_tape).features.get("eq/taped") == shown  # async -> sync
     live = Client.record(sync_tape, app=app, token=token)
     live.features.get("eq/taped")
     with pytest.raises(NotFound):
         live.features.get("eq/nowhere")
-    assert asyncio.run(replay_async(sync_tape)) == shown                   # sync -> async
+    assert asyncio.run(replay_async(sync_tape)) == shown  # sync -> async
 
 
 def test_a_file_that_is_not_a_cassette_is_refused(tmp_path):
@@ -155,18 +157,28 @@ def test_a_file_that_is_not_a_cassette_is_refused(tmp_path):
 @pytest.fixture(scope="module")
 def bundle(journey):  # noqa: F811
     w = journey
-    w.p.models.create(w.mona, namespace="quant", name="offline_lin", formula="yhat = a*x + b",
-                      roles={"a": "parameter", "b": "parameter"})
+    w.p.models.create(
+        w.mona,
+        namespace="quant",
+        name="offline_lin",
+        formula="yhat = a*x + b",
+        roles={"a": "parameter", "b": "parameter"},
+    )
     w.p.models.update_draft(w.mona, "quant/offline_lin", spec_latex=complete_spec("offline_lin"))
     w.p.models.transition(w.mona, "quant/offline_lin", 1, "submit")
     w.p.models.transition(w.mgr, "quant/offline_lin", 1, "approve")
-    tw = w.p.warrants.create(w.devi, namespace="quant", name="offline_calib",
-                             model="quant/offline_lin@v1",
-                             featureset="maya://featureset/quant/panel#q1/2026-02-28",
-                             spec={"target": "y", "seed": 3})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="offline_calib",
+        model="quant/offline_lin@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 3},
+    )
     data = w.p.warrants.data(w.devi, tw["id"])
-    ps = w.p.warrants.upload_parameters(w.devi, tw["id"], values={"a": 2.0, "b": 0.5},
-                                        data_checksum=data["manifest"]["checksum"])
+    ps = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"a": 2.0, "b": 0.5}, data_checksum=data["manifest"]["checksum"]
+    )
     w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
     w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
     exported = w.p.bundles.export(w.devi, tw["id"])
@@ -179,32 +191,52 @@ def test_a_composite_model_is_re_executed_by_the_bundle_verifier(bundle):
     import json as _json
 
     from maya.services.bundle import run_verifier
+
     w, _, _ = bundle
-    w.p.models.create(w.mona, namespace="quant", name="lift", formula="z = c*x",
-                      roles={"c": "parameter"})
+    w.p.models.create(
+        w.mona, namespace="quant", name="lift", formula="z = c*x", roles={"c": "parameter"}
+    )
     for name in ("lift",):
         w.p.models.update_draft(w.mona, f"quant/{name}", spec_latex=complete_spec(name))
         w.p.models.transition(w.mona, f"quant/{name}", 1, "submit")
         w.p.models.transition(w.mgr, f"quant/{name}", 1, "approve")
-    ir = {"outputs": [{"name": "yhat", "type": "float64"}],
-          "inputs": [{"name": "w", "type": "float64", "role": "parameter"}],
-          "composite": {"kind": "ensemble", "members": [
-              {"alias": "lin", "ref": "maya://model/quant/offline_lin@v1"},
-              {"alias": "lift", "ref": "maya://model/quant/lift@v1"}],
-              "combine": {"op": "add", "args": [{"ref": "lin.yhat"}, {"op": "mul", "args": [
-                  {"param": "w"}, {"ref": "lift.z"}]}]}}}
+    ir = {
+        "outputs": [{"name": "yhat", "type": "float64"}],
+        "inputs": [{"name": "w", "type": "float64", "role": "parameter"}],
+        "composite": {
+            "kind": "ensemble",
+            "members": [
+                {"alias": "lin", "ref": "maya://model/quant/offline_lin@v1"},
+                {"alias": "lift", "ref": "maya://model/quant/lift@v1"},
+            ],
+            "combine": {
+                "op": "add",
+                "args": [
+                    {"ref": "lin.yhat"},
+                    {"op": "mul", "args": [{"param": "w"}, {"ref": "lift.z"}]},
+                ],
+            },
+        },
+    }
     w.p.models.create(w.mona, namespace="quant", name="blend", kind="composite")
     w.p.models.update_draft(w.mona, "quant/blend", ir=ir, spec_latex=complete_spec("blend"))
     w.p.models.transition(w.mona, "quant/blend", 1, "submit")
     w.p.models.transition(w.mgr, "quant/blend", 1, "approve")
-    tw = w.p.warrants.create(w.devi, namespace="quant", name="blend_calib",
-                             model="quant/blend@v1",
-                             featureset="maya://featureset/quant/panel#q1/2026-02-28",
-                             spec={"target": "y", "seed": 3})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="blend_calib",
+        model="quant/blend@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 3},
+    )
     data = w.p.warrants.data(w.devi, tw["id"])
     w.p.warrants.upload_parameters(
-        w.devi, tw["id"], values={"lin.a": 2.0, "lin.b": 0.5, "lift.c": 0.1, "w": 0.3},
-        data_checksum=data["manifest"]["checksum"])
+        w.devi,
+        tw["id"],
+        values={"lin.a": 2.0, "lin.b": 0.5, "lift.c": 0.1, "w": 0.3},
+        data_checksum=data["manifest"]["checksum"],
+    )
     exported = w.p.bundles.export(w.devi, tw["id"])
     manifest = exported["manifest"]
     assert manifest["reexecutable"] and manifest["model_inputs"] == ["x"], manifest
@@ -218,7 +250,7 @@ def test_a_composite_model_is_re_executed_by_the_bundle_verifier(bundle):
     check = next(c for c in report["checks"] if c["check"] == "re-execution output hash")
     assert check["ok"] and check["detail"] == manifest["output_hash"]
     x = np.array([1.0, 2.0, 3.0])
-    got = offline(raw).predict({"x": x})["yhat"]            # the SDK, offline, same answer
+    got = offline(raw).predict({"x": x})["yhat"]  # the SDK, offline, same answer
     np.testing.assert_allclose(got, 2.0 * x + 0.5 + 0.3 * 0.1 * x)
 
 
@@ -238,8 +270,9 @@ def test_offline_serves_the_read_api_from_a_verified_bundle(bundle, tmp_path):
     assert "holdout" in manifest["partition"]
     assert off.parameters() == {"a": 2.0, "b": 0.5}
     model = off.models.get()["versions"][0]
-    assert model["formula_ir"]["outputs"][0]["name"] == "yhat" and "\\section" in \
-        model["spec_latex"]
+    assert (
+        model["formula_ir"]["outputs"][0]["name"] == "yhat" and "\\section" in model["spec_latex"]
+    )
     assert off.certificate()["status"] == "certified"
 
 
@@ -248,8 +281,7 @@ def test_offline_predicts_from_the_signed_ir_not_the_bundled_code(bundle):
     off = offline(raw)
     out = off.predict({"x": np.array([1.0, 2.0])})
     np.testing.assert_allclose(out["yhat"], [2.5, 4.5])
-    np.testing.assert_allclose(off.predict({"x": np.array([1.0])}, {"a": 1, "b": 0})["yhat"],
-                               [1.0])
+    np.testing.assert_allclose(off.predict({"x": np.array([1.0])}, {"a": 1, "b": 0})["yhat"], [1.0])
 
 
 def test_offline_refuses_what_a_bundle_does_not_hold(bundle):

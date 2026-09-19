@@ -8,6 +8,7 @@ the logout event, a nonce, a missing sub/sid, a missing jti, and a replayed jti.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,21 +33,34 @@ AFTER = "http://127.0.0.1:8600/login?signed_out=1"
 class LogoutIdP(FakeIdP):
     def handler(self, request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/.well-known/openid-configuration"):
-            return httpx.Response(200, json={
-                "issuer": ISSUER, "authorization_endpoint": f"{ISSUER}/authorize",
-                "token_endpoint": f"{ISSUER}/token", "jwks_uri": f"{ISSUER}/jwks",
-                "end_session_endpoint": f"{ISSUER}/logout"})
+            return httpx.Response(
+                200,
+                json={
+                    "issuer": ISSUER,
+                    "authorization_endpoint": f"{ISSUER}/authorize",
+                    "token_endpoint": f"{ISSUER}/token",
+                    "jwks_uri": f"{ISSUER}/jwks",
+                    "end_session_endpoint": f"{ISSUER}/logout",
+                },
+            )
         return super().handler(request)
 
     def id_token(self) -> str:
         self.overrides.setdefault("sid", "sid-" + self.claims.get("preferred_username", "x"))
         return super().id_token()
 
-    def logout_token(self, *, drop: tuple[str, ...] = (), rogue: bool = False,
-                     **claims) -> str:
+    def logout_token(self, *, drop: tuple[str, ...] = (), rogue: bool = False, **claims) -> str:
         now = time.time()
-        body = {"iss": ISSUER, "aud": "maya", "iat": now, "jti": uuid.uuid4().hex,
-                "events": {EVENT: {}}, "sub": "sub-oona", "sid": "sid-oona", **claims}
+        body = {
+            "iss": ISSUER,
+            "aud": "maya",
+            "iat": now,
+            "jti": uuid.uuid4().hex,
+            "events": {EVENT: {}},
+            "sub": "sub-oona",
+            "sid": "sid-oona",
+            **claims,
+        }
         for key in drop:
             body.pop(key, None)
         header = {"alg": "RS256", "kid": "k1", "typ": "logout+jwt"}
@@ -58,13 +72,18 @@ class LogoutIdP(FakeIdP):
 
 @pytest.fixture(scope="module")
 def oidc():
-    platform = build_platform([
-        "--auth.mode=hybrid", f"--auth.sso.issuer={ISSUER}",
-        f"--auth.sso.post_logout_redirect_uri={AFTER}",
-        "--auth.sso.group_role_map.quants=model_designer"])
+    platform = build_platform(
+        [
+            "--auth.mode=hybrid",
+            f"--auth.sso.issuer={ISSUER}",
+            f"--auth.sso.post_logout_redirect_uri={AFTER}",
+            "--auth.sso.group_role_map.quants=model_designer",
+        ]
+    )
     idp = LogoutIdP()
     platform.sso.transport = httpx.MockTransport(idp.handler)
     from maya.api.app import create_api
+
     yield platform, idp, create_api(platform)
     platform.shutdown()
 
@@ -97,8 +116,9 @@ def test_a_logout_token_ends_that_sign_in_and_nothing_else(oidc):
     assert Client(app=app).auth.oidc_backchannel_logout(token)["sessions_ended"] == 1
     assert not _alive(app, mine) and _alive(app, other)
     with platform.uow() as uow:
-        entry = uow.repo("audit_events").find_one(action="auth.sso_logout",
-                                                  object_ref="oidc:sub-oona")
+        entry = uow.repo("audit_events").find_one(
+            action="auth.sso_logout", object_ref="oidc:sub-oona"
+        )
         assert entry and entry["detail"]["channel"] == "back"
 
 
@@ -107,28 +127,35 @@ def test_a_token_naming_only_a_sid_ends_that_session(oidc):
     idp.overrides = {"sid": "sid-only-this"}
     token = _sign_in(app, idp, preferred_username="omar", groups=["quants"])["token"]
     out = Client(app=app).auth.oidc_backchannel_logout(
-        idp.logout_token(drop=("sub",), sid="sid-only-this"))
+        idp.logout_token(drop=("sub",), sid="sid-only-this")
+    )
     assert out["sessions_ended"] == 1 and not _alive(app, token)
 
 
-@pytest.mark.parametrize("change, reason", [
-    ({"rogue": True}, "signature does not verify"),
-    ({"iss": "https://evil.example.test"}, "issuer mismatch"),
-    ({"aud": "someone-else"}, "audience"),
-    ({"iat": time.time() - 3600}, "not fresh"),
-    ({"events": {}}, "no logout event"),
-    ({"nonce": "n"}, "must not carry a nonce"),
-    ({"drop": ("sub", "sid")}, "sub or a sid"),
-    ({"drop": ("jti",)}, "jti"),
-])
+@pytest.mark.parametrize(
+    "change, reason",
+    [
+        ({"rogue": True}, "signature does not verify"),
+        ({"iss": "https://evil.example.test"}, "issuer mismatch"),
+        ({"aud": "someone-else"}, "audience"),
+        ({"iat": time.time() - 3600}, "not fresh"),
+        ({"events": {}}, "no logout event"),
+        ({"nonce": "n"}, "must not carry a nonce"),
+        ({"drop": ("sub", "sid")}, "sub or a sid"),
+        ({"drop": ("jti",)}, "jti"),
+    ],
+)
 def test_each_logout_token_check_refuses_on_its_own(oidc, change, reason):
     platform, idp, app = oidc
     idp.overrides = {}
     token = _sign_in(app, idp, preferred_username="oona", groups=["quants"])["token"]
     from starlette.testclient import TestClient
+
     web = TestClient(app)
-    resp = web.post("/api/v1/auth/sso/oidc/backchannel-logout",
-                    data={"logout_token": idp.logout_token(**change)})
+    resp = web.post(
+        "/api/v1/auth/sso/oidc/backchannel-logout",
+        data={"logout_token": idp.logout_token(**change)},
+    )
     assert resp.status_code == 400 and reason in resp.json()["detail"], resp.text
     assert resp.headers["cache-control"] == "no-store"
     assert _alive(app, token), "a refused token ends nothing"

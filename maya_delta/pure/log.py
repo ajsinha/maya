@@ -13,6 +13,7 @@ by name (``UnsupportedFeature``) rather than approximated.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,8 +34,12 @@ SUPPORTED_READER_FEATURES = frozenset({"timestampNtz"})
 SUPPORTED_WRITER_FEATURES = frozenset({"appendOnly", "invariants", "timestampNtz"})
 # Legacy (pre-feature) protocol versions and what they imply.
 LEGACY_READER = {2: "columnMapping"}
-LEGACY_WRITER = {3: "checkConstraints", 4: "changeDataFeed/generatedColumns",
-                 5: "columnMapping", 6: "identityColumns"}
+LEGACY_WRITER = {
+    3: "checkConstraints",
+    4: "changeDataFeed/generatedColumns",
+    5: "columnMapping",
+    6: "identityColumns",
+}
 
 CHECKPOINT_INTERVAL = 10
 _COMMIT_RE = re.compile(r"^(\d{20})\.json$")
@@ -57,7 +62,9 @@ class Snapshot:
     version: int
     protocol: dict[str, Any]
     metadata: dict[str, Any]
-    files: dict[str, dict[str, Any]] = field(default_factory=dict)  # path -> add action, in add order
+    files: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )  # path -> add action, in add order
 
     @property
     def partition_columns(self) -> list[str]:
@@ -149,13 +156,18 @@ def _apply(snap: Snapshot, actions: list[dict[str, Any]]) -> None:
             snap.files.pop(action["remove"]["path"], None)
 
 
-def check_reader_protocol(protocol: dict[str, Any], configuration: dict[str, Any] | None = None) -> None:
+def check_reader_protocol(
+    protocol: dict[str, Any], configuration: dict[str, Any] | None = None
+) -> None:
     """Refuse, by name, a table this reader cannot faithfully read."""
     rv = int(protocol.get("minReaderVersion", 1))
     for feature in protocol.get("readerFeatures") or []:
         if feature not in SUPPORTED_READER_FEATURES:
             raise UnsupportedFeature(feature, "reader feature not implemented by the pure backend")
-    if rv in LEGACY_READER and (configuration or {}).get("delta.columnMapping.mode", "none") != "none":
+    if (
+        rv in LEGACY_READER
+        and (configuration or {}).get("delta.columnMapping.mode", "none") != "none"
+    ):
         raise UnsupportedFeature(LEGACY_READER[rv])
     if rv > 3:
         raise UnsupportedFeature(f"readerVersion{rv}")
@@ -173,8 +185,11 @@ def check_writer_protocol(snap: Snapshot) -> None:
     if wv > 7:
         raise UnsupportedFeature(f"writerVersion{wv}")
     from maya_delta.schema import field_metadata_has
+
     if field_metadata_has(snap.metadata.get("schemaString", '{"fields":[]}'), "delta.invariants"):
-        raise UnsupportedFeature("invariants", "a field declares an invariant the pure writer cannot enforce")
+        raise UnsupportedFeature(
+            "invariants", "a field declares an invariant the pure writer cannot enforce"
+        )
 
 
 def load_snapshot(root: Path, version: int | None = None) -> Snapshot:
@@ -215,61 +230,101 @@ def try_commit(root: Path, version: int, actions: list[dict[str, Any]]) -> bool:
 
 # ------------------------------------------------------------------ checkpoints
 
-_PROTOCOL_T = pa.struct([("minReaderVersion", pa.int32()), ("minWriterVersion", pa.int32()),
-                         ("readerFeatures", pa.list_(pa.string())),
-                         ("writerFeatures", pa.list_(pa.string()))])
-_METADATA_T = pa.struct([
-    ("id", pa.string()), ("name", pa.string()), ("description", pa.string()),
-    ("format", pa.struct([("provider", pa.string()), ("options", pa.map_(pa.string(), pa.string()))])),
-    ("schemaString", pa.string()), ("partitionColumns", pa.list_(pa.string())),
-    ("configuration", pa.map_(pa.string(), pa.string())), ("createdTime", pa.int64()),
-])
-_ADD_T = pa.struct([
-    ("path", pa.string()), ("partitionValues", pa.map_(pa.string(), pa.string())),
-    ("size", pa.int64()), ("modificationTime", pa.int64()), ("dataChange", pa.bool_()),
-    ("stats", pa.string()),
-])
-_REMOVE_T = pa.struct([("path", pa.string()), ("deletionTimestamp", pa.int64()),
-                       ("dataChange", pa.bool_())])
+_PROTOCOL_T = pa.struct(
+    [
+        ("minReaderVersion", pa.int32()),
+        ("minWriterVersion", pa.int32()),
+        ("readerFeatures", pa.list_(pa.string())),
+        ("writerFeatures", pa.list_(pa.string())),
+    ]
+)
+_METADATA_T = pa.struct(
+    [
+        ("id", pa.string()),
+        ("name", pa.string()),
+        ("description", pa.string()),
+        (
+            "format",
+            pa.struct([("provider", pa.string()), ("options", pa.map_(pa.string(), pa.string()))]),
+        ),
+        ("schemaString", pa.string()),
+        ("partitionColumns", pa.list_(pa.string())),
+        ("configuration", pa.map_(pa.string(), pa.string())),
+        ("createdTime", pa.int64()),
+    ]
+)
+_ADD_T = pa.struct(
+    [
+        ("path", pa.string()),
+        ("partitionValues", pa.map_(pa.string(), pa.string())),
+        ("size", pa.int64()),
+        ("modificationTime", pa.int64()),
+        ("dataChange", pa.bool_()),
+        ("stats", pa.string()),
+    ]
+)
+_REMOVE_T = pa.struct(
+    [("path", pa.string()), ("deletionTimestamp", pa.int64()), ("dataChange", pa.bool_())]
+)
 
 
 def _protocol_row(p: dict[str, Any]) -> dict[str, Any]:
-    return {"minReaderVersion": int(p.get("minReaderVersion", 1)),
-            "minWriterVersion": int(p.get("minWriterVersion", 2)),
-            "readerFeatures": p.get("readerFeatures"), "writerFeatures": p.get("writerFeatures")}
+    return {
+        "minReaderVersion": int(p.get("minReaderVersion", 1)),
+        "minWriterVersion": int(p.get("minWriterVersion", 2)),
+        "readerFeatures": p.get("readerFeatures"),
+        "writerFeatures": p.get("writerFeatures"),
+    }
 
 
 def _metadata_row(md: dict[str, Any]) -> dict[str, Any]:
     fmt = md.get("format") or {"provider": "parquet", "options": {}}
-    return {"id": md.get("id"), "name": md.get("name"), "description": md.get("description"),
-            "format": {"provider": fmt.get("provider", "parquet"),
-                       "options": list(_map_to_dict(fmt.get("options")).items())},
-            "schemaString": md["schemaString"], "partitionColumns": md.get("partitionColumns") or [],
-            "configuration": list(_map_to_dict(md.get("configuration")).items()),
-            "createdTime": md.get("createdTime")}
+    return {
+        "id": md.get("id"),
+        "name": md.get("name"),
+        "description": md.get("description"),
+        "format": {
+            "provider": fmt.get("provider", "parquet"),
+            "options": list(_map_to_dict(fmt.get("options")).items()),
+        },
+        "schemaString": md["schemaString"],
+        "partitionColumns": md.get("partitionColumns") or [],
+        "configuration": list(_map_to_dict(md.get("configuration")).items()),
+        "createdTime": md.get("createdTime"),
+    }
 
 
 def _add_row(a: dict[str, Any]) -> dict[str, Any]:
     stats = a.get("stats")
-    return {"path": a["path"], "partitionValues": list(_map_to_dict(a.get("partitionValues")).items()),
-            "size": int(a["size"]), "modificationTime": int(a.get("modificationTime", 0)),
-            "dataChange": bool(a.get("dataChange", True)),
-            "stats": stats if isinstance(stats, str) or stats is None else json.dumps(stats)}
+    return {
+        "path": a["path"],
+        "partitionValues": list(_map_to_dict(a.get("partitionValues")).items()),
+        "size": int(a["size"]),
+        "modificationTime": int(a.get("modificationTime", 0)),
+        "dataChange": bool(a.get("dataChange", True)),
+        "stats": stats if isinstance(stats, str) or stats is None else json.dumps(stats),
+    }
 
 
 def write_checkpoint(root: Path, snap: Snapshot) -> None:
     """Classic single-file Parquet checkpoint of ``snap`` plus ``_last_checkpoint``."""
-    rows: list[dict[str, Any]] = [{"protocol": _protocol_row(snap.protocol)},
-                                  {"metaData": _metadata_row(snap.metadata)}]
+    rows: list[dict[str, Any]] = [
+        {"protocol": _protocol_row(snap.protocol)},
+        {"metaData": _metadata_row(snap.metadata)},
+    ]
     rows += [{"add": _add_row(a)} for a in snap.files.values()]
     cols: dict[str, list[Any]] = {"protocol": [], "metaData": [], "add": [], "remove": []}
     for row in rows:
         for key in cols:
             cols[key].append(row.get(key))
-    table = pa.table({"protocol": pa.array(cols["protocol"], _PROTOCOL_T),
-                      "metaData": pa.array(cols["metaData"], _METADATA_T),
-                      "add": pa.array(cols["add"], _ADD_T),
-                      "remove": pa.array(cols["remove"], _REMOVE_T)})
+    table = pa.table(
+        {
+            "protocol": pa.array(cols["protocol"], _PROTOCOL_T),
+            "metaData": pa.array(cols["metaData"], _METADATA_T),
+            "add": pa.array(cols["add"], _ADD_T),
+            "remove": pa.array(cols["remove"], _REMOVE_T),
+        }
+    )
     final = log_dir(root) / f"{snap.version:020d}.checkpoint.parquet"
     tmp = final.with_name(final.name + ".tmp")
     pq.write_table(table, tmp)

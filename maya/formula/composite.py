@@ -4,6 +4,7 @@ combination rule, governed as one model under one warrant.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -56,8 +57,9 @@ def validate_composite(comp: Any) -> list[str]:
     return errors
 
 
-def union_contract(member_irs: dict[str, dict[str, Any]],
-                   aliases: dict[str, dict[str, str]] | None = None) -> list[dict[str, Any]]:
+def union_contract(
+    member_irs: dict[str, dict[str, Any]], aliases: dict[str, dict[str, str]] | None = None
+) -> list[dict[str, Any]]:
     """The union of member input contracts (§8.7).
 
     ``aliases`` maps ``{member_alias: {member_input: contract_name}}`` so two
@@ -79,23 +81,33 @@ def union_contract(member_irs: dict[str, dict[str, Any]],
                     raise _mismatch(name, prev, item, alias)
                 prev["needed_by"].append(alias)
             else:
-                merged[name] = {"name": name, "type": item["type"], "unit": item.get("unit"),
-                                "role": "feature", "needed_by": [alias]}
+                merged[name] = {
+                    "name": name,
+                    "type": item["type"],
+                    "unit": item.get("unit"),
+                    "role": "feature",
+                    "needed_by": [alias],
+                }
     return [merged[k] for k in sorted(merged)]
 
 
-def _mismatch(name: str, prev: dict[str, Any], item: dict[str, Any],
-             alias: str) -> Exception:
+def _mismatch(name: str, prev: dict[str, Any], item: dict[str, Any], alias: str) -> Exception:
     from maya.core.errors import ContractMismatch
+
     return ContractMismatch(
         f"attribute '{name}' is wanted as {prev['type']} by {prev['needed_by']} "
-        f"and as {item['type']} by '{alias}'", attribute=name)
+        f"and as {item['type']} by '{alias}'",
+        attribute=name,
+    )
 
 
 def capped_maturity(member_maturities: dict[str, str] | list[str]) -> str:
     """The highest maturity a composite may hold: its lowest member's."""
-    values = list(member_maturities.values()) if isinstance(member_maturities, dict) \
+    values = (
+        list(member_maturities.values())
+        if isinstance(member_maturities, dict)
         else list(member_maturities)
+    )
     if not values:
         return "experimental"
     for m in values:
@@ -129,7 +141,7 @@ def detect_cycle(graph: dict[str, list[str]]) -> list[str] | None:
         stack.append(node)
         for child in graph.get(node, []):
             if state.get(child) == 1:
-                return stack[stack.index(child):] + [child]
+                return stack[stack.index(child) :] + [child]
             if state.get(child) is None:
                 found = visit(child)
                 if found:
@@ -161,8 +173,9 @@ def check_structure(graph: dict[str, list[str]], root: str, max_depth: int = MAX
         raise ValidationFailed("composite members form a cycle: " + " -> ".join(cycle), cycle=cycle)
     depth = nesting_depth(graph, root)
     if depth > max_depth:
-        raise ValidationFailed(f"composite nesting depth {depth} exceeds the cap of {max_depth}",
-                               depth=depth)
+        raise ValidationFailed(
+            f"composite nesting depth {depth} exceeds the cap of {max_depth}", depth=depth
+        )
 
 
 def is_partially_opaque(member_irs: dict[str, dict[str, Any]]) -> list[str]:

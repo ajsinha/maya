@@ -7,6 +7,7 @@ that needs a protocol capability this implementation does not have raises
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 

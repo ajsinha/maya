@@ -5,6 +5,7 @@ of day), NaN and None as null, and every scalar type.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -34,11 +35,15 @@ def test_vectorised_conversion_equals_the_per_value_one(seed):
     stamps[rng.random(n) < 0.1] = pd.NaT
     floats = pd.Series(rng.standard_normal(n))
     floats[rng.random(n) < 0.1] = np.nan
-    ints = pd.Series(rng.integers(-10**12, 10**12, n))
+    ints = pd.Series(rng.integers(-(10**12), 10**12, n))
     words = pd.Series(["a", "é", None, "", "long" * 20] * (n // 5))
     flags = pd.Series([True, False, None] * (n // 3), dtype=object)
-    for series, logical in ((stamps, "date"), (floats, "float64"), (ints, "int64"),
-                            (words, "string"), (flags, "bool"),
-                            (pd.Series([dt.date(1969, 12, 31), None, dt.date(2026, 9, 19)]),
-                             "date")):
+    for series, logical in (
+        (stamps, "date"),
+        (floats, "float64"),
+        (ints, "int64"),
+        (words, "string"),
+        (flags, "bool"),
+        (pd.Series([dt.date(1969, 12, 31), None, dt.date(2026, 9, 19)]), "date"),
+    ):
         assert shapes._array(series, logical).equals(_old(series, logical)), logical

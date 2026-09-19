@@ -5,6 +5,7 @@ validation for features (§4, §5.1–§5.8).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -29,8 +30,7 @@ MAX_DERIVATION_DEPTH = 16
 
 # -- workspace overlay (§28.3) --------------------------------------------------
 # (kind, object id) -> {"base_version_no", "definition"} while resolving inside a workspace
-_OVERLAY: ContextVar[dict[tuple[str, str], dict[str, Any]]] = ContextVar("maya_overlay",
-                                                                         default={})
+_OVERLAY: ContextVar[dict[tuple[str, str], dict[str, Any]]] = ContextVar("maya_overlay", default={})
 
 
 @contextlib.contextmanager
@@ -43,20 +43,22 @@ def overlay(changes: dict[tuple[str, str], dict[str, Any]]) -> Iterator[None]:
         _OVERLAY.reset(token)
 
 
-def overlaid(kind: str, obj_id: str, version: dict[str, Any],
-             requested_version: int | None) -> dict[str, Any]:
+def overlaid(
+    kind: str, obj_id: str, version: dict[str, Any], requested_version: int | None
+) -> dict[str, Any]:
     """The version to resolve: the staged proposal when it replaces this one."""
     change = _OVERLAY.get().get((kind, obj_id))
     if change is None:
         return version
     if requested_version is not None and requested_version != change["base_version_no"]:
-        return version          # a pinned reference to another version is untouched
+        return version  # a pinned reference to another version is untouched
     return {**version, "definition": change["definition"], "workspace": True}
 
 
 # -- lookups ------------------------------------------------------------------
-def find_object(uow: Any, table: str, kind: str, ref: refs.Ref) -> tuple[dict[str, Any],
-                                                                        dict[str, Any]]:
+def find_object(
+    uow: Any, table: str, kind: str, ref: refs.Ref
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """The object and its namespace for a reference (namespace optional if unique)."""
     if ref.namespace:
         ns = uow.repo("namespaces").find_one(name=ref.namespace)
@@ -70,24 +72,29 @@ def find_object(uow: Any, table: str, kind: str, ref: refs.Ref) -> tuple[dict[st
     if not matches:
         raise NotFound(f"{kind} '{ref.name}' does not exist", ref=str(ref))
     if len(matches) > 1:
-        raise ValidationFailed(f"'{ref.name}' exists in several namespaces; qualify it",
-                               ref=str(ref))
+        raise ValidationFailed(
+            f"'{ref.name}' exists in several namespaces; qualify it", ref=str(ref)
+        )
     return matches[0], uow.repo("namespaces").require(matches[0]["namespace_id"])
 
 
-def version_of(uow: Any, table: str, fk: str, obj: dict[str, Any],
-               version_no: int | None) -> dict[str, Any]:
+def version_of(
+    uow: Any, table: str, fk: str, obj: dict[str, Any], version_no: int | None
+) -> dict[str, Any]:
     """A specific version, or — for a bare reference — the latest approved one."""
     if version_no is not None:
         row = uow.repo(table).find_one(**{fk: obj["id"], "version_no": version_no})
         if row is None:
             raise NotFound(f"'{obj['name']}' has no version {version_no}")
         return row
-    rows = uow.repo(table).list(**{fk: obj["id"], "state__in": APPROVED_STATES},
-                                order_by=["-version_no"], limit=1)
+    rows = uow.repo(table).list(
+        **{fk: obj["id"], "state__in": APPROVED_STATES}, order_by=["-version_no"], limit=1
+    )
     if not rows:
-        raise NotApproved(f"'{obj['name']}' has no approved version; a bare reference "
-                          "resolves only to the latest approved version")
+        raise NotApproved(
+            f"'{obj['name']}' has no approved version; a bare reference "
+            "resolves only to the latest approved version"
+        )
     return rows[0]
 
 
@@ -115,8 +122,9 @@ def in_state(uow: Any, table: str, fk: str, state: str | None, keep: Any) -> Any
 
 
 # -- effective definitions -------------------------------------------------------
-def effective_feature_definition(uow: Any, definition: dict[str, Any], *,
-                                 depth: int = 0) -> dict[str, Any]:
+def effective_feature_definition(
+    uow: Any, definition: dict[str, Any], *, depth: int = 0
+) -> dict[str, Any]:
     """Resolve ``extends`` into a complete definition: parent, then the stored diff."""
     ext = definition.get("extends")
     if not ext:
@@ -125,15 +133,17 @@ def effective_feature_definition(uow: Any, definition: dict[str, Any], *,
         raise ValidationFailed("Inheritance chain exceeds the depth cap")
     parent_ref = refs.parse(ext["parent"], "feature")
     feature, ns = find_object(uow, "features", "feature", parent_ref)
-    parent_version = version_of(uow, "feature_versions", "feature_id", feature,
-                                parent_ref.version)
+    parent_version = version_of(uow, "feature_versions", "feature_id", feature, parent_ref.version)
     parent = effective_feature_definition(uow, parent_version["definition"], depth=depth + 1)
     # The child's rows are the parent's rows: inheritance reuses the source binding,
     # so the child reads the ingest log of the feature that actually holds the data.
     if (parent.get("source") or {}).get("type") != "derived":
         parent.setdefault("data_from", f"{ns['name']}/{feature['name']}")
-        parent.setdefault("data_schema", [[c, parent["index_types"][c]] for c in parent["index"]]
-                          + [[a["name"], a["type"]] for a in parent["schema"]])
+        parent.setdefault(
+            "data_schema",
+            [[c, parent["index_types"][c]] for c in parent["index"]]
+            + [[a["name"], a["type"]] for a in parent["schema"]],
+        )
     return apply_override(parent, ext.get("override") or {}, definition)
 
 
@@ -150,13 +160,16 @@ def pinned_parent_errors(uow: Any, definition: dict[str, Any]) -> list[str]:
     feature, _ = find_object(uow, "features", "feature", parent_ref)
     parent = version_of(uow, "feature_versions", "feature_id", feature, parent_ref.version)
     if parent["state"] not in FROZEN_STATES:
-        return [f"extends {ext['parent']}, which is {parent['state']}: a pinned parent must "
-                "be an approved version, or the child would change when the draft does"]
+        return [
+            f"extends {ext['parent']}, which is {parent['state']}: a pinned parent must "
+            "be an approved version, or the child would change when the draft does"
+        ]
     return []
 
 
-def apply_override(parent: dict[str, Any], override: dict[str, Any],
-                   child: dict[str, Any]) -> dict[str, Any]:
+def apply_override(
+    parent: dict[str, Any], override: dict[str, Any], child: dict[str, Any]
+) -> dict[str, Any]:
     """The child's stored diff applied to the parent (a diff, never a copy)."""
     out = copy.deepcopy(parent)
     out.pop("extends", None)
@@ -166,8 +179,9 @@ def apply_override(parent: dict[str, Any], override: dict[str, Any],
         if key in (override.get("resolution") or {}):
             res[key] = override["resolution"][key]
     if override.get("filter"):
-        out["transform"] = [{"op": "filter", "expr": override["filter"]}] + \
-            list(out.get("transform") or [])
+        out["transform"] = [{"op": "filter", "expr": override["filter"]}] + list(
+            out.get("transform") or []
+        )
     out["transform"] = list(out.get("transform") or []) + list(override.get("transform") or [])
     out["quality"] = list(out.get("quality") or []) + list(override.get("quality") or [])
     for attr in override.get("add_attributes") or []:
@@ -186,14 +200,18 @@ def definition_hash(effective: dict[str, Any], self_ref: str | None = None) -> s
     The data source is part of it: two features with the same schema over
     different ingest logs are different definitions, not duplicates.
     """
-    body = {k: effective.get(k) for k in ("index", "index_types", "schema", "source",
-                                         "transform", "quality")}
+    body = {
+        k: effective.get(k)
+        for k in ("index", "index_types", "schema", "source", "transform", "quality")
+    }
     if (effective.get("source") or {}).get("type") != "derived":
         body["data_from"] = effective.get("data_from") or self_ref
     res = effective.get("resolution") or {}
     body["resolution"] = {
         "grid": res.get("grid", "as_is"),
-        "rules": {a: parse_rule(r).canonical() for a, r in sorted((res.get("rules") or {}).items())},
+        "rules": {
+            a: parse_rule(r).canonical() for a, r in sorted((res.get("rules") or {}).items())
+        },
         "default": parse_rule(res["default"]).canonical() if res.get("default") else None,
     }
     body["transform"] = transforms.canonical_pipeline(effective.get("transform") or [])
@@ -201,8 +219,9 @@ def definition_hash(effective: dict[str, Any], self_ref: str | None = None) -> s
     src.pop("freshness", None)
     if src.get("type") == "derived":
         d = src.get("derivation") or {}
-        src["derivation"] = algebra.canonical_derivation(d.get("operator", ""), d.get("options"),
-                                                         d.get("operands") or [])
+        src["derivation"] = algebra.canonical_derivation(
+            d.get("operator", ""), d.get("options"), d.get("operands") or []
+        )
     body["source"] = src
     return djson.canonical_hash(body)
 
@@ -226,6 +245,7 @@ def change_class(old: dict[str, Any] | None, new: dict[str, Any]) -> str | None:
 def validate_feature_definition(d: dict[str, Any], *, production: bool = False) -> list[str]:  # noqa: C901 - a checklist
     """Every problem with a feature definition, at definition time (§5.8 typing)."""
     from maya.security.licence import validate as validate_licence
+
     errors: list[str] = [f"licence: {e}" for e in validate_licence(d.get("licence"))]
     index = d.get("index") or []
     index_types = d.get("index_types") or {}
@@ -246,9 +266,11 @@ def validate_feature_definition(d: dict[str, Any], *, production: bool = False) 
         errors.append(f"source.type must be one of {', '.join(SUPPORTED_SOURCES)}")
     elif src == "sql":
         from maya.services.sources import validate_sql_source
+
         errors += validate_sql_source(d.get("source") or {})
     elif src == "python":
         from maya.services.sources import validate_python_source
+
         errors += validate_python_source(d.get("source") or {})
     if src != "derived":
         errors += _validate_index(index, index_types)
@@ -275,8 +297,10 @@ def _validate_index(index: list[str], index_types: dict[str, str]) -> list[str]:
         if col not in index_types:
             errors.append(f"index column '{col}' has no declared type")
     if index and index_types.get(index[0]) not in ("date", "timestamp"):
-        errors.append(f"the first index column '{index[0]}' is the event time and must be "
-                      "of type date or timestamp (bitemporality, §5.1)")
+        errors.append(
+            f"the first index column '{index[0]}' is the event time and must be "
+            "of type date or timestamp (bitemporality, §5.1)"
+        )
     return errors
 
 
@@ -295,8 +319,10 @@ def _validate_schema(schema: list[dict[str, Any]], index: list[str]) -> list[str
         except (ValidationFailed, ValueError) as exc:
             errors.append(f"attribute '{a.get('name')}': {exc}")
         if a.get("tag") == "price" and str(a.get("type", "")).startswith("float"):
-            errors.append(f"warning: '{a['name']}' carries the price tag on a float; "
-                          "decimal is mandatory for monetary attributes (§5.1)")
+            errors.append(
+                f"warning: '{a['name']}' carries the price tag on a float; "
+                "decimal is mandatory for monetary attributes (§5.1)"
+            )
     return [e for e in errors]
 
 

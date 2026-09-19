@@ -17,6 +17,7 @@ extremes and every supported type.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -36,16 +37,20 @@ def _segments(col: Any) -> Any:
     followed by a body; a null is the single byte ``N``."""
     import pyarrow as pa
     import pyarrow.compute as pc
+
     t = col.type
     n = len(col)
     valid = np.asarray(col.is_valid()) if col.null_count else np.ones(n, dtype=bool)
     if pa.types.is_floating(t):
         v = pc.fill_null(col.cast(pa.float64()), 0.0).to_numpy(zero_copy_only=False)
-        v = v + 0.0                                              # -0.0 -> 0.0
+        v = v + 0.0  # -0.0 -> 0.0
         v = np.where(np.isnan(v), _CANON_NAN, v)
         return _fixed(ref.T_FLOAT, v.astype(">f8").view(np.uint8).reshape(n, 8), valid)
-    if pa.types.is_integer(t) and t.bit_width <= 64 and not (
-            pa.types.is_unsigned_integer(t) and t.bit_width == 64):
+    if (
+        pa.types.is_integer(t)
+        and t.bit_width <= 64
+        and not (pa.types.is_unsigned_integer(t) and t.bit_width == 64)
+    ):
         v = pc.fill_null(col.cast(pa.int64()), 0).to_numpy(zero_copy_only=False)
         return _fixed(ref.T_INT, v.astype(">i8").view(np.uint8).reshape(n, 8), valid)
     if pa.types.is_boolean(t):
@@ -66,7 +71,7 @@ def _segments(col: Any) -> Any:
 def _fixed(tag: bytes, body: np.ndarray, valid: np.ndarray):
     n, w = body.shape
     enc = np.empty((n, w + 1), dtype=np.uint8)
-    enc[:, 0] = np.where(valid, tag[0], ref.T_NULL[0])     # a null row is the byte N
+    enc[:, 0] = np.where(valid, tag[0], ref.T_NULL[0])  # a null row is the byte N
     enc[:, 1:] = body
     lengths = np.where(valid, w + 1, 1)
     flat = enc.reshape(-1)
@@ -76,11 +81,20 @@ def _fixed(tag: bytes, body: np.ndarray, valid: np.ndarray):
 
 def _strings(col: Any, valid: np.ndarray):
     import pyarrow as pa
-    arr = col.cast(pa.large_string()).combine_chunks() if hasattr(col, "combine_chunks") \
+
+    arr = (
+        col.cast(pa.large_string()).combine_chunks()
+        if hasattr(col, "combine_chunks")
         else col.cast(pa.large_string())
-    offsets = np.frombuffer(arr.buffers()[1], dtype=np.int64)[arr.offset:arr.offset + len(arr) + 1]
-    data = np.frombuffer(arr.buffers()[2], dtype=np.uint8) if arr.buffers()[2] is not None \
+    )
+    offsets = np.frombuffer(arr.buffers()[1], dtype=np.int64)[
+        arr.offset : arr.offset + len(arr) + 1
+    ]
+    data = (
+        np.frombuffer(arr.buffers()[2], dtype=np.uint8)
+        if arr.buffers()[2] is not None
         else np.zeros(0, dtype=np.uint8)
+    )
     n = len(arr)
     sizes = (offsets[1:] - offsets[:-1]).astype(np.int64)
     sizes = np.where(valid, sizes, 0)
@@ -136,7 +150,7 @@ def row_digests(table: Any) -> list[bytes] | None:
             idx = dest[valid][:, None] + np.arange(w)
             out[idx.reshape(-1)] = flat.reshape(n, w)[valid].reshape(-1)
             out[dest[~valid]] = ref.T_NULL[0]
-        else:                                      # variable width (strings): byte by byte
+        else:  # variable width (strings): byte by byte
             total = int(lengths.sum())
             row_of_byte = np.repeat(np.arange(n), lengths)
             within = np.arange(total) - np.repeat(np.cumsum(lengths) - lengths, lengths)
@@ -169,4 +183,4 @@ def _by_layout(parts: list[Any], n: int) -> list[bytes] | None:
     buf = np.ascontiguousarray(np.hstack(slabs)).tobytes()
     step = sum(s.shape[1] for s in slabs)
     sha = hashlib.sha256
-    return [sha(buf[i:i + step]).digest() for i in range(0, len(buf), step)]
+    return [sha(buf[i : i + step]).digest() for i in range(0, len(buf), step)]

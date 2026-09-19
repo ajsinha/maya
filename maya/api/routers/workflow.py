@@ -3,6 +3,7 @@ Workflow endpoints (§10): queue, policies, comments, history, campaigns.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -49,8 +50,12 @@ def policy_yaml(policy_id: str, me: Principal = Me, plat: Any = Plat) -> str:
 
 @router.post("/policies", status_code=201)
 def draft_policy(body: s.PolicyIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.draft_policy(me, body.object_type, body.policy, scope=body.scope,
-                                             note=body.note), 201)
+    return ok(
+        plat.workflow_svc.draft_policy(
+            me, body.object_type, body.policy, scope=body.scope, note=body.note
+        ),
+        201,
+    )
 
 
 @router.post("/policies/import", status_code=201)
@@ -60,8 +65,12 @@ def import_policy(body: s.PolicyYamlIn, me: Principal = Me, plat: Any = Plat) ->
 
 @router.post("/policies/validate")
 def validate_policy(body: s.PolicyIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok({"errors": plat.workflow_svc.validate(body.policy),
-               "impact": plat.workflow_svc.preview(body.object_type, body.policy)})
+    return ok(
+        {
+            "errors": plat.workflow_svc.validate(body.policy),
+            "impact": plat.workflow_svc.preview(body.object_type, body.policy),
+        }
+    )
 
 
 @router.post("/policies/{policy_id}/activate")
@@ -86,8 +95,17 @@ def comments(object_type: str, object_id: str, me: Principal = Me, plat: Any = P
 
 @router.post("/comments", status_code=201)
 def add_comment(body: s.CommentIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.comment(me, body.object_type, body.object_id, body.body,
-                                        blocking=body.blocking, anchor=body.anchor), 201)
+    return ok(
+        plat.workflow_svc.comment(
+            me,
+            body.object_type,
+            body.object_id,
+            body.body,
+            blocking=body.blocking,
+            anchor=body.anchor,
+        ),
+        201,
+    )
 
 
 @router.post("/comments/{comment_id}/resolve")
@@ -97,8 +115,16 @@ def resolve_comment(comment_id: str, me: Principal = Me, plat: Any = Plat) -> Re
 
 @router.post("/transitions")
 def transition(body: s.GenericTransitionIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.dispatch_transition(me, body.object_type, body.object_id, body.transition,
-                                       rationale=body.rationale, force=body.force))
+    return ok(
+        plat.dispatch_transition(
+            me,
+            body.object_type,
+            body.object_id,
+            body.transition,
+            rationale=body.rationale,
+            force=body.force,
+        )
+    )
 
 
 @router.get("/campaigns")
@@ -108,8 +134,10 @@ def campaigns(me: Principal = Me, plat: Any = Plat) -> Response:
 
 @router.post("/campaigns", status_code=201)
 def run_campaign(body: s.CampaignIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.run_campaign(me, body.name, body.transition, body.items,
-                                             body.rationale), 201)
+    return ok(
+        plat.workflow_svc.run_campaign(me, body.name, body.transition, body.items, body.rationale),
+        201,
+    )
 
 
 @router.get("/delegations")
@@ -119,10 +147,17 @@ def delegations(me: Principal = Me, plat: Any = Plat) -> Response:
 
 @router.post("/delegations", status_code=201)
 def delegate(body: s.DelegationIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.delegate(
-        me, to=body.to, starts_on=parse_date(body.starts_on, "starts_on"),
-        ends_on=parse_date(body.ends_on, "ends_on"), object_types=body.object_types,
-        reason=body.reason), 201)
+    return ok(
+        plat.workflow_svc.delegate(
+            me,
+            to=body.to,
+            starts_on=parse_date(body.starts_on, "starts_on"),
+            ends_on=parse_date(body.ends_on, "ends_on"),
+            object_types=body.object_types,
+            reason=body.reason,
+        ),
+        201,
+    )
 
 
 @router.delete("/delegations/{delegation_id}")

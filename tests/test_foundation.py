@@ -6,6 +6,7 @@ crypto refusal, and the authorization function.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -29,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # -- configuration -------------------------------------------------------------------
 def _settings(tmp_path, *argv, text=None):
     from maya.config import load_settings
+
     cfg = tmp_path / "application.yaml"
     cfg.write_text(text or (ROOT / "config" / "application.yaml").read_text())
     sys.argv = ["x", *argv]
@@ -59,6 +61,7 @@ def test_local_overlay_wins_and_no_silent_defaults(tmp_path, monkeypatch):
 def test_tracked_config_carries_no_secret():
     sys.path.insert(0, str(ROOT / "tools" / "ci"))
     import no_secrets
+
     assert no_secrets.main() == 0
 
 
@@ -89,7 +92,7 @@ def test_canonical_bytes_are_fixed():
     row = [1, 1.5, "a", None, dt.date(2026, 1, 2), True, [1.0, 2.0]]
     digest = hashlib.sha256(canonical.encode_row(row)).hexdigest()
     assert digest == "8982262821fa5adcf6e0fceac43a607a387e5839fd979e8196da282b2c64ca0e"
-    assert canonical.encode_value(dt.date(2026, 1, 2)) == b"D\x00\x00O\xe7"   # day 20455
+    assert canonical.encode_value(dt.date(2026, 1, 2)) == b"D\x00\x00O\xe7"  # day 20455
     assert canonical.encode_value(-0.0) == canonical.encode_value(0.0)
     assert canonical.encode_value(float("nan")) == canonical.encode_value(float("-nan"))
 
@@ -101,7 +104,7 @@ def test_chunker_is_content_defined():
     inserted = digests[:2500] + [hashlib.sha256(b"new").digest()] + digests[2500:]
     after = boundaries(inserted, params)
     same_prefix = [b for b in before if b[1] <= 2400]
-    assert after[:len(same_prefix)] == same_prefix, "an insert must not move earlier cuts"
+    assert after[: len(same_prefix)] == same_prefix, "an insert must not move earlier cuts"
     tail_before = [(s - 2500, e - 2500) for s, e in before if s >= 2700]
     tail_after = [(s - 2501, e - 2501) for s, e in after if s >= 2701]
     assert tail_before[-5:] == tail_after[-5:], "cuts after the insert re-synchronise"
@@ -126,6 +129,7 @@ def test_crypto_refuses_rather_than_downgrading(tmp_path):
     Backends.choices()["crypto"].available = False
     try:
         from maya.core.crypto import Signer
+
         with pytest.raises(CapabilityRefused, match="cryptography"):
             Signer(tmp_path)
     finally:
@@ -161,18 +165,23 @@ def test_acl_resolution_order():
     assert can(p, "read", obj, [], NS)
     assert not can(p, "update", obj, [], NS), "namespace default is read-only"
     assert not can(p, "read", obj, [], {"default_visibility": "private"})
-    deny = [{"principal_type": "user", "principal_id": "u1", "level": "read", "deny": True},
-            {"principal_type": "everyone", "principal_id": "*", "level": "own"}]
+    deny = [
+        {"principal_type": "user", "principal_id": "u1", "level": "read", "deny": True},
+        {"principal_type": "everyone", "principal_id": "*", "level": "own"},
+    ]
     assert not can(p, "read", obj, deny, NS), "deny wins"
     rw = [{"principal_type": "role", "principal_id": "feature_designer", "level": "read_write"}]
     assert can(p, "update", obj, rw, NS)
     assert can(p, "update", {**obj, "owner_id": "u1"}, [], NS), "owner edits"
     assert not can(p, "update", {**obj, "owner_id": "u1", "state": "sealed"}, [], NS)
     assert not can(_p("admin"), "update", {**obj, "state": "sealed"}, [], NS)
-    scratch = {"name": "scratch.x", "is_scratch": True, "owner_id": "x",
-               "default_visibility": "private"}
+    scratch = {
+        "name": "scratch.x",
+        "is_scratch": True,
+        "owner_id": "x",
+        "default_visibility": "private",
+    }
     assert not can(p, "read", obj, [], scratch)
     key = _p("feature_designer")
     key.principal_type, key.key_actions = "api_key", ["read"]
     assert not can(key, "update", {**obj, "owner_id": "u1"}, [], NS)
-

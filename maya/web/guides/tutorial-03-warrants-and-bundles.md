@@ -30,9 +30,13 @@ mgr2 = connect_as("mgr2")
 
 ```python
 # devi binds the model to the pinned panel
-tw = devi.training.create("eq", "linear_fit", "eq/linear@v1",
-                          "maya://featureset/eq/panel#q1/2026-02-28",
-                          spec={"target": "y", "seed": 7})
+tw = devi.training.create(
+    "eq",
+    "linear_fit",
+    "eq/linear@v1",
+    "maya://featureset/eq/panel#q1/2026-02-28",
+    spec={"target": "y", "seed": 7},
+)
 print(tw["name"], tw["state"])
 print(tw["contract_report"]["ok"], tw["contract_report"]["mapping"])
 cert = tw["leakage_certificate"]
@@ -111,6 +115,7 @@ fit on the training split:
 ```python
 # Fit y = a*x + b on the train split
 import numpy as np
+
 train = df[df["_split"] == "train"]
 a, b = np.polyfit(train["x"], train["y"], 1)
 print(round(a, 6), round(b, 6))
@@ -127,9 +132,9 @@ Quote the checksum you trained on.
 
 ```python
 # Upload a parameter set
-ps = devi.training.upload_parameters(tw["id"], {"a": 2.0, "b": 0.5},
-                                     metrics={"rmse_train": 0.0},
-                                     data_checksum=manifest["checksum"])
+ps = devi.training.upload_parameters(
+    tw["id"], {"a": 2.0, "b": 0.5}, metrics={"rmse_train": 0.0}, data_checksum=manifest["checksum"]
+)
 print(ps["state"], ps["verified_data"], ps["flag"])
 ```
 
@@ -217,14 +222,21 @@ in named environments, under limits and covenants.
 
 ```python
 # mgr issues it
-ew = mgr.execution.create("eq", "linear_live", training_warrant_id=tw["id"],
-                          parameter_set_id=ps["id"],
-                          spec={"environments": ["dev"], "contact": "risk@example.com",
-                                "limits": {"max_calls_per_day": 100},
-                                "covenants": [
-                                    {"kind": "input_null_rate", "attr": "x", "max": 0.1},
-                                    {"kind": "output_range", "attr": "yhat",
-                                     "min": -1000, "max": 1000}]})
+ew = mgr.execution.create(
+    "eq",
+    "linear_live",
+    training_warrant_id=tw["id"],
+    parameter_set_id=ps["id"],
+    spec={
+        "environments": ["dev"],
+        "contact": "risk@example.com",
+        "limits": {"max_calls_per_day": 100},
+        "covenants": [
+            {"kind": "input_null_rate", "attr": "x", "max": 0.1},
+            {"kind": "output_range", "attr": "yhat", "min": -1000, "max": 1000},
+        ],
+    },
+)
 print(ew["state"], ew["spec"]["valid_days"])
 ```
 
@@ -281,9 +293,15 @@ Report each run back. Covenants are evaluated on what you report:
 
 ```python
 # A healthy run
-print(devi.execution.report(ew["id"], "dev", rows=3,
-                            input_stats={"x": {"null_rate": 0.0}},
-                            output_stats={"yhat": {"min": 2.5, "max": 6.5}}))
+print(
+    devi.execution.report(
+        ew["id"],
+        "dev",
+        rows=3,
+        input_stats={"x": {"null_rate": 0.0}},
+        output_stats={"yhat": {"min": 2.5, "max": 6.5}},
+    )
+)
 ```
 
 ```text
@@ -376,6 +394,7 @@ Unzip it and `python verify.py` gives the same answer. Change one byte of
 ```python
 # A read-only, network-free MAYA over the bundle
 import maya.sdk as maya
+
 with maya.offline("linear_fit.zip") as off:
     t, m = off.training_data()
     print(t.num_rows, off.parameters())

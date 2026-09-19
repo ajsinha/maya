@@ -8,6 +8,7 @@ unit of work also holds the process-wide write mutex (§14.1).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -21,19 +22,34 @@ from maya.persistence.engine import Database
 from maya.persistence.repositories import repository_class
 
 
-IDENTITY_TABLES = {"users", "roles", "user_roles", "groups", "group_members", "group_roles",
-                   "grants", "api_keys", "namespaces"}
+IDENTITY_TABLES = {
+    "users",
+    "roles",
+    "user_roles",
+    "groups",
+    "group_members",
+    "group_roles",
+    "grants",
+    "api_keys",
+    "namespaces",
+}
 SESSION_FIELDS = ("revoked_at", "mfa_state")
 
 
 def _identity_changed(session: Any, _ctx: Any, _instances: Any) -> None:
     """Mark the transaction when it changes access; a session merely seen is not a change."""
     from sqlalchemy import inspect
+
     for obj in (*session.new, *session.dirty, *session.deleted):
         table = getattr(obj, "__tablename__", "")
-        if table in IDENTITY_TABLES or (table == "sessions" and (
-                obj in session.new or obj in session.deleted
-                or any(inspect(obj).attrs[f].history.has_changes() for f in SESSION_FIELDS))):
+        if table in IDENTITY_TABLES or (
+            table == "sessions"
+            and (
+                obj in session.new
+                or obj in session.deleted
+                or any(inspect(obj).attrs[f].history.has_changes() for f in SESSION_FIELDS)
+            )
+        ):
             session.info["identity_changed"] = True
             return
 
@@ -106,23 +122,37 @@ class UnitOfWork:
             key = int.from_bytes(hashlib.sha256(name.encode()).digest()[:8], "big", signed=True)
             self.session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": key})
 
-    def audit(self, action: str, *, object_type: str | None = None,
-              object_ref: str | None = None, detail: dict[str, Any] | None = None,
-              principal_type: str = "user", channel: str = "api",
-              request_id: str | None = None, ip: str | None = None,
-              durable: bool = False) -> None:
+    def audit(
+        self,
+        action: str,
+        *,
+        object_type: str | None = None,
+        object_ref: str | None = None,
+        detail: dict[str, Any] | None = None,
+        principal_type: str = "user",
+        channel: str = "api",
+        request_id: str | None = None,
+        ip: str | None = None,
+        durable: bool = False,
+    ) -> None:
         """Append to the hash-chained audit log inside this transaction (§19).
 
         ``durable`` entries (refusals, denials) are also written if the transaction
         rolls back — a refusal usually *is* the exception that rolls it back.
         """
         from maya.observability.tracing import current_trace_id
+
         safe = json.loads(json.dumps(detail or {}, default=str))
         entry = {
-            "actor": self.actor or "system", "principal_type": principal_type,
-            "channel": channel, "action": action, "object_type": object_type,
-            "object_ref": object_ref, "detail": safe,
-            "request_id": request_id or current_trace_id(), "ip": ip,
+            "actor": self.actor or "system",
+            "principal_type": principal_type,
+            "channel": channel,
+            "action": action,
+            "object_type": object_type,
+            "object_ref": object_ref,
+            "detail": safe,
+            "request_id": request_id or current_trace_id(),
+            "ip": ip,
         }
         if durable:
             self._durable.append(entry)
@@ -135,20 +165,33 @@ class UnitOfWork:
         from maya.observability.events import event_type, matches
         from maya.observability.metrics import METRICS
         from maya.persistence.types import utcnow
+
         etype = event_type(entry)
         if etype is None:
             return
-        event = self.repo("events").add({
-            "at": utcnow(), "type": etype, "object_type": entry["object_type"],
-            "object_ref": entry["object_ref"], "actor": entry["actor"],
-            "trace_id": entry["request_id"], "payload": entry["detail"]})
+        event = self.repo("events").add(
+            {
+                "at": utcnow(),
+                "type": etype,
+                "object_type": entry["object_type"],
+                "object_ref": entry["object_ref"],
+                "actor": entry["actor"],
+                "trace_id": entry["request_id"],
+                "payload": entry["detail"],
+            }
+        )
         METRICS.inc("maya_events_total", {"type": etype})
         queued = False
         for hook in self.repo("webhooks").list(active=True):
             if matches(hook["event_types"], etype):
-                self.repo("webhook_deliveries").add({
-                    "webhook_id": hook["id"], "event_seq": event["seq"], "state": "pending",
-                    "next_attempt_at": utcnow()})
+                self.repo("webhook_deliveries").add(
+                    {
+                        "webhook_id": hook["id"],
+                        "event_seq": event["seq"],
+                        "state": "pending",
+                        "next_attempt_at": utcnow(),
+                    }
+                )
                 queued = True
         if queued and self.db.on_event is not None:
             self.after_commit(self.db.on_event)

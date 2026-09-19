@@ -10,6 +10,7 @@ refuse, so a slide that would overflow fails the build rather than the reader.
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 """
+
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -70,8 +71,17 @@ def remove(shape: Any) -> None:
     el.getparent().remove(el)
 
 
-def rect(sl: Any, x: float, y: float, w: float, h: float, fill: Any = None, line: Any = None,
-         lw: float = 1.0, shape: Any = MSO_SHAPE.RECTANGLE) -> Any:
+def rect(
+    sl: Any,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    fill: Any = None,
+    line: Any = None,
+    lw: float = 1.0,
+    shape: Any = MSO_SHAPE.RECTANGLE,
+) -> Any:
     s = sl.shapes.add_shape(shape, In(x), In(y), In(w), In(h))
     if fill is None:
         s.fill.background()
@@ -87,8 +97,15 @@ def rect(sl: Any, x: float, y: float, w: float, h: float, fill: Any = None, line
     return s
 
 
-def txt(sl: Any, x: float, y: float, w: float, h: float, align: Any = PP_ALIGN.LEFT,
-        anchor: Any = MSO_ANCHOR.TOP) -> Any:
+def txt(
+    sl: Any,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    align: Any = PP_ALIGN.LEFT,
+    anchor: Any = MSO_ANCHOR.TOP,
+) -> Any:
     tb = sl.shapes.add_textbox(In(x), In(y), In(w), In(h))
     tf = tb.text_frame
     tf.word_wrap = True
@@ -98,9 +115,19 @@ def txt(sl: Any, x: float, y: float, w: float, h: float, align: Any = PP_ALIGN.L
     return tf
 
 
-def para(tf: Any, text: str, size: float = 14, color: Any = INK, bold: bool = False,
-         font: str = SANS, italic: bool = False, space_after: float = 6,
-         first: bool = False, line: float = 1.2, space_before: float = 0) -> Any:
+def para(
+    tf: Any,
+    text: str,
+    size: float = 14,
+    color: Any = INK,
+    bold: bool = False,
+    font: str = SANS,
+    italic: bool = False,
+    space_after: float = 6,
+    first: bool = False,
+    line: float = 1.2,
+    space_before: float = 0,
+) -> Any:
     p = tf.paragraphs[0] if first else tf.add_paragraph()
     p.space_before = Pt(space_before)
     p.space_after = Pt(space_after)
@@ -115,8 +142,16 @@ def para(tf: Any, text: str, size: float = 14, color: Any = INK, bold: bool = Fa
     return p
 
 
-def runs(tf: Any, parts: list[tuple], size: float = 14, space_after: float = 6,
-         first: bool = False, line: float = 1.2, level: int = 0, space_before: float = 0) -> Any:
+def runs(
+    tf: Any,
+    parts: list[tuple],
+    size: float = 14,
+    space_after: float = 6,
+    first: bool = False,
+    line: float = 1.2,
+    level: int = 0,
+    space_before: float = 0,
+) -> Any:
     """``parts`` is a list of ``(text, color, bold)`` tuples, one run each."""
     p = tf.paragraphs[0] if first else tf.add_paragraph()
     p.space_before = Pt(space_before)
@@ -133,8 +168,16 @@ def runs(tf: Any, parts: list[tuple], size: float = 14, space_after: float = 6,
     return p
 
 
-def fitted(sl: Any, x: float, y: float, w: float, h: float,
-           write: Callable[[Any, float], None], start: float, floor: float = 9.0) -> float:
+def fitted(
+    sl: Any,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    write: Callable[[Any, float], None],
+    start: float,
+    floor: float = 9.0,
+) -> float:
     """Write a text block at the largest size in [floor, start] whose estimated
     extent fits ``h``; return the height it uses. Raises ``DoesNotFit``."""
     size = start
@@ -166,8 +209,7 @@ def content(title: str, kicker: str | None = None) -> tuple[Any, float]:
     y = 0.52
     if kicker:
         tf = txt(sl, ML, y, CW, 0.24)
-        para(tf, kicker.upper(), size=10.5, color=CRIMSON, bold=True, first=True,
-             space_after=0)
+        para(tf, kicker.upper(), size=10.5, color=CRIMSON, bold=True, first=True, space_after=0)
         y += 0.30
     size = 26.0
     while size > 20 and est_lines(title, CW * SAFETY, size, False, SERIF) > 1:
@@ -197,9 +239,18 @@ def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
     tf = txt(sl, ML + 0.25, 2.5, tw, 1.0)
     para(tf, title, size=size, color=WHITE, font=SERIF, first=True, space_after=0)
     rect(sl, ML + 0.25, 3.7, 1.5, 0.035, fill=PINK)
-    fitted(sl, ML + 0.25, 3.95, tw, 1.9, lambda tf, s: para(
-        tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=0, line=1.3),
-        15, 11)
+    fitted(
+        sl,
+        ML + 0.25,
+        3.95,
+        tw,
+        1.9,
+        lambda tf, s: para(
+            tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=0, line=1.3
+        ),
+        15,
+        11,
+    )
     x = ML + CW * 0.66
     tf = txt(sl, x, 2.0, CW * 0.34, 0.3)
     para(tf, "IN THIS PART", size=9.5, color=PINK, bold=True, first=True, space_after=0)
@@ -207,12 +258,14 @@ def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
     def write(tf: Any, s: float) -> None:
         for i, pnt in enumerate(points):
             para(tf, pnt, size=s, color=PINK_L, space_after=6, line=1.15, first=i == 0)
+
     fitted(sl, x, 2.4, CW * 0.34, 4.0, write, 12, 9)
     return sl
 
 
-def _row_heights(data: list[list[str]], widths: list[float], fs: float, hfs: float,
-                 bold_col0: bool) -> list[float]:
+def _row_heights(
+    data: list[list[str]], widths: list[float], fs: float, hfs: float, bold_col0: bool
+) -> list[float]:
     heights = []
     for r, row in enumerate(data):
         size = hfs if r == 0 else fs
@@ -224,8 +277,9 @@ def _row_heights(data: list[list[str]], widths: list[float], fs: float, hfs: flo
     return heights
 
 
-def _fill_cell(cell: Any, text: str, r: int, c: int, fs: float, hfs: float,
-               bold_col0: bool) -> None:
+def _fill_cell(
+    cell: Any, text: str, r: int, c: int, fs: float, hfs: float, bold_col0: bool
+) -> None:
     cell.margin_left = In(0.09)
     cell.margin_right = In(0.07)
     cell.margin_top = cell.margin_bottom = In(0.035)
@@ -242,9 +296,17 @@ def _fill_cell(cell: Any, text: str, r: int, c: int, fs: float, hfs: float,
     run.font.color.rgb = WHITE if r == 0 else (CRIMSON_D if bold_col0 and c == 0 else INK)
 
 
-def table(sl: Any, data: list[list[str]], x: float, y: float, w: float,
-          col_w: list[float] | None = None, fs: float = 11.5, hfs: float = 11,
-          bold_col0: bool = True) -> float:
+def table(
+    sl: Any,
+    data: list[list[str]],
+    x: float,
+    y: float,
+    w: float,
+    col_w: list[float] | None = None,
+    fs: float = 11.5,
+    hfs: float = 11,
+    bold_col0: bool = True,
+) -> float:
     """A table whose row heights are computed from its wrapped text.
     Returns the rendered height, so callers place what follows from it."""
     cols = len(data[0])
@@ -265,9 +327,17 @@ def table(sl: Any, data: list[list[str]], x: float, y: float, w: float,
     return total
 
 
-def fitted_table(sl: Any, data: list[list[str]], x: float, y: float, w: float, h: float,
-                 col_w: list[float] | None = None, start: float = 14.0,
-                 bold_col0: bool = True) -> float:
+def fitted_table(
+    sl: Any,
+    data: list[list[str]],
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    col_w: list[float] | None = None,
+    start: float = 14.0,
+    bold_col0: bool = True,
+) -> float:
     """``table`` at the largest size in [9, start] that fits ``h``."""
     fs = start
     while fs >= 9.0:
@@ -279,8 +349,7 @@ def fitted_table(sl: Any, data: list[list[str]], x: float, y: float, w: float, h
     raise DoesNotFit(f"table of {len(data)} rows does not fit {h:.2f}in")
 
 
-def card(sl: Any, x: float, y: float, w: float, h: float, num: str, title: str,
-         body: str) -> None:
+def card(sl: Any, x: float, y: float, w: float, h: float, num: str, title: str, body: str) -> None:
     """A bordered card whose contents are fitted inside the border."""
     rect(sl, x, y, w, h, fill=WHITE, line=RULE, lw=0.9)
     rect(sl, x, y, w, 0.055, fill=CRIMSON)
@@ -290,12 +359,37 @@ def card(sl: Any, x: float, y: float, w: float, h: float, num: str, title: str,
         tf = txt(sl, x + 0.20, top, inner, 0.24)
         para(tf, num, size=10, color=CRIMSON, bold=True, first=True, space_after=0)
         top += 0.28
-    used = fitted(sl, x + 0.20, top, inner, 0.72, lambda tf, s: para(
-        tf, title, size=s, color=INK, bold=True, font=SERIF, first=True, space_after=0,
-        line=1.12), 16, 10.5)
+    used = fitted(
+        sl,
+        x + 0.20,
+        top,
+        inner,
+        0.72,
+        lambda tf, s: para(
+            tf,
+            title,
+            size=s,
+            color=INK,
+            bold=True,
+            font=SERIF,
+            first=True,
+            space_after=0,
+            line=1.12,
+        ),
+        16,
+        10.5,
+    )
     by = top + used + 0.10
-    fitted(sl, x + 0.20, by, inner, (y + h - 0.14) - by, lambda tf, s: para(
-        tf, body, size=s, color=SLATE, first=True, space_after=0, line=1.2), 14, 8.5)
+    fitted(
+        sl,
+        x + 0.20,
+        by,
+        inner,
+        (y + h - 0.14) - by,
+        lambda tf, s: para(tf, body, size=s, color=SLATE, first=True, space_after=0, line=1.2),
+        14,
+        8.5,
+    )
 
 
 def statbar(sl: Any, y: float, stats: list[tuple[str, str]], h: float = 1.25) -> None:
@@ -305,15 +399,43 @@ def statbar(sl: Any, y: float, stats: list[tuple[str, str]], h: float = 1.25) ->
         x = ML + i * (bw + gap)
         rect(sl, x, y, bw, h, fill=PARCH)
         rect(sl, x, y, 0.045, h, fill=CRIMSON)
-        fitted(sl, x + 0.22, y + 0.14, bw - 0.34, 0.5, lambda tf, s, b=big: para(
-            tf, b, size=s, color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0,
-            line=1.0), 24, 14)
-        fitted(sl, x + 0.22, y + 0.66, bw - 0.34, h - 0.74, lambda tf, s, lab=label: para(
-            tf, lab, size=s, color=SLATE, first=True, space_after=0, line=1.12), 10.5, 8)
+        fitted(
+            sl,
+            x + 0.22,
+            y + 0.14,
+            bw - 0.34,
+            0.5,
+            lambda tf, s, b=big: para(
+                tf,
+                b,
+                size=s,
+                color=CRIMSON,
+                bold=True,
+                font=SERIF,
+                first=True,
+                space_after=0,
+                line=1.0,
+            ),
+            24,
+            14,
+        )
+        fitted(
+            sl,
+            x + 0.22,
+            y + 0.66,
+            bw - 0.34,
+            h - 0.74,
+            lambda tf, s, lab=label: para(
+                tf, lab, size=s, color=SLATE, first=True, space_after=0, line=1.12
+            ),
+            10.5,
+            8,
+        )
 
 
-def connect(sl: Any, x1: float, y1: float, x2: float, y2: float, color: Any = SLATE,
-            width: float = 1.5) -> Any:
+def connect(
+    sl: Any, x1: float, y1: float, x2: float, y2: float, color: Any = SLATE, width: float = 1.5
+) -> Any:
     """A straight connector. Elbow connectors auto-route into detours that
     collide with the nodes they join; do not use them."""
     c = sl.shapes.add_connector(1, In(x1), In(y1), In(x2), In(y2))

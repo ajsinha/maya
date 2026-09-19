@@ -18,6 +18,7 @@ Rules this module enforces:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -35,7 +36,7 @@ class SeamChoice:
     """The resolved state of one seam."""
 
     seam: str
-    polarity: str          # A, B or C (§13.4.1)
+    polarity: str  # A, B or C (§13.4.1)
     selected: str
     preferred: str
     fallback: str
@@ -74,52 +75,141 @@ def _native_lake_usable() -> bool:
     if not has_module("deltalake"):
         return False
     from maya_delta import _native_problem
+
     return _native_problem() is None
 
 
 def _specs() -> list[_SeamSpec]:
     return [
-        _SeamSpec("lake", "A", "native", "pure", _native_lake_usable,
-                  "Slower Delta reads and writes; declared protocol subset"),
-        _SeamSpec("json", "A", "orjson", "stdlib", lambda: has_module("orjson"),
-                  "Slower encode; canonical JSON is always stdlib (Type B)"),
-        _SeamSpec("frames", "A", "polars", "pandas", lambda: has_module("polars"),
-                  "Slower resolution kernels"),
-        _SeamSpec("pushdown", "A", "duckdb", "maya", lambda: has_module("duckdb"),
-                  "Wider scans; partition pruning still applies"),
-        _SeamSpec("pg_driver", "A", "psycopg", "pg8000",
-                  lambda: has_module("psycopg"), "Slower PostgreSQL I/O"),
-        _SeamSpec("search", "A", "inverted-index", "inverted-index", lambda: True,
-                  "none: MAYA's own index is the one search backend on both databases"),
-        _SeamSpec("compress", "A", "zstandard", "zlib",
-                  lambda: has_module("zstandard"), "Larger payloads"),
-        _SeamSpec("tzdb", "A", "system", "tzdata", _system_tz_available,
-                  "None when tzdata is installed; required on Windows"),
-        _SeamSpec("procstat", "A", "psutil", "os", lambda: has_module("psutil"),
-                  "Coarser resource reporting only"),
-        _SeamSpec("kdf", "A", "argon2id", "scrypt", lambda: has_module("argon2"),
-                  "Weaker but standard KDF; algorithm stored per hash"),
-        _SeamSpec("typeset", "A", "tectonic", "draft", _tectonic_available,
-                  "Draft PDFs, watermarked and refused as evidence"),
-        _SeamSpec("event_loop", "A", "uvloop", "asyncio",
-                  lambda: has_module("uvloop") and sys.platform != "win32",
-                  "Lower HTTP throughput"),
-        _SeamSpec("tracing", "A", "otel", "ids", lambda: has_module("opentelemetry.sdk"),
-                  "Trace ids still propagate to logs, audit and jobs; spans are not exported"),
-        _SeamSpec("canonical", "B", "maya", "maya", lambda: True,
-                  "None. MAYA's canonicalizer is authoritative"),
-        _SeamSpec("chunker", "B", "maya", "maya", lambda: True,
-                  "None. MAYA's rolling-hash chunker is authoritative"),
-        _SeamSpec("calendars", "A", "maya", "maya", lambda: True,
-                  "None. MAYA ships its calendar data"),
-        _SeamSpec("crypto", "C", "cryptography", "refuse",
-                  lambda: has_module("cryptography"),
-                  "Signing, sealing and certificates unavailable",
-                  refuse_without_preferred=True),
-        _SeamSpec("blob", "C", "local", "local", lambda: True,
-                  "Configuration, not fallback"),
-        _SeamSpec("queue", "C", "database", "inproc", lambda: True,
-                  "Configuration, not fallback"),
+        _SeamSpec(
+            "lake",
+            "A",
+            "native",
+            "pure",
+            _native_lake_usable,
+            "Slower Delta reads and writes; declared protocol subset",
+        ),
+        _SeamSpec(
+            "json",
+            "A",
+            "orjson",
+            "stdlib",
+            lambda: has_module("orjson"),
+            "Slower encode; canonical JSON is always stdlib (Type B)",
+        ),
+        _SeamSpec(
+            "frames",
+            "A",
+            "polars",
+            "pandas",
+            lambda: has_module("polars"),
+            "Slower resolution kernels",
+        ),
+        _SeamSpec(
+            "pushdown",
+            "A",
+            "duckdb",
+            "maya",
+            lambda: has_module("duckdb"),
+            "Wider scans; partition pruning still applies",
+        ),
+        _SeamSpec(
+            "pg_driver",
+            "A",
+            "psycopg",
+            "pg8000",
+            lambda: has_module("psycopg"),
+            "Slower PostgreSQL I/O",
+        ),
+        _SeamSpec(
+            "search",
+            "A",
+            "inverted-index",
+            "inverted-index",
+            lambda: True,
+            "none: MAYA's own index is the one search backend on both databases",
+        ),
+        _SeamSpec(
+            "compress", "A", "zstandard", "zlib", lambda: has_module("zstandard"), "Larger payloads"
+        ),
+        _SeamSpec(
+            "tzdb",
+            "A",
+            "system",
+            "tzdata",
+            _system_tz_available,
+            "None when tzdata is installed; required on Windows",
+        ),
+        _SeamSpec(
+            "procstat",
+            "A",
+            "psutil",
+            "os",
+            lambda: has_module("psutil"),
+            "Coarser resource reporting only",
+        ),
+        _SeamSpec(
+            "kdf",
+            "A",
+            "argon2id",
+            "scrypt",
+            lambda: has_module("argon2"),
+            "Weaker but standard KDF; algorithm stored per hash",
+        ),
+        _SeamSpec(
+            "typeset",
+            "A",
+            "tectonic",
+            "draft",
+            _tectonic_available,
+            "Draft PDFs, watermarked and refused as evidence",
+        ),
+        _SeamSpec(
+            "event_loop",
+            "A",
+            "uvloop",
+            "asyncio",
+            lambda: has_module("uvloop") and sys.platform != "win32",
+            "Lower HTTP throughput",
+        ),
+        _SeamSpec(
+            "tracing",
+            "A",
+            "otel",
+            "ids",
+            lambda: has_module("opentelemetry.sdk"),
+            "Trace ids still propagate to logs, audit and jobs; spans are not exported",
+        ),
+        _SeamSpec(
+            "canonical",
+            "B",
+            "maya",
+            "maya",
+            lambda: True,
+            "None. MAYA's canonicalizer is authoritative",
+        ),
+        _SeamSpec(
+            "chunker",
+            "B",
+            "maya",
+            "maya",
+            lambda: True,
+            "None. MAYA's rolling-hash chunker is authoritative",
+        ),
+        _SeamSpec(
+            "calendars", "A", "maya", "maya", lambda: True, "None. MAYA ships its calendar data"
+        ),
+        _SeamSpec(
+            "crypto",
+            "C",
+            "cryptography",
+            "refuse",
+            lambda: has_module("cryptography"),
+            "Signing, sealing and certificates unavailable",
+            refuse_without_preferred=True,
+        ),
+        _SeamSpec("blob", "C", "local", "local", lambda: True, "Configuration, not fallback"),
+        _SeamSpec("queue", "C", "database", "inproc", lambda: True, "Configuration, not fallback"),
     ]
 
 
@@ -128,6 +218,7 @@ def _system_tz_available() -> bool:
         return False
     try:
         from zoneinfo import ZoneInfo
+
         ZoneInfo("America/New_York")
         return True
     except Exception:  # noqa: BLE001 - any failure means "not usable"
@@ -136,6 +227,7 @@ def _system_tz_available() -> bool:
 
 def _tectonic_available() -> bool:
     import shutil
+
     return shutil.which("tectonic") is not None
 
 
@@ -154,15 +246,28 @@ class Backends:
             cls._choices = choices
         for c in choices.values():
             if c.selected != c.preferred:
-                logger.warning("seam %s: using %s instead of %s (%s). Cost: %s",
-                               c.seam, c.selected, c.preferred, c.reason, c.cost)
+                logger.warning(
+                    "seam %s: using %s instead of %s (%s). Cost: %s",
+                    c.seam,
+                    c.selected,
+                    c.preferred,
+                    c.reason,
+                    c.cost,
+                )
         return choices
 
     @staticmethod
     def _resolve_one(spec: _SeamSpec, pin: str | None) -> SeamChoice:
         available = spec.probe()
-        choice = SeamChoice(spec.name, spec.polarity, spec.preferred, spec.preferred,
-                            spec.fallback, available=available, cost=spec.cost)
+        choice = SeamChoice(
+            spec.name,
+            spec.polarity,
+            spec.preferred,
+            spec.preferred,
+            spec.fallback,
+            available=available,
+            cost=spec.cost,
+        )
         if pin:
             choice.pinned = True
             if pin == spec.preferred and not available:
@@ -207,11 +312,14 @@ class Backends:
         c = cls.choices()[seam]
         if not c.available or c.selected == "refuse":
             from maya.core.errors import CapabilityRefused
+
             raise CapabilityRefused(
                 f"The '{seam}' capability wanted '{c.preferred}', which is not "
                 f"installed. MAYA does not substitute a weaker implementation "
                 f"here. Install '{c.preferred}' to enable it.",
-                seam=seam, wanted=c.preferred)
+                seam=seam,
+                wanted=c.preferred,
+            )
         return c.selected
 
 

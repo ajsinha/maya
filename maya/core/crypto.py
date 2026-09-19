@@ -12,6 +12,7 @@ on first use, never in configuration.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -36,14 +37,17 @@ class Signer:
             key = serialization.load_pem_private_key(path.read_bytes(), password=None)
         else:
             key = Ed25519PrivateKey.generate()
-            pem = key.private_bytes(serialization.Encoding.PEM,
-                                    serialization.PrivateFormat.PKCS8,
-                                    serialization.NoEncryption())
+            pem = key.private_bytes(
+                serialization.Encoding.PEM,
+                serialization.PrivateFormat.PKCS8,
+                serialization.NoEncryption(),
+            )
             with open(path, "xb") as fh:
                 fh.write(pem)
         self._key = key
-        pub = key.public_key().public_bytes(serialization.Encoding.Raw,
-                                            serialization.PublicFormat.Raw)
+        pub = key.public_key().public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw
+        )
         self.public_key_b64 = base64.b64encode(pub).decode()
         self.key_id = hashlib.sha256(pub).hexdigest()[:16]
 
@@ -51,8 +55,12 @@ class Signer:
         return base64.b64encode(self._key.sign(payload)).decode()
 
     def signature_block(self, payload: bytes) -> dict[str, Any]:
-        return {"algorithm": "Ed25519", "key_id": self.key_id,
-                "public_key": self.public_key_b64, "signature": self.sign(payload)}
+        return {
+            "algorithm": "Ed25519",
+            "key_id": self.key_id,
+            "public_key": self.public_key_b64,
+            "signature": self.sign(payload),
+        }
 
 
 def verify(public_key_b64: str, payload: bytes, signature_b64: str) -> bool:
@@ -80,6 +88,7 @@ class SecretBox:
     def __init__(self, key_dir: Path) -> None:
         Backends.require("crypto")
         from cryptography.fernet import Fernet
+
         key_dir.mkdir(parents=True, exist_ok=True)
         path = key_dir / "secretbox.key"
         if not path.exists():
@@ -119,21 +128,26 @@ def verify_jws(jwk: dict[str, Any], alg: str, signing_input: bytes, signature: b
         if alg.startswith(("RS", "PS")):
             if jwk.get("kty") != "RSA":
                 return False
-            key = rsa.RSAPublicNumbers(int.from_bytes(_b64u(jwk["e"]), "big"),
-                                       int.from_bytes(_b64u(jwk["n"]), "big")).public_key()
-            pad = padding.PKCS1v15() if alg.startswith("RS") else \
-                padding.PSS(padding.MGF1(digest), padding.PSS.DIGEST_LENGTH)
+            key = rsa.RSAPublicNumbers(
+                int.from_bytes(_b64u(jwk["e"]), "big"), int.from_bytes(_b64u(jwk["n"]), "big")
+            ).public_key()
+            pad = (
+                padding.PKCS1v15()
+                if alg.startswith("RS")
+                else padding.PSS(padding.MGF1(digest), padding.PSS.DIGEST_LENGTH)
+            )
             key.verify(signature, signing_input, pad, digest)
             return True
         if jwk.get("kty") != "EC":
             return False
         curve = {"P-256": ec.SECP256R1(), "P-384": ec.SECP384R1()}[jwk["crv"]]
-        key = ec.EllipticCurvePublicNumbers(int.from_bytes(_b64u(jwk["x"]), "big"),
-                                            int.from_bytes(_b64u(jwk["y"]), "big"),
-                                            curve).public_key()
+        key = ec.EllipticCurvePublicNumbers(
+            int.from_bytes(_b64u(jwk["x"]), "big"), int.from_bytes(_b64u(jwk["y"]), "big"), curve
+        ).public_key()
         half = len(signature) // 2
-        der = utils.encode_dss_signature(int.from_bytes(signature[:half], "big"),
-                                         int.from_bytes(signature[half:], "big"))
+        der = utils.encode_dss_signature(
+            int.from_bytes(signature[:half], "big"), int.from_bytes(signature[half:], "big")
+        )
         key.verify(der, signing_input, ec.ECDSA(digest))
         return True
     except (InvalidSignature, KeyError, ValueError):

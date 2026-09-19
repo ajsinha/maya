@@ -20,7 +20,8 @@ outliers. In the definition that is one transform step:
 ```python
 # The proposed definition of eq/signals: v1 plus a clip step
 import copy
-proposed = copy.deepcopy(signals)            # the v1 definition from Tutorial 2
+
+proposed = copy.deepcopy(signals)  # the v1 definition from Tutorial 2
 proposed["transform"] = [{"op": "clip", "attr": "x", "lo": 0, "hi": 5}]
 ```
 
@@ -106,9 +107,22 @@ dana.wait(job)
 report = dana.workspaces.get(ws["id"])["replay"]
 print(report["summary"])
 for w in report["warrants"]:
-    print(w["warrant"], w["replayed"], w.get("reason") or
-          {k: w[k] for k in ("rows_compared", "median_abs_shift", "p95_abs_shift",
-                             "max_abs_shift", "worst_row", "rows_over_materiality")})
+    print(
+        w["warrant"],
+        w["replayed"],
+        w.get("reason")
+        or {
+            k: w[k]
+            for k in (
+                "rows_compared",
+                "median_abs_shift",
+                "p95_abs_shift",
+                "max_abs_shift",
+                "worst_row",
+                "rows_over_materiality",
+            )
+        },
+    )
 ```
 
 ```text

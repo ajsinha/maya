@@ -24,6 +24,7 @@ ships; ``tests/test_deck_geometry.py`` makes that a test.
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 """
+
 from __future__ import annotations
 
 import sys
@@ -47,14 +48,14 @@ def is_container(sh: Any) -> bool:
             kind = fill().type
         except Exception:
             continue
-        if kind is not None and kind != 5:            # 5 == background / none
+        if kind is not None and kind != 5:  # 5 == background / none
             return True
     return False
 
 
 def is_opaque(sh: Any) -> bool:
     try:
-        return bool(sh.fill.type == 1)                # 1 == solid
+        return bool(sh.fill.type == 1)  # 1 == solid
     except Exception:
         return False
 
@@ -102,8 +103,9 @@ def boxes_of(slide: Any, idx: int, issues: list[str]) -> list[Box]:
         real = table_height(sh)
         if real is not None:
             if real > h + 0.02:
-                issues.append(f"S{idx:02d} TABLE TALLER THAN ITS FRAME rows {real:.2f} "
-                              f"frame {h:.2f}")
+                issues.append(
+                    f"S{idx:02d} TABLE TALLER THAN ITS FRAME rows {real:.2f} frame {h:.2f}"
+                )
             h = max(h, real)
         boxes.append((sh, x, y, w, h))
         if x < -0.02 or y < -0.02 or x + w > SW + 0.02 or y + h > SH + 0.02:
@@ -116,7 +118,7 @@ def overlap_issue(idx: int, a: Box, b: Box) -> str | None:
     sh_a, al, at, aw, ah = a
     sh_b, bl, bt, bw, bh = b
     if min(aw, ah, bw, bh) < 0.2:
-        return None                                   # accent bars and rules
+        return None  # accent bars and rules
     if is_opaque(sh_b) and covers(a, b) and not covers(b, a):
         return f"S{idx:02d} HIDDEN BEHIND AN OPAQUE SHAPE {describe(sh_a)} by {describe(sh_b)}"
     if getattr(sh_a, "has_table", False):
@@ -135,8 +137,9 @@ def enclosing(box: Box, boxes: list[Box]) -> Box | None:
         osh, ox, oy, ow, oh = o
         if osh is sh or not is_container(osh) or ow < 0.2 or oh < 0.2:
             continue
-        inside = (ox - 0.02 <= x and oy - 0.02 <= y and ox + ow + 0.02 >= x + w
-                  and oy + oh + 0.02 >= y)
+        inside = (
+            ox - 0.02 <= x and oy - 0.02 <= y and ox + ow + 0.02 >= x + w and oy + oh + 0.02 >= y
+        )
         if inside and (best is None or ow * oh < best[3] * best[4]):
             best = o
     return best
@@ -164,8 +167,10 @@ def text_issue(idx: int, box: Box, boxes: list[Box], has_footer: bool) -> str | 
         return f"S{idx:02d} OVERFLOWS BORDER need {need:.2f} have {h:.2f} :: {label!r}"
     host = enclosing(box, boxes)
     if host is not None and y + need > host[2] + host[4] + TOL:
-        return (f"S{idx:02d} ESCAPES ITS CARD text to {y + need:.2f} card ends "
-                f"{host[2] + host[4]:.2f} :: {label!r}")
+        return (
+            f"S{idx:02d} ESCAPES ITS CARD text to {y + need:.2f} card ends "
+            f"{host[2] + host[4]:.2f} :: {label!r}"
+        )
     bottom = y + max(need, h)
     if has_footer and y < FOOTER_Y - 0.02 and bottom > FOOTER_Y + 0.05:
         return f"S{idx:02d} HITS FOOTER bottom {bottom:.2f} :: {label!r}"
@@ -184,7 +189,7 @@ def audit(path: str | Path) -> list[str]:
         boxes = boxes_of(slide, idx, issues)
         has_footer = any(6.90 <= b[2] <= 7.00 and b[4] < 0.05 for b in boxes)
         for i, a in enumerate(boxes):
-            for b in boxes[i + 1:]:
+            for b in boxes[i + 1 :]:
                 found = overlap_issue(idx, a, b)
                 if found:
                     issues.append(found)

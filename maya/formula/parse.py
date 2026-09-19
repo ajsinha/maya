@@ -9,6 +9,7 @@ the position named, never guessed.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -18,20 +19,66 @@ from typing import Any
 from maya.core.errors import ValidationFailed
 
 GREEK = {
-    "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota",
-    "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma", "tau", "upsilon",
-    "phi", "chi", "psi", "omega", "Gamma", "Delta", "Theta", "Lambda", "Xi",
-    "Sigma", "Upsilon", "Omega", "Psi",
+    "alpha",
+    "beta",
+    "gamma",
+    "delta",
+    "epsilon",
+    "zeta",
+    "eta",
+    "theta",
+    "iota",
+    "kappa",
+    "lambda",
+    "mu",
+    "nu",
+    "xi",
+    "pi",
+    "rho",
+    "sigma",
+    "tau",
+    "upsilon",
+    "phi",
+    "chi",
+    "psi",
+    "omega",
+    "Gamma",
+    "Delta",
+    "Theta",
+    "Lambda",
+    "Xi",
+    "Sigma",
+    "Upsilon",
+    "Omega",
+    "Psi",
 }
 FUNCS = {
-    "exp": "exp", "log": "log", "ln": "log", "sqrt": "sqrt", "abs": "abs",
-    "ncdf": "ncdf", "N": "ncdf", "Phi": "ncdf", "npdf": "npdf", "max": "max",
-    "min": "min", "where": "where",
+    "exp": "exp",
+    "log": "log",
+    "ln": "log",
+    "sqrt": "sqrt",
+    "abs": "abs",
+    "ncdf": "ncdf",
+    "N": "ncdf",
+    "Phi": "ncdf",
+    "npdf": "npdf",
+    "max": "max",
+    "min": "min",
+    "where": "where",
 }
 IGNORED_CMDS = {"left", "right", ",", ";", "!", "quad", "displaystyle", "mathrm"}
 MUL_CMDS = {"cdot", "times"}
-CMP = {"<": "lt", ">": "gt", "<=": "le", ">=": "ge", "==": "eq", "\\le": "le",
-       "\\ge": "ge", "\\leq": "le", "\\geq": "ge"}
+CMP = {
+    "<": "lt",
+    ">": "gt",
+    "<=": "le",
+    ">=": "ge",
+    "==": "eq",
+    "\\le": "le",
+    "\\ge": "ge",
+    "\\leq": "le",
+    "\\geq": "ge",
+}
 
 _TOKEN = re.compile(
     r"\s*(?:(?P<num>\d+\.\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|\d+(?:[eE][+-]?\d+)?)"
@@ -61,8 +108,9 @@ def tokenize(text: str) -> list[Tok]:
     while pos < len(text):
         m = _TOKEN.match(text, pos)
         if not m or m.end() == pos:
-            raise ValidationFailed(f"cannot parse formula at position {pos}: {text[pos:pos + 12]!r}",
-                                   position=pos)
+            raise ValidationFailed(
+                f"cannot parse formula at position {pos}: {text[pos : pos + 12]!r}", position=pos
+            )
         kind = m.lastgroup or "op"
         val = m.group(kind)
         if kind == "cmd":
@@ -104,14 +152,17 @@ class _Parser:
     def expect(self, text: str) -> None:
         tok = self.take()
         if tok.text != text:
-            raise ValidationFailed(f"expected '{text}' at position {tok.pos}, found '{tok.text}'",
-                                   position=tok.pos)
+            raise ValidationFailed(
+                f"expected '{text}' at position {tok.pos}, found '{tok.text}'", position=tok.pos
+            )
 
     def parse(self) -> dict[str, Any]:
         node = self.comparison()
         tok = self.peek()
         if tok is not None:
-            raise ValidationFailed(f"unexpected '{tok.text}' at position {tok.pos}", position=tok.pos)
+            raise ValidationFailed(
+                f"unexpected '{tok.text}' at position {tok.pos}", position=tok.pos
+            )
         return node
 
     def comparison(self) -> dict[str, Any]:
@@ -127,7 +178,9 @@ class _Parser:
         while (tok := self.peek()) and tok.text in "+-" and tok.kind == "op":
             self.take()
             rhs = self.term()
-            node = _flat("add", node, rhs) if tok.text == "+" else {"op": "sub", "args": [node, rhs]}
+            node = (
+                _flat("add", node, rhs) if tok.text == "+" else {"op": "sub", "args": [node, rhs]}
+            )
         return node
 
     def _starts_atom(self, tok: Tok | None) -> bool:
@@ -146,7 +199,11 @@ class _Parser:
             if tok and (tok.text in ("*", "/") or tok.text[1:] in MUL_CMDS and tok.kind == "cmd"):
                 self.take()
                 rhs = self.unary()
-                node = {"op": "div", "args": [node, rhs]} if tok.text == "/" else _flat("mul", node, rhs)
+                node = (
+                    {"op": "div", "args": [node, rhs]}
+                    if tok.text == "/"
+                    else _flat("mul", node, rhs)
+                )
             elif self._starts_atom(tok):
                 node = _flat("mul", node, self.power())
             else:
@@ -205,7 +262,11 @@ class _Parser:
         tok = self.take()
         if tok.kind == "num":
             val = float(tok.text)
-            return {"const": int(val) if val.is_integer() and "." not in tok.text and "e" not in tok.text.lower() else val}
+            return {
+                "const": int(val)
+                if val.is_integer() and "." not in tok.text and "e" not in tok.text.lower()
+                else val
+            }
         if tok.kind == "cmd":
             return self.command(tok)
         if tok.kind == "name":
@@ -228,8 +289,13 @@ class _Parser:
         nxt = self.peek()
         if tok.text in FUNCS and tok.text not in self.known and nxt and nxt.text == "(":
             return {"op": FUNCS[tok.text], "args": self.call_args()}
-        if (self.latex_mode and not tok.atomic and len(tok.text) > 1
-                and tok.text not in self.known and tok.text not in GREEK):
+        if (
+            self.latex_mode
+            and not tok.atomic
+            and len(tok.text) > 1
+            and tok.text not in self.known
+            and tok.text not in GREEK
+        ):
             # LaTeX convention: adjacent single letters multiply (``rT`` is r*T)
             node: dict[str, Any] = {"ref": tok.text[0]}
             for ch in tok.text[1:]:
@@ -256,8 +322,9 @@ class _Parser:
             return {"op": "ncdf", "args": self.call_args()}
         if name in GREEK:
             return self.name(Tok("name", name, tok.pos))
-        raise ValidationFailed(f"unsupported LaTeX command '{tok.text}' at position {tok.pos}",
-                               position=tok.pos)
+        raise ValidationFailed(
+            f"unsupported LaTeX command '{tok.text}' at position {tok.pos}", position=tok.pos
+        )
 
 
 def parse_formula(text: str, *, inputs: list[str] | set[str] | None = None) -> dict[str, Any]:
@@ -282,8 +349,9 @@ def _split_statements(text: str) -> list[tuple[str, str]]:
     return out
 
 
-def parse_model(text: str, *, roles: dict[str, str] | None = None,
-                output_type: str = "float64") -> dict[str, Any]:
+def parse_model(
+    text: str, *, roles: dict[str, str] | None = None, output_type: str = "float64"
+) -> dict[str, Any]:
     """Parse ``let = ...`` lines then a final ``output = ...`` line into a full IR."""
     from maya.formula.ir import refs_of, validate_ir
 
@@ -301,11 +369,16 @@ def parse_model(text: str, *, roles: dict[str, str] | None = None,
         free |= refs_of(node)
     free -= set(lets)
     inputs = [{"name": n, "type": "float64", "role": roles.get(n, "feature")} for n in sorted(free)]
-    ir: dict[str, Any] = {"outputs": [{"name": out_name, "type": output_type}],
-                          "inputs": inputs, "lets": lets, "body": body}
+    ir: dict[str, Any] = {
+        "outputs": [{"name": out_name, "type": output_type}],
+        "inputs": inputs,
+        "lets": lets,
+        "body": body,
+    }
     errors = validate_ir(ir)
     if errors:
         raise ValidationFailed("parsed formula is not a valid IR", errors=errors)
     from maya.formula.latex import to_latex
+
     ir["latex"] = to_latex(ir)
     return ir

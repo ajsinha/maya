@@ -8,6 +8,7 @@ reason before the policy can be saved.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,8 +19,14 @@ import yaml
 from maya.core.errors import ValidationFailed
 
 DEFAULTS_FILE = Path(__file__).parent / "default_policies.yaml"
-OBJECT_TYPES = ("feature_version", "featureset_version", "model_version", "parameter_set",
-                "training_warrant", "execution_warrant")
+OBJECT_TYPES = (
+    "feature_version",
+    "featureset_version",
+    "model_version",
+    "parameter_set",
+    "training_warrant",
+    "execution_warrant",
+)
 INITIAL_STATE = "draft"
 LETTERS = set("CRUAPGQ")
 
@@ -29,8 +36,7 @@ def default_policies() -> dict[str, dict[str, Any]]:
     return {k: v for k, v in raw.items() if not k.startswith("_")}
 
 
-def validate(policy: dict[str, Any], *, checks: Iterable[str],
-             roles: Iterable[str]) -> list[str]:
+def validate(policy: dict[str, Any], *, checks: Iterable[str], roles: Iterable[str]) -> list[str]:
     """Every reason this policy cannot be saved. Empty means valid."""
     errors: list[str] = []
     checks, roles = set(checks), set(roles)
@@ -46,13 +52,19 @@ def validate(policy: dict[str, Any], *, checks: Iterable[str],
     if unreachable:
         errors.append("unreachable state(s): " + ", ".join(sorted(unreachable)))
     if not any(t.get("to") == "approved" for t in transitions.values()):
-        errors.append("no transition reaches 'approved': every object would be "
-                      "permanently unapprovable")
+        errors.append(
+            "no transition reaches 'approved': every object would be permanently unapprovable"
+        )
     return errors
 
 
-def _validate_transition(name: str, t: dict[str, Any], states: set[str], checks: set[str],  # noqa: C901 - a checklist
-                         roles: set[str]) -> list[str]:
+def _validate_transition(  # noqa: C901 - a checklist
+    name: str,
+    t: dict[str, Any],
+    states: set[str],
+    checks: set[str],
+    roles: set[str],
+) -> list[str]:
     errors = []
     sources = t.get("from") or []
     if isinstance(sources, str):
@@ -73,8 +85,10 @@ def _validate_transition(name: str, t: dict[str, Any], states: set[str], checks:
         errors.append(f"transition '{name}': capability '{cap}' is not one of C R U A P G Q")
     for a in t.get("approvals") or []:
         if a.get("role") not in roles:
-            errors.append(f"transition '{name}': approval role '{a.get('role')}' does not exist,"
-                          " so the approval could never be satisfied")
+            errors.append(
+                f"transition '{name}': approval role '{a.get('role')}' does not exist,"
+                " so the approval could never be satisfied"
+            )
         if int(a.get("count", 1)) < 1:
             errors.append(f"transition '{name}': approval count must be at least 1")
     return errors

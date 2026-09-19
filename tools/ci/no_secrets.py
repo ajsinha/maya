@@ -5,6 +5,7 @@ Every key that names a password, secret, token or key must be empty or a
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -32,8 +33,13 @@ def main() -> int:
     failures = []
     for key, value in walk(data):
         leaf = key.rsplit(".", 1)[-1]
-        if SENSITIVE.search(leaf) and value not in (None, "") and not SAFE.match(str(value)) \
-                and "allow_" not in leaf and "min_length" not in key:
+        if (
+            SENSITIVE.search(leaf)
+            and value not in (None, "")
+            and not SAFE.match(str(value))
+            and "allow_" not in leaf
+            and "min_length" not in key
+        ):
             failures.append(f"{key} carries a value in a tracked file")
     return report("no secrets in config/application.yaml", failures)
 

@@ -11,6 +11,7 @@ Stored form: ``<algorithm>$<json params>$<encoded hash>``.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -22,7 +23,7 @@ import os
 from maya.core.backends import Backends
 
 ARGON2_PARAMS = {"m": 65536, "t": 3, "p": 4}
-SCRYPT_PARAMS = {"n": 2 ** 14, "r": 8, "p": 1}
+SCRYPT_PARAMS = {"n": 2**14, "r": 8, "p": 1}
 PBKDF2_PARAMS = {"iterations": 600_000}
 STRENGTH = {"argon2id": 3, "scrypt": 2, "pbkdf2_sha512": 1}
 
@@ -37,8 +38,12 @@ def hash_password(password: str, algorithm: str | None = None) -> str:
     algorithm = algorithm or current_algorithm()
     if algorithm == "argon2id":
         from argon2 import PasswordHasher
-        ph = PasswordHasher(time_cost=ARGON2_PARAMS["t"], memory_cost=ARGON2_PARAMS["m"],
-                            parallelism=ARGON2_PARAMS["p"])
+
+        ph = PasswordHasher(
+            time_cost=ARGON2_PARAMS["t"],
+            memory_cost=ARGON2_PARAMS["m"],
+            parallelism=ARGON2_PARAMS["p"],
+        )
         return f"argon2id${json.dumps(ARGON2_PARAMS, sort_keys=True)}${ph.hash(password)}"
     salt = os.urandom(16)
     if algorithm == "scrypt":
@@ -63,6 +68,7 @@ def verify_password(password: str, stored: str) -> bool:
             return False
         from argon2 import PasswordHasher
         from argon2.exceptions import VerificationError, InvalidHashError
+
         try:
             return bool(PasswordHasher().verify(encoded, password))
         except (VerificationError, InvalidHashError):
@@ -70,8 +76,9 @@ def verify_password(password: str, stored: str) -> bool:
     salt_b64, dk_b64 = encoded.split(":", 1)
     salt, expected = base64.b64decode(salt_b64), base64.b64decode(dk_b64)
     if algorithm == "scrypt":
-        dk = hashlib.scrypt(password.encode(), salt=salt, n=params["n"],
-                            r=params["r"], p=params["p"])
+        dk = hashlib.scrypt(
+            password.encode(), salt=salt, n=params["n"], r=params["r"], p=params["p"]
+        )
     elif algorithm == "pbkdf2_sha512":
         dk = hashlib.pbkdf2_hmac("sha512", password.encode(), salt, params["iterations"])
     else:
@@ -81,6 +88,7 @@ def verify_password(password: str, stored: str) -> bool:
 
 def _argon2_importable() -> bool:
     from maya.core.backends import has_module
+
     return has_module("argon2")
 
 

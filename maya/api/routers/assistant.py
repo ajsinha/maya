@@ -3,6 +3,7 @@ The recorded challenger's memos (§29.8).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any

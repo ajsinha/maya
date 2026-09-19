@@ -9,6 +9,7 @@ be a version behind. Five calendars ship: ``natural_days``,
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -57,12 +58,12 @@ def _observed_us(d: date) -> date:
 def _nyse_holidays(year: int) -> set[date]:
     easter = easter_sunday(year)
     days = {
-        _nth_weekday(year, 1, 0, 3),   # Martin Luther King Jr. Day
-        _nth_weekday(year, 2, 0, 3),   # Washington's Birthday
-        easter - timedelta(days=2),    # Good Friday
+        _nth_weekday(year, 1, 0, 3),  # Martin Luther King Jr. Day
+        _nth_weekday(year, 2, 0, 3),  # Washington's Birthday
+        easter - timedelta(days=2),  # Good Friday
         _nth_weekday(year, 5, 0, -1),  # Memorial Day
         _observed_us(date(year, 7, 4)),
-        _nth_weekday(year, 9, 0, 1),   # Labor Day
+        _nth_weekday(year, 9, 0, 1),  # Labor Day
         _nth_weekday(year, 11, 3, 4),  # Thanksgiving
         _observed_us(date(year, 12, 25)),
     }
@@ -89,7 +90,7 @@ def _lse_holidays(year: int) -> set[date]:
     days: set[date] = {
         easter - timedelta(days=2),
         easter + timedelta(days=1),
-        _nth_weekday(year, 5, 0, 1),   # Early May bank holiday
+        _nth_weekday(year, 5, 0, 1),  # Early May bank holiday
         _nth_weekday(year, 5, 0, -1),  # Spring bank holiday
         _nth_weekday(year, 8, 0, -1),  # Summer bank holiday
     }

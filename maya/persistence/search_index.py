@@ -14,6 +14,7 @@ imported, or a database from before the index existed).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -25,8 +26,11 @@ from sqlalchemy.orm import Session
 from maya.persistence.models import catalog, identity, operations, registry
 
 TARGETS: dict[type, str] = {
-    catalog.Feature: "feature", catalog.FeatureSet: "featureset", registry.Model: "model",
-    registry.TrainingWarrant: "warrant/train", registry.ExecutionWarrant: "warrant/exec",
+    catalog.Feature: "feature",
+    catalog.FeatureSet: "featureset",
+    registry.Model: "model",
+    registry.TrainingWarrant: "warrant/train",
+    registry.ExecutionWarrant: "warrant/exec",
     identity.Namespace: "namespace",
 }
 WEIGHTS = {"name": 8, "tag": 4, "namespace": 2, "description": 1}
@@ -70,24 +74,26 @@ def _rows(session: Session, obj: Any) -> list[dict[str, Any]]:
             w = WEIGHTS[field]
             if w > best.get(t, (0, ""))[0]:
                 best[t] = (w, field)
-    return [{"term": t, "kind": TARGETS[type(obj)], "object_id": obj.id, "field": f,
-             "weight": w} for t, (w, f) in best.items()]
+    return [
+        {"term": t, "kind": TARGETS[type(obj)], "object_id": obj.id, "field": f, "weight": w}
+        for t, (w, f) in best.items()
+    ]
 
 
 def _reindex(session: Session, objs: list[Any], removed: list[Any]) -> None:
     conn = session.connection()
     ids = [o.id for o in objs + removed]
     if ids:
-        conn.execute(delete(operations.SearchTerm).where(
-            operations.SearchTerm.object_id.in_(ids)))
+        conn.execute(delete(operations.SearchTerm).where(operations.SearchTerm.object_id.in_(ids)))
     rows = [r for o in objs for r in _rows(session, o)]
     if rows:
         conn.execute(insert(operations.SearchTerm), rows)
 
 
 def _after_flush(session: Session, _ctx: Any) -> None:
-    changed = [o for o in session.new if type(o) in TARGETS] + \
-        [o for o in session.dirty if type(o) in TARGETS and session.is_modified(o)]
+    changed = [o for o in session.new if type(o) in TARGETS] + [
+        o for o in session.dirty if type(o) in TARGETS and session.is_modified(o)
+    ]
     removed = [o for o in session.deleted if type(o) in TARGETS]
     if changed or removed:
         with session.no_autoflush:
@@ -106,7 +112,7 @@ def rebuild(session: Session) -> int:
     objs = [o for model in TARGETS for o in session.scalars(select(model))]
     rows = [r for o in objs for r in _rows(session, o)]
     for i in range(0, len(rows), 2000):
-        session.execute(insert(operations.SearchTerm), rows[i:i + 2000])
+        session.execute(insert(operations.SearchTerm), rows[i : i + 2000])
     return len(objs)
 
 
@@ -124,9 +130,12 @@ def search(session: Session, q: str, limit: int = 50) -> list[tuple[str, str, in
     per_term = []
     for t in terms:
         like = t.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-        per_term.append(select(T.kind, T.object_id, func.max(T.weight).label("w"))
-                        .where(T.term.like(like, escape="\\"))
-                        .group_by(T.kind, T.object_id).subquery())
+        per_term.append(
+            select(T.kind, T.object_id, func.max(T.weight).label("w"))
+            .where(T.term.like(like, escape="\\"))
+            .group_by(T.kind, T.object_id)
+            .subquery()
+        )
     first = per_term[0]
     score = first.c.w
     stmt = select(first.c.kind, first.c.object_id)

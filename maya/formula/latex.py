@@ -6,6 +6,7 @@ so the document cannot drift from the implementation.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -15,8 +16,21 @@ from maya.formula.ir import let_order
 from maya.formula.parse import GREEK
 
 # binding strength, higher binds tighter
-_PREC = {"or": 1, "and": 2, "gt": 3, "lt": 3, "ge": 3, "le": 3, "eq": 3,
-         "add": 4, "sub": 4, "mul": 5, "div": 6, "neg": 7, "pow": 8}
+_PREC = {
+    "or": 1,
+    "and": 2,
+    "gt": 3,
+    "lt": 3,
+    "ge": 3,
+    "le": 3,
+    "eq": 3,
+    "add": 4,
+    "sub": 4,
+    "mul": 5,
+    "div": 6,
+    "neg": 7,
+    "pow": 8,
+}
 _CMP = {"gt": ">", "lt": "<", "ge": r"\geq", "le": r"\leq", "eq": "="}
 
 

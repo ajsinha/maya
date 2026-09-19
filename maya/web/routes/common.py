@@ -9,6 +9,7 @@ imports anything from ``maya`` but ``maya.sdk``, ``maya.core.version`` and
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import functools
@@ -28,12 +29,19 @@ from maya.core.version import APP_NAME, APP_SLOGAN, APP_TAGLINE, BUILD_DATE, VER
 from maya.sdk import AsyncClient
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
-TEMPLATES.env.globals.update(APP_NAME=APP_NAME, APP_TAGLINE=APP_TAGLINE, APP_SLOGAN=APP_SLOGAN,
-                             VERSION=VERSION, BUILD_DATE=BUILD_DATE)
-TEMPLATES.env.filters["tojson_pretty"] = lambda v: json.dumps(v, indent=2, default=str,
-                                                              sort_keys=True)
-TEMPLATES.env.filters["short"] = lambda v, n=12: (str(v)[:n] + "…") if v and len(str(v)) > n \
-    else (v or "")
+TEMPLATES.env.globals.update(
+    APP_NAME=APP_NAME,
+    APP_TAGLINE=APP_TAGLINE,
+    APP_SLOGAN=APP_SLOGAN,
+    VERSION=VERSION,
+    BUILD_DATE=BUILD_DATE,
+)
+TEMPLATES.env.filters["tojson_pretty"] = lambda v: json.dumps(
+    v, indent=2, default=str, sort_keys=True
+)
+TEMPLATES.env.filters["short"] = lambda v, n=12: (
+    (str(v)[:n] + "…") if v and len(str(v)) > n else (v or "")
+)
 TEMPLATES.env.filters["dt"] = lambda v: str(v)[:19].replace("T", " ") if v else ""
 TEMPLATES.env.filters["urlq"] = lambda v: quote(str(v or ""), safe="")
 
@@ -98,6 +106,7 @@ def _mfa_gate(request: Request) -> RedirectResponse | None:
 
 def page(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
     """GET page: requires login; MAYA errors render as an error page, not a traceback."""
+
     @functools.wraps(fn)
     async def wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
         if not request.session.get("token"):
@@ -116,11 +125,13 @@ def page(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
             return _login_redirect(request)
         except MayaError as exc:
             return await render(request, "error.html", {"error": exc}, status=_status(exc))
+
     return wrapper
 
 
 def action(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
     """State-changing POST: login + CSRF; errors become a flash on the previous page."""
+
     @functools.wraps(fn)
     async def wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
         if not request.session.get("token"):
@@ -129,8 +140,9 @@ def action(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
         if gate is not None:
             return gate
         if not await check_csrf(request):
-            return HTMLResponse("CSRF token missing or invalid. Reload the page and retry.",
-                                status_code=403)
+            return HTMLResponse(
+                "CSRF token missing or invalid. Reload the page and retry.", status_code=403
+            )
         try:
             return await fn(request, *args, **kwargs)
         except Redirect as r:
@@ -141,11 +153,13 @@ def action(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
         except MayaError as exc:
             flash(request, f"{type(exc).__name__}: {exc.message}", "danger")
             return RedirectResponse(back(request), status_code=303)
+
     return wrapper
 
 
 def api_json(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
     """A JSON endpoint for the page's own scripts (job polling, validation)."""
+
     @functools.wraps(fn)
     async def wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
         if not request.session.get("token"):
@@ -153,12 +167,19 @@ def api_json(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]
         if request.method in UNSAFE and not await check_csrf(request):
             return JSONResponse({"error": "CSRF token missing or invalid"}, status_code=403)
         try:
-            return JSONResponse(json.loads(json.dumps(await fn(request, *args, **kwargs),
-                                                      default=str)))
+            return JSONResponse(
+                json.loads(json.dumps(await fn(request, *args, **kwargs), default=str))
+            )
         except MayaError as exc:
-            return JSONResponse({"error": exc.message, "type": exc.code,
-                                 "context": json.loads(json.dumps(exc.context, default=str))},
-                                status_code=_status(exc))
+            return JSONResponse(
+                {
+                    "error": exc.message,
+                    "type": exc.code,
+                    "context": json.loads(json.dumps(exc.context, default=str)),
+                },
+                status_code=_status(exc),
+            )
+
     return wrapper
 
 
@@ -179,11 +200,17 @@ async def _chrome(request: Request) -> dict[str, Any]:
         now = time.monotonic()
         if _HEALTH["data"] is None or now - _HEALTH["at"] > HEALTH_TTL:
             h = await sdk.admin.health()
-            _HEALTH.update(at=now, data={
-                "environment": h["environment"], "dialect": h["database"]["dialect"],
-                "default_admin_password": h["default_admin_password"],
-                "lake": h["lake"]["backend"], "sandbox": h["sandbox"]["tier"],
-                "typeset": h["typeset"].get("backend")})
+            _HEALTH.update(
+                at=now,
+                data={
+                    "environment": h["environment"],
+                    "dialect": h["database"]["dialect"],
+                    "default_admin_password": h["default_admin_password"],
+                    "lake": h["lake"]["backend"],
+                    "sandbox": h["sandbox"]["tier"],
+                    "typeset": h["typeset"].get("backend"),
+                },
+            )
         ctx["health"] = _HEALTH["data"]
     except MayaError:
         pass
@@ -196,13 +223,19 @@ def invalidate_health() -> None:
     _HEALTH.update(at=0.0, data=None)
 
 
-async def render(request: Request, template: str, context: dict[str, Any] | None = None,
-                 status: int = 200) -> HTMLResponse:
+async def render(
+    request: Request, template: str, context: dict[str, Any] | None = None, status: int = 200
+) -> HTMLResponse:
     ctx = dict(context or {})
     ctx.update(await _chrome(request))
-    ctx.update(request=request, user=request.session.get("username"),
-               my_roles=request.session.get("roles", []), csrf=csrf_token(request),
-               flashes=request.session.pop("flashes", []), path=request.url.path)
+    ctx.update(
+        request=request,
+        user=request.session.get("username"),
+        my_roles=request.session.get("roles", []),
+        csrf=csrf_token(request),
+        flashes=request.session.pop("flashes", []),
+        path=request.url.path,
+    )
     return TEMPLATES.TemplateResponse(request, template, ctx, status_code=status)
 
 
@@ -211,8 +244,11 @@ def download(result: dict[str, Any], filename: str) -> Response:
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     if result.get("manifest"):
         headers["X-Maya-Manifest"] = json.dumps(result["manifest"], default=str)
-    return Response(result["data"], media_type=result.get("content_type") or
-                    "application/octet-stream", headers=headers)
+    return Response(
+        result["data"],
+        media_type=result.get("content_type") or "application/octet-stream",
+        headers=headers,
+    )
 
 
 async def form(request: Request) -> dict[str, Any]:
@@ -222,6 +258,7 @@ async def form(request: Request) -> dict[str, Any]:
 
 def parse_json(text: str | None, what: str, default: Any = None) -> Any:
     from maya.core.errors import ValidationFailed
+
     if text is None or not str(text).strip():
         return default
     try:

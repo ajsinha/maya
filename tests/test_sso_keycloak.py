@@ -22,6 +22,7 @@ section describes. Needs Playwright and Chrome; skipped otherwise.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import os
@@ -65,19 +66,26 @@ class Realm:
         self.admin = f"/admin/realms/{self.name}"
         self._ok(self.http.post("/admin/realms", json={"realm": self.name, "enabled": True}))
         self.alice = self._user(ALICE, ALICE_PW, "maya-admins", "maya-risk")
-        self._user(BOB, BOB_PW)                       # in no mapped group
+        self._user(BOB, BOB_PW)  # in no mapped group
         self._oidc_client()
-        self._saml_client("".join(line for line in sp_cert.splitlines()
-                                  if "CERTIFICATE" not in line))
+        self._saml_client(
+            "".join(line for line in sp_cert.splitlines() if "CERTIFICATE" not in line)
+        )
         descriptor = self.http.get(f"/realms/{self.name}/protocol/saml/descriptor").text
-        self.idp_cert = re.search(r"<ds:X509Certificate>([^<]+)</ds:X509Certificate>",
-                                  descriptor).group(1)
+        self.idp_cert = re.search(
+            r"<ds:X509Certificate>([^<]+)</ds:X509Certificate>", descriptor
+        ).group(1)
 
     def _login(self) -> None:
-        tok = self.http.post("/realms/master/protocol/openid-connect/token", data={
-            "grant_type": "password", "client_id": "admin-cli",
-            "username": os.environ.get("MAYA_TEST_KEYCLOAK_ADMIN", "admin"),
-            "password": os.environ.get("MAYA_TEST_KEYCLOAK_ADMIN_PASSWORD", "admin")})
+        tok = self.http.post(
+            "/realms/master/protocol/openid-connect/token",
+            data={
+                "grant_type": "password",
+                "client_id": "admin-cli",
+                "username": os.environ.get("MAYA_TEST_KEYCLOAK_ADMIN", "admin"),
+                "password": os.environ.get("MAYA_TEST_KEYCLOAK_ADMIN_PASSWORD", "admin"),
+            },
+        )
         self.http.headers["Authorization"] = f"Bearer {tok.json()['access_token']}"
 
     @staticmethod
@@ -87,71 +95,143 @@ class Realm:
 
     def _user(self, username: str, password: str, *groups: str) -> str:
         first = username.split(".")[1].title()
-        self._ok(self.http.post(f"{self.admin}/users", json={
-            "username": username, "enabled": True, "email": f"{first.lower()}@example.test",
-            "emailVerified": True, "firstName": first, "lastName": "Keycloak",
-            "credentials": [{"type": "password", "value": password, "temporary": False}]}))
-        uid = self.http.get(f"{self.admin}/users",
-                            params={"username": username, "exact": "true"}).json()[0]["id"]
+        self._ok(
+            self.http.post(
+                f"{self.admin}/users",
+                json={
+                    "username": username,
+                    "enabled": True,
+                    "email": f"{first.lower()}@example.test",
+                    "emailVerified": True,
+                    "firstName": first,
+                    "lastName": "Keycloak",
+                    "credentials": [{"type": "password", "value": password, "temporary": False}],
+                },
+            )
+        )
+        uid = self.http.get(
+            f"{self.admin}/users", params={"username": username, "exact": "true"}
+        ).json()[0]["id"]
         for group in groups:
-            self.http.post(f"{self.admin}/groups", json={"name": group})   # 409 if present
-            gid = next(g["id"] for g in self.http.get(f"{self.admin}/groups").json()
-                       if g["name"] == group)
+            self.http.post(f"{self.admin}/groups", json={"name": group})  # 409 if present
+            gid = next(
+                g["id"] for g in self.http.get(f"{self.admin}/groups").json() if g["name"] == group
+            )
             self._ok(self.http.put(f"{self.admin}/users/{uid}/groups/{gid}"))
         return uid
 
     def _oidc_client(self) -> None:
         """Confidential, PKCE S256, groups claim (short names) from a ``groups`` client
         scope — Keycloak refuses a scope it does not know, and MAYA asks for ``groups``."""
-        self._ok(self.http.post(f"{self.admin}/client-scopes", json={
-            "name": "groups", "protocol": "openid-connect",
-            "attributes": {"include.in.token.scope": "true"},
-            "protocolMappers": [{"name": "groups", "protocol": "openid-connect",
-                                 "protocolMapper": "oidc-group-membership-mapper",
-                                 "config": {"claim.name": "groups", "full.path": "false",
-                                            "id.token.claim": "true",
-                                            "access.token.claim": "true",
-                                            "userinfo.token.claim": "true"}}]}))
-        self._ok(self.http.post(f"{self.admin}/clients", json={
-            "clientId": "maya-oidc", "protocol": "openid-connect", "enabled": True,
-            "publicClient": False, "secret": "maya-oidc-secret", "standardFlowEnabled": True,
-            "directAccessGrantsEnabled": False, "implicitFlowEnabled": False,
-            "redirectUris": [f"{self.maya}/auth/sso/callback"],
-            "attributes": {"pkce.code.challenge.method": "S256",
-                           "post.logout.redirect.uris": f"{self.maya}/login?signed_out=1",
-                           "backchannel.logout.url":
-                               f"{self.maya}/api/v1/auth/sso/oidc/backchannel-logout",
-                           "backchannel.logout.session.required": "true"}}))
-        scope = next(c["id"] for c in self.http.get(f"{self.admin}/client-scopes").json()
-                     if c["name"] == "groups")
-        client = self.http.get(f"{self.admin}/clients",
-                               params={"clientId": "maya-oidc"}).json()[0]["id"]
+        self._ok(
+            self.http.post(
+                f"{self.admin}/client-scopes",
+                json={
+                    "name": "groups",
+                    "protocol": "openid-connect",
+                    "attributes": {"include.in.token.scope": "true"},
+                    "protocolMappers": [
+                        {
+                            "name": "groups",
+                            "protocol": "openid-connect",
+                            "protocolMapper": "oidc-group-membership-mapper",
+                            "config": {
+                                "claim.name": "groups",
+                                "full.path": "false",
+                                "id.token.claim": "true",
+                                "access.token.claim": "true",
+                                "userinfo.token.claim": "true",
+                            },
+                        }
+                    ],
+                },
+            )
+        )
+        self._ok(
+            self.http.post(
+                f"{self.admin}/clients",
+                json={
+                    "clientId": "maya-oidc",
+                    "protocol": "openid-connect",
+                    "enabled": True,
+                    "publicClient": False,
+                    "secret": "maya-oidc-secret",
+                    "standardFlowEnabled": True,
+                    "directAccessGrantsEnabled": False,
+                    "implicitFlowEnabled": False,
+                    "redirectUris": [f"{self.maya}/auth/sso/callback"],
+                    "attributes": {
+                        "pkce.code.challenge.method": "S256",
+                        "post.logout.redirect.uris": f"{self.maya}/login?signed_out=1",
+                        "backchannel.logout.url": f"{self.maya}/api/v1/auth/sso/oidc/backchannel-logout",
+                        "backchannel.logout.session.required": "true",
+                    },
+                },
+            )
+        )
+        scope = next(
+            c["id"]
+            for c in self.http.get(f"{self.admin}/client-scopes").json()
+            if c["name"] == "groups"
+        )
+        client = self.http.get(f"{self.admin}/clients", params={"clientId": "maya-oidc"}).json()[0][
+            "id"
+        ]
         self._ok(self.http.put(f"{self.admin}/clients/{client}/optional-client-scopes/{scope}"))
 
     def _saml_client(self, sp_cert_body: str) -> None:
         """Client id = MAYA's SP entity id; signed assertions and documents; MAYA's
         requests signed with its key; front-channel logout by redirect to MAYA's SLS;
         a ``groups`` attribute with one element per group (not "single")."""
-        self._ok(self.http.post(f"{self.admin}/clients", json={
-            "clientId": self.sp_entity, "protocol": "saml", "enabled": True,
-            "frontchannelLogout": True, "redirectUris": [f"{self.maya}/*"],
-            "attributes": {
-                "saml.assertion.signature": "true", "saml.server.signature": "true",
-                "saml.signature.algorithm": "RSA_SHA256", "saml.client.signature": "true",
-                "saml.signing.certificate": sp_cert_body, "saml.encrypt": "false",
-                "saml.force.post.binding": "true", "saml_force_name_id_format": "true",
-                "saml_name_id_format": "username", "saml.authnstatement": "true",
-                "saml_assertion_consumer_url_post": f"{self.maya}/auth/sso/saml/acs",
-                "saml_single_logout_service_url_redirect": f"{self.maya}/auth/sso/saml/sls"},
-            "protocolMappers": [
-                {"name": "groups", "protocol": "saml",
-                 "protocolMapper": "saml-group-membership-mapper",
-                 "config": {"attribute.name": "groups", "full.path": "false",
-                            "single": "false", "attribute.nameformat": "Basic"}},
-                {"name": "email", "protocol": "saml",
-                 "protocolMapper": "saml-user-property-mapper",
-                 "config": {"user.attribute": "email", "attribute.name": "email",
-                            "attribute.nameformat": "Basic"}}]}))
+        self._ok(
+            self.http.post(
+                f"{self.admin}/clients",
+                json={
+                    "clientId": self.sp_entity,
+                    "protocol": "saml",
+                    "enabled": True,
+                    "frontchannelLogout": True,
+                    "redirectUris": [f"{self.maya}/*"],
+                    "attributes": {
+                        "saml.assertion.signature": "true",
+                        "saml.server.signature": "true",
+                        "saml.signature.algorithm": "RSA_SHA256",
+                        "saml.client.signature": "true",
+                        "saml.signing.certificate": sp_cert_body,
+                        "saml.encrypt": "false",
+                        "saml.force.post.binding": "true",
+                        "saml_force_name_id_format": "true",
+                        "saml_name_id_format": "username",
+                        "saml.authnstatement": "true",
+                        "saml_assertion_consumer_url_post": f"{self.maya}/auth/sso/saml/acs",
+                        "saml_single_logout_service_url_redirect": f"{self.maya}/auth/sso/saml/sls",
+                    },
+                    "protocolMappers": [
+                        {
+                            "name": "groups",
+                            "protocol": "saml",
+                            "protocolMapper": "saml-group-membership-mapper",
+                            "config": {
+                                "attribute.name": "groups",
+                                "full.path": "false",
+                                "single": "false",
+                                "attribute.nameformat": "Basic",
+                            },
+                        },
+                        {
+                            "name": "email",
+                            "protocol": "saml",
+                            "protocolMapper": "saml-user-property-mapper",
+                            "config": {
+                                "user.attribute": "email",
+                                "attribute.name": "email",
+                                "attribute.nameformat": "Basic",
+                            },
+                        },
+                    ],
+                },
+            )
+        )
 
     def sessions(self, user_id: str) -> int:
         self._login()
@@ -165,8 +245,9 @@ class Realm:
     def end_latest_session(self, user_id: str) -> None:
         """The admin console's "Sign out" on one session: the user's most recent."""
         self._login()
-        latest = max(self.http.get(f"{self.admin}/users/{user_id}/sessions").json(),
-                     key=lambda s: s["start"])
+        latest = max(
+            self.http.get(f"{self.admin}/users/{user_id}/sessions").json(), key=lambda s: s["start"]
+        )
         self._ok(self.http.delete(f"{self.admin}/sessions/{latest['id']}"))
 
     def delete(self) -> None:
@@ -183,10 +264,20 @@ class Maya:
         env.pop("MAYA_CONFIG_FILE", None)
         self.log = open(home / "maya.log", "wb")
         self.proc = subprocess.Popen(
-            [sys.executable, "run_maya_web.py", f"--server.port={port}",
-             "--server.host=127.0.0.1", "--auth.mode=hybrid",
-             "--auth.sso.group_role_map.maya-risk=model_manager", *argv],
-            cwd=ROOT, env=env, stdout=self.log, stderr=subprocess.STDOUT)
+            [
+                sys.executable,
+                "run_maya_web.py",
+                f"--server.port={port}",
+                "--server.host=127.0.0.1",
+                "--auth.mode=hybrid",
+                "--auth.sso.group_role_map.maya-risk=model_manager",
+                *argv,
+            ],
+            cwd=ROOT,
+            env=env,
+            stdout=self.log,
+            stderr=subprocess.STDOUT,
+        )
         for _ in range(240):
             try:
                 if httpx.get(f"{self.url}/login", timeout=2).status_code == 200:
@@ -213,6 +304,7 @@ class Maya:
 @pytest.fixture(scope="module")
 def realm(tmp_path_factory) -> Iterator[tuple[Realm, int, tuple[str, str]]]:
     from tests.saml_idp import sp_key_pair
+
     port = _free_port()
     sp = sp_key_pair(tmp_path_factory.mktemp("sp-keys"))
     try:
@@ -244,11 +336,16 @@ def page(browser):
 @pytest.fixture(scope="module")
 def oidc(realm, tmp_path_factory):
     r, port, _ = realm
-    m = Maya(tmp_path_factory.mktemp("maya-oidc"), port, "--auth.sso.protocol=oidc",
-             f"--auth.sso.issuer={r.issuer}", "--auth.sso.client_id=maya-oidc",
-             "--auth.sso.client_secret=maya-oidc-secret",
-             f"--auth.sso.redirect_uri=http://127.0.0.1:{port}/auth/sso/callback",
-             f"--auth.sso.post_logout_redirect_uri=http://127.0.0.1:{port}/login?signed_out=1")
+    m = Maya(
+        tmp_path_factory.mktemp("maya-oidc"),
+        port,
+        "--auth.sso.protocol=oidc",
+        f"--auth.sso.issuer={r.issuer}",
+        "--auth.sso.client_id=maya-oidc",
+        "--auth.sso.client_secret=maya-oidc-secret",
+        f"--auth.sso.redirect_uri=http://127.0.0.1:{port}/auth/sso/callback",
+        f"--auth.sso.post_logout_redirect_uri=http://127.0.0.1:{port}/login?signed_out=1",
+    )
     yield r, m
     m.stop()
 
@@ -260,18 +357,22 @@ def saml(realm, tmp_path_factory, oidc):
     oidc[1].stop()
     home = tmp_path_factory.mktemp("maya-saml")
     idp_cert = home / "idp.crt"
-    idp_cert.write_text(f"-----BEGIN CERTIFICATE-----\n{r.idp_cert}\n"
-                        "-----END CERTIFICATE-----\n")
-    m = Maya(home, port, "--auth.sso.protocol=saml2",
-             f"--auth.sso.saml.sp_entity_id={r.sp_entity}",
-             f"--auth.sso.saml.acs_url={r.maya}/auth/sso/saml/acs",
-             f"--auth.sso.saml.idp_entity_id={r.issuer}",
-             f"--auth.sso.saml.idp_sso_url={r.saml_url}",
-             f"--auth.sso.saml.idp_cert_file={idp_cert}",
-             f"--auth.sso.saml.idp_slo_url={r.saml_url}",
-             f"--auth.sso.saml.sls_url={r.maya}/auth/sso/saml/sls",
-             "--auth.sso.saml.sign_requests=true",
-             f"--auth.sso.saml.sp_cert_file={sp_cert}", f"--auth.sso.saml.sp_key_file={sp_key}")
+    idp_cert.write_text(f"-----BEGIN CERTIFICATE-----\n{r.idp_cert}\n-----END CERTIFICATE-----\n")
+    m = Maya(
+        home,
+        port,
+        "--auth.sso.protocol=saml2",
+        f"--auth.sso.saml.sp_entity_id={r.sp_entity}",
+        f"--auth.sso.saml.acs_url={r.maya}/auth/sso/saml/acs",
+        f"--auth.sso.saml.idp_entity_id={r.issuer}",
+        f"--auth.sso.saml.idp_sso_url={r.saml_url}",
+        f"--auth.sso.saml.idp_cert_file={idp_cert}",
+        f"--auth.sso.saml.idp_slo_url={r.saml_url}",
+        f"--auth.sso.saml.sls_url={r.maya}/auth/sso/saml/sls",
+        "--auth.sso.saml.sign_requests=true",
+        f"--auth.sso.saml.sp_cert_file={sp_cert}",
+        f"--auth.sso.saml.sp_key_file={sp_key}",
+    )
     yield r, m
     m.stop()
 
@@ -296,8 +397,10 @@ def _signed_in_as(page, maya: Maya) -> tuple[str, list[str]] | None:
         return None
     menu = page.locator(".px-3.py-2").filter(has=page.locator(".fw-semibold")).first
     roles = (menu.locator(".small-muted").text_content() or "").strip()
-    return ((menu.locator(".fw-semibold").text_content() or "").strip(),
-            sorted(r.strip() for r in roles.split(",") if r.strip() and roles != "no roles"))
+    return (
+        (menu.locator(".fw-semibold").text_content() or "").strip(),
+        sorted(r.strip() for r in roles.split(",") if r.strip() and roles != "no roles"),
+    )
 
 
 def _sign_out_of_maya(page) -> None:
@@ -329,7 +432,7 @@ def test_oidc_sign_out_ends_the_keycloak_session_too(oidc, page):
     hint) ends its own and returns to MAYA; the next sign-in asks for the password."""
     r, maya = oidc
     _sso_login(page, maya)
-    before = r.sessions(r.alice)          # earlier tests' browsers keep their own sessions
+    before = r.sessions(r.alice)  # earlier tests' browsers keep their own sessions
     page.evaluate("document.querySelector(\"form[action='/logout']\").submit()")
     page.wait_for_url(re.compile(re.escape(r.issuer)))
     page.click("#kc-logout")
@@ -382,7 +485,7 @@ def test_saml_keycloak_front_channel_logout_ends_the_maya_session(saml, page):
     assert _signed_in_as(page, maya)
     page.goto(f"{r.issuer}/protocol/openid-connect/logout")
     page.click("#kc-logout")
-    page.wait_for_url(re.compile(r"/protocol/saml\?SAMLResponse="))   # back from MAYA's SLS
+    page.wait_for_url(re.compile(r"/protocol/saml\?SAMLResponse="))  # back from MAYA's SLS
     page.wait_for_load_state("networkidle")
     assert _signed_in_as(page, maya) is None
 
@@ -396,5 +499,5 @@ def test_saml_admin_sign_out_does_not_reach_maya(saml, page):
     r.admin_sign_out(r.alice)
     assert r.sessions(r.alice) == 0
     assert _signed_in_as(page, maya) == (ALICE, ["admin", "model_manager"])
-    _sign_out_of_maya(page)          # Keycloak still answers MAYA's LogoutRequest
+    _sign_out_of_maya(page)  # Keycloak still answers MAYA's LogoutRequest
     assert page.url == f"{maya.url}/login?signed_out=1"

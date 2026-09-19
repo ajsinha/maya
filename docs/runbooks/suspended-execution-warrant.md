@@ -69,8 +69,11 @@ reported mid-flight. Reinstate with a written reason that a reviewer could check
 
 ```python
 import maya.sdk as maya
-my = maya.connect()                 # MAYA_URL and MAYA_API_KEY of the model owner or an administrator
-my.execution.reinstate("<id>", reason="Vendor file landed 06:40, 40 min late; rerun at 07:05 had null rate 0.001")
+
+my = maya.connect()  # MAYA_URL and MAYA_API_KEY of the model owner or an administrator
+my.execution.reinstate(
+    "<id>", reason="Vendor file landed 06:40, 40 min late; rerun at 07:05 had null rate 0.001"
+)
 ```
 
 The same is `POST /api/v1/warrants/execution/<id>/reinstate` with `{"reason": "…"}`, or the

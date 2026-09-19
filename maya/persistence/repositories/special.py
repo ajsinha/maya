@@ -5,6 +5,7 @@ catalog search index.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -23,8 +24,21 @@ GENESIS = "0" * 64
 
 def audit_digest(prev_hash: str, entry: dict[str, Any]) -> str:
     """The chain link: sha256 over the previous hash and the entry's content."""
-    body = {k: entry.get(k) for k in ("at", "actor", "principal_type", "channel", "action",
-                                      "object_type", "object_ref", "detail", "request_id", "ip")}
+    body = {
+        k: entry.get(k)
+        for k in (
+            "at",
+            "actor",
+            "principal_type",
+            "channel",
+            "action",
+            "object_type",
+            "object_ref",
+            "detail",
+            "request_id",
+            "ip",
+        )
+    }
     at = body["at"]
     if isinstance(at, dt.datetime):
         body["at"] = at.astimezone(dt.timezone.utc).isoformat()
@@ -51,6 +65,7 @@ class AuditRepository(Repository[operations.AuditEvent]):
         self.session.add(obj)
         self.session.flush()
         from maya.observability.metrics import METRICS
+
         METRICS.inc("maya_audit_events_total")
         return obj.to_dict()
 
@@ -59,7 +74,8 @@ class AuditRepository(Repository[operations.AuditEvent]):
         prev = GENESIS
         count = 0
         for obj in self.session.scalars(
-                select(operations.AuditEvent).order_by(operations.AuditEvent.seq)):
+            select(operations.AuditEvent).order_by(operations.AuditEvent.seq)
+        ):
             row = obj.to_dict()
             if row["prev_hash"] != prev or audit_digest(prev, row) != row["hash"]:
                 return {"ok": False, "checked": count, "broken_at": row["seq"]}
@@ -75,10 +91,13 @@ class JobRepository(Repository[operations.Job]):
     def claim_next(self, worker: str) -> dict[str, Any] | None:
         """Take the oldest runnable job. PostgreSQL skips rows other workers hold."""
         now = utcnow()
-        stmt = (select(operations.Job)
-                .where(operations.Job.state == "queued")
-                .where(or_(operations.Job.run_after.is_(None), operations.Job.run_after <= now))
-                .order_by(operations.Job.created_at).limit(1))
+        stmt = (
+            select(operations.Job)
+            .where(operations.Job.state == "queued")
+            .where(or_(operations.Job.run_after.is_(None), operations.Job.run_after <= now))
+            .order_by(operations.Job.created_at)
+            .limit(1)
+        )
         if self.session.get_bind().dialect.name == "postgresql":
             stmt = stmt.with_for_update(skip_locked=True)
         job = self.session.scalars(stmt).first()
@@ -125,9 +144,12 @@ class SearchRepository:
     """Catalog search over names, descriptions and tags (§16.1 command palette)."""
 
     TARGETS = (
-        ("feature", catalog.Feature), ("featureset", catalog.FeatureSet),
-        ("model", registry.Model), ("warrant/train", registry.TrainingWarrant),
-        ("warrant/exec", registry.ExecutionWarrant), ("namespace", identity.Namespace),
+        ("feature", catalog.Feature),
+        ("featureset", catalog.FeatureSet),
+        ("model", registry.Model),
+        ("warrant/train", registry.TrainingWarrant),
+        ("warrant/exec", registry.ExecutionWarrant),
+        ("namespace", identity.Namespace),
     )
 
     def __init__(self, session: Any, actor: str | None = None) -> None:
@@ -136,12 +158,13 @@ class SearchRepository:
     def search(self, q: str, limit: int = 50) -> list[dict[str, Any]]:
         """Ranked hits from the inverted index; every query term must match (as a prefix)."""
         from maya.persistence import search_index
+
         hits = search_index.search(self.session, q, limit)
         models = {kind: model for kind, model in self.TARGETS}
         wanted: dict[str, list[Any]] = {}
         for kind, oid, _ in hits:
             wanted.setdefault(kind, []).append(oid)
-        rows = {}                                   # one query per kind, not one per hit
+        rows = {}  # one query per kind, not one per hit
         for kind, ids in wanted.items():
             model = models[kind]
             for obj in self.session.scalars(select(model).where(model.id.in_(ids))):
@@ -151,19 +174,29 @@ class SearchRepository:
             row = rows.get((kind, oid))
             if row is None:
                 continue
-            out.append({"kind": kind, "id": row["id"], "name": row["name"],
-                        "description": row.get("description"), "tags": row.get("tags") or [],
-                        "namespace_id": row.get("namespace_id"),
-                        "owner_id": row.get("owner_id"), "score": score})
+            out.append(
+                {
+                    "kind": kind,
+                    "id": row["id"],
+                    "name": row["name"],
+                    "description": row.get("description"),
+                    "tags": row.get("tags") or [],
+                    "namespace_id": row.get("namespace_id"),
+                    "owner_id": row.get("owner_id"),
+                    "score": score,
+                }
+            )
         return out
 
     def rebuild(self) -> int:
         from maya.persistence import search_index
+
         return search_index.rebuild(self.session)
 
     def ensure_current(self) -> bool:
         """Rebuild the derived index when it is empty but the catalog is not."""
         from maya.persistence import search_index
+
         if search_index.needs_rebuild(self.session):
             search_index.rebuild(self.session)
             return True

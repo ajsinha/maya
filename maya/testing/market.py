@@ -69,6 +69,7 @@ parsed as one format).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -81,8 +82,24 @@ import pandas as pd
 
 from maya.core.calendars import business_days, holidays
 
-TICKERS = ("ACME", "BOLT", "CRUX", "DYNA", "EPIC", "FLUX", "GRID", "HALO", "IONS", "JADE",
-           "KILN", "LUXE", "MINT", "NOVA", "ONYX", "PEAK")
+TICKERS = (
+    "ACME",
+    "BOLT",
+    "CRUX",
+    "DYNA",
+    "EPIC",
+    "FLUX",
+    "GRID",
+    "HALO",
+    "IONS",
+    "JADE",
+    "KILN",
+    "LUXE",
+    "MINT",
+    "NOVA",
+    "ONYX",
+    "PEAK",
+)
 EXPIRIES = ("1M", "3M", "6M")
 MONEYNESS = (0.9, 1.0, 1.1, 1.2)
 DATE_FORMATS = ("%Y-%m-%d", "%Y/%m/%d", "%d-%b-%Y", "%m/%d/%Y")
@@ -90,21 +107,38 @@ DATE_FORMATS = ("%Y-%m-%d", "%Y/%m/%d", "%d-%b-%Y", "%m/%d/%Y")
 _IDX = {"index": ["date", "symbol"], "index_types": {"date": "date", "symbol": "string"}}
 _SRC = {"type": "csv", "knowledge_time_column": "kt"}
 PRICES_DEF: dict[str, Any] = {
-    **_IDX, "source": _SRC, "transform": [],
-    "schema": [{"name": "close", "type": "float64"}, {"name": "volume", "type": "int64"},
-               {"name": "adj_factor", "type": "float64"}],
+    **_IDX,
+    "source": _SRC,
+    "transform": [],
+    "schema": [
+        {"name": "close", "type": "float64"},
+        {"name": "volume", "type": "int64"},
+        {"name": "adj_factor", "type": "float64"},
+    ],
     "resolution": {"grid": "as_is", "rules": {}},
-    "quality": [{"check": "not_null", "attr": "close"}]}
+    "quality": [{"check": "not_null", "attr": "close"}],
+}
 FUNDAMENTALS_DEF: dict[str, Any] = {
-    **_IDX, "source": _SRC, "transform": [],
-    "schema": [{"name": "period_end", "type": "date"}, {"name": "eps", "type": "float64"},
-               {"name": "revenue", "type": "float64"}, {"name": "revision", "type": "int64"}],
+    **_IDX,
+    "source": _SRC,
+    "transform": [],
+    "schema": [
+        {"name": "period_end", "type": "date"},
+        {"name": "eps", "type": "float64"},
+        {"name": "revenue", "type": "float64"},
+        {"name": "revision", "type": "int64"},
+    ],
     "resolution": {"grid": "as_is", "rules": {}},
-    "quality": [{"check": "not_null", "attr": "eps"}]}
+    "quality": [{"check": "not_null", "attr": "eps"}],
+}
 SURFACE_DEF: dict[str, Any] = {
-    **_IDX, "source": {"type": "parquet", "knowledge_time_column": "kt"}, "transform": [],
+    **_IDX,
+    "source": {"type": "parquet", "knowledge_time_column": "kt"},
+    "transform": [],
     "schema": [{"name": "surface", "type": "tensor<float64,[3,4]>"}],
-    "resolution": {"grid": "as_is", "rules": {}}, "quality": []}
+    "resolution": {"grid": "as_is", "rules": {}},
+    "quality": [],
+}
 
 
 @dataclass
@@ -129,18 +163,28 @@ class MarketData:
     def surface_parquet(self) -> bytes:
         import pyarrow as pa
         import pyarrow.parquet as pq
-        table = pa.table({
-            "date": pa.array(self.surface["date"].dt.date, pa.date32()),
-            "symbol": pa.array(self.surface["symbol"], pa.string()),
-            "surface": pa.array(self.surface["surface"].tolist(), pa.list_(pa.float64(), 12)),
-            "kt": pa.array(self.surface["kt"], pa.timestamp("us", tz="UTC"))})
+
+        table = pa.table(
+            {
+                "date": pa.array(self.surface["date"].dt.date, pa.date32()),
+                "symbol": pa.array(self.surface["symbol"], pa.string()),
+                "surface": pa.array(self.surface["surface"].tolist(), pa.list_(pa.float64(), 12)),
+                "kt": pa.array(self.surface["kt"], pa.timestamp("us", tz="UTC")),
+            }
+        )
         buf = io.BytesIO()
         pq.write_table(table, buf)
         return buf.getvalue()
 
 
-def generate(seed: int = 7, *, symbols: int = 6, start: dt.date = dt.date(2025, 1, 1),
-             end: dt.date = dt.date(2025, 6, 30), calendar: str = "NYSE") -> MarketData:
+def generate(
+    seed: int = 7,
+    *,
+    symbols: int = 6,
+    start: dt.date = dt.date(2025, 1, 1),
+    end: dt.date = dt.date(2025, 6, 30),
+    calendar: str = "NYSE",
+) -> MarketData:
     """The dataset for ``symbols`` tickers over the open days of [start, end]."""
     if symbols < 3:
         raise ValueError("the dataset needs at least 3 symbols (split, late listing, delisting)")
@@ -155,12 +199,18 @@ def generate(seed: int = 7, *, symbols: int = 6, start: dt.date = dt.date(2025, 
     life[names[2]] = (0, 2 * n // 3)
     split_day = n // 2
     events: dict[str, Any] = {
-        "calendar": calendar, "symbols": names,
-        "holidays": sorted(h for y in range(start.year, end.year + 1)
-                           for h in holidays(calendar, y) if start <= h <= end),
+        "calendar": calendar,
+        "symbols": names,
+        "holidays": sorted(
+            h
+            for y in range(start.year, end.year + 1)
+            for h in holidays(calendar, y)
+            if start <= h <= end
+        ),
         "late_listing": {"symbol": names[1], "first_day": days[life[names[1]][0]]},
         "delisting": {"symbol": names[2], "last_day": days[life[names[2]][1]]},
-        "split": {"symbol": names[0], "ex_date": days[split_day], "ratio": 2.0}}
+        "split": {"symbol": names[0], "ex_date": days[split_day], "ratio": 2.0},
+    }
     prices, gaps = _prices(rng, names, days, life, split_day)
     events["gaps"] = gaps
     fundamentals, restated = _fundamentals(rng, names, days, life)
@@ -170,13 +220,18 @@ def generate(seed: int = 7, *, symbols: int = 6, start: dt.date = dt.date(2025, 
 
 
 def _kt(day: dt.date, hour: int, minute: int = 0) -> pd.Timestamp:
-    return pd.Timestamp(dt.datetime(day.year, day.month, day.day, hour, minute,
-                                    tzinfo=dt.timezone.utc))
+    return pd.Timestamp(
+        dt.datetime(day.year, day.month, day.day, hour, minute, tzinfo=dt.timezone.utc)
+    )
 
 
-def _prices(rng: np.random.Generator, names: list[str], days: list[dt.date],
-            life: dict[str, tuple[int, int]], split_day: int
-            ) -> tuple[pd.DataFrame, list[tuple[dt.date, str]]]:
+def _prices(
+    rng: np.random.Generator,
+    names: list[str],
+    days: list[dt.date],
+    life: dict[str, tuple[int, int]],
+    split_day: int,
+) -> tuple[pd.DataFrame, list[tuple[dt.date, str]]]:
     rows, gaps = [], []
     for k, sym in enumerate(names):
         first, last = life[sym]
@@ -190,11 +245,16 @@ def _prices(rng: np.random.Generator, names: list[str], days: list[dt.date],
             if drop and i != first and not (k == 0 and i == split_day):
                 gaps.append((days[i], sym))
                 continue
-            rows.append({"date": pd.Timestamp(days[i]), "symbol": sym,
-                         "close": round(price / 2 if split else price, 4),
-                         "volume": None if blank else volume * (2 if split else 1),
-                         "adj_factor": 0.5 if (k == 0 and i < split_day) else 1.0,
-                         "kt": _kt(days[i], 21)})
+            rows.append(
+                {
+                    "date": pd.Timestamp(days[i]),
+                    "symbol": sym,
+                    "close": round(price / 2 if split else price, 4),
+                    "volume": None if blank else volume * (2 if split else 1),
+                    "adj_factor": 0.5 if (k == 0 and i < split_day) else 1.0,
+                    "kt": _kt(days[i], 21),
+                }
+            )
     df = pd.DataFrame(rows).sort_values(["date", "symbol"], kind="mergesort")
     df["volume"] = df["volume"].astype("Int64")
     return df.reset_index(drop=True), gaps
@@ -208,8 +268,12 @@ def _quarter_ends(start: dt.date, end: dt.date) -> list[dt.date]:
     return out
 
 
-def _fundamentals(rng: np.random.Generator, names: list[str], days: list[dt.date],
-                  life: dict[str, tuple[int, int]]) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
+def _fundamentals(
+    rng: np.random.Generator,
+    names: list[str],
+    days: list[dt.date],
+    life: dict[str, tuple[int, int]],
+) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     open_days = set(days)
     rows: list[dict[str, Any]] = []
     todo: list[tuple[dict[str, Any], bool, int, float]] = []
@@ -225,24 +289,41 @@ def _fundamentals(rng: np.random.Generator, names: list[str], days: list[dt.date
             restate, lag = bool(rng.random() < 0.35), int(rng.integers(30, 91))
             shift = float(rng.choice([-1, 1]) * rng.uniform(0.05, 0.2))
             if lo <= ann <= hi:
-                base = {"date": pd.Timestamp(ann), "symbol": sym, "period_end": pd.Timestamp(qe),
-                        "eps": round(eps, 4), "revenue": round(revenue, 3), "revision": 0,
-                        "kt": _kt(ann, 21, 30)}
+                base = {
+                    "date": pd.Timestamp(ann),
+                    "symbol": sym,
+                    "period_end": pd.Timestamp(qe),
+                    "eps": round(eps, 4),
+                    "revenue": round(revenue, 3),
+                    "revision": 0,
+                    "kt": _kt(ann, 21, 30),
+                }
                 rows.append(base)
                 todo.append((base, restate, lag, shift))
-    if todo and not any(t[1] for t in todo):          # always at least one restatement
+    if todo and not any(t[1] for t in todo):  # always at least one restatement
         todo[0] = (todo[0][0], True, todo[0][2], todo[0][3])
     restated = []
     for base, restate, lag, shift in todo:
         if not restate:
             continue
-        again = {**base, "eps": round(base["eps"] * (1 + shift), 4),
-                 "revenue": round(base["revenue"] * 0.99, 3), "revision": 1,
-                 "kt": _kt(base["date"].date() + dt.timedelta(days=lag), 12)}
+        again = {
+            **base,
+            "eps": round(base["eps"] * (1 + shift), 4),
+            "revenue": round(base["revenue"] * 0.99, 3),
+            "revision": 1,
+            "kt": _kt(base["date"].date() + dt.timedelta(days=lag), 12),
+        }
         rows.append(again)
-        restated.append({"date": base["date"].date(), "symbol": base["symbol"],
-                         "original_eps": base["eps"], "restated_eps": again["eps"],
-                         "original_kt": base["kt"], "restated_kt": again["kt"]})
+        restated.append(
+            {
+                "date": base["date"].date(),
+                "symbol": base["symbol"],
+                "original_eps": base["eps"],
+                "restated_eps": again["eps"],
+                "original_kt": base["kt"],
+                "restated_kt": again["kt"],
+            }
+        )
     df = pd.DataFrame(rows).sort_values(["date", "symbol", "kt"], kind="mergesort")
     df["revision"] = df["revision"].astype("int64")
     restated.sort(key=lambda r: r["restated_kt"])
@@ -258,8 +339,11 @@ def _surface(rng: np.random.Generator, prices: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for _, r in picked.iterrows():
         atm = level[r["symbol"]] * float(np.exp(rng.normal(0, 0.05)))
-        grid = [round(atm * (1 + 0.05 * t) + 0.3 * (m - 1.0) ** 2 - 0.05 * (m - 1.0), 4)
-                for t in range(len(EXPIRIES)) for m in MONEYNESS]
+        grid = [
+            round(atm * (1 + 0.05 * t) + 0.3 * (m - 1.0) ** 2 - 0.05 * (m - 1.0), 4)
+            for t in range(len(EXPIRIES))
+            for m in MONEYNESS
+        ]
         rows.append({"date": r["date"], "symbol": r["symbol"], "surface": grid, "kt": r["kt"]})
     return pd.DataFrame(rows).reset_index(drop=True)
 

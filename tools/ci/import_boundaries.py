@@ -10,6 +10,7 @@
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -18,10 +19,16 @@ import sys
 from _common import imports_of, module_name, python_files, report
 
 WEB_ALLOWED = ("maya.sdk", "maya.core.version", "maya.core.errors")
-PERSISTENCE_API = ("maya.persistence.session", "maya.persistence.engine",
-                   "maya.persistence.external", "maya.persistence.estate")
-LEAKS = re.compile(r"\buow\.session\b|\.db\.engine\b|\bBase\.metadata\b|"
-                   r"(?<!request)\.session\.(execute|scalars|query|get|add|flush|commit)\(")
+PERSISTENCE_API = (
+    "maya.persistence.session",
+    "maya.persistence.engine",
+    "maya.persistence.external",
+    "maya.persistence.estate",
+)
+LEAKS = re.compile(
+    r"\buow\.session\b|\.db\.engine\b|\bBase\.metadata\b|"
+    r"(?<!request)\.session\.(execute|scalars|query|get|add|flush|commit)\("
+)
 
 
 def main() -> int:
@@ -29,16 +36,26 @@ def main() -> int:
     for path in python_files():
         mod = module_name(path)
         for name, line in imports_of(path):
-            if name.split(".")[0] == "sqlalchemy" and not mod.startswith("maya.persistence") \
-                    and not mod.startswith("tools."):
+            if (
+                name.split(".")[0] == "sqlalchemy"
+                and not mod.startswith("maya.persistence")
+                and not mod.startswith("tools.")
+            ):
                 failures.append(f"{mod}:{line} imports sqlalchemy outside maya.persistence")
-            if name.startswith("maya.persistence") and not mod.startswith(
-                    ("maya.persistence", "tools.")) and not (
-                    name in ("maya.persistence",) or name.startswith(PERSISTENCE_API)):
-                failures.append(f"{mod}:{line} imports {name}; application code may use only "
-                                "the unit of work, the engine factory and the external reader")
-            if mod.startswith("maya.web") and name.startswith("maya") and \
-                    not name.startswith(WEB_ALLOWED + ("maya.web",)):
+            if (
+                name.startswith("maya.persistence")
+                and not mod.startswith(("maya.persistence", "tools."))
+                and not (name in ("maya.persistence",) or name.startswith(PERSISTENCE_API))
+            ):
+                failures.append(
+                    f"{mod}:{line} imports {name}; application code may use only "
+                    "the unit of work, the engine factory and the external reader"
+                )
+            if (
+                mod.startswith("maya.web")
+                and name.startswith("maya")
+                and not name.startswith(WEB_ALLOWED + ("maya.web",))
+            ):
                 failures.append(f"{mod}:{line} imports {name}; maya.web may use only maya.sdk")
         if mod.startswith("maya.") and not mod.startswith("maya.persistence"):
             for n, text in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

@@ -14,6 +14,7 @@ Every query MAYA runs against someone else's database is:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import os
@@ -27,8 +28,11 @@ from sqlalchemy.engine import make_url
 from maya.core.errors import ValidationFailed
 
 _LEADING = re.compile(r"^\s*(?:--[^\n]*\n\s*|/\*.*?\*/\s*)*", re.S)
-_FORBIDDEN = re.compile(r"\b(insert|update|delete|merge|drop|alter|create|truncate|grant|"
-                        r"revoke|copy|call|execute|attach|detach|pragma|vacuum|replace)\b", re.I)
+_FORBIDDEN = re.compile(
+    r"\b(insert|update|delete|merge|drop|alter|create|truncate|grant|"
+    r"revoke|copy|call|execute|attach|detach|pragma|vacuum|replace)\b",
+    re.I,
+)
 
 
 def check_query(query: str) -> str:
@@ -57,8 +61,10 @@ def check_url(url: str) -> str:
     except Exception as exc:  # noqa: BLE001 - any parse failure is the user's to fix
         raise ValidationFailed(f"Not a database URL: {exc}") from exc
     if parsed.password:
-        raise ValidationFailed("Put the password in an environment variable and name it in "
-                               "password_env; MAYA never stores database passwords")
+        raise ValidationFailed(
+            "Put the password in an environment variable and name it in "
+            "password_env; MAYA never stores database passwords"
+        )
     if parsed.get_backend_name() not in ("sqlite", "postgresql"):
         raise ValidationFailed("Supported source databases: sqlite, postgresql")
     return url
@@ -69,18 +75,23 @@ def _read_only_engine(url: str, password_env: str | None) -> Any:
     if password_env:
         secret = os.environ.get(password_env)
         if secret is None:
-            raise ValidationFailed(f"Environment variable '{password_env}' holding the "
-                                   "connection's password is not set on this server")
+            raise ValidationFailed(
+                f"Environment variable '{password_env}' holding the "
+                "connection's password is not set on this server"
+            )
         parsed = parsed.set(password=secret)
     if parsed.get_backend_name() == "sqlite":
         path = parsed.database or ""
         return create_engine(f"sqlite:///file:{path}?mode=ro&uri=true")
-    return create_engine(parsed, connect_args={
-        "options": "-c default_transaction_read_only=on -c statement_timeout=300000"})
+    return create_engine(
+        parsed,
+        connect_args={"options": "-c default_transaction_read_only=on -c statement_timeout=300000"},
+    )
 
 
-def read_query(url: str, password_env: str | None, query: str,
-               params: dict[str, Any] | None = None) -> pd.DataFrame:
+def read_query(
+    url: str, password_env: str | None, query: str, params: dict[str, Any] | None = None
+) -> pd.DataFrame:
     """Run one validated, parameterised, read-only query and return its rows."""
     body = check_query(query)
     engine = _read_only_engine(url, password_env)

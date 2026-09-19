@@ -9,6 +9,7 @@ accelerator happens to be installed.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -30,9 +31,9 @@ def _default(obj: Any) -> Any:
         return str(obj)
     if isinstance(obj, (set, frozenset)):
         return sorted(obj)
-    if hasattr(obj, "item"):          # numpy scalar
+    if hasattr(obj, "item"):  # numpy scalar
         return obj.item()
-    if hasattr(obj, "tolist"):        # numpy array
+    if hasattr(obj, "tolist"):  # numpy array
         return obj.tolist()
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
@@ -41,8 +42,8 @@ def dumps(obj: Any, *, indent: int | None = None) -> str:
     """Serialize to a JSON string using the resolved backend."""
     if indent is None and Backends.selected("json") == "orjson":
         import orjson
-        return orjson.dumps(obj, default=_default,
-                            option=orjson.OPT_NON_STR_KEYS).decode("utf-8")
+
+        return orjson.dumps(obj, default=_default, option=orjson.OPT_NON_STR_KEYS).decode("utf-8")
     return json.dumps(obj, default=_default, indent=indent, ensure_ascii=False)
 
 
@@ -50,14 +51,16 @@ def loads(text: str | bytes) -> Any:
     """Parse JSON using the resolved backend."""
     if Backends.selected("json") == "orjson":
         import orjson
+
         return orjson.loads(text)
     return json.loads(text)
 
 
 def canonical(obj: Any) -> str:
     """Canonical JSON text: sorted keys, no whitespace, stdlib always (Type B)."""
-    return json.dumps(obj, default=_default, sort_keys=True,
-                      separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        obj, default=_default, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
 
 
 def canonical_hash(obj: Any) -> str:

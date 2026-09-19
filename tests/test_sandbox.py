@@ -1,4 +1,5 @@
 """The artifact validation ladder, one refusal per rung, and the declared sandbox tier."""
+
 from __future__ import annotations
 
 import pytest
@@ -6,7 +7,7 @@ import pytest
 from maya.formula.artifact import validate_artifact
 from maya.security.sandbox import run_sandboxed, sandbox_tier, tier_at_least
 
-GOOD = '''
+GOOD = """
 import numpy as np
 
 
@@ -16,7 +17,7 @@ class Model:
 
     def predict(self, X, params, ctx):
         return np.asarray(X["x"], dtype=float) * params["a"]
-'''
+"""
 SAMPLE = {"x": [1.0, 2.0, 3.0]}
 
 
@@ -27,7 +28,7 @@ def _failed_at(report: dict) -> int:
 def test_tier_is_declared_honestly() -> None:
     tier = sandbox_tier()
     assert tier["tier"] in ("minimal", "moderate", "strong") and tier["reason"]
-    if tier["tier"] == "strong":   # claimed only when a probe child verified every part
+    if tier["tier"] == "strong":  # claimed only when a probe child verified every part
         assert "verified by a probe" in tier["reason"]
         for part in ("bubblewrap", "seccomp", "cgroup"):
             assert part in tier["mechanism"]
@@ -59,8 +60,9 @@ def test_rung3_os_import() -> None:
     assert _failed_at(report) == 3 and "'os'" in report["rungs"][2]["detail"]
 
 
-@pytest.mark.parametrize("line", ["open('/etc/passwd').read()", "eval('1+1')",
-                                  "exec('x=1')", "().__class__.__bases__"])
+@pytest.mark.parametrize(
+    "line", ["open('/etc/passwd').read()", "eval('1+1')", "exec('x=1')", "().__class__.__bases__"]
+)
 def test_rung4_static_ban(line: str) -> None:
     src = GOOD.replace('return {"a": 1.0}', f"{line}\n        return {{}}")
     report = validate_artifact(src, SAMPLE, {})
@@ -68,26 +70,31 @@ def test_rung4_static_ban(line: str) -> None:
 
 
 def test_rung5_infinite_loop_killed_by_wall_clock() -> None:
-    src = GOOD.replace('return np.asarray(X["x"], dtype=float) * params["a"]',
-                       "while True:\n            pass")
-    report = validate_artifact(src, SAMPLE, {"a": 1.0},
-                               limits={"cpu_seconds": 2, "memory_mb": 1024, "wall_seconds": 4})
+    src = GOOD.replace(
+        'return np.asarray(X["x"], dtype=float) * params["a"]', "while True:\n            pass"
+    )
+    report = validate_artifact(
+        src, SAMPLE, {"a": 1.0}, limits={"cpu_seconds": 2, "memory_mb": 1024, "wall_seconds": 4}
+    )
     assert _failed_at(report) == 5
     detail = report["rungs"][4]["detail"]
     assert "wall-clock" in detail or "resource limit" in detail
 
 
 def test_rung5_huge_allocation_contained() -> None:
-    src = GOOD.replace('return np.asarray(X["x"], dtype=float) * params["a"]',
-                       "return np.ones(10_000_000_000)")
+    src = GOOD.replace(
+        'return np.asarray(X["x"], dtype=float) * params["a"]', "return np.ones(10_000_000_000)"
+    )
     report = validate_artifact(src, SAMPLE, {"a": 1.0})
     assert _failed_at(report) == 5
     assert "Memory" in report["rungs"][4]["detail"] or "resource" in report["rungs"][4]["detail"]
 
 
 def test_rung6_nondeterminism_is_a_warning() -> None:
-    src = GOOD.replace('return np.asarray(X["x"], dtype=float) * params["a"]',
-                       "return np.random.default_rng().random(3)")
+    src = GOOD.replace(
+        'return np.asarray(X["x"], dtype=float) * params["a"]',
+        "return np.random.default_rng().random(3)",
+    )
     report = validate_artifact(src, SAMPLE, {})
     assert report["passed"] and report["deterministic"] is False
     assert "WARNING" in report["rungs"][5]["detail"]
@@ -101,9 +108,12 @@ def test_network_disabled_in_child() -> None:
 
 def test_file_write_blocked_by_rlimit() -> None:
     import platform
+
     if platform.system() == "Windows":
         pytest.skip("RLIMIT_FSIZE is POSIX only; Windows tier is minimal by wall clock")
-    src = ("def run(X, params):\n    with open('x.txt', 'w') as fh:\n"
-           "        fh.write('hello' * 1000)\n    return 1\n")
+    src = (
+        "def run(X, params):\n    with open('x.txt', 'w') as fh:\n"
+        "        fh.write('hello' * 1000)\n    return 1\n"
+    )
     res = run_sandboxed(src, "run", {"X": {}, "params": {}})
     assert not res["ok"]

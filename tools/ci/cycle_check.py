@@ -6,6 +6,7 @@ those in ``try``; imports inside functions (deliberately deferred) and under
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import ast
@@ -34,13 +35,13 @@ def load_time_imports(path: Path, name: str, known: dict[str, Path]) -> set[str]
     for node in ast.parse(path.read_text(encoding="utf-8")).body:
         if isinstance(node, ast.If) and "TYPE_CHECKING" in ast.unparse(node.test):
             continue
-        for n in (node.body if isinstance(node, ast.Try) else [node]):
+        for n in node.body if isinstance(node, ast.Try) else [node]:
             if isinstance(n, ast.Import):
                 found.update(a.name for a in n.names)
             elif isinstance(n, ast.ImportFrom):
                 if n.level:
                     parts = name.split(".")
-                    base = parts[:len(parts) - n.level + (1 if is_pkg else 0)]
+                    base = parts[: len(parts) - n.level + (1 if is_pkg else 0)]
                     mod = ".".join(base + ([n.module] if n.module else []))
                 else:
                     mod = n.module or ""

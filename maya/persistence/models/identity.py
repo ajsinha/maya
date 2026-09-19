@@ -4,6 +4,7 @@ namespaces and the ACL table (§3, §11, §12, Appendix A).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -33,8 +34,8 @@ class User(Tracked, Base):
     last_login_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     password_changed_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    mfa_secret: Mapped[str | None] = mapped_column(Text)            # sealed by SecretBox
-    mfa_last_step: Mapped[int | None] = mapped_column(BigInteger)   # replay guard
+    mfa_secret: Mapped[str | None] = mapped_column(Text)  # sealed by SecretBox
+    mfa_last_step: Mapped[int | None] = mapped_column(BigInteger)  # replay guard
     external_subject: Mapped[str | None] = mapped_column(String(256), index=True)
     is_service: Mapped[bool] = mapped_column(Boolean, default=False)
     desk: Mapped[str | None] = mapped_column(String(128))
@@ -172,6 +173,7 @@ class AuthChallenge(Tracked, Base):
     """A single-use, short-lived value MAYA issued and expects back: a SAML AuthnRequest
     id, a consumed SAML assertion id, or a WebAuthn challenge. ``consumed_at`` makes it
     single-use; ``handle`` is unique, so a replay is a lookup that finds it consumed."""
+
     __tablename__ = "auth_challenges"
     kind: Mapped[str] = mapped_column(String(32), index=True)
     handle: Mapped[str] = mapped_column(String(256), unique=True)
@@ -184,10 +186,11 @@ class AuthChallenge(Tracked, Base):
 
 class WebAuthnCredential(Tracked, Base):
     """A registered security key or passkey: a second factor for a password login."""
+
     __tablename__ = "webauthn_credentials"
     user_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey(FK_USER), index=True)
-    credential_id: Mapped[str] = mapped_column(String(512), unique=True)   # base64url
-    public_key: Mapped[str] = mapped_column(Text)                          # base64url COSE
+    credential_id: Mapped[str] = mapped_column(String(512), unique=True)  # base64url
+    public_key: Mapped[str] = mapped_column(Text)  # base64url COSE
     sign_count: Mapped[int] = mapped_column(BigInteger, default=0)
     transports: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
     name: Mapped[str] = mapped_column(String(128), default="security key")

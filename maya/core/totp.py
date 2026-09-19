@@ -8,6 +8,7 @@ its window.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -35,16 +36,17 @@ def _key(secret: str) -> bytes:
 def code_at(secret: str, step: int) -> str:
     digest = hmac.new(_key(secret), struct.pack(">Q", step), hashlib.sha1).digest()
     offset = digest[-1] & 0x0F
-    value = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
-    return str(value % 10 ** DIGITS).zfill(DIGITS)
+    value = struct.unpack(">I", digest[offset : offset + 4])[0] & 0x7FFFFFFF
+    return str(value % 10**DIGITS).zfill(DIGITS)
 
 
 def current_step(now: float | None = None) -> int:
     return int((time.time() if now is None else now) // STEP)
 
 
-def verify(secret: str, code: str, *, last_step: int | None = None,
-           now: float | None = None) -> int | None:
+def verify(
+    secret: str, code: str, *, last_step: int | None = None, now: float | None = None
+) -> int | None:
     """The matching step if ``code`` is valid and not a replay, else None."""
     code = (code or "").strip().replace(" ", "")
     if len(code) != DIGITS or not code.isdigit():
@@ -60,6 +62,8 @@ def verify(secret: str, code: str, *, last_step: int | None = None,
 
 def provisioning_uri(secret: str, username: str, issuer: str = "MAYA") -> str:
     """The otpauth:// URI an authenticator app imports."""
-    label = quote(f"{issuer}:{username}", safe=":")   # literal colon: widest app support
-    return (f"otpauth://totp/{label}?secret={secret}&issuer={quote(issuer)}"
-            f"&algorithm=SHA1&digits={DIGITS}&period={STEP}")
+    label = quote(f"{issuer}:{username}", safe=":")  # literal colon: widest app support
+    return (
+        f"otpauth://totp/{label}?secret={secret}&issuer={quote(issuer)}"
+        f"&algorithm=SHA1&digits={DIGITS}&period={STEP}"
+    )

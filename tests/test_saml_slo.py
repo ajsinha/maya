@@ -13,6 +13,7 @@ one, Keycloak, are in tests/test_sso_keycloak.py (opt-in: MAYA_TEST_KEYCLOAK_URL
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -33,6 +34,7 @@ def slo(tmp_path_factory):
     cert, key = sp_key_pair(tmp_path_factory.mktemp("sp-keys"))
     platform = build_platform(idp.argv(slo=True, sp_files=(cert, key)))
     from maya.api.app import create_api
+
     yield platform, idp, create_api(platform), cert
     platform.shutdown()
 
@@ -52,6 +54,7 @@ def _alive(app, token: str) -> bool:
 
 def _request_id(redirect_url: str) -> str:
     from onelogin.saml2.utils import OneLogin_Saml2_Utils
+
     raw = parse_qs(urlparse(redirect_url).query)["SAMLRequest"][0]
     xml = OneLogin_Saml2_Utils.decode_base64_and_inflate(raw)
     return re.search(r'ID="([^"]+)"', xml.decode() if isinstance(xml, bytes) else xml).group(1)
@@ -59,12 +62,15 @@ def _request_id(redirect_url: str) -> str:
 
 def _refused(platform, fragment: str) -> bool:
     with platform.uow() as uow:
-        return any(fragment in a["detail"].get("reason", "")
-                   for a in uow.repo("audit_events").list(action="auth.sso_refused"))
+        return any(
+            fragment in a["detail"].get("reason", "")
+            for a in uow.repo("audit_events").list(action="auth.sso_refused")
+        )
 
 
 def test_authn_requests_are_signed_with_the_sp_key_and_metadata_names_slo(slo):
     from onelogin.saml2.utils import OneLogin_Saml2_Utils
+
     platform, _, app, cert = slo
     url = Client(app=app).auth.saml_start()["redirect_url"]
     query = urlparse(url).query
@@ -72,7 +78,8 @@ def test_authn_requests_are_signed_with_the_sp_key_and_metadata_names_slo(slo):
     assert fields["SigAlg"] == [RSA_SHA256]
     signed = "&".join(p for p in query.split("&") if not p.startswith("Signature="))
     assert OneLogin_Saml2_Utils.validate_binary_sign(
-        signed, base64.b64decode(fields["Signature"][0]), open(cert).read(), RSA_SHA256)
+        signed, base64.b64decode(fields["Signature"][0]), open(cert).read(), RSA_SHA256
+    )
     metadata = Client(app=app).auth.saml_metadata()
     text = metadata.decode() if isinstance(metadata, bytes) else str(metadata)
     assert "SingleLogoutService" in text and SLS in text and "KeyDescriptor" in text
@@ -110,16 +117,18 @@ def test_the_idps_logout_request_ends_exactly_that_sign_in(slo):
     assert not _alive(app, first) and not _alive(app, second)
     assert _alive(app, other)
     with platform.uow() as uow:
-        assert uow.repo("audit_events").find_one(action="auth.sso_logout",
-                                                 object_ref="saml:sara")
+        assert uow.repo("audit_events").find_one(action="auth.sso_logout", object_ref="saml:sara")
 
 
-@pytest.mark.parametrize("attack, reason", [
-    ({"signed": False}, "Unsigned SAML LogoutRequest refused"),
-    ({"rogue": True}, "Signature validation failed"),
-    ({"issuer": "https://evil.example.test"}, "invalid"),
-    ({"destination": "https://elsewhere.example.test/sls"}, "invalid"),
-])
+@pytest.mark.parametrize(
+    "attack, reason",
+    [
+        ({"signed": False}, "Unsigned SAML LogoutRequest refused"),
+        ({"rogue": True}, "Signature validation failed"),
+        ({"issuer": "https://evil.example.test"}, "invalid"),
+        ({"destination": "https://elsewhere.example.test/sls"}, "invalid"),
+    ],
+)
 def test_logout_requests_the_idp_did_not_properly_send_end_nothing(slo, attack, reason):
     platform, idp, app, _ = slo
     token = _sign_in(app, idp, "sara")
@@ -131,8 +140,9 @@ def test_logout_requests_the_idp_did_not_properly_send_end_nothing(slo, attack, 
 
 def test_misconfiguration_is_refused_at_startup(tmp_path):
     idp = SamlIdP()
-    argv = [a for a in idp.argv() if "sign_requests" not in a] + \
-        ["--auth.sso.saml.sign_requests=true"]
+    argv = [a for a in idp.argv() if "sign_requests" not in a] + [
+        "--auth.sso.saml.sign_requests=true"
+    ]
     with pytest.raises(ValidationFailed, match="sp_cert, auth.sso.saml.sp_key"):
         build_platform(argv)
 
@@ -141,6 +151,7 @@ def test_without_slo_the_sls_is_refused_and_logout_stays_local(tmp_path):
     idp = SamlIdP()
     platform = build_platform(idp.argv())
     from maya.api.app import create_api
+
     app = create_api(platform)
     token = _sign_in(app, idp)
     assert Client(app=app, token=token).auth.logout()["slo_redirect"] is None
@@ -154,13 +165,16 @@ def test_the_browser_follows_both_directions(slo):
     browser session and is answered with a redirect back to the IdP."""
     from starlette.testclient import TestClient
     from maya.server import build_app
+
     platform, idp, _, _ = slo
     web = TestClient(build_app(platform), base_url="http://127.0.0.1:8600")
     to_idp = web.get("/auth/sso/login?next=/", follow_redirects=False).headers["location"]
     request_id = _request_id(to_idp)
-    signed_in = web.post("/auth/sso/saml/acs",
-                         data={"SAMLResponse": idp.response(request_id, "sara"),
-                               "RelayState": "/"}, follow_redirects=False)
+    signed_in = web.post(
+        "/auth/sso/saml/acs",
+        data={"SAMLResponse": idp.response(request_id, "sara"), "RelayState": "/"},
+        follow_redirects=False,
+    )
     assert signed_in.status_code == 303
     home = web.get("/")
     csrf = re.search(r'name="csrf_token" value="([^"]+)"', home.text).group(1)

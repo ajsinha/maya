@@ -82,10 +82,19 @@ An administrator (or anyone holding `C` on `users`) can define further roles as 
 ```python
 # A read-only auditor role
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
-my.admin.create_role("auditor", {"feature": "R", "featureset": "R", "model": "R",
-                                 "training_warrant": "R", "execution_warrant": "R"},
-                     description="Reads everything, changes nothing")
+my.admin.create_role(
+    "auditor",
+    {
+        "feature": "R",
+        "featureset": "R",
+        "model": "R",
+        "training_warrant": "R",
+        "execution_warrant": "R",
+    },
+    description="Reads everything, changes nothing",
+)
 ```
 
 ### Users and groups
@@ -193,10 +202,15 @@ Granting needs the `grant` action on the object (`G` in your roles, and `own` or
 
 ```python
 # Read access for a validator, for 30 days, without the out-of-sample period
-my.access.grant(kind="feature", object_ref="eq/prices",
-                principal_type="user", principal_id="val.jones", level="read", days=30,
-                conditions={"time_bound": {"until": "2025-12-31"},
-                            "column_mask": {"vol": "hash"}})
+my.access.grant(
+    kind="feature",
+    object_ref="eq/prices",
+    principal_type="user",
+    principal_id="val.jones",
+    level="read",
+    days=30,
+    conditions={"time_bound": {"until": "2025-12-31"}, "column_mask": {"vol": "hash"}},
+)
 print(my.access.grants(kind="feature", ref="eq/prices"))
 ```
 

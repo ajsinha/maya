@@ -11,6 +11,7 @@ queries.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -22,8 +23,24 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _harness as h  # noqa: E402
 
-WORDS = ["equity", "credit", "rates", "fx", "commodity", "volatility", "spread", "yield",
-         "momentum", "value", "carry", "liquidity", "adjusted", "close", "return", "beta"]
+WORDS = [
+    "equity",
+    "credit",
+    "rates",
+    "fx",
+    "commodity",
+    "volatility",
+    "spread",
+    "yield",
+    "momentum",
+    "value",
+    "carry",
+    "liquidity",
+    "adjusted",
+    "close",
+    "return",
+    "beta",
+]
 
 
 def seed(p, n: int) -> None:
@@ -39,10 +56,16 @@ def seed(p, n: int) -> None:
             repo = uow.repo("features")
             for i in range(start, min(n, start + batch)):
                 a, b = rng.sample(WORDS, 2)
-                repo.add({"namespace_id": namespaces[f"desk{i % 10}"],
-                          "name": f"{a}_{b}_{i:06d}", "owner_id": admin.user_id,
-                          "description": f"{a} {b} signal number {i}",
-                          "tags": [a, f"desk{i % 10}"], "index_spec": ["date", "symbol"]})
+                repo.add(
+                    {
+                        "namespace_id": namespaces[f"desk{i % 10}"],
+                        "name": f"{a}_{b}_{i:06d}",
+                        "owner_id": admin.user_id,
+                        "description": f"{a} {b} signal number {i}",
+                        "tags": [a, f"desk{i % 10}"],
+                        "index_spec": ["date", "symbol"],
+                    }
+                )
 
 
 def main() -> None:
@@ -58,13 +81,13 @@ def main() -> None:
     for _ in range(a.queries):
         kind = rng.random()
         if kind < 0.4:
-            queries.append(rng.choice(WORDS)[:rng.randint(2, 5)])            # a prefix
+            queries.append(rng.choice(WORDS)[: rng.randint(2, 5)])  # a prefix
         elif kind < 0.8:
-            queries.append(" ".join(rng.sample(WORDS, 2)))                    # two words
+            queries.append(" ".join(rng.sample(WORDS, 2)))  # two words
         else:
             queries.append(f"{rng.choice(WORDS)}_{rng.choice(WORDS)}_{rng.randint(0, 9):01d}")
     for q in queries[:5]:
-        p.ops.search(admin, q)                                               # warm
+        p.ops.search(admin, q)  # warm
     samples, hits = [], []
     for q in queries:
         t, out = h.timed(lambda q=q: p.ops.search(admin, q))
@@ -74,12 +97,23 @@ def main() -> None:
         terms = uow.repo("search_terms").count()
     p.shutdown()
     s = h.summary(samples)
-    print(json.dumps({"criterion": "catalog search p95 over 100k objects",
-                      "target_p95_s": 0.5, "machine": h.machine(), "database": p.db.dialect,
-                      "objects": a.objects, "index_rows": terms,
-                      "seed_seconds": round(t_seed, 1), "search": s,
-                      "mean_hits": round(sum(hits) / len(hits), 1),
-                      "pass": s["p95"] < 0.5}, indent=1))
+    print(
+        json.dumps(
+            {
+                "criterion": "catalog search p95 over 100k objects",
+                "target_p95_s": 0.5,
+                "machine": h.machine(),
+                "database": p.db.dialect,
+                "objects": a.objects,
+                "index_rows": terms,
+                "seed_seconds": round(t_seed, 1),
+                "search": s,
+                "mean_hits": round(sum(hits) / len(hits), 1),
+                "pass": s["p95"] < 0.5,
+            },
+            indent=1,
+        )
+    )
 
 
 if __name__ == "__main__":

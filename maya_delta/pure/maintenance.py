@@ -16,6 +16,7 @@ why retention below seven days must be asked for explicitly.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import os
@@ -67,8 +68,13 @@ def optimize(backend: Any, path: Path, *, target_size: int = DEFAULT_TARGET) -> 
             key = tuple((c, (a.get("partitionValues") or {}).get(c)) for c in parts)
             groups.setdefault(key, []).append(a)
         plan = [b for files in groups.values() for b in _bins(files, target_size)]
-        result = {"version": snap.version, "numFilesRemoved": 0, "numFilesAdded": 0,
-                  "partitionsOptimized": 0, "numRows": 0}
+        result = {
+            "version": snap.version,
+            "numFilesRemoved": 0,
+            "numFilesAdded": 0,
+            "partitionsOptimized": 0,
+            "numRows": 0,
+        }
         if not plan:
             return result
         actions: list[dict[str, Any]] = []
@@ -78,21 +84,34 @@ def optimize(backend: Any, path: Path, *, target_size: int = DEFAULT_TARGET) -> 
             adds = backend._write_files(path, table, parts)
             for add in adds:
                 add["add"]["dataChange"] = False
-            actions += [{"remove": {"path": a["path"], "deletionTimestamp": now,
-                                    "dataChange": False,
-                                    "partitionValues": a.get("partitionValues"),
-                                    "size": a.get("size")}} for a in group]
+            actions += [
+                {
+                    "remove": {
+                        "path": a["path"],
+                        "deletionTimestamp": now,
+                        "dataChange": False,
+                        "partitionValues": a.get("partitionValues"),
+                        "size": a.get("size"),
+                    }
+                }
+                for a in group
+            ]
             actions += adds
             result["numFilesRemoved"] += len(group)
             result["numFilesAdded"] += len(adds)
             result["numRows"] += table.num_rows
-        result["partitionsOptimized"] = len({tuple(sorted((g[0].get("partitionValues") or {})
-                                                          .items())) for g in plan})
-        info = {"commitInfo": {"timestamp": now, "operation": "OPTIMIZE",
-                               "operationParameters": {"targetSize": str(target_size)},
-                               "engineInfo": "maya_delta-pure",
-                               "operationMetrics": {k: result[k] for k in (
-                                   "numFilesRemoved", "numFilesAdded")}}}
+        result["partitionsOptimized"] = len(
+            {tuple(sorted((g[0].get("partitionValues") or {}).items())) for g in plan}
+        )
+        info = {
+            "commitInfo": {
+                "timestamp": now,
+                "operation": "OPTIMIZE",
+                "operationParameters": {"targetSize": str(target_size)},
+                "engineInfo": "maya_delta-pure",
+                "operationMetrics": {k: result[k] for k in ("numFilesRemoved", "numFilesAdded")},
+            }
+        }
         version = snap.version + 1
         if dlog.try_commit(path, version, [info, *actions]):
             backend._maybe_checkpoint(path, version)
@@ -107,8 +126,9 @@ def _check_winner(path: Path, version: int, ours: set[str]) -> None:
         if "metaData" in action or "protocol" in action:
             raise ConcurrentModification(f"Concurrent commit {version} changed table metadata")
         if "remove" in action and action["remove"]["path"] in ours:
-            raise ConcurrentModification(f"Concurrent commit {version} removed a file being "
-                                         "compacted")
+            raise ConcurrentModification(
+                f"Concurrent commit {version} removed a file being compacted"
+            )
 
 
 def _discard(root: Path, add_paths: list[str]) -> None:
@@ -117,13 +137,21 @@ def _discard(root: Path, add_paths: list[str]) -> None:
         target.unlink(missing_ok=True)
 
 
-def vacuum(backend: Any, path: Path, *, retention_hours: float = DEFAULT_RETENTION_HOURS,
-           dry_run: bool = False, enforce_retention: bool = True) -> list[str]:
+def vacuum(
+    backend: Any,
+    path: Path,
+    *,
+    retention_hours: float = DEFAULT_RETENTION_HOURS,
+    dry_run: bool = False,
+    enforce_retention: bool = True,
+) -> list[str]:
     """Delete unreferenced data files older than the retention window; returns them."""
     if enforce_retention and retention_hours < DEFAULT_RETENTION_HOURS:
-        raise MayaDeltaError(f"Retention of {retention_hours}h is below the "
-                             f"{DEFAULT_RETENTION_HOURS}h minimum; pass enforce_retention=False "
-                             "to vacuum more aggressively (time travel past it stops working)")
+        raise MayaDeltaError(
+            f"Retention of {retention_hours}h is below the "
+            f"{DEFAULT_RETENTION_HOURS}h minimum; pass enforce_retention=False "
+            "to vacuum more aggressively (time travel past it stops working)"
+        )
     snap = backend.snapshot(path)
     live = {unquote(p) for p in snap.files}
     tombstones: dict[str, int] = {}

@@ -7,6 +7,7 @@ The Python SDK, `maya.sdk`, is the one client of MAYA. The web UI calls it with 
 ```python
 # Connect with an API key
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 print(my.auth.me()["username"])
 ```
@@ -39,9 +40,11 @@ The client is a context manager (`with maya.Client(...) as my:`) and has `close(
 import asyncio
 import maya.sdk as maya
 
+
 async def main():
     async with maya.AsyncClient("https://maya.example.com", api_key="maya_prod_…") as my:
         print(len(await my.features.list(namespace="eq")))
+
 
 asyncio.run(main())
 ```
@@ -112,8 +115,14 @@ except maya.LicenceBreach as exc:
 
 ```python
 # Pin a feature set and wait for it
-job = my.featuresets.pin("eq/panel", version_no=2, pin_name="eom", as_of="2026-03-31",
-                         cascade=True, idempotency_key="panel-eom-2026-03-31")
+job = my.featuresets.pin(
+    "eq/panel",
+    version_no=2,
+    pin_name="eom",
+    as_of="2026-03-31",
+    cascade=True,
+    idempotency_key="panel-eom-2026-03-31",
+)
 done = my.wait(job["job"], progress=lambda j: print(j["progress"], j["message"]))
 print(done["result"])
 ```
@@ -132,8 +141,9 @@ A cassette is JSON in the format `maya-cassette/1`.
 
 ```python
 # Record once, replay in tests
-live = maya.Client.record("tests/fixtures/prices.json",
-                          base_url="https://maya.example.com", api_key="maya_…")
+live = maya.Client.record(
+    "tests/fixtures/prices.json", base_url="https://maya.example.com", api_key="maya_…"
+)
 panel = live.features.preview("maya://feature/eq/prices@v1")
 tape = maya.Client.replay("tests/fixtures/prices.json")
 assert tape.features.preview("maya://feature/eq/prices@v1") == panel

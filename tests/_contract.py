@@ -5,6 +5,7 @@ test reaches the handler and exercises authorization, not just the body parser.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -12,8 +13,13 @@ from typing import Any
 
 PREFIX = "/api/v1"
 UNKNOWN_ID = "0" * 32
-FILL = {"namespace": "nosuchns", "name": "nosuch", "version_no": "999",
-        "transition": "submit", "object_type": "feature_version"}
+FILL = {
+    "namespace": "nosuchns",
+    "name": "nosuch",
+    "version_no": "999",
+    "transition": "submit",
+    "object_type": "feature_version",
+}
 
 
 def endpoints(app: Any) -> list[tuple[str, str, dict[str, Any]]]:
@@ -27,8 +33,11 @@ def endpoints(app: Any) -> list[tuple[str, str, dict[str, Any]]]:
 
 
 def concrete(path: str, **over: str) -> str:
-    return re.sub(r"\{(\w+)(?::path)?\}",
-                  lambda m: over.get(m.group(1), FILL.get(m.group(1), UNKNOWN_ID)), path)
+    return re.sub(
+        r"\{(\w+)(?::path)?\}",
+        lambda m: over.get(m.group(1), FILL.get(m.group(1), UNKNOWN_ID)),
+        path,
+    )
 
 
 def _resolve(schema: dict[str, Any], components: dict[str, Any]) -> dict[str, Any]:
@@ -53,8 +62,14 @@ def sample(schema: dict[str, Any], components: dict[str, Any]) -> Any:
     if kind == "object" or "properties" in schema:
         props = schema.get("properties", {})
         return {k: sample(props[k], components) for k in schema.get("required", [])}
-    return {"string": "x", "integer": 1, "number": 1.0, "boolean": False,
-            "array": [], "null": None}.get(kind, "x")
+    return {
+        "string": "x",
+        "integer": 1,
+        "number": 1.0,
+        "boolean": False,
+        "array": [],
+        "null": None,
+    }.get(kind, "x")
 
 
 def body_for(app: Any, op: dict[str, Any]) -> tuple[str, Any] | None:
@@ -66,8 +81,7 @@ def body_for(app: Any, op: dict[str, Any]) -> tuple[str, Any] | None:
     content = rb.get("content", {})
     if "application/json" in content:
         return "json", sample(content["application/json"]["schema"], components)
-    form = content.get("multipart/form-data") or content.get(
-        "application/x-www-form-urlencoded")
+    form = content.get("multipart/form-data") or content.get("application/x-www-form-urlencoded")
     schema = _resolve(form["schema"], components)
     files, data = {}, {}
     for key in schema.get("required", []):
@@ -79,8 +93,17 @@ def body_for(app: Any, op: dict[str, Any]) -> tuple[str, Any] | None:
     return "multipart", {"files": files or None, "data": data}
 
 
-def call(client: Any, app: Any, method: str, path: str, op: dict[str, Any],
-         headers: dict[str, str] | None = None, *, with_body: bool = True, **over: str) -> Any:
+def call(
+    client: Any,
+    app: Any,
+    method: str,
+    path: str,
+    op: dict[str, Any],
+    headers: dict[str, str] | None = None,
+    *,
+    with_body: bool = True,
+    **over: str,
+) -> Any:
     url = concrete(path, **over)
     body = body_for(app, op) if with_body else None
     if body is None:

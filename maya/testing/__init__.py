@@ -77,10 +77,27 @@ aware, with gaps, a split, restatements, a volatility surface and a messy CSV.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
-from maya.testing.kit import (ADMIN, ADMIN_PASSWORD, DEFAULT_USERS, PASSWORD, Maya,
-                              complete_spec, infer_definition, load_test_settings)
+from maya.testing.kit import (
+    ADMIN,
+    ADMIN_PASSWORD,
+    DEFAULT_USERS,
+    PASSWORD,
+    Maya,
+    complete_spec,
+    infer_definition,
+    load_test_settings,
+)
 
-__all__ = ["ADMIN", "ADMIN_PASSWORD", "DEFAULT_USERS", "PASSWORD", "Maya", "complete_spec",
-           "infer_definition", "load_test_settings"]
+__all__ = [
+    "ADMIN",
+    "ADMIN_PASSWORD",
+    "DEFAULT_USERS",
+    "PASSWORD",
+    "Maya",
+    "complete_spec",
+    "infer_definition",
+    "load_test_settings",
+]

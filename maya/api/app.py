@@ -5,6 +5,7 @@ unauthenticated ``/healthz`` and ``/readyz``.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,8 +16,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from maya.api.deps import ok, problem_response
-from maya.api.routers import (admin, assistant, catalog, custody, events, identity, registry,
-                              workflow, workspaces)
+from maya.api.routers import (
+    admin,
+    assistant,
+    catalog,
+    custody,
+    events,
+    identity,
+    registry,
+    workflow,
+    workspaces,
+)
 from maya.core.errors import MayaError
 from maya.core.version import API_VERSION, APP_NAME, VERSION
 
@@ -26,15 +36,27 @@ MIN_CLIENT = (0, 1)
 
 
 def create_api(platform: Any) -> FastAPI:
-    app = FastAPI(title=f"{APP_NAME} API", version=VERSION,
-                  description="Model & AI Lifecycle Assurance — the public API. "
-                              "The web UI and the SDK use exactly these endpoints.",
-                  openapi_url=f"{PREFIX}/openapi.json", docs_url=f"{PREFIX}/docs",
-                  redoc_url=None)
+    app = FastAPI(
+        title=f"{APP_NAME} API",
+        version=VERSION,
+        description="Model & AI Lifecycle Assurance — the public API. "
+        "The web UI and the SDK use exactly these endpoints.",
+        openapi_url=f"{PREFIX}/openapi.json",
+        docs_url=f"{PREFIX}/docs",
+        redoc_url=None,
+    )
     app.state.platform = platform
-    for r in (admin.router, catalog.router, registry.router, workflow.router,
-              workspaces.router, events.router, custody.router, identity.router,
-              assistant.router):
+    for r in (
+        admin.router,
+        catalog.router,
+        registry.router,
+        workflow.router,
+        workspaces.router,
+        events.router,
+        custody.router,
+        identity.router,
+        assistant.router,
+    ):
         app.include_router(r, prefix=PREFIX)
     install_handlers(app)
 
@@ -49,13 +71,19 @@ def create_api(platform: Any) -> FastAPI:
         import os
         from fastapi.responses import PlainTextResponse
         from maya.observability.metrics import METRICS
+
         env = platform.settings.get("observability.metrics.token_env") or ""
         expected = os.environ.get(env) if env else None
-        if env and (not expected or not hmac.compare_digest(
-                request.headers.get("authorization", ""), f"Bearer {expected}")):
+        if env and (
+            not expected
+            or not hmac.compare_digest(
+                request.headers.get("authorization", ""), f"Bearer {expected}"
+            )
+        ):
             return PlainTextResponse("metrics require the configured bearer token\n", 401)
-        return PlainTextResponse(METRICS.render(),
-                                 media_type="text/plain; version=0.0.4; charset=utf-8")
+        return PlainTextResponse(
+            METRICS.render(), media_type="text/plain; version=0.0.4; charset=utf-8"
+        )
 
     @app.get("/readyz", tags=["ops"])
     def readyz() -> Any:
@@ -72,9 +100,15 @@ def install_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def bad_request(_: Request, exc: RequestValidationError) -> JSONResponse:
-        problem = {"type": "validation_failed", "title": "ValidationFailed", "status": 422,
-                   "detail": "; ".join(f"{'.'.join(str(x) for x in e['loc'])}: {e['msg']}"
-                                       for e in exc.errors()), "context": {}}
+        problem = {
+            "type": "validation_failed",
+            "title": "ValidationFailed",
+            "status": 422,
+            "detail": "; ".join(
+                f"{'.'.join(str(x) for x in e['loc'])}: {e['msg']}" for e in exc.errors()
+            ),
+            "context": {},
+        }
         return JSONResponse(problem, status_code=422, media_type="application/problem+json")
 
     @app.middleware("http")
@@ -82,30 +116,39 @@ def install_handlers(app: FastAPI) -> None:
         import time
         from maya.observability import tracing
         from maya.observability.metrics import METRICS
+
         parent = tracing.parse(request.headers.get("traceparent"))
         started = time.perf_counter()
-        with tracing.span(f"HTTP {request.method}", parent=parent,
-                          attributes={"http.method": request.method,
-                                      "http.target": request.url.path}) as ctx:
+        with tracing.span(
+            f"HTTP {request.method}",
+            parent=parent,
+            attributes={"http.method": request.method, "http.target": request.url.path},
+        ) as ctx:
             request.state.request_id = request.headers.get("x-request-id") or ctx.trace_id
             response = await _inner(request, call_next)
             route = getattr(request.scope.get("route"), "path", None) or "unmatched"
             if request.url.path.startswith(PREFIX + "/") and not route.startswith(PREFIX):
-                route = PREFIX + route      # nested routers report router-relative templates
+                route = PREFIX + route  # nested routers report router-relative templates
             labels = {"method": request.method, "route": route}
             METRICS.inc("maya_http_requests_total", {**labels, "status": response.status_code})
-            METRICS.observe("maya_http_request_duration_seconds", time.perf_counter() - started,
-                            labels)
+            METRICS.observe(
+                "maya_http_request_duration_seconds", time.perf_counter() - started, labels
+            )
             response.headers["traceparent"] = ctx.header()
         return response
 
     async def _inner(request: Request, call_next: Any) -> Any:
         client = request.headers.get("x-maya-client", "")
         if client.startswith("python/") and _too_old(client[7:]):
-            return JSONResponse({"type": "client_too_old", "status": 426,
-                                 "detail": "This SDK is older than the server supports. "
-                                           "Upgrade with: pip install -U maya"},
-                                status_code=426)
+            return JSONResponse(
+                {
+                    "type": "client_too_old",
+                    "status": 426,
+                    "detail": "This SDK is older than the server supports. "
+                    "Upgrade with: pip install -U maya",
+                },
+                status_code=426,
+            )
         response = await call_next(request)
         response.headers["X-Request-Id"] = request.state.request_id
         response.headers["X-Frame-Options"] = "DENY"
@@ -114,7 +157,8 @@ def install_handlers(app: FastAPI) -> None:
         if not request.url.path.startswith(f"{PREFIX}/docs"):
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-                "script-src 'self'; font-src 'self' data:; frame-ancestors 'none'")
+                "script-src 'self'; font-src 'self' data:; frame-ancestors 'none'"
+            )
         return response
 
 

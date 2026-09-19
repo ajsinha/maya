@@ -9,6 +9,7 @@ unique across namespaces.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -21,7 +22,8 @@ KINDS = ("feature", "featureset", "model", "warrant/train", "warrant/exec", "job
 _RE = re.compile(
     r"^maya://(?P<kind>feature|featureset|model|warrant/train|warrant/exec)/"
     r"(?P<path>[A-Za-z0-9_.\-/]+?)"
-    r"(?:@v(?P<version>\d+)|#(?P<series>[A-Za-z0-9_.\-]+)(?:/(?P<asof>\d{4}-\d{2}-\d{2}))?)?$")
+    r"(?:@v(?P<version>\d+)|#(?P<series>[A-Za-z0-9_.\-]+)(?:/(?P<asof>\d{4}-\d{2}-\d{2}))?)?$"
+)
 
 
 @dataclass(frozen=True)
@@ -59,15 +61,18 @@ def parse(text: str, default_kind: str | None = None) -> Ref:
         text = "maya://" + text
     m = _RE.match(text)
     if not m:
-        raise ValidationFailed(f"'{text}' is not a MAYA reference "
-                               "(maya://kind/[namespace/]name[@vN|#series[/date]])", ref=text)
+        raise ValidationFailed(
+            f"'{text}' is not a MAYA reference (maya://kind/[namespace/]name[@vN|#series[/date]])",
+            ref=text,
+        )
     path = m["path"].split("/")
     namespace, name = (path[0], path[1]) if len(path) == 2 else (None, path[-1])
     if len(path) > 2:
         raise ValidationFailed(f"'{text}': namespaces nest one level only", ref=text)
     as_of = dt.date.fromisoformat(m["asof"]) if m["asof"] else None
-    return Ref(m["kind"], namespace, name,
-               int(m["version"]) if m["version"] else None, m["series"], as_of)
+    return Ref(
+        m["kind"], namespace, name, int(m["version"]) if m["version"] else None, m["series"], as_of
+    )
 
 
 def version_ref(kind: str, namespace: str, name: str, version_no: int) -> str:

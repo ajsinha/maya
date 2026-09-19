@@ -357,20 +357,25 @@ and the clause.
 ```python
 # Create, submit and preview a derived feature
 import maya.sdk as maya
+
 my = maya.connect(base_url="http://127.0.0.1:8600", api_key="maya_…")
 
 definition = {
-    "schema": [{"name": "px_close", "type": "float64"},
-               {"name": "vol_volume", "type": "int64"}],
-    "source": {"type": "derived", "derivation": {
-        "operator": "compose",
-        "operands": ["maya://feature/eq/px@v2", "maya://feature/eq/vol@v1"],
-        "options": {"prefixes": ["px_", "vol_"]}}},
+    "schema": [{"name": "px_close", "type": "float64"}, {"name": "vol_volume", "type": "int64"}],
+    "source": {
+        "type": "derived",
+        "derivation": {
+            "operator": "compose",
+            "operands": ["maya://feature/eq/px@v2", "maya://feature/eq/vol@v1"],
+            "options": {"prefixes": ["px_", "vol_"]},
+        },
+    },
     "resolution": {"grid": "as_is", "rules": {}},
-    "transform": [], "quality": [],
+    "transform": [],
+    "quality": [],
 }
 my.features.create("eq", "px_vol", definition)
-my.features.transition("eq/px_vol", 1, "submit")   # the typecheck runs here
+my.features.transition("eq/px_vol", 1, "submit")  # the typecheck runs here
 print(my.features.draft_preview("eq/px_vol")["plan"])
 ```
 

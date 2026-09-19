@@ -8,6 +8,7 @@ below, each with the reason; anything else unreached fails the gate.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -27,16 +28,21 @@ def sdk_methods() -> list[tuple[str, str]]:
     """(namespace, method) for every SDK method bound to an API endpoint."""
     from maya.sdk.client import Client
     from maya.sdk.resources import ENDPOINTS
+
     probe = Client.__new__(Client)
     probe._bind(object())
-    ns_of = {type(v).__name__: k for k, v in vars(probe).items()
-             if not k.startswith("_") and type(v).__module__.startswith("maya.sdk")}
+    ns_of = {
+        type(v).__name__: k
+        for k, v in vars(probe).items()
+        if not k.startswith("_") and type(v).__module__.startswith("maya.sdk")
+    }
     return sorted((ns_of[c], m) for c, m in (name.split(".") for name in set(ENDPOINTS.values())))
 
 
 def web_calls() -> set[tuple[str, str]]:
-    text = "".join(p.read_text(encoding="utf-8")
-                   for p in sorted((ROOT / "maya" / "web").rglob("*.py")))
+    text = "".join(
+        p.read_text(encoding="utf-8") for p in sorted((ROOT / "maya" / "web").rglob("*.py"))
+    )
     calls = set(re.findall(r"\.(\w+)\.(\w+)\(", text))
     # "page" pages "list"; "x_page" pages "x"
     calls |= {(ns, "list") for ns, m in calls if m == "page"}
@@ -46,13 +52,17 @@ def web_calls() -> set[tuple[str, str]]:
 
 def main() -> int:
     reached = web_calls()
-    missing = [f"{ns}.{m}: no web page or action reaches it"
-               for ns, m in sdk_methods()
-               if (ns, m) not in reached and f"{ns}.{m}" not in NOT_UI]
-    stale = [f"{k}: listed as not a UI action, but the web tier now reaches it"
-             for k in NOT_UI if tuple(k.split(".")) in reached]
-    return report("UI ↔ SDK parity (every SDK endpoint reachable from the UI)",
-                  missing + stale)
+    missing = [
+        f"{ns}.{m}: no web page or action reaches it"
+        for ns, m in sdk_methods()
+        if (ns, m) not in reached and f"{ns}.{m}" not in NOT_UI
+    ]
+    stale = [
+        f"{k}: listed as not a UI action, but the web tier now reaches it"
+        for k in NOT_UI
+        if tuple(k.split(".")) in reached
+    ]
+    return report("UI ↔ SDK parity (every SDK endpoint reachable from the UI)", missing + stale)
 
 
 if __name__ == "__main__":

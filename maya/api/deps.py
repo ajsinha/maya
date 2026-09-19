@@ -4,6 +4,7 @@ documents (RFC 9457) and small response helpers.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -21,8 +22,11 @@ def platform(request: Request) -> Any:
     return request.app.state.platform
 
 
-def principal(request: Request, authorization: str | None = Header(default=None),
-              x_maya_channel: str | None = Header(default=None)) -> Principal:
+def principal(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_maya_channel: str | None = Header(default=None),
+) -> Principal:
     """Resolve the bearer credential; the web tier marks its calls ``channel: web``."""
     token = None
     if authorization and authorization.lower().startswith("bearer "):
@@ -39,8 +43,11 @@ Plat = Depends(platform)
 
 
 def problem_response(exc: MayaError) -> JSONResponse:
-    return JSONResponse(djson.loads(djson.dumps(exc.to_problem())), status_code=exc.status,
-                        media_type="application/problem+json")
+    return JSONResponse(
+        djson.loads(djson.dumps(exc.to_problem())),
+        status_code=exc.status,
+        media_type="application/problem+json",
+    )
 
 
 def ok(data: Any, status: int = 200) -> JSONResponse:

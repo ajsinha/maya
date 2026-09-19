@@ -3,6 +3,7 @@ The grouped, vectorised rules give exactly what the per-group rules give.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -26,9 +27,16 @@ def _per_group(values, dates, codes, spec):
     return out, {"filled": filled, "longest_run": longest}
 
 
-RULES = ["forward_fill", "forward_fill(limit=1)", "forward_fill(limit=3)",
-         "forward_fill(max_age=2)", "forward_fill(limit=2, max_age=5)", "zero", "constant(v=7.5)",
-         "previous_period"]
+RULES = [
+    "forward_fill",
+    "forward_fill(limit=1)",
+    "forward_fill(limit=3)",
+    "forward_fill(max_age=2)",
+    "forward_fill(limit=2, max_age=5)",
+    "zero",
+    "constant(v=7.5)",
+    "previous_period",
+]
 
 
 @pytest.mark.parametrize("rule", RULES)
@@ -40,7 +48,7 @@ def test_vectorised_rules_match_the_per_group_rules(rule, seed):
     day = np.sort(rng.choice(np.arange(days * 2), size=days, replace=False))
     dates = np.tile(base + day.astype("timedelta64[D]"), groups).astype("datetime64[ns]")
     codes = np.repeat(np.arange(groups), days)
-    shuffle = rng.permutation(len(codes))                 # rows arrive in any order
+    shuffle = rng.permutation(len(codes))  # rows arrive in any order
     dates, codes = dates[shuffle], codes[shuffle]
     values = rng.standard_normal(len(codes))
     values[rng.random(len(values)) < rng.uniform(0, 0.8)] = np.nan

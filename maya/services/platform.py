@@ -9,6 +9,7 @@ these objects.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import logging
@@ -38,24 +39,41 @@ class Platform:
         root.mkdir(parents=True, exist_ok=True)
         self.root: Path = root
         self.blobs = LocalBlobStore(root)
-        self.lake = LakeStore(root, backend=settings.get("lake.backend", "auto") or "auto",
-                              chunk=ChunkParams(settings.int("lake.fragment.target_rows", 512),
-                                                settings.int("lake.fragment.min_rows", 32),
-                                                settings.int("lake.fragment.max_rows", 8192)))
+        self.lake = LakeStore(
+            root,
+            backend=settings.get("lake.backend", "auto") or "auto",
+            chunk=ChunkParams(
+                settings.int("lake.fragment.target_rows", 512),
+                settings.int("lake.fragment.min_rows", 32),
+                settings.int("lake.fragment.max_rows", 8192),
+            ),
+        )
         from maya.jobs.queue import JobQueue
-        self.jobs = JobQueue(self.uow, workers=settings.int("jobs.workers", 2),
-                             max_attempts=settings.int("jobs.max_attempts", 3))
+
+        self.jobs = JobQueue(
+            self.uow,
+            workers=settings.int("jobs.workers", 2),
+            max_attempts=settings.int("jobs.max_attempts", 3),
+        )
         from maya.workflow.engine import WorkflowEngine
+
         self.workflow = WorkflowEngine(
             allow_self_approval=settings.bool("workflow.allow_self_approval", False),
-            environment=settings.environment)
+            environment=settings.environment,
+        )
         self._services: dict[str, Any] = {}
-        self.primary = True        # False in an extra web process (see ``build``)
+        self.primary = True  # False in an extra web process (see ``build``)
 
     # -- construction ------------------------------------------------------
     @classmethod
-    def build(cls, settings: Settings, *, init_if_empty: bool = True,
-              start_workers: bool | str = True, primary: bool = True) -> "Platform":
+    def build(
+        cls,
+        settings: Settings,
+        *,
+        init_if_empty: bool = True,
+        start_workers: bool | str = True,
+        primary: bool = True,
+    ) -> "Platform":
         """A running MAYA. ``primary=False`` is an extra web process (``server.workers``
         above 1): it serves requests over the database the primary prepared — no schema
         creation, seeding, job reaping, job workers, webhooks or scheduler of its own."""
@@ -71,17 +89,19 @@ class Platform:
         if primary:
             platform.ensure_search_index()
         from maya.observability import tracing
+
         tracing.configure(settings.get("observability.otlp.endpoint") or None)
         platform.wire()
         if primary:
             from maya.services.seed import seed
+
             seed(platform)
         platform.startup_checks()
         if primary:
             platform.jobs.reap()
         if start_workers and primary:
             platform.jobs.start()
-            if start_workers != "jobs":        # "jobs": no webhook delivery, no scheduler
+            if start_workers != "jobs":  # "jobs": no webhook delivery, no scheduler
                 platform.webhooks.start()
                 platform.scheduler.start()
         return platform
@@ -92,6 +112,7 @@ class Platform:
     @cached_property
     def signer(self) -> Any:
         from maya.core.crypto import Signer
+
         return Signer(self.root / "keys")
 
     def ensure_search_index(self) -> None:
@@ -108,6 +129,7 @@ class Platform:
     def wire(self) -> None:
         """Construct every service and register job handlers and workflow checks."""
         from maya.services import registry
+
         registry.wire(self)
 
     def service(self, name: str) -> Any:
@@ -125,6 +147,7 @@ class Platform:
     def startup_checks(self) -> None:
         """Refusals that must happen at startup, never at first use (§12, §17.2)."""
         from maya.security.sandbox import sandbox_tier, tier_at_least
+
         env = self.settings.environment
         self.service("sso").check_startup()
         tier = sandbox_tier()
@@ -132,12 +155,15 @@ class Platform:
         if env != "dev" and not tier_at_least(tier["tier"], minimum):
             raise CapabilityRefused(
                 f"Sandbox tier is '{tier['tier']}' but sandbox.min_tier is '{minimum}' "
-                f"in a {env} environment: {tier['reason']}", tier=tier["tier"])
+                f"in a {env} environment: {tier['reason']}",
+                tier=tier["tier"],
+            )
         if env != "dev" and not self.settings.bool("app.allow_default_admin_password"):
             if self.service("auth").default_admin_password_active():
                 raise CapabilityRefused(
                     "The bootstrap admin still has the default password in a non-dev "
-                    "environment. Change it, or set app.allow_default_admin_password: true.")
+                    "environment. Change it, or set app.allow_default_admin_password: true."
+                )
 
     def shutdown(self) -> None:
         self.jobs.stop()

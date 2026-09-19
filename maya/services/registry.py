@@ -5,6 +5,7 @@ transition dispatcher that campaigns and the review screen use.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,16 +35,27 @@ def wire(platform: Any) -> None:
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
 
-    for name, cls in (("auth", AuthService), ("access", AccessService),
-                      ("feature_data", FeatureData), ("features", FeatureService),
-                      ("featuresets", FeatureSetService), ("models", ModelService),
-                      ("warrants", WarrantService), ("execution", ExecutionService),
-                      ("bundles", BundleService), ("workflow_svc", WorkflowService),
-                      ("ops", OpsService), ("sso", SsoService),
-                      ("workspaces", WorkspaceService), ("sources", SourceService),
-                      ("webhooks", WebhookService), ("licences", LicenceService),
-                      ("custody", CustodyService),
-                      ("passkeys", PasskeyService), ("assistant", AssistantService)):
+    for name, cls in (
+        ("auth", AuthService),
+        ("access", AccessService),
+        ("feature_data", FeatureData),
+        ("features", FeatureService),
+        ("featuresets", FeatureSetService),
+        ("models", ModelService),
+        ("warrants", WarrantService),
+        ("execution", ExecutionService),
+        ("bundles", BundleService),
+        ("workflow_svc", WorkflowService),
+        ("ops", OpsService),
+        ("sso", SsoService),
+        ("workspaces", WorkspaceService),
+        ("sources", SourceService),
+        ("webhooks", WebhookService),
+        ("licences", LicenceService),
+        ("custody", CustodyService),
+        ("passkeys", PasskeyService),
+        ("assistant", AssistantService),
+    ):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)
@@ -51,15 +63,25 @@ def wire(platform: Any) -> None:
     platform.workflow.principal_loader = platform.auth.build_principal
     platform.workflow.on_move(platform.assistant.on_move)
     from maya.jobs.scheduler import Scheduler
+
     platform.scheduler = Scheduler()
-    platform.scheduler.every("workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue)
+    platform.scheduler.every(
+        "workflow.escalate_overdue", 3600, platform.workflow_svc.escalate_overdue
+    )
     platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
-    platform.scheduler.every("lake.maintenance", platform.settings.int(
-        "lake.maintenance.interval_seconds", 86400), platform.ops.lake_maintenance)
-    platform.scheduler.every("custody.anchor", platform.settings.int(
-        "custody.anchor.interval_seconds", 3600), platform.custody.anchor)
-    platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: \
+    platform.scheduler.every(
+        "lake.maintenance",
+        platform.settings.int("lake.maintenance.interval_seconds", 86400),
+        platform.ops.lake_maintenance,
+    )
+    platform.scheduler.every(
+        "custody.anchor",
+        platform.settings.int("custody.anchor.interval_seconds", 3600),
+        platform.custody.anchor,
+    )
+    platform.dispatch_transition = lambda p, object_type, object_id, name, **kw: (
         dispatch_transition(platform, p, object_type, object_id, name, **kw)
+    )
 
 
 def _cancel_pin(uow: Any, table: str, params: dict[str, Any]) -> None:
@@ -67,21 +89,28 @@ def _cancel_pin(uow: Any, table: str, params: dict[str, Any]) -> None:
     a stuck pin would block its name and date for good."""
     pin = uow.repo(table).get(params["pin_id"])
     if pin is not None and pin["state"] == "materializing":
-        uow.repo(table).update(pin["id"], {"state": "failed",
-                                           "failure": "cancelled before it ran"})
+        uow.repo(table).update(pin["id"], {"state": "failed", "failure": "cancelled before it ran"})
 
 
 def _jobs(platform: Any) -> None:
     q = platform.jobs
-    q.register("feature.pin", platform.features.run_pin_job,
-               on_cancel=lambda uow, params: _cancel_pin(uow, "feature_pins", params))
+    q.register(
+        "feature.pin",
+        platform.features.run_pin_job,
+        on_cancel=lambda uow, params: _cancel_pin(uow, "feature_pins", params),
+    )
     q.register("assistant.challenge", platform.assistant.run_job)
-    q.register("featureset.pin", platform.featuresets.run_pin_job,
-               on_cancel=lambda uow, params: _cancel_pin(uow, "feature_set_pins", params))
+    q.register(
+        "featureset.pin",
+        platform.featuresets.run_pin_job,
+        on_cancel=lambda uow, params: _cancel_pin(uow, "feature_set_pins", params),
+    )
     q.register("model.validate_artifact", platform.models.run_validation_job)
     q.register("workspace.shadow_replay", platform.workspaces.run_replay_job)
-    q.register("integrity.verify", lambda ctx, params: platform.ops.verify_integrity(
-        _system_principal(platform, ctx.actor)))
+    q.register(
+        "integrity.verify",
+        lambda ctx, params: platform.ops.verify_integrity(_system_principal(platform, ctx.actor)),
+    )
 
 
 def _collectors(platform: Any) -> None:
@@ -96,24 +125,41 @@ def _collectors(platform: Any) -> None:
         with platform.uow() as uow:
             for st in ("queued", "running", "failed", "dead_letter"):
                 out.append(("maya_jobs", {"state": st}, uow.repo("jobs").count(state=st)))
-            out.append(("maya_sessions_active", {}, uow.repo("sessions").count(
-                revoked_at__isnull=True, expires_at__gt=utcnow())))
+            out.append(
+                (
+                    "maya_sessions_active",
+                    {},
+                    uow.repo("sessions").count(revoked_at__isnull=True, expires_at__gt=utcnow()),
+                )
+            )
             for st in ("pending", "dead"):
-                out.append(("maya_webhook_backlog", {"state": st},
-                            uow.repo("webhook_deliveries").count(state=st)))
+                out.append(
+                    (
+                        "maya_webhook_backlog",
+                        {"state": st},
+                        uow.repo("webhook_deliveries").count(state=st),
+                    )
+                )
         return out
 
     def static() -> list[tuple[str, dict[str, Any], float]]:
         from maya.security.sandbox import sandbox_tier
+
         out: list[tuple[str, dict[str, Any], float]] = [
-            ("maya_build_info", {"version": VERSION, "build": BUILD_DATE,
-                                 "dialect": platform.db.dialect}, 1.0),
-            ("maya_sandbox_tier", {"tier": sandbox_tier()["tier"]}, 1.0)]
-        out += [("maya_seam_backend", {"seam": c["seam"], "backend": c["selected"]}, 1.0)
-                for c in Backends.report()]
+            (
+                "maya_build_info",
+                {"version": VERSION, "build": BUILD_DATE, "dialect": platform.db.dialect},
+                1.0,
+            ),
+            ("maya_sandbox_tier", {"tier": sandbox_tier()["tier"]}, 1.0),
+        ]
+        out += [
+            ("maya_seam_backend", {"seam": c["seam"], "backend": c["selected"]}, 1.0)
+            for c in Backends.report()
+        ]
         return out
 
-    METRICS._collectors.clear()      # one platform per process owns the scrape
+    METRICS._collectors.clear()  # one platform per process owns the scrape
     METRICS.collector(state)
     METRICS.collector(static)
 
@@ -135,8 +181,12 @@ def _checks(platform: Any) -> None:
             errors = fsets.validate(row["definition"])
         else:
             from maya.services import catalog
-            errors = catalog.blocking_errors(catalog.validate_feature_definition(
-                row["definition"], production=ctx["subject"].namespace.get("production")))
+
+            errors = catalog.blocking_errors(
+                catalog.validate_feature_definition(
+                    row["definition"], production=ctx["subject"].namespace.get("production")
+                )
+            )
         return (not errors, "; ".join(errors) or "definition is valid and typed")
 
     def quality_passes(uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
@@ -144,6 +194,7 @@ def _checks(platform: Any) -> None:
         ns = ctx["subject"].namespace
         from maya.resolution import quality
         from maya.services import catalog
+
         eff = catalog.effective_feature_definition(uow, ctx["row"]["definition"])
         if not eff.get("quality"):
             return True, "no quality contract declared"
@@ -153,8 +204,11 @@ def _checks(platform: Any) -> None:
             return False, f"could not resolve a sample: {exc}"
         results = quality.run_checks(res.df, eff["quality"], res.meta["index"])
         failed = [r for r in results if not r["passed"]]
-        return (not failed, "; ".join(f"{r['check']}: {r['detail']}" for r in failed)
-                or f"{len(results)} quality check(s) pass on current data")
+        return (
+            not failed,
+            "; ".join(f"{r['check']}: {r['detail']}" for r in failed)
+            or f"{len(results)} quality check(s) pass on current data",
+        )
 
     for name, fn in {
         "definition_valid": definition_valid,
@@ -176,23 +230,38 @@ def _checks(platform: Any) -> None:
     _ = features
 
 
-def dispatch_transition(platform: Any, p: Principal, object_type: str, object_id: str,
-                        name: str, *, rationale: str | None = None,
-                        force: bool = False) -> dict[str, Any]:
+def dispatch_transition(
+    platform: Any,
+    p: Principal,
+    object_type: str,
+    object_id: str,
+    name: str,
+    *,
+    rationale: str | None = None,
+    force: bool = False,
+) -> dict[str, Any]:
     """Take a transition on any governed object, addressed by type and id."""
     from maya.services import refs
+
     with platform.uow() as uow:
         if object_type == "feature_version":
             v = uow.repo("feature_versions").require(object_id)
             f = uow.repo("features").require(v["feature_id"])
             ns = uow.repo("namespaces").require(f["namespace_id"])
-            target = ("features", refs.object_ref("feature", ns["name"], f["name"]), v["version_no"])
+            target = (
+                "features",
+                refs.object_ref("feature", ns["name"], f["name"]),
+                v["version_no"],
+            )
         elif object_type == "featureset_version":
             v = uow.repo("feature_set_versions").require(object_id)
             f = uow.repo("feature_sets").require(v["feature_set_id"])
             ns = uow.repo("namespaces").require(f["namespace_id"])
-            target = ("featuresets", refs.object_ref("featureset", ns["name"], f["name"]),
-                      v["version_no"])
+            target = (
+                "featuresets",
+                refs.object_ref("featureset", ns["name"], f["name"]),
+                v["version_no"],
+            )
         elif object_type == "model_version":
             v = uow.repo("model_versions").require(object_id)
             m = uow.repo("models").require(v["model_id"])
@@ -202,11 +271,13 @@ def dispatch_transition(platform: Any, p: Principal, object_type: str, object_id
             target = None
     if target is not None:
         svc, ref, vno = target
-        return getattr(platform, svc).transition(p, ref, vno, name, rationale=rationale,
-                                                 force=force)
+        return getattr(platform, svc).transition(
+            p, ref, vno, name, rationale=rationale, force=force
+        )
     if object_type == "parameter_set":
-        return platform.warrants.parameter_transition(p, object_id, name, rationale=rationale,
-                                                      force=force)
+        return platform.warrants.parameter_transition(
+            p, object_id, name, rationale=rationale, force=force
+        )
     if object_type == "training_warrant":
         return platform.warrants.transition(p, object_id, name, rationale=rationale, force=force)
     if object_type == "execution_warrant":

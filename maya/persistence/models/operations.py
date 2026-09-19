@@ -3,13 +3,13 @@ Workflow, jobs, audit, lineage, comments and notifications (§10, §15, §19).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import (BigInteger, Boolean, Date, Index, Integer, String, Text,
-                        UniqueConstraint)
+from sqlalchemy import BigInteger, Boolean, Date, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from maya.persistence.models.base import Base, Tracked
@@ -59,7 +59,7 @@ class Approval(Tracked, Base):
     role: Mapped[str] = mapped_column(String(64))
     decision: Mapped[str] = mapped_column(String(16))
     rationale: Mapped[str | None] = mapped_column(Text)
-    on_behalf_of: Mapped[str | None] = mapped_column(String(128))   # the delegator, if any
+    on_behalf_of: Mapped[str | None] = mapped_column(String(128))  # the delegator, if any
 
 
 class Comment(Tracked, Base):
@@ -121,8 +121,9 @@ class AuditEvent(Base):
     """Append-only, hash-chained (§19). Insert-only is enforced in the DDL."""
 
     __tablename__ = "audit_events"
-    seq: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"),
-                                     primary_key=True, autoincrement=True)
+    seq: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
     actor: Mapped[str] = mapped_column(String(128), index=True)
     principal_type: Mapped[str] = mapped_column(String(16))
@@ -173,7 +174,7 @@ class WorkspaceChange(Tracked, Base):
     __tablename__ = "workspace_changes"
     __table_args__ = (UniqueConstraint("workspace_id", "object_kind", "object_id"),)
     workspace_id: Mapped[str] = mapped_column(PortableUUID, index=True)
-    object_kind: Mapped[str] = mapped_column(String(16))          # feature | featureset
+    object_kind: Mapped[str] = mapped_column(String(16))  # feature | featureset
     object_id: Mapped[str] = mapped_column(PortableUUID)
     object_ref: Mapped[str] = mapped_column(String(512))
     base_version_id: Mapped[str] = mapped_column(PortableUUID)
@@ -186,8 +187,9 @@ class Event(Base):
     """One entry of the durable event stream, written with its audit entry (§18.1)."""
 
     __tablename__ = "events"
-    seq: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"),
-                                     primary_key=True, autoincrement=True)
+    seq: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
     type: Mapped[str] = mapped_column(String(64), index=True)
     object_type: Mapped[str | None] = mapped_column(String(32))
@@ -243,7 +245,7 @@ class Anchor(Tracked, Base):
     head_hash: Mapped[str] = mapped_column(String(64))
     methods: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
     signature: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
-    tsa_token: Mapped[str | None] = mapped_column(Text)            # base64 DER, RFC 3161
+    tsa_token: Mapped[str | None] = mapped_column(Text)  # base64 DER, RFC 3161
     detail: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
 
 
@@ -253,8 +255,9 @@ class SearchTerm(Base):
     from the catalog on demand."""
 
     __tablename__ = "search_terms"
-    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"),
-                                    primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     term: Mapped[str] = mapped_column(String(64), index=True)
     kind: Mapped[str] = mapped_column(String(24))
     object_id: Mapped[str] = mapped_column(PortableUUID, index=True)
@@ -272,12 +275,12 @@ class ChallengeMemo(Tracked, Base):
     object_ref: Mapped[str | None] = mapped_column(String(512))
     provider: Mapped[str] = mapped_column(String(32))
     model: Mapped[str] = mapped_column(String(64))
-    state: Mapped[str] = mapped_column(String(16), default="pending")   # pending|ready|failed
+    state: Mapped[str] = mapped_column(String(16), default="pending")  # pending|ready|failed
     summary: Mapped[str | None] = mapped_column(Text)
     findings: Mapped[list[dict[str, Any]]] = mapped_column(PortableJSON, default=list)
     dossier_sha256: Mapped[str | None] = mapped_column(String(64))
     error: Mapped[str | None] = mapped_column(Text)
-    stance: Mapped[str | None] = mapped_column(String(16))              # agree|partly|disagree
+    stance: Mapped[str | None] = mapped_column(String(16))  # agree|partly|disagree
     stance_by: Mapped[str | None] = mapped_column(String(128))
     stance_note: Mapped[str | None] = mapped_column(Text)
     stance_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)

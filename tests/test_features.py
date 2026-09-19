@@ -7,6 +7,7 @@ scratch, downloads.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -15,8 +16,7 @@ import io
 import pyarrow.parquet as pq
 import pytest
 
-from maya.core.errors import (NotApproved, PermissionDenied, QualityCheckFailed,
-                              ValidationFailed)
+from maya.core.errors import NotApproved, PermissionDenied, QualityCheckFailed, ValidationFailed
 from tests.conftest import PX_DEF, approved_feature, price_csv
 
 
@@ -54,12 +54,14 @@ def test_sc11_point_in_time_after_restatement(world):
     ref = approved_feature(world, "restated", price_csv(5))
     before = dt.datetime.now(dt.timezone.utc)
     restated = price_csv(5, bump=7.0)
-    out = world.p.features.ingest(world.dana, ref, restated, fmt="csv",
-                                  knowledge_time=before + dt.timedelta(seconds=5))
+    out = world.p.features.ingest(
+        world.dana, ref, restated, fmt="csv", knowledge_time=before + dt.timedelta(seconds=5)
+    )
     assert out["restatement"] is True
     old = world.p.features.preview(world.dana, f"maya://feature/{ref}@v1", as_of_known=before)
-    new = world.p.features.preview(world.dana, f"maya://feature/{ref}@v1",
-                                   as_of_known=before + dt.timedelta(minutes=1))
+    new = world.p.features.preview(
+        world.dana, f"maya://feature/{ref}@v1", as_of_known=before + dt.timedelta(minutes=1)
+    )
     assert old["rows"][0]["close"] == pytest.approx(100.0)
     assert new["rows"][0]["close"] == pytest.approx(107.0)
 
@@ -78,19 +80,26 @@ def test_sc12_unchanged_month_costs_under_five_percent(world):
     ref = "eq/monthly"
     symbols = tuple(f"S{i:02d}" for i in range(40))
     known = dt.datetime(2028, 9, 27, 18, tzinfo=dt.timezone.utc)
-    world.p.features.ingest(world.dana, ref, price_csv(1000, symbols=symbols), fmt="csv",
-                            knowledge_time=known)
+    world.p.features.ingest(
+        world.dana, ref, price_csv(1000, symbols=symbols), fmt="csv", knowledge_time=known
+    )
     world.p.features.transition(world.dana, ref, 1, "submit")
     world.p.features.transition(world.mick, ref, 1, "approve")
-    first = _pin(world, ref, "m1", dt.date(2028, 9, 26),
-                 as_of_known=known + dt.timedelta(hours=1))
-    world.p.features.ingest(world.dana, ref, price_csv(10, symbols=symbols, start_day=1001),
-                            fmt="csv", knowledge_time=known + dt.timedelta(days=10))
-    second = _pin(world, ref, "m2", dt.date(2028, 10, 6),
-                  as_of_known=known + dt.timedelta(days=10, hours=1))
+    first = _pin(world, ref, "m1", dt.date(2028, 9, 26), as_of_known=known + dt.timedelta(hours=1))
+    world.p.features.ingest(
+        world.dana,
+        ref,
+        price_csv(10, symbols=symbols, start_day=1001),
+        fmt="csv",
+        knowledge_time=known + dt.timedelta(days=10),
+    )
+    second = _pin(
+        world, ref, "m2", dt.date(2028, 10, 6), as_of_known=known + dt.timedelta(days=10, hours=1)
+    )
     assert second["row_count"] > first["row_count"]
     assert second["bytes_new"] < 0.05 * second["bytes_total"], (
-        f"marginal {second['bytes_new']} of {second['bytes_total']}")
+        f"marginal {second['bytes_new']} of {second['bytes_total']}"
+    )
 
 
 def test_quality_contract_blocks_the_pin(world):
@@ -110,6 +119,7 @@ def test_an_unexpected_error_leaves_the_pin_failed_not_stuck(world, monkeypatch)
 
     def broken(*a, **kw):
         raise OSError("lake unavailable")
+
     monkeypatch.setattr(world.p.feature_data, "_write_fragments", broken)
     pin = _pin(world, ref, "f", dt.date(2026, 1, 5))
     assert pin["state"] == "failed" and "lake unavailable" in pin["failure"]
@@ -120,11 +130,13 @@ def test_an_unexpected_error_leaves_the_pin_failed_not_stuck(world, monkeypatch)
 def test_only_approved_versions_pin_and_designer_needs_approval(world):
     world.p.features.create(world.dana, namespace="eq", name="unapproved", definition=PX_DEF)
     with pytest.raises(NotApproved):
-        world.p.features.pin(world.mick, "eq/unapproved", version_no=1, pin_name="x",
-                             as_of=dt.date(2026, 1, 1))
+        world.p.features.pin(
+            world.mick, "eq/unapproved", version_no=1, pin_name="x", as_of=dt.date(2026, 1, 1)
+        )
     ref = approved_feature(world, "requested", price_csv(5))
-    out = world.p.features.pin(world.dana, ref, version_no=1, pin_name="req",
-                               as_of=dt.date(2026, 1, 5))
+    out = world.p.features.pin(
+        world.dana, ref, version_no=1, pin_name="req", as_of=dt.date(2026, 1, 5)
+    )
     assert out["job"] is None and out["pin"]["state"] == "requested"
     with pytest.raises(PermissionDenied):
         world.p.features.approve_pin_request(world.dana, out["pin"]["id"])
@@ -136,11 +148,23 @@ def test_only_approved_versions_pin_and_designer_needs_approval(world):
 
 def test_idempotency_key_never_pins_twice(world):
     ref = approved_feature(world, "idem", price_csv(5))
-    a = world.p.features.pin(world.mick, ref, version_no=1, pin_name="i1",
-                             as_of=dt.date(2026, 1, 5), idempotency_key="k-1")
+    a = world.p.features.pin(
+        world.mick,
+        ref,
+        version_no=1,
+        pin_name="i1",
+        as_of=dt.date(2026, 1, 5),
+        idempotency_key="k-1",
+    )
     with pytest.raises(Exception):
-        world.p.features.pin(world.mick, ref, version_no=1, pin_name="i1",
-                             as_of=dt.date(2026, 1, 5), idempotency_key="k-1")
+        world.p.features.pin(
+            world.mick,
+            ref,
+            version_no=1,
+            pin_name="i1",
+            as_of=dt.date(2026, 1, 5),
+            idempotency_key="k-1",
+        )
     with world.p.uow() as uow:
         assert uow.repo("jobs").count(idempotency_key="k-1") == 1
     assert a["job"]["idempotency_key"] == "k-1"
@@ -149,8 +173,12 @@ def test_idempotency_key_never_pins_twice(world):
 def test_segregation_of_duties_refuses_self_approval(world):
     """One person holding designer and manager roles (a small desk) cannot approve their
     own submission under strict SoD — and can when the namespace says so (§28.9)."""
-    world.p.access.create_user(world.admin, username="solo", password="Test-password-1",
-                               roles=["feature_designer", "feature_manager"])
+    world.p.access.create_user(
+        world.admin,
+        username="solo",
+        password="Test-password-1",
+        roles=["feature_designer", "feature_manager"],
+    )
     solo = world.principal("solo")
     world.p.access.create_namespace(world.admin, name="desk", preset="regulated")
     for name in ("selfie", "selfie2"):
@@ -186,18 +214,32 @@ def test_change_classes(world):
 def test_derived_union_and_inheritance(world):
     a = approved_feature(world, "vendor_a", price_csv(5, symbols=("AAA",)))
     b = approved_feature(world, "vendor_b", price_csv(5, symbols=("BBB",)))
-    derived = {"index": ["date", "symbol"], "index_types": PX_DEF["index_types"],
-               "schema": PX_DEF["schema"],
-               "source": {"type": "derived", "derivation": {
-                   "operator": "union", "operands": [f"maya://feature/{a}@v1",
-                                                     f"maya://feature/{b}@v1"],
-                   "options": {"collision": "error"}}},
-               "resolution": {"grid": "as_is", "rules": {}}, "transform": [], "quality": []}
+    derived = {
+        "index": ["date", "symbol"],
+        "index_types": PX_DEF["index_types"],
+        "schema": PX_DEF["schema"],
+        "source": {
+            "type": "derived",
+            "derivation": {
+                "operator": "union",
+                "operands": [f"maya://feature/{a}@v1", f"maya://feature/{b}@v1"],
+                "options": {"collision": "error"},
+            },
+        },
+        "resolution": {"grid": "as_is", "rules": {}},
+        "transform": [],
+        "quality": [],
+    }
     ref = approved_feature(world, "both", definition=derived)
     rows = world.p.features.preview(world.dana, f"maya://feature/{ref}@v1")
     assert rows["total_rows"] == 10
-    child = {"extends": {"parent": f"maya://feature/{a}@v1", "binding": "pinned",
-                         "override": {"filter": "close > 101"}}}
+    child = {
+        "extends": {
+            "parent": f"maya://feature/{a}@v1",
+            "binding": "pinned",
+            "override": {"filter": "close > 101"},
+        }
+    }
     cref = approved_feature(world, "a_filtered", definition=child)
     out = world.p.features.preview(world.dana, f"maya://feature/{cref}@v1")
     assert 0 < out["total_rows"] < 5
@@ -207,8 +249,9 @@ def test_derived_union_and_inheritance(world):
 
 def test_tracking_binding_is_blocked_in_production(world):
     world.p.access.create_namespace(world.admin, name="prodns", production=True)
-    child = {"extends": {"parent": "maya://feature/eq/vendor_a", "binding": "tracking",
-                         "override": {}}}
+    child = {
+        "extends": {"parent": "maya://feature/eq/vendor_a", "binding": "tracking", "override": {}}
+    }
     world.p.features.create(world.dana, namespace="prodns", name="tracker", definition=child)
     with pytest.raises(ValidationFailed, match="production"):
         world.p.features.transition(world.dana, "prodns/tracker", 1, "submit")
@@ -227,19 +270,21 @@ def test_the_scratch_owner_pins_directly_and_nobody_else_can(world):
     """Zero ceremony: a designer (no pin capability anywhere governed) pins their own
     scratch feature with no request or approval; another user may not touch it."""
     ref = world.p.features.quick(world.dana, price_csv(4), name="pinnable")["ref"]
-    out = world.p.features.pin(world.dana, ref, version_no=1, pin_name="s",
-                               as_of=dt.date(2026, 1, 4))
+    out = world.p.features.pin(
+        world.dana, ref, version_no=1, pin_name="s", as_of=dt.date(2026, 1, 4)
+    )
     assert out["job"] is not None and out["pin"]["state"] == "materializing"
     world.drain()
     assert world.p.features.get(world.dana, ref)["pins"][0]["state"] == "sealed"
     with pytest.raises(PermissionDenied):
-        world.p.features.pin(world.mick, ref, version_no=1, pin_name="t",
-                             as_of=dt.date(2026, 1, 4))
-    world.p.access.create_user(world.admin, username="dina", password="Test-password-1",
-                               roles=["feature_designer"])
+        world.p.features.pin(world.mick, ref, version_no=1, pin_name="t", as_of=dt.date(2026, 1, 4))
+    world.p.access.create_user(
+        world.admin, username="dina", password="Test-password-1", roles=["feature_designer"]
+    )
     with pytest.raises(PermissionDenied, match="scratch namespaces belong to their owner"):
-        world.p.features.pin(world.principal("dina"), ref, version_no=1, pin_name="t",
-                             as_of=dt.date(2026, 1, 4))
+        world.p.features.pin(
+            world.principal("dina"), ref, version_no=1, pin_name="t", as_of=dt.date(2026, 1, 4)
+        )
 
 
 def test_download_formats_and_csv_encoding(world):
@@ -265,7 +310,8 @@ def test_quality_failure_raised_directly_by_materialize(world):
     d = dict(PX_DEF, quality=[{"check": "range", "attr": "close", "min": 0, "max": 50}])
     ref = approved_feature(world, "ranged", None, definition=d)
     world.p.features.ingest(world.dana, ref, price_csv(3), fmt="csv")
-    out = world.p.features.pin(world.mick, ref, version_no=1, pin_name="r",
-                               as_of=dt.date(2026, 1, 3))
+    out = world.p.features.pin(
+        world.mick, ref, version_no=1, pin_name="r", as_of=dt.date(2026, 1, 3)
+    )
     with pytest.raises(QualityCheckFailed):
         world.p.feature_data.materialize(out["pin"]["id"], "mick")

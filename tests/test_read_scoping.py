@@ -5,6 +5,7 @@ absent for an outsider and present for its owner and an administrator.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -42,12 +43,20 @@ def test_aging_and_break_glass_are_scoped_the_same_way(shut):
     w = shut
     assert all(i["namespace"] != "rs_shut" for i in w.p.workflow_svc.aging(w.devi))
     ref = "rs_shut/rs_px"
-    w.p.features.transition(w.admin, ref, 1, "approve", force=True, rationale="reviewer away, feed outage")
-    mine = [e for e in w.p.workflow_svc.break_glass_report(w.devi)
-            if "rs_shut" in (e.get("object_ref") or "")]
+    w.p.features.transition(
+        w.admin, ref, 1, "approve", force=True, rationale="reviewer away, feed outage"
+    )
+    mine = [
+        e
+        for e in w.p.workflow_svc.break_glass_report(w.devi)
+        if "rs_shut" in (e.get("object_ref") or "")
+    ]
     assert mine == []
-    assert [e for e in w.p.workflow_svc.break_glass_report(w.admin)
-            if "rs_shut" in (e.get("object_ref") or "")]
+    assert [
+        e
+        for e in w.p.workflow_svc.break_glass_report(w.admin)
+        if "rs_shut" in (e.get("object_ref") or "")
+    ]
 
 
 def test_lineage_leaves_out_what_the_caller_may_not_read(shut):
@@ -57,14 +66,17 @@ def test_lineage_leaves_out_what_the_caller_may_not_read(shut):
         uow.repo("lineage_edges").link(root, "maya://feature/rs_shut/rs_px", "feeds")
         uow.repo("lineage_edges").link(root, "maya://op/extend/abcd1234", "feeds")
     everything = w.p.ops.lineage(root)
-    assert {n["id"] for n in everything["nodes"]} >= {"maya://feature/rs_shut/rs_px",
-                                                      "maya://op/extend/abcd1234"}
+    assert {n["id"] for n in everything["nodes"]} >= {
+        "maya://feature/rs_shut/rs_px",
+        "maya://op/extend/abcd1234",
+    }
     seen = w.p.ops.lineage(root, p=w.devi)
     ids = {n["id"] for n in seen["nodes"]}
     assert "maya://feature/rs_shut/rs_px" not in ids and seen["hidden"] == 1
     assert "maya://op/extend/abcd1234" in ids, "an operation next to a readable node shows"
     assert all("rs_shut" not in e["source"] + e["target"] for e in seen["edges"])
-    assert "maya://feature/rs_shut/rs_px" in {n["id"] for n in
-                                               w.p.ops.lineage(root, p=w.dana)["nodes"]}
+    assert "maya://feature/rs_shut/rs_px" in {
+        n["id"] for n in w.p.ops.lineage(root, p=w.dana)["nodes"]
+    }
     with pytest.raises(NotFound):
         w.p.ops.lineage("maya://feature/rs_shut/rs_px", p=w.devi)

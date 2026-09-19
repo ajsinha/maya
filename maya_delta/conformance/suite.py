@@ -11,6 +11,7 @@ pins a number passes for the wrong reason the moment a writer is upgraded.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -29,27 +30,35 @@ UTC = dt.timezone.utc
 def sample_table(n: int = 6, offset: int = 0) -> pa.Table:
     """A table exercising every supported logical type, including nested ones and nulls."""
     ids = list(range(offset, offset + n))
-    return pa.table({
-        "id": pa.array(ids, pa.int64()),
-        "i32": pa.array([None if i % 5 == 0 else i for i in ids], pa.int32()),
-        "f64": pa.array([i * 0.5 for i in ids], pa.float64()),
-        "f32": pa.array([float(i) for i in ids], pa.float32()),
-        "flag": pa.array([i % 2 == 0 for i in ids], pa.bool_()),
-        "name": pa.array([f"n{i}" if i % 4 else None for i in ids], pa.string()),
-        "bin": pa.array([bytes([i % 256]) for i in ids], pa.binary()),
-        "day": pa.array([dt.date(2026, 1, 1) + dt.timedelta(days=i) for i in ids], pa.date32()),
-        "ts": pa.array([dt.datetime(2026, 1, 1, 12, tzinfo=UTC) + dt.timedelta(hours=i) for i in ids],
-                       pa.timestamp("us", tz="UTC")),
-        "ts_ntz": pa.array([dt.datetime(2026, 1, 1) + dt.timedelta(minutes=i) for i in ids],
-                           pa.timestamp("us")),
-        "amount": pa.array([decimal.Decimal(f"{i}.25") for i in ids], pa.decimal128(12, 2)),
-        "vec": pa.array([[float(i), None, 2.0 * i] if i % 3 else None for i in ids],
-                        pa.list_(pa.float64())),
-        "rec": pa.array([{"a": i, "b": f"s{i}"} for i in ids],
-                        pa.struct([("a", pa.int64()), ("b", pa.string())])),
-        "tags": pa.array([[("k", float(i))] for i in ids], pa.map_(pa.string(), pa.float64())),
-        "part": pa.array(["even" if i % 2 == 0 else "odd" for i in ids], pa.string()),
-    })
+    return pa.table(
+        {
+            "id": pa.array(ids, pa.int64()),
+            "i32": pa.array([None if i % 5 == 0 else i for i in ids], pa.int32()),
+            "f64": pa.array([i * 0.5 for i in ids], pa.float64()),
+            "f32": pa.array([float(i) for i in ids], pa.float32()),
+            "flag": pa.array([i % 2 == 0 for i in ids], pa.bool_()),
+            "name": pa.array([f"n{i}" if i % 4 else None for i in ids], pa.string()),
+            "bin": pa.array([bytes([i % 256]) for i in ids], pa.binary()),
+            "day": pa.array([dt.date(2026, 1, 1) + dt.timedelta(days=i) for i in ids], pa.date32()),
+            "ts": pa.array(
+                [dt.datetime(2026, 1, 1, 12, tzinfo=UTC) + dt.timedelta(hours=i) for i in ids],
+                pa.timestamp("us", tz="UTC"),
+            ),
+            "ts_ntz": pa.array(
+                [dt.datetime(2026, 1, 1) + dt.timedelta(minutes=i) for i in ids], pa.timestamp("us")
+            ),
+            "amount": pa.array([decimal.Decimal(f"{i}.25") for i in ids], pa.decimal128(12, 2)),
+            "vec": pa.array(
+                [[float(i), None, 2.0 * i] if i % 3 else None for i in ids], pa.list_(pa.float64())
+            ),
+            "rec": pa.array(
+                [{"a": i, "b": f"s{i}"} for i in ids],
+                pa.struct([("a", pa.int64()), ("b", pa.string())]),
+            ),
+            "tags": pa.array([[("k", float(i))] for i in ids], pa.map_(pa.string(), pa.float64())),
+            "part": pa.array(["even" if i % 2 == 0 else "odd" for i in ids], pa.string()),
+        }
+    )
 
 
 def _rows(t: pa.Table) -> list[dict]:
@@ -126,6 +135,7 @@ def case_stats_recorded(lake: DeltaLake, tmp: Path) -> None:
     lake.write(tmp / "t", sample_table(6))
     files = lake.files(tmp / "t")
     import json
+
     stats = [json.loads(f["stats"]) for f in files if f.get("stats")]
     assert stats, "every add must carry statistics"
     assert sum(s["numRecords"] for s in stats) == 6
@@ -173,5 +183,5 @@ def case_concurrent_appends(lake: DeltaLake, tmp: Path) -> None:
 
 
 CASES: dict[str, Callable[[DeltaLake, Path], None]] = {
-    name[len("case_"):]: fn for name, fn in sorted(globals().items()) if name.startswith("case_")
+    name[len("case_") :]: fn for name, fn in sorted(globals().items()) if name.startswith("case_")
 }

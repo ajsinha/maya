@@ -8,6 +8,7 @@ output schema can be computed at definition time without running anything.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -78,8 +79,9 @@ def _aggregate(df: pd.DataFrame, s: Step, idx: list[str]) -> pd.DataFrame:
 
 def _pivot(df: pd.DataFrame, s: Step, idx: list[str]) -> pd.DataFrame:
     _need(s, "index", "columns", "values")
-    wide = df.pivot_table(index=s["index"], columns=s["columns"], values=s["values"],
-                          aggfunc="first")
+    wide = df.pivot_table(
+        index=s["index"], columns=s["columns"], values=s["values"], aggfunc="first"
+    )
     wide.columns = [f"{s['values']}_{c}" for c in wide.columns]
     return wide.reset_index()
 
@@ -96,8 +98,9 @@ def _window(df: pd.DataFrame, s: Step, idx: list[str]) -> pd.DataFrame:
     out = _sorted(df, idx)
     grp = _groups(out, idx)
     col = out[s["attr"]].astype("float64")
-    roll = (col.groupby([out[g] for g in grp]) if grp else col).rolling(int(s["size"]),
-                                                                         min_periods=1)
+    roll = (col.groupby([out[g] for g in grp]) if grp else col).rolling(
+        int(s["size"]), min_periods=1
+    )
     vals = getattr(roll, s["fn"])()
     if grp:
         vals = vals.reset_index(level=list(range(len(grp))), drop=True).sort_index()
@@ -110,7 +113,9 @@ def _lag(df: pd.DataFrame, s: Step, idx: list[str]) -> pd.DataFrame:
     out = _sorted(df, idx)
     grp = _groups(out, idx)
     col = out[s["attr"]]
-    shifted = col.groupby([out[g] for g in grp]).shift(int(s["n"])) if grp else col.shift(int(s["n"]))
+    shifted = (
+        col.groupby([out[g] for g in grp]).shift(int(s["n"])) if grp else col.shift(int(s["n"]))
+    )
     out[s.get("name") or f"{s['attr']}_lag{s['n']}"] = shifted.to_numpy()
     return out
 
@@ -154,9 +159,18 @@ def _winsorize(df: pd.DataFrame, s: Step, idx: list[str]) -> pd.DataFrame:
 
 
 STEPS: dict[str, Callable[[pd.DataFrame, Step, list[str]], pd.DataFrame]] = {
-    "rename": _rename, "cast": _cast, "filter": _filter, "derive": _derive,
-    "aggregate": _aggregate, "pivot": _pivot, "unpivot": _unpivot, "window": _window,
-    "lag": _lag, "resample": _resample, "dedupe": _dedupe, "clip": _clip,
+    "rename": _rename,
+    "cast": _cast,
+    "filter": _filter,
+    "derive": _derive,
+    "aggregate": _aggregate,
+    "pivot": _pivot,
+    "unpivot": _unpivot,
+    "window": _window,
+    "lag": _lag,
+    "resample": _resample,
+    "dedupe": _dedupe,
+    "clip": _clip,
     "winsorize": _winsorize,
 }
 
@@ -198,8 +212,11 @@ def _schema_step(schema: list[dict[str, Any]], step: Step) -> list[dict[str, Any
         attrs = [a for a in attrs if a["name"] != step["name"]]
         attrs.append({"name": step["name"], "type": step.get("type", "float64"), "nullable": True})
     elif op in {"window", "lag"}:
-        default = f"{step['attr']}_{step['fn']}{step['size']}" if op == "window" \
+        default = (
+            f"{step['attr']}_{step['fn']}{step['size']}"
+            if op == "window"
             else f"{step['attr']}_lag{step['n']}"
+        )
         base = next((a for a in attrs if a["name"] == step["attr"]), None)
         typ = "float64" if op == "window" else (base["type"] if base else "float64")
         attrs.append({"name": step.get("name") or default, "type": typ, "nullable": True})
@@ -209,8 +226,9 @@ def _schema_step(schema: list[dict[str, Any]], step: Step) -> list[dict[str, Any
     return attrs
 
 
-def pipeline_output_schema(schema: list[dict[str, Any]], steps: list[Step],
-                           index_cols: list[str]) -> list[dict[str, Any]]:
+def pipeline_output_schema(
+    schema: list[dict[str, Any]], steps: list[Step], index_cols: list[str]
+) -> list[dict[str, Any]]:
     """Best-effort output schema, computed at definition time without data."""
     out = [dict(a) for a in schema]
     for step in steps or []:

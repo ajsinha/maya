@@ -18,6 +18,7 @@ note records any judgement.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,20 +34,40 @@ BASELINE = ROOT / "docs" / "benchmarks" / "regression-baseline.json"
 NOTES = ROOT / "docs" / "benchmarks" / "regression-notes.md"
 LIMIT = 0.10
 RUNS = {
-    "resolution_warm_p95_s": (["bench_resolution.py", "--symbols", "100", "--years", "2",
-                               "--warm", "3", "--rule", "forward_fill(limit=3)"],
-                              lambda d: d["resolution"]["warm"]["p95"]),
+    "resolution_warm_p95_s": (
+        [
+            "bench_resolution.py",
+            "--symbols",
+            "100",
+            "--years",
+            "2",
+            "--warm",
+            "3",
+            "--rule",
+            "forward_fill(limit=3)",
+        ],
+        lambda d: d["resolution"]["warm"]["p95"],
+    ),
     "resolution_cold_s": (None, lambda d: d["resolution"]["cold_seconds"]),
-    "search_p95_s": (["bench_search.py", "--objects", "10000", "--queries", "100"],
-                     lambda d: d["search"]["p95"]),
-    "page_worst_p95_s": (["bench_web.py", "--features", "300", "--models", "30", "--users",
-                          "0", "--repeats", "15"], lambda d: d["SC-4"]["worst_page_p95"]),
+    "search_p95_s": (
+        ["bench_search.py", "--objects", "10000", "--queries", "100"],
+        lambda d: d["search"]["p95"],
+    ),
+    "page_worst_p95_s": (
+        ["bench_web.py", "--features", "300", "--models", "30", "--users", "0", "--repeats", "15"],
+        lambda d: d["SC-4"]["worst_page_p95"],
+    ),
 }
 
 
 def _run(args: list[str]) -> dict:
-    r = subprocess.run([sys.executable, str(ROOT / "tools" / "bench" / args[0]), *args[1:]],
-                       cwd=ROOT, capture_output=True, text=True, timeout=1800)
+    r = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "bench" / args[0]), *args[1:]],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=1800,
+    )
     if r.returncode:
         raise SystemExit(f"{args[0]} failed:\n{r.stderr[-2000:]}")
     return json.loads(r.stdout)
@@ -72,21 +93,27 @@ def main() -> int:
     a = ap.parse_args()
     now = measure(a.repeats)
     if a.update or not BASELINE.exists():
-        BASELINE.write_text(json.dumps({"measured": dt.date.today().isoformat(),
-                                        "medians": now}, indent=1) + "\n")
+        BASELINE.write_text(
+            json.dumps({"measured": dt.date.today().isoformat(), "medians": now}, indent=1) + "\n"
+        )
         print(f"baseline written: {now}")
         return 0
     base = json.loads(BASELINE.read_text())["medians"]
-    worse = {k: (base[k], v) for k, v in now.items()
-             if k in base and base[k] > 0 and (v - base[k]) / base[k] > LIMIT}
+    worse = {
+        k: (base[k], v)
+        for k, v in now.items()
+        if k in base and base[k] > 0 and (v - base[k]) / base[k] > LIMIT
+    }
     for k, v in now.items():
         b = base.get(k)
         change = f"{(v - b) / b:+.0%}" if b else "new"
         print(f"  {k:<24} {v:>9.4f}  (baseline {b}, {change})")
     if worse and a.note:
         with open(NOTES, "a", encoding="utf-8") as fh:
-            fh.write(f"\n## {dt.datetime.now().isoformat(timespec='minutes')}\n\n{a.note}\n\n"
-                     + "".join(f"- {k}: {b} -> {v}\n" for k, (b, v) in worse.items()))
+            fh.write(
+                f"\n## {dt.datetime.now().isoformat(timespec='minutes')}\n\n{a.note}\n\n"
+                + "".join(f"- {k}: {b} -> {v}\n" for k, (b, v) in worse.items())
+            )
         print(f"accepted with a note in {NOTES.relative_to(ROOT)}")
         return 0
     if worse:

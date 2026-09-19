@@ -5,6 +5,7 @@ derived from, the members of a feature set, the feature set behind a warrant.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,8 +35,7 @@ class LicenceService:
             pin = self.p.feature_data.find_pin(uow, feature, r)
             version = uow.repo("feature_versions").require(pin["feature_version_id"])
         else:
-            version = catalog.version_of(uow, "feature_versions", "feature_id", feature,
-                                         r.version)
+            version = catalog.version_of(uow, "feature_versions", "feature_id", feature, r.version)
         d = version["definition"]
         me = refs.version_ref("feature", ns["name"], feature["name"], version["version_no"])
         out: list[tuple[str, Any]] = [(me, d.get("licence"))]
@@ -51,11 +51,14 @@ class LicenceService:
         r = refs.parse(ref, "featureset")
         fs, ns = catalog.find_object(uow, "feature_sets", "feature set", r)
         if r.is_pin:
-            rows = uow.repo("feature_set_pins").list(feature_set_id=fs["id"], pin_name=r.series,
-                                                     order_by=["-as_of_date"], limit=1)
-            v = uow.repo("feature_set_versions").require(rows[0]["feature_set_version_id"]) \
-                if rows else catalog.version_of(uow, "feature_set_versions", "feature_set_id",
-                                                fs, None)
+            rows = uow.repo("feature_set_pins").list(
+                feature_set_id=fs["id"], pin_name=r.series, order_by=["-as_of_date"], limit=1
+            )
+            v = (
+                uow.repo("feature_set_versions").require(rows[0]["feature_set_version_id"])
+                if rows
+                else catalog.version_of(uow, "feature_set_versions", "feature_set_id", fs, None)
+            )
         else:
             v = catalog.version_of(uow, "feature_set_versions", "feature_set_id", fs, r.version)
         eff, _ = self.p.featuresets.effective(uow, v["definition"])
@@ -67,8 +70,11 @@ class LicenceService:
 
     def effective(self, kind: str, ref: str) -> dict[str, Any]:
         with self.p.uow() as uow:
-            sources = self.feature_sources(uow, ref) if kind == "feature" \
+            sources = (
+                self.feature_sources(uow, ref)
+                if kind == "feature"
                 else self.featureset_sources(uow, ref)
+            )
         return {**lic.combine(sources), "sources": [s for s, t in sources if t]}
 
     # -- enforcing -------------------------------------------------------------------
@@ -78,15 +84,21 @@ class LicenceService:
             lic.check_reader(eff, p.username, p.groups, p.desk)
         return eff
 
-    def export(self, p: Principal, kind: str, ref: str, audience: str = "internal"
-               ) -> dict[str, Any]:
+    def export(
+        self, p: Principal, kind: str, ref: str, audience: str = "internal"
+    ) -> dict[str, Any]:
         eff = self.reader(p, kind, ref)
         try:
             lic.check_export(eff, audience)
         except LicenceBreach as exc:
             with self.p.uow(p.username) as uow:
-                uow.audit("licence.refused", object_type=kind, object_ref=ref,
-                          detail={"audience": audience, **exc.context}, durable=True)
+                uow.audit(
+                    "licence.refused",
+                    object_type=kind,
+                    object_ref=ref,
+                    detail={"audience": audience, **exc.context},
+                    durable=True,
+                )
             raise
         return eff
 
@@ -94,20 +106,34 @@ class LicenceService:
         with self.p.uow() as uow:
             sources: list[tuple[str, Any]] = []
             for ref in refs_used:
-                sources += self.feature_sources(uow, ref) if kind == "feature" \
+                sources += (
+                    self.feature_sources(uow, ref)
+                    if kind == "feature"
                     else self.featureset_sources(uow, ref)
+                )
         lic.check_derivation(lic.combine(sources), what)
 
-    def grantee(self, kind: str, ref: str, principal_type: str, principal_id: str,
-                groups: list[str], desk: str | None) -> None:
+    def grantee(
+        self,
+        kind: str,
+        ref: str,
+        principal_type: str,
+        principal_id: str,
+        groups: list[str],
+        desk: str | None,
+    ) -> None:
         """A grant may not open data to people its licence excludes."""
         eff = self.effective(kind, ref)
         if eff["population"] is None:
             return
         if principal_type in ("everyone", "role"):
-            raise lic._breach(eff, "population", f"a grant to {principal_type} "
-                                                 f"'{principal_id}' would reach people outside "
-                                                 "the licensed population")
+            raise lic._breach(
+                eff,
+                "population",
+                f"a grant to {principal_type} "
+                f"'{principal_id}' would reach people outside "
+                "the licensed population",
+            )
         if principal_type == "group":
             groups = [principal_id]
         lic.check_reader(eff, f"{principal_type} '{principal_id}'", groups, desk)
@@ -116,14 +142,15 @@ class LicenceService:
         """The effective licence, for anyone who may read the object (terms are not secret)."""
         if kind not in ("feature", "featureset"):
             raise NotFound(f"No licences on '{kind}'")
-        table, label = ("features", "feature") if kind == "feature" else \
-            ("feature_sets", "feature set")
+        table, label = (
+            ("features", "feature") if kind == "feature" else ("feature_sets", "feature set")
+        )
         with self.p.uow() as uow:
             obj, _ = catalog.find_object(uow, table, label, refs.parse(ref, kind))
             self.p.access.require(uow, p, "read", kind, obj)
         try:
             eff = self.effective(kind, ref)
-        except (NotFound, NotApproved):                 # nothing approved yet
+        except (NotFound, NotApproved):  # nothing approved yet
             eff = {**lic.combine([]), "sources": []}
         eff["you_may_receive"] = lic.in_population(eff, p.groups, p.desk)
         return eff

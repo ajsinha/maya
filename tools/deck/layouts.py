@@ -11,6 +11,7 @@ Kinds: ``title``, ``divider``, ``bullets``, ``table``, ``cards``, ``stats``,
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -26,19 +27,39 @@ def _items(tf: Any, items: list[Any], size: float) -> None:
     for i, it in enumerate(items):
         first = i == 0
         if isinstance(it, tuple):
-            T.runs(tf, [("▪  ", T.CRIMSON, True), (it[0], T.INK, True)], size=size,
-                   space_after=1, first=first, space_before=0 if first else 5)
+            T.runs(
+                tf,
+                [("▪  ", T.CRIMSON, True), (it[0], T.INK, True)],
+                size=size,
+                space_after=1,
+                first=first,
+                space_before=0 if first else 5,
+            )
             T.runs(tf, [(it[1], T.SLATE, False)], size=size - 1.5, space_after=0, level=1)
         else:
-            T.runs(tf, [("▪  ", T.CRIMSON, True), (it, T.INK, False)], size=size,
-                   space_after=0, first=first, space_before=0 if first else 6)
+            T.runs(
+                tf,
+                [("▪  ", T.CRIMSON, True), (it, T.INK, False)],
+                size=size,
+                space_after=0,
+                first=first,
+                space_before=0 if first else 6,
+            )
 
 
 def _intro(sl: Any, y: float, text: str | None) -> float:
     if not text:
         return y
-    used = T.fitted(sl, T.ML, y, T.CW, 1.0, lambda tf, s: T.para(
-        tf, text, size=s, color=T.INK, first=True, space_after=0, line=1.25), 14, 11)
+    used = T.fitted(
+        sl,
+        T.ML,
+        y,
+        T.CW,
+        1.0,
+        lambda tf, s: T.para(tf, text, size=s, color=T.INK, first=True, space_after=0, line=1.25),
+        14,
+        11,
+    )
     return y + used + GAP
 
 
@@ -53,9 +74,18 @@ def _note(sl: Any, text: str | None) -> float:
     h = text_h(text, width * 0.94, size, False, "Calibri", 1.2)
     top = T.BODY_BOTTOM - h
     T.rect(sl, T.ML, top, 0.045, h, fill=T.CRIMSON)
-    T.fitted(sl, T.ML + 0.25, top, width, h + 0.02, lambda tf, s: T.para(
-        tf, text, size=s, color=T.SLATE, italic=True, first=True, space_after=0, line=1.2),
-        size, 8.5)
+    T.fitted(
+        sl,
+        T.ML + 0.25,
+        top,
+        width,
+        h + 0.02,
+        lambda tf, s: T.para(
+            tf, text, size=s, color=T.SLATE, italic=True, first=True, space_after=0, line=1.2
+        ),
+        size,
+        8.5,
+    )
     return top - GAP
 
 
@@ -71,26 +101,49 @@ def title(s: dict[str, Any]) -> None:
 
     def head(tf: Any, size: float) -> None:
         for i, line in enumerate(s["title"]):
-            T.para(tf, line, size=size, color=T.WHITE, font="Georgia", first=i == 0,
-                   space_after=0, line=1.1)
+            T.para(
+                tf,
+                line,
+                size=size,
+                color=T.WHITE,
+                font="Georgia",
+                first=i == 0,
+                space_after=0,
+                line=1.1,
+            )
+
     T.fitted(sl, T.ML + 0.3, 1.4, T.CW * 0.9, 1.75, head, 38, 26)
     T.rect(sl, T.ML + 0.3, 3.25, 1.7, 0.035, fill=T.PINK)
     tf = T.txt(sl, T.ML + 0.3, 3.45, T.CW * 0.85, 0.7)
     T.para(tf, s["sub"], size=15, color=T.PINK_L, italic=True, first=True, space_after=0)
     tf = T.txt(sl, T.ML + 0.3, 4.75, T.CW * 0.5, 1.2)
-    T.para(tf, "Ashutosh Sinha", size=20, color=T.INK, bold=True, font="Georgia",
-           first=True, space_after=3)
+    T.para(
+        tf,
+        "Ashutosh Sinha",
+        size=20,
+        color=T.INK,
+        bold=True,
+        font="Georgia",
+        first=True,
+        space_after=3,
+    )
     T.para(tf, s.get("date", "September 2026"), size=12, color=T.CRIMSON, space_after=1)
-    T.para(tf, s.get("version", "MAYA 0.3.0 · specification revision 2.3"), size=11,
-           color=T.SLATE, space_after=0)
+    T.para(
+        tf,
+        s.get("version", "MAYA 0.3.0 · specification revision 2.3"),
+        size=11,
+        color=T.SLATE,
+        space_after=0,
+    )
     x0 = T.ML + T.CW * 0.56
 
     def agenda(tf: Any, size: float) -> None:
-        T.para(tf, "IN THIS DECK", size=9.5, color=T.CRIMSON, bold=True, first=True,
-               space_after=6)
+        T.para(tf, "IN THIS DECK", size=9.5, color=T.CRIMSON, bold=True, first=True, space_after=6)
         for i, c in enumerate(s["agenda"], 1):
-            T.runs(tf, [(f"{i}   ", T.CRIMSON, True), (c, T.SLATE, False)], size=size,
-                   space_after=3)
+            T.runs(
+                tf, [(f"{i}   ", T.CRIMSON, True), (c, T.SLATE, False)], size=size, space_after=3
+            )
+
     T.fitted(sl, x0, 4.7, T.CW * 0.44, 2.2, agenda, 12, 9)
     T.footer(sl)
 
@@ -103,16 +156,33 @@ def bullets(s: dict[str, Any]) -> None:
     sl, y = T.content(s["title"], s.get("kicker"))
     y = _intro(sl, y, s.get("intro"))
     bottom = _note(sl, s.get("note"))
-    T.fitted(sl, T.ML, y, T.CW, bottom - y, lambda tf, size: _items(tf, s["items"], size),
-             s.get("size", 17), 9.5)
+    T.fitted(
+        sl,
+        T.ML,
+        y,
+        T.CW,
+        bottom - y,
+        lambda tf, size: _items(tf, s["items"], size),
+        s.get("size", 17),
+        9.5,
+    )
 
 
 def table(s: dict[str, Any]) -> None:
     sl, y = T.content(s["title"], s.get("kicker"))
     y = _intro(sl, y, s.get("intro"))
     bottom = _note(sl, s.get("note"))
-    T.fitted_table(sl, s["rows"], T.ML, y, T.CW, bottom - y, s.get("col_w"),
-                   start=s.get("size", 14), bold_col0=s.get("bold_col0", True))
+    T.fitted_table(
+        sl,
+        s["rows"],
+        T.ML,
+        y,
+        T.CW,
+        bottom - y,
+        s.get("col_w"),
+        start=s.get("size", 14),
+        bold_col0=s.get("bold_col0", True),
+    )
 
 
 def cards(s: dict[str, Any]) -> None:
@@ -136,11 +206,20 @@ def stats(s: dict[str, Any]) -> None:
     y += 1.25 + GAP + 0.05
     bottom = _note(sl, s.get("note"))
     if s.get("rows"):
-        T.fitted_table(sl, s["rows"], T.ML, y, T.CW, bottom - y, s.get("col_w"),
-                       start=s.get("size", 13.5))
+        T.fitted_table(
+            sl, s["rows"], T.ML, y, T.CW, bottom - y, s.get("col_w"), start=s.get("size", 13.5)
+        )
     elif s.get("items"):
-        T.fitted(sl, T.ML, y, T.CW, bottom - y, lambda tf, size: _items(tf, s["items"], size),
-                 s.get("size", 16), 9.5)
+        T.fitted(
+            sl,
+            T.ML,
+            y,
+            T.CW,
+            bottom - y,
+            lambda tf, size: _items(tf, s["items"], size),
+            s.get("size", 16),
+            9.5,
+        )
 
 
 def _column(sl: Any, x: float, y: float, w: float, h: float, col: dict[str, Any]) -> None:
@@ -150,11 +229,20 @@ def _column(sl: Any, x: float, y: float, w: float, h: float, col: dict[str, Any]
     T.para(tf, col["head"], size=13, color=T.CRIMSON_D, bold=True, first=True, space_after=0)
     top = y + 0.42 + 0.14
     if col.get("rows"):
-        T.fitted_table(sl, col["rows"], x, top, w, y + h - top, col.get("col_w"),
-                       start=col.get("size", 13))
+        T.fitted_table(
+            sl, col["rows"], x, top, w, y + h - top, col.get("col_w"), start=col.get("size", 13)
+        )
     else:
-        T.fitted(sl, x, top, w, y + h - top,
-                 lambda tf, size: _items(tf, col["items"], size), col.get("size", 15), 9)
+        T.fitted(
+            sl,
+            x,
+            top,
+            w,
+            y + h - top,
+            lambda tf, size: _items(tf, col["items"], size),
+            col.get("size", 15),
+            9,
+        )
 
 
 def split(s: dict[str, Any]) -> None:
@@ -182,15 +270,32 @@ def flow(s: dict[str, Any]) -> None:
             T.connect(sl, x - arrow + 0.03, y + bh / 2, x - 0.03, y + bh / 2, T.CRIMSON, 2.0)
     top = y + bh + GAP + 0.05
     if s.get("items"):
-        T.fitted(sl, T.ML, top, T.CW, bottom - top,
-                 lambda tf, size: _items(tf, s["items"], size), s.get("size", 15), 9)
+        T.fitted(
+            sl,
+            T.ML,
+            top,
+            T.CW,
+            bottom - top,
+            lambda tf, size: _items(tf, s["items"], size),
+            s.get("size", 15),
+            9,
+        )
     elif s.get("rows"):
-        T.fitted_table(sl, s["rows"], T.ML, top, T.CW, bottom - top, s.get("col_w"),
-                       start=s.get("size", 13))
+        T.fitted_table(
+            sl, s["rows"], T.ML, top, T.CW, bottom - top, s.get("col_w"), start=s.get("size", 13)
+        )
 
 
-KINDS = {"title": title, "divider": divider, "bullets": bullets, "table": table,
-         "cards": cards, "stats": stats, "split": split, "flow": flow}
+KINDS = {
+    "title": title,
+    "divider": divider,
+    "bullets": bullets,
+    "table": table,
+    "cards": cards,
+    "stats": stats,
+    "split": split,
+    "flow": flow,
+}
 
 
 def render(slides: list[dict[str, Any]]) -> None:

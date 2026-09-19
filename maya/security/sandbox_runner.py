@@ -9,6 +9,7 @@ and no credentials.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,12 +43,89 @@ def _limit(cpu_seconds: int, memory_mb: int) -> list[str]:
 # EPERM: networking, tracing, mounting and namespace escapes, kernel keyrings and
 # modules, kexec/reboot, cross-process memory access, and exec of anything else.
 _DENY = {
-    "x86_64": (0xC000003E, [41, 42, 43, 44, 45, 46, 47, 49, 50, 53, 101, 288, 165, 166, 272,
-                            308, 321, 250, 248, 249, 175, 313, 176, 246, 320, 169, 59, 322, 310,
-                            311, 298, 323, 135, 161, 155, 425]),
-    "aarch64": (0xC00000B7, [198, 199, 200, 201, 202, 203, 204, 206, 207, 211, 212, 242, 117,
-                             40, 39, 97, 268, 280, 219, 217, 218, 105, 273, 106, 104, 294, 142,
-                             221, 281, 270, 271, 241, 282, 92, 51, 41, 425]),
+    "x86_64": (
+        0xC000003E,
+        [
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            49,
+            50,
+            53,
+            101,
+            288,
+            165,
+            166,
+            272,
+            308,
+            321,
+            250,
+            248,
+            249,
+            175,
+            313,
+            176,
+            246,
+            320,
+            169,
+            59,
+            322,
+            310,
+            311,
+            298,
+            323,
+            135,
+            161,
+            155,
+            425,
+        ],
+    ),
+    "aarch64": (
+        0xC00000B7,
+        [
+            198,
+            199,
+            200,
+            201,
+            202,
+            203,
+            204,
+            206,
+            207,
+            211,
+            212,
+            242,
+            117,
+            40,
+            39,
+            97,
+            268,
+            280,
+            219,
+            217,
+            218,
+            105,
+            273,
+            106,
+            104,
+            294,
+            142,
+            221,
+            281,
+            270,
+            271,
+            241,
+            282,
+            92,
+            51,
+            41,
+            425,
+        ],
+    ),
 }
 
 
@@ -56,15 +134,15 @@ def _seccomp() -> bool:
     import ctypes
     import platform
     import struct
+
     arch = _DENY.get(platform.machine())
     if arch is None or not sys.platform.startswith("linux"):
         return False
     audit_arch, denied = arch
     ld_w_abs, jeq, jge, ret = 0x20, 0x15, 0x35, 0x06
     allow, errno_eperm, kill = 0x7FFF0000, 0x00050001, 0x80000000
-    prog = [(ld_w_abs, 0, 0, 4), (jeq, 1, 0, audit_arch), (ret, 0, 0, kill),
-            (ld_w_abs, 0, 0, 0)]
-    if audit_arch == 0xC000003E:            # refuse the x32 ABI outright
+    prog = [(ld_w_abs, 0, 0, 4), (jeq, 1, 0, audit_arch), (ret, 0, 0, kill), (ld_w_abs, 0, 0, 0)]
+    if audit_arch == 0xC000003E:  # refuse the x32 ABI outright
         prog += [(jge, 0, 1, 0x40000000), (ret, 0, 0, errno_eperm)]
     for nr in denied:
         prog += [(jeq, 0, 1, nr), (ret, 0, 0, errno_eperm)]
@@ -77,9 +155,9 @@ def _seccomp() -> bool:
 
     fprog = Fprog(len(prog), ctypes.addressof(buf))
     libc = ctypes.CDLL(None, use_errno=True)
-    if libc.prctl(38, 1, 0, 0, 0) != 0:          # PR_SET_NO_NEW_PRIVS
+    if libc.prctl(38, 1, 0, 0, 0) != 0:  # PR_SET_NO_NEW_PRIVS
         return False
-    return libc.prctl(22, 2, ctypes.byref(fprog), 0, 0) == 0   # PR_SET_SECCOMP, FILTER
+    return libc.prctl(22, 2, ctypes.byref(fprog), 0, 0) == 0  # PR_SET_SECCOMP, FILTER
 
 
 def _block_network() -> None:
@@ -99,11 +177,11 @@ class _Ctx:
 
 
 def _jsonable(value: Any) -> Any:
-    if hasattr(value, "columns") and hasattr(value, "to_dict"):      # a pandas DataFrame
+    if hasattr(value, "columns") and hasattr(value, "to_dict"):  # a pandas DataFrame
         return {str(c): _jsonable(value[c].tolist()) for c in value.columns}
     if hasattr(value, "tolist"):
         return _jsonable(value.tolist())
-    if hasattr(value, "isoformat"):                                    # date, datetime, Timestamp
+    if hasattr(value, "isoformat"):  # date, datetime, Timestamp
         return value.isoformat()
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
@@ -115,6 +193,7 @@ def _jsonable(value: Any) -> Any:
 def _call(namespace: dict[str, Any], entry: str, payload: dict[str, Any]) -> Any:
     try:
         import numpy as np
+
         X = {k: np.asarray(v) for k, v in payload.get("X", {}).items()}
     except ImportError:
         X = payload.get("X", {})
@@ -146,7 +225,9 @@ def main() -> None:
     try:
         namespace: dict[str, Any] = {"__name__": "maya_artifact"}
         exec(compile(request["source"], "<artifact>", "exec"), namespace)  # noqa: S102  # nosec B102 - this IS the sandbox
-        response["result"] = _jsonable(_call(namespace, request["entry"], request.get("payload", {})))
+        response["result"] = _jsonable(
+            _call(namespace, request["entry"], request.get("payload", {}))
+        )
         response["ok"] = True
     except MemoryError:
         response["error"] = "MemoryError: memory cap exceeded"

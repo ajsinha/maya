@@ -4,6 +4,7 @@ bitemporal resolver (SC-11).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -18,8 +19,13 @@ from maya.resolution.expr import compile_expr
 from maya.resolution.quality import enforce, run_checks
 from maya.resolution.resolver import resolve_feature
 from maya.resolution.rules import NON_CAUSAL, apply_rule, parse_rule
-from maya.resolution.types import (arrow_type, cast_preview, infer_schema, logical_from_arrow,
-                                   schema_warnings)
+from maya.resolution.types import (
+    arrow_type,
+    cast_preview,
+    infer_schema,
+    logical_from_arrow,
+    schema_warnings,
+)
 
 
 def _dates(n: int, start: str = "2026-01-05") -> pd.Series:
@@ -28,10 +34,21 @@ def _dates(n: int, start: str = "2026-01-05") -> pd.Series:
 
 # ------------------------------------------------------------ expressions
 
-@pytest.mark.parametrize("text", [
-    "__import__('os')", "px.real", "px[0]", "(lambda x: x)(1)", "[x for x in px]",
-    "open('f')", "eval('1')", "getattr(px, 'x')", "{'a': 1}",
-])
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "__import__('os')",
+        "px.real",
+        "px[0]",
+        "(lambda x: x)(1)",
+        "[x for x in px]",
+        "open('f')",
+        "eval('1')",
+        "getattr(px, 'x')",
+        "{'a': 1}",
+    ],
+)
 def test_expr_refuses_unsafe_constructs(text: str) -> None:
     with pytest.raises(ValidationFailed):
         compile_expr(text)
@@ -58,10 +75,11 @@ def test_expr_unknown_attribute_is_named() -> None:
 
 # -------------------------------------------------------------- calendars
 
+
 def test_nyse_2026_holidays() -> None:
     assert easter_sunday(2026) == date(2026, 4, 5)
-    assert not is_business_day("NYSE", date(2026, 4, 3))   # Good Friday
-    assert not is_business_day("NYSE", date(2026, 7, 3))   # Independence Day observed
+    assert not is_business_day("NYSE", date(2026, 4, 3))  # Good Friday
+    assert not is_business_day("NYSE", date(2026, 7, 3))  # Independence Day observed
     assert not is_business_day("NYSE", date(2026, 6, 19))  # Juneteenth
     assert not is_business_day("NYSE", date(2026, 11, 26))  # Thanksgiving
     assert is_business_day("NYSE", date(2026, 4, 6))
@@ -86,6 +104,7 @@ def test_business_days_ranges() -> None:
 
 
 # ------------------------------------------------------------------- rules
+
 
 def test_forward_fill_limit_boundary() -> None:
     s = pd.Series([1.0, None, None, None, 5.0])
@@ -130,20 +149,36 @@ def test_rule_parse_errors() -> None:
 
 # ------------------------------------------------------------------- types
 
+
 def test_type_mapping_round_trip() -> None:
-    for t in ["int64", "float64", "bool", "string", "date", "decimal(38,12)",
-              "list<float64>", "fixed_vector<float64,8>", "map<string,int64>",
-              "struct<a:int64,b:string>"]:
+    for t in [
+        "int64",
+        "float64",
+        "bool",
+        "string",
+        "date",
+        "decimal(38,12)",
+        "list<float64>",
+        "fixed_vector<float64,8>",
+        "map<string,int64>",
+        "struct<a:int64,b:string>",
+    ]:
         assert logical_from_arrow(arrow_type(t)) == t
     assert arrow_type("tensor<float64,[8,12]>").list_size == 96
 
 
 def test_infer_and_cast_preview() -> None:
-    df = pd.DataFrame({"d": pd.to_datetime(["2026-01-01"]), "x": [1.5], "n": [3], "s": ["a"],
-                       "v": [[1.0, 2.0]]})
+    df = pd.DataFrame(
+        {"d": pd.to_datetime(["2026-01-01"]), "x": [1.5], "n": [3], "s": ["a"], "v": [[1.0, 2.0]]}
+    )
     types = {a["name"]: a["type"] for a in infer_schema(df)}
-    assert types == {"d": "date", "x": "float64", "n": "int64", "s": "string",
-                     "v": "fixed_vector<float64,2>"}
+    assert types == {
+        "d": "date",
+        "x": "float64",
+        "n": "int64",
+        "s": "string",
+        "v": "fixed_vector<float64,2>",
+    }
     pv = cast_preview(pd.Series(["1", "2.5", "x", None]), "int64")
     assert pv["failures"] == 2 and "x" in pv["examples"]
     assert schema_warnings([{"name": "px", "type": "float64", "tag": "price"}])
@@ -151,13 +186,28 @@ def test_infer_and_cast_preview() -> None:
 
 # ----------------------------------------------------------------- quality
 
+
 def test_quality_checks() -> None:
-    df = pd.DataFrame({"date": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-02"]),
-                       "px": [1.0, None, 50.0]})
-    res = {r["check"]: r for r in run_checks(df, {
-        "unique_on_index": True, "row_count_between": [1, 2],
-        "attributes": {"px": {"not_null": True, "range": [0, 10], "monotonic": "increasing"}},
-    }, ["date"])}
+    df = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-02"]),
+            "px": [1.0, None, 50.0],
+        }
+    )
+    res = {
+        r["check"]: r
+        for r in run_checks(
+            df,
+            {
+                "unique_on_index": True,
+                "row_count_between": [1, 2],
+                "attributes": {
+                    "px": {"not_null": True, "range": [0, 10], "monotonic": "increasing"}
+                },
+            },
+            ["date"],
+        )
+    }
     assert not res["unique_on_index"]["passed"] and not res["row_count_between"]["passed"]
     assert not res["not_null"]["passed"] and not res["range"]["passed"]
     assert res["monotonic"]["passed"]
@@ -167,33 +217,58 @@ def test_quality_checks() -> None:
 
 # ---------------------------------------------------------------- resolver
 
+
 def _raw() -> pd.DataFrame:
     kt = pd.Timestamp("2026-03-31T18:00Z")
-    rows = [("2026-03-27", "A", 10.0, kt), ("2026-03-30", "A", 11.0, kt),
-            ("2026-03-31", "A", 12.0, kt), ("2026-03-30", "B", 20.0, kt),
-            # restatement of A on 30 March, known only on 15 April
-            ("2026-03-30", "A", 11.5, pd.Timestamp("2026-04-15T09:00Z"))]
+    rows = [
+        ("2026-03-27", "A", 10.0, kt),
+        ("2026-03-30", "A", 11.0, kt),
+        ("2026-03-31", "A", 12.0, kt),
+        ("2026-03-30", "B", 20.0, kt),
+        # restatement of A on 30 March, known only on 15 April
+        ("2026-03-30", "A", 11.5, pd.Timestamp("2026-04-15T09:00Z")),
+    ]
     return pd.DataFrame(rows, columns=["date", "symbol", "px", "_knowledge_time"])
 
 
 def test_bitemporal_restatement_sc11() -> None:
-    before, _ = resolve_feature(_raw(), index=["date", "symbol"], attributes=["px"], policy={},
-                                as_of_known="2026-04-01T00:00Z")
-    after, _ = resolve_feature(_raw(), index=["date", "symbol"], attributes=["px"], policy={},
-                               as_of_known="2026-04-20T00:00Z")
+    before, _ = resolve_feature(
+        _raw(),
+        index=["date", "symbol"],
+        attributes=["px"],
+        policy={},
+        as_of_known="2026-04-01T00:00Z",
+    )
+    after, _ = resolve_feature(
+        _raw(),
+        index=["date", "symbol"],
+        attributes=["px"],
+        policy={},
+        as_of_known="2026-04-20T00:00Z",
+    )
     key = (before["date"] == "2026-03-30") & (before["symbol"] == "A")
     assert before.loc[key, "px"].item() == 11.0
-    assert after.loc[(after["date"] == "2026-03-30") & (after["symbol"] == "A"), "px"].item() == 11.5
-    early, _ = resolve_feature(_raw(), index=["date", "symbol"], attributes=["px"], policy={},
-                               as_of_known="2026-03-01T00:00Z")
+    assert (
+        after.loc[(after["date"] == "2026-03-30") & (after["symbol"] == "A"), "px"].item() == 11.5
+    )
+    early, _ = resolve_feature(
+        _raw(),
+        index=["date", "symbol"],
+        attributes=["px"],
+        policy={},
+        as_of_known="2026-03-01T00:00Z",
+    )
     assert early.empty
 
 
 def test_calendar_grid_and_fill_report() -> None:
-    df, rep = resolve_feature(_raw(), index=["date", "symbol"], attributes=["px"],
-                              policy={"grid": {"calendar": "NYSE"},
-                                      "rules": {"px": "forward_fill(limit=1)"}},
-                              as_of_known="2026-04-01T00:00Z")
+    df, rep = resolve_feature(
+        _raw(),
+        index=["date", "symbol"],
+        attributes=["px"],
+        policy={"grid": {"calendar": "NYSE"}, "rules": {"px": "forward_fill(limit=1)"}},
+        as_of_known="2026-04-01T00:00Z",
+    )
     b = df[df["symbol"] == "B"]["px"].tolist()
     assert np.isnan(b[0]) and b[1:] == [20.0, 20.0]
     assert rep["attributes"]["px"]["filled"] == 1  # B on 31 March
@@ -202,10 +277,16 @@ def test_calendar_grid_and_fill_report() -> None:
 
 
 def test_resolution_is_deterministic() -> None:
-    a, _ = resolve_feature(_raw().sample(frac=1, random_state=3), index=["date", "symbol"],
-                           attributes=["px"], policy={}, as_of_known=None)
-    b, _ = resolve_feature(_raw(), index=["date", "symbol"], attributes=["px"], policy={},
-                           as_of_known=None)
+    a, _ = resolve_feature(
+        _raw().sample(frac=1, random_state=3),
+        index=["date", "symbol"],
+        attributes=["px"],
+        policy={},
+        as_of_known=None,
+    )
+    b, _ = resolve_feature(
+        _raw(), index=["date", "symbol"], attributes=["px"], policy={}, as_of_known=None
+    )
     pd.testing.assert_frame_equal(a, b)
 
 

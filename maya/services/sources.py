@@ -19,6 +19,7 @@ bitemporality exists to prevent — so MAYA never does.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -34,9 +35,12 @@ from maya.services.feature_data import schema_generation
 
 PARAM_TYPES = ("string", "int", "float", "date", "bool")
 _PARAM_CASTS: dict[str, Callable[[Any], Any]] = {
-    "string": str, "int": int, "float": float,
+    "string": str,
+    "int": int,
+    "float": float,
     "date": lambda v: dt.date.fromisoformat(str(v)),
-    "bool": lambda v: str(v).lower() in ("1", "true", "yes")}
+    "bool": lambda v: str(v).lower() in ("1", "true", "yes"),
+}
 
 
 def bind_params(spec: dict[str, Any] | None) -> dict[str, Any]:
@@ -45,8 +49,9 @@ def bind_params(spec: dict[str, Any] | None) -> dict[str, Any]:
     for name, p in (spec or {}).items():
         if not name.isidentifier():
             raise ValidationFailed(f"Parameter name '{name}' is not an identifier")
-        kind, value = (p.get("type", "string"), p.get("value")) if isinstance(p, dict) \
-            else ("string", p)
+        kind, value = (
+            (p.get("type", "string"), p.get("value")) if isinstance(p, dict) else ("string", p)
+        )
         if kind not in PARAM_TYPES:
             raise ValidationFailed(f"Parameter '{name}': type must be one of {PARAM_TYPES}")
         try:
@@ -61,6 +66,7 @@ def validate_python_source(src: dict[str, Any]) -> list[str]:
     import ast
 
     from maya.formula.artifact import DEFAULT_ALLOWLIST, rung_allowlist, rung_static_ban
+
     code, entry = src.get("code") or "", src.get("entry") or "produce"
     if not code.strip():
         return ["a python source carries its code in source.code"]
@@ -74,7 +80,7 @@ def validate_python_source(src: dict[str, Any]) -> list[str]:
         errors.append(f"python source: no function '{entry}' at module level")
     elif [a.arg for a in fn.args.args] != ["params"]:
         errors.append(f"python source: '{entry}' must take exactly one argument, params")
-    allowed = DEFAULT_ALLOWLIST | {"datetime", "calendar"}   # producers build date series
+    allowed = DEFAULT_ALLOWLIST | {"datetime", "calendar"}  # producers build date series
     for ok, detail in (rung_allowlist(tree, allowed), rung_static_ban(tree)):
         if not ok:
             errors.append(f"python source: {detail}")
@@ -90,16 +96,24 @@ def run_python_source(src: dict[str, Any], settings: Any) -> tuple[Any, dict[str
     import pandas as pd
 
     from maya.security.sandbox import run_sandboxed
-    params = {k: v.isoformat() if isinstance(v, dt.date) else v
-              for k, v in bind_params(src.get("params")).items()}
-    wrapper = src["code"] + ("\n\ndef _maya_source(X, params):\n"
-                             f"    return {src.get('entry') or 'produce'}(params)\n")
-    out = run_sandboxed(wrapper, "_maya_source", {"params": params},
-                        cpu_seconds=settings.int("sources.python.cpu_seconds", 30),
-                        memory_mb=settings.int("sources.python.memory_mb", 1024),
-                        wall_seconds=settings.int("sources.python.wall_seconds", 60),
-                        output_limit_bytes=settings.int("sources.python.max_output_mb", 20)
-                        * 1024 * 1024, preload=("numpy", "pandas"))
+
+    params = {
+        k: v.isoformat() if isinstance(v, dt.date) else v
+        for k, v in bind_params(src.get("params")).items()
+    }
+    wrapper = src["code"] + (
+        f"\n\ndef _maya_source(X, params):\n    return {src.get('entry') or 'produce'}(params)\n"
+    )
+    out = run_sandboxed(
+        wrapper,
+        "_maya_source",
+        {"params": params},
+        cpu_seconds=settings.int("sources.python.cpu_seconds", 30),
+        memory_mb=settings.int("sources.python.memory_mb", 1024),
+        wall_seconds=settings.int("sources.python.wall_seconds", 60),
+        output_limit_bytes=settings.int("sources.python.max_output_mb", 20) * 1024 * 1024,
+        preload=("numpy", "pandas"),
+    )
     ran = {"tier": out.get("tier"), "duration": round(out.get("duration") or 0.0, 3)}
     if not out["ok"]:
         raise ValidationFailed(f"The python source failed in the sandbox: {out['error']}", **ran)
@@ -109,8 +123,10 @@ def run_python_source(src: dict[str, Any], settings: Any) -> tuple[Any, dict[str
     elif isinstance(result, list) and all(isinstance(r, dict) for r in result):
         frame = pd.DataFrame.from_records(result)
     else:
-        raise ValidationFailed("produce(params) must return {column: [values]} or a list of "
-                               "{column: value} records", got=type(result).__name__)
+        raise ValidationFailed(
+            "produce(params) must return {column: [values]} or a list of {column: value} records",
+            got=type(result).__name__,
+        )
     return frame, ran
 
 
@@ -136,8 +152,15 @@ class SourceService:
         if not p.is_admin:
             raise PermissionDenied("Source connections are administered by 'admin'")
 
-    def create(self, p: Principal, *, name: str, url: str, password_env: str | None = None,
-               description: str = "") -> dict[str, Any]:
+    def create(
+        self,
+        p: Principal,
+        *,
+        name: str,
+        url: str,
+        password_env: str | None = None,
+        description: str = "",
+    ) -> dict[str, Any]:
         self._admin(p)
         external.check_url(url)
         if password_env and not password_env.replace("_", "").isalnum():
@@ -145,11 +168,19 @@ class SourceService:
         with self.p.uow(p.username) as uow:
             if uow.repo("sql_connections").find_one(name=name):
                 raise ConflictError(f"Connection '{name}' already exists")
-            row = uow.repo("sql_connections").add({"name": name, "url": url,
-                                                   "password_env": password_env or None,
-                                                   "description": description})
-            uow.audit("source.connection_created", object_ref=f"connection:{name}",
-                      detail={"url": url, "password_env": password_env})
+            row = uow.repo("sql_connections").add(
+                {
+                    "name": name,
+                    "url": url,
+                    "password_env": password_env or None,
+                    "description": description,
+                }
+            )
+            uow.audit(
+                "source.connection_created",
+                object_ref=f"connection:{name}",
+                detail={"url": url, "password_env": password_env},
+            )
             return row
 
     def list(self) -> list[dict[str, Any]]:
@@ -177,25 +208,28 @@ class SourceService:
         return row
 
     # -- pull ------------------------------------------------------------------------------
-    def pull(self, p: Principal, ref: str, *,
-             knowledge_time: dt.datetime | None = None) -> dict[str, Any]:
+    def pull(
+        self, p: Principal, ref: str, *, knowledge_time: dt.datetime | None = None
+    ) -> dict[str, Any]:
         """Run the feature's reviewed query or producer; append its rows to the ingest log."""
         with self.p.uow() as uow:
-            feature, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
+            feature, ns = catalog.find_object(
+                uow, "features", "feature", refs.parse(ref, "feature")
+            )
             self.p.access.require(uow, p, "update", "feature", feature)
             latest = catalog.require_latest(uow, "feature_versions", "feature_id", feature["id"])
             eff = catalog.effective_feature_definition(uow, latest["definition"])
             src = eff.get("source") or {}
             if src.get("type") not in ("sql", "python"):
-                raise ValidationFailed("Only a feature whose source is 'sql' or 'python' is "
-                                       "pulled")
+                raise ValidationFailed("Only a feature whose source is 'sql' or 'python' is pulled")
             conn = self._get(uow, src["connection"]) if src["type"] == "sql" else None
         errors = catalog.blocking_errors(catalog.validate_feature_definition(eff))
         if errors:
             raise ValidationFailed("Fix the definition before pulling: " + "; ".join(errors))
         if conn is not None:
-            frame = external.read_query(conn["url"], conn["password_env"], src["query"],
-                                        bind_params(src.get("params")))
+            frame = external.read_query(
+                conn["url"], conn["password_env"], src["query"], bind_params(src.get("params"))
+            )
             code = src["query"]
             origin = {"connection": conn["name"]}
             note = f"connection '{conn['name']}'"
@@ -209,17 +243,33 @@ class SourceService:
         generation = f"{feature['name']}/{schema_generation(eff)}"
         prior = self.p.lake.read_raw(ns["name"], generation)
         from maya.services.features import _overlaps
+
         restatement = _overlaps(prior, table, eff["index"])
         version = self.p.lake.append_raw(ns["name"], generation, table)
         code_hash = hashlib.sha256(code.encode()).hexdigest()
         with self.p.uow(p.username) as uow:
-            row = uow.repo("feature_ingests").add({
-                "feature_id": feature["id"], "blob_hash": None, "source_type": src["type"],
-                "knowledge_time": known_at, "rows": table.num_rows, "lake_version": version,
-                "note": f"pulled from {note} (code {code_hash[:12]})",
-                "restatement": restatement})
-            uow.audit("feature.pulled", object_type="feature",
-                      object_ref=refs.object_ref("feature", ns["name"], feature["name"]),
-                      detail={**origin, "source": src["type"], "rows": table.num_rows,
-                              "code_sha256": code_hash, "restatement": restatement})
+            row = uow.repo("feature_ingests").add(
+                {
+                    "feature_id": feature["id"],
+                    "blob_hash": None,
+                    "source_type": src["type"],
+                    "knowledge_time": known_at,
+                    "rows": table.num_rows,
+                    "lake_version": version,
+                    "note": f"pulled from {note} (code {code_hash[:12]})",
+                    "restatement": restatement,
+                }
+            )
+            uow.audit(
+                "feature.pulled",
+                object_type="feature",
+                object_ref=refs.object_ref("feature", ns["name"], feature["name"]),
+                detail={
+                    **origin,
+                    "source": src["type"],
+                    "rows": table.num_rows,
+                    "code_sha256": code_hash,
+                    "restatement": restatement,
+                },
+            )
         return row

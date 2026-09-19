@@ -27,6 +27,7 @@ openpyxl reads the file; with defusedxml installed it refuses XML bombs.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -43,7 +44,8 @@ from maya.core.errors import CapabilityRefused, ValidationFailed
 MAX_BYTES = 20 * 1024 * 1024
 MAX_CELLS = 5000
 _CELL = r"\$?([A-Za-z]{1,3})\$?(\d+)"
-_TOKEN = re.compile(r"""
+_TOKEN = re.compile(
+    r"""
     (?P<ws>\s+)
   | (?P<str>"(?:[^"]|"")*")
   | (?P<err>\#[A-Z0-9/!?]+[!?]?)
@@ -52,14 +54,19 @@ _TOKEN = re.compile(r"""
   | (?P<num>(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)
   | (?P<name>[A-Za-z_\\][\w.]*)
   | (?P<op><>|<=|>=|[-+*/^&=<>%(),;:!{}])
-""", re.X)
+""",
+    re.X,
+)
 _CMP = {"=": "eq", "<": "lt", ">": "gt", "<=": "le", ">=": "ge"}
 LN10 = math.log(10.0)
 
 
 def _refuse(where: str, what: str) -> ValidationFailed:
-    return ValidationFailed(f"{where}: {what} is outside the spreadsheet import scope and is "
-                            "refused rather than approximated", cell=where)
+    return ValidationFailed(
+        f"{where}: {what} is outside the spreadsheet import scope and is "
+        "refused rather than approximated",
+        cell=where,
+    )
 
 
 # -- tokens and syntax -------------------------------------------------------------------
@@ -68,7 +75,7 @@ def tokenize(text: str, where: str) -> list[tuple[str, str]]:
     while pos < len(text):
         m = _TOKEN.match(text, pos)
         if not m:
-            raise _refuse(where, f"the text '{text[pos:pos + 12]}'")
+            raise _refuse(where, f"the text '{text[pos : pos + 12]}'")
         pos = m.end()
         kind = m.lastgroup if m.lastgroup != "sheet" else "ref"
         if m.group("ref"):
@@ -239,8 +246,10 @@ class _Lift:
         """The IR node standing for one referenced cell."""
         if self.is_formula(key):
             if key in self.visiting:
-                raise ValidationFailed("circular reference: " + " -> ".join(
-                    self.visiting[self.visiting.index(key):] + [key]))
+                raise ValidationFailed(
+                    "circular reference: "
+                    + " -> ".join(self.visiting[self.visiting.index(key) :] + [key])
+                )
             if key not in self.lets:
                 if len(self.lets) >= MAX_CELLS:
                     raise ValidationFailed(f"more than {MAX_CELLS} formula cells; refused")
@@ -262,8 +271,10 @@ class _Lift:
     def resolve_name(self, name: str, here: str) -> tuple[str | None, str]:
         target = self.names.get(name.upper())
         if target is None:
-            raise ValidationFailed(f"{here}: no defined name '{name}' (named cells and ranges "
-                                   "are supported; names of formulas or constants are not)")
+            raise ValidationFailed(
+                f"{here}: no defined name '{name}' (named cells and ranges "
+                "are supported; names of formulas or constants are not)"
+            )
         return target
 
     def cells(self, ast: Any, here: str) -> list[str] | None:
@@ -305,12 +316,16 @@ class _Lift:
         if op == "&":
             raise _refuse(here, "text concatenation (&)")
         if op == "<>":
-            return {"op": "where", "args": [{"op": "eq", "args": [a, b]},
-                                            {"const": 0.0}, {"const": 1.0}]}
+            return {
+                "op": "where",
+                "args": [{"op": "eq", "args": [a, b]}, {"const": 0.0}, {"const": 1.0}],
+            }
         if op in _CMP:
             return {"op": _CMP[op], "args": [a, b]}
-        return {"op": {"+": "add", "-": "sub", "*": "mul", "/": "div", "^": "pow"}[op],
-                "args": [a, b]}
+        return {
+            "op": {"+": "add", "-": "sub", "*": "mul", "/": "div", "^": "pow"}[op],
+            "args": [a, b],
+        }
 
     def items(self, args: list[Any], here: str, *, skip_empty: bool) -> list[Any]:
         """Aggregate arguments: ranges expand to their cells (Excel skips empty ones)."""
@@ -329,12 +344,20 @@ class _Lift:
         return out
 
     def call(self, fn: str, args: list[Any], here: str) -> Any:
-        family = next((f for names, f in (
-            (("SUM", "PRODUCT", "MIN", "MAX", "AVERAGE"), self._aggregate),
-            (("ABS", "SQRT", "EXP", "LN", "LOG10", "LOG", "POWER"), self._maths),
-            (("IF", "AND", "OR", "NOT", "TRUE", "FALSE"), self._logic),
-            (("NORM.S.DIST", "NORMSDIST", "NORM.DIST"), self._normal),
-            (("VLOOKUP", "HLOOKUP"), self.lookup)) if fn in names), None)
+        family = next(
+            (
+                f
+                for names, f in (
+                    (("SUM", "PRODUCT", "MIN", "MAX", "AVERAGE"), self._aggregate),
+                    (("ABS", "SQRT", "EXP", "LN", "LOG10", "LOG", "POWER"), self._maths),
+                    (("IF", "AND", "OR", "NOT", "TRUE", "FALSE"), self._logic),
+                    (("NORM.S.DIST", "NORMSDIST", "NORM.DIST"), self._normal),
+                    (("VLOOKUP", "HLOOKUP"), self.lookup),
+                )
+                if fn in names
+            ),
+            None,
+        )
         if family is None:
             raise _refuse(here, f"the function {fn}")
         return family(fn, args, here)
@@ -342,8 +365,9 @@ class _Lift:
     @staticmethod
     def _arity(fn: str, args: list[Any], here: str, lo: int, hi: int) -> None:
         if not lo <= len(args) <= hi:
-            raise ValidationFailed(f"{here}: {fn} takes {lo}"
-                                   f"{'' if lo == hi else f' to {hi}'} argument(s)")
+            raise ValidationFailed(
+                f"{here}: {fn} takes {lo}{'' if lo == hi else f' to {hi}'} argument(s)"
+            )
 
     def _aggregate(self, fn: str, args: list[Any], here: str) -> Any:
         xs = self.items(args, here, skip_empty=True)
@@ -359,8 +383,11 @@ class _Lift:
             return {"op": "pow", "args": [self.node(args[0], here), self.node(args[1], here)]}
         if fn in ("LOG10", "LOG"):
             self._arity(fn, args, here, 1, 1 if fn == "LOG10" else 2)
-            base = {"const": LN10} if len(args) == 1 else \
-                {"op": "log", "args": [self.node(args[1], here)]}
+            base = (
+                {"const": LN10}
+                if len(args) == 1
+                else {"op": "log", "args": [self.node(args[1], here)]}
+            )
             return {"op": "div", "args": [{"op": "log", "args": [self.node(args[0], here)]}, base]}
         self._arity(fn, args, here, 1, 1)
         return {"op": {"LN": "log"}.get(fn, fn.lower()), "args": [self.node(args[0], here)]}
@@ -372,8 +399,10 @@ class _Lift:
         if fn == "IF":
             self._arity(fn, args, here, 2, 3)
             other = self.node(args[2], here) if len(args) == 3 else {"const": 0.0}
-            return {"op": "where", "args": [self.node(args[0], here), self.node(args[1], here),
-                                            other]}
+            return {
+                "op": "where",
+                "args": [self.node(args[0], here), self.node(args[1], here), other],
+            }
         if fn == "NOT":
             self._arity(fn, args, here, 1, 1)
             return {"op": "eq", "args": [self.node(args[0], here), {"const": 0.0}]}
@@ -397,7 +426,7 @@ class _Lift:
         if ast[0] == "name" and ast[1].upper() in ("TRUE", "FALSE"):
             return ast[1].upper() == "TRUE"
         if ast[0] == "call" and ast[1] in ("TRUE", "FALSE") and not ast[2]:
-            return ast[1] == "TRUE"      # TRUE() / FALSE(): how LibreOffice writes the literals
+            return ast[1] == "TRUE"  # TRUE() / FALSE(): how LibreOffice writes the literals
         if ast[0] == "num" and ast[1] in (0.0, 1.0):
             return bool(ast[1])
         raise _refuse(here, f"a {fn} whose TRUE/FALSE argument is not written literally")
@@ -431,15 +460,23 @@ class _Lift:
             if k is not None:
                 pairs.append((k, 0.0 if v is None else v))
         if approx and any(a[0] >= b[0] for a, b in zip(pairs, pairs[1:])):
-            raise ValidationFailed(f"{here}: an approximate {fn} needs its first "
-                                   f"{'column' if fn == 'VLOOKUP' else 'row'} strictly ascending")
+            raise ValidationFailed(
+                f"{here}: an approximate {fn} needs its first "
+                f"{'column' if fn == 'VLOOKUP' else 'row'} strictly ascending"
+            )
         key = self.node(args[0], here)
         node: Any = {"op": "na", "args": []}
-        for k, v in (pairs if approx else reversed(pairs)):
+        for k, v in pairs if approx else reversed(pairs):
             test = {"op": "ge" if approx else "eq", "args": [key, {"const": k}]}
             node = {"op": "where", "args": [test, {"const": v}, node]}
-        self.lookups.append({"cell": here, "function": fn, "rows": len(pairs),
-                             "match": "approximate" if approx else "exact"})
+        self.lookups.append(
+            {
+                "cell": here,
+                "function": fn,
+                "rows": len(pairs),
+                "match": "approximate" if approx else "exact",
+            }
+        )
         return node
 
 
@@ -517,25 +554,30 @@ def _output_key(wb: Any, lift: _Lift, output: str | None) -> str:
         if lift.names.get(output.upper()):
             keys = lift.cells(("name", output), here)
         else:
-            keys = lift.cells(("ref", output), here) if re.fullmatch(
-                r"(?:.+!)?\$?[A-Za-z]{1,3}\$?\d+", output) else None
+            keys = (
+                lift.cells(("ref", output), here)
+                if re.fullmatch(r"(?:.+!)?\$?[A-Za-z]{1,3}\$?\d+", output)
+                else None
+            )
         if not keys or len(keys) != 1:
             raise ValidationFailed(f"'{output}' is not a single cell or a named cell")
         return keys[0]
     sinks = _sinks(wb, lift.names)
     if len(sinks) != 1:
-        raise ValidationFailed("Name the output cell: the workbook has "
-                               f"{len(sinks) or 'no'} formula cell(s) nothing else uses"
-                               + (f" ({', '.join(sinks[:12])})" if sinks else ""),
-                               candidates=sinks[:50])
+        raise ValidationFailed(
+            "Name the output cell: the workbook has "
+            f"{len(sinks) or 'no'} formula cell(s) nothing else uses"
+            + (f" ({', '.join(sinks[:12])})" if sinks else ""),
+            candidates=sinks[:50],
+        )
     return sinks[0]
 
 
-def _check(ir: dict[str, Any], lift: _Lift, cells: dict[str, str], out_key: str
-           ) -> dict[str, Any]:
+def _check(ir: dict[str, Any], lift: _Lift, cells: dict[str, str], out_key: str) -> dict[str, Any]:
     """Compare the lifted IR, cell by cell, with the results the workbook itself cached."""
     from maya.formula.evaluate import eval_node
     from maya.formula.ir import let_order
+
     env: dict[str, Any] = {cells[k]: np.array([v]) for k, v in lift.inputs.items()}
     with np.errstate(all="ignore"):
         for name in let_order(ir["lets"]):
@@ -561,25 +603,37 @@ def _check(ir: dict[str, Any], lift: _Lift, cells: dict[str, str], out_key: str
     status = "unchecked" if not checked else ("disagreed" if disagreements else "agreed")
     statement = {
         "unchecked": "The workbook carries no cached results (it was never recalculated in "
-                     "Excel), so the lift could not be compared with it.",
+        "Excel), so the lift could not be compared with it.",
         "agreed": f"The lifted formula reproduces the workbook's own results on all {checked} "
-                  f"of {total} formula cells it caches, at the workbook's inputs.",
+        f"of {total} formula cells it caches, at the workbook's inputs.",
         "disagreed": f"{len(disagreements)} of {checked} cached cells disagree with the lifted "
-                     "formula; submission is blocked until they agree.",
+        "formula; submission is blocked until they agree.",
     }[status]
-    return {"status": status, "checked": checked, "formula_cells": total,
-            "disagreements": disagreements[:20], "statement": statement}
+    return {
+        "status": status,
+        "checked": checked,
+        "formula_cells": total,
+        "disagreements": disagreements[:20],
+        "statement": statement,
+    }
 
 
-def lift_workbook(data: bytes, *, output: str | None = None, roles: dict[str, str] | None = None,
-                  filename: str = "workbook.xlsx") -> dict[str, Any]:
+def lift_workbook(
+    data: bytes,
+    *,
+    output: str | None = None,
+    roles: dict[str, str] | None = None,
+    filename: str = "workbook.xlsx",
+) -> dict[str, Any]:
     """Lift one output cell of an .xlsx into a formula IR, with a report of what was done."""
     from maya.core.backends import has_module
+
     if not has_module("openpyxl"):
         raise CapabilityRefused("Spreadsheet import needs openpyxl (pip install openpyxl)")
     if len(data) > MAX_BYTES:
         raise ValidationFailed(f"The workbook is over {MAX_BYTES // 2**20} MB; refused")
     import openpyxl
+
     try:
         formulas = openpyxl.load_workbook(io.BytesIO(data), data_only=False)
         values = openpyxl.load_workbook(io.BytesIO(data), data_only=True)
@@ -596,9 +650,10 @@ def lift_workbook(data: bytes, *, output: str | None = None, roles: dict[str, st
     roles = roles or {}
     unknown = set(roles) - {cells[k] for k in lift.inputs}
     if unknown:
-        raise ValidationFailed("Roles name inputs the lift does not have: "
-                               + ", ".join(sorted(unknown)),
-                               inputs=sorted(cells[k] for k in lift.inputs))
+        raise ValidationFailed(
+            "Roles name inputs the lift does not have: " + ", ".join(sorted(unknown)),
+            inputs=sorted(cells[k] for k in lift.inputs),
+        )
     inputs = []
     for key in sorted(lift.inputs, key=lambda k: cells[k]):
         role = roles.get(cells[key], "feature")
@@ -607,19 +662,30 @@ def lift_workbook(data: bytes, *, output: str | None = None, roles: dict[str, st
             entry["value"] = lift.inputs[key]
         inputs.append(entry)
     ir: dict[str, Any] = {
-        "outputs": [{"name": cells[out_key], "type": "float64"}], "inputs": inputs,
+        "outputs": [{"name": cells[out_key], "type": "float64"}],
+        "inputs": inputs,
         "lets": {cells[k]: _rename(v, cells) for k, v in lift.lets.items()},
-        "body": _rename(body, cells)}
+        "body": _rename(body, cells),
+    }
     from maya.formula.ir import validate_ir
+
     errors = validate_ir(ir)
     if errors:
         raise ValidationFailed("The lifted IR is invalid", errors=errors)
     check = _check(ir, lift, cells, out_key)
-    ir["lifted_from"] = {"workbook": {
-        "filename": filename, "sha256": hashlib.sha256(data).hexdigest(), "output": out_key,
-        "cells": {cells[k]: k for k in cells},
-        "values": {cells[k]: v for k, v in lift.inputs.items()},
-        "lookups": lift.lookups, "warnings": sorted(set(lift.warnings)), "check": check}}
+    ir["lifted_from"] = {
+        "workbook": {
+            "filename": filename,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "output": out_key,
+            "cells": {cells[k]: k for k in cells},
+            "values": {cells[k]: v for k, v in lift.inputs.items()},
+            "lookups": lift.lookups,
+            "warnings": sorted(set(lift.warnings)),
+            "check": check,
+        }
+    }
     from maya.formula.latex import to_latex
+
     ir["latex"] = to_latex(ir)
     return ir

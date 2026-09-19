@@ -14,6 +14,7 @@ degrades; the guarantee does not.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -33,22 +34,30 @@ def detect() -> dict[str, str]:
     exe = shutil.which("tectonic")
     if exe:
         return {"backend": "tectonic", "detail": f"Tectonic at {exe}"}
-    return {"backend": "draft",
-            "detail": "Tectonic not found on PATH: MAYA's structural draft renderer is used. "
-                      "Draft PDFs are watermarked and refused wherever a PDF is evidence."}
+    return {
+        "backend": "draft",
+        "detail": "Tectonic not found on PATH: MAYA's structural draft renderer is used. "
+        "Draft PDFs are watermarked and refused wherever a PDF is evidence.",
+    }
 
 
-def render_pdf(latex: str, *, timeout: int = 120, force_draft: bool = False) -> tuple[bytes, dict[str, Any]]:
+def render_pdf(
+    latex: str, *, timeout: int = 120, force_draft: bool = False
+) -> tuple[bytes, dict[str, Any]]:
     """Render LaTeX to PDF: ``(pdf_bytes, {"draft_render", "backend", "log"})``."""
     if not force_draft and detect()["backend"] == "tectonic":
         return _tectonic(latex, timeout)
     pdf = DraftRenderer().render(latex)
-    return pdf, {"draft_render": True, "backend": "draft",
-                 "log": "structural draft renderer (Tectonic unavailable)"}
+    return pdf, {
+        "draft_render": True,
+        "backend": "draft",
+        "log": "structural draft renderer (Tectonic unavailable)",
+    }
 
 
-FRAGMENT_PREAMBLE = ("\\documentclass[11pt]{article}\n\\usepackage{amsmath,amssymb}\n"
-                     "\\begin{document}\n")
+FRAGMENT_PREAMBLE = (
+    "\\documentclass[11pt]{article}\n\\usepackage{amsmath,amssymb}\n\\begin{document}\n"
+)
 
 
 def as_document(latex: str) -> str:
@@ -76,21 +85,33 @@ def _tectonic(latex: str, timeout: int) -> tuple[bytes, dict[str, Any]]:
         src.write_text(latex, encoding="utf-8")
         proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
             [exe, "--untrusted", "--keep-logs", "--outdir", tmp, str(src)],
-            cwd=tmp, capture_output=True, text=True, timeout=timeout, check=False,
+            cwd=tmp,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
         )
         log = (proc.stdout or "") + (proc.stderr or "")
         pdf_path = Path(tmp) / "doc.pdf"
         if proc.returncode != 0 or not pdf_path.exists():
             from maya.core.errors import ValidationFailed
+
             first = _first_error(log)
-            raise ValidationFailed("LaTeX build failed" + (f": {first}" if first else ""),
-                                   log=log[-4000:])
-        return pdf_path.read_bytes(), {"draft_render": False, "backend": "tectonic", "log": log[-4000:]}
+            raise ValidationFailed(
+                "LaTeX build failed" + (f": {first}" if first else ""), log=log[-4000:]
+            )
+        return pdf_path.read_bytes(), {
+            "draft_render": False,
+            "backend": "tectonic",
+            "log": log[-4000:],
+        }
 
 
 # ---------------------------------------------------------------- draft renderer
 
-_DISPLAY = re.compile(r"\\\[(.*?)\\\]|\\begin\{(equation\*?|align\*?|aligned)\}(.*?)\\end\{\2\}", re.S)
+_DISPLAY = re.compile(
+    r"\\\[(.*?)\\\]|\\begin\{(equation\*?|align\*?|aligned)\}(.*?)\\end\{\2\}", re.S
+)
 
 
 def _clean_inline(text: str) -> str:
@@ -113,7 +134,7 @@ def parse_blocks(latex: str) -> list[tuple[str, str]]:
     body = latex.split(r"\begin{document}", 1)[-1].split(r"\end{document}", 1)[0]
     pos = 0
     for m in _DISPLAY.finditer(body):
-        blocks += _text_blocks(body[pos:m.start()])
+        blocks += _text_blocks(body[pos : m.start()])
         blocks.append(("math", _clean_math(m.group(1) or m.group(3) or "")))
         pos = m.end()
     blocks += _text_blocks(body[pos:])
@@ -123,7 +144,12 @@ def parse_blocks(latex: str) -> list[tuple[str, str]]:
 def _clean_math(tex: str) -> str:
     tex = re.sub(r"\\(mathit|mathrm|text)\{([^}]*)\}", r"\2", tex)
     tex = re.sub(r"\\(left|right)(?=[()|.\[\]])", "", tex)
-    tex = tex.replace(r"\,", " ").replace("&=", "=").replace(r"\begin{aligned}", "").replace(r"\end{aligned}", "")
+    tex = (
+        tex.replace(r"\,", " ")
+        .replace("&=", "=")
+        .replace(r"\begin{aligned}", "")
+        .replace(r"\end{aligned}", "")
+    )
     return re.sub(r"\s+", " ", tex).strip()
 
 
@@ -187,11 +213,15 @@ class DraftRenderer:
         self.pages.append([])
         self.y = PAGE_H - MARGIN
 
-    def _line(self, text: str, font: str, size: float, indent: float = 0, gap: float = 1.35) -> None:
+    def _line(
+        self, text: str, font: str, size: float, indent: float = 0, gap: float = 1.35
+    ) -> None:
         if self.y - size * gap < MARGIN:
             self._new_page()
         self.y -= size * gap
-        self.pages[-1].append(f"BT /{font} {size} Tf {MARGIN + indent:.1f} {self.y:.1f} Td ({_esc(text)}) Tj ET")
+        self.pages[-1].append(
+            f"BT /{font} {size} Tf {MARGIN + indent:.1f} {self.y:.1f} Td ({_esc(text)}) Tj ET"
+        )
 
     def _space(self, pts: float) -> None:
         self.y -= pts
@@ -225,9 +255,11 @@ class DraftRenderer:
         return self._assemble()
 
     def _decorate(self, ops: list[str], number: int, total: int) -> str:
-        mark = (f"q 0.82 g BT /F2 44 Tf 0.7071 0.7071 -0.7071 0.7071 110 170 Tm "
-                f"({_esc(WATERMARK)}) Tj ET Q")
-        foot = (f"BT /F1 8 Tf {MARGIN} 40 Td ({_esc(f'{WATERMARK} - MAYA structural renderer, not a LaTeX build - page {number} of {total}')}) Tj ET")
+        mark = (
+            f"q 0.82 g BT /F2 44 Tf 0.7071 0.7071 -0.7071 0.7071 110 170 Tm "
+            f"({_esc(WATERMARK)}) Tj ET Q"
+        )
+        foot = f"BT /F1 8 Tf {MARGIN} 40 Td ({_esc(f'{WATERMARK} - MAYA structural renderer, not a LaTeX build - page {number} of {total}')}) Tj ET"
         return "\n".join([mark, *ops, foot])
 
     def _assemble(self) -> bytes:
@@ -240,15 +272,24 @@ class DraftRenderer:
         objs.append(b"<< /Type /Catalog /Pages 2 0 R >>")
         objs.append(f"<< /Type /Pages /Kids [{kids}] /Count {n_pages} >>".encode())
         for name in ("F1", "F2", "F3"):
-            objs.append(f"<< /Type /Font /Subtype /Type1 /BaseFont /{fonts[name]} "
-                        f"/Encoding /WinAnsiEncoding >>".encode())
+            objs.append(
+                f"<< /Type /Font /Subtype /Type1 /BaseFont /{fonts[name]} "
+                f"/Encoding /WinAnsiEncoding >>".encode()
+            )
         res = "<< /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >>"
         for i, ops in enumerate(self.pages):
             content = self._decorate(ops, i + 1, n_pages).encode("latin-1")
-            objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PAGE_W} {PAGE_H}] "
-                        f"/Resources {res} /Contents {first + 2 * i + 1} 0 R >>".encode())
-            objs.append(b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n"
-                        + content + b"\nendstream")
+            objs.append(
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PAGE_W} {PAGE_H}] "
+                f"/Resources {res} /Contents {first + 2 * i + 1} 0 R >>".encode()
+            )
+            objs.append(
+                b"<< /Length "
+                + str(len(content)).encode()
+                + b" >>\nstream\n"
+                + content
+                + b"\nendstream"
+            )
         out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
         offsets = []
         for num, body in enumerate(objs, 1):
@@ -258,9 +299,11 @@ class DraftRenderer:
         out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode()
         for off in offsets:
             out += f"{off:010d} 00000 n \n".encode()
-        out += (f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R "
-                f"/Info << /Producer (MAYA draft renderer) /Subject (draft_render) >> >>\n"
-                f"startxref\n{xref}\n%%EOF\n").encode()
+        out += (
+            f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R "
+            f"/Info << /Producer (MAYA draft renderer) /Subject (draft_render) >> >>\n"
+            f"startxref\n{xref}\n%%EOF\n"
+        ).encode()
         return bytes(out)
 
 

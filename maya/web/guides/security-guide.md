@@ -289,6 +289,7 @@ These audit actions are the ones a security reviewer usually filters for. Those 
 ```python
 # Recent refused sign-ins, from a script (administrators and techops)
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 for e in my.admin.audit(action="auth.sso_refused", limit=100):
     print(e["at"], e["object_ref"], e["ip"], e["detail"])

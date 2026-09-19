@@ -1424,7 +1424,7 @@ The only mode that is genuinely local is `maya.offline(bundle=...)`, which serve
 ```python
 import maya
 
-my = maya.connect(profile="prod")            # or base_url=..., api_key=...
+my = maya.connect(profile="prod")  # or base_url=..., api_key=...
 
 # Catalog: cursor pagination is an iterator, not a page counter
 for f in my.features.list(namespace="equity.pricing", status="approved"):
@@ -1439,29 +1439,32 @@ draft.submit(note="EUR variant for the Paris desk")
 
 # Resolution and pinning are jobs, and jobs stream progress
 job = feat.version(4).pin("q1_2026", as_of="2026-03-31", as_of_known="2026-04-02T18:00Z")
-pin = job.wait(progress=print)               # or `await job` in the async client
+pin = job.wait(progress=print)  # or `await job` in the async client
 
-tbl = pin.to_arrow(shape="tabular")          # also .to_polars(), .to_pandas(), .to_file()
+tbl = pin.to_arrow(shape="tabular")  # also .to_polars(), .to_pandas(), .to_file()
 
 # Feature sets, including cascade pin over an algebra tree
 panel = my.featuresets.get("equity_panel")
 panel.pin("q1_2026", as_of="2026-03-31", cascade=True).wait()
 
 # Models and warrants
-warrant = my.warrants.training.create(model="black_scholes@v3",
-                                      featureset="equity_panel#q1_2026",
-                                      split={"train": 0.7, "validation": 0.15, "test": 0.15},
-                                      seed=42, holdout="escrowed")
-with warrant.data(shape="tensor") as ds:     # downloads, verifies checksum, yields Arrow
+warrant = my.warrants.training.create(
+    model="black_scholes@v3",
+    featureset="equity_panel#q1_2026",
+    split={"train": 0.7, "validation": 0.15, "test": 0.15},
+    seed=42,
+    holdout="escrowed",
+)
+with warrant.data(shape="tensor") as ds:  # downloads, verifies checksum, yields Arrow
     params = train(ds.X, ds.y)
 
 warrant.upload_parameters(params, metrics={"rmse": 0.0123}, notes="seed 42")
-score = warrant.score_holdout(params)        # MAYA scores; the test rows never leave (§29.4)
+score = warrant.score_holdout(params)  # MAYA scores; the test rows never leave (§29.4)
 
 # Rehearsing a change before anyone reviews it
 with my.workspace("ffill-limit-change") as ws:
     ws.features.get("adj_close_yhoo").override(resolution={"px": "forward_fill(limit=1)"})
-    print(ws.shadow_replay().summary())       # numeric impact per dependent model (§29.2)
+    print(ws.shadow_replay().summary())  # numeric impact per dependent model (§29.2)
     ws.submit_for_review()
 ```
 

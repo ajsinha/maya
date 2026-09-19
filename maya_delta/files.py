@@ -11,6 +11,7 @@ It also computes the per-file statistics (``numRecords``, ``minValues``,
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -64,15 +65,24 @@ PARALLEL_FROM = 16
 READERS = min(8, os.cpu_count() or 1)
 
 
-def read_files(root: Path, adds: list[dict[str, Any]], schema: pa.Schema,
-               partition_columns: list[str], columns: list[str] | None = None) -> pa.Table:
+def read_files(
+    root: Path,
+    adds: list[dict[str, Any]],
+    schema: pa.Schema,
+    partition_columns: list[str],
+    columns: list[str] | None = None,
+) -> pa.Table:
     """Read ``adds`` in order, attach partition columns, conform to ``schema``."""
     out_schema = schema if columns is None else pa.schema([schema.field(c) for c in columns])
     data_cols = [f.name for f in out_schema if f.name not in partition_columns]
+
     def one(add: dict[str, Any]) -> pa.Table:
         path = from_add_path(root, add["path"])
-        piece = pq.read_table(path, columns=data_cols, use_threads=False) if data_cols \
+        piece = (
+            pq.read_table(path, columns=data_cols, use_threads=False)
+            if data_cols
             else pq.read_metadata(path)
+        )
         if not isinstance(piece, pa.Table):  # partition-only projection
             piece = pa.table({"__n": pa.nulls(piece.num_rows)})
         pv = add.get("partitionValues") or {}
@@ -108,8 +118,14 @@ def _stat_value(v: Any) -> Any:
 
 
 def _statable(t: pa.DataType) -> bool:
-    return (pa.types.is_integer(t) or pa.types.is_floating(t) or pa.types.is_string(t)
-            or pa.types.is_date(t) or pa.types.is_timestamp(t) or pa.types.is_decimal(t))
+    return (
+        pa.types.is_integer(t)
+        or pa.types.is_floating(t)
+        or pa.types.is_string(t)
+        or pa.types.is_date(t)
+        or pa.types.is_timestamp(t)
+        or pa.types.is_decimal(t)
+    )
 
 
 def file_stats(table: pa.Table) -> str:
@@ -132,5 +148,7 @@ def file_stats(table: pa.Table) -> str:
             if len(lo) > 32 or len(hi) > 32:
                 continue
         mins[f.name], maxs[f.name] = _stat_value(lo), _stat_value(hi)
-    return json.dumps({"numRecords": table.num_rows, "minValues": mins,
-                       "maxValues": maxs, "nullCount": nulls}, separators=(",", ":"))
+    return json.dumps(
+        {"numRecords": table.num_rows, "minValues": mins, "maxValues": maxs, "nullCount": nulls},
+        separators=(",", ":"),
+    )

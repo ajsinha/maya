@@ -12,6 +12,7 @@ diff is reviewed with the change.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,8 +35,10 @@ def _strip(node: Any) -> Any:
 
 def contract() -> dict[str, Any]:
     doc = api_app().openapi()
-    return {"paths": _strip(doc.get("paths", {})),
-            "schemas": _strip(doc.get("components", {}).get("schemas", {}))}
+    return {
+        "paths": _strip(doc.get("paths", {})),
+        "schemas": _strip(doc.get("components", {}).get("schemas", {})),
+    }
 
 
 def _diff(old: Any, new: Any, where: str = "") -> list[str]:
@@ -59,8 +62,10 @@ def main(argv: list[str]) -> int:
     changes = _diff(json.loads(LOCK.read_text(encoding="utf-8")), now)
     if changes:
         changes.append("if intended: python tools/ci/api_snapshot.py --update, and review")
-    return report("API contract snapshot", changes[:40] + (
-        [f"... {len(changes) - 40} more"] if len(changes) > 40 else []))
+    return report(
+        "API contract snapshot",
+        changes[:40] + ([f"... {len(changes) - 40} more"] if len(changes) > 40 else []),
+    )
 
 
 if __name__ == "__main__":

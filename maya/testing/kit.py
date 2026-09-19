@@ -14,6 +14,7 @@ and the SQLite file are pinned inside the temporary directory by flags, so a
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -29,13 +30,18 @@ from maya.core.errors import MayaError, ValidationFailed
 from maya.sdk import Client
 
 ADMIN = "admin"
-ADMIN_PASSWORD = "maya-dev-admin"      # the bootstrap admin's dev password
-PASSWORD = "Maya-testing-pass-1"       # every seeded user's password
+ADMIN_PASSWORD = "maya-dev-admin"  # the bootstrap admin's dev password
+PASSWORD = "Maya-testing-pass-1"  # every seeded user's password
 DEFAULT_USERS: dict[str, list[str]] = {
-    "dana": ["feature_designer"], "mick": ["feature_manager"], "mona": ["model_designer"],
-    "devi": ["model_developer"], "mgr": ["model_manager"], "owen": ["model_owner"],
-    "tess": ["techops"]}
-_BUILD_LOCK = threading.Lock()         # sys.argv is process-wide while settings load
+    "dana": ["feature_designer"],
+    "mick": ["feature_manager"],
+    "mona": ["model_designer"],
+    "devi": ["model_developer"],
+    "mgr": ["model_manager"],
+    "owen": ["model_owner"],
+    "tess": ["techops"],
+}
+_BUILD_LOCK = threading.Lock()  # sys.argv is process-wide while settings load
 
 
 def default_config() -> Path:
@@ -49,18 +55,27 @@ def complete_spec(name: str) -> str:
     A model version cannot be submitted until its document is complete; this is
     the smallest document that passes, for tests that are not about the document."""
     from maya.formula.specdoc import REQUIRED_SECTIONS
-    body = "\n".join(f"\\section{{{s}}}\n{s} for {name}: stated in full.\n"
-                     for s in REQUIRED_SECTIONS)
+
+    body = "\n".join(
+        f"\\section{{{s}}}\n{s} for {name}: stated in full.\n" for s in REQUIRED_SECTIONS
+    )
     return f"\\documentclass{{article}}\n\\begin{{document}}\n{body}\n\\end{{document}}\n"
 
 
-def load_test_settings(home: Path, overrides: Mapping[str, Any] | None = None,
-                       config: Path | None = None) -> Any:
+def load_test_settings(
+    home: Path, overrides: Mapping[str, Any] | None = None, config: Path | None = None
+) -> Any:
     """MAYA settings rooted at ``home``: dev, SQLite, pinned paths, then ``overrides``."""
     from maya.config import load_settings
-    flags = {"app.environment": "dev", "db.dialect": "sqlite", "storage.root": str(home),
-             "db.sqlite.path": str(home / "maya.db"), "logging.file": str(home / "maya.log"),
-             **{k: str(v) for k, v in (overrides or {}).items()}}
+
+    flags = {
+        "app.environment": "dev",
+        "db.dialect": "sqlite",
+        "storage.root": str(home),
+        "db.sqlite.path": str(home / "maya.db"),
+        "logging.file": str(home / "maya.log"),
+        **{k: str(v) for k, v in (overrides or {}).items()},
+    }
     with _BUILD_LOCK:
         saved = sys.argv
         sys.argv = ["maya.testing"] + [f"--{k}={v}" for k, v in flags.items()]
@@ -88,6 +103,7 @@ def infer_definition(data: Any) -> dict[str, Any]:
     column becomes the knowledge-time column. Other columns: int64, float64,
     date or string, as the values allow. No fill rules, no quality checks."""
     import pandas as pd
+
     frame = pd.read_csv(io.BytesIO(_csv(data)))
     index, types, schema = [], {}, []
     for col in frame.columns:
@@ -108,8 +124,15 @@ def infer_definition(data: Any) -> dict[str, Any]:
             schema.append({"name": col, "type": kind})
     index.sort(key=lambda c: types[c] != "date")
     source = {"type": "csv", **({"knowledge_time_column": "kt"} if "kt" in frame else {})}
-    return {"index": index, "index_types": types, "schema": schema, "source": source,
-            "resolution": {"grid": "as_is", "rules": {}}, "transform": [], "quality": []}
+    return {
+        "index": index,
+        "index_types": types,
+        "schema": schema,
+        "source": source,
+        "resolution": {"grid": "as_is", "rules": {}},
+        "transform": [],
+        "quality": [],
+    }
 
 
 class Maya:
@@ -118,8 +141,14 @@ class Maya:
     ``platform`` is the service container for power users; everything else goes
     through ``client(username)``, the same SDK your code uses in production."""
 
-    def __init__(self, platform: Any, home: Path, namespace: str,
-                 users: Mapping[str, list[str]], keep: bool = False) -> None:
+    def __init__(
+        self,
+        platform: Any,
+        home: Path,
+        namespace: str,
+        users: Mapping[str, list[str]],
+        keep: bool = False,
+    ) -> None:
         self.platform = platform
         self.home = home
         self.namespace = namespace
@@ -131,9 +160,16 @@ class Maya:
 
     # -- lifecycle --------------------------------------------------------------------
     @classmethod
-    def start(cls, *, users: Mapping[str, list[str]] | None = None, namespace: str = "test",
-              preset: str = "standard", settings: Mapping[str, Any] | None = None,
-              config: str | Path | None = None, keep: bool = False) -> "Maya":
+    def start(
+        cls,
+        *,
+        users: Mapping[str, list[str]] | None = None,
+        namespace: str = "test",
+        preset: str = "standard",
+        settings: Mapping[str, Any] | None = None,
+        config: str | Path | None = None,
+        keep: bool = False,
+    ) -> "Maya":
         """Build a platform in a new temporary directory and seed it.
 
         ``users`` maps username → roles (default: one per built-in role, see
@@ -142,6 +178,7 @@ class Maya:
         ``keep=True`` leaves the directory on disk after ``close()``. Job workers do
         not run: queued jobs (pins, for one) run when you call ``drain()``."""
         from maya.services.platform import Platform
+
         home = Path(tempfile.mkdtemp(prefix="maya-testing-"))
         try:
             s = load_test_settings(home, settings, Path(config) if config else None)
@@ -190,6 +227,7 @@ class Maya:
         """The ASGI application (the public API) over this platform."""
         if self._app is None:
             from maya.api.app import create_api
+
             self._app = create_api(self.platform)
         return self._app
 
@@ -213,9 +251,16 @@ class Maya:
         return name if "/" in name else f"{self.namespace}/{name}"
 
     # -- helpers: approved objects, through the SDK -------------------------------------
-    def approved_feature(self, name: str, data: Any = None, definition: dict[str, Any] | None
-                         = None, *, designer: str = "dana", manager: str = "mick",
-                         knowledge_time: str | dt.datetime | None = None) -> str:
+    def approved_feature(
+        self,
+        name: str,
+        data: Any = None,
+        definition: dict[str, Any] | None = None,
+        *,
+        designer: str = "dana",
+        manager: str = "mick",
+        knowledge_time: str | dt.datetime | None = None,
+    ) -> str:
         """Create, ingest, submit and approve a feature; returns ``ns/name``.
 
         ``data`` is CSV bytes/text or a DataFrame (sent as CSV). Without a
@@ -231,20 +276,29 @@ class Maya:
         des.features.create(ns, short, definition)
         version = 1
         if body is not None:
-            kt = knowledge_time.isoformat() if isinstance(knowledge_time, dt.datetime) \
+            kt = (
+                knowledge_time.isoformat()
+                if isinstance(knowledge_time, dt.datetime)
                 else knowledge_time
+            )
             des.features.ingest(ref, body, fmt="csv", filename=f"{short}.csv", knowledge_time=kt)
         des.features.transition(ref, version, "submit")
         self.client(manager).features.transition(ref, version, "approve")
         return ref
 
-    def approved_featureset(self, name: str, members: Mapping[str, Any] | None = None, *,
-                            definition: dict[str, Any] | None = None,
-                            index: tuple[str, ...] = ("date", "symbol"),
-                            alignment: dict[str, Any] | None = None,
-                            pin: tuple[str, str | dt.date] | None = None,
-                            as_of_known: str | dt.datetime | None = None,
-                            developer: str = "devi", manager: str = "mick") -> str:
+    def approved_featureset(
+        self,
+        name: str,
+        members: Mapping[str, Any] | None = None,
+        *,
+        definition: dict[str, Any] | None = None,
+        index: tuple[str, ...] = ("date", "symbol"),
+        alignment: dict[str, Any] | None = None,
+        pin: tuple[str, str | dt.date] | None = None,
+        as_of_known: str | dt.datetime | None = None,
+        developer: str = "devi",
+        manager: str = "mick",
+    ) -> str:
         """Create, submit and approve a feature set; optionally cascade-pin it.
 
         ``members`` maps attribute → ``"ns/feature"`` (same attribute name) or
@@ -269,13 +323,13 @@ class Maya:
             return f"maya://featureset/{ref}@v{version}"
         pin_name, as_of = pin[0], str(pin[1])
         known = as_of_known.isoformat() if isinstance(as_of_known, dt.datetime) else as_of_known
-        out = mgr.featuresets.pin(ref, version, pin_name, as_of, cascade=True,
-                                  as_of_known=known)
+        out = mgr.featuresets.pin(ref, version, pin_name, as_of, cascade=True, as_of_known=known)
         self.drain()
         state = mgr.jobs.get(out["job"]["id"])
         if state["state"] != "succeeded":
-            raise MayaError(f"Pinning {ref} {state['state']}: {state.get('error')}",
-                            job=state["id"])
+            raise MayaError(
+                f"Pinning {ref} {state['state']}: {state.get('error')}", job=state["id"]
+            )
         return f"maya://featureset/{ref}#{pin_name}/{as_of}"
 
     def _member_list(self, members: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -288,15 +342,23 @@ class Maya:
                 fref = self.ref(feature)
                 if fref not in versions:
                     got = self.client(ADMIN).features.get(fref)["versions"]
-                    versions[fref] = max(v["version_no"] for v in got
-                                         if v["state"] in ("approved", "published"))
+                    versions[fref] = max(
+                        v["version_no"] for v in got if v["state"] in ("approved", "published")
+                    )
                 member_ref = f"maya://feature/{fref}@v{versions[fref]}"
             out.append({"attr": attr, "ref": member_ref, "source_attr": source})
         return out
 
-    def approved_model(self, name: str, formula: str, roles: Mapping[str, str] | None = None,
-                       *, spec_latex: str | None = None, designer: str = "mona",
-                       manager: str = "mgr") -> str:
+    def approved_model(
+        self,
+        name: str,
+        formula: str,
+        roles: Mapping[str, str] | None = None,
+        *,
+        spec_latex: str | None = None,
+        designer: str = "mona",
+        manager: str = "mgr",
+    ) -> str:
         """Create a formula model, fill a complete specification document, submit and
         approve it; returns ``ns/name@vN``. ``roles`` marks symbols, e.g.
         ``{"a": "parameter"}``; unmarked symbols are feature inputs. All through the SDK."""
@@ -310,12 +372,19 @@ class Maya:
         self.client(manager).models.transition(ref, version, "approve")
         return f"{ref}@v{version}"
 
-    def training_warrant(self, name: str, model: str, featureset: str,
-                         spec: dict[str, Any] | None = None, *, developer: str = "devi"
-                         ) -> dict[str, Any]:
+    def training_warrant(
+        self,
+        name: str,
+        model: str,
+        featureset: str,
+        spec: dict[str, Any] | None = None,
+        *,
+        developer: str = "devi",
+    ) -> dict[str, Any]:
         """Draw a training warrant (a draft) of ``model`` on ``featureset``; returns it
         with its contract report and leakage certificate. Through the SDK."""
         ref = self.ref(name)
         ns, short = ref.split("/", 1)
-        return dict(self.client(developer).training.create(ns, short, model, featureset,
-                                                          spec=spec or {}))
+        return dict(
+            self.client(developer).training.create(ns, short, model, featureset, spec=spec or {})
+        )

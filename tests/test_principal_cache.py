@@ -9,6 +9,7 @@ session still owing a second factor is never reused; and 0 turns reuse off.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -37,7 +38,7 @@ def test_sign_out_and_revocation_apply_at_once_in_this_process(world):
         w.p.auth.principal(token)
     other = _token(w, "dana")
     w.p.auth.principal(other)
-    with w.p.uow() as uow:                       # an administrator ends every session
+    with w.p.uow() as uow:  # an administrator ends every session
         for s in uow.repo("sessions").list(revoked_at__isnull=True):
             uow.repo("sessions").update(s["id"], {"revoked_at": s["created_at"]})
     with pytest.raises(NotAuthenticated):
@@ -60,7 +61,7 @@ def test_using_a_session_does_not_empty_the_cache(world):
     w = world
     token = _token(w, "dana")
     cached = w.p.auth.principal(token)
-    with w.p.uow() as uow:                       # the 30-second last-seen touch
+    with w.p.uow() as uow:  # the 30-second last-seen touch
         s = uow.repo("sessions").find_one(token_hash=w.p.auth.token_hash(token))
         uow.repo("sessions").update(s["id"], {"last_seen_at": s["created_at"]})
     assert w.p.auth.principal(token) is cached

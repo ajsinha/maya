@@ -130,6 +130,7 @@ different database than you think — check `MAYA_HOME`, `db.dialect` and `db.sq
   ```python
   # fill_column.py — python fill_column.py IN.mayabundle OUT.mayabundle TABLE COLUMN VALUE
   import hashlib, json, sys, zipfile
+
   src, dst, table, column, value = sys.argv[1:6]
   with zipfile.ZipFile(src) as z:
       files = {n: z.read(n) for n in z.namelist()}

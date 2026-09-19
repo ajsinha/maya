@@ -16,6 +16,7 @@ randomised data, gaps, limits and ages.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -28,8 +29,9 @@ FAST = frozenset({"forward_fill", "zero", "constant", "previous_period"})
 def eligible(name: str, params: dict[str, Any], values: np.ndarray) -> bool:
     if name not in FAST or values.dtype.kind != "f":
         return False
-    return name != "constant" or (isinstance(params.get("v"), (int, float))
-                                  and not isinstance(params.get("v"), bool))
+    return name != "constant" or (
+        isinstance(params.get("v"), (int, float)) and not isinstance(params.get("v"), bool)
+    )
 
 
 def _segmented_runs(mask: np.ndarray, starts: np.ndarray) -> np.ndarray:
@@ -39,14 +41,15 @@ def _segmented_runs(mask: np.ndarray, starts: np.ndarray) -> np.ndarray:
     return (count - np.maximum.accumulate(reset)) * mask
 
 
-def apply_grouped(values: np.ndarray, dates: np.ndarray, codes: np.ndarray, name: str,
-                  params: dict[str, Any]) -> tuple[np.ndarray, dict[str, int]]:
+def apply_grouped(
+    values: np.ndarray, dates: np.ndarray, codes: np.ndarray, name: str, params: dict[str, Any]
+) -> tuple[np.ndarray, dict[str, int]]:
     """Resolve one float column across all groups; ``codes`` labels each row's group.
 
     Returns the column in the input's row order and {filled, longest_run}.
     """
     n = len(values)
-    order = np.lexsort((dates, codes))                # by group, then date; stable
+    order = np.lexsort((dates, codes))  # by group, then date; stable
     v = values[order]
     d = dates[order]
     starts = np.ones(n, dtype=bool)
@@ -67,12 +70,14 @@ def apply_grouped(values: np.ndarray, dates: np.ndarray, codes: np.ndarray, name
     elif name in ("zero", "constant"):
         ok = null
         out[ok] = 0.0 if name == "zero" else float(params["v"])
-    else:                                                # previous_period: the prior row
+    else:  # previous_period: the prior row
         ok = null & ~starts
         out[1:][ok[1:]] = v[:-1][ok[1:]]
     filled = ok & ~np.isnan(out)
-    stats = {"filled": int(filled.sum()),
-             "longest_run": int(_segmented_runs(filled, starts).max()) if n else 0}
+    stats = {
+        "filled": int(filled.sum()),
+        "longest_run": int(_segmented_runs(filled, starts).max()) if n else 0,
+    }
     result = np.empty_like(out)
     result[order] = out
     return result, stats

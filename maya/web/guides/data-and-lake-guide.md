@@ -43,11 +43,17 @@ March?".
 ```python
 # Ingest a batch, then a correction three days later
 import maya.sdk as maya
+
 my = maya.connect(base_url="http://127.0.0.1:8600", api_key="maya_…")
-my.features.ingest("eq/prices", open("prices.csv", "rb").read(), fmt="csv",
-                   knowledge_time="2026-01-09T18:00:00Z")
-out = my.features.ingest("eq/prices", b"date,symbol,close\n2026-01-06,AAA,101.7\n",
-                         fmt="csv", knowledge_time="2026-01-12T09:00:00Z")
+my.features.ingest(
+    "eq/prices", open("prices.csv", "rb").read(), fmt="csv", knowledge_time="2026-01-09T18:00:00Z"
+)
+out = my.features.ingest(
+    "eq/prices",
+    b"date,symbol,close\n2026-01-06,AAA,101.7\n",
+    fmt="csv",
+    knowledge_time="2026-01-12T09:00:00Z",
+)
 print(out["rows"], out["restatement"], out["lake_version"])
 ```
 
@@ -261,8 +267,16 @@ techops):
 ```python
 # Compact and vacuum every lake table now
 out = my.admin.lake_maintain()
-print(len(out["tables"]), "tables;", out["filesRemoved"], "small files compacted into",
-      out["filesAdded"], "-", out["vacuumed"], "unreferenced files vacuumed")
+print(
+    len(out["tables"]),
+    "tables;",
+    out["filesRemoved"],
+    "small files compacted into",
+    out["filesAdded"],
+    "-",
+    out["vacuumed"],
+    "unreferenced files vacuumed",
+)
 ```
 
 Each entry of `tables` gives `table`, `filesRemoved`, `filesAdded`, `vacuumed`

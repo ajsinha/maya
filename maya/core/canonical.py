@@ -21,6 +21,7 @@ The canonical form of a table:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -48,7 +49,7 @@ def encode_value(value: Any) -> bytes:  # noqa: C901 - the hash's definition: on
     if isinstance(value, float):
         if math.isnan(value):
             return T_FLOAT + _NAN
-        return T_FLOAT + struct.pack(">d", value + 0.0)   # -0.0 -> 0.0
+        return T_FLOAT + struct.pack(">d", value + 0.0)  # -0.0 -> 0.0
     if isinstance(value, str):
         raw = value.encode("utf-8")
         return T_STR + len(raw).to_bytes(4, "big") + raw
@@ -69,9 +70,9 @@ def encode_value(value: Any) -> bytes:  # noqa: C901 - the hash's definition: on
     if isinstance(value, (list, tuple)):
         body = b"".join(encode_value(v) for v in value)
         return T_LIST + len(value).to_bytes(4, "big") + body
-    if hasattr(value, "item"):                     # numpy scalar
+    if hasattr(value, "item"):  # numpy scalar
         return encode_value(value.item())
-    if hasattr(value, "tolist"):                   # numpy array
+    if hasattr(value, "tolist"):  # numpy array
         return encode_value(value.tolist())
     raise TypeError(f"No canonical encoding for {type(value).__name__}")
 
@@ -101,8 +102,7 @@ def row_digests(columns: dict[str, list[Any]]) -> list[bytes]:
     names = sorted(columns)
     cols = [columns[n] for n in names]
     n_rows = len(cols[0]) if cols else 0
-    return [hashlib.sha256(encode_row([c[i] for c in cols])).digest()
-            for i in range(n_rows)]
+    return [hashlib.sha256(encode_row([c[i] for c in cols])).digest() for i in range(n_rows)]
 
 
 def schema_digest(schema: Iterable[tuple[str, str]]) -> str:

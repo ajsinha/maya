@@ -9,6 +9,7 @@ never believe a box fits that the audit will then report.
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,12 +18,11 @@ EMU = 914400.0
 SW, SH = 13.333, 7.5
 FOOTER_Y = SH - 0.55
 SANS, SERIF, MONO = "Calibri", "Georgia", "Consolas"
-INTRINSIC = 1.10       # line_spacing multiplies the intrinsic line box, not the point size
-SAFETY = 0.94          # treat boxes as slightly narrower than they are
+INTRINSIC = 1.10  # line_spacing multiplies the intrinsic line box, not the point size
+SAFETY = 0.94  # treat boxes as slightly narrower than they are
 
 
-def est_lines(text: str, width_in: float, fs: float, bold: bool = False,
-              font: str = SANS) -> int:
+def est_lines(text: str, width_in: float, fs: float, bold: bool = False, font: str = SANS) -> int:
     """Greedy word-wrap simulation: the number of rendered lines."""
     text = str(text)
     if not text:
@@ -47,8 +47,9 @@ def est_lines(text: str, width_in: float, fs: float, bold: bool = False,
     return lines
 
 
-def text_h(text: str, width_in: float, fs: float, bold: bool = False, font: str = SANS,
-           line: float = 1.22) -> float:
+def text_h(
+    text: str, width_in: float, fs: float, bold: bool = False, font: str = SANS, line: float = 1.22
+) -> float:
     """Rendered height in inches of one paragraph."""
     return est_lines(text, width_in, fs, bold, font) * fs * max(line, 1.15) * INTRINSIC / 72.0
 
@@ -63,8 +64,9 @@ def usable_width(sh: Any) -> float:
 def paragraph_h(p: Any, width: float) -> float:
     """Estimated height of one python-pptx paragraph, spacing included."""
     ptxt = "".join(r.text for r in p.runs)
-    spacing = ((p.space_before.pt if p.space_before else 0)
-               + (p.space_after.pt if p.space_after else 0)) / 72.0
+    spacing = (
+        (p.space_before.pt if p.space_before else 0) + (p.space_after.pt if p.space_after else 0)
+    ) / 72.0
     if not ptxt:
         return 6 / 72.0 + spacing
     r0 = max(p.runs, key=lambda r: r.font.size.pt if r.font.size else 12)

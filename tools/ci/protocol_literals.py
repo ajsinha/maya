@@ -5,6 +5,7 @@ for no reason about MAYA. Tests compare against the constants maya_delta declare
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -12,9 +13,12 @@ import sys
 
 from _common import ROOT, report
 
-PATTERN = re.compile(r"(min_?reader_?version|min_?writer_?version|minReaderVersion|"
-                     r"minWriterVersion|reader_features|writer_features|protocol_version)"
-                     r"\W{0,6}\s*(==|!=|<=|>=|<|>|in)\s*[\[(]?\s*\d", re.I)
+PATTERN = re.compile(
+    r"(min_?reader_?version|min_?writer_?version|minReaderVersion|"
+    r"minWriterVersion|reader_features|writer_features|protocol_version)"
+    r"\W{0,6}\s*(==|!=|<=|>=|<|>|in)\s*[\[(]?\s*\d",
+    re.I,
+)
 
 
 def main() -> int:

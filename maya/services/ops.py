@@ -5,6 +5,7 @@ MAYA's only schema-upgrade path (§14.3).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import os
@@ -23,6 +24,7 @@ from maya.persistence import estate
 from maya.security.authz import Principal
 from maya.security.sandbox import sandbox_tier
 
+
 class OpsService:
     def __init__(self, platform: Any) -> None:
         self.p = platform
@@ -36,25 +38,49 @@ class OpsService:
             running = uow.repo("jobs").count(state="running")
             dead = uow.repo("jobs").count(state="dead_letter")
         s = self.p.settings
-        degraded = [f"{c['seam']}: {c['selected']} instead of {c['preferred']} — {c['cost']}"
-                    for c in Backends.report() if c["selected"] != c["preferred"]]
+        degraded = [
+            f"{c['seam']}: {c['selected']} instead of {c['preferred']} — {c['cost']}"
+            for c in Backends.report()
+            if c["selected"] != c["preferred"]
+        ]
         if self.p.db.is_sqlite:
-            degraded.append("database: SQLite — single writer, suited to a laptop or small "
-                            "team; PostgreSQL is the production backend")
+            degraded.append(
+                "database: SQLite — single writer, suited to a laptop or small "
+                "team; PostgreSQL is the production backend"
+            )
         return {
-            "version": VERSION, "build_date": BUILD_DATE, "environment": s.environment,
-            "python": sys.version.split()[0], "platform": pyplatform.platform(),
-            "database": {"dialect": self.p.db.dialect, "ok": db_ok, "detail": db_detail,
-                         "schema_hash": self.p.db.schema_hash(),
-                         "schema_file": f"maya/persistence/schema/{self.p.db.dialect}.sql"},
-            "lake": {"backend": self.p.lake.backend_name, "detail": self.p.lake.delta.info.reason,
-                     "root": str(self.p.lake.root)},
-            "sandbox": sandbox_tier(), "typeset": typeset_detect(),
-            "jobs": {"queued": queued, "running": running, "dead_letter": dead,
-                     "workers": self.p.jobs.n_workers if self.p.primary else 0},
-            "seams": Backends.report(), "degraded": degraded,
-            "process": {**procstat(), "pid": os.getpid(),
-                        "role": "primary" if self.p.primary else "web"},
+            "version": VERSION,
+            "build_date": BUILD_DATE,
+            "environment": s.environment,
+            "python": sys.version.split()[0],
+            "platform": pyplatform.platform(),
+            "database": {
+                "dialect": self.p.db.dialect,
+                "ok": db_ok,
+                "detail": db_detail,
+                "schema_hash": self.p.db.schema_hash(),
+                "schema_file": f"maya/persistence/schema/{self.p.db.dialect}.sql",
+            },
+            "lake": {
+                "backend": self.p.lake.backend_name,
+                "detail": self.p.lake.delta.info.reason,
+                "root": str(self.p.lake.root),
+            },
+            "sandbox": sandbox_tier(),
+            "typeset": typeset_detect(),
+            "jobs": {
+                "queued": queued,
+                "running": running,
+                "dead_letter": dead,
+                "workers": self.p.jobs.n_workers if self.p.primary else 0,
+            },
+            "seams": Backends.report(),
+            "degraded": degraded,
+            "process": {
+                **procstat(),
+                "pid": os.getpid(),
+                "role": "primary" if self.p.primary else "web",
+            },
             "default_admin_password": self.p.auth.default_admin_password_active(),
             "tracing": _tracing_status(),
             "webhooks": _webhook_backlog(self.p),
@@ -83,8 +109,12 @@ class OpsService:
     def ready(self) -> dict[str, Any]:
         db_ok, detail = self._db_ok()
         lake_ok = self.p.lake.root.exists()
-        return {"ready": db_ok and lake_ok, "database": detail,
-                "lake": self.p.lake.backend_name, "seams": Backends.provenance()}
+        return {
+            "ready": db_ok and lake_ok,
+            "database": detail,
+            "lake": self.p.lake.backend_name,
+            "seams": Backends.provenance(),
+        }
 
     # -- jobs ---------------------------------------------------------------------
     def jobs(self, p: Principal, *, all_users: bool = False) -> list[dict[str, Any]]:
@@ -93,16 +123,35 @@ class OpsService:
                 return uow.repo("jobs").list(order_by=["-created_at"], limit=1000)
             return uow.repo("jobs").list(owner=p.username, order_by=["-created_at"], limit=500)
 
-    def jobs_page(self, p: Principal, *, all_users: bool = False, q: str | None = None,
-                  page_size: int | None = None, cursor: str | None = None,
-                   sort: str | None = None, total: bool = False) -> dict[str, Any]:
+    def jobs_page(
+        self,
+        p: Principal,
+        *,
+        all_users: bool = False,
+        q: str | None = None,
+        page_size: int | None = None,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> dict[str, Any]:
         from maya.services.paging import Listing, run_page
+
         everyone = all_users and (p.is_admin or "techops" in p.roles)
         filters = {} if everyone else {"owner": p.username}
-        return run_page(self.p, lambda uow: Listing(
-            "jobs", {"-created": "-created_at", "created": "created_at"}, "-created", filters,
-            (["job_type", "state", "owner"], q or "")),
-            page_size=page_size, cursor=cursor, sort=sort, total=total)
+        return run_page(
+            self.p,
+            lambda uow: Listing(
+                "jobs",
+                {"-created": "-created_at", "created": "created_at"},
+                "-created",
+                filters,
+                (["job_type", "state", "owner"], q or ""),
+            ),
+            page_size=page_size,
+            cursor=cursor,
+            sort=sort,
+            total=total,
+        )
 
     def job(self, p: Principal, job_id: str) -> dict[str, Any]:
         with self.p.uow() as uow:
@@ -125,8 +174,9 @@ class OpsService:
             job = uow.repo("jobs").require(job_id)
             if job["state"] not in ("dead_letter", "failed"):
                 raise ValidationFailed("Only failed or dead-lettered jobs are retried")
-            row = uow.repo("jobs").update(job_id, {"state": "queued", "attempts": 0,
-                                                   "error": None, "run_after": None})
+            row = uow.repo("jobs").update(
+                job_id, {"state": "queued", "attempts": 0, "error": None, "run_after": None}
+            )
             uow.audit("job.retried", object_type="job", object_ref=job_id)
             uow.after_commit(self.p.jobs._wake.set)
             return row
@@ -138,10 +188,14 @@ class OpsService:
             raise PermissionDenied("Integrity verification is for administrators and techops")
         results = []
         with self.p.uow() as uow:
-            pins = [("pins", "feature_pins", "features", "feature_id", x)
-                    for x in uow.repo("feature_pins").list(state="sealed")]
-            pins += [("fspins", "feature_set_pins", "feature_sets", "feature_set_id", x)
-                     for x in uow.repo("feature_set_pins").list(state="sealed")]
+            pins = [
+                ("pins", "feature_pins", "features", "feature_id", x)
+                for x in uow.repo("feature_pins").list(state="sealed")
+            ]
+            pins += [
+                ("fspins", "feature_set_pins", "feature_sets", "feature_set_id", x)
+                for x in uow.repo("feature_set_pins").list(state="sealed")
+            ]
             names = {}
             for _, _, table, fk, pin in pins:
                 obj = uow.repo(table).require(pin[fk])
@@ -150,9 +204,13 @@ class OpsService:
         for kind, _, _, _, pin in pins:
             ns, name = names[pin["id"]]
             try:
-                r = self.p.featuresets.verify_pin(pin) if kind == "fspins" and \
-                    not self.p.featuresets.stored(pin) else \
-                    self.p.lake.verify_pin(kind, ns, name, pin["fragments"], pin["content_hash"])
+                r = (
+                    self.p.featuresets.verify_pin(pin)
+                    if kind == "fspins" and not self.p.featuresets.stored(pin)
+                    else self.p.lake.verify_pin(
+                        kind, ns, name, pin["fragments"], pin["content_hash"]
+                    )
+                )
             except Exception as exc:  # noqa: BLE001 - reported per pin
                 r = {"ok": False, "error": str(exc)}
             results.append({"pin": f"{ns}/{name}#{pin['pin_name']}/{pin['as_of_date']}", **r})
@@ -161,12 +219,20 @@ class OpsService:
             uow.audit("integrity.verified", detail={"pins": len(results), "drift": len(drift)})
             if drift:
                 for admin in self._admins(uow):
-                    uow.repo("notifications").add({"user_id": admin, "kind": "integrity_drift",
-                                                   "message": f"{len(drift)} pin(s) failed "
-                                                              "integrity verification",
-                                                   "object_ref": None})
-        return {"checked": len(results), "drift": drift, "results": results,
-                "audit_chain": self.p.access.verify_audit()}
+                    uow.repo("notifications").add(
+                        {
+                            "user_id": admin,
+                            "kind": "integrity_drift",
+                            "message": f"{len(drift)} pin(s) failed integrity verification",
+                            "object_ref": None,
+                        }
+                    )
+        return {
+            "checked": len(results),
+            "drift": drift,
+            "results": results,
+            "audit_chain": self.p.access.verify_audit(),
+        }
 
     @staticmethod
     def _admins(uow: Any) -> set[str]:
@@ -177,19 +243,24 @@ class OpsService:
         """Fragment sharing across pins: what content addressing saved (SC-12)."""
         with self.p.uow() as uow:
             frags = uow.repo("fragments").list()
-            pins = uow.repo("feature_pins").list(state="sealed") + \
-                uow.repo("feature_set_pins").list(state="sealed")
+            pins = uow.repo("feature_pins").list(state="sealed") + uow.repo(
+                "feature_set_pins"
+            ).list(state="sealed")
         logical = sum(p["bytes_total"] for p in pins)
         stored = sum(f["bytes"] for f in frags)
         referenced = {h for p in pins for h in p["fragments"]}
         orphans = [f for f in frags if f["hash"] not in referenced]
-        return {"pins": len(pins), "fragments": len(frags), "logical_bytes": logical,
-                "stored_bytes": stored,
-                "saved_ratio": (1 - stored / logical) if logical else 0.0,
-                "orphan_fragments": len(orphans),
-                "orphan_bytes": sum(f["bytes"] for f in orphans),
-                "gc_note": "Orphans are fragments no sealed pin references (left by failed "
-                           "pins). They are reported, never deleted automatically."}
+        return {
+            "pins": len(pins),
+            "fragments": len(frags),
+            "logical_bytes": logical,
+            "stored_bytes": stored,
+            "saved_ratio": (1 - stored / logical) if logical else 0.0,
+            "orphan_fragments": len(orphans),
+            "orphan_bytes": sum(f["bytes"] for f in orphans),
+            "gc_note": "Orphans are fragments no sealed pin references (left by failed "
+            "pins). They are reported, never deleted automatically.",
+        }
 
     def read_blob(self, p: Principal, digest: str) -> bytes:
         """Only an administrator, the uploader, or whoever exported it may read a blob."""
@@ -202,8 +273,9 @@ class OpsService:
         return self.p.blobs.get(digest)
 
     # -- lineage and search ------------------------------------------------------------
-    def lineage(self, root: str, *, direction: str = "both", depth: int = 3,
-                p: Principal | None = None) -> dict[str, Any]:
+    def lineage(
+        self, root: str, *, direction: str = "both", depth: int = 3, p: Principal | None = None
+    ) -> dict[str, Any]:
         """The lineage graph around ``root``. For a caller ``p``, catalog objects they may
         not read are left out — named nowhere, only counted in ``hidden`` — and so is any
         internal node (an operation, a parameter set, an execution) that no object they can
@@ -218,20 +290,35 @@ class OpsService:
                     raise NotFound(f"Nothing called {root}", ref=root)
                 verdict = {n: may(n) for n in nodes}
                 seen = {n for n, v in verdict.items() if v}
-                for e in edges:                       # internal nodes next to a readable one
+                for e in edges:  # internal nodes next to a readable one
                     for a, b in ((e["src_ref"], e["dst_ref"]), (e["dst_ref"], e["src_ref"])):
                         if verdict[a] and verdict[b] is None:
                             seen.add(b)
                 hidden = sum(1 for v in verdict.values() if v is False)
                 nodes = seen
                 edges = [e for e in edges if e["src_ref"] in nodes and e["dst_ref"] in nodes]
-        return {"root": root, "nodes": [{"id": n, "kind": _kind(n)} for n in sorted(nodes)],
-                "edges": [{"source": e["src_ref"], "target": e["dst_ref"],
-                           "type": e["edge_type"], "label": e["label"]} for e in edges],
-                "hidden": hidden}
+        return {
+            "root": root,
+            "nodes": [{"id": n, "kind": _kind(n)} for n in sorted(nodes)],
+            "edges": [
+                {
+                    "source": e["src_ref"],
+                    "target": e["dst_ref"],
+                    "type": e["edge_type"],
+                    "label": e["label"],
+                }
+                for e in edges
+            ],
+            "hidden": hidden,
+        }
 
-    SEARCH_KINDS = {"feature": "feature", "featureset": "featureset", "model": "model",
-                    "warrant/train": "training_warrant", "warrant/exec": "execution_warrant"}
+    SEARCH_KINDS = {
+        "feature": "feature",
+        "featureset": "featureset",
+        "model": "model",
+        "warrant/train": "training_warrant",
+        "warrant/exec": "execution_warrant",
+    }
 
     def search(self, p: Principal, q: str, limit: int = 50) -> list[dict[str, Any]]:
         """Ranked catalog hits the caller may read; nothing else is so much as named."""
@@ -240,7 +327,7 @@ class OpsService:
         out = []
         with self.p.uow() as uow:
             names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
-            readers: dict[str, Any] = {}             # the read rule, loaded once per kind
+            readers: dict[str, Any] = {}  # the read rule, loaded once per kind
             for h in uow.repo("search").search(q, limit=max(1, min(limit, 200)) * 3):
                 kind = self.SEARCH_KINDS.get(h["kind"])
                 if kind is not None:
@@ -248,7 +335,7 @@ class OpsService:
                         readers[kind] = self.p.access.reader(uow, p, kind)
                     if not readers[kind](uow, h):
                         continue
-                h.pop("owner_id", None)                 # read-rule input, not a result field
+                h.pop("owner_id", None)  # read-rule input, not a result field
                 h["namespace"] = names.get(h.get("namespace_id"))
                 out.append(h)
                 if len(out) >= limit:
@@ -272,14 +359,16 @@ class OpsService:
         s = self.p.settings
         tables = self.p.lake.maintain(
             target_size=s.int("lake.maintenance.target_size_mb", 128) * 1024 * 1024,
-            retention_hours=float(s.get("lake.maintenance.vacuum_retention_hours", "168")
-                                  or 168))
-        totals = {k: sum(t[k] for t in tables) for k in ("filesRemoved", "filesAdded",
-                                                         "vacuumed")}
+            retention_hours=float(s.get("lake.maintenance.vacuum_retention_hours", "168") or 168),
+        )
+        totals = {k: sum(t[k] for t in tables) for k in ("filesRemoved", "filesAdded", "vacuumed")}
         with self.p.uow(p.username if p else "system") as uow:
-            uow.audit("lake.maintained", principal_type="user" if p else "system",
-                      channel="api" if p else "scheduler",
-                      detail={"tables": len(tables), **totals})
+            uow.audit(
+                "lake.maintained",
+                principal_type="user" if p else "system",
+                channel="api" if p else "scheduler",
+                detail={"tables": len(tables), **totals},
+            )
         return {"tables": tables, **totals}
 
     # -- estate (§14.3) -------------------------------------------------------------------
@@ -293,29 +382,36 @@ class OpsService:
         loaded = estate.load(self.p.db, data, allow_drop=allow_drop)
         with self.p.uow() as uow:
             chain = uow.repo("audit_events").verify_chain()
-        return {"tables": loaded["tables"], "dropped": loaded["dropped"],
-                "audit_chain": chain}
+        return {"tables": loaded["tables"], "dropped": loaded["dropped"], "audit_chain": chain}
 
 
 def _tracing_status() -> dict[str, Any]:
     from maya.observability import tracing
+
     return tracing.status()
 
 
 def _webhook_backlog(platform: Any) -> dict[str, int]:
     from maya.services.webhooks import deliveries_backlog
+
     with platform.uow() as uow:
         return deliveries_backlog(uow)
 
 
-_LINEAGE_KINDS = {"feature": "feature", "featureset": "featureset", "model": "model",
-                  "warrant/train": "training_warrant", "warrant/exec": "execution_warrant"}
+_LINEAGE_KINDS = {
+    "feature": "feature",
+    "featureset": "featureset",
+    "model": "model",
+    "warrant/train": "training_warrant",
+    "warrant/exec": "execution_warrant",
+}
 
 
 def _lineage_reader(platform: Any, uow: Any, p: Principal) -> Any:
     """``may(ref)``: True or False for a catalog object ``p`` may or may not read (one
     that does not exist counts as unreadable), None for a node that is not one."""
     from maya.services import access, catalog, refs
+
     readers: dict[str, Any] = {}
 
     def may(ref: str) -> bool | None:
@@ -333,6 +429,7 @@ def _lineage_reader(platform: Any, uow: Any, p: Principal) -> Any:
         if kind not in readers:
             readers[kind] = platform.access.reader(uow, p, kind)
         return bool(readers[kind](uow, obj))
+
     return may
 
 

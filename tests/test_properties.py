@@ -11,6 +11,7 @@ Properties the evidence depends on, checked against generated input (hypothesis)
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -28,14 +29,24 @@ from tests.conftest import PX_DEF, World, build_platform
 
 UTC = dt.timezone.utc
 scalars = st.one_of(
-    st.none(), st.booleans(), st.integers(min_value=-2**63, max_value=2**63 - 1),
-    st.floats(allow_nan=False), st.text(max_size=12), st.binary(max_size=12),
-    st.dates(), st.datetimes(timezones=st.just(UTC)),
+    st.none(),
+    st.booleans(),
+    st.integers(min_value=-(2**63), max_value=2**63 - 1),
+    st.floats(allow_nan=False),
+    st.text(max_size=12),
+    st.binary(max_size=12),
+    st.dates(),
+    st.datetimes(timezones=st.just(UTC)),
     st.timedeltas(min_value=dt.timedelta(days=-9999), max_value=dt.timedelta(days=9999)),
-    st.decimals(allow_nan=False, allow_infinity=False, places=4))
-values = st.recursive(scalars, lambda inner: st.one_of(
-    st.lists(inner, max_size=4),
-    st.dictionaries(st.text(max_size=5), inner, max_size=3)), max_leaves=12)
+    st.decimals(allow_nan=False, allow_infinity=False, places=4),
+)
+values = st.recursive(
+    scalars,
+    lambda inner: st.one_of(
+        st.lists(inner, max_size=4), st.dictionaries(st.text(max_size=5), inner, max_size=3)
+    ),
+    max_leaves=12,
+)
 
 
 def _canon(v):
@@ -69,15 +80,23 @@ def test_the_documented_identifications():
     assert enc(dt.date(2026, 1, 1)) != enc(dt.datetime(2026, 1, 1))
 
 
-rows = st.lists(st.tuples(st.dates(min_value=dt.date(2000, 1, 1)), st.text(max_size=3),
-                          st.floats(allow_nan=False)), min_size=1, max_size=30)
+rows = st.lists(
+    st.tuples(
+        st.dates(min_value=dt.date(2000, 1, 1)), st.text(max_size=3), st.floats(allow_nan=False)
+    ),
+    min_size=1,
+    max_size=30,
+)
 
 
 @settings(max_examples=150, deadline=None)
 @given(data=rows)
 def test_the_content_hash_ignores_column_order(data):
-    cols = {"date": [r[0] for r in data], "symbol": [r[1] for r in data],
-            "px": [r[2] for r in data]}
+    cols = {
+        "date": [r[0] for r in data],
+        "symbol": [r[1] for r in data],
+        "px": [r[2] for r in data],
+    }
     t1 = pa.table(cols)
     t2 = pa.table({k: cols[k] for k in ("px", "symbol", "date")})
     assert canonical.table_content_hash(t1) == canonical.table_content_hash(t2)
@@ -92,13 +111,18 @@ def test_the_content_hash_notices_any_changed_value(data, pick, delta):
     changed[i] = px[i] + delta
     assume(changed[i] != px[i])
     base = {"date": [r[0] for r in data], "symbol": [r[1] for r in data]}
-    assert canonical.table_content_hash(pa.table({**base, "px": px})) != \
-        canonical.table_content_hash(pa.table({**base, "px": changed}))
+    assert canonical.table_content_hash(
+        pa.table({**base, "px": px})
+    ) != canonical.table_content_hash(pa.table({**base, "px": changed}))
 
 
 digests = st.lists(st.binary(min_size=32, max_size=32), min_size=0, max_size=400)
-params = st.builds(lambda t, lo, hi: ChunkParams(target=t, minimum=lo, maximum=max(lo, hi)),
-                   st.integers(1, 64), st.integers(1, 16), st.integers(1, 128))
+params = st.builds(
+    lambda t, lo, hi: ChunkParams(target=t, minimum=lo, maximum=max(lo, hi)),
+    st.integers(1, 64),
+    st.integers(1, 16),
+    st.integers(1, 128),
+)
 
 
 @settings(max_examples=300, deadline=None)
@@ -117,8 +141,12 @@ def test_fragment_boundaries_tile_the_rows_within_their_bounds(ds, p):
 
 
 @settings(max_examples=300, deadline=None)
-@given(ds=st.lists(st.binary(min_size=32, max_size=32), min_size=1, max_size=400),
-       new=st.binary(min_size=32, max_size=32), at=st.integers(min_value=0), p=params)
+@given(
+    ds=st.lists(st.binary(min_size=32, max_size=32), min_size=1, max_size=400),
+    new=st.binary(min_size=32, max_size=32),
+    at=st.integers(min_value=0),
+    p=params,
+)
 def test_an_inserted_row_leaves_every_earlier_fragment_untouched(ds, new, at, p):
     """Content-defined chunking's point (§29.3): a month-end pin costs its delta."""
     at = at % (len(ds) + 1)
@@ -129,7 +157,7 @@ def test_an_inserted_row_leaves_every_earlier_fragment_untouched(ds, new, at, p)
     # insertion could extend (the last of them, when its end is exactly ``at``)
     if untouched and untouched[-1][1] == at:
         untouched = untouched[:-1]
-    assert after[:len(untouched)] == untouched
+    assert after[: len(untouched)] == untouched
 
 
 @pytest.fixture(scope="module")
@@ -148,12 +176,21 @@ def _csv(lines: list[str]) -> bytes:
     return ("date,symbol,close\n" + "\n".join(lines) + "\n").encode()
 
 
-price_rows = st.lists(st.tuples(st.integers(0, 40), st.sampled_from(["AAA", "BBB", "CCC"]),
-                                st.floats(1, 1000, allow_nan=False).map(lambda f: round(f, 4))),
-                      min_size=1, max_size=40, unique_by=lambda r: (r[0], r[1]))
+price_rows = st.lists(
+    st.tuples(
+        st.integers(0, 40),
+        st.sampled_from(["AAA", "BBB", "CCC"]),
+        st.floats(1, 1000, allow_nan=False).map(lambda f: round(f, 4)),
+    ),
+    min_size=1,
+    max_size=40,
+    unique_by=lambda r: (r[0], r[1]),
+)
 
 
-@settings(max_examples=12, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(
+    max_examples=12, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture]
+)
 @given(data=price_rows, seed=st.integers(0, 2**31))
 def test_a_pins_hash_does_not_depend_on_arrival_order(world, data, seed):
     w = world
@@ -168,21 +205,33 @@ def test_a_pins_hash_does_not_depend_on_arrival_order(world, data, seed):
         w.p.features.ingest(w.dana, f"prop/{name}", _csv(body), fmt="csv", knowledge_time=known)
         w.p.features.transition(w.dana, f"prop/{name}", 1, "submit")
         w.p.features.transition(w.mick, f"prop/{name}", 1, "approve")
-        w.p.features.pin(w.mick, f"prop/{name}", version_no=1, pin_name="eom",
-                         as_of=dt.date(2026, 2, 28), as_of_known=known + dt.timedelta(hours=1))
+        w.p.features.pin(
+            w.mick,
+            f"prop/{name}",
+            version_no=1,
+            pin_name="eom",
+            as_of=dt.date(2026, 2, 28),
+            as_of_known=known + dt.timedelta(hours=1),
+        )
         w.drain()
-        pin = next(x for x in w.p.features.get(w.admin, f"prop/{name}")["pins"]
-                   if x["pin_name"] == "eom")
+        pin = next(
+            x for x in w.p.features.get(w.admin, f"prop/{name}")["pins"] if x["pin_name"] == "eom"
+        )
         assert pin["state"] == "sealed", pin
         hashes.append(pin["content_hash"])
     assert hashes[0] == hashes[1]
 
 
-@settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(first=st.lists(st.floats(1, 100, allow_nan=False).map(lambda f: round(f, 3)),
-                      min_size=3, max_size=10),
-       bump=st.floats(0.5, 50, allow_nan=False).map(lambda f: round(f, 3)),
-       restated=st.integers(0, 2))
+@settings(
+    max_examples=10, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture]
+)
+@given(
+    first=st.lists(
+        st.floats(1, 100, allow_nan=False).map(lambda f: round(f, 3)), min_size=3, max_size=10
+    ),
+    bump=st.floats(0.5, 50, allow_nan=False).map(lambda f: round(f, 3)),
+    restated=st.integers(0, 2),
+)
 def test_a_restatement_never_overwrites(world, first, bump, restated):
     w = world
     name = f"r{next(_n)}"
@@ -191,14 +240,26 @@ def test_a_restatement_never_overwrites(world, first, bump, restated):
     day = [str(dt.date(2026, 1, 1) + dt.timedelta(days=i)) for i in range(len(first))]
     k1 = dt.datetime(2026, 2, 1, 18, tzinfo=UTC)
     k2 = k1 + dt.timedelta(days=7)
-    w.p.features.ingest(w.admin, ref, _csv([f"{d},AAA,{v}" for d, v in zip(day, first)]),
-                        fmt="csv", knowledge_time=k1)
+    w.p.features.ingest(
+        w.admin,
+        ref,
+        _csv([f"{d},AAA,{v}" for d, v in zip(day, first)]),
+        fmt="csv",
+        knowledge_time=k1,
+    )
     second = list(first)
     second[restated % len(first)] = round(first[restated % len(first)] + bump, 3)
-    w.p.features.ingest(w.admin, ref, _csv([f"{d},AAA,{v}" for d, v in zip(day, second)]),
-                        fmt="csv", knowledge_time=k2)
+    w.p.features.ingest(
+        w.admin,
+        ref,
+        _csv([f"{d},AAA,{v}" for d, v in zip(day, second)]),
+        fmt="csv",
+        knowledge_time=k2,
+    )
     w.p.features.transition(w.admin, ref, 1, "submit")
-    for known, expected in ((k1 + dt.timedelta(hours=1), first), (k2 + dt.timedelta(hours=1),
-                                                                   second)):
+    for known, expected in (
+        (k1 + dt.timedelta(hours=1), first),
+        (k2 + dt.timedelta(hours=1), second),
+    ):
         rows = w.p.features.preview(w.admin, f"maya://feature/{ref}@v1", as_of_known=known)["rows"]
         assert [r["close"] for r in sorted(rows, key=lambda r: str(r["date"]))] == expected

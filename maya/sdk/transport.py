@@ -6,6 +6,7 @@ method written once works on the sync and the async client alike.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,7 +34,7 @@ class Call:
     files: dict[str, Any] | None = None
     data: dict[str, Any] | None = None
     headers: dict[str, str] = field(default_factory=dict)
-    raw: bool = False            # return bytes + headers instead of JSON
+    raw: bool = False  # return bytes + headers instead of JSON
 
 
 class TransportError(MayaError):
@@ -59,9 +60,11 @@ def decode(response: httpx.Response, call: Call) -> Any:
     raise_for(response)
     if call.raw:
         manifest = response.headers.get("x-maya-manifest")
-        return {"data": response.content,
-                "manifest": json.loads(manifest) if manifest else {},
-                "content_type": response.headers.get("content-type")}
+        return {
+            "data": response.content,
+            "manifest": json.loads(manifest) if manifest else {},
+            "content_type": response.headers.get("content-type"),
+        }
     if response.headers.get("content-type", "").startswith("application/json"):
         return response.json()
     return response.text
@@ -70,8 +73,9 @@ def decode(response: httpx.Response, call: Call) -> Any:
 def _headers(token: str | None, channel: str, extra: dict[str, str]) -> dict[str, str]:
     h = {"X-Maya-Client": f"python/{CLIENT_VERSION}", "X-Maya-Channel": channel, **extra}
     from maya.observability.tracing import current
+
     ctx = current()
-    if ctx is not None:          # one trace from the browser through the API and its jobs
+    if ctx is not None:  # one trace from the browser through the API and its jobs
         h["traceparent"] = ctx.header()
     if token:
         h["Authorization"] = f"Bearer {token}"
@@ -79,24 +83,31 @@ def _headers(token: str | None, channel: str, extra: dict[str, str]) -> dict[str
 
 
 class SyncTransport:
-    def __init__(self, client: httpx.Client, token: str | None, channel: str = "sdk",
-                 retries: int = 3) -> None:
+    def __init__(
+        self, client: httpx.Client, token: str | None, channel: str = "sdk", retries: int = 3
+    ) -> None:
         self.client, self.token, self.channel, self.retries = client, token, channel, retries
 
     def call(self, call: Call) -> Any:
         idempotent = call.method in ("GET", "PUT", "DELETE") or "Idempotency-Key" in call.headers
         for attempt in range(self.retries + 1):
             try:
-                r = self.client.request(call.method, call.path, params=_clean(call.params),
-                                        json=call.json_body, files=call.files, data=call.data,
-                                        headers=_headers(self.token, self.channel, call.headers))
+                r = self.client.request(
+                    call.method,
+                    call.path,
+                    params=_clean(call.params),
+                    json=call.json_body,
+                    files=call.files,
+                    data=call.data,
+                    headers=_headers(self.token, self.channel, call.headers),
+                )
             except httpx.TransportError as exc:
                 if not idempotent or attempt == self.retries:
                     raise TransportError(f"Network failure talking to MAYA: {exc}") from exc
-                time.sleep(min(2 ** attempt * 0.2, 3))
+                time.sleep(min(2**attempt * 0.2, 3))
                 continue
             if r.status_code in RETRY_STATUS and idempotent and attempt < self.retries:
-                time.sleep(min(2 ** attempt * 0.2, 3))
+                time.sleep(min(2**attempt * 0.2, 3))
                 continue
             return decode(r, call)
         return None
@@ -108,9 +119,15 @@ class AsyncTransport:
 
     async def call(self, call: Call) -> Any:
         try:
-            r = await self.client.request(call.method, call.path, params=_clean(call.params),
-                                          json=call.json_body, files=call.files, data=call.data,
-                                          headers=_headers(self.token, self.channel, call.headers))
+            r = await self.client.request(
+                call.method,
+                call.path,
+                params=_clean(call.params),
+                json=call.json_body,
+                files=call.files,
+                data=call.data,
+                headers=_headers(self.token, self.channel, call.headers),
+            )
         except httpx.TransportError as exc:
             raise TransportError(f"Network failure talking to MAYA: {exc}") from exc
         return decode(r, call)
@@ -128,7 +145,7 @@ def split_ref(ref: str, kind: str) -> tuple[str, str]:
     """``ns/name``, ``maya://kind/ns/name`` (version or pin suffixes dropped) → (ns, name)."""
     body = ref.split("://", 1)[1] if "://" in ref else ref
     if body.startswith(kind + "/"):
-        body = body[len(kind) + 1:]
+        body = body[len(kind) + 1 :]
     body = body.split("@", 1)[0].split("#", 1)[0]
     parts = body.split("/")
     if len(parts) != 2:

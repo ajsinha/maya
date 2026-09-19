@@ -13,6 +13,7 @@ byte-identical boundaries or it is the accelerator that is wrong.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

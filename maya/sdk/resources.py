@@ -9,6 +9,7 @@ whatever the transport returns, so the same class serves the sync client
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,6 +25,7 @@ def endpoint(method: str, path: str) -> Callable[[Any], Any]:
         ENDPOINTS[(method, path)] = f"{fn.__qualname__}"
         fn.__maya_endpoint__ = (method, path)
         return fn
+
     return deco
 
 
@@ -38,14 +40,31 @@ class _Resource:
         return self._t.call(Call(method, path, **kw))
 
     # -- cursor paging (opt-in on the list endpoints) ----------------------------------
-    def _page(self, path: str, params: dict[str, Any], page_size: int = PAGE_SIZE,
-              cursor: str | None = None, sort: str | None = None, total: bool = False) -> Any:
+    def _page(
+        self,
+        path: str,
+        params: dict[str, Any],
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         """One page: ``{items, next_cursor, page_size, sort[, total]}``."""
-        return self._c("GET", path, params={**params, "page_size": page_size, "cursor": cursor,
-                                            "sort": sort, "total": total or None})
+        return self._c(
+            "GET",
+            path,
+            params={
+                **params,
+                "page_size": page_size,
+                "cursor": cursor,
+                "sort": sort,
+                "total": total or None,
+            },
+        )
 
-    def _iter(self, path: str, params: dict[str, Any], page_size: int = PAGE_SIZE,
-              sort: str | None = None) -> Any:
+    def _iter(
+        self, path: str, params: dict[str, Any], page_size: int = PAGE_SIZE, sort: str | None = None
+    ) -> Any:
         """Every item, fetched a page at a time by following ``next_cursor``.
 
         A generator on a sync client, an async generator on an async one."""
@@ -53,8 +72,7 @@ class _Resource:
             return self._aiter(path, params, page_size, sort)
         return self._siter(path, params, page_size, sort)
 
-    def _siter(self, path: str, params: dict[str, Any], page_size: int,
-               sort: str | None) -> Any:
+    def _siter(self, path: str, params: dict[str, Any], page_size: int, sort: str | None) -> Any:
         cursor = None
         while True:
             page = self._page(path, params, page_size, cursor, sort)
@@ -63,8 +81,9 @@ class _Resource:
             if not cursor:
                 return
 
-    async def _aiter(self, path: str, params: dict[str, Any], page_size: int,
-                     sort: str | None) -> Any:
+    async def _aiter(
+        self, path: str, params: dict[str, Any], page_size: int, sort: str | None
+    ) -> Any:
         cursor = None
         while True:
             page = await self._page(path, params, page_size, cursor, sort)
@@ -87,7 +106,9 @@ def _files(data: bytes, filename: str) -> dict[str, Any]:
 class Auth(_Resource):
     @endpoint("POST", "/auth/login")
     def login(self, username: str, password: str) -> Any:
-        return self._c("POST", "/auth/login", json_body={"username": username, "password": password})
+        return self._c(
+            "POST", "/auth/login", json_body={"username": username, "password": password}
+        )
 
     @endpoint("GET", "/auth/sso/config")
     def sso_config(self) -> Any:
@@ -99,8 +120,11 @@ class Auth(_Resource):
 
     @endpoint("POST", "/auth/sso/callback")
     def sso_callback(self, code: str, code_verifier: str, nonce: str) -> Any:
-        return self._c("POST", "/auth/sso/callback", json_body={
-            "code": code, "code_verifier": code_verifier, "nonce": nonce})
+        return self._c(
+            "POST",
+            "/auth/sso/callback",
+            json_body={"code": code, "code_verifier": code_verifier, "nonce": nonce},
+        )
 
     @endpoint("GET", "/auth/mfa")
     def mfa_status(self) -> Any:
@@ -135,8 +159,9 @@ class Auth(_Resource):
     @endpoint("POST", "/auth/sso/oidc/backchannel-logout")
     def oidc_backchannel_logout(self, logout_token: str) -> Any:
         """What an OIDC IdP does server to server; here for tests and tooling."""
-        return self._c("POST", "/auth/sso/oidc/backchannel-logout",
-                       data={"logout_token": logout_token})
+        return self._c(
+            "POST", "/auth/sso/oidc/backchannel-logout", data={"logout_token": logout_token}
+        )
 
     @endpoint("POST", "/auth/sso/saml/sls")
     def saml_sls(self, query_string: str) -> Any:
@@ -157,10 +182,12 @@ class Auth(_Resource):
         return self._c("POST", "/auth/mfa/webauthn/register/options")
 
     @endpoint("POST", "/auth/mfa/webauthn/register")
-    def register_security_key(self, credential: dict[str, Any], name: str = "security key"
-                              ) -> Any:
-        return self._c("POST", "/auth/mfa/webauthn/register",
-                       json_body={"credential": credential, "name": name})
+    def register_security_key(self, credential: dict[str, Any], name: str = "security key") -> Any:
+        return self._c(
+            "POST",
+            "/auth/mfa/webauthn/register",
+            json_body={"credential": credential, "name": name},
+        )
 
     @endpoint("POST", "/auth/mfa/webauthn/options")
     def security_key_options(self) -> Any:
@@ -180,8 +207,11 @@ class Auth(_Resource):
 
     @endpoint("POST", "/auth/password")
     def change_password(self, old_password: str, new_password: str) -> Any:
-        return self._c("POST", "/auth/password", json_body={"old_password": old_password,
-                                                            "new_password": new_password})
+        return self._c(
+            "POST",
+            "/auth/password",
+            json_body={"old_password": old_password, "new_password": new_password},
+        )
 
     @endpoint("GET", "/auth/api-keys")
     def api_keys(self, all: bool = False) -> Any:
@@ -223,8 +253,11 @@ class Admin(_Resource):
 
     @endpoint("POST", "/users/{username}/password-reset")
     def reset_password(self, username: str, new_password: str) -> Any:
-        return self._c("POST", f"/users/{seg(username)}/password-reset",
-                       json_body={"new_password": new_password})
+        return self._c(
+            "POST",
+            f"/users/{seg(username)}/password-reset",
+            json_body={"new_password": new_password},
+        )
 
     @endpoint("POST", "/users/{username}/mfa-reset")
     def reset_mfa(self, username: str) -> Any:
@@ -236,8 +269,11 @@ class Admin(_Resource):
 
     @endpoint("POST", "/roles")
     def create_role(self, name: str, capabilities: dict[str, str], description: str = "") -> Any:
-        return self._c("POST", "/roles", json_body={"name": name, "capabilities": capabilities,
-                                                    "description": description})
+        return self._c(
+            "POST",
+            "/roles",
+            json_body={"name": name, "capabilities": capabilities, "description": description},
+        )
 
     @endpoint("GET", "/groups")
     def groups(self) -> Any:
@@ -251,11 +287,24 @@ class Admin(_Resource):
     def audit(self, q: str | None = None, action: str | None = None, limit: int = 1000) -> Any:
         return self._c("GET", "/audit", params={"q": q, "action": action, "limit": limit})
 
-    def audit_page(self, q: str | None = None, action: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def audit_page(
+        self,
+        q: str | None = None,
+        action: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/audit", {"q": q, "action": action}, page_size, cursor, sort, total)
 
-    def iter_audit(self, q: str | None = None, action: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter_audit(
+        self,
+        q: str | None = None,
+        action: str | None = None,
+        page_size: int = PAGE_SIZE,
+        sort: str | None = None,
+    ) -> Any:
         return self._iter("/audit", {"q": q, "action": action}, page_size, sort)
 
     @endpoint("GET", "/audit/verify")
@@ -298,10 +347,19 @@ class Sources(_Resource):
         return self._c("GET", "/sql-connections")
 
     @endpoint("POST", "/sql-connections")
-    def create_connection(self, name: str, url: str, password_env: str | None = None,
-                          description: str = "") -> Any:
-        return self._c("POST", "/sql-connections", json_body={
-            "name": name, "url": url, "password_env": password_env, "description": description})
+    def create_connection(
+        self, name: str, url: str, password_env: str | None = None, description: str = ""
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/sql-connections",
+            json_body={
+                "name": name,
+                "url": url,
+                "password_env": password_env,
+                "description": description,
+            },
+        )
 
     @endpoint("DELETE", "/sql-connections/{name}")
     def delete_connection(self, name: str) -> Any:
@@ -331,19 +389,44 @@ class Access(_Resource):
     def grants(self, kind: str, ref: str) -> Any:
         return self._c("GET", "/grants", params={"kind": kind, "ref": ref})
 
-    def grants_page(self, kind: str, ref: str, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def grants_page(
+        self,
+        kind: str,
+        ref: str,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/grants", {"kind": kind, "ref": ref}, page_size, cursor, sort, total)
 
-    def iter_grants(self, kind: str, ref: str, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter_grants(
+        self, kind: str, ref: str, page_size: int = PAGE_SIZE, sort: str | None = None
+    ) -> Any:
         return self._iter("/grants", {"kind": kind, "ref": ref}, page_size, sort)
 
     @endpoint("POST", "/grants")
-    def grant(self, kind: str, object_ref: str, principal_type: str, principal_id: str,
-              level: str, **kw: Any) -> Any:
-        return self._c("POST", "/grants", json_body={
-            "kind": kind, "object_ref": object_ref, "principal_type": principal_type,
-            "principal_id": principal_id, "level": level, **kw})
+    def grant(
+        self,
+        kind: str,
+        object_ref: str,
+        principal_type: str,
+        principal_id: str,
+        level: str,
+        **kw: Any,
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/grants",
+            json_body={
+                "kind": kind,
+                "object_ref": object_ref,
+                "principal_type": principal_type,
+                "principal_id": principal_id,
+                "level": level,
+                **kw,
+            },
+        )
 
     @endpoint("DELETE", "/grants/{grant_id}")
     def revoke(self, grant_id: str) -> Any:
@@ -357,8 +440,13 @@ class Access(_Resource):
     def inbox(self) -> Any:
         return self._c("GET", "/inbox")
 
-    def inbox_page(self, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def inbox_page(
+        self,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/inbox", {}, page_size, cursor, sort, total)
 
     def iter_inbox(self, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
@@ -378,36 +466,72 @@ class Access(_Resource):
 
     @endpoint("GET", "/lineage")
     def lineage(self, root: str, direction: str = "both", depth: int = 3) -> Any:
-        return self._c("GET", "/lineage", params={"root": root, "direction": direction,
-                                                  "depth": depth})
+        return self._c(
+            "GET", "/lineage", params={"root": root, "direction": direction, "depth": depth}
+        )
 
 
 class Features(_Resource):
     @endpoint("GET", "/features")
-    def list(self, namespace: str | None = None, q: str | None = None,
-             status: str | None = None, state: str | None = None) -> Any:
+    def list(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        status: str | None = None,
+        state: str | None = None,
+    ) -> Any:
         """Features you may read; ``state`` keeps those whose latest version is in it,
         e.g. ``"draft,changes_requested"``."""
-        return self._c("GET", "/features", params={"namespace": namespace, "q": q,
-                                                   "status": status, "state": state})
+        return self._c(
+            "GET",
+            "/features",
+            params={"namespace": namespace, "q": q, "status": status, "state": state},
+        )
 
-    def page(self, namespace: str | None = None, q: str | None = None,
-             status: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False, state: str | None = None) -> Any:
+    def page(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        status: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+        state: str | None = None,
+    ) -> Any:
         """One page of features; sort is name, -name, updated, -updated, created, -created."""
-        return self._page("/features", {"namespace": namespace, "q": q, "status": status,
-                                        "state": state}, page_size, cursor, sort, total)
+        return self._page(
+            "/features",
+            {"namespace": namespace, "q": q, "status": status, "state": state},
+            page_size,
+            cursor,
+            sort,
+            total,
+        )
 
-    def iter(self, namespace: str | None = None, q: str | None = None,
-             status: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None,
-             state: str | None = None) -> Any:
-        return self._iter("/features", {"namespace": namespace, "q": q, "status": status,
-                                        "state": state}, page_size, sort)
+    def iter(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        status: str | None = None,
+        page_size: int = PAGE_SIZE,
+        sort: str | None = None,
+        state: str | None = None,
+    ) -> Any:
+        return self._iter(
+            "/features",
+            {"namespace": namespace, "q": q, "status": status, "state": state},
+            page_size,
+            sort,
+        )
 
     @endpoint("POST", "/features")
     def create(self, namespace: str, name: str, definition: dict[str, Any], **kw: Any) -> Any:
-        return self._c("POST", "/features", json_body={"namespace": namespace, "name": name,
-                                                       "definition": definition, **kw})
+        return self._c(
+            "POST",
+            "/features",
+            json_body={"namespace": namespace, "name": name, "definition": definition, **kw},
+        )
 
     @endpoint("POST", "/features/infer")
     def infer(self, data: bytes, fmt: str = "csv", filename: str = "upload") -> Any:
@@ -415,8 +539,12 @@ class Features(_Resource):
 
     @endpoint("POST", "/features/quick")
     def quick(self, data: bytes, name: str, fmt: str = "csv") -> Any:
-        return self._c("POST", "/features/quick", files=_files(data, f"{name}.{fmt}"),
-                       data={"name": name, "fmt": fmt})
+        return self._c(
+            "POST",
+            "/features/quick",
+            files=_files(data, f"{name}.{fmt}"),
+            data={"name": name, "fmt": fmt},
+        )
 
     @endpoint("GET", "/features/{namespace}/{name}")
     def get(self, ref: str) -> Any:
@@ -424,16 +552,26 @@ class Features(_Resource):
         return self._c("GET", f"/features/{_nn(ref, 'feature')}")
 
     @endpoint("GET", "/features/{namespace}/{name}/pins")
-    def pins(self, ref: str, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def pins(
+        self,
+        ref: str,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         """A feature's pins a page at a time: sort -as_of (default), as_of, series."""
-        return self._page(f"/features/{_nn(ref, 'feature')}/pins", {}, page_size, cursor,
-                          sort, total)
+        return self._page(
+            f"/features/{_nn(ref, 'feature')}/pins", {}, page_size, cursor, sort, total
+        )
 
     @endpoint("PUT", "/features/{namespace}/{name}/draft")
     def update_draft(self, ref: str, definition: dict[str, Any], **kw: Any) -> Any:
-        return self._c("PUT", f"/features/{_nn(ref, 'feature')}/draft",
-                       json_body={"definition": definition, **kw})
+        return self._c(
+            "PUT",
+            f"/features/{_nn(ref, 'feature')}/draft",
+            json_body={"definition": definition, **kw},
+        )
 
     @endpoint("POST", "/features/{namespace}/{name}/drafts")
     def new_draft(self, ref: str) -> Any:
@@ -441,45 +579,85 @@ class Features(_Resource):
 
     @endpoint("POST", "/features/{namespace}/{name}/clone")
     def clone(self, ref: str, name: str, namespace: str | None = None, extend: bool = False) -> Any:
-        return self._c("POST", f"/features/{_nn(ref, 'feature')}/clone",
-                       json_body={"name": name, "namespace": namespace, "extend": extend})
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/clone",
+            json_body={"name": name, "namespace": namespace, "extend": extend},
+        )
 
     @endpoint("POST", "/features/{namespace}/{name}/ingest")
-    def ingest(self, ref: str, data: bytes, fmt: str = "csv", filename: str = "upload",
-               knowledge_time: str | None = None, note: str = "") -> Any:
+    def ingest(
+        self,
+        ref: str,
+        data: bytes,
+        fmt: str = "csv",
+        filename: str = "upload",
+        knowledge_time: str | None = None,
+        note: str = "",
+    ) -> Any:
         form = {"fmt": fmt, "note": note}
         if knowledge_time:
             form["knowledge_time"] = knowledge_time
-        return self._c("POST", f"/features/{_nn(ref, 'feature')}/ingest",
-                       files=_files(data, filename), data=form)
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/ingest",
+            files=_files(data, filename),
+            data=form,
+        )
 
     @endpoint("POST", "/features/{namespace}/{name}/pull")
     def pull(self, ref: str, knowledge_time: str | None = None) -> Any:
-        return self._c("POST", f"/features/{_nn(ref, 'feature')}/pull",
-                       json_body={"knowledge_time": knowledge_time})
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/pull",
+            json_body={"knowledge_time": knowledge_time},
+        )
 
     @endpoint("POST", "/features/{namespace}/{name}/versions/{version_no}/transitions/{transition}")
     def transition(self, ref: str, version_no: int, transition: str, **kw: Any) -> Any:
-        return self._c("POST", f"/features/{_nn(ref, 'feature')}/versions/{int(version_no)}"
-                               f"/transitions/{seg(transition)}", json_body=kw)
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/versions/{int(version_no)}"
+            f"/transitions/{seg(transition)}",
+            json_body=kw,
+        )
 
     @endpoint("GET", "/features/{namespace}/{name}/compare")
     def compare(self, ref: str, v1: int, v2: int) -> Any:
-        return self._c("GET", f"/features/{_nn(ref, 'feature')}/compare",
-                       params={"v1": v1, "v2": v2})
+        return self._c(
+            "GET", f"/features/{_nn(ref, 'feature')}/compare", params={"v1": v1, "v2": v2}
+        )
 
     @endpoint("POST", "/features/{namespace}/{name}/draft-preview")
     def draft_preview(self, ref: str, as_of_known: str | None = None) -> Any:
-        return self._c("POST", f"/features/{_nn(ref, 'feature')}/draft-preview",
-                       params={"as_of_known": as_of_known})
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/draft-preview",
+            params={"as_of_known": as_of_known},
+        )
 
     @endpoint("POST", "/features/{namespace}/{name}/pins")
-    def pin(self, ref: str, version_no: int, pin_name: str, as_of: str,
-            as_of_known: str | None = None, idempotency_key: str | None = None) -> Any:
+    def pin(
+        self,
+        ref: str,
+        version_no: int,
+        pin_name: str,
+        as_of: str,
+        as_of_known: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> Any:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else {}
-        return self._c("POST", f"/features/{_nn(ref, 'feature')}/pins", headers=headers,
-                       json_body={"version_no": version_no, "pin_name": pin_name,
-                                  "as_of": as_of, "as_of_known": as_of_known})
+        return self._c(
+            "POST",
+            f"/features/{_nn(ref, 'feature')}/pins",
+            headers=headers,
+            json_body={
+                "version_no": version_no,
+                "pin_name": pin_name,
+                "as_of": as_of,
+                "as_of_known": as_of_known,
+            },
+        )
 
     @endpoint("POST", "/pins/{pin_id}/approve")
     def approve_pin(self, pin_id: str) -> Any:
@@ -490,40 +668,87 @@ class Features(_Resource):
         return self._c("POST", f"/pins/{seg(pin_id)}/retire", json_body={"reason": reason})
 
     @endpoint("GET", "/feature-data/preview")
-    def preview(self, ref: str, as_of_known: str | None = None, start: str | None = None,
-                end: str | None = None) -> Any:
-        return self._c("GET", "/feature-data/preview", params={
-            "ref": ref, "as_of_known": as_of_known, "start": start, "end": end})
+    def preview(
+        self,
+        ref: str,
+        as_of_known: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> Any:
+        return self._c(
+            "GET",
+            "/feature-data/preview",
+            params={"ref": ref, "as_of_known": as_of_known, "start": start, "end": end},
+        )
 
     @endpoint("GET", "/feature-data")
-    def download(self, ref: str, format: str = "parquet", csv_encoding: str | None = None,
-                 as_of_known: str | None = None) -> Any:
-        return self._c("GET", "/feature-data", raw=True, params={
-            "ref": ref, "format": format, "csv_encoding": csv_encoding,
-            "as_of_known": as_of_known})
+    def download(
+        self,
+        ref: str,
+        format: str = "parquet",
+        csv_encoding: str | None = None,
+        as_of_known: str | None = None,
+    ) -> Any:
+        return self._c(
+            "GET",
+            "/feature-data",
+            raw=True,
+            params={
+                "ref": ref,
+                "format": format,
+                "csv_encoding": csv_encoding,
+                "as_of_known": as_of_known,
+            },
+        )
 
 
 class FeatureSets(_Resource):
     @endpoint("GET", "/featuresets")
-    def list(self, namespace: str | None = None, q: str | None = None,
-             state: str | None = None) -> Any:
-        return self._c("GET", "/featuresets", params={"namespace": namespace, "q": q,
-                                                      "state": state})
+    def list(
+        self, namespace: str | None = None, q: str | None = None, state: str | None = None
+    ) -> Any:
+        return self._c(
+            "GET", "/featuresets", params={"namespace": namespace, "q": q, "state": state}
+        )
 
-    def page(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False, state: str | None = None) -> Any:
-        return self._page("/featuresets", {"namespace": namespace, "q": q, "state": state},
-                          page_size, cursor, sort, total)
+    def page(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+        state: str | None = None,
+    ) -> Any:
+        return self._page(
+            "/featuresets",
+            {"namespace": namespace, "q": q, "state": state},
+            page_size,
+            cursor,
+            sort,
+            total,
+        )
 
-    def iter(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None,
-             state: str | None = None) -> Any:
-        return self._iter("/featuresets", {"namespace": namespace, "q": q, "state": state},
-                          page_size, sort)
+    def iter(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        sort: str | None = None,
+        state: str | None = None,
+    ) -> Any:
+        return self._iter(
+            "/featuresets", {"namespace": namespace, "q": q, "state": state}, page_size, sort
+        )
 
     @endpoint("POST", "/featuresets")
     def create(self, namespace: str, name: str, definition: dict[str, Any], **kw: Any) -> Any:
-        return self._c("POST", "/featuresets", json_body={"namespace": namespace, "name": name,
-                                                          "definition": definition, **kw})
+        return self._c(
+            "POST",
+            "/featuresets",
+            json_body={"namespace": namespace, "name": name, "definition": definition, **kw},
+        )
 
     @endpoint("GET", "/featuresets/{namespace}/{name}")
     def get(self, ref: str) -> Any:
@@ -531,42 +756,76 @@ class FeatureSets(_Resource):
 
     @endpoint("PUT", "/featuresets/{namespace}/{name}/draft")
     def update_draft(self, ref: str, definition: dict[str, Any], **kw: Any) -> Any:
-        return self._c("PUT", f"/featuresets/{_nn(ref, 'featureset')}/draft",
-                       json_body={"definition": definition, **kw})
+        return self._c(
+            "PUT",
+            f"/featuresets/{_nn(ref, 'featureset')}/draft",
+            json_body={"definition": definition, **kw},
+        )
 
     @endpoint("POST", "/featuresets/{namespace}/{name}/drafts")
     def new_draft(self, ref: str) -> Any:
         return self._c("POST", f"/featuresets/{_nn(ref, 'featureset')}/drafts")
 
-    @endpoint("POST",
-              "/featuresets/{namespace}/{name}/versions/{version_no}/transitions/{transition}")
+    @endpoint(
+        "POST", "/featuresets/{namespace}/{name}/versions/{version_no}/transitions/{transition}"
+    )
     def transition(self, ref: str, version_no: int, transition: str, **kw: Any) -> Any:
-        return self._c("POST", f"/featuresets/{_nn(ref, 'featureset')}/versions/"
-                               f"{int(version_no)}/transitions/{seg(transition)}", json_body=kw)
+        return self._c(
+            "POST",
+            f"/featuresets/{_nn(ref, 'featureset')}/versions/"
+            f"{int(version_no)}/transitions/{seg(transition)}",
+            json_body=kw,
+        )
 
     @endpoint("POST", "/featuresets/{namespace}/{name}/draft-preview")
     def draft_preview(self, ref: str) -> Any:
         return self._c("POST", f"/featuresets/{_nn(ref, 'featureset')}/draft-preview")
 
     @endpoint("POST", "/featuresets/{namespace}/{name}/pins")
-    def pin(self, ref: str, version_no: int, pin_name: str, as_of: str, cascade: bool = False,
-            as_of_known: str | None = None, idempotency_key: str | None = None) -> Any:
+    def pin(
+        self,
+        ref: str,
+        version_no: int,
+        pin_name: str,
+        as_of: str,
+        cascade: bool = False,
+        as_of_known: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> Any:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else {}
-        return self._c("POST", f"/featuresets/{_nn(ref, 'featureset')}/pins", headers=headers,
-                       json_body={"version_no": version_no, "pin_name": pin_name,
-                                  "as_of": as_of, "as_of_known": as_of_known,
-                                  "cascade": cascade})
+        return self._c(
+            "POST",
+            f"/featuresets/{_nn(ref, 'featureset')}/pins",
+            headers=headers,
+            json_body={
+                "version_no": version_no,
+                "pin_name": pin_name,
+                "as_of": as_of,
+                "as_of_known": as_of_known,
+                "cascade": cascade,
+            },
+        )
 
     @endpoint("GET", "/featureset-data/preview")
     def preview(self, ref: str, as_of_known: str | None = None) -> Any:
-        return self._c("GET", "/featureset-data/preview",
-                       params={"ref": ref, "as_of_known": as_of_known})
+        return self._c(
+            "GET", "/featureset-data/preview", params={"ref": ref, "as_of_known": as_of_known}
+        )
 
     @endpoint("GET", "/featureset-data")
-    def download(self, ref: str, format: str = "parquet", shape: str = "tabular",
-                 csv_encoding: str | None = None) -> Any:
-        return self._c("GET", "/featureset-data", raw=True, params={
-            "ref": ref, "format": format, "shape": shape, "csv_encoding": csv_encoding})
+    def download(
+        self,
+        ref: str,
+        format: str = "parquet",
+        shape: str = "tabular",
+        csv_encoding: str | None = None,
+    ) -> Any:
+        return self._c(
+            "GET",
+            "/featureset-data",
+            raw=True,
+            params={"ref": ref, "format": format, "shape": shape, "csv_encoding": csv_encoding},
+        )
 
 
 class Models(_Resource):
@@ -574,12 +833,26 @@ class Models(_Resource):
     def list(self, namespace: str | None = None, q: str | None = None) -> Any:
         return self._c("GET", "/models", params={"namespace": namespace, "q": q})
 
-    def page(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
-        return self._page("/models", {"namespace": namespace, "q": q}, page_size, cursor,
-                          sort, total)
+    def page(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
+        return self._page(
+            "/models", {"namespace": namespace, "q": q}, page_size, cursor, sort, total
+        )
 
-    def iter(self, namespace: str | None = None, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter(
+        self,
+        namespace: str | None = None,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        sort: str | None = None,
+    ) -> Any:
         return self._iter("/models", {"namespace": namespace, "q": q}, page_size, sort)
 
     @endpoint("POST", "/models")
@@ -599,31 +872,56 @@ class Models(_Resource):
         return self._c("POST", f"/models/{_nn(ref, 'model')}/drafts")
 
     @endpoint("POST", "/models/{namespace}/{name}/artifact")
-    def upload_artifact(self, ref: str, source: str, sample: dict[str, Any] | None = None,
-                        params: dict[str, Any] | None = None) -> Any:
-        return self._c("POST", f"/models/{_nn(ref, 'model')}/artifact",
-                       json_body={"source": source, "sample": sample, "params": params})
+    def upload_artifact(
+        self,
+        ref: str,
+        source: str,
+        sample: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> Any:
+        return self._c(
+            "POST",
+            f"/models/{_nn(ref, 'model')}/artifact",
+            json_body={"source": source, "sample": sample, "params": params},
+        )
 
     @endpoint("POST", "/models/workbook/lift")
-    def lift_workbook(self, data: bytes, output: str | None = None,
-                      roles: dict[str, str] | None = None,
-                      filename: str = "workbook.xlsx") -> Any:
+    def lift_workbook(
+        self,
+        data: bytes,
+        output: str | None = None,
+        roles: dict[str, str] | None = None,
+        filename: str = "workbook.xlsx",
+    ) -> Any:
         """Preview the IR an .xlsx lifts to, with its check against the workbook's results."""
-        return self._c("POST", "/models/workbook/lift", files=_files(data, filename),
-                       data={"output": output or "", "roles": json.dumps(roles or {})})
+        return self._c(
+            "POST",
+            "/models/workbook/lift",
+            files=_files(data, filename),
+            data={"output": output or "", "roles": json.dumps(roles or {})},
+        )
 
     @endpoint("POST", "/models/{namespace}/{name}/workbook")
-    def import_workbook(self, ref: str, data: bytes, output: str | None = None,
-                        roles: dict[str, str] | None = None,
-                        filename: str = "workbook.xlsx") -> Any:
-        return self._c("POST", f"/models/{_nn(ref, 'model')}/workbook",
-                       files=_files(data, filename),
-                       data={"output": output or "", "roles": json.dumps(roles or {})})
+    def import_workbook(
+        self,
+        ref: str,
+        data: bytes,
+        output: str | None = None,
+        roles: dict[str, str] | None = None,
+        filename: str = "workbook.xlsx",
+    ) -> Any:
+        return self._c(
+            "POST",
+            f"/models/{_nn(ref, 'model')}/workbook",
+            files=_files(data, filename),
+            data={"output": output or "", "roles": json.dumps(roles or {})},
+        )
 
     @endpoint("GET", "/models/{namespace}/{name}/versions/{version_no}/workbook.xlsx")
     def workbook(self, ref: str, version_no: int) -> Any:
-        return self._c("GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}"
-                              "/workbook.xlsx", raw=True)
+        return self._c(
+            "GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/workbook.xlsx", raw=True
+        )
 
     @endpoint("POST", "/models/{namespace}/{name}/versions/{version_no}/render")
     def render_spec(self, ref: str, version_no: int) -> Any:
@@ -631,13 +929,17 @@ class Models(_Resource):
 
     @endpoint("GET", "/models/{namespace}/{name}/versions/{version_no}/spec.pdf")
     def spec_pdf(self, ref: str, version_no: int) -> Any:
-        return self._c("GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/spec.pdf",
-                       raw=True)
+        return self._c(
+            "GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/spec.pdf", raw=True
+        )
 
     @endpoint("POST", "/models/{namespace}/{name}/versions/{version_no}/transitions/{transition}")
     def transition(self, ref: str, version_no: int, transition: str, **kw: Any) -> Any:
-        return self._c("POST", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}"
-                               f"/transitions/{seg(transition)}", json_body=kw)
+        return self._c(
+            "POST",
+            f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/transitions/{seg(transition)}",
+            json_body=kw,
+        )
 
     @endpoint("GET", "/models/{namespace}/{name}/diff")
     def diff(self, ref: str, v1: int, v2: int) -> Any:
@@ -649,8 +951,11 @@ class Models(_Resource):
 
     @endpoint("POST", "/models/{namespace}/{name}/versions/{version_no}/conformance")
     def conformance(self, ref: str, version_no: int, n: int = 500) -> Any:
-        return self._c("POST", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}"
-                               "/conformance", params={"n": n})
+        return self._c(
+            "POST",
+            f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/conformance",
+            params={"n": n},
+        )
 
 
 class TrainingWarrants(_Resource):
@@ -658,19 +963,41 @@ class TrainingWarrants(_Resource):
     def list(self) -> Any:
         return self._c("GET", "/warrants/training")
 
-    def page(self, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def page(
+        self,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/warrants/training", {"q": q}, page_size, cursor, sort, total)
 
-    def iter(self, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter(
+        self, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None
+    ) -> Any:
         return self._iter("/warrants/training", {"q": q}, page_size, sort)
 
     @endpoint("POST", "/warrants/training")
-    def create(self, namespace: str, name: str, model: str, featureset: str,
-               spec: dict[str, Any] | None = None) -> Any:
-        return self._c("POST", "/warrants/training", json_body={
-            "namespace": namespace, "name": name, "model": model, "featureset": featureset,
-            "spec": spec or {}})
+    def create(
+        self,
+        namespace: str,
+        name: str,
+        model: str,
+        featureset: str,
+        spec: dict[str, Any] | None = None,
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/warrants/training",
+            json_body={
+                "namespace": namespace,
+                "name": name,
+                "model": model,
+                "featureset": featureset,
+                "spec": spec or {},
+            },
+        )
 
     @endpoint("GET", "/warrants/training/{warrant_id}")
     def get(self, warrant_id: str) -> Any:
@@ -682,13 +1009,19 @@ class TrainingWarrants(_Resource):
 
     @endpoint("POST", "/warrants/training/{warrant_id}/parameters")
     def upload_parameters(self, warrant_id: str, values: dict[str, Any], **kw: Any) -> Any:
-        return self._c("POST", f"/warrants/training/{seg(warrant_id)}/parameters",
-                       json_body={"values": values, **kw})
+        return self._c(
+            "POST",
+            f"/warrants/training/{seg(warrant_id)}/parameters",
+            json_body={"values": values, **kw},
+        )
 
     @endpoint("POST", "/warrants/training/{warrant_id}/transitions/{transition}")
     def transition(self, warrant_id: str, transition: str, **kw: Any) -> Any:
-        return self._c("POST", f"/warrants/training/{seg(warrant_id)}/transitions/"
-                               f"{seg(transition)}", json_body=kw)
+        return self._c(
+            "POST",
+            f"/warrants/training/{seg(warrant_id)}/transitions/{seg(transition)}",
+            json_body=kw,
+        )
 
     @endpoint("POST", "/warrants/training/{warrant_id}/seal")
     def seal(self, warrant_id: str) -> Any:
@@ -696,18 +1029,26 @@ class TrainingWarrants(_Resource):
 
     @endpoint("POST", "/warrants/training/{warrant_id}/revoke")
     def revoke(self, warrant_id: str, reason: str) -> Any:
-        return self._c("POST", f"/warrants/training/{seg(warrant_id)}/revoke",
-                       json_body={"reason": reason})
+        return self._c(
+            "POST", f"/warrants/training/{seg(warrant_id)}/revoke", json_body={"reason": reason}
+        )
 
     @endpoint("POST", "/warrants/training/{warrant_id}/clone")
     def clone(self, warrant_id: str, **changes: Any) -> Any:
         return self._c("POST", f"/warrants/training/{seg(warrant_id)}/clone", json_body=changes)
 
     @endpoint("POST", "/warrants/training/{warrant_id}/score")
-    def score_holdout(self, warrant_id: str, parameter_set_id: str | None = None,
-                      values: dict[str, Any] | None = None) -> Any:
-        return self._c("POST", f"/warrants/training/{seg(warrant_id)}/score",
-                       json_body={"parameter_set_id": parameter_set_id, "values": values})
+    def score_holdout(
+        self,
+        warrant_id: str,
+        parameter_set_id: str | None = None,
+        values: dict[str, Any] | None = None,
+    ) -> Any:
+        return self._c(
+            "POST",
+            f"/warrants/training/{seg(warrant_id)}/score",
+            json_body={"parameter_set_id": parameter_set_id, "values": values},
+        )
 
     @endpoint("POST", "/warrants/training/{warrant_id}/bundle")
     def export_bundle(self, warrant_id: str) -> Any:
@@ -715,8 +1056,11 @@ class TrainingWarrants(_Resource):
 
     @endpoint("POST", "/parameters/{parameter_set_id}/transitions/{transition}")
     def parameter_transition(self, parameter_set_id: str, transition: str, **kw: Any) -> Any:
-        return self._c("POST", f"/parameters/{seg(parameter_set_id)}/transitions/"
-                               f"{seg(transition)}", json_body=kw)
+        return self._c(
+            "POST",
+            f"/parameters/{seg(parameter_set_id)}/transitions/{seg(transition)}",
+            json_body=kw,
+        )
 
     @endpoint("POST", "/bundles/verify")
     def verify_bundle(self, data: bytes) -> Any:
@@ -728,17 +1072,26 @@ class ExecutionWarrants(_Resource):
     def list(self) -> Any:
         return self._c("GET", "/warrants/execution")
 
-    def page(self, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def page(
+        self,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/warrants/execution", {"q": q}, page_size, cursor, sort, total)
 
-    def iter(self, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter(
+        self, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None
+    ) -> Any:
         return self._iter("/warrants/execution", {"q": q}, page_size, sort)
 
     @endpoint("POST", "/warrants/execution")
     def create(self, namespace: str, name: str, **kw: Any) -> Any:
-        return self._c("POST", "/warrants/execution", json_body={"namespace": namespace,
-                                                                 "name": name, **kw})
+        return self._c(
+            "POST", "/warrants/execution", json_body={"namespace": namespace, "name": name, **kw}
+        )
 
     @endpoint("GET", "/warrants/execution/{ew_id}")
     def get(self, ew_id: str) -> Any:
@@ -746,8 +1099,9 @@ class ExecutionWarrants(_Resource):
 
     @endpoint("POST", "/warrants/execution/{ew_id}/transitions/{transition}")
     def transition(self, ew_id: str, transition: str, **kw: Any) -> Any:
-        return self._c("POST", f"/warrants/execution/{seg(ew_id)}/transitions/{seg(transition)}",
-                       json_body=kw)
+        return self._c(
+            "POST", f"/warrants/execution/{seg(ew_id)}/transitions/{seg(transition)}", json_body=kw
+        )
 
     @endpoint("POST", "/warrants/execution/{ew_id}/seal")
     def seal(self, ew_id: str) -> Any:
@@ -755,34 +1109,51 @@ class ExecutionWarrants(_Resource):
 
     @endpoint("POST", "/warrants/execution/{ew_id}/token")
     def token(self, ew_id: str, environment: str) -> Any:
-        return self._c("POST", f"/warrants/execution/{seg(ew_id)}/token",
-                       params={"environment": environment})
+        return self._c(
+            "POST", f"/warrants/execution/{seg(ew_id)}/token", params={"environment": environment}
+        )
 
     @endpoint("GET", "/warrants/execution/{ew_id}/bundle")
     def bundle(self, ew_id: str, environment: str, offline: bool = False) -> Any:
         """``offline=True``: a copy to run without MAYA. Nothing it runs is reported, so
         MAYA labels it — and the warrant — ``unattested``."""
-        return self._c("GET", f"/warrants/execution/{seg(ew_id)}/bundle",
-                       params={"environment": environment,
-                               "offline": "true" if offline else None})
+        return self._c(
+            "GET",
+            f"/warrants/execution/{seg(ew_id)}/bundle",
+            params={"environment": environment, "offline": "true" if offline else None},
+        )
 
     @endpoint("POST", "/warrants/execution/{ew_id}/report")
-    def report(self, ew_id: str, environment: str, rows: int,
-               input_stats: dict[str, Any] | None = None,
-               output_stats: dict[str, Any] | None = None) -> Any:
-        return self._c("POST", f"/warrants/execution/{seg(ew_id)}/report", json_body={
-            "environment": environment, "rows": rows, "input_stats": input_stats or {},
-            "output_stats": output_stats or {}})
+    def report(
+        self,
+        ew_id: str,
+        environment: str,
+        rows: int,
+        input_stats: dict[str, Any] | None = None,
+        output_stats: dict[str, Any] | None = None,
+    ) -> Any:
+        return self._c(
+            "POST",
+            f"/warrants/execution/{seg(ew_id)}/report",
+            json_body={
+                "environment": environment,
+                "rows": rows,
+                "input_stats": input_stats or {},
+                "output_stats": output_stats or {},
+            },
+        )
 
     @endpoint("POST", "/warrants/execution/{ew_id}/reinstate")
     def reinstate(self, ew_id: str, reason: str) -> Any:
-        return self._c("POST", f"/warrants/execution/{seg(ew_id)}/reinstate",
-                       json_body={"reason": reason})
+        return self._c(
+            "POST", f"/warrants/execution/{seg(ew_id)}/reinstate", json_body={"reason": reason}
+        )
 
     @endpoint("POST", "/warrants/execution/{ew_id}/revoke")
     def revoke(self, ew_id: str, reason: str) -> Any:
-        return self._c("POST", f"/warrants/execution/{seg(ew_id)}/revoke",
-                       json_body={"reason": reason})
+        return self._c(
+            "POST", f"/warrants/execution/{seg(ew_id)}/revoke", json_body={"reason": reason}
+        )
 
 
 class Workflow(_Resource):
@@ -811,20 +1182,30 @@ class Workflow(_Resource):
         return self._c("GET", f"/workflow/policies/{seg(policy_id)}/yaml")
 
     @endpoint("POST", "/workflow/policies")
-    def draft_policy(self, object_type: str, policy: dict[str, Any], scope: str = "*",
-                     note: str = "") -> Any:
-        return self._c("POST", "/workflow/policies", json_body={
-            "object_type": object_type, "policy": policy, "scope": scope, "note": note})
+    def draft_policy(
+        self, object_type: str, policy: dict[str, Any], scope: str = "*", note: str = ""
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/workflow/policies",
+            json_body={"object_type": object_type, "policy": policy, "scope": scope, "note": note},
+        )
 
     @endpoint("POST", "/workflow/policies/import")
     def import_policy(self, object_type: str, yaml: str, scope: str = "*") -> Any:
-        return self._c("POST", "/workflow/policies/import", json_body={
-            "object_type": object_type, "yaml": yaml, "scope": scope})
+        return self._c(
+            "POST",
+            "/workflow/policies/import",
+            json_body={"object_type": object_type, "yaml": yaml, "scope": scope},
+        )
 
     @endpoint("POST", "/workflow/policies/validate")
     def validate_policy(self, object_type: str, policy: dict[str, Any]) -> Any:
-        return self._c("POST", "/workflow/policies/validate",
-                       json_body={"object_type": object_type, "policy": policy})
+        return self._c(
+            "POST",
+            "/workflow/policies/validate",
+            json_body={"object_type": object_type, "policy": policy},
+        )
 
     @endpoint("POST", "/workflow/policies/{policy_id}/activate")
     def activate_policy(self, policy_id: str) -> Any:
@@ -836,42 +1217,86 @@ class Workflow(_Resource):
 
     @endpoint("GET", "/workflow/history")
     def history(self, object_type: str, object_id: str) -> Any:
-        return self._c("GET", "/workflow/history", params={"object_type": object_type,
-                                                           "object_id": object_id})
+        return self._c(
+            "GET", "/workflow/history", params={"object_type": object_type, "object_id": object_id}
+        )
 
     @endpoint("GET", "/workflow/comments")
     def comments(self, object_type: str, object_id: str) -> Any:
-        return self._c("GET", "/workflow/comments", params={"object_type": object_type,
-                                                            "object_id": object_id})
+        return self._c(
+            "GET", "/workflow/comments", params={"object_type": object_type, "object_id": object_id}
+        )
 
     @endpoint("POST", "/workflow/comments")
-    def comment(self, object_type: str, object_id: str, body: str, blocking: bool = False,
-                anchor: str | None = None) -> Any:
-        return self._c("POST", "/workflow/comments", json_body={
-            "object_type": object_type, "object_id": object_id, "body": body,
-            "blocking": blocking, "anchor": anchor})
+    def comment(
+        self,
+        object_type: str,
+        object_id: str,
+        body: str,
+        blocking: bool = False,
+        anchor: str | None = None,
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/workflow/comments",
+            json_body={
+                "object_type": object_type,
+                "object_id": object_id,
+                "body": body,
+                "blocking": blocking,
+                "anchor": anchor,
+            },
+        )
 
     @endpoint("POST", "/workflow/comments/{comment_id}/resolve")
     def resolve_comment(self, comment_id: str) -> Any:
         return self._c("POST", f"/workflow/comments/{seg(comment_id)}/resolve")
 
     @endpoint("POST", "/workflow/transitions")
-    def transition(self, object_type: str, object_id: str, transition: str,
-                   rationale: str | None = None, force: bool = False) -> Any:
-        return self._c("POST", "/workflow/transitions", json_body={
-            "object_type": object_type, "object_id": object_id, "transition": transition,
-            "rationale": rationale, "force": force})
+    def transition(
+        self,
+        object_type: str,
+        object_id: str,
+        transition: str,
+        rationale: str | None = None,
+        force: bool = False,
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/workflow/transitions",
+            json_body={
+                "object_type": object_type,
+                "object_id": object_id,
+                "transition": transition,
+                "rationale": rationale,
+                "force": force,
+            },
+        )
 
     @endpoint("GET", "/workflow/delegations")
     def delegations(self) -> Any:
         return self._c("GET", "/workflow/delegations")
 
     @endpoint("POST", "/workflow/delegations")
-    def delegate(self, to: str, starts_on: str, ends_on: str,
-                 object_types: list[str] | None = None, reason: str = "") -> Any:
-        return self._c("POST", "/workflow/delegations", json_body={
-            "to": to, "starts_on": starts_on, "ends_on": ends_on,
-            "object_types": object_types or [], "reason": reason})
+    def delegate(
+        self,
+        to: str,
+        starts_on: str,
+        ends_on: str,
+        object_types: list[str] | None = None,
+        reason: str = "",
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/workflow/delegations",
+            json_body={
+                "to": to,
+                "starts_on": starts_on,
+                "ends_on": ends_on,
+                "object_types": object_types or [],
+                "reason": reason,
+            },
+        )
 
     @endpoint("DELETE", "/workflow/delegations/{delegation_id}")
     def revoke_delegation(self, delegation_id: str) -> Any:
@@ -882,10 +1307,19 @@ class Workflow(_Resource):
         return self._c("GET", "/workflow/campaigns")
 
     @endpoint("POST", "/workflow/campaigns")
-    def run_campaign(self, name: str, transition: str, items: list[dict[str, Any]],
-                     rationale: str = "") -> Any:
-        return self._c("POST", "/workflow/campaigns", json_body={
-            "name": name, "transition": transition, "items": items, "rationale": rationale})
+    def run_campaign(
+        self, name: str, transition: str, items: list[dict[str, Any]], rationale: str = ""
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/workflow/campaigns",
+            json_body={
+                "name": name,
+                "transition": transition,
+                "items": items,
+                "rationale": rationale,
+            },
+        )
 
 
 class Workspaces(_Resource):
@@ -895,18 +1329,21 @@ class Workspaces(_Resource):
 
     @endpoint("POST", "/workspaces")
     def create(self, name: str, description: str = "") -> Any:
-        return self._c("POST", "/workspaces", json_body={"name": name,
-                                                         "description": description})
+        return self._c("POST", "/workspaces", json_body={"name": name, "description": description})
 
     @endpoint("GET", "/workspaces/{ws_id}")
     def get(self, ws_id: str) -> Any:
         return self._c("GET", f"/workspaces/{seg(ws_id)}")
 
     @endpoint("PUT", "/workspaces/{ws_id}/changes")
-    def stage(self, ws_id: str, kind: str, ref: str, definition: dict[str, Any],
-              note: str = "") -> Any:
-        return self._c("PUT", f"/workspaces/{seg(ws_id)}/changes", json_body={
-            "kind": kind, "ref": ref, "definition": definition, "note": note})
+    def stage(
+        self, ws_id: str, kind: str, ref: str, definition: dict[str, Any], note: str = ""
+    ) -> Any:
+        return self._c(
+            "PUT",
+            f"/workspaces/{seg(ws_id)}/changes",
+            json_body={"kind": kind, "ref": ref, "definition": definition, "note": note},
+        )
 
     @endpoint("DELETE", "/workspaces/{ws_id}/changes/{change_id}")
     def unstage(self, ws_id: str, change_id: str) -> Any:
@@ -938,11 +1375,19 @@ class Events(_Resource):
     def list(self, after: int = 0, limit: int = 500, type: str | None = None) -> Any:
         return self._c("GET", "/events", params={"after": after, "limit": limit, "type": type})
 
-    def page(self, type: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def page(
+        self,
+        type: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/events", {"type": type}, page_size, cursor, sort, total)
 
-    def iter(self, type: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter(
+        self, type: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None
+    ) -> Any:
         return self._iter("/events", {"type": type}, page_size, sort)
 
     @endpoint("GET", "/events/stream")
@@ -954,11 +1399,19 @@ class Events(_Resource):
         return self._c("GET", "/webhooks")
 
     @endpoint("POST", "/webhooks")
-    def create_webhook(self, name: str, url: str, event_types: list[str] | None = None,
-                       description: str = "") -> Any:
-        return self._c("POST", "/webhooks", json_body={
-            "name": name, "url": url, "event_types": event_types or [],
-            "description": description})
+    def create_webhook(
+        self, name: str, url: str, event_types: list[str] | None = None, description: str = ""
+    ) -> Any:
+        return self._c(
+            "POST",
+            "/webhooks",
+            json_body={
+                "name": name,
+                "url": url,
+                "event_types": event_types or [],
+                "description": description,
+            },
+        )
 
     @endpoint("DELETE", "/webhooks/{webhook_id}")
     def delete_webhook(self, webhook_id: str) -> Any:
@@ -978,18 +1431,25 @@ class Assistant(_Resource):
 
     @endpoint("GET", "/assistant/memos")
     def memos(self, object_type: str, object_id: str) -> Any:
-        return self._c("GET", "/assistant/memos",
-                       params={"object_type": object_type, "object_id": object_id})
+        return self._c(
+            "GET", "/assistant/memos", params={"object_type": object_type, "object_id": object_id}
+        )
 
     @endpoint("POST", "/assistant/memos")
     def request(self, object_type: str, object_id: str) -> Any:
-        return self._c("POST", "/assistant/memos",
-                       json_body={"object_type": object_type, "object_id": object_id})
+        return self._c(
+            "POST",
+            "/assistant/memos",
+            json_body={"object_type": object_type, "object_id": object_id},
+        )
 
     @endpoint("POST", "/assistant/memos/{memo_id}/stance")
     def respond(self, memo_id: str, stance: str, note: str = "") -> Any:
-        return self._c("POST", f"/assistant/memos/{seg(memo_id)}/stance",
-                       json_body={"stance": stance, "note": note})
+        return self._c(
+            "POST",
+            f"/assistant/memos/{seg(memo_id)}/stance",
+            json_body={"stance": stance, "note": note},
+        )
 
 
 class Custody(_Resource):
@@ -1017,11 +1477,24 @@ class Jobs(_Resource):
     def list(self, all: bool = False) -> Any:
         return self._c("GET", "/jobs", params={"all": all})
 
-    def page(self, all: bool = False, q: str | None = None, page_size: int = PAGE_SIZE, cursor: str | None = None,
-             sort: str | None = None, total: bool = False) -> Any:
+    def page(
+        self,
+        all: bool = False,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> Any:
         return self._page("/jobs", {"all": all, "q": q}, page_size, cursor, sort, total)
 
-    def iter(self, all: bool = False, q: str | None = None, page_size: int = PAGE_SIZE, sort: str | None = None) -> Any:
+    def iter(
+        self,
+        all: bool = False,
+        q: str | None = None,
+        page_size: int = PAGE_SIZE,
+        sort: str | None = None,
+    ) -> Any:
         return self._iter("/jobs", {"all": all, "q": q}, page_size, sort)
 
     @endpoint("GET", "/jobs/{job_id}")

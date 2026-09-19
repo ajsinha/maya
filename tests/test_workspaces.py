@@ -6,6 +6,7 @@ before it, and a base that moved on refused as a conflict.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import copy
@@ -27,26 +28,42 @@ def branch(world):
     w.p.features.ingest(w.dana, "wsn/xy", xy_csv(), fmt="csv")
     w.p.features.transition(w.dana, "wsn/xy", 1, "submit")
     w.p.features.transition(w.mick, "wsn/xy", 1, "approve")
-    fs = {"index": ["date", "symbol"], "members": [
-        {"attr": "x", "ref": "maya://feature/wsn/xy@v1", "source_attr": "x"},
-        {"attr": "y", "ref": "maya://feature/wsn/xy@v1", "source_attr": "y"}]}
+    fs = {
+        "index": ["date", "symbol"],
+        "members": [
+            {"attr": "x", "ref": "maya://feature/wsn/xy@v1", "source_attr": "x"},
+            {"attr": "y", "ref": "maya://feature/wsn/xy@v1", "source_attr": "y"},
+        ],
+    }
     w.p.featuresets.create(w.devi, namespace="wsn", name="panel", definition=fs)
     w.p.featuresets.transition(w.devi, "wsn/panel", 1, "submit")
     w.p.featuresets.transition(w.mick, "wsn/panel", 1, "approve")
-    w.p.featuresets.pin(w.mick, "wsn/panel", version_no=1, pin_name="q1",
-                        as_of=dt.date(2026, 2, 28), cascade=True)
+    w.p.featuresets.pin(
+        w.mick, "wsn/panel", version_no=1, pin_name="q1", as_of=dt.date(2026, 2, 28), cascade=True
+    )
     w.drain()
-    w.p.models.create(w.mona, namespace="wsn", name="lin", formula="yhat = a*x + b",
-                      roles={"a": "parameter", "b": "parameter"})
+    w.p.models.create(
+        w.mona,
+        namespace="wsn",
+        name="lin",
+        formula="yhat = a*x + b",
+        roles={"a": "parameter", "b": "parameter"},
+    )
     w.p.models.update_draft(w.mona, "wsn/lin", spec_latex=complete_spec("lin"))
     w.p.models.transition(w.mona, "wsn/lin", 1, "submit")
     w.p.models.transition(w.mgr, "wsn/lin", 1, "approve")
-    tw = w.p.warrants.create(w.devi, namespace="wsn", name="tw", model="wsn/lin@v1",
-                             featureset="maya://featureset/wsn/panel#q1/2026-02-28",
-                             spec={"target": "y"})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="wsn",
+        name="tw",
+        model="wsn/lin@v1",
+        featureset="maya://featureset/wsn/panel#q1/2026-02-28",
+        spec={"target": "y"},
+    )
     checksum = w.p.warrants.data(w.devi, tw["id"])["manifest"]["checksum"]
-    ps = w.p.warrants.upload_parameters(w.devi, tw["id"], values={"a": 2.0, "b": 0.5},
-                                        data_checksum=checksum)
+    ps = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"a": 2.0, "b": 0.5}, data_checksum=checksum
+    )
     w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
     w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
     return w, tw
@@ -86,8 +103,9 @@ def test_shadow_replay_reaches_execution_warrants(branch):
     w, tw = branch
     with w.p.uow() as uow:
         ps = uow.repo("parameter_sets").find_one(training_warrant_id=tw["id"])
-    ew = w.p.execution.create(w.mgr, namespace="wsn", name="live", training_warrant_id=tw["id"],
-                              parameter_set_id=ps["id"])
+    ew = w.p.execution.create(
+        w.mgr, namespace="wsn", name="live", training_warrant_id=tw["id"], parameter_set_id=ps["id"]
+    )
     ws = w.p.workspaces.create(w.dana, "clip-x-exec")
     w.p.workspaces.stage(w.dana, ws["id"], kind="feature", ref="wsn/xy", definition=CLIPPED)
     uri = "maya://warrant/exec/wsn/live@v1"
@@ -110,6 +128,7 @@ def test_workspace_pages_render(branch):
     import re
     from starlette.testclient import TestClient
     from maya.server import build_app
+
     w, _ = branch
     ws = w.p.workspaces.create(w.dana, "ui-check")
     w.p.workspaces.stage(w.dana, ws["id"], kind="feature", ref="wsn/xy", definition=CLIPPED)
@@ -118,20 +137,25 @@ def test_workspace_pages_render(branch):
     web = TestClient(build_app(w.p))
     login = web.get("/login")
     csrf = re.search(r'name="csrf_token" value="([^"]+)"', login.text).group(1)
-    web.post("/login", data={"username": "dana", "password": "Test-password-1",
-                             "csrf_token": csrf})
+    web.post("/login", data={"username": "dana", "password": "Test-password-1", "csrf_token": csrf})
     listing = web.get("/workbench/workspaces")
     if "/account/password" in str(listing.url):
         page = web.get("/account/password")
         csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
-        web.post("/account/password", data={"old_password": "Test-password-1",
-                                            "new_password": "Changed-pass-22",
-                                            "confirm_password": "Changed-pass-22",
-                                            "csrf_token": csrf})
+        web.post(
+            "/account/password",
+            data={
+                "old_password": "Test-password-1",
+                "new_password": "Changed-pass-22",
+                "confirm_password": "Changed-pass-22",
+                "csrf_token": csrf,
+            },
+        )
         listing = web.get("/workbench/workspaces")
     assert listing.status_code == 200 and "ui-check" in listing.text
-    page = web.get(f"/workbench/workspaces/{ws['id']}?preview=maya://feature/wsn/xy@v1"
-                   "&kind=feature&ref=wsn/xy")
+    page = web.get(
+        f"/workbench/workspaces/{ws['id']}?preview=maya://feature/wsn/xy@v1&kind=feature&ref=wsn/xy"
+    )
     assert page.status_code == 200
     assert "Shadow replay" in page.text and "maya://warrant/train/wsn/tw@v1" in page.text
     assert "data-maya-table" in page.text and "Proposed definition" in page.text
@@ -140,14 +164,17 @@ def test_workspace_pages_render(branch):
 def test_approval_is_the_merge_and_a_moved_base_is_a_conflict(branch):
     w, _ = branch
     stale = w.p.workspaces.create(w.dana, "stale")
-    w.p.workspaces.stage(w.dana, stale["id"], kind="feature", ref="wsn/xy",
-                         definition=dict(CLIPPED, transform=[{"op": "clip", "attr": "x",
-                                                              "lo": 0, "hi": 4}]))
+    w.p.workspaces.stage(
+        w.dana,
+        stale["id"],
+        kind="feature",
+        ref="wsn/xy",
+        definition=dict(CLIPPED, transform=[{"op": "clip", "attr": "x", "lo": 0, "hi": 4}]),
+    )
     ws = w.p.workspaces.create(w.dana, "merge-me")
     w.p.workspaces.stage(w.dana, ws["id"], kind="feature", ref="wsn/xy", definition=CLIPPED)
     with pytest.raises(PermissionDenied):
-        w.p.workspaces.stage(w.mick, ws["id"], kind="feature", ref="wsn/xy",
-                             definition=XY_DEF)
+        w.p.workspaces.stage(w.mick, ws["id"], kind="feature", ref="wsn/xy", definition=XY_DEF)
     out = w.p.workspaces.submit(w.dana, ws["id"])
     assert out["submitted"][0]["version_no"] == 2
     assert w.p.workspaces.get(w.dana, ws["id"])["state"] == "in_review"

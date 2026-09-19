@@ -174,6 +174,7 @@ The scheduler compacts and vacuums every lake table every `lake.maintenance.inte
 ```python
 # Run lake maintenance now (administrators and techops)
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 out = my.admin.lake_maintain()
 print(out["filesRemoved"], out["filesAdded"], out["vacuumed"])
@@ -297,10 +298,13 @@ Events are numbered by an increasing sequence. Administrators and techops read t
 
 ```python
 # Subscribe a receiver to warrant events and approvals
-hook = my.events.create_webhook("risk-bus", "https://hooks.example.com/maya",
-                                event_types=["warrant.*", "model_version.approved"])
-print(hook["secret"])          # whsec_…, shown once
-my.events.ping(hook["id"])     # a maya.ping event, delivered now
+hook = my.events.create_webhook(
+    "risk-bus",
+    "https://hooks.example.com/maya",
+    event_types=["warrant.*", "model_version.approved"],
+)
+print(hook["secret"])  # whsec_…, shown once
+my.events.ping(hook["id"])  # a maya.ping event, delivered now
 ```
 
 An empty `event_types` subscribes to everything; a trailing `*` is a prefix. Each delivery is a JSON POST with `X-Maya-Event`, `X-Maya-Delivery` (use it as an idempotency key: delivery is at-least-once), `X-Maya-Timestamp` and `X-Maya-Signature: sha256=<HMAC-SHA256 of "<timestamp>.<body>">`.

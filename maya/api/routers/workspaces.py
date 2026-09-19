@@ -3,6 +3,7 @@ Workspace endpoints (§28.3, §29.2): stage, preview inside, impact, shadow repl
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -35,8 +36,11 @@ def get_workspace(ws_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
 
 @router.put("/{ws_id}/changes")
 def stage(ws_id: str, body: s.StageIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workspaces.stage(me, ws_id, kind=body.kind, ref=body.ref,
-                                    definition=body.definition, note=body.note))
+    return ok(
+        plat.workspaces.stage(
+            me, ws_id, kind=body.kind, ref=body.ref, definition=body.definition, note=body.note
+        )
+    )
 
 
 @router.delete("/{ws_id}/changes/{change_id}")

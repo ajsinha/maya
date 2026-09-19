@@ -5,6 +5,7 @@ second node running the same sweep sends nothing twice.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import logging
@@ -43,6 +44,7 @@ class Scheduler:
         def loop() -> None:
             while not self._stop.wait(tick):
                 self.run_due()
+
         self._thread = threading.Thread(target=loop, name="maya-scheduler", daemon=True)
         self._thread.start()
 

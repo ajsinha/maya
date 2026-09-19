@@ -50,7 +50,8 @@ kept offline, and a second factor (outside `dev`, `admin` requires one at passwo
 
 ```python
 import maya.sdk as maya
-my = maya.connect()              # an administrator's API key
+
+my = maya.connect()  # an administrator's API key
 my.admin.create_user("breakglass-admin", password="<long random secret>", roles=["admin"])
 ```
 
@@ -75,8 +76,8 @@ the password and the enrolled device apart. Test it at every [restore drill](res
 4. **When the IdP is back, restart without the override**, then review and close:
 
    ```python
-   my.admin.audit(action="auth.login")                  # every password sign-in during the window
-   my.admin.update_user("breakglass-admin", status="disabled")   # or rotate its password
+   my.admin.audit(action="auth.login")  # every password sign-in during the window
+   my.admin.update_user("breakglass-admin", status="disabled")  # or rotate its password
    ```
 
 ## How sign-out behaves
@@ -108,7 +109,7 @@ IdP session — if the IdP still holds one — is untouched. Logout requests fro
 arrive while it is down, so **end sessions by hand** for anyone who must lose access now:
 
 ```python
-[s for s in my.auth.sessions() if s["username"] == "<username>"]   # administrators
+[s for s in my.auth.sessions() if s["username"] == "<username>"]  # administrators
 my.auth.end_session("<session-id>")
 ```
 

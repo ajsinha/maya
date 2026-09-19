@@ -9,27 +9,50 @@ named by the object and the state reached — ``feature_version.approved``,
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 EVENT_ACTIONS = {
-    "pin.sealed", "pin.failed", "pin.retired", "featureset.cascade_rolled_back",
-    "feature.ingested", "feature.pulled",
-    "warrant.created", "warrant.parameters_uploaded", "warrant.sealed", "warrant.revoked",
-    "warrant.exec_created", "warrant.exec_sealed", "warrant.suspended", "warrant.reinstated",
-    "warrant.exec_revoked", "bundle.exported",
-    "access.granted", "access.revoked", "auth.lockout", "auth.mfa_reset",
-    "workspace.submitted", "workspace.merged", "integrity.verified", "policy.activated",
-    "workflow.break_glass", "job.dead_letter", "audit.anchored", "warrant.limit_exceeded",
+    "pin.sealed",
+    "pin.failed",
+    "pin.retired",
+    "featureset.cascade_rolled_back",
+    "feature.ingested",
+    "feature.pulled",
+    "warrant.created",
+    "warrant.parameters_uploaded",
+    "warrant.sealed",
+    "warrant.revoked",
+    "warrant.exec_created",
+    "warrant.exec_sealed",
+    "warrant.suspended",
+    "warrant.reinstated",
+    "warrant.exec_revoked",
+    "bundle.exported",
+    "access.granted",
+    "access.revoked",
+    "auth.lockout",
+    "auth.mfa_reset",
+    "workspace.submitted",
+    "workspace.merged",
+    "integrity.verified",
+    "policy.activated",
+    "workflow.break_glass",
+    "job.dead_letter",
+    "audit.anchored",
+    "warrant.limit_exceeded",
 }
 
 
 def event_type(entry: dict[str, Any]) -> str | None:
     """The event an audit entry announces, or None."""
     action = entry.get("action", "")
-    if action.startswith("workflow.") and action not in ("workflow.approval_recorded",
-                                                         "workflow.break_glass"):
+    if action.startswith("workflow.") and action not in (
+        "workflow.approval_recorded",
+        "workflow.break_glass",
+    ):
         to = (entry.get("detail") or {}).get("to")
         return f"{entry.get('object_type')}.{to}" if to and entry.get("object_type") else None
     return action if action in EVENT_ACTIONS else None
