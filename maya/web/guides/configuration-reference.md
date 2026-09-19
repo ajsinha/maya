@@ -85,6 +85,7 @@ An administrator can list every effective setting with its source (`file`, `env`
 ```python
 # List the effective configuration (administrators only)
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 for row in my.admin.config():
     print(row["key"], row["value"], row["source"])

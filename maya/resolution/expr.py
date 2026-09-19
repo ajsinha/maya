@@ -11,6 +11,7 @@ effects: there is no ``eval`` anywhere in this module.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import ast
@@ -50,6 +51,7 @@ def _where(cond: Any, a: Any, b: Any) -> Any:
 def _dt(part: str) -> Callable[[Any], Any]:
     def call(x: Any) -> Any:
         return getattr(pd.Series(x).dt, part).to_numpy()
+
     return call
 
 
@@ -135,8 +137,9 @@ class _Checker(ast.NodeVisitor):
             _refuse(node.func, "only whitelisted function names may be called")
         name = node.func.id
         if name not in FUNCTIONS:
-            raise ValidationFailed(f"function '{name}' is not permitted", construct="Call",
-                                   allowed=sorted(FUNCTIONS))
+            raise ValidationFailed(
+                f"function '{name}' is not permitted", construct="Call", allowed=sorted(FUNCTIONS)
+            )
         if node.keywords:
             _refuse(node.keywords[0], "keyword arguments")
         _, lo, hi = FUNCTIONS[name]
@@ -167,13 +170,18 @@ class Expr:
         """Evaluate vectorized over ``df``; the result is aligned to ``df.index``."""
         missing = sorted(r for r in self.refs if r not in df.columns)
         if missing:
-            raise ValidationFailed(f"expression refers to unknown attribute(s) {missing}",
-                                   missing=missing, expr=self.text)
+            raise ValidationFailed(
+                f"expression refers to unknown attribute(s) {missing}",
+                missing=missing,
+                expr=self.text,
+            )
         value = _eval(self.tree.body, df)
         if np.ndim(value) == 0:
             return pd.Series([value] * len(df), index=df.index)
-        return pd.Series(np.asarray(value) if not isinstance(value, pd.Series) else value.to_numpy(),
-                         index=df.index)
+        return pd.Series(
+            np.asarray(value) if not isinstance(value, pd.Series) else value.to_numpy(),
+            index=df.index,
+        )
 
 
 def _col(df: pd.DataFrame, name: str) -> Any:
@@ -228,8 +236,9 @@ def _binop(node: ast.BinOp, left: Any, right: Any) -> Any:
     (``10**10**10`` is inf, not a billion-digit integer), and text takes part only in
     concatenation (``'a' * 10**9`` and ``'%999999999d' % 1`` would allocate gigabytes)."""
     if not isinstance(node.op, ast.Add) and (_is_text(left) or _is_text(right)):
-        raise ValidationFailed("text may only be joined with '+' in an expression",
-                               construct=type(node.op).__name__)
+        raise ValidationFailed(
+            "text may only be joined with '+' in an expression", construct=type(node.op).__name__
+        )
     if isinstance(node.op, ast.Pow):
         with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
             return np.power(np.asarray(left, dtype="float64"), np.asarray(right, dtype="float64"))

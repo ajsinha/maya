@@ -3,6 +3,7 @@ Declarative base and the audit columns every mutable aggregate carries (§14.2).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt

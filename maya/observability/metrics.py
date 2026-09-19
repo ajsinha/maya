@@ -9,6 +9,7 @@ fixed in code.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import bisect
@@ -44,8 +45,9 @@ class Registry:
         self._buckets: dict[str, tuple[float, ...]] = {}
         self._collectors: list[Callable[[], list[tuple[str, dict[str, Any], float]]]] = []
 
-    def describe(self, name: str, kind: str, text: str,
-                 buckets: tuple[float, ...] = DEFAULT_BUCKETS) -> None:
+    def describe(
+        self, name: str, kind: str, text: str, buckets: tuple[float, ...] = DEFAULT_BUCKETS
+    ) -> None:
         self._help[name] = (kind, text)
         if kind == "histogram":
             self._buckets[name] = buckets
@@ -61,7 +63,7 @@ class Registry:
         with self._lock:
             series = self._hist.setdefault(name, {})
             key = _labels(labels)
-            row = series.setdefault(key, [0.0] * (len(buckets) + 2))   # buckets, sum, count
+            row = series.setdefault(key, [0.0] * (len(buckets) + 2))  # buckets, sum, count
             index = bisect.bisect_left(buckets, value)
             for i in range(index, len(buckets)):
                 row[i] += 1
@@ -81,8 +83,14 @@ class Registry:
                     gauges.setdefault(name, []).append((_labels(labels), value))
             except Exception as exc:  # noqa: BLE001 - one broken collector must not blank /metrics
                 gauges.setdefault("maya_collector_errors", []).append(
-                    ((("collector", getattr(fn, "__name__", "?")), ("error", type(exc).__name__)),
-                     1.0))
+                    (
+                        (
+                            ("collector", getattr(fn, "__name__", "?")),
+                            ("error", type(exc).__name__),
+                        ),
+                        1.0,
+                    )
+                )
         with self._lock:
             names = sorted(set(self._counters) | set(self._hist) | set(gauges))
             for name in names:
@@ -96,8 +104,9 @@ class Registry:
                 buckets = self._buckets.get(name, DEFAULT_BUCKETS)
                 for labels, row in sorted(self._hist.get(name, {}).items()):
                     for bound, count in zip(buckets, row):
-                        lines.append(f"{name}_bucket{_fmt(labels, (('le', f'{bound:g}'),))} "
-                                     f"{count:g}")
+                        lines.append(
+                            f"{name}_bucket{_fmt(labels, (('le', f'{bound:g}'),))} {count:g}"
+                        )
                     lines.append(f"{name}_bucket{_fmt(labels, (('le', '+Inf'),))} {row[-1]:g}")
                     lines.append(f"{name}_sum{_fmt(labels)} {row[-2]:g}")
                     lines.append(f"{name}_count{_fmt(labels)} {row[-1]:g}")

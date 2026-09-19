@@ -23,6 +23,7 @@ does the same for API-key principals narrowed by action and namespace scope.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -36,29 +37,76 @@ PAST = dt.datetime(2020, 1, 1, tzinfo=dt.timezone.utc)
 FUTURE = dt.datetime(2999, 1, 1, tzinfo=dt.timezone.utc)
 
 # ---- the policy, restated by hand (never imported from authz.py) -------------------------
-NEEDS = {"read": "R", "download": "R", "create": "C", "update": "U", "submit": "U",
-         "approve": "A", "pin": "P", "seal": "P", "request_pin": "Q", "grant": "G",
-         "revoke": "G", "admin": "C"}
+NEEDS = {
+    "read": "R",
+    "download": "R",
+    "create": "C",
+    "update": "U",
+    "submit": "U",
+    "approve": "A",
+    "pin": "P",
+    "seal": "P",
+    "request_pin": "Q",
+    "grant": "G",
+    "revoke": "G",
+    "admin": "C",
+}
 PERMITS = {
     "read": {"read", "download"},
     "read_write": {"read", "download", "update", "submit", "request_pin"},
     "approve": {"read", "download", "approve", "pin", "seal"},
-    "own": {"read", "download", "update", "submit", "request_pin", "approve", "pin", "seal",
-            "grant", "revoke"},
-    "admin": {"read", "download", "create", "update", "submit", "approve", "pin", "seal",
-              "request_pin", "grant", "revoke", "admin"},
+    "own": {
+        "read",
+        "download",
+        "update",
+        "submit",
+        "request_pin",
+        "approve",
+        "pin",
+        "seal",
+        "grant",
+        "revoke",
+    },
+    "admin": {
+        "read",
+        "download",
+        "create",
+        "update",
+        "submit",
+        "approve",
+        "pin",
+        "seal",
+        "request_pin",
+        "grant",
+        "revoke",
+        "admin",
+    },
 }
 RANK = ["read", "read_write", "approve", "own", "admin"]
-FROZEN = {"sealed", "retired"}                    # read-only to everyone, admins included
+FROZEN = {"sealed", "retired"}  # read-only to everyone, admins included
 WRITES = {"create", "update", "submit"}
-REVIEWS = {"approve", "pin", "seal", "request_pin"}   # follow the role in non-private namespaces
-STATES = [None, "draft", "in_review", "changes_requested", "approved", "published", "sealed",
-          "retired"]
+REVIEWS = {"approve", "pin", "seal", "request_pin"}  # follow the role in non-private namespaces
+STATES = [
+    None,
+    "draft",
+    "in_review",
+    "changes_requested",
+    "approved",
+    "published",
+    "sealed",
+    "retired",
+]
 
 
 def g(ptype, pid, level="read", deny=False, expires=None):
-    return {"principal_type": ptype, "principal_id": pid, "level": level, "deny": deny,
-            "expires_at": expires, "conditions": {}}
+    return {
+        "principal_type": ptype,
+        "principal_id": pid,
+        "level": level,
+        "deny": deny,
+        "expires_at": expires,
+        "conditions": {},
+    }
 
 
 def ctx(owner=OTHER, default="private", grants=(), scratch=None):
@@ -76,21 +124,25 @@ def contexts(role: str) -> dict[str, dict]:
         "owner": ctx(owner=ME),
         "ns_namespace_read": ctx(default="namespace_read"),
         "ns_public_read": ctx(default="public_read"),
-        "user_deny_beats_everyone_admin": ctx(default="public_read", owner=ME, grants=[
-            g("user", ME, deny=True), g("everyone", None, "admin")]),
+        "user_deny_beats_everyone_admin": ctx(
+            default="public_read",
+            owner=ME,
+            grants=[g("user", ME, deny=True), g("everyone", None, "admin")],
+        ),
         "role_grant_own": ctx(grants=[g("role", role, "own")]),
         "role_grant_other_role": ctx(grants=[g("role", other_role, "admin")]),
         "group_grant_approve": ctx(grants=[g("group", "g-desk", "approve")]),
         "other_group_grant": ctx(grants=[g("group", "g-else", "admin")]),
-        "user_read_beats_role_admin": ctx(grants=[g("user", ME, "read"),
-                                                  g("role", role, "admin")]),
+        "user_read_beats_role_admin": ctx(grants=[g("user", ME, "read"), g("role", role, "admin")]),
         "everyone_read_write": ctx(grants=[g("everyone", None, "read_write")]),
         "other_user_admin": ctx(grants=[g("user", OTHER, "admin")]),
         "expired_user_admin": ctx(grants=[g("user", ME, "admin", expires=PAST)]),
-        "expired_deny_live_read": ctx(grants=[g("user", ME, deny=True, expires=PAST),
-                                              g("user", ME, "read", expires=FUTURE)]),
-        "scratch_other_with_admin_grant": ctx(owner=ME, scratch=OTHER,
-                                              grants=[g("user", ME, "admin")]),
+        "expired_deny_live_read": ctx(
+            grants=[g("user", ME, deny=True, expires=PAST), g("user", ME, "read", expires=FUTURE)]
+        ),
+        "scratch_other_with_admin_grant": ctx(
+            owner=ME, scratch=OTHER, grants=[g("user", ME, "admin")]
+        ),
         "scratch_mine_owned": ctx(owner=ME, scratch=ME),
         "scratch_mine_not_owned": ctx(scratch=ME),
     }
@@ -127,9 +179,15 @@ def oracle(roles, caps, action, otype, state, c, key=None, obj_ns="eq") -> bool:
     mine = [x for x in live if x["principal_type"] == "user" and x["principal_id"] == ME]
     if any(x["deny"] for x in mine):
         return False
-    shared = [x for x in live if not x["deny"] and (
-        (x["principal_type"] == "role" and x["principal_id"] in roles)
-        or (x["principal_type"] == "group" and x["principal_id"] == "g-desk"))]
+    shared = [
+        x
+        for x in live
+        if not x["deny"]
+        and (
+            (x["principal_type"] == "role" and x["principal_id"] in roles)
+            or (x["principal_type"] == "group" and x["principal_id"] == "g-desk")
+        )
+    ]
     everyone = [x for x in live if x["principal_type"] == "everyone" and not x["deny"]]
     for tier in (mine, shared, everyone):
         if tier:
@@ -146,8 +204,13 @@ def NOW():
 
 
 def principal(role, key=None) -> Principal:
-    p = Principal(user_id=ME, username="me", roles=[role],
-                  capabilities=merge_capabilities([MATRIX[role]]), groups=["g-desk"])
+    p = Principal(
+        user_id=ME,
+        username="me",
+        roles=[role],
+        capabilities=merge_capabilities([MATRIX[role]]),
+        groups=["g-desk"],
+    )
     if key is not None:
         p.principal_type = "api_key"
         p.key_actions, p.key_namespaces = list(key[0]), list(key[1])
@@ -158,8 +221,15 @@ def decide(role, action, otype, state, c, key=None, obj_ns="eq") -> bool:
     obj = {"type": otype, "id": "o-1", "owner_id": c["owner"], "state": state}
     if obj_ns:
         obj["namespace_name"] = obj_ns
-    return bool(can(principal(role, key), action, obj, grants=[dict(x) for x in c["grants"]],
-                    namespace=dict(c["ns"])))
+    return bool(
+        can(
+            principal(role, key),
+            action,
+            obj,
+            grants=[dict(x) for x in c["grants"]],
+            namespace=dict(c["ns"]),
+        )
+    )
 
 
 def _report(mismatches: list[str], total: int) -> str:
@@ -169,11 +239,21 @@ def _report(mismatches: list[str], total: int) -> str:
 
 # ---- the inputs themselves must not silently shrink ----------------------------------------
 def test_matrix_inputs_are_complete():
-    assert sorted(MATRIX) == sorted(["admin", "feature_designer", "feature_manager",
-                                     "model_designer", "model_developer", "model_manager",
-                                     "model_owner", "techops"])
+    assert sorted(MATRIX) == sorted(
+        [
+            "admin",
+            "feature_designer",
+            "feature_manager",
+            "model_designer",
+            "model_developer",
+            "model_manager",
+            "model_owner",
+            "techops",
+        ]
+    )
     assert len(OBJECT_TYPES) == 13
     from maya.security.authz import ACTION_LETTER
+
     assert ACTION_LETTER == NEEDS, "an action was added or re-lettered; restate it here"
     assert len(contexts("admin")) == N_CONTEXTS
 
@@ -185,7 +265,8 @@ def test_full_matrix_zero_unexpected_allows_or_denies():
     for role in MATRIX:
         caps, cs = merge_capabilities([MATRIX[role]]), contexts(role)
         for otype, action, state, (cname, c) in itertools.product(
-                OBJECT_TYPES, NEEDS, STATES, cs.items()):
+            OBJECT_TYPES, NEEDS, STATES, cs.items()
+        ):
             want = oracle([role], caps, action, otype, state, c)
             got = decide(role, action, otype, state, c)
             total += 1
@@ -212,21 +293,28 @@ KEYS = {
 def test_api_key_sub_matrix():
     total, mismatches = 0, []
     tally = {k: [0, 0] for k in KEYS}
-    picked = ("private_no_grant", "owner", "user_admin", "ns_public_read",
-              "scratch_other_with_admin_grant")
+    picked = (
+        "private_no_grant",
+        "owner",
+        "user_admin",
+        "ns_public_read",
+        "scratch_other_with_admin_grant",
+    )
     for role in MATRIX:
         caps, cs = merge_capabilities([MATRIX[role]]), contexts(role)
         for otype, action, state, cname, (kname, key), obj_ns in itertools.product(
-                OBJECT_TYPES, NEEDS, (None, "draft", "sealed"), picked, KEYS.items(),
-                ("eq", None)):
+            OBJECT_TYPES, NEEDS, (None, "draft", "sealed"), picked, KEYS.items(), ("eq", None)
+        ):
             want = oracle([role], caps, action, otype, state, cs[cname], key, obj_ns)
             got = decide(role, action, otype, state, cs[cname], key, obj_ns)
             total += 1
             tally[kname][got] += 1
             if got != want:
                 kind = "UNEXPECTED ALLOW" if got else "unexpected deny"
-                mismatches.append(f"{kind}: key={kname} {role} {action} {otype} "
-                                  f"state={state} ctx={cname} ns={obj_ns}")
+                mismatches.append(
+                    f"{kind}: key={kname} {role} {action} {otype} "
+                    f"state={state} ctx={cname} ns={obj_ns}"
+                )
     assert total == 8 * 13 * 12 * 3 * 5 * 5 * 2 == 187200
     assert not mismatches, _report(mismatches, total)
     for kname, (denies, allows) in tally.items():
@@ -237,11 +325,15 @@ def test_api_key_scope_never_widens():
     """A key can only narrow its user: nothing a key allows is denied to the bare user."""
     for role in MATRIX:
         for cname, c in contexts(role).items():
-            for otype, action, (_, key) in itertools.product(OBJECT_TYPES, NEEDS,
-                                                            KEYS.items()):
+            for otype, action, (_, key) in itertools.product(OBJECT_TYPES, NEEDS, KEYS.items()):
                 if decide(role, action, otype, "draft", c, key):
-                    assert decide(role, action, otype, "draft", c), (role, action, otype,
-                                                                      cname, key)
+                    assert decide(role, action, otype, "draft", c), (
+                        role,
+                        action,
+                        otype,
+                        cname,
+                        key,
+                    )
 
 
 # ---- literal spot checks: pin the policy against drift in MATRIX itself ----------------------
@@ -286,8 +378,10 @@ def test_spot_checks():
         got = decide(role, action, otype, state, c)
         want = oracle([role], merge_capabilities([MATRIX[role]]), action, otype, state, c)
         if got is not allowed or want is not allowed:
-            bad.append(f"{role} {action} {otype} {state} {cname}: expected {allowed}, "
-                       f"can()={got}, oracle={want}")
+            bad.append(
+                f"{role} {action} {otype} {state} {cname}: expected {allowed}, "
+                f"can()={got}, oracle={want}"
+            )
     assert not bad, "\n".join(bad)
 
 
@@ -296,7 +390,11 @@ def test_unknown_actions_are_denied():
     p = Principal(user_id=ME, username="me", roles=list(MATRIX), capabilities=everything)
     for action in ("delete", "", "READ", "execute", "approve ", "*", "own"):
         for otype in OBJECT_TYPES:
-            d = can(p, action, {"type": otype, "id": "o", "owner_id": ME},
-                    grants=[g("user", ME, "admin")], namespace={"default_visibility":
-                                                                "public_read"})
+            d = can(
+                p,
+                action,
+                {"type": otype, "id": "o", "owner_id": ME},
+                grants=[g("user", ME, "admin")],
+                namespace={"default_visibility": "public_read"},
+            )
             assert not d, (action, otype, d.rule)

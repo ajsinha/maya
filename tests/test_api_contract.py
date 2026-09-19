@@ -14,6 +14,7 @@ and with bytes that are not JSON. The rules asserted:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -22,37 +23,64 @@ from tests._contract import PREFIX, call, concrete, endpoints
 from tests.conftest import PASSWORD, World, build_platform
 
 # Sign-in is necessarily reachable before signing in.
-PUBLIC = {("POST", "/auth/login"), ("GET", "/auth/sso/config"), ("POST", "/auth/sso/start"),
-          ("POST", "/auth/sso/callback"),
-          # SAML sign-in: the IdP's POST carries no session, and metadata is public by design
-          ("POST", "/auth/sso/saml/start"), ("POST", "/auth/sso/saml/acs"),
-          ("GET", "/auth/sso/saml/metadata"),
-          ("POST", "/auth/sso/saml/sls"),
-          ("POST", "/auth/sso/oidc/backchannel-logout")}   # server to server; signed token   # the IdP redirect carries no session; signed
+PUBLIC = {
+    ("POST", "/auth/login"),
+    ("GET", "/auth/sso/config"),
+    ("POST", "/auth/sso/start"),
+    ("POST", "/auth/sso/callback"),
+    # SAML sign-in: the IdP's POST carries no session, and metadata is public by design
+    ("POST", "/auth/sso/saml/start"),
+    ("POST", "/auth/sso/saml/acs"),
+    ("GET", "/auth/sso/saml/metadata"),
+    ("POST", "/auth/sso/saml/sls"),
+    ("POST", "/auth/sso/oidc/backchannel-logout"),
+}  # server to server; signed token   # the IdP redirect carries no session; signed
 # A never-ending server-sent stream: covered by its own test below, not the sweep.
 STREAMING = {("GET", "/events/stream")}
 # Writes any signed-in person may make on their own behalf, or that change nothing shared.
-SELF_SERVICE = {("POST", "/auth/api-keys"), ("POST", "/auth/logout"),
-                ("POST", "/auth/mfa/webauthn/register/options"),
-                ("POST", "/auth/mfa/webauthn/register"),
-                ("DELETE", "/auth/mfa/webauthn/{key_id}"),
-                ("POST", "/auth/mfa/enroll"), ("POST", "/features/infer"),
-                ("POST", "/inbox/read"), ("POST", "/workspaces"),
-                # a campaign authorizes each item's transition separately; with no
-                # permission on anything, it records only failures
-                ("POST", "/workflow/campaigns")}
+SELF_SERVICE = {
+    ("POST", "/auth/api-keys"),
+    ("POST", "/auth/logout"),
+    ("POST", "/auth/mfa/webauthn/register/options"),
+    ("POST", "/auth/mfa/webauthn/register"),
+    ("DELETE", "/auth/mfa/webauthn/{key_id}"),
+    ("POST", "/auth/mfa/enroll"),
+    ("POST", "/features/infer"),
+    ("POST", "/inbox/read"),
+    ("POST", "/workspaces"),
+    # a campaign authorizes each item's transition separately; with no
+    # permission on anything, it records only failures
+    ("POST", "/workflow/campaigns"),
+}
 ADMIN_ONLY = {
-    ("GET", "/audit"), ("GET", "/auth/sessions"), ("DELETE", "/auth/sessions/{session_id}"),
-    ("POST", "/custody/anchor"), ("GET", "/custody/anchors"), ("GET", "/custody/verify"),
-    ("GET", "/events"), ("POST", "/groups"), ("POST", "/namespaces"),
-    ("PATCH", "/namespaces/{name}"), ("POST", "/roles"), ("POST", "/sql-connections"),
-    ("DELETE", "/sql-connections/{name}"), ("POST", "/sql-connections/{name}/test"),
-    ("GET", "/system/config"), ("GET", "/system/estate"), ("POST", "/system/integrity"),
-    ("POST", "/users"), ("PATCH", "/users/{username}"),
-    ("POST", "/users/{username}/mfa-reset"), ("POST", "/users/{username}/password-reset"),
-    ("PUT", "/users/{username}/roles"), ("GET", "/webhooks"), ("POST", "/webhooks"),
-    ("DELETE", "/webhooks/{webhook_id}"), ("GET", "/webhooks/{webhook_id}/deliveries"),
-    ("POST", "/webhooks/{webhook_id}/ping"), ("POST", "/workflow/policies"),
+    ("GET", "/audit"),
+    ("GET", "/auth/sessions"),
+    ("DELETE", "/auth/sessions/{session_id}"),
+    ("POST", "/custody/anchor"),
+    ("GET", "/custody/anchors"),
+    ("GET", "/custody/verify"),
+    ("GET", "/events"),
+    ("POST", "/groups"),
+    ("POST", "/namespaces"),
+    ("PATCH", "/namespaces/{name}"),
+    ("POST", "/roles"),
+    ("POST", "/sql-connections"),
+    ("DELETE", "/sql-connections/{name}"),
+    ("POST", "/sql-connections/{name}/test"),
+    ("GET", "/system/config"),
+    ("GET", "/system/estate"),
+    ("POST", "/system/integrity"),
+    ("POST", "/users"),
+    ("PATCH", "/users/{username}"),
+    ("POST", "/users/{username}/mfa-reset"),
+    ("POST", "/users/{username}/password-reset"),
+    ("PUT", "/users/{username}/roles"),
+    ("GET", "/webhooks"),
+    ("POST", "/webhooks"),
+    ("DELETE", "/webhooks/{webhook_id}"),
+    ("GET", "/webhooks/{webhook_id}/deliveries"),
+    ("POST", "/webhooks/{webhook_id}/ping"),
+    ("POST", "/workflow/policies"),
     ("POST", "/workflow/policies/{policy_id}/activate"),
 }
 
@@ -62,6 +90,7 @@ def api():
     from starlette.testclient import TestClient
 
     from maya.api.app import create_api
+
     platform = build_platform(["--observability.webhooks.allow_private=true"])
     w = World(platform)
     platform.access.create_user(w.admin, username="nobody", password=PASSWORD, roles=[])
@@ -79,8 +108,7 @@ def api():
 
 def _sweep(api):
     app, _, _ = api
-    return [(m, p, op) for m, p, op in endpoints(app)
-            if (m, p[len(PREFIX):]) not in STREAMING]
+    return [(m, p, op) for m, p, op in endpoints(app) if (m, p[len(PREFIX) :]) not in STREAMING]
 
 
 def _problem(r, who: str, method: str, path: str) -> None:
@@ -92,10 +120,14 @@ def _problem(r, who: str, method: str, path: str) -> None:
 
 def test_the_sweep_covers_every_endpoint(api):
     app, _, _ = api
-    paths = {(m, p[len(PREFIX):]) for m, p, _ in endpoints(app)}
+    paths = {(m, p[len(PREFIX) :]) for m, p, _ in endpoints(app)}
     assert len(paths) >= 150
-    for name, table in (("PUBLIC", PUBLIC), ("SELF_SERVICE", SELF_SERVICE),
-                        ("ADMIN_ONLY", ADMIN_ONLY), ("STREAMING", STREAMING)):
+    for name, table in (
+        ("PUBLIC", PUBLIC),
+        ("SELF_SERVICE", SELF_SERVICE),
+        ("ADMIN_ONLY", ADMIN_ONLY),
+        ("STREAMING", STREAMING),
+    ):
         assert table <= paths, (name, sorted(table - paths))
 
 
@@ -105,7 +137,7 @@ def test_anonymous_callers_are_refused_everywhere_but_sign_in(api):
     for m, p, op in _sweep(api):
         r = call(client, app, m, p, op)
         _problem(r, "anonymous", m, p)
-        if (m, p[len(PREFIX):]) not in PUBLIC and r.status_code != 401:
+        if (m, p[len(PREFIX) :]) not in PUBLIC and r.status_code != 401:
             wrong.append((m, p, r.status_code))
     assert not wrong, wrong
     stream = client.get(f"{PREFIX}/events/stream")
@@ -116,9 +148,11 @@ def test_nothing_answers_5xx_and_errors_are_problem_documents(api):
     app, client, login = api
     for who, creds in (("nobody", ("nobody", PASSWORD)), ("admin", ("admin", "maya-dev-admin"))):
         for m, p, op in _sweep(api):
-            headers = login(*creds)                  # fresh: a logout in the sweep ends it
+            headers = login(*creds)  # fresh: a logout in the sweep ends it
             _problem(call(client, app, m, p, op, headers), who, m, p)
-            _problem(call(client, app, m, p, op, headers, with_body=False), who + " (no body)", m, p)
+            _problem(
+                call(client, app, m, p, op, headers, with_body=False), who + " (no body)", m, p
+            )
 
 
 def test_malformed_json_is_422_on_every_json_endpoint(api):
@@ -138,7 +172,7 @@ def test_a_roleless_user_writes_only_on_their_own_behalf(api):
     app, client, login = api
     wrote = []
     for m, p, op in _sweep(api):
-        if m == "GET" or (m, p[len(PREFIX):]) in SELF_SERVICE:
+        if m == "GET" or (m, p[len(PREFIX) :]) in SELF_SERVICE:
             continue
         r = call(client, app, m, p, op, login("nobody", PASSWORD))
         if r.status_code < 300:
@@ -148,7 +182,7 @@ def test_a_roleless_user_writes_only_on_their_own_behalf(api):
 
 def test_every_administrative_route_refuses_a_roleless_user(api):
     app, client, login = api
-    ops = {(m, p[len(PREFIX):]): op for m, p, op in endpoints(app)}
+    ops = {(m, p[len(PREFIX) :]): op for m, p, op in endpoints(app)}
     wrong = []
     for m, p in sorted(ADMIN_ONLY):
         r = call(client, app, m, PREFIX + p, ops[(m, p)], login("nobody", PASSWORD))
@@ -158,10 +192,15 @@ def test_every_administrative_route_refuses_a_roleless_user(api):
 
 
 OBJECT_GETS = [
-    "/features/{namespace}/{name}", "/featuresets/{namespace}/{name}",
-    "/models/{namespace}/{name}", "/warrants/training/{warrant_id}",
-    "/warrants/execution/{ew_id}", "/jobs/{job_id}", "/workspaces/{ws_id}",
-    "/workspaces/{ws_id}/impact", "/webhooks/{webhook_id}/deliveries",
+    "/features/{namespace}/{name}",
+    "/featuresets/{namespace}/{name}",
+    "/models/{namespace}/{name}",
+    "/warrants/training/{warrant_id}",
+    "/warrants/execution/{ew_id}",
+    "/jobs/{job_id}",
+    "/workspaces/{ws_id}",
+    "/workspaces/{ws_id}/impact",
+    "/webhooks/{webhook_id}/deliveries",
     "/workflow/policies/{policy_id}",
 ]
 
@@ -169,10 +208,11 @@ OBJECT_GETS = [
 @pytest.mark.parametrize("path", OBJECT_GETS)
 def test_an_unknown_object_is_404_not_an_empty_success(api, path):
     app, client, login = api
-    ops = {(m, p[len(PREFIX):]): op for m, p, op in endpoints(app)}
+    ops = {(m, p[len(PREFIX) :]): op for m, p, op in endpoints(app)}
     assert ("GET", path) in ops, path
-    r = call(client, app, "GET", PREFIX + path, ops[("GET", path)],
-             login("admin", "maya-dev-admin"))
+    r = call(
+        client, app, "GET", PREFIX + path, ops[("GET", path)], login("admin", "maya-dev-admin")
+    )
     assert r.status_code == 404, (path, r.status_code, r.text[:200])
     assert r.json()["type"] == "not_found"
 
@@ -182,8 +222,11 @@ def test_unknown_workflow_object_types_are_refused_by_name(api):
     h = login("admin", "maya-dev-admin")
     r = client.get(f"{PREFIX}/workflow/population/spaceship", headers=h)
     assert r.status_code == 422 and "feature_version" in r.text
-    r = client.post(f"{PREFIX}/workflow/comments", headers=h,
-                    json={"object_type": "spaceship", "object_id": "x", "body": "hello"})
+    r = client.post(
+        f"{PREFIX}/workflow/comments",
+        headers=h,
+        json={"object_type": "spaceship", "object_id": "x", "body": "hello"},
+    )
     assert r.status_code == 422
 
 

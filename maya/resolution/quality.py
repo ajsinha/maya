@@ -10,6 +10,7 @@ pin and a promotion; it never silently passes. A contract is either a list of
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -137,21 +138,28 @@ def _freshness(df: pd.DataFrame, c: Check, idx: list[str]) -> Result:
 
 
 CHECKS: dict[str, Callable[[pd.DataFrame, Check, list[str]], Result]] = {
-    "not_null": _not_null, "unique_on_index": _unique, "range": _range,
-    "allowed_values": _allowed, "monotonic": _monotonic, "max_daily_change": _max_change,
-    "row_count_between": _row_count, "freshness_within": _freshness,
+    "not_null": _not_null,
+    "unique_on_index": _unique,
+    "range": _range,
+    "allowed_values": _allowed,
+    "monotonic": _monotonic,
+    "max_daily_change": _max_change,
+    "row_count_between": _row_count,
+    "freshness_within": _freshness,
 }
 
 
-def run_checks(df: pd.DataFrame, contract: Any, index_cols: list[str],
-               as_of: Any = None) -> list[Result]:
+def run_checks(
+    df: pd.DataFrame, contract: Any, index_cols: list[str], as_of: Any = None
+) -> list[Result]:
     """Evaluate every check of the contract. Never raises on a failing check."""
     results = []
     for c in normalize_contract(contract):
         fn = CHECKS.get(c.get("check", ""))
         if fn is None:
-            raise ValidationFailed(f"unknown quality check '{c.get('check')}'",
-                                   allowed=sorted(CHECKS))
+            raise ValidationFailed(
+                f"unknown quality check '{c.get('check')}'", allowed=sorted(CHECKS)
+            )
         if c["check"] == "freshness_within" and as_of is not None and "as_of" not in c:
             c["as_of"] = as_of
         results.append(fn(df, c, index_cols))

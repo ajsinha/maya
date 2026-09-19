@@ -16,8 +16,6 @@ from typing import Optional, List, Union, Dict, Any
 from pathlib import Path
 
 
-
-
 class TypedAccessorsMixin:
     """Typed getters, list getters, and pattern queries."""
 
@@ -91,11 +89,11 @@ class TypedAccessorsMixin:
             value_lower = value.lower().strip()
 
             # True values
-            if value_lower in ('true', 'yes', 'on', '1', 'y', 't'):
+            if value_lower in ("true", "yes", "on", "1", "y", "t"):
                 return True
 
             # False values
-            if value_lower in ('false', 'no', 'off', '0', 'n', 'f'):
+            if value_lower in ("false", "no", "off", "0", "n", "f"):
                 return False
 
         # If value is numeric, use Python's bool conversion
@@ -108,7 +106,7 @@ class TypedAccessorsMixin:
         # Cannot convert, return default
         return default_value
 
-    def get_list(self, key: str, delim: str = ',') -> Optional[List[str]]:
+    def get_list(self, key: str, delim: str = ",") -> Optional[List[str]]:
         """
         Get a property value as list by splitting with delimiter
 
@@ -125,7 +123,7 @@ class TypedAccessorsMixin:
 
         return [item.strip() for item in value.split(delim) if item.strip()]
 
-    def get_int_list(self, key: str, delim: str = ',') -> Optional[List[int]]:
+    def get_int_list(self, key: str, delim: str = ",") -> Optional[List[int]]:
         """
         Get a property value as list of integers
 
@@ -149,7 +147,7 @@ class TypedAccessorsMixin:
 
         return result if result else None
 
-    def get_float_list(self, key: str, delim: str = ',') -> Optional[List[float]]:
+    def get_float_list(self, key: str, delim: str = ",") -> Optional[List[float]]:
         """
         Get a property value as list of floats
 
@@ -242,7 +240,6 @@ class TypedAccessorsMixin:
             return self._property_sources.copy()
 
 
-
 class ContentResolutionMixin:
     """${prop} resolution inside arbitrary strings, files, and JSON."""
 
@@ -259,7 +256,7 @@ class ContentResolutionMixin:
         Returns:
             Resolved string with all ${...} patterns replaced by property values
         """
-        if not content or '${' not in content:
+        if not content or "${" not in content:
             return content
 
         with self._properties_lock:
@@ -289,11 +286,11 @@ class ContentResolutionMixin:
 
         try:
             resolved_lines = []
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 for line in f:
                     # Don't strip the line to preserve formatting/whitespace
                     # But remove the trailing newline
-                    line = line.rstrip('\n\r')
+                    line = line.rstrip("\n\r")
                     resolved_line = self.resolve_string_content(line)
                     resolved_lines.append(resolved_line)
 
@@ -322,9 +319,7 @@ class ContentResolutionMixin:
             return djson.loads(resolved_content)
         except djson.JSONDecodeError as e:
             raise djson.JSONDecodeError(
-                f"Error parsing resolved JSON content: {e.msg}",
-                e.doc,
-                e.pos
+                f"Error parsing resolved JSON content: {e.msg}", e.doc, e.pos
             )
 
     def load_and_resolve_json_file_content(self, filename: Union[str, Path]) -> Dict[str, Any]:
@@ -349,17 +344,14 @@ class ContentResolutionMixin:
             raise FileNotFoundError(f"File not found: {file_path}")
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
             return self.resolve_string_json_content(content)
 
         except djson.JSONDecodeError as e:
             raise djson.JSONDecodeError(
-                f"Error parsing JSON from file {file_path}: {e.msg}",
-                e.doc,
-                e.pos
+                f"Error parsing JSON from file {file_path}: {e.msg}", e.doc, e.pos
             )
         except Exception as e:
             raise IOError(f"Error reading file {file_path}: {e}")
-

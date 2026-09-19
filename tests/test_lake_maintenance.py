@@ -4,6 +4,7 @@ sealed pins, previews and as-of-knowledge answers exactly as they were.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -27,9 +28,14 @@ def test_compaction_and_vacuum_change_nothing_anyone_can_read(lake):
     w = lake
     ref = approved_feature(w, "busy", price_csv(5))
     known = dt.datetime(2026, 3, 1, tzinfo=dt.timezone.utc)
-    for k in range(1, 8):                      # many small restatements: many small files
-        w.p.features.ingest(w.dana, ref, price_csv(5, bump=float(k)), fmt="csv",
-                            knowledge_time=known + dt.timedelta(days=k))
+    for k in range(1, 8):  # many small restatements: many small files
+        w.p.features.ingest(
+            w.dana,
+            ref,
+            price_csv(5, bump=float(k)),
+            fmt="csv",
+            knowledge_time=known + dt.timedelta(days=k),
+        )
     v1 = f"maya://feature/{ref}@v1"
     pin = w.p.features.pin(w.mick, ref, version_no=1, pin_name="eom", as_of=dt.date(2026, 1, 31))
     w.drain()
@@ -41,8 +47,9 @@ def test_compaction_and_vacuum_change_nothing_anyone_can_read(lake):
     assert out["filesRemoved"] > out["filesAdded"] and out["vacuumed"] == out["filesRemoved"]
     assert sum(len(w.p.lake.delta.files(t)) for t in w.p.lake.tables()) < files_before
     assert w.p.features.preview(w.dana, v1)["rows"] == latest
-    assert w.p.features.preview(w.dana, v1, as_of_known=known + dt.timedelta(days=2))[
-        "rows"] == early
+    assert (
+        w.p.features.preview(w.dana, v1, as_of_known=known + dt.timedelta(days=2))["rows"] == early
+    )
     integrity = w.p.ops.verify_integrity(w.admin)
     assert integrity["drift"] == [] and integrity["checked"] >= 1
     with w.p.uow() as uow:

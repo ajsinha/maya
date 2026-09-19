@@ -176,10 +176,15 @@ An approver who will be away names a stand-in for a date range, optionally limit
 ```python
 # Cover two weeks of leave
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
-d = my.workflow.delegate(to="priya", starts_on="2026-10-01", ends_on="2026-10-14",
-                         object_types=["feature_version", "featureset_version"],
-                         reason="Annual leave")
+d = my.workflow.delegate(
+    to="priya",
+    starts_on="2026-10-01",
+    ends_on="2026-10-14",
+    object_types=["feature_version", "featureset_version"],
+    reason="Annual leave",
+)
 ```
 
 | Rule | Behaviour |
@@ -201,8 +206,13 @@ An administrator can force a transition past its checks and approvals:
 
 ```python
 # Force an approval, on the record
-my.features.transition("credit/ltv", 4, "approve", force=True,
-                       rationale="Regulator deadline today; full review scheduled 2026-09-21")
+my.features.transition(
+    "credit/ltv",
+    4,
+    "approve",
+    force=True,
+    rationale="Regulator deadline today; full review scheduled 2026-09-21",
+)
 ```
 
 | Rule | Behaviour |
@@ -219,13 +229,17 @@ The rules of governance are governed too. A policy change is drafted, validated,
 
 ```python
 # Draft a stricter policy for one namespace, then have another administrator activate it
-current = next(p for p in my.workflow.policies()
-               if p["object_type"] == "feature_version" and p["state"] == "active")
+current = next(
+    p
+    for p in my.workflow.policies()
+    if p["object_type"] == "feature_version" and p["state"] == "active"
+)
 policy = current["policy"]
 policy["transitions"]["approve"]["approvals"] = [{"role": "feature_manager", "count": 2}]
-print(my.workflow.validate_policy("feature_version", policy))   # {"errors": [], "impact": {…}}
-draft = my.workflow.draft_policy("feature_version", policy, scope="credit",
-                                 note="two approvals in credit")
+print(my.workflow.validate_policy("feature_version", policy))  # {"errors": [], "impact": {…}}
+draft = my.workflow.draft_policy(
+    "feature_version", policy, scope="credit", note="two approvals in credit"
+)
 # a different administrator:
 my.workflow.activate_policy(draft["id"])
 ```
@@ -275,9 +289,12 @@ A campaign applies one transition to many objects — a re-certification, a mass
 
 ```python
 # Deprecate three model versions in one campaign
-out = my.workflow.run_campaign("q3-cleanup", "deprecate",
-                               [{"object_type": "model_version", "id": v} for v in version_ids],
-                               rationale="Superseded by the Q3 recalibration")
+out = my.workflow.run_campaign(
+    "q3-cleanup",
+    "deprecate",
+    [{"object_type": "model_version", "id": v} for v in version_ids],
+    rationale="Superseded by the Q3 recalibration",
+)
 print([(r["id"], r["ok"], r["message"]) for r in out["results"]])
 ```
 

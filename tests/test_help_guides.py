@@ -5,6 +5,7 @@ companion link resolves.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -29,12 +30,14 @@ def test_each_guide_renders_with_contents_and_no_script(slug):
     doc = render(slug)
     assert doc["toc"], f"{slug} has no ## sections"
     assert "<script" not in doc["html"].lower()
-    assert len(re.findall(r"<table\b", doc["html"])) == \
-        len(re.findall(r'<table class="maya-table"', doc["html"]))
+    assert len(re.findall(r"<table\b", doc["html"])) == len(
+        re.findall(r'<table class="maya-table"', doc["html"])
+    )
 
 
 def test_guides_are_served_to_anyone(env):  # noqa: F811 - the imported fixture
     from starlette.testclient import TestClient
+
     _, app, _, _ = env
     anon = TestClient(app)
     assert "Tutorials and full references" in anon.get("/help/guides").text
@@ -44,4 +47,3 @@ def test_guides_are_served_to_anyone(env):  # noqa: F811 - the imported fixture
     assert anon.get("/help/guides/nope", follow_redirects=False).status_code == 303
     page = anon.get("/help/features").text
     assert "Full reference:" in page and "/help/guides/features-reference" in page
-

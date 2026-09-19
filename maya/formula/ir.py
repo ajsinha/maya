@@ -12,6 +12,7 @@ Node forms:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -20,13 +21,29 @@ from typing import Any, Iterator
 
 # op name -> (min arity, max arity); None max means variadic
 OPS: dict[str, tuple[int, int | None]] = {
-    "add": (2, None), "sub": (2, 2), "mul": (2, None), "div": (2, 2),
-    "pow": (2, 2), "neg": (1, 1), "exp": (1, 1), "log": (1, 1),
-    "sqrt": (1, 1), "abs": (1, 1), "ncdf": (1, 1), "npdf": (1, 1),
-    "max": (2, None), "min": (2, None), "where": (3, 3),
-    "gt": (2, 2), "lt": (2, 2), "ge": (2, 2), "le": (2, 2), "eq": (2, 2),
-    "and": (2, None), "or": (2, None),
-    "na": (0, 0),               # "not available" (Excel's #N/A): evaluates to NaN
+    "add": (2, None),
+    "sub": (2, 2),
+    "mul": (2, None),
+    "div": (2, 2),
+    "pow": (2, 2),
+    "neg": (1, 1),
+    "exp": (1, 1),
+    "log": (1, 1),
+    "sqrt": (1, 1),
+    "abs": (1, 1),
+    "ncdf": (1, 1),
+    "npdf": (1, 1),
+    "max": (2, None),
+    "min": (2, None),
+    "where": (3, 3),
+    "gt": (2, 2),
+    "lt": (2, 2),
+    "ge": (2, 2),
+    "le": (2, 2),
+    "eq": (2, 2),
+    "and": (2, None),
+    "or": (2, None),
+    "na": (0, 0),  # "not available" (Excel's #N/A): evaluates to NaN
 }
 
 INPUT_ROLES = ("feature", "parameter", "constant")
@@ -129,8 +146,11 @@ def _io_errors(ir: dict[str, Any]) -> list[str]:
         names.add(name)
         if inp.get("role", "feature") not in INPUT_ROLES:
             errors.append(f"input '{name}': role must be one of {INPUT_ROLES}")
-        if "value" in inp and (inp.get("role") != "constant" or isinstance(inp["value"], bool)
-                               or not isinstance(inp["value"], (int, float))):
+        if "value" in inp and (
+            inp.get("role") != "constant"
+            or isinstance(inp["value"], bool)
+            or not isinstance(inp["value"], (int, float))
+        ):
             errors.append(f"input '{name}': only a constant carries a value, and it is a number")
         bounds = inp.get("bounds")
         if bounds is not None and (len(bounds) != 2 or bounds[0] > bounds[1]):
@@ -149,6 +169,7 @@ def validate_ir(ir: dict[str, Any]) -> list[str]:
         return errors + _black_box_errors(ir)
     if "composite" in ir:
         from maya.formula.composite import validate_composite
+
         return errors + validate_composite(ir["composite"])
     lets = ir.get("lets") or {}
     if "body" not in ir:
@@ -187,9 +208,14 @@ def ir_hash(ir: dict[str, Any]) -> str:
 def input_contract(ir: dict[str, Any]) -> list[dict[str, Any]]:
     """Feature inputs the bound feature set must supply (§8.2)."""
     return [
-        {"name": i["name"], "type": i.get("type", "float64"), "unit": i.get("unit"),
-         "role": "feature"}
-        for i in ir.get("inputs", []) if i.get("role", "feature") == "feature"
+        {
+            "name": i["name"],
+            "type": i.get("type", "float64"),
+            "unit": i.get("unit"),
+            "role": "feature",
+        }
+        for i in ir.get("inputs", [])
+        if i.get("role", "feature") == "feature"
     ]
 
 

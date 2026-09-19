@@ -9,6 +9,7 @@ breaks someone's code, so any difference fails until
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import inspect
@@ -31,23 +32,32 @@ def _sig(fn: Any) -> str:
 
 
 def _methods(cls: type) -> dict[str, str]:
-    return {name: _sig(fn) for name, fn in sorted(inspect.getmembers(cls, callable))
-            if not name.startswith("_")}
+    return {
+        name: _sig(fn)
+        for name, fn in sorted(inspect.getmembers(cls, callable))
+        if not name.startswith("_")
+    }
 
 
 def surface() -> dict[str, Any]:
     import maya.sdk as sdk
     from maya.sdk.client import AsyncClient, Client
+
     out: dict[str, Any] = {"maya.sdk.__all__": sorted(sdk.__all__)}
     for cls in (Client, AsyncClient):
         entry: dict[str, Any] = {"methods": _methods(cls), "namespaces": {}}
         probe = cls.__new__(cls)
-        probe._bind(object())                       # namespaces, bound to nothing
+        probe._bind(object())  # namespaces, bound to nothing
         for name, value in sorted(vars(probe).items()):
-            if not name.startswith("_") and inspect.isclass(type(value)) and \
-                    type(value).__module__.startswith("maya.sdk"):
-                entry["namespaces"][name] = {"class": type(value).__name__,
-                                             "methods": _methods(type(value))}
+            if (
+                not name.startswith("_")
+                and inspect.isclass(type(value))
+                and type(value).__module__.startswith("maya.sdk")
+            ):
+                entry["namespaces"][name] = {
+                    "class": type(value).__name__,
+                    "methods": _methods(type(value)),
+                }
         out[cls.__name__] = entry
     return out
 

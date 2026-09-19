@@ -9,6 +9,7 @@ naming the key rather than guessing (§22.2, §24.2).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -37,14 +38,18 @@ class Settings:
             raise ConfigurationError(
                 "app.environment is prod but db.dialect is sqlite. SQLite is a "
                 "single-node, small-team backend (spec §14.1); set "
-                "db.dialect=postgresql for production.", key="db.dialect")
+                "db.dialect=postgresql for production.",
+                key="db.dialect",
+            )
 
     def _choice(self, key: str, allowed: tuple[str, ...]) -> str:
         value = self.props.require(key).strip().lower()
         if value not in allowed:
             raise ConfigurationError(
                 f"Setting '{key}' is '{value}'; expected one of {', '.join(allowed)}.",
-                key=key, allowed=list(allowed))
+                key=key,
+                allowed=list(allowed),
+            )
         return value
 
     # -- typed helpers ---------------------------------------------------
@@ -76,6 +81,7 @@ class Settings:
         port = self.props.require(p + "port")
         database = self.props.require(p + "database")
         from urllib.parse import quote
+
         cred = quote(user) + (":" + quote(password) if password else "")
         return f"postgresql+psycopg://{cred}@{host}:{port}/{database}"
 
@@ -88,7 +94,8 @@ class Settings:
             raise ConfigurationError(
                 "app.secret_key is not set. Outside dev MAYA will not generate "
                 "one; set MAYA_SECRET_KEY or put it in config/application.local.yaml.",
-                key="app.secret_key")
+                key="app.secret_key",
+            )
         path = self.storage_root / "keys" / "session.secret"
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
@@ -101,8 +108,13 @@ class Settings:
         sources = self.props.get_all_sources()
         for key, value in sorted(self.props.get_all_properties().items()):
             secret = any(s in key for s in ("password", "secret", "token"))
-            rows.append({"key": key, "value": "••••••" if secret and value else value,
-                         "source": sources.get(key, "file")})
+            rows.append(
+                {
+                    "key": key,
+                    "value": "••••••" if secret and value else value,
+                    "source": sources.get(key, "file"),
+                }
+            )
         return rows
 
 

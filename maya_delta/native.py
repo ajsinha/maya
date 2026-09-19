@@ -16,6 +16,7 @@ backend never calls those paths. ``get_add_actions`` does not trigger it.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,6 +33,7 @@ from maya_delta.schema import normalise_schema, schema_from_delta_json
 
 def _import_deltalake() -> Any:
     import deltalake  # the one place this package imports it
+
     return deltalake
 
 
@@ -63,7 +65,9 @@ class NativeBackend:
             dt = self._dl.DeltaTable(str(path))
             if version is not None:
                 if version < 0 or version > dt.version():
-                    raise MayaDeltaError(f"Version {version} does not exist (latest is {dt.version()})")
+                    raise MayaDeltaError(
+                        f"Version {version} does not exist (latest is {dt.version()})"
+                    )
                 dt.load_as_version(version)
             return dt
         except MayaDeltaError:
@@ -89,40 +93,70 @@ class NativeBackend:
             pv = a.get("partition") or a.get("partition_values") or {}
             if isinstance(pv, list):
                 pv = dict(pv)
-            out.append({"path": a["path"], "size": int(a["size_bytes"]),
-                        "partitionValues": {c: (None if pv.get(c) is None else str(pv.get(c)))
-                                            for c in partition_cols},
-                        "stats": _stats_json(a)})
+            out.append(
+                {
+                    "path": a["path"],
+                    "size": int(a["size_bytes"]),
+                    "partitionValues": {
+                        c: (None if pv.get(c) is None else str(pv.get(c))) for c in partition_cols
+                    },
+                    "stats": _stats_json(a),
+                }
+            )
         return out
 
-    def read(self, path: Path, *, partitions: dict[str, list[str]] | None = None,
-             columns: list[str] | None = None, version: int | None = None) -> pa.Table:
+    def read(
+        self,
+        path: Path,
+        *,
+        partitions: dict[str, list[str]] | None = None,
+        columns: list[str] | None = None,
+        version: int | None = None,
+    ) -> pa.Table:
         dt = self._table(path, version)
         schema = schema_from_delta_json(dt.schema().to_json())
         adds = [a for a in self._adds(dt) if matches(a["partitionValues"], partitions)]
         return read_files(Path(path), adds, schema, list(dt.metadata().partition_columns), columns)
 
-    def files(self, path: Path, partitions: dict[str, list[str]] | None = None) -> list[dict[str, Any]]:
-        return [a for a in self._adds(self._table(path)) if matches(a["partitionValues"], partitions)]
+    def files(
+        self, path: Path, partitions: dict[str, list[str]] | None = None
+    ) -> list[dict[str, Any]]:
+        return [
+            a for a in self._adds(self._table(path)) if matches(a["partitionValues"], partitions)
+        ]
 
     def history(self, path: Path) -> list[dict[str, Any]]:
         rows = self._table(path).history()
         out = []
         for r in rows:
             params = r.get("operationParameters") or {}
-            out.append({"version": int(r["version"]), "timestamp": r.get("timestamp"),
-                        "operation": r.get("operation"), "operationParameters": params})
+            out.append(
+                {
+                    "version": int(r["version"]),
+                    "timestamp": r.get("timestamp"),
+                    "operation": r.get("operation"),
+                    "operationParameters": params,
+                }
+            )
         return sorted(out, key=lambda r: r["version"])
 
     def protocol(self, path: Path) -> dict[str, Any]:
         p = self._table(path).protocol()
-        return {"minReaderVersion": int(p.min_reader_version),
-                "minWriterVersion": int(p.min_writer_version),
-                "readerFeatures": list(p.reader_features) if p.reader_features else None,
-                "writerFeatures": list(p.writer_features) if p.writer_features else None}
+        return {
+            "minReaderVersion": int(p.min_reader_version),
+            "minWriterVersion": int(p.min_writer_version),
+            "readerFeatures": list(p.reader_features) if p.reader_features else None,
+            "writerFeatures": list(p.writer_features) if p.writer_features else None,
+        }
 
-    def write(self, path: Path, table: pa.Table, *, mode: str = "append",
-              partition_by: list[str] | None = None) -> int:
+    def write(
+        self,
+        path: Path,
+        table: pa.Table,
+        *,
+        mode: str = "append",
+        partition_by: list[str] | None = None,
+    ) -> int:
         if mode not in ("append", "overwrite"):
             raise MayaDeltaError(f"Unsupported write mode '{mode}'")
         table = table.cast(normalise_schema(table.schema))
@@ -134,8 +168,10 @@ class NativeBackend:
         elif self.exists(path):
             current = self.schema(path)
             if not current.equals(table.schema):
-                raise MayaDeltaError(f"Append schema does not match the table schema:\n"
-                                     f"table: {current}\nwrite: {table.schema}")
+                raise MayaDeltaError(
+                    f"Append schema does not match the table schema:\n"
+                    f"table: {current}\nwrite: {table.schema}"
+                )
         try:
             self._dl.write_deltalake(str(path), table, **kwargs)
         except Exception as exc:
@@ -149,22 +185,29 @@ class NativeBackend:
             m = dt.optimize.compact(target_size=target_size)
         except Exception as exc:
             raise _wrap(exc) from exc
-        return {"version": self.version(path), "numFilesRemoved": int(m.get("numFilesRemoved", 0)),
-                "numFilesAdded": int(m.get("numFilesAdded", 0)),
-                "partitionsOptimized": int(m.get("partitionsOptimized", 0)),
-                "numRows": None}
+        return {
+            "version": self.version(path),
+            "numFilesRemoved": int(m.get("numFilesRemoved", 0)),
+            "numFilesAdded": int(m.get("numFilesAdded", 0)),
+            "partitionsOptimized": int(m.get("partitionsOptimized", 0)),
+            "numRows": None,
+        }
 
-    def vacuum(self, path: Path, *, retention_hours: float, dry_run: bool,
-               enforce_retention: bool) -> list[str]:
+    def vacuum(
+        self, path: Path, *, retention_hours: float, dry_run: bool, enforce_retention: bool
+    ) -> list[str]:
         if enforce_retention and retention_hours < 168:
-            raise MayaDeltaError(f"Retention of {retention_hours}h is below the 168h minimum; "
-                                 "pass enforce_retention=False to vacuum more aggressively "
-                                 "(time travel past it stops working)")
+            raise MayaDeltaError(
+                f"Retention of {retention_hours}h is below the 168h minimum; "
+                "pass enforce_retention=False to vacuum more aggressively "
+                "(time travel past it stops working)"
+            )
         # delta-rs lists every expired tombstone, including files already gone; report only
         # files that exist, relative to the table root, as the pure backend does
         try:
-            planned = self._table(path).vacuum(retention_hours=int(retention_hours),
-                                               dry_run=True, enforce_retention_duration=False)
+            planned = self._table(path).vacuum(
+                retention_hours=int(retention_hours), dry_run=True, enforce_retention_duration=False
+            )
         except Exception as exc:
             raise _wrap(exc) from exc
         root = Path(path).resolve()
@@ -176,8 +219,11 @@ class NativeBackend:
                 present.append(full.resolve().relative_to(root).as_posix())
         if present and not dry_run:
             try:
-                self._table(path).vacuum(retention_hours=int(retention_hours), dry_run=False,
-                                         enforce_retention_duration=False)
+                self._table(path).vacuum(
+                    retention_hours=int(retention_hours),
+                    dry_run=False,
+                    enforce_retention_duration=False,
+                )
             except Exception as exc:
                 raise _wrap(exc) from exc
         return sorted(present)
@@ -197,10 +243,15 @@ def _stats_json(action: dict[str, Any]) -> str | None:
             return {k: plain(x) for k, x in v.items() if x is not None}
         return v if isinstance(v, (int, float, str, bool)) else str(v)
 
-    return json.dumps({"numRecords": action["num_records"],
-                       "minValues": plain(action.get("min") or {}),
-                       "maxValues": plain(action.get("max") or {}),
-                       "nullCount": plain(action.get("null_count") or {})}, separators=(",", ":"))
+    return json.dumps(
+        {
+            "numRecords": action["num_records"],
+            "minValues": plain(action.get("min") or {}),
+            "maxValues": plain(action.get("max") or {}),
+            "nullCount": plain(action.get("null_count") or {}),
+        },
+        separators=(",", ":"),
+    )
 
 
 def self_check(scratch: Path) -> None:

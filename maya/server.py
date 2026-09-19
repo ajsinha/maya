@@ -5,6 +5,7 @@ the web UI beside it. The UI reaches the API only through the SDK's
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import os
@@ -20,8 +21,12 @@ from maya.api.app import create_api
 def build_app(platform: Any) -> FastAPI:
     app = create_api(platform)
     from maya.web.app import mount_web
-    mount_web(app, secret_key=platform.settings.session_secret(),
-              secure_cookies=platform.settings.environment != "dev")
+
+    mount_web(
+        app,
+        secret_key=platform.settings.session_secret(),
+        secure_cookies=platform.settings.environment != "dev",
+    )
     return app
 
 
@@ -33,9 +38,13 @@ def web_worker() -> FastAPI:
     from maya.config import load_settings
     from maya.observability.logs import configure
     from maya.services.platform import Platform
+
     settings = load_settings(os.environ.get("MAYA_CONFIG_FILE"))
-    configure(settings.get("logging.level", "INFO") or "INFO",
-              settings.get("logging.format", "text") or "text", settings.get("logging.file"))
+    configure(
+        settings.get("logging.level", "INFO") or "INFO",
+        settings.get("logging.format", "text") or "text",
+        settings.get("logging.file"),
+    )
     return build_app(Platform.build(settings, start_workers=False, primary=False))
 
 
@@ -45,10 +54,13 @@ def check_web_processes(workers: int, dialect: str) -> None:
     processes, read-then-write steps such as linking the audit chain could interleave."""
     if workers > 1 and dialect == "sqlite":
         from maya.core.errors import ConfigurationError
+
         raise ConfigurationError(
             f"server.workers is {workers}, but the database is SQLite, which admits one "
             "writing process. Use PostgreSQL (db.dialect: postgresql) for several web "
-            "processes, or set server.workers: 1.", workers=workers)
+            "processes, or set server.workers: 1.",
+            workers=workers,
+        )
 
 
 def balanced_sockets() -> bool:
@@ -61,6 +73,7 @@ def serve_web_process(host: str, port: int, loop: str) -> None:
     """One web process with its own SO_REUSEPORT socket (the target of each process
     ``run_maya_web.py`` starts when ``balanced_sockets()``)."""
     import uvicorn
+
     family = socket.AF_INET6 if ":" in host else socket.AF_INET
     sock = socket.socket(family, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -68,6 +81,7 @@ def serve_web_process(host: str, port: int, loop: str) -> None:
     sock.bind((host, port))
     sock.listen(2048)
     sock.set_inheritable(True)
-    config = uvicorn.Config(web_worker(), log_level="warning", loop=loop, proxy_headers=True,
-                            access_log=False)
+    config = uvicorn.Config(
+        web_worker(), log_level="warning", loop=loop, proxy_headers=True, access_log=False
+    )
     uvicorn.Server(config).run(sockets=[sock])

@@ -12,6 +12,7 @@ to start, naming the export → init-db → import commands.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import functools
@@ -80,8 +81,9 @@ def schema_hash(dialect_name: str) -> str:
 
 def render(dialect_name: str) -> str:
     """The full file content that ships as schema/<dialect>.sql."""
-    return HEADER.format(dialect=dialect_name, digest=schema_hash(dialect_name)) + \
-        ddl_body(dialect_name)
+    return HEADER.format(dialect=dialect_name, digest=schema_hash(dialect_name)) + ddl_body(
+        dialect_name
+    )
 
 
 def schema_file(dialect_name: str) -> Path:
@@ -120,17 +122,20 @@ def create_all(engine: Engine, *, force: bool = False) -> str:
     if drift()[name]:
         raise ConfigurationError(
             f"schema/{name}.sql does not match the ORM metadata. Regenerate it with "
-            f"'python tools/ci/gen_schema.py' before creating a database.")
+            f"'python tools/ci/gen_schema.py' before creating a database."
+        )
     with engine.begin() as conn:
         if force:
             _drop_everything(conn, name)
         for stmt in _file_statements(name):
             conn.exec_driver_sql(stmt)
         digest = schema_hash(name)
-        conn.execute(text("INSERT INTO schema_meta (key, value) VALUES ('schema_hash', :v)"),
-                     {"v": digest})
-        conn.execute(text("INSERT INTO schema_meta (key, value) VALUES ('dialect', :v)"),
-                     {"v": name})
+        conn.execute(
+            text("INSERT INTO schema_meta (key, value) VALUES ('schema_hash', :v)"), {"v": digest}
+        )
+        conn.execute(
+            text("INSERT INTO schema_meta (key, value) VALUES ('dialect', :v)"), {"v": name}
+        )
     return digest
 
 
@@ -144,8 +149,8 @@ def _drop_everything(conn, name: str) -> None:  # type: ignore[no-untyped-def]
     for table in reversed(Base.metadata.sorted_tables):
         conn.exec_driver_sql(f'DROP TABLE IF EXISTS "{table.name}"')
     for (tbl,) in conn.exec_driver_sql(
-            "SELECT name FROM sqlite_master WHERE type='table' "
-            "AND name NOT LIKE 'sqlite_%'").fetchall():
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    ).fetchall():
         conn.exec_driver_sql(f'DROP TABLE IF EXISTS "{tbl}"')
 
 
@@ -153,8 +158,9 @@ def stored_hash(engine: Engine) -> str | None:
     """The schema hash stamped at creation, or None for an empty database."""
     with engine.connect() as conn:
         try:
-            row = conn.execute(text(
-                "SELECT value FROM schema_meta WHERE key='schema_hash'")).fetchone()
+            row = conn.execute(
+                text("SELECT value FROM schema_meta WHERE key='schema_hash'")
+            ).fetchone()
         except Exception:  # noqa: BLE001 - absent table means an empty database
             conn.rollback()
             return None
@@ -166,8 +172,9 @@ def verify_identity(engine: Engine) -> str:
     expected = schema_hash(engine.dialect.name)
     found = stored_hash(engine)
     if found is None:
-        raise ConfigurationError("The database has no MAYA schema. Run "
-                                 "'python -m maya.cli admin init-db'.")
+        raise ConfigurationError(
+            "The database has no MAYA schema. Run 'python -m maya.cli admin init-db'."
+        )
     if found != expected:
         raise ConfigurationError(
             "Schema mismatch: the database was created from a different schema "
@@ -176,5 +183,7 @@ def verify_identity(engine: Engine) -> str:
             "  python -m maya.cli admin export-estate --out estate.mayabundle\n"
             "  python -m maya.cli admin init-db --force\n"
             "  python -m maya.cli admin import-estate --in estate.mayabundle",
-            stored=found, expected=expected)
+            stored=found,
+            expected=expected,
+        )
     return found

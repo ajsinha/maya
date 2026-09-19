@@ -4,6 +4,7 @@ download, recomputed locally so a caller verifies what it received (§18.2.5).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any

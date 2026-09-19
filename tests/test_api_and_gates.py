@@ -6,6 +6,7 @@ violation, to fail (a gate nobody has seen fail is a gate nobody knows works).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import os
@@ -28,6 +29,7 @@ def api():
     platform = build_platform()
     w = World(platform)
     from maya.api.app import create_api
+
     app = create_api(platform)
     yield w, app
     platform.shutdown()
@@ -103,15 +105,25 @@ def test_real_server_over_http_with_sdk_and_cli(tmp_path):
     """`python run_maya_web.py` on a real socket, driven by the SDK and the CLI."""
     port = _free_port()
     env = dict(os.environ, MAYA_HOME=str(tmp_path), PYTHONPATH=str(ROOT))
-    proc = subprocess.Popen([sys.executable, str(ROOT / "run_maya_web.py"),
-                             f"--server.port={port}", "--jobs.workers=1"],
-                            cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(
+        [
+            sys.executable,
+            str(ROOT / "run_maya_web.py"),
+            f"--server.port={port}",
+            "--jobs.workers=1",
+        ],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
     try:
         url = f"http://127.0.0.1:{port}"
-        deadline = time.monotonic() + 90          # a loaded machine starts slowly, not never
+        deadline = time.monotonic() + 90  # a loaded machine starts slowly, not never
         while True:
             try:
                 import httpx
+
                 if httpx.get(url + "/readyz", timeout=1).status_code == 200:
                     break
             except Exception:  # noqa: BLE001 - not up yet
@@ -126,14 +138,34 @@ def test_real_server_over_http_with_sdk_and_cli(tmp_path):
         data = tmp_path / "px.csv"
         data.write_bytes(price_csv(5))
         cli_env = dict(env, MAYA_URL=url, MAYA_API_KEY=key)
-        out = subprocess.run([sys.executable, "-m", "maya.cli", "--json", "feature", "quick",
-                              str(data), "--name", "clipx"], cwd=ROOT, env=cli_env,
-                             capture_output=True, text=True, timeout=120)
+        out = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "maya.cli",
+                "--json",
+                "feature",
+                "quick",
+                str(data),
+                "--name",
+                "clipx",
+            ],
+            cwd=ROOT,
+            env=cli_env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
         assert out.returncode == 0, out.stderr
         assert "scratch.admin/clipx" in out.stdout
-        listing = subprocess.run([sys.executable, "-m", "maya.cli", "feature", "list"],
-                                 cwd=ROOT, env=cli_env, capture_output=True, text=True,
-                                 timeout=120)
+        listing = subprocess.run(
+            [sys.executable, "-m", "maya.cli", "feature", "list"],
+            cwd=ROOT,
+            env=cli_env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
         assert "clipx" in listing.stdout
         home = c.admin.health()
         assert home["audit_chain"]["ok"]
@@ -144,13 +176,23 @@ def test_real_server_over_http_with_sdk_and_cli(tmp_path):
 
 # -- gates, green and red ---------------------------------------------------------------------
 def _gate(name: str) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(CI / name)], cwd=ROOT, capture_output=True,
-                          text=True, timeout=300)
+    return subprocess.run(
+        [sys.executable, str(CI / name)], cwd=ROOT, capture_output=True, text=True, timeout=300
+    )
 
 
-@pytest.mark.parametrize("gate", ["file_size.py", "import_boundaries.py", "seam_imports.py",
-                                  "version_single_source.py", "no_secrets.py",
-                                  "table_contract.py", "sdk_parity.py"])
+@pytest.mark.parametrize(
+    "gate",
+    [
+        "file_size.py",
+        "import_boundaries.py",
+        "seam_imports.py",
+        "version_single_source.py",
+        "no_secrets.py",
+        "table_contract.py",
+        "sdk_parity.py",
+    ],
+)
 def test_gate_is_green(gate):
     result = _gate(gate)
     assert result.returncode == 0, result.stdout
@@ -170,6 +212,7 @@ def test_gate_fails_on_a_planted_violation(gate):
     rel, content = PLANTS[gate]
     if content is None:
         from maya.core.version import VERSION
+
         content = f'VERSION = "{VERSION}"\n'
     path = ROOT / rel
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -195,8 +238,13 @@ def test_schema_drift_gate_fails_after_a_hand_edit():
     original = target.read_bytes()
     target.write_bytes(original + b"-- hand edit\n")
     try:
-        result = subprocess.run([sys.executable, str(CI / "gen_schema.py"), "--check"],
-                                cwd=ROOT, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(
+            [sys.executable, str(CI / "gen_schema.py"), "--check"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
         assert result.returncode == 1
     finally:
         target.write_bytes(original)
@@ -207,12 +255,18 @@ def test_denials_are_audited_even_though_they_roll_back(api):
     w, app = api
     w.p.access.create_namespace(w.admin, name="denied")
     from tests.conftest import PX_DEF
+
     w.p.features.create(w.dana, namespace="denied", name="f", definition=PX_DEF)
     before = len(w.p.access.audit_log(w.admin, action="authz.denied"))
     with pytest.raises(PermissionDenied):
-        w.p.access.grant(w.mick, kind="feature",
-                         obj=w.p.access.resolve_object("feature", "denied/f"),
-                         principal_type="user", principal_id="mick", level="own")
+        w.p.access.grant(
+            w.mick,
+            kind="feature",
+            obj=w.p.access.resolve_object("feature", "denied/f"),
+            principal_type="user",
+            principal_id="mick",
+            level="own",
+        )
     after = w.p.access.audit_log(w.admin, action="authz.denied")
     assert len(after) == before + 1
     assert w.p.access.verify_audit()["ok"]

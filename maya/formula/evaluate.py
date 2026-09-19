@@ -7,6 +7,7 @@ bundle re-executes with it.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import math
@@ -81,8 +82,9 @@ def eval_node(node: dict[str, Any], env: dict[str, Any], params: dict[str, Any])
         raise ValidationFailed(f"no value supplied for '{name}'", name=name)
     if "param" in node:
         if node["param"] not in params:
-            raise ValidationFailed(f"no value supplied for parameter '{node['param']}'",
-                                   name=node["param"])
+            raise ValidationFailed(
+                f"no value supplied for parameter '{node['param']}'", name=node["param"]
+            )
         return params[node["param"]]
     vals = [eval_node(a, env, params) for a in node["args"]]
     with np.errstate(all="ignore"):
@@ -93,8 +95,9 @@ def _as_array(value: Any) -> np.ndarray:
     return np.asarray(value, dtype=float) if not isinstance(value, np.ndarray) else value
 
 
-def evaluate(ir: dict[str, Any], inputs: dict[str, Any],
-             params: dict[str, Any] | None = None) -> dict[str, np.ndarray]:
+def evaluate(
+    ir: dict[str, Any], inputs: dict[str, Any], params: dict[str, Any] | None = None
+) -> dict[str, np.ndarray]:
     """Evaluate a closed-form IR; returns ``{output_name: array}``."""
     params = dict(params or {})
     if "black_box" in ir:
@@ -115,19 +118,25 @@ def evaluate(ir: dict[str, Any], inputs: dict[str, Any],
         env[name] = eval_node(lets[name], env, params)
     result = eval_node(ir["body"], env, params)
     size = max((np.size(v) for v in env.values()), default=1)
-    out = np.broadcast_to(np.asarray(result, dtype=float), (size,)) if np.ndim(result) == 0 \
+    out = (
+        np.broadcast_to(np.asarray(result, dtype=float), (size,))
+        if np.ndim(result) == 0
         else np.asarray(result, dtype=float)
+    )
     return {ir["outputs"][0]["name"]: np.array(out)}
 
 
 def _member_params(params: dict[str, Any], alias: str) -> dict[str, Any]:
     prefix = alias + "."
-    return {k[len(prefix):]: v for k, v in params.items() if k.startswith(prefix)}
+    return {k[len(prefix) :]: v for k, v in params.items() if k.startswith(prefix)}
 
 
-def evaluate_composite(ir: dict[str, Any], member_irs: dict[str, dict[str, Any]],
-                       inputs: dict[str, Any], params: dict[str, Any] | None = None
-                       ) -> dict[str, np.ndarray]:
+def evaluate_composite(
+    ir: dict[str, Any],
+    member_irs: dict[str, dict[str, Any]],
+    inputs: dict[str, Any],
+    params: dict[str, Any] | None = None,
+) -> dict[str, np.ndarray]:
     """Evaluate a composite: members first (in train order or declaration order), then combine.
 
     Member parameters are alias-namespaced (``base.sigma``); the combiner's own
@@ -142,8 +151,13 @@ def evaluate_composite(ir: dict[str, Any], member_irs: dict[str, dict[str, Any]]
         member = member_irs[alias]
         member_inputs = dict(env)
         if "composite" in member:
-            nested = {m["alias"]: member_irs[f"{alias}/{m['alias']}"] for m in member["composite"]["members"]}
-            outputs = evaluate_composite(member, nested, member_inputs, _member_params(params, alias))
+            nested = {
+                m["alias"]: member_irs[f"{alias}/{m['alias']}"]
+                for m in member["composite"]["members"]
+            }
+            outputs = evaluate_composite(
+                member, nested, member_inputs, _member_params(params, alias)
+            )
         else:
             outputs = evaluate(member, member_inputs, _member_params(params, alias))
         for out_name, arr in outputs.items():

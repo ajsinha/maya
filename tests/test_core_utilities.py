@@ -5,6 +5,7 @@ formatting, and the sandbox runner's in-process helpers.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,13 +21,32 @@ from maya.core.properties_configurator import PropertiesConfigurator
 @pytest.fixture()
 def props(tmp_path, monkeypatch):
     path = tmp_path / "app.properties"
-    path.write_text("\n".join([
-        "# a comment", "// another", "port = 8600", "ratio=0.25", "flag=yes", "off=Off",
-        "num_flag=2", "bad_int=abc", "hosts=a, b ,, c", "ints=1,x,3", "floats=1.5, y, 2",
-        "no_ints=x,y", "base=/srv", "path=${base}/data", "missing=${nope}/x",
-        "json={\"root\": \"${base}\", \"n\": 1}", "db.main.url=u1", "db.replica.url=u2",
-        "not a pair",
-    ]) + "\n")
+    path.write_text(
+        "\n".join(
+            [
+                "# a comment",
+                "// another",
+                "port = 8600",
+                "ratio=0.25",
+                "flag=yes",
+                "off=Off",
+                "num_flag=2",
+                "bad_int=abc",
+                "hosts=a, b ,, c",
+                "ints=1,x,3",
+                "floats=1.5, y, 2",
+                "no_ints=x,y",
+                "base=/srv",
+                "path=${base}/data",
+                "missing=${nope}/x",
+                'json={"root": "${base}", "n": 1}',
+                "db.main.url=u1",
+                "db.replica.url=u2",
+                "not a pair",
+            ]
+        )
+        + "\n"
+    )
     monkeypatch.setattr("sys.argv", ["pytest"])
     PropertiesConfigurator.reset_instance()
     pc = PropertiesConfigurator([str(path)])
@@ -65,7 +85,7 @@ def test_placeholder_resolution_in_strings_files_and_json(props):
     assert pc.get("path") == "/srv/data"
     assert pc.resolve_string_content("at ${base} and ${base}") == "at /srv and /srv"
     assert pc.resolve_string_content("no placeholders") == "no placeholders"
-    assert pc.resolve_string_content("${nope}") == "${nope}"                 # left as-is
+    assert pc.resolve_string_content("${nope}") == "${nope}"  # left as-is
     text = tmp / "t.txt"
     text.write_text("root=${base}\n  indented ${base}\n")
     assert pc.load_and_resolve_file_content(text) == ["root=/srv", "  indented /srv"]
@@ -80,9 +100,14 @@ def test_placeholder_resolution_in_strings_files_and_json(props):
 
 
 def test_yaml_flattening_and_parsing(tmp_path):
-    flat = cp.flatten_yaml({"a": {"b": 1, "c": True, "d": None},
-                            "tags": ["x", "y"], "people": [{"n": "p"}, {"n": "q"}],
-                            "mixed": [1, [2, 3]]})
+    flat = cp.flatten_yaml(
+        {
+            "a": {"b": 1, "c": True, "d": None},
+            "tags": ["x", "y"],
+            "people": [{"n": "p"}, {"n": "q"}],
+            "mixed": [1, [2, 3]],
+        }
+    )
     assert flat["a.b"] == "1" and flat["a.c"] == "true" and flat["a.d"] == ""
     assert flat["tags"] == "x,y" and flat["tags.0"] == "x" and flat["tags.1"] == "y"
     assert "people" not in flat and flat["people.1.n"] == "q"
@@ -114,10 +139,11 @@ def test_the_default_config_prefers_yaml(tmp_path):
 
 def test_compression_round_trips_under_both_codecs(monkeypatch):
     import zlib
+
     data = b"maya " * 1000
     assert compress.decompress(compress.compress(data)) == data
     zl = b"MZL1" + zlib.compress(data)
-    assert compress.decompress(zl) == data                   # readable whichever codec wrote it
+    assert compress.decompress(zl) == data  # readable whichever codec wrote it
     monkeypatch.setattr(compress.Backends, "selected", staticmethod(lambda seam: "zlib"))
     assert compress.compress(data).startswith(b"MZL1")
     with pytest.raises(ValueError, match="Unknown compression header"):
@@ -134,6 +160,7 @@ def test_procstat_reports_memory_under_either_backend(monkeypatch):
 
 def test_json_logs_carry_the_trace_and_exceptions(tmp_path):
     from maya.observability import logs, tracing
+
     root = logging.getLogger()
     saved = (list(root.handlers), root.level)
     try:
@@ -162,8 +189,11 @@ def test_json_logs_carry_the_trace_and_exceptions(tmp_path):
 
 def test_the_sandbox_runner_helpers():
     from maya.security import sandbox_runner as sr
-    assert sr._jsonable({"a": np.arange(3), 1: (np.float64(2.5), [np.int64(4)])}) == \
-        {"a": [0, 1, 2], "1": [2.5, [4]]}
+
+    assert sr._jsonable({"a": np.arange(3), 1: (np.float64(2.5), [np.int64(4)])}) == {
+        "a": [0, 1, 2],
+        "1": [2.5, [4]],
+    }
 
     class Model:
         def fit(self, X, y, ctx):
@@ -178,4 +208,4 @@ def test_the_sandbox_runner_helpers():
     pred = sr._call(ns, "Model", {"mode": "predict", "X": {"x": [1, 2]}, "params": {"a": 3}})
     assert pred.tolist() == [3, 6]
     assert sr._call(ns, "fn", {"X": {"x": [1]}, "params": {"b": 1}}).tolist() == [2]
-    assert set(sr._DENY) == {"x86_64", "aarch64"} and 59 in sr._DENY["x86_64"][1]   # execve
+    assert set(sr._DENY) == {"x86_64", "aarch64"} and 59 in sr._DENY["x86_64"][1]  # execve

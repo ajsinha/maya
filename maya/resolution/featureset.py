@@ -17,6 +17,7 @@ winning rule on the set's grid fills only the gaps alignment introduced.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -34,8 +35,9 @@ from maya.resolution.types import cast_series
 Frame = tuple[pd.DataFrame, dict[str, Any]]
 
 
-def _validate(members: dict[str, Frame], mapping: list[dict[str, Any]],
-              index: list[str]) -> dict[str, list[dict[str, Any]]]:
+def _validate(
+    members: dict[str, Frame], mapping: list[dict[str, Any]], index: list[str]
+) -> dict[str, list[dict[str, Any]]]:
     """Group mapping entries by member, refusing anything ambiguous."""
     if not mapping:
         raise ValidationFailed("a feature set needs at least one attribute")
@@ -48,19 +50,23 @@ def _validate(members: dict[str, Frame], mapping: list[dict[str, Any]],
             raise ValidationFailed(f"attribute '{m['attr']}' maps unknown member '{m['member']}'")
         meta = members[m["member"]][1]
         if m["source_attr"] not in {a["name"] for a in meta["schema"]}:
-            raise ValidationFailed(f"member '{m['member']}' has no attribute '{m['source_attr']}'",
-                                   attr=m["attr"])
+            raise ValidationFailed(
+                f"member '{m['member']}' has no attribute '{m['source_attr']}'", attr=m["attr"]
+            )
         extra = [c for c in meta["index"] if c not in index]
         if extra and not m.get("aggregate"):
             raise ValidationFailed(
                 f"member '{m['member']}' has index column(s) {extra} the set does not; "
-                f"attribute '{m['attr']}' must declare an aggregation", attr=m["attr"])
+                f"attribute '{m['attr']}' must declare an aggregation",
+                attr=m["attr"],
+            )
         by_member.setdefault(m["member"], []).append(m)
     return by_member
 
 
-def _member_frame(alias: str, frame: Frame, entries: list[dict[str, Any]],
-                  index: list[str], plan: list[str]) -> tuple[pd.DataFrame, list[str]]:
+def _member_frame(
+    alias: str, frame: Frame, entries: list[dict[str, Any]], index: list[str], plan: list[str]
+) -> tuple[pd.DataFrame, list[str]]:
     df, meta = frame
     midx = list(meta["index"])
     keep = [c for c in index if c in midx]
@@ -90,8 +96,9 @@ def _member_frame(alias: str, frame: Frame, entries: list[dict[str, Any]],
     return out, keep
 
 
-def _keys(frames: dict[str, tuple[pd.DataFrame, list[str]]], index: list[str],
-          alignment: dict[str, Any]) -> pd.DataFrame:
+def _keys(
+    frames: dict[str, tuple[pd.DataFrame, list[str]]], index: list[str], alignment: dict[str, Any]
+) -> pd.DataFrame:
     full = {a: f for a, (f, k) in frames.items() if k == index}
     if not full:
         raise ValidationFailed("at least one member must carry the full set index", index=index)
@@ -110,8 +117,14 @@ def _keys(frames: dict[str, tuple[pd.DataFrame, list[str]]], index: list[str],
     return out
 
 
-def _apply_grid(keys: pd.DataFrame, index: list[str], grid: Any,
-                start: date | None, end: date | None, plan: list[str]) -> pd.DataFrame:
+def _apply_grid(
+    keys: pd.DataFrame,
+    index: list[str],
+    grid: Any,
+    start: date | None,
+    end: date | None,
+    plan: list[str],
+) -> pd.DataFrame:
     cal = parse_grid(grid)
     if not cal or keys.empty:
         return keys
@@ -125,8 +138,15 @@ def _apply_grid(keys: pd.DataFrame, index: list[str], grid: Any,
     return days
 
 
-def _join(base: pd.DataFrame, alias: str, frame: pd.DataFrame, keep: list[str],
-          index: list[str], alignment: dict[str, Any], plan: list[str]) -> pd.DataFrame:
+def _join(
+    base: pd.DataFrame,
+    alias: str,
+    frame: pd.DataFrame,
+    keep: list[str],
+    index: list[str],
+    alignment: dict[str, Any],
+    plan: list[str],
+) -> pd.DataFrame:
     if keep != index:
         plan.append(f"broadcast join member '{alias}' on {keep}")
         return base.merge(frame, on=keep, how="left")
@@ -138,15 +158,17 @@ def _join(base: pd.DataFrame, alias: str, frame: pd.DataFrame, keep: list[str],
         plan.append(f"asof join member '{alias}' {direction} within {tol.days} day(s)")
         left = base.sort_values(index[0], kind="mergesort")
         right = frame.sort_values(index[0], kind="mergesort")
-        out = pd.merge_asof(left, right, on=index[0], by=index[1:] or None,
-                            tolerance=tol, direction=direction)
+        out = pd.merge_asof(
+            left, right, on=index[0], by=index[1:] or None, tolerance=tol, direction=direction
+        )
         return out
     plan.append(f"join member '{alias}' on {index}")
     return base.merge(frame, on=index, how="left")
 
 
-def _filters(df: pd.DataFrame, index: list[str], filters: dict[str, Any],
-             plan: list[str]) -> pd.DataFrame:
+def _filters(
+    df: pd.DataFrame, index: list[str], filters: dict[str, Any], plan: list[str]
+) -> pd.DataFrame:
     dcol = index[0]
     if filters.get("start"):
         df = df[df[dcol] >= pd.Timestamp(filters["start"])]
@@ -154,8 +176,11 @@ def _filters(df: pd.DataFrame, index: list[str], filters: dict[str, Any],
         df = df[df[dcol] <= pd.Timestamp(filters["end"])]
     uni = filters.get("universe")
     if uni:
-        col = uni.get("attr", index[1] if len(index) > 1 else None) if isinstance(uni, dict) \
+        col = (
+            uni.get("attr", index[1] if len(index) > 1 else None)
+            if isinstance(uni, dict)
             else (index[1] if len(index) > 1 else None)
+        )
         values = uni.get("values", []) if isinstance(uni, dict) else list(uni)
         if col is None:
             raise ValidationFailed("a universe filter needs a non-date index column")
@@ -164,9 +189,14 @@ def _filters(df: pd.DataFrame, index: list[str], filters: dict[str, Any],
     return df.reset_index(drop=True)
 
 
-def choose_rule(attr: str, entry: dict[str, Any], member_meta: dict[str, Any],
-                global_policy: dict[str, Any], group_policies: list[dict[str, Any]],
-                inherited: list[dict[str, Any]]) -> dict[str, Any]:
+def choose_rule(
+    attr: str,
+    entry: dict[str, Any],
+    member_meta: dict[str, Any],
+    global_policy: dict[str, Any],
+    group_policies: list[dict[str, Any]],
+    inherited: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Apply the precedence stack; return {rule, layer, source}."""
     if entry.get("rule") is not None:
         return {"rule": entry["rule"], "layer": "attribute", "source": "featureset"}
@@ -186,13 +216,18 @@ def choose_rule(attr: str, entry: dict[str, Any], member_meta: dict[str, Any],
     return {"rule": "none", "layer": "default", "source": "system"}
 
 
-def resolve_featureset(members: dict[str, Frame], mapping: list[dict[str, Any]], *,
-                       index: list[str], alignment: dict[str, Any] | None = None,
-                       grid: Any = "as_is", global_policy: dict[str, Any] | None = None,
-                       group_policies: list[dict[str, Any]] | None = None,
-                       inherited_policies: list[dict[str, Any]] | None = None,
-                       filters: dict[str, Any] | None = None,
-                       ) -> tuple[pd.DataFrame, dict[str, Any]]:
+def resolve_featureset(
+    members: dict[str, Frame],
+    mapping: list[dict[str, Any]],
+    *,
+    index: list[str],
+    alignment: dict[str, Any] | None = None,
+    grid: Any = "as_is",
+    global_policy: dict[str, Any] | None = None,
+    group_policies: list[dict[str, Any]] | None = None,
+    inherited_policies: list[dict[str, Any]] | None = None,
+    filters: dict[str, Any] | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Assemble, align, filter and fill a feature set. Returns (frame, manifest)."""
     alignment, filters, plan = dict(alignment or {"mode": "inner"}), dict(filters or {}), []
     by_member = _validate(members, mapping, index)
@@ -207,9 +242,17 @@ def resolve_featureset(members: dict[str, Frame], mapping: list[dict[str, Any]],
         base = _join(base, alias, frame, keep, index, alignment, plan)
     base = _filters(base, index, filters, plan)
     attrs = [m["attr"] for m in mapping]
-    chosen = {m["attr"]: choose_rule(m["attr"], m, members[m["member"]][1], global_policy or {},
-                                     group_policies or [], inherited_policies or [])
-              for m in mapping}
+    chosen = {
+        m["attr"]: choose_rule(
+            m["attr"],
+            m,
+            members[m["member"]][1],
+            global_policy or {},
+            group_policies or [],
+            inherited_policies or [],
+        )
+        for m in mapping
+    }
     base, fill = apply_rules(base, index, attrs, {a: c["rule"] for a, c in chosen.items()})
     kts = [c for c in base.columns if c.startswith("_kt__")]
     base[KT] = base[kts].max(axis=1) if kts else pd.NaT
@@ -222,17 +265,31 @@ def resolve_featureset(members: dict[str, Frame], mapping: list[dict[str, Any]],
     return out, manifest
 
 
-def _manifest(mapping: list[dict[str, Any]], members: dict[str, Frame],
-              chosen: dict[str, dict[str, Any]], fill: dict[str, Any], plan: list[str],
-              out: pd.DataFrame) -> dict[str, Any]:
+def _manifest(
+    mapping: list[dict[str, Any]],
+    members: dict[str, Frame],
+    chosen: dict[str, dict[str, Any]],
+    fill: dict[str, Any],
+    plan: list[str],
+    out: pd.DataFrame,
+) -> dict[str, Any]:
     attributes, non_causal = {}, []
     for m in mapping:
         c = chosen[m["attr"]]
         rule = parse_rule(c["rule"])
-        attributes[m["attr"]] = {"member": m["member"], "source_attr": m["source_attr"],
-                                 "rule": rule.canonical(), "layer": c["layer"],
-                                 "source": c["source"]}
+        attributes[m["attr"]] = {
+            "member": m["member"],
+            "source_attr": m["source_attr"],
+            "rule": rule.canonical(),
+            "layer": c["layer"],
+            "source": c["source"],
+        }
         if rule.non_causal or members[m["member"]][1].get("non_causal"):
             non_causal.append(m["attr"])
-    return {"attributes": attributes, "plan": plan, "rows": int(len(out)),
-            "fill_report": fill, "non_causal": sorted(non_causal)}
+    return {
+        "attributes": attributes,
+        "plan": plan,
+        "rows": int(len(out)),
+        "fill_report": fill,
+        "non_causal": sorted(non_causal),
+    }

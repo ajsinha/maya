@@ -2,6 +2,16 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.4 — 2026-09-19.** No new decisions: this revision marks, each as
+> *Revision 2.4* where it lands, places where this document contradicted itself or a
+> decision already taken, found by reading it against the code
+> ([audit](audit/spec-audit-2026-09-19.md)). Schema changes are an estate export and
+> reload, never a migration (§5.1, §20, §23, against §14.3); success criteria number
+> eighteen, not ten (§26.1); OIDC logout runs both ways (§12); tables page on the server
+> by table, not past a threshold (§16.7); break-glass sign-in during an IdP outage is
+> `mode: hybrid` (§13.3); catalog search is MAYA's own index everywhere (§24.5, §25); and
+> Revision 2.2's summary below called that index a scan.
+>
 > **Revision 2.3 — 2026-09-19.** Three decisions from building and measuring version 0.2,
 > each marked *Revision 2.3* where it lands: several web processes on one node require
 > PostgreSQL, and MAYA refuses them over SQLite (§14.1); the estate export reads the
@@ -16,7 +26,8 @@
 > **Revision 2.2 — 2026-09-19.** Three corrections from the first build, each marked
 > *Revision 2.2* where it lands: the dark `--maya-crimson-deep` token (§16.6), which failed
 > this document's own contrast gate; CodeMirror 5 in place of 6 (§17), which the
-> no-build rule requires; and catalog search shipping as a scan before FTS (§13.4.2).
+> no-build rule requires; and catalog search shipping as a scan before FTS (§13.4.2). *Revision 2.4:* not a
+> scan — MAYA's own inverted index, maintained in the writing transaction (§13.4.2).
 >
 > **Revision 2.1 — 2026-09-17.** The eight open decisions of §26.3 are closed and that
 > section now records them as taken. Six further calls are folded in throughout:
@@ -185,7 +196,7 @@ A feature is a named, schema-bearing dataset produced from exactly one source, i
 
 A feature version is the tuple: **identity** (name, namespace, owner, tags, description) + **schema** + **index** + **source binding** + **resolution policy** + **transformation** + **quality contract**.
 
-**Time axes.** Every feature is **bitemporal**. Each row carries an *event time* — the date the value is about, and part of the index — and a *knowledge time*, the instant MAYA could first have known it, taken from the source watermark, the vendor publication stamp or the upload. Every resolution declares an `as_of_known` instant alongside its event-time range, and a vendor restatement is a new knowledge-time row rather than an overwrite, so "what did we know on 31 March" stays answerable and a backtest cannot silently consume restated values. This is not optional and not a later addition: the two columns, the second index dimension and the hash that covers them exist from the first migration, because retrofitting them would rewrite every table, every pin and every content hash in the system. Semantics, the leakage certificate and the storage cost are in §29.1.
+**Time axes.** Every feature is **bitemporal**. Each row carries an *event time* — the date the value is about, and part of the index — and a *knowledge time*, the instant MAYA could first have known it, taken from the source watermark, the vendor publication stamp or the upload. Every resolution declares an `as_of_known` instant alongside its event-time range, and a vendor restatement is a new knowledge-time row rather than an overwrite, so "what did we know on 31 March" stays answerable and a backtest cannot silently consume restated values. This is not optional and not a later addition: the two columns, the second index dimension and the hash that covers them exist from the first schema (*Revision 2.4:* there are no migrations, §14.3), because retrofitting them would rewrite every table, every pin and every content hash in the system. Semantics, the leakage certificate and the storage cost are in §29.1.
 
 **Schema.** An ordered list of attributes, each with a name, a logical type, nullability, unit, and an optional semantic tag (`price`, `rate`, `count`, `categorical`). Logical types are MAYA's own, mapped to Arrow and Delta on write: `int32/64`, `float32/64`, `decimal(p,s)`, `bool`, `string`, `date`, `timestamp[tz]`, `duration`, `list<T>`, `map<K,V>`, `struct<...>`, `fixed_vector<T,n>`, `tensor<T,shape>`. `decimal` is mandatory for monetary attributes; MAYA warns when a `float` carries the `price` tag.
 
@@ -799,7 +810,7 @@ SP-initiated only (an unsolicited Response cannot be tied to a request). AuthnRe
 logout messages may be signed with MAYA's own key pair. Single logout runs in both
 directions over HTTP-Redirect: signing out of MAYA ends the session and asks the IdP to
 end its own, and the IdP's LogoutRequest ends every MAYA session of the person it names
-(only the named IdP session, when it names one), but only when the IdP signed it. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
+(only the named IdP session, when it names one), but only when the IdP signed it. *Revision 2.4:* OIDC logout also runs both ways: with `auth.sso.post_logout_redirect_uri` set, signing out of MAYA sends the browser to the issuer's end-session endpoint, and the IdP ends MAYA sessions server to server with a back-channel logout token, checked like an ID token and single-use by `jti`. SAML back-channel (SOAP) logout is not supported. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
 
 **Service principals.** API keys and OAuth2 client credentials, scoped to roles and namespaces, with mandatory expiry, last-used tracking, one-click revocation and a rotation reminder. Keys are shown once at creation and stored only as hashes.
 
@@ -858,7 +869,7 @@ Three paths matter and they are deliberately different. **Metadata reads** (brow
 
 ### 13.3 Failure posture
 
-Every external dependency has a declared behaviour when absent: object store down → uploads and pins fail fast with a clear message, browsing still works; Delta unavailable → resolution fails, metadata and workflow still work; IdP unreachable → existing sessions continue, new logins fail with a break-glass path for administrators; a worker dies mid-pin → the pin is left in `Materializing`, the orphan partition is garbage-collected by a reaper, and the job is retried idempotently. MAYA degrades in named ways rather than in surprising ones.
+Every external dependency has a declared behaviour when absent: object store down → uploads and pins fail fast with a clear message, browsing still works; Delta unavailable → resolution fails, metadata and workflow still work; IdP unreachable → existing sessions continue, new logins fail with a break-glass path for administrators (*Revision 2.4:* `mode: sso` refuses every password sign-in, so the path is restarting in `mode: hybrid` with a database account made beforehand — the SSO outage runbook); a worker dies mid-pin → the pin is left in `Materializing`, the orphan partition is garbage-collected by a reaper, and the job is retried idempotently. MAYA degrades in named ways rather than in surprising ones.
 
 ### 13.4 Proxied dependencies
 
@@ -1244,7 +1255,10 @@ is produced by it. It provides, uniformly:
 - **Pagination** with a rows-per-page dropdown offering 25 / 50 / 100 / 250 / All, the
   choice remembered per table per user, and a clear statement of what is shown and out of
   how many. Beyond a configurable threshold the macro switches from client-side paging to
-  the cursor pagination of §18.1 without changing how it looks or behaves.
+  the cursor pagination of §18.1 without changing how it looks or behaves. *Revision 2.4:*
+  the switch is by table, not by threshold: features, feature sets, models, pins, audit,
+  events and jobs always page on the server, other tables on the client, and a server
+  table sorts on one server-orderable column at a time (ADR-016).
 - **Search** across the visible columns, debounced, with the matched term highlighted and
   a stated count of what the filter removed. Server-side beyond the threshold, in which
   case it becomes the catalog's own `q=` parameter, so a large table searches the whole
@@ -1410,7 +1424,7 @@ The only mode that is genuinely local is `maya.offline(bundle=...)`, which serve
 ```python
 import maya
 
-my = maya.connect(profile="prod")            # or base_url=..., api_key=...
+my = maya.connect(profile="prod")  # or base_url=..., api_key=...
 
 # Catalog: cursor pagination is an iterator, not a page counter
 for f in my.features.list(namespace="equity.pricing", status="approved"):
@@ -1425,29 +1439,32 @@ draft.submit(note="EUR variant for the Paris desk")
 
 # Resolution and pinning are jobs, and jobs stream progress
 job = feat.version(4).pin("q1_2026", as_of="2026-03-31", as_of_known="2026-04-02T18:00Z")
-pin = job.wait(progress=print)               # or `await job` in the async client
+pin = job.wait(progress=print)  # or `await job` in the async client
 
-tbl = pin.to_arrow(shape="tabular")          # also .to_polars(), .to_pandas(), .to_file()
+tbl = pin.to_arrow(shape="tabular")  # also .to_polars(), .to_pandas(), .to_file()
 
 # Feature sets, including cascade pin over an algebra tree
 panel = my.featuresets.get("equity_panel")
 panel.pin("q1_2026", as_of="2026-03-31", cascade=True).wait()
 
 # Models and warrants
-warrant = my.warrants.training.create(model="black_scholes@v3",
-                                      featureset="equity_panel#q1_2026",
-                                      split={"train": 0.7, "validation": 0.15, "test": 0.15},
-                                      seed=42, holdout="escrowed")
-with warrant.data(shape="tensor") as ds:     # downloads, verifies checksum, yields Arrow
+warrant = my.warrants.training.create(
+    model="black_scholes@v3",
+    featureset="equity_panel#q1_2026",
+    split={"train": 0.7, "validation": 0.15, "test": 0.15},
+    seed=42,
+    holdout="escrowed",
+)
+with warrant.data(shape="tensor") as ds:  # downloads, verifies checksum, yields Arrow
     params = train(ds.X, ds.y)
 
 warrant.upload_parameters(params, metrics={"rmse": 0.0123}, notes="seed 42")
-score = warrant.score_holdout(params)        # MAYA scores; the test rows never leave (§29.4)
+score = warrant.score_holdout(params)  # MAYA scores; the test rows never leave (§29.4)
 
 # Rehearsing a change before anyone reviews it
 with my.workspace("ffill-limit-change") as ws:
     ws.features.get("adj_close_yhoo").override(resolution={"px": "forward_fill(limit=1)"})
-    print(ws.shadow_replay().summary())       # numeric impact per dependent model (§29.2)
+    print(ws.shadow_replay().summary())  # numeric impact per dependent model (§29.2)
     ws.submit_for_review()
 ```
 
@@ -1533,7 +1550,7 @@ Impact analysis runs **before** a change is submitted, not after it lands, and t
 
 **Backup and recovery.** Database: continuous WAL archiving plus nightly full backups, RPO 5 minutes, RTO 1 hour. Object store and Delta: versioned buckets with cross-region replication where available. Recovery is *tested*, not assumed — a quarterly restore drill restores to a scratch environment and runs `maya admin verify-integrity`, which re-reads every pin and recomputes hashes. The drill result is recorded and visible.
 
-**Upgrades.** Rolling, backward-compatible one version back for API and schema. Migrations run in an expand-migrate-contract pattern so a rollback never strands data. Every release carries a changelog entry and a version bump across the same set of files DishtaYantra uses, by the same ritual.
+**Upgrades.** Rolling, backward-compatible one version back for API and schema. Migrations run in an expand-migrate-contract pattern so a rollback never strands data. *Revision 2.4:* this contradicted §14.3. MAYA has no migrations: an upgrade that changes the schema is an estate export under the old version, a schema created by the new one, and an import, and a rollback is the same in reverse from the export kept (ADR-012). The API stays backward-compatible one version back. Every release carries a changelog entry and a version bump across the same set of files DishtaYantra uses, by the same ritual.
 
 ## 21. Security and model risk governance
 
@@ -1654,7 +1671,7 @@ The discipline is verify-don't-assert: a behaviour is claimed only when a test, 
 
 **CI pipeline.** Lint → type-check → file-size check → import-linter (no `sqlalchemy` outside `persistence`) → client-boundary check (nothing under `maya.web` imports anything but `maya.sdk`) → SDK/API parity check (every endpoint has a method, every method an endpoint) → unit → repository on both backends → service → API contract → authorization matrix → concurrency → e2e → build artifacts. A pull request cannot merge on a red pipeline, and the file-size and import-boundary checks are non-overridable.
 
-**Release.** Semantic version, changelog entry, migration dry-run on a production-shaped copy, canary deployment, and a rollback tested in staging before every production release.
+**Release.** Semantic version, changelog entry, migration dry-run on a production-shaped copy (*Revision 2.4:* an estate export and reload rehearsed on a production-shaped copy, §14.3), canary deployment, and a rollback tested in staging before every production release.
 
 ## 24. Deployment, configuration and capacity
 
@@ -1725,7 +1742,7 @@ What that costs, and where it is paid:
 | Native wheels | Every native dependency must have a wheel for all three, or sit behind a seam with a fallback (§13.4). This is exactly why `maya_delta` exists (§7.4) |
 | Time zones | **Windows ships no system tz database.** `zoneinfo` therefore needs the `tzdata` wheel, which is a hard requirement on Windows rather than an optional extra — a bitemporal platform whose timestamps are all tz-aware cannot treat it as one. Checked at startup |
 | Event loop | `uvloop` and `httptools` have **no Windows wheels**, so Windows always runs the stdlib `asyncio` loop. Stated on the health page rather than left as an unexplained cross-platform performance difference |
-| Full-text search | SQLite **FTS5 is not compiled into every Python's bundled SQLite**. Detected at startup; MAYA's own inverted index is the fallback (§13.4) |
+| Full-text search | SQLite **FTS5 is not compiled into every Python's bundled SQLite**. Detected at startup; MAYA's own inverted index is the fallback (§13.4). *Revision 2.4:* the own index is used on every platform and both databases (Revision 2.2, ADR-019) |
 | Line endings | `.gitattributes` normalises; content hashes are computed over canonical Arrow bytes, never over text files, so CRLF cannot alter a pin |
 | Scripts and gates | Python, not shell (§22.4) |
 | PostgreSQL in CI | Mandatory on Linux; run on Windows and macOS where a server is available. SQLite runs everywhere, always |
@@ -1755,7 +1772,7 @@ Every axis of variation is a registered plugin implementing a declared protocol,
 | Notification channel | `Notifier.send(event, recipients)` | In-app inbox, email, webhook, Slack, Teams |
 | Model runtime | `ModelRuntime.predict(...)` | Python; ONNX and PMML as v2.2 candidates |
 | Calendar | `Calendar.business_days(range)` | NYSE, LSE, TARGET, ISO business days, natural days |
-| Search index | `SearchIndex` | PostgreSQL FTS, SQLite FTS5 |
+| Search index | `SearchIndex` | PostgreSQL FTS, SQLite FTS5 (*Revision 2.4:* MAYA's own inverted index ships on both, ADR-019) |
 
 A plugin declares its name, version, configuration schema and required capabilities, and is listed on an admin page with its status. Untrusted plugins run under the same sandbox rules as user Python.
 
@@ -1773,7 +1790,7 @@ A plugin declares its name, version, configuration schema and required capabilit
 | 3. Workflow | State machine, approval policies, semantic diff, impact analysis, campaigns, notifications | A feature reaches `approved` only through a compliant, audited path |
 | 4. Models | Formula IR, editors, Python artifact, validation sandbox, LaTeX editor and PDF, parameter sets | A model is defined, documented, validated and approved |
 | 5. Warrants | Training and execution warrants, download and checksum verification, parameter custody, sealing, manifests | A training run round-trips and its bundle verifies offline |
-| 6. Hardening | Performance, concurrency soak, SDK/CLI polish, reproducibility bundle, runbooks, external security review | All ten success criteria measured and met |
+| 6. Hardening | Performance, concurrency soak, SDK/CLI polish, reproducibility bundle, runbooks, external security review | All ten success criteria measured and met (*Revision 2.4:* there are eighteen, §3) |
 
 Phases 1 and 2 are the product's spine; everything after is faster because the resolution engine and the workflow engine are already load-bearing.
 

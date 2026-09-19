@@ -3,6 +3,7 @@
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,11 +22,15 @@ EXIT_OK, EXIT_REFUSED, EXIT_USAGE, EXIT_NETWORK = 0, 1, 2, 3
 # -- plumbing -------------------------------------------------------------------------
 def _client(args: argparse.Namespace) -> Any:
     from maya.sdk import Client, connect
+
     if args.local:
         from maya.config import load_settings
         from maya.server import build_app
         from maya.services.platform import Platform
-        platform = Platform.build(load_settings(args.config), start_workers=True)
+
+        # job workers only: a CLI run must not deliver webhooks or run the scheduler —
+        # on a restored copy of production that would reach production's receivers
+        platform = Platform.build(load_settings(args.config), start_workers="jobs")
         anon = Client(app=build_app(platform), channel="cli")
         user = os.environ.get("MAYA_USER", "admin")
         pw = os.environ.get("MAYA_PASSWORD")
@@ -56,13 +61,16 @@ def _rows(rows: list[dict[str, Any]], cols: list[str]) -> str:
 def admin_init_db(args: argparse.Namespace) -> int:
     from maya.config import load_settings
     from maya.persistence.engine import database_from_settings
+
     db = database_from_settings(load_settings(args.config))
     if db.is_initialized() and not args.force:
         print("The database already has a MAYA schema; pass --force to drop and recreate it.")
         return EXIT_REFUSED
     digest = db.init_schema(force=args.force)
-    print(f"Created the {db.dialect} schema from maya/persistence/schema/{db.dialect}.sql "
-          f"(schema-hash {digest[:16]}…)")
+    print(
+        f"Created the {db.dialect} schema from maya/persistence/schema/{db.dialect}.sql "
+        f"(schema-hash {digest[:16]}…)"
+    )
     return EXIT_OK
 
 
@@ -73,6 +81,7 @@ def admin_export_estate(args: argparse.Namespace) -> int:
     from maya.core.version import VERSION
     from maya.persistence import estate
     from maya.persistence.engine import database_from_settings
+
     db = database_from_settings(load_settings(args.config))
     Path(args.out).write_bytes(estate.export(db, VERSION))
     print(f"Estate written to {args.out}")
@@ -82,12 +91,13 @@ def admin_export_estate(args: argparse.Namespace) -> int:
 def admin_import_estate(args: argparse.Namespace) -> int:
     from maya.config import load_settings
     from maya.persistence.engine import database_from_settings
+
     settings = load_settings(args.config)
     db = database_from_settings(settings)
     if not db.is_initialized():
         db.init_schema()
     platform = _local_platform(args, seed=False)
-    result = platform.ops.import_estate(Path(args.input).read_bytes())
+    result = platform.ops.import_estate(Path(args.input).read_bytes(), allow_drop=args.allow_drop)
     print(json.dumps(result, indent=2, default=str))
     return EXIT_OK
 
@@ -95,8 +105,14 @@ def admin_import_estate(args: argparse.Namespace) -> int:
 def admin_verify_integrity(args: argparse.Namespace) -> int:
     c = _client(args)
     result = c.admin.verify_integrity()
-    _out(args, result, lambda r: f"{r['checked']} pin(s) checked; drift: {len(r['drift'])}; "
-                                 f"audit chain ok: {r['audit_chain']['ok']}")
+    _out(
+        args,
+        result,
+        lambda r: (
+            f"{r['checked']} pin(s) checked; drift: {len(r['drift'])}; "
+            f"audit chain ok: {r['audit_chain']['ok']}"
+        ),
+    )
     return EXIT_OK if not result["drift"] and result["audit_chain"]["ok"] else EXIT_REFUSED
 
 
@@ -104,10 +120,12 @@ def _local_platform(args: argparse.Namespace, seed: bool = True) -> Any:
     from maya.config import load_settings
     from maya.services.platform import Platform
     from maya.services import registry
+
     settings = load_settings(args.config)
     if seed:
         return Platform.build(settings, start_workers=False)
     from maya.persistence.engine import database_from_settings
+
     db = database_from_settings(settings)
     db.verify_schema()
     platform = Platform(settings, db)
@@ -129,42 +147,69 @@ def feature_show(args: argparse.Namespace) -> int:
 
 def feature_quick(args: argparse.Namespace) -> int:
     path = Path(args.file)
-    result = _client(args).features.quick(path.read_bytes(), name=args.name or path.stem,
-                                          fmt=path.suffix.lstrip(".") or "csv")
-    _out(args, result, lambda r: f"{r['ref']}@v{r['version']}: {r['rows']} rows, ungoverned "
-                                 f"scratch. Warnings: {r['warnings'] or 'none'}")
+    result = _client(args).features.quick(
+        path.read_bytes(), name=args.name or path.stem, fmt=path.suffix.lstrip(".") or "csv"
+    )
+    _out(
+        args,
+        result,
+        lambda r: (
+            f"{r['ref']}@v{r['version']}: {r['rows']} rows, ungoverned "
+            f"scratch. Warnings: {r['warnings'] or 'none'}"
+        ),
+    )
     return EXIT_OK
 
 
 def feature_upload(args: argparse.Namespace) -> int:
     path = Path(args.file)
-    result = _client(args).features.ingest(args.ref, path.read_bytes(),
-                                           fmt=path.suffix.lstrip("."), filename=path.name,
-                                           knowledge_time=args.knowledge_time)
-    _out(args, result, lambda r: f"ingested {r['rows']} rows"
-                                 + (" (a restatement)" if r["restatement"] else ""))
+    result = _client(args).features.ingest(
+        args.ref,
+        path.read_bytes(),
+        fmt=path.suffix.lstrip("."),
+        filename=path.name,
+        knowledge_time=args.knowledge_time,
+    )
+    _out(
+        args,
+        result,
+        lambda r: f"ingested {r['rows']} rows" + (" (a restatement)" if r["restatement"] else ""),
+    )
     return EXIT_OK
 
 
 def feature_pin(args: argparse.Namespace) -> int:
     c = _client(args)
-    result = c.features.pin(args.ref, version_no=args.version, pin_name=args.name,
-                            as_of=args.as_of, as_of_known=args.as_of_known)
+    result = c.features.pin(
+        args.ref,
+        version_no=args.version,
+        pin_name=args.name,
+        as_of=args.as_of,
+        as_of_known=args.as_of_known,
+    )
     if result.get("job"):
-        job = c.wait(result["job"], progress=lambda j: print(f"  {j['progress']:3d}% {j['message']}"))
-        _out(args, job["result"], lambda r: f"sealed {r['content_hash']} ({r['rows']} rows, "
-                                            f"{r['bytes_new']} new bytes)")
+        job = c.wait(
+            result["job"], progress=lambda j: print(f"  {j['progress']:3d}% {j['message']}")
+        )
+        _out(
+            args,
+            job["result"],
+            lambda r: f"sealed {r['content_hash']} ({r['rows']} rows, {r['bytes_new']} new bytes)",
+        )
     else:
         print("Pin requested; it awaits approval by a pin authorizer.")
     return EXIT_OK
 
 
 def feature_download(args: argparse.Namespace) -> int:
-    result = _client(args).features.download(args.ref, format=args.format,
-                                             csv_encoding=args.csv_encoding)
+    result = _client(args).features.download(
+        args.ref, format=args.format, csv_encoding=args.csv_encoding
+    )
     Path(args.out).write_bytes(result["data"])
-    print(f"{args.out}: {result['manifest'].get('rows')} rows, content hash "
-          f"{result['manifest'].get('content_hash')}")
+    print(
+        f"{args.out}: {result['manifest'].get('rows')} rows, content hash "
+        f"{result['manifest'].get('content_hash')}"
+    )
     return EXIT_OK
 
 
@@ -175,16 +220,22 @@ def feature_diff(args: argparse.Namespace) -> int:
 
 def featureset_pin(args: argparse.Namespace) -> int:
     c = _client(args)
-    result = c.featuresets.pin(args.ref, version_no=args.version, pin_name=args.name,
-                               as_of=args.as_of, cascade=args.cascade)
+    result = c.featuresets.pin(
+        args.ref,
+        version_no=args.version,
+        pin_name=args.name,
+        as_of=args.as_of,
+        cascade=args.cascade,
+    )
     job = c.wait(result["job"], progress=lambda j: print(f"  {j['progress']:3d}% {j['message']}"))
     _out(args, job["result"])
     return EXIT_OK
 
 
 def featureset_download(args: argparse.Namespace) -> int:
-    result = _client(args).featuresets.download(args.ref, format=args.format, shape=args.shape,
-                                                csv_encoding=args.csv_encoding)
+    result = _client(args).featuresets.download(
+        args.ref, format=args.format, shape=args.shape, csv_encoding=args.csv_encoding
+    )
     Path(args.out).write_bytes(result["data"])
     print(f"{args.out}: {result['manifest'].get('rows')} rows")
     return EXIT_OK
@@ -206,19 +257,24 @@ def model_import_workbook(args: argparse.Namespace) -> int:
     data = Path(args.file).read_bytes()
     c = _client(args)
     if args.preview:
-        result = c.models.lift_workbook(data, output=args.output, roles=roles,
-                                        filename=Path(args.file).name)
+        result = c.models.lift_workbook(
+            data, output=args.output, roles=roles, filename=Path(args.file).name
+        )
         report = result["lifted_from"]["workbook"]
     else:
-        result = c.models.import_workbook(args.ref, data, output=args.output, roles=roles,
-                                          filename=Path(args.file).name)
+        result = c.models.import_workbook(
+            args.ref, data, output=args.output, roles=roles, filename=Path(args.file).name
+        )
         report = result["workbook"]
 
     def human(_: Any) -> str:
-        lines = [f"output {report['output']}; {len(report['cells'])} cells named",
-                 report["check"]["statement"]]
+        lines = [
+            f"output {report['output']}; {len(report['cells'])} cells named",
+            report["check"]["statement"],
+        ]
         lines += [f"warning: {w}" for w in report["warnings"]]
         return "\n".join(lines)
+
     _out(args, result, human)
     return EXIT_OK if report["check"]["status"] != "disagreed" else EXIT_REFUSED
 
@@ -233,6 +289,7 @@ def warrant_fetch(args: argparse.Namespace) -> int:
     c = _client(args)
     table, manifest = c.training_data(args.id)
     import pyarrow.parquet as pq
+
     pq.write_table(table, args.out)
     print(f"{args.out}: {table.num_rows} rows; checksum verified {manifest['checksum']}")
     return EXIT_OK
@@ -241,10 +298,20 @@ def warrant_fetch(args: argparse.Namespace) -> int:
 def warrant_upload_params(args: argparse.Namespace) -> int:
     body = json.loads(Path(args.file).read_text())
     result = _client(args).training.upload_parameters(
-        args.id, body["values"], metrics=body.get("metrics", {}),
-        data_checksum=body.get("data_checksum"), notes=body.get("notes", ""))
-    _out(args, result, lambda r: f"parameter set {r['id']} uploaded; "
-                                 f"{'verified data' if r['verified_data'] else 'UNVERIFIED DATA'}")
+        args.id,
+        body["values"],
+        metrics=body.get("metrics", {}),
+        data_checksum=body.get("data_checksum"),
+        notes=body.get("notes", ""),
+    )
+    _out(
+        args,
+        result,
+        lambda r: (
+            f"parameter set {r['id']} uploaded; "
+            f"{'verified data' if r['verified_data'] else 'UNVERIFIED DATA'}"
+        ),
+    )
     return EXIT_OK
 
 
@@ -276,10 +343,19 @@ def export_bundle(args: argparse.Namespace) -> int:
 def export_verify(args: argparse.Namespace) -> int:
     """Offline: runs the bundle's own verify.py, needing no MAYA at all."""
     from maya.services.bundle import BundleService
+
     report = BundleService.verify_offline(Path(args.file).read_bytes())
-    _out(args, report, lambda r: "\n".join(
-        f"  [{'ok' if c['ok'] else 'n/a' if c['ok'] is None else 'FAIL'}] {c['check']}"
-        for c in r.get("checks", [])) + f"\nverified: {r.get('verified')}")
+    _out(
+        args,
+        report,
+        lambda r: (
+            "\n".join(
+                f"  [{'ok' if c['ok'] else 'n/a' if c['ok'] is None else 'FAIL'}] {c['check']}"
+                for c in r.get("checks", [])
+            )
+            + f"\nverified: {r.get('verified')}"
+        ),
+    )
     return EXIT_OK if report.get("verified") else EXIT_REFUSED
 
 
@@ -301,35 +377,89 @@ def _parser() -> argparse.ArgumentParser:
     a = groups.add_parser("admin").add_subparsers(dest="cmd", required=True)
     cmd(a, "init-db", admin_init_db, (("--force",), {"action": "store_true"}))
     cmd(a, "export-estate", admin_export_estate, (("--out",), {"required": True}))
-    cmd(a, "import-estate", admin_import_estate, (("--in",), {"dest": "input", "required": True}))
+    cmd(
+        a,
+        "import-estate",
+        admin_import_estate,
+        (("--in",), {"dest": "input", "required": True}),
+        (
+            ("--allow-drop",),
+            {
+                "action": "store_true",
+                "help": "load even though data this version does not know "
+                "would be dropped (named in the output)",
+            },
+        ),
+    )
     cmd(a, "verify-integrity", admin_verify_integrity)
 
     f = groups.add_parser("feature").add_subparsers(dest="cmd", required=True)
     cmd(f, "list", feature_list, (("--namespace",), {}), (("-q",), {"dest": "q"}))
     cmd(f, "show", feature_show, (("ref",), {}))
     cmd(f, "quick", feature_quick, (("file",), {}), (("--name",), {}))
-    cmd(f, "upload", feature_upload, (("ref",), {}), (("file",), {}),
-        (("--knowledge-time",), {"dest": "knowledge_time"}))
-    cmd(f, "pin", feature_pin, (("ref",), {}), (("--version",), {"type": int, "required": True}),
-        (("--name",), {"required": True}), (("--as-of",), {"dest": "as_of", "required": True}),
-        (("--as-of-known",), {"dest": "as_of_known"}))
-    cmd(f, "download", feature_download, (("ref",), {}), (("--out",), {"required": True}),
-        (("--format",), {"default": "parquet"}), (("--csv-encoding",), {"dest": "csv_encoding"}))
+    cmd(
+        f,
+        "upload",
+        feature_upload,
+        (("ref",), {}),
+        (("file",), {}),
+        (("--knowledge-time",), {"dest": "knowledge_time"}),
+    )
+    cmd(
+        f,
+        "pin",
+        feature_pin,
+        (("ref",), {}),
+        (("--version",), {"type": int, "required": True}),
+        (("--name",), {"required": True}),
+        (("--as-of",), {"dest": "as_of", "required": True}),
+        (("--as-of-known",), {"dest": "as_of_known"}),
+    )
+    cmd(
+        f,
+        "download",
+        feature_download,
+        (("ref",), {}),
+        (("--out",), {"required": True}),
+        (("--format",), {"default": "parquet"}),
+        (("--csv-encoding",), {"dest": "csv_encoding"}),
+    )
     cmd(f, "diff", feature_diff, (("ref",), {}), (("v1",), {"type": int}), (("v2",), {"type": int}))
 
     fs = groups.add_parser("featureset").add_subparsers(dest="cmd", required=True)
-    cmd(fs, "pin", featureset_pin, (("ref",), {}), (("--version",), {"type": int, "required": True}),
-        (("--name",), {"required": True}), (("--as-of",), {"dest": "as_of", "required": True}),
-        (("--cascade",), {"action": "store_true"}))
-    cmd(fs, "download", featureset_download, (("ref",), {}), (("--out",), {"required": True}),
-        (("--format",), {"default": "parquet"}), (("--shape",), {"default": "tabular"}),
-        (("--csv-encoding",), {"dest": "csv_encoding"}))
+    cmd(
+        fs,
+        "pin",
+        featureset_pin,
+        (("ref",), {}),
+        (("--version",), {"type": int, "required": True}),
+        (("--name",), {"required": True}),
+        (("--as-of",), {"dest": "as_of", "required": True}),
+        (("--cascade",), {"action": "store_true"}),
+    )
+    cmd(
+        fs,
+        "download",
+        featureset_download,
+        (("ref",), {}),
+        (("--out",), {"required": True}),
+        (("--format",), {"default": "parquet"}),
+        (("--shape",), {"default": "tabular"}),
+        (("--csv-encoding",), {"dest": "csv_encoding"}),
+    )
 
     m = groups.add_parser("model").add_subparsers(dest="cmd", required=True)
     cmd(m, "push", model_push, (("ref",), {}), (("file",), {}))
-    cmd(m, "import-workbook", model_import_workbook, (("ref",), {}), (("file",), {}),
-        (("--output",), {}), (("--role",), {"action": "append"}),
-        (("--preview",), {"action": "store_true"}))
+    cmd(
+        m,
+        "import-workbook",
+        model_import_workbook,
+        (("ref",), {}),
+        (("file",), {}),
+        (("--output",), {}),
+        (("--role",), {"action": "append"}),
+        (("--preview",), {"action": "store_true"}),
+    )
     cmd(m, "diff", model_diff, (("ref",), {}), (("v1",), {"type": int}), (("v2",), {"type": int}))
 
     w = groups.add_parser("warrant").add_subparsers(dest="cmd", required=True)
@@ -363,6 +493,8 @@ def main(argv: list[str] | None = None) -> int:
     except MayaError as exc:
         code = getattr(exc, "code", "maya_error")
         print(f"maya: {type(exc).__name__}: {exc.message}", file=sys.stderr)
+        if getattr(exc, "context", None):
+            print("maya: " + json.dumps(exc.context, default=str, sort_keys=True), file=sys.stderr)
         return EXIT_NETWORK if code == "transport_error" else EXIT_REFUSED
 
 

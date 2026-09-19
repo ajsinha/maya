@@ -19,6 +19,7 @@ byte, including the checksum the developer downloaded and trained on.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -38,11 +39,15 @@ from tests.test_warrants import complete_spec
 
 AGE = dt.timedelta(days=730)
 LIMIT_SECONDS = 600
-PX_2024 = {"index": ["date", "symbol"], "index_types": {"date": "date", "symbol": "string"},
-           "schema": [{"name": "x", "type": "float64"}, {"name": "y", "type": "float64"}],
-           "source": {"type": "csv", "knowledge_time_column": "kt"},
-           "resolution": {"grid": "as_is", "rules": {}}, "transform": [],
-           "quality": [{"check": "not_null", "attr": "x"}]}
+PX_2024 = {
+    "index": ["date", "symbol"],
+    "index_types": {"date": "date", "symbol": "string"},
+    "schema": [{"name": "x", "type": "float64"}, {"name": "y", "type": "float64"}],
+    "source": {"type": "csv", "knowledge_time_column": "kt"},
+    "resolution": {"grid": "as_is", "rules": {}},
+    "transform": [],
+    "quality": [{"check": "not_null", "attr": "x"}],
+}
 
 
 def _csv_2024() -> bytes:
@@ -69,28 +74,53 @@ def trained(world):
     w.p.features.ingest(w.dana, "aged/px2024", _csv_2024(), fmt="csv")
     w.p.features.transition(w.dana, "aged/px2024", 1, "submit")
     w.p.features.transition(w.mick, "aged/px2024", 1, "approve")
-    fs_def = {"index": ["date", "symbol"], "alignment": {"mode": "inner"},
-              "members": [{"attr": "x", "ref": "maya://feature/aged/px2024@v1", "source_attr": "x"},
-                          {"attr": "y", "ref": "maya://feature/aged/px2024@v1", "source_attr": "y"}]}
+    fs_def = {
+        "index": ["date", "symbol"],
+        "alignment": {"mode": "inner"},
+        "members": [
+            {"attr": "x", "ref": "maya://feature/aged/px2024@v1", "source_attr": "x"},
+            {"attr": "y", "ref": "maya://feature/aged/px2024@v1", "source_attr": "y"},
+        ],
+    }
     w.p.featuresets.create(w.devi, namespace="aged", name="panel2024", definition=fs_def)
     w.p.featuresets.transition(w.devi, "aged/panel2024", 1, "submit")
     w.p.featuresets.transition(w.mick, "aged/panel2024", 1, "approve")
-    w.p.featuresets.pin(w.mick, "aged/panel2024", version_no=1, pin_name="q1",
-                        as_of=dt.date(2024, 3, 31), cascade=True)
+    w.p.featuresets.pin(
+        w.mick,
+        "aged/panel2024",
+        version_no=1,
+        pin_name="q1",
+        as_of=dt.date(2024, 3, 31),
+        cascade=True,
+    )
     w.drain()
-    w.p.models.create(w.mona, namespace="aged", name="lin2024", formula="yhat = a*x + b",
-                      roles={"a": "parameter", "b": "parameter"})
+    w.p.models.create(
+        w.mona,
+        namespace="aged",
+        name="lin2024",
+        formula="yhat = a*x + b",
+        roles={"a": "parameter", "b": "parameter"},
+    )
     w.p.models.update_draft(w.mona, "aged/lin2024", spec_latex=complete_spec("lin2024"))
     w.p.models.transition(w.mona, "aged/lin2024", 1, "submit")
     w.p.models.transition(w.mgr, "aged/lin2024", 1, "approve")
 
-    tw = w.p.warrants.create(w.devi, namespace="aged", name="calib2024",
-                             model="aged/lin2024@v1",
-                             featureset="maya://featureset/aged/panel2024#q1/2024-03-31",
-                             spec={"target": "y", "seed": 2024})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="aged",
+        name="calib2024",
+        model="aged/lin2024@v1",
+        featureset="maya://featureset/aged/panel2024#q1/2024-03-31",
+        spec={"target": "y", "seed": 2024},
+    )
     downloaded = w.p.warrants.data(w.devi, tw["id"])["manifest"]["checksum"]
-    ps = w.p.warrants.upload_parameters(w.devi, tw["id"], values={"a": 3.0, "b": -1.25},
-                                        metrics={"rmse": 0.0}, data_checksum=downloaded)
+    ps = w.p.warrants.upload_parameters(
+        w.devi,
+        tw["id"],
+        values={"a": 3.0, "b": -1.25},
+        metrics={"rmse": 0.0},
+        data_checksum=downloaded,
+    )
     assert ps["verified_data"]
     w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
     w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
@@ -105,6 +135,7 @@ def trained(world):
 
 def _age(w, warrant_id: str) -> None:
     """Move the run two years into the past, through the repositories."""
+
     def back(repo, row, *cols):
         repo.update(row["id"], {c: row[c] - AGE for c in cols if row.get(c) is not None})
 
@@ -131,7 +162,7 @@ def reproduce(platform, principal, warrant_id: str) -> tuple[dict, dict, bytes, 
     started = time.perf_counter()
     exported = platform.bundles.export(principal, warrant_id)
     raw = platform.blobs.get(exported["blob"])
-    report = platform.bundles.verify_offline(raw)       # the bundle's own verify.py
+    report = platform.bundles.verify_offline(raw)  # the bundle's own verify.py
     return exported["manifest"], report, raw, time.perf_counter() - started
 
 
@@ -147,7 +178,7 @@ def test_the_fixture_is_really_two_years_old(trained):
     assert tw["expires_at"] < now - dt.timedelta(days=300)
     assert custody and all(now - ev["created_at"] >= AGE for ev in custody)
     assert now - fsp["sealed_at"] >= AGE and all(now - m["sealed_at"] >= AGE for m in members)
-    with pytest.raises(WarrantExpired):          # the live path is closed; evidence is not
+    with pytest.raises(WarrantExpired):  # the live path is closed; evidence is not
         w.p.warrants.data(w.devi, wid)
 
 

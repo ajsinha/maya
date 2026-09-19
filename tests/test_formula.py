@@ -1,4 +1,5 @@
 """Formula IR: parse, render, evaluate, diff, codegen, lift, composite, conformance, spec document."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -14,8 +15,14 @@ from maya.formula.ir import input_contract, ir_hash, is_opaque, typecheck, valid
 from maya.formula.latex import to_latex
 from maya.formula.parse import parse_formula, parse_model
 from maya.formula.pylift import lift_python
-from maya.formula.specdoc import (bound_formulas, default_document, expand_macros, is_complete,
-                                  outline, section_completeness)
+from maya.formula.specdoc import (
+    bound_formulas,
+    default_document,
+    expand_macros,
+    is_complete,
+    outline,
+    section_completeness,
+)
 
 BS_PY = """
 d1 = (log(S/K) + (r + sigma**2/2)*T) / (sigma*sqrt(T))
@@ -45,8 +52,11 @@ def test_python_and_latex_forms_evaluate_identically() -> None:
     a = parse_model(BS_PY, roles=ROLES)
     b = parse_model(BS_TEX, roles=ROLES)
     grid = {"S": np.linspace(50, 150, 11), "K": 100.0, "r": 0.03, "T": 0.5}
-    np.testing.assert_allclose(next(iter(evaluate(a, grid, {"sigma": 0.3}).values())),
-                               next(iter(evaluate(b, grid, {"sigma": 0.3}).values())), rtol=1e-12)
+    np.testing.assert_allclose(
+        next(iter(evaluate(a, grid, {"sigma": 0.3}).values())),
+        next(iter(evaluate(b, grid, {"sigma": 0.3}).values())),
+        rtol=1e-12,
+    )
 
 
 def test_ncdf_precision() -> None:
@@ -55,8 +65,12 @@ def test_ncdf_precision() -> None:
 
 
 def test_validation_errors_are_named() -> None:
-    bad = {"outputs": [{"name": "y"}], "inputs": [{"name": "x", "role": "feature"}],
-           "lets": {"a": {"ref": "b"}, "b": {"ref": "a"}}, "body": {"op": "frob", "args": []}}
+    bad = {
+        "outputs": [{"name": "y"}],
+        "inputs": [{"name": "x", "role": "feature"}],
+        "lets": {"a": {"ref": "b"}, "b": {"ref": "a"}},
+        "body": {"op": "frob", "args": []},
+    }
     errs = validate_ir(bad)
     assert any("unknown op 'frob'" in e for e in errs)
     bad["body"] = {"op": "add", "args": [{"ref": "a"}, {"ref": "zz"}]}
@@ -106,10 +120,15 @@ def test_codegen_agrees_with_evaluate() -> None:
     src = to_python(ir)
     assert "import os" not in src
     predict = compile_reference(ir)
-    X = {"S": np.array([90.0, 100, 110]), "K": np.array([100.0] * 3), "r": np.array([0.05] * 3),
-         "T": np.array([1.0] * 3)}
-    np.testing.assert_allclose(predict(X, {"sigma": 0.2})["price"],
-                               evaluate(ir, X, {"sigma": 0.2})["price"], rtol=1e-14)
+    X = {
+        "S": np.array([90.0, 100, 110]),
+        "K": np.array([100.0] * 3),
+        "r": np.array([0.05] * 3),
+        "T": np.array([1.0] * 3),
+    }
+    np.testing.assert_allclose(
+        predict(X, {"sigma": 0.2})["price"], evaluate(ir, X, {"sigma": 0.2})["price"], rtol=1e-14
+    )
 
 
 def test_pylift() -> None:
@@ -142,15 +161,32 @@ def test_composite_union_maturity_seeds_and_eval() -> None:
     assert comp.blocking_members({"a": "approved", "b": "experimental"}, "approved") == ["b"]
     seeds = comp.member_seeds(42, ["base", "skew"])
     assert seeds == comp.member_seeds(42, ["base", "skew"]) and seeds["base"] != seeds["skew"]
-    ir = {"outputs": [{"name": "price"}], "inputs": [{"name": "w_skew", "role": "parameter"}],
-          "composite": {"kind": "ensemble", "members": [{"alias": "base", "ref": "maya://model/b@v1"},
-                                                        {"alias": "skew", "ref": "maya://model/s@v1"}],
-                        "combine": {"op": "add", "args": [{"ref": "base.price"}, {"op": "mul", "args": [
-                            {"param": "w_skew"}, {"ref": "skew.adj"}]}]},
-                        "train": {"mode": "sequential", "order": ["base", "skew"], "shared_split": True}}}
+    ir = {
+        "outputs": [{"name": "price"}],
+        "inputs": [{"name": "w_skew", "role": "parameter"}],
+        "composite": {
+            "kind": "ensemble",
+            "members": [
+                {"alias": "base", "ref": "maya://model/b@v1"},
+                {"alias": "skew", "ref": "maya://model/s@v1"},
+            ],
+            "combine": {
+                "op": "add",
+                "args": [
+                    {"ref": "base.price"},
+                    {"op": "mul", "args": [{"param": "w_skew"}, {"ref": "skew.adj"}]},
+                ],
+            },
+            "train": {"mode": "sequential", "order": ["base", "skew"], "shared_split": True},
+        },
+    }
     assert validate_ir(ir) == []
-    out = evaluate_composite(ir, {"base": base, "skew": skew}, {"S": np.array([2.0]), "v": np.array([1.0])},
-                             {"base.a": 3.0, "skew.b": 1.0, "w_skew": 0.5})
+    out = evaluate_composite(
+        ir,
+        {"base": base, "skew": skew},
+        {"S": np.array([2.0]), "v": np.array([1.0])},
+        {"base.a": 3.0, "skew.b": 1.0, "w_skew": 0.5},
+    )
     assert float(out["price"][0]) == pytest.approx(6.0 + 0.5 * 3.0)
     with pytest.raises(ValidationFailed, match="cycle"):
         comp.check_structure({"a": ["b"], "b": ["a"]}, "a")
@@ -161,14 +197,29 @@ def test_composite_union_maturity_seeds_and_eval() -> None:
 def test_composite_reference_code_matches_the_evaluator() -> None:
     """The generated composite module (what a bundle ships) gives what MAYA computes."""
     from maya.formula.codegen import to_python_composite
+
     base = parse_model("price = S*a + c", roles={"a": "parameter", "c": "parameter"})
     skew = parse_model("adj = S*b + v", roles={"b": "parameter"})
-    ir = {"outputs": [{"name": "price"}], "inputs": [{"name": "w_skew", "role": "parameter"}],
-          "composite": {"kind": "pipeline", "members": [{"alias": "base", "ref": "maya://model/b@v1"},
-                                                        {"alias": "skew", "ref": "maya://model/s@v1"}],
-                        "combine": {"op": "add", "args": [{"ref": "base.price"}, {"op": "mul", "args": [
-                            {"param": "w_skew"}, {"ref": "skew.adj"}]}, {"ref": "v"}]},
-                        "train": {"order": ["skew", "base"]}}}
+    ir = {
+        "outputs": [{"name": "price"}],
+        "inputs": [{"name": "w_skew", "role": "parameter"}],
+        "composite": {
+            "kind": "pipeline",
+            "members": [
+                {"alias": "base", "ref": "maya://model/b@v1"},
+                {"alias": "skew", "ref": "maya://model/s@v1"},
+            ],
+            "combine": {
+                "op": "add",
+                "args": [
+                    {"ref": "base.price"},
+                    {"op": "mul", "args": [{"param": "w_skew"}, {"ref": "skew.adj"}]},
+                    {"ref": "v"},
+                ],
+            },
+            "train": {"order": ["skew", "base"]},
+        },
+    }
     rng = np.random.default_rng(7)
     X = {"S": rng.normal(100, 10, 500), "v": rng.normal(0, 1, 500)}
     params = {"base.a": 1.5, "base.c": -2.0, "skew.b": 0.25, "w_skew": 0.4}
@@ -191,8 +242,16 @@ def test_conformance_finds_counterexample() -> None:
         out[np.asarray(X["S"]) > 140] += 0.01
         return {"price": out}
 
-    samples = sample_inputs(ir, {"S": np.linspace(50, 150, 101), "K": np.full(5, 100.0),
-                                 "r": np.array([0.01, 0.05]), "T": np.array([0.5, 1.0])}, n=2000)
+    samples = sample_inputs(
+        ir,
+        {
+            "S": np.linspace(50, 150, 101),
+            "K": np.full(5, 100.0),
+            "r": np.array([0.01, 0.05]),
+            "T": np.array([0.5, 1.0]),
+        },
+        n=2000,
+    )
     ok = conformance_test(ir, good, samples, {"sigma": 0.2})
     assert ok["agreed"] == ok["total"] == 2000 and "not proof" in ok["statement"]
     bad = conformance_test(ir, buggy, samples, {"sigma": 0.2})
@@ -217,10 +276,13 @@ def test_specdoc_completeness_and_macros() -> None:
     filled = doc
     for s in section_completeness(doc):
         if s["empty"]:
-            filled = filled.replace(f"\\section{{{s['section']}}}\n", f"\\section{{{s['section']}}}\nText.\n", 1)
+            filled = filled.replace(
+                f"\\section{{{s['section']}}}\n", f"\\section{{{s['section']}}}\nText.\n", 1
+            )
     assert is_complete(filled)
-    expanded = expand_macros(r"\mayaformula{let:d1} see \mayaref{maya://feature/x@v1}", ir,
-                             lambda uri: f"[{uri}]")
+    expanded = expand_macros(
+        r"\mayaformula{let:d1} see \mayaref{maya://feature/x@v1}", ir, lambda uri: f"[{uri}]"
+    )
     assert r"d_{1} =" in expanded and "[maya://feature/x@v1]" in expanded
     assert any(o["section"] == "Purpose" and o["required"] for o in outline(doc))
 
@@ -236,10 +298,12 @@ def test_constants_declare_a_value_that_evaluation_and_code_both_use() -> None:
     supplies one; one without a value must be supplied, and a value on anything else is refused."""
     from maya.services.models import ModelService
     from maya.services.warrants import WarrantService
+
     ir = parse_model(BS_PY, roles={"sigma": "parameter", "r": "constant"})
     X = {k: np.array([v]) for k, v in POINT.items() if k != "r"}
     assert WarrantService.check_bounds(ir, {"sigma": 0.2}) == [
-        "missing constant 'r' (the model declares no value for it)"]
+        "missing constant 'r' (the model declares no value for it)"
+    ]
     next(i for i in ir["inputs"] if i["name"] == "r")["value"] = 0.05
     assert validate_ir(ir) == [] and WarrantService.check_bounds(ir, {"sigma": 0.2}) == []
     expected = evaluate(ir, {**X, "r": np.array([0.05])}, {"sigma": 0.2})["price"]

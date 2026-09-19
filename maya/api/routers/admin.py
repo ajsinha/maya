@@ -3,6 +3,7 @@ Authentication, identity, access and operations endpoints (§12, §11, §20).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -25,8 +26,15 @@ router = APIRouter()
 def login(body: s.LoginIn, request: Request, plat: Any = Plat) -> Response:
     ip = request.client.host if request.client else None
     channel = request.headers.get("x-maya-channel", "api")
-    return ok(plat.auth.login(body.username, body.password, ip=ip,
-                              user_agent=request.headers.get("user-agent"), channel=channel))
+    return ok(
+        plat.auth.login(
+            body.username,
+            body.password,
+            ip=ip,
+            user_agent=request.headers.get("user-agent"),
+            channel=channel,
+        )
+    )
 
 
 def _bearer(request: Request) -> str:
@@ -48,8 +56,15 @@ def sso_start(plat: Any = Plat) -> Response:
 @router.post("/auth/sso/callback", tags=["auth"])
 def sso_callback(body: s.SsoCallbackIn, request: Request, plat: Any = Plat) -> Response:
     ip = request.client.host if request.client else None
-    return ok(plat.sso.callback(body.code, body.code_verifier, body.nonce, ip=ip,
-                                user_agent=request.headers.get("user-agent")))
+    return ok(
+        plat.sso.callback(
+            body.code,
+            body.code_verifier,
+            body.nonce,
+            ip=ip,
+            user_agent=request.headers.get("user-agent"),
+        )
+    )
 
 
 @router.get("/auth/mfa", tags=["auth"])
@@ -58,8 +73,7 @@ def mfa_status(request: Request, me: Principal = Me, plat: Any = Plat) -> Respon
 
 
 @router.post("/auth/mfa/verify", tags=["auth"])
-def mfa_verify(body: s.CodeIn, request: Request, me: Principal = Me,
-               plat: Any = Plat) -> Response:
+def mfa_verify(body: s.CodeIn, request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
     ip = request.client.host if request.client else None
     return ok(plat.sso.verify(_bearer(request), body.code, ip=ip))
 
@@ -70,8 +84,7 @@ def mfa_enroll(request: Request, me: Principal = Me, plat: Any = Plat) -> Respon
 
 
 @router.post("/auth/mfa/confirm", tags=["auth"])
-def mfa_confirm(body: s.CodeIn, request: Request, me: Principal = Me,
-                plat: Any = Plat) -> Response:
+def mfa_confirm(body: s.CodeIn, request: Request, me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.sso.confirm(me, _bearer(request), body.code))
 
 
@@ -93,8 +106,17 @@ def whoami(me: Principal = Me, plat: Any = Plat) -> Response:
     with plat.uow() as uow:
         user = uow.repo("users").require(me.user_id)
     from maya.services.access import public_user
-    return ok({**public_user(user), "roles": me.roles, "capabilities": me.capabilities, "groups": me.groups,
-               "channel": me.channel, "principal_type": me.principal_type})
+
+    return ok(
+        {
+            **public_user(user),
+            "roles": me.roles,
+            "capabilities": me.capabilities,
+            "groups": me.groups,
+            "channel": me.channel,
+            "principal_type": me.principal_type,
+        }
+    )
 
 
 @router.post("/auth/password", tags=["auth"])
@@ -149,8 +171,9 @@ def create_user(body: s.UserIn, me: Principal = Me, plat: Any = Plat) -> Respons
 
 
 @router.patch("/users/{username}", tags=["admin"])
-def update_user(username: str, body: dict[str, Any], me: Principal = Me,
-                plat: Any = Plat) -> Response:
+def update_user(
+    username: str, body: dict[str, Any], me: Principal = Me, plat: Any = Plat
+) -> Response:
     return ok(plat.access.update_user(me, username, body))
 
 
@@ -161,8 +184,9 @@ def set_roles(username: str, body: s.RolesIn, me: Principal = Me, plat: Any = Pl
 
 
 @router.post("/users/{username}/password-reset", tags=["admin"])
-def reset_password(username: str, body: s.ResetIn, me: Principal = Me,
-                   plat: Any = Plat) -> Response:
+def reset_password(
+    username: str, body: s.ResetIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
     plat.access.reset_password(me, username, body.new_password)
     return ok({"ok": True})
 
@@ -184,8 +208,9 @@ def groups(me: Principal = Me, plat: Any = Plat) -> Response:
 
 @router.post("/groups", tags=["admin"], status_code=201)
 def create_group(body: s.GroupIn, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.access.create_group(me, body.name, body.description, body.roles,
-                                       body.members), 201)
+    return ok(
+        plat.access.create_group(me, body.name, body.description, body.roles, body.members), 201
+    )
 
 
 # -- namespaces and grants ---------------------------------------------------------------
@@ -200,27 +225,50 @@ def create_namespace(body: s.NamespaceIn, me: Principal = Me, plat: Any = Plat) 
 
 
 @router.patch("/namespaces/{name}", tags=["access"])
-def update_namespace(name: str, body: dict[str, Any], me: Principal = Me,
-                     plat: Any = Plat) -> Response:
+def update_namespace(
+    name: str, body: dict[str, Any], me: Principal = Me, plat: Any = Plat
+) -> Response:
     return ok(plat.access.update_namespace(me, name, body))
 
 
 @router.get("/grants", tags=["access"])
-def grants(kind: str, ref: str, page_size: int | None = None, cursor: str | None = None,
-                  sort: str | None = None, total: bool = False, me: Principal = Me,
-           plat: Any = Plat) -> Response:
+def grants(
+    kind: str,
+    ref: str,
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
     obj = plat.access.resolve_object(kind, ref)
     if page_size is not None or cursor is not None:
-        return ok(plat.access.grants_page(kind, obj["id"], page_size=page_size, cursor=cursor, sort=sort, total=total))
+        return ok(
+            plat.access.grants_page(
+                kind, obj["id"], page_size=page_size, cursor=cursor, sort=sort, total=total
+            )
+        )
     return ok(plat.access.grants_for(kind, obj["id"]))
 
 
 @router.post("/grants", tags=["access"], status_code=201)
 def grant(body: s.GrantIn, me: Principal = Me, plat: Any = Plat) -> Response:
     obj = plat.access.resolve_object(body.kind, body.object_ref)
-    return ok(plat.access.grant(me, kind=body.kind, obj=obj, principal_type=body.principal_type,
-                                principal_id=body.principal_id, level=body.level, days=body.days,
-                                deny=body.deny, conditions=body.conditions), 201)
+    return ok(
+        plat.access.grant(
+            me,
+            kind=body.kind,
+            obj=obj,
+            principal_type=body.principal_type,
+            principal_id=body.principal_id,
+            level=body.level,
+            days=body.days,
+            deny=body.deny,
+            conditions=body.conditions,
+        ),
+        201,
+    )
 
 
 @router.delete("/grants/{grant_id}", tags=["access"])
@@ -236,11 +284,23 @@ def recertification(me: Principal = Me, plat: Any = Plat) -> Response:
 
 # -- audit, inbox, search --------------------------------------------------------------
 @router.get("/audit", tags=["audit"])
-def audit(q: str | None = None, action: str | None = None, limit: int = 1000,
-          page_size: int | None = None, cursor: str | None = None,
-                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+def audit(
+    q: str | None = None,
+    action: str | None = None,
+    limit: int = 1000,
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
     if page_size is not None or cursor is not None:
-        return ok(plat.access.audit_page(me, q=q, action=action, page_size=page_size, cursor=cursor, sort=sort, total=total))
+        return ok(
+            plat.access.audit_page(
+                me, q=q, action=action, page_size=page_size, cursor=cursor, sort=sort, total=total
+            )
+        )
     return ok(plat.access.audit_log(me, limit=limit, q=q, action=action))
 
 
@@ -250,10 +310,18 @@ def audit_verify(me: Principal = Me, plat: Any = Plat) -> Response:
 
 
 @router.get("/inbox", tags=["inbox"])
-def inbox(page_size: int | None = None, cursor: str | None = None,
-                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+def inbox(
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
     if page_size is not None or cursor is not None:
-        return ok(plat.access.inbox_page(me, page_size=page_size, cursor=cursor, sort=sort, total=total))
+        return ok(
+            plat.access.inbox_page(me, page_size=page_size, cursor=cursor, sort=sort, total=total)
+        )
     return ok(plat.access.inbox(me))
 
 
@@ -273,9 +341,10 @@ def reindex_search(me: Principal = Me, plat: Any = Plat) -> Response:
 
 
 @router.get("/lineage", tags=["lineage"])
-def lineage(root: str, direction: str = "both", depth: int = 3, me: Principal = Me,
-            plat: Any = Plat) -> Response:
-    return ok(plat.ops.lineage(root, direction=direction, depth=min(depth, 8)))
+def lineage(
+    root: str, direction: str = "both", depth: int = 3, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    return ok(plat.ops.lineage(root, direction=direction, depth=min(depth, 8), p=me))
 
 
 # -- operations -----------------------------------------------------------------------------
@@ -308,16 +377,30 @@ def integrity(me: Principal = Me, plat: Any = Plat) -> Response:
 @router.get("/system/estate", tags=["ops"])
 def estate(me: Principal = Me, plat: Any = Plat) -> Response:
     _admin(me)
-    return Response(plat.ops.export_estate(), media_type="application/zip",
-                    headers={"Content-Disposition": "attachment; filename=estate.mayabundle"})
+    return Response(
+        plat.ops.export_estate(),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=estate.mayabundle"},
+    )
 
 
 @router.get("/jobs", tags=["jobs"])
-def jobs(all: bool = False, q: str | None = None, page_size: int | None = None, cursor: str | None = None,
-                  sort: str | None = None, total: bool = False, me: Principal = Me,
-         plat: Any = Plat) -> Response:
+def jobs(
+    all: bool = False,
+    q: str | None = None,
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
     if page_size is not None or cursor is not None:
-        return ok(plat.ops.jobs_page(me, all_users=all, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total))
+        return ok(
+            plat.ops.jobs_page(
+                me, all_users=all, q=q, page_size=page_size, cursor=cursor, sort=sort, total=total
+            )
+        )
     return ok(plat.ops.jobs(me, all_users=all))
 
 
@@ -353,12 +436,14 @@ async def job_events(job_id: str, me: Principal = Me, plat: Any = Plat) -> Strea
             if job["state"] in ("succeeded", "failed", "cancelled", "dead_letter"):
                 return
             await asyncio.sleep(0.5)
+
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 @router.post("/bundles/verify", tags=["warrants"])
-async def verify_bundle(file: UploadFile = File(...), me: Principal = Me,
-                        plat: Any = Plat) -> Response:
+async def verify_bundle(
+    file: UploadFile = File(...), me: Principal = Me, plat: Any = Plat
+) -> Response:
     data = await file.read()
     return ok(await asyncio.to_thread(plat.bundles.verify, data))
 

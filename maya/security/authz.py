@@ -20,6 +20,7 @@ Order of evaluation:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -28,9 +29,18 @@ from typing import Any
 
 # action -> capability letter required by the role ceiling
 ACTION_LETTER = {
-    "read": "R", "download": "R", "create": "C", "update": "U", "submit": "U",
-    "approve": "A", "pin": "P", "seal": "P", "request_pin": "Q", "grant": "G",
-    "revoke": "G", "admin": "C",
+    "read": "R",
+    "download": "R",
+    "create": "C",
+    "update": "U",
+    "submit": "U",
+    "approve": "A",
+    "pin": "P",
+    "seal": "P",
+    "request_pin": "Q",
+    "grant": "G",
+    "revoke": "G",
+    "admin": "C",
 }
 # action -> minimum ACL level (Appendix B)
 LEVELS = ("read", "read_write", "approve", "own", "admin")
@@ -38,8 +48,18 @@ LEVEL_ALLOWS = {
     "read": {"read", "download"},
     "read_write": {"read", "download", "update", "submit", "request_pin"},
     "approve": {"read", "download", "approve", "pin", "seal"},
-    "own": {"read", "download", "update", "submit", "request_pin", "approve", "pin",
-            "seal", "grant", "revoke"},
+    "own": {
+        "read",
+        "download",
+        "update",
+        "submit",
+        "request_pin",
+        "approve",
+        "pin",
+        "seal",
+        "grant",
+        "revoke",
+    },
     "admin": set(ACTION_LETTER),
 }
 WRITE_ACTIONS = {"update", "submit", "create"}
@@ -90,9 +110,13 @@ def merge_capabilities(role_caps: list[dict[str, str]]) -> dict[str, str]:
     return {k: "".join(sorted(v)) for k, v in merged.items()}
 
 
-def can(p: Principal, action: str, obj: dict[str, Any],
-        grants: list[dict[str, Any]] | None = None,
-        namespace: dict[str, Any] | None = None) -> Decision:
+def can(
+    p: Principal,
+    action: str,
+    obj: dict[str, Any],
+    grants: list[dict[str, Any]] | None = None,
+    namespace: dict[str, Any] | None = None,
+) -> Decision:
     """Decide whether ``p`` may take ``action`` on ``obj``.
 
     ``obj`` carries ``type`` (capability object type), ``id``, and optionally
@@ -103,16 +127,23 @@ def can(p: Principal, action: str, obj: dict[str, Any],
         return Decision(False, f"unknown action '{action}'")
     obj_type = obj["type"]
     if not p.has_capability(obj_type, letter) and not (
-            letter == "Q" and p.has_capability(obj_type, "P")):
-        return Decision(False, f"role ceiling: no '{letter}' on {obj_type} in roles "
-                               f"{', '.join(p.roles) or '(none)'}")
+        letter == "Q" and p.has_capability(obj_type, "P")
+    ):
+        return Decision(
+            False,
+            f"role ceiling: no '{letter}' on {obj_type} in roles {', '.join(p.roles) or '(none)'}",
+        )
     scope = _key_scope(p, action, obj)
-    if scope is not None:          # a Decision(False) is falsy: test identity, not truth
+    if scope is not None:  # a Decision(False) is falsy: test identity, not truth
         return scope
     if obj.get("state") in FROZEN_STATES and action in WRITE_ACTIONS:
         return Decision(False, f"object is {obj['state']}: read-only to everyone")
-    if namespace and namespace.get("is_scratch") and namespace.get("owner_id") != p.user_id \
-            and not p.is_admin:
+    if (
+        namespace
+        and namespace.get("is_scratch")
+        and namespace.get("owner_id") != p.user_id
+        and not p.is_admin
+    ):
         return Decision(False, "scratch namespaces belong to their owner alone")
     if p.is_admin:
         return Decision(True, "admin role")
@@ -137,17 +168,28 @@ def _live(grants: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [g for g in grants if g.get("expires_at") is None or g["expires_at"] > now]
 
 
-def _acl(p: Principal, action: str, obj: dict[str, Any], grants: list[dict[str, Any]],
-         namespace: dict[str, Any] | None) -> Decision:
+def _acl(
+    p: Principal,
+    action: str,
+    obj: dict[str, Any],
+    grants: list[dict[str, Any]],
+    namespace: dict[str, Any] | None,
+) -> Decision:
     grants = _live(grants)
     mine = [g for g in grants if g["principal_type"] == "user" and g["principal_id"] == p.user_id]
     if any(g.get("deny") for g in mine):
         return Decision(False, "explicit deny for this user")
     if mine:
         return _granted(action, mine, "user grant")
-    shared = [g for g in grants if not g.get("deny") and (
-        (g["principal_type"] == "group" and g["principal_id"] in p.groups)
-        or (g["principal_type"] == "role" and g["principal_id"] in p.roles))]
+    shared = [
+        g
+        for g in grants
+        if not g.get("deny")
+        and (
+            (g["principal_type"] == "group" and g["principal_id"] in p.groups)
+            or (g["principal_type"] == "role" and g["principal_id"] in p.roles)
+        )
+    ]
     if shared:
         return _granted(action, shared, "group/role grant")
     everyone = [g for g in grants if g["principal_type"] == "everyone" and not g.get("deny")]
@@ -170,11 +212,13 @@ def _acl(p: Principal, action: str, obj: dict[str, Any], grants: list[dict[str, 
 def _granted(action: str, grants: list[dict[str, Any]], via: str) -> Decision:
     """Decide by the strongest grant; its conditions (combined if tied) ride along."""
     from maya.security.conditions import combine
+
     best = _best(grants)
     decision = _level_decision(action, best, via)
     if decision.allowed:
-        decision.conditions = combine([g.get("conditions") or {} for g in grants
-                                       if g["level"] == best])
+        decision.conditions = combine(
+            [g.get("conditions") or {} for g in grants if g["level"] == best]
+        )
     return decision
 
 
@@ -192,6 +236,8 @@ def inert_grant_reason(level: str, holder_caps: dict[str, str], object_type: str
     """A grant beyond the holder's role ceiling is inert; say so at creation (§11.2)."""
     needed = {"read_write": "U", "approve": "A", "own": "G", "admin": "C"}.get(level)
     if needed and needed not in holder_caps.get(object_type, ""):
-        return (f"inert: the holder's roles carry no '{needed}' on {object_type}, so a "
-                f"'{level}' grant cannot give them that capability")
+        return (
+            f"inert: the holder's roles carry no '{needed}' on {object_type}, so a "
+            f"'{level}' grant cannot give them that capability"
+        )
     return None

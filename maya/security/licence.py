@@ -21,6 +21,7 @@ source and the clause instead of just saying no.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -53,9 +54,14 @@ def validate(lic: dict[str, Any] | None) -> list[str]:
 
 def combine(sources: list[tuple[str, dict[str, Any] | None]]) -> dict[str, Any]:
     """The most restrictive combination; ``clauses`` records who imposed each term."""
-    out: dict[str, Any] = {"redistribution": "public", "derived_works": "allowed",
-                           "population": None, "retention_days": None, "vendors": [],
-                           "clauses": {}}
+    out: dict[str, Any] = {
+        "redistribution": "public",
+        "derived_works": "allowed",
+        "population": None,
+        "retention_days": None,
+        "vendors": [],
+        "clauses": {},
+    }
     for ref, lic in sources:
         if not lic:
             continue
@@ -76,8 +82,9 @@ def combine(sources: list[tuple[str, dict[str, Any] | None]]) -> dict[str, Any]:
     return out
 
 
-def _tighten(out: dict[str, Any], term: str, order: tuple[str, ...], lic: dict[str, Any],
-             ref: str) -> None:
+def _tighten(
+    out: dict[str, Any], term: str, order: tuple[str, ...], lic: dict[str, Any], ref: str
+) -> None:
     value = lic.get(term)
     if value and order.index(value) < order.index(out[term]):
         out[term] = value
@@ -90,17 +97,25 @@ def _who(lic: dict[str, Any], ref: str) -> str:
 
 def _breach(eff: dict[str, Any], term: str, what: str) -> LicenceBreach:
     source = eff["clauses"].get(term, "a source")
-    return LicenceBreach(f"Licence: {what} ({term}: {eff[term]}, imposed by {source})",
-                         term=term, value=eff[term], source=source)
+    return LicenceBreach(
+        f"Licence: {what} ({term}: {eff[term]}, imposed by {source})",
+        term=term,
+        value=eff[term],
+        source=source,
+    )
 
 
 def check_export(eff: dict[str, Any], audience: str) -> None:
     """``internal``: a download inside the firm; ``external``: a bundle for outsiders."""
     need = {"internal": "internal", "external": "external"}[audience]
     if REDISTRIBUTION.index(eff["redistribution"]) < REDISTRIBUTION.index(need):
-        raise _breach(eff, "redistribution",
-                      "this data may not leave MAYA in bulk" if eff["redistribution"] == "none"
-                      else "this data may not be given to anyone outside the firm")
+        raise _breach(
+            eff,
+            "redistribution",
+            "this data may not leave MAYA in bulk"
+            if eff["redistribution"] == "none"
+            else "this data may not be given to anyone outside the firm",
+        )
 
 
 def check_derivation(eff: dict[str, Any], what: str) -> None:
@@ -117,8 +132,9 @@ def in_population(eff: dict[str, Any], groups: list[str], desk: str | None) -> b
 
 def check_reader(eff: dict[str, Any], who: str, groups: list[str], desk: str | None) -> None:
     if not in_population(eff, groups, desk):
-        raise _breach(eff, "population", f"{who} is outside the population permitted to "
-                                         f"receive this data")
+        raise _breach(
+            eff, "population", f"{who} is outside the population permitted to receive this data"
+        )
 
 
 def normalise(lic: dict[str, Any] | None) -> dict[str, Any] | None:

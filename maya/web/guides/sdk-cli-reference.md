@@ -7,6 +7,7 @@ The Python SDK, `maya.sdk`, is the one client of MAYA. The web UI calls it with 
 ```python
 # Connect with an API key
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 print(my.auth.me()["username"])
 ```
@@ -39,9 +40,11 @@ The client is a context manager (`with maya.Client(...) as my:`) and has `close(
 import asyncio
 import maya.sdk as maya
 
+
 async def main():
     async with maya.AsyncClient("https://maya.example.com", api_key="maya_prod_…") as my:
         print(len(await my.features.list(namespace="eq")))
+
 
 asyncio.run(main())
 ```
@@ -112,8 +115,14 @@ except maya.LicenceBreach as exc:
 
 ```python
 # Pin a feature set and wait for it
-job = my.featuresets.pin("eq/panel", version_no=2, pin_name="eom", as_of="2026-03-31",
-                         cascade=True, idempotency_key="panel-eom-2026-03-31")
+job = my.featuresets.pin(
+    "eq/panel",
+    version_no=2,
+    pin_name="eom",
+    as_of="2026-03-31",
+    cascade=True,
+    idempotency_key="panel-eom-2026-03-31",
+)
 done = my.wait(job["job"], progress=lambda j: print(j["progress"], j["message"]))
 print(done["result"])
 ```
@@ -132,8 +141,9 @@ A cassette is JSON in the format `maya-cassette/1`.
 
 ```python
 # Record once, replay in tests
-live = maya.Client.record("tests/fixtures/prices.json",
-                          base_url="https://maya.example.com", api_key="maya_…")
+live = maya.Client.record(
+    "tests/fixtures/prices.json", base_url="https://maya.example.com", api_key="maya_…"
+)
 panel = live.features.preview("maya://feature/eq/prices@v1")
 tape = maya.Client.replay("tests/fixtures/prices.json")
 assert tape.features.preview("maya://feature/eq/prices@v1") == panel
@@ -250,7 +260,7 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 | `mark_read(ids=None)` | `POST /inbox/read` |
 | `search(q, limit=50)` | `GET /search` |
 | `reindex_search()` | `POST /search/reindex` |
-| `lineage(root, direction="both", depth=3)` | `GET /lineage` |
+| `lineage(root, direction="both", depth=3)` | `GET /lineage` — objects you may not read are left out and counted in `hidden` |
 
 ### features
 
@@ -271,6 +281,7 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 | `compare(ref, v1, v2)` | `GET /features/{ns}/{name}/compare` |
 | `draft_preview(ref, as_of_known=None)` | `POST /features/{ns}/{name}/draft-preview` |
 | `pin(ref, version_no, pin_name, as_of, as_of_known=None, idempotency_key=None)` | `POST /features/{ns}/{name}/pins` |
+| `pins(ref, page_size=100, cursor=None, sort=None, total=False)` | `GET /features/{ns}/{name}/pins` — a feature's pins a page at a time (`get` shows the latest 100 and `pins_total`) |
 | `approve_pin(pin_id)` | `POST /pins/{pin_id}/approve` |
 | `retire_pin(pin_id, reason)` | `POST /pins/{pin_id}/retire` |
 | `preview(ref, as_of_known=None, start=None, end=None)` | `GET /feature-data/preview` |
@@ -456,7 +467,7 @@ These commands open the database directly, beside the server rather than through
 |---|---|
 | `admin init-db [--force]` | Creates the schema for the configured dialect from its schema file. Refuses (exit 1) when a MAYA schema exists, unless `--force`, which drops and recreates it. |
 | `admin export-estate --out FILE` | Writes every table to an estate file. Opens the database with the running code, so its schema must match. |
-| `admin import-estate --in FILE` | Loads an estate into an empty database (creating the schema when there is none), verifying every table's hash and then the audit chain. |
+| `admin import-estate --in FILE [--allow-drop]` | Loads an estate into an empty database (creating the schema when there is none). Every table's hash, the audit chain and every column are checked before anything is written; `--allow-drop` accepts columns this version no longer has, and names them. |
 | `admin verify-integrity` | Through the API: re-hashes every sealed pin and walks the audit chain. Exits 1 on any drift or a broken chain. |
 
 ### feature

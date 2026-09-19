@@ -5,13 +5,22 @@ ingests, pin series, fragments, members, derivations and inheritance links
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import (BigInteger, Boolean, Date, ForeignKey, Integer, String, Text,
-                        UniqueConstraint)
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from maya.persistence.models.base import Base, Tracked
@@ -117,7 +126,9 @@ class FeatureSet(Tracked, Base):
 class FeatureSetVersion(Tracked, Base):
     __tablename__ = "feature_set_versions"
     __table_args__ = (UniqueConstraint("feature_set_id", "version_no"),)
-    feature_set_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey("feature_sets.id"), index=True)
+    feature_set_id: Mapped[str] = mapped_column(
+        PortableUUID, ForeignKey("feature_sets.id"), index=True
+    )
     version_no: Mapped[int] = mapped_column(Integer)
     state: Mapped[str] = mapped_column(String(24), default="draft")
     definition: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
@@ -135,7 +146,8 @@ class FeatureSetMember(Base):
     __tablename__ = "feature_set_members"
     id: Mapped[str] = mapped_column(PortableUUID, primary_key=True)
     feature_set_version_id: Mapped[str] = mapped_column(
-        PortableUUID, ForeignKey("feature_set_versions.id"), index=True)
+        PortableUUID, ForeignKey("feature_set_versions.id"), index=True
+    )
     attr_name: Mapped[str] = mapped_column(String(128))
     ref_uri: Mapped[str] = mapped_column(String(512))
     source_attr: Mapped[str] = mapped_column(String(128))
@@ -147,9 +159,12 @@ class FeatureSetMember(Base):
 class FeatureSetPin(Tracked, Base):
     __tablename__ = "feature_set_pins"
     __table_args__ = (UniqueConstraint("feature_set_id", "pin_name", "as_of_date"),)
-    feature_set_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey("feature_sets.id"), index=True)
+    feature_set_id: Mapped[str] = mapped_column(
+        PortableUUID, ForeignKey("feature_sets.id"), index=True
+    )
     feature_set_version_id: Mapped[str] = mapped_column(
-        PortableUUID, ForeignKey("feature_set_versions.id"))
+        PortableUUID, ForeignKey("feature_set_versions.id")
+    )
     pin_name: Mapped[str] = mapped_column(String(128))
     as_of_date: Mapped[dt.date] = mapped_column(Date)
     as_of_known: Mapped[dt.datetime] = mapped_column(UTCDateTime)

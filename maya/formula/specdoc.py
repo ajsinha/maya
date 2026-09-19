@@ -8,15 +8,22 @@ drift from the implementation.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
 from typing import Any, Callable
 
 REQUIRED_SECTIONS = (
-    "Purpose", "Scope and Limitations", "Mathematical Formulation", "Assumptions",
-    "Data and Features Used", "Calibration Methodology", "Validation Evidence",
-    "Known Weaknesses", "Change Log",
+    "Purpose",
+    "Scope and Limitations",
+    "Mathematical Formulation",
+    "Assumptions",
+    "Data and Features Used",
+    "Calibration Methodology",
+    "Validation Evidence",
+    "Known Weaknesses",
+    "Change Log",
 )
 
 TEMPLATE = r"""\documentclass[11pt]{article}
@@ -66,8 +73,10 @@ def default_document(model_name: str, ir: dict[str, Any], author: str = "") -> s
     )
     listing = "\\begin{itemize}\n" + items + "\n\\end{itemize}" if items else ""
     return TEMPLATE % {
-        "title": model_name.replace("_", r"\_"), "author": author,
-        "purpose": "", "inputs": listing,
+        "title": model_name.replace("_", r"\_"),
+        "author": author,
+        "purpose": "",
+        "inputs": listing,
     }
 
 
@@ -78,7 +87,7 @@ def _sections(latex: str) -> list[tuple[str, str]]:
     out = []
     for i, m in enumerate(marks):
         end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
-        out.append((m.group(1).strip(), text[m.end():end]))
+        out.append((m.group(1).strip(), text[m.end() : end]))
     return out
 
 
@@ -89,8 +98,13 @@ def outline(latex: str) -> list[dict[str, Any]]:
     for no, line in enumerate(lines, 1):
         m = _SECTION.search(line)
         if m:
-            out.append({"section": m.group(1).strip(), "line": no,
-                        "required": m.group(1).strip() in REQUIRED_SECTIONS})
+            out.append(
+                {
+                    "section": m.group(1).strip(),
+                    "line": no,
+                    "required": m.group(1).strip() in REQUIRED_SECTIONS,
+                }
+            )
     return out
 
 
@@ -110,8 +124,9 @@ def is_complete(latex: str) -> bool:
     return all(s["present"] and not s["empty"] for s in section_completeness(latex))
 
 
-def expand_macros(latex: str, ir: dict[str, Any],
-                  resolver: Callable[[str], str] | None = None) -> str:
+def expand_macros(
+    latex: str, ir: dict[str, Any], resolver: Callable[[str], str] | None = None
+) -> str:
     r"""Replace ``\mayaformula{body|let:NAME|full}`` and ``\mayaref{maya://...}``."""
     from maya.formula.latex import body_latex, let_latex, to_latex
 

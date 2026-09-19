@@ -7,6 +7,7 @@ executions and covenant breaches, reinstate/revoke).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,8 +16,17 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.core.errors import ValidationFailed
-from maya.web.routes.common import (action, client, download, flash, form, is_admin, page,
-                                    parse_json, render)
+from maya.web.routes.common import (
+    action,
+    client,
+    download,
+    flash,
+    form,
+    is_admin,
+    page,
+    parse_json,
+    render,
+)
 
 router = APIRouter()
 
@@ -34,8 +44,9 @@ async def warrants(request: Request) -> Any:
     async with client(request) as sdk:
         training = await sdk.training.list()
         execution = await sdk.execution.list()
-    return await render(request, "warrants/list.html",
-                        {"training": training, "execution": execution})
+    return await render(
+        request, "warrants/list.html", {"training": training, "execution": execution}
+    )
 
 
 # -- training warrants -----------------------------------------------------------------
@@ -44,8 +55,11 @@ async def warrants(request: Request) -> Any:
 async def training_new(request: Request) -> Any:
     async with client(request) as sdk:
         namespaces = await sdk.namespaces.list()
-        models = [f"maya://model/{m['namespace']}/{m['name']}@v{m['latest_version']}"
-                  for m in await sdk.models.list() if m["latest_state"] in ("approved", "published")]
+        models = [
+            f"maya://model/{m['namespace']}/{m['name']}@v{m['latest_version']}"
+            for m in await sdk.models.list()
+            if m["latest_state"] in ("approved", "published")
+        ]
         fsets = []
         for s in await sdk.featuresets.list():
             if s["latest_state"] in ("approved", "published"):
@@ -53,31 +67,43 @@ async def training_new(request: Request) -> Any:
             if s["pins"]:
                 detail = await sdk.featuresets.get(s["ref"])
                 fsets += [p["ref"] for p in detail["pins"] if p["state"] == "sealed"]
-    return await render(request, "warrants/training_new.html",
-                        {"namespaces": namespaces, "models": models, "fsets": fsets})
+    return await render(
+        request,
+        "warrants/training_new.html",
+        {"namespaces": namespaces, "models": models, "fsets": fsets},
+    )
 
 
 @router.post("/warrants/training/new")
 @action
 async def training_create(request: Request) -> Any:
     data = await form(request)
-    spec = {"split": {"train": _float(data, "train", 0.7), "validation": _float(data, "validation",
-                                                                                 0.15),
-                      "test": _float(data, "test", 0.15)},
-            "seed": int(data.get("seed") or 42), "target": data.get("target") or None,
-            "bindings": parse_json(data.get("bindings"), "Bindings", {}),
-            "holdout": data.get("holdout", "escrowed"),
-            "leakage_lag_days": int(data.get("leakage_lag_days") or 1),
-            "expiry_days": int(data.get("expiry_days") or 365),
-            "allow_non_causal": bool(data.get("allow_non_causal")),
-            "non_causal_justification": data.get("non_causal_justification", ""),
-            "leakage_justification": data.get("leakage_justification", ""),
-            "objective": data.get("objective", "")}
+    spec = {
+        "split": {
+            "train": _float(data, "train", 0.7),
+            "validation": _float(data, "validation", 0.15),
+            "test": _float(data, "test", 0.15),
+        },
+        "seed": int(data.get("seed") or 42),
+        "target": data.get("target") or None,
+        "bindings": parse_json(data.get("bindings"), "Bindings", {}),
+        "holdout": data.get("holdout", "escrowed"),
+        "leakage_lag_days": int(data.get("leakage_lag_days") or 1),
+        "expiry_days": int(data.get("expiry_days") or 365),
+        "allow_non_causal": bool(data.get("allow_non_causal")),
+        "non_causal_justification": data.get("non_causal_justification", ""),
+        "leakage_justification": data.get("leakage_justification", ""),
+        "objective": data.get("objective", ""),
+    }
     async with client(request) as sdk:
-        w = await sdk.training.create(data["namespace"], data["name"], data["model"],
-                                      data["featureset"], spec)
-    flash(request, "Training warrant drawn: contract validated, leakage certificate issued.",
-          "success")
+        w = await sdk.training.create(
+            data["namespace"], data["name"], data["model"], data["featureset"], spec
+        )
+    flash(
+        request,
+        "Training warrant drawn: contract validated, leakage certificate issued.",
+        "success",
+    )
     return RedirectResponse(f"/warrants/training/{w['id']}", status_code=303)
 
 
@@ -88,11 +114,21 @@ async def training(request: Request, wid: str) -> Any:
         w = await sdk.training.get(wid)
         history = await sdk.workflow.history("training_warrant", wid)
         comments = await sdk.workflow.comments("training_warrant", wid)
-    return await render(request, "warrants/training.html", {
-        "w": w, "history": history, "comments": comments, "is_admin": is_admin(request),
-        "bundle": request.session.pop("bundle", None), "tab": request.query_params.get("tab",
-                                                                                     "overview"),
-        "root": w["uri"], "direction": "both", "depth": "3"})
+    return await render(
+        request,
+        "warrants/training.html",
+        {
+            "w": w,
+            "history": history,
+            "comments": comments,
+            "is_admin": is_admin(request),
+            "bundle": request.session.pop("bundle", None),
+            "tab": request.query_params.get("tab", "overview"),
+            "root": w["uri"],
+            "direction": "both",
+            "depth": "3",
+        },
+    )
 
 
 @router.post("/warrants/training/{wid}/transition")
@@ -100,9 +136,12 @@ async def training(request: Request, wid: str) -> Any:
 async def training_transition(request: Request, wid: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        out = await sdk.training.transition(wid, data["transition"],
-                                            rationale=data.get("rationale") or None,
-                                            force=bool(data.get("force")))
+        out = await sdk.training.transition(
+            wid,
+            data["transition"],
+            rationale=data.get("rationale") or None,
+            force=bool(data.get("force")),
+        )
     flash(request, out["message"], "success" if out["moved"] else "info")
     return RedirectResponse(f"/warrants/training/{wid}", status_code=303)
 
@@ -122,8 +161,9 @@ async def training_revoke(request: Request, wid: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
         await sdk.training.revoke(wid, data.get("reason", ""))
-    flash(request, "Warrant revoked; every execution warrant built on it was revoked too.",
-          "warning")
+    flash(
+        request, "Warrant revoked; every execution warrant built on it was revoked too.", "warning"
+    )
     return RedirectResponse(f"/warrants/training/{wid}", status_code=303)
 
 
@@ -152,16 +192,25 @@ async def upload_parameters(request: Request, wid: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
         ps = await sdk.training.upload_parameters(
-            wid, parse_json(data.get("values"), "Parameter values", {}),
+            wid,
+            parse_json(data.get("values"), "Parameter values", {}),
             metrics=parse_json(data.get("metrics"), "Metrics", {}),
-            data_checksum=data.get("data_checksum") or None, name=data.get("name") or None,
-            notes=data.get("notes", ""), member_alias=data.get("member_alias") or None)
+            data_checksum=data.get("data_checksum") or None,
+            name=data.get("name") or None,
+            notes=data.get("notes", ""),
+            member_alias=data.get("member_alias") or None,
+        )
     if ps.get("flag") == "unverified_data":
-        flash(request, "Parameters stored but flagged unverified_data: the checksum does not "
-                       "match any download MAYA issued for this warrant.", "warning")
+        flash(
+            request,
+            "Parameters stored but flagged unverified_data: the checksum does not "
+            "match any download MAYA issued for this warrant.",
+            "warning",
+        )
     else:
-        flash(request, "Parameters stored; trained on data MAYA issued (checksum matched).",
-              "success")
+        flash(
+            request, "Parameters stored; trained on data MAYA issued (checksum matched).", "success"
+        )
     return RedirectResponse(f"/warrants/training/{wid}?tab=params", status_code=303)
 
 
@@ -171,8 +220,12 @@ async def parameter_transition(request: Request, ps_id: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
         out = await sdk.training.parameter_transition(
-            ps_id, data["transition"], rationale=data.get("rationale") or None,
-            force=bool(data.get("force")), justification=data.get("justification") or None)
+            ps_id,
+            data["transition"],
+            rationale=data.get("rationale") or None,
+            force=bool(data.get("force")),
+            justification=data.get("justification") or None,
+        )
     flash(request, out["message"], "success" if out["moved"] else "info")
     return RedirectResponse(request.headers.get("referer", "/warrants"), status_code=303)
 
@@ -183,11 +236,19 @@ async def score(request: Request, wid: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
         out = await sdk.training.score_holdout(
-            wid, parameter_set_id=data.get("parameter_set_id") or None,
-            values=parse_json(data.get("values"), "Values"))
-    flash(request, f"Blind score, attempt {out['attempt']}: " +
-          ", ".join(f"{k}={v:.6g}" if isinstance(v, float) else f"{k}={v}"
-                    for k, v in out["metrics"].items()), "info")
+            wid,
+            parameter_set_id=data.get("parameter_set_id") or None,
+            values=parse_json(data.get("values"), "Values"),
+        )
+    flash(
+        request,
+        f"Blind score, attempt {out['attempt']}: "
+        + ", ".join(
+            f"{k}={v:.6g}" if isinstance(v, float) else f"{k}={v}"
+            for k, v in out["metrics"].items()
+        ),
+        "info",
+    )
     return RedirectResponse(f"/warrants/training/{wid}?tab=holdout", status_code=303)
 
 
@@ -196,9 +257,12 @@ async def score(request: Request, wid: str) -> Any:
 async def export_bundle(request: Request, wid: str) -> Any:
     async with client(request) as sdk:
         out = await sdk.training.export_bundle(wid)
-    request.session["bundle"] = {"blob": out["blob"], "size": out["size"],
-                                 "reexecutable": out["manifest"]["reexecutable"],
-                                 "reason": out["manifest"].get("not_reexecutable_reason")}
+    request.session["bundle"] = {
+        "blob": out["blob"],
+        "size": out["size"],
+        "reexecutable": out["manifest"]["reexecutable"],
+        "reason": out["manifest"].get("not_reexecutable_reason"),
+    }
     flash(request, "Reproducibility bundle exported and signed.", "success")
     return RedirectResponse(f"/warrants/training/{wid}", status_code=303)
 
@@ -240,9 +304,15 @@ async def execution_new(request: Request) -> Any:
             detail = await sdk.training.get(w["id"])
             for ps in detail["parameter_sets"]:
                 options.append({"warrant": w, "ps": ps})
-    return await render(request, "warrants/execution_new.html",
-                        {"namespaces": namespaces, "options": options,
-                         "preselect": request.query_params.get("training_warrant_id", "")})
+    return await render(
+        request,
+        "warrants/execution_new.html",
+        {
+            "namespaces": namespaces,
+            "options": options,
+            "preselect": request.query_params.get("training_warrant_id", ""),
+        },
+    )
 
 
 @router.post("/warrants/execution/new")
@@ -251,15 +321,22 @@ async def execution_create(request: Request) -> Any:
     data = await request.form()
     choice = data.get("choice", "")
     tw, ps = (choice.split("|", 1) + [""])[:2] if choice else (None, None)
-    spec = {"valid_days": int(data.get("valid_days") or 90),
-            "environments": data.getlist("environments") or ["dev"],
-            "contact": data.get("contact", ""), "limits": {},
-            "covenants": parse_json(data.get("covenants"), "Covenants", [])}
+    spec = {
+        "valid_days": int(data.get("valid_days") or 90),
+        "environments": data.getlist("environments") or ["dev"],
+        "contact": data.get("contact", ""),
+        "limits": {},
+        "covenants": parse_json(data.get("covenants"), "Covenants", []),
+    }
     async with client(request) as sdk:
-        ew = await sdk.execution.create(data["namespace"], data["name"],
-                                        training_warrant_id=tw or None,
-                                        model=data.get("model") or None,
-                                        parameter_set_id=ps or None, spec=spec)
+        ew = await sdk.execution.create(
+            data["namespace"],
+            data["name"],
+            training_warrant_id=tw or None,
+            model=data.get("model") or None,
+            parameter_set_id=ps or None,
+            spec=spec,
+        )
     return RedirectResponse(f"/warrants/execution/{ew['id']}", status_code=303)
 
 
@@ -270,9 +347,17 @@ async def execution(request: Request, eid: str) -> Any:
         ew = await sdk.execution.get(eid)
         history = await sdk.workflow.history("execution_warrant", eid)
         comments = await sdk.workflow.comments("execution_warrant", eid)
-    return await render(request, "warrants/execution.html", {
-        "ew": ew, "history": history, "comments": comments, "is_admin": is_admin(request),
-        "token": request.session.pop("ew_token", None)})
+    return await render(
+        request,
+        "warrants/execution.html",
+        {
+            "ew": ew,
+            "history": history,
+            "comments": comments,
+            "is_admin": is_admin(request),
+            "token": request.session.pop("ew_token", None),
+        },
+    )
 
 
 @router.post("/warrants/execution/{eid}/transition")
@@ -280,9 +365,12 @@ async def execution(request: Request, eid: str) -> Any:
 async def execution_transition(request: Request, eid: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        out = await sdk.execution.transition(eid, data["transition"],
-                                             rationale=data.get("rationale") or None,
-                                             force=bool(data.get("force")))
+        out = await sdk.execution.transition(
+            eid,
+            data["transition"],
+            rationale=data.get("rationale") or None,
+            force=bool(data.get("force")),
+        )
     flash(request, out["message"], "success" if out["moved"] else "info")
     return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
 
@@ -311,15 +399,20 @@ async def execution_token(request: Request, eid: str) -> Any:
 async def execution_report(request: Request, eid: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        out = await sdk.execution.report(eid, data.get("environment", "dev"),
-                                         int(data.get("rows") or 0),
-                                         input_stats=parse_json(data.get("input_stats"),
-                                                                "Input stats", {}),
-                                         output_stats=parse_json(data.get("output_stats"),
-                                                                 "Output stats", {}))
+        out = await sdk.execution.report(
+            eid,
+            data.get("environment", "dev"),
+            int(data.get("rows") or 0),
+            input_stats=parse_json(data.get("input_stats"), "Input stats", {}),
+            output_stats=parse_json(data.get("output_stats"), "Output stats", {}),
+        )
     if out["breaches"]:
-        flash(request, "Covenant breached — the warrant is SUSPENDED: " +
-              "; ".join(b["detail"] for b in out["breaches"]), "danger")
+        flash(
+            request,
+            "Covenant breached — the warrant is SUSPENDED: "
+            + "; ".join(b["detail"] for b in out["breaches"]),
+            "danger",
+        )
     else:
         flash(request, "Execution recorded; all covenants hold.", "success")
     return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
@@ -350,10 +443,16 @@ async def execution_revoke(request: Request, eid: str) -> Any:
 async def execution_bundle(request: Request, eid: str) -> Any:
     """Everything needed to run the warrant; ``offline=1`` is the unattested copy."""
     import json
+
     qp = request.query_params
     offline = qp.get("offline") == "1"
     async with client(request) as sdk:
         out = await sdk.execution.bundle(eid, qp.get("environment") or "dev", offline=offline)
     name = f"execution-{eid[:8]}-{'offline-unattested' if offline else 'live'}.json"
-    return download({"data": json.dumps(out, indent=2, default=str).encode(),
-                     "content_type": "application/json"}, name)
+    return download(
+        {
+            "data": json.dumps(out, indent=2, default=str).encode(),
+            "content_type": "application/json",
+        },
+        name,
+    )

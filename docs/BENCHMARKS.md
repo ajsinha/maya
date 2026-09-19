@@ -12,6 +12,10 @@ printed by a tool in `tools/bench/`.
 | **SC-5**: p95 resolution, 50-column, 10-year daily feature set | under 15 s warm, under 60 s cold | no rules: warm p95 **0.98 s**, cold **1.0 s**. `forward_fill(limit=3)` on every attribute: warm p95 **6.1 s**, cold **6.3 s** | **pass** |
 | Catalog search p95 over 100k objects | under 500 ms | p95 **0.16 s** (p50 0.08 s), 800,010 index rows | **pass** |
 | **SC-4**: p95 page latency, metadata screens | under 300 ms | worst page p95 **0.15 s** (SQLite, one process); **0.18 s** (PostgreSQL, 8 web processes) | **pass** |
+| §24.3 pin write throughput, one worker | 50 MB/s | **59.7 MB/s** (530.5 MB, 1.26M rows × 50 attributes, sealed in 8.9 s); a confirming run gave **51.4 MB/s** | **pass**, narrowly |
+| §24.3 objects without degradation | 20k feature sets, 10k models, 100k pins | every page p95 under **30 ms** after seeding (worst: feature detail, 29 ms) | **pass** |
+| §24.3 job queue throughput, one worker | 1,000 small jobs an hour | **134,962** an hour | **pass** |
+| §24.3 cold start to serving | under 30 s | **1.26 s** to the first `200` from `/readyz` | **pass** |
 | **SC-3**: 200 concurrent interactive users on one node without p95 degradation | p95 under 300 ms with 200 users | PostgreSQL, 8 web processes, with the principal cache, three runs: p95 **0.34 s**, **0.22 s**, **0.43 s** (median 0.34 s); 93–97 requests/s, no errors | **not met reliably**: one run of three passes; a dedicated host to settle it is out of scope by decision |
 
 ## The machine
@@ -37,6 +41,9 @@ python tools/bench/bench_resolution.py --rule "forward_fill(limit=3)"
 
 # catalog search over 100k objects
 python tools/bench/bench_search.py --objects 100000
+
+# §24.3: pin throughput, 20k sets / 10k models / 100k pins, job throughput, cold start
+python tools/bench/bench_capacity.py
 
 # SC-4 and SC-3: 2,000 features, 200 models, 200 users for 60 s
 python tools/bench/bench_web.py                                  # SQLite, one process
@@ -161,15 +168,40 @@ and 0.67 s. The remaining per-request costs are known:
   shared workstation above and will not be re-measured elsewhere. A verdict close to
   its target (SC-3 above all) is therefore a verdict about this machine.
 
+## Capacity (§24.3)
+
+From [`capacity-sqlite.json`](benchmarks/capacity-sqlite.json), one run of
+`tools/bench/bench_capacity.py` on SQLite, load average about 5.
+
+| Measure | Target | Result |
+|---|---|---|
+| Pin write throughput: one job pins a 500-symbol, 10-year, 50-attribute daily feature — fragmenting, hashing every row, writing, and re-reading to verify | 50 MB/s per worker | 530.5 logical MB in 8.89 s: **59.7 MB/s**. A second run: 10.32 s, **51.4 MB/s** |
+| Job throughput: 200 pins of a ten-row feature, one worker draining the queue | 1,000 an hour | 5.33 s: **134,962 an hour** |
+| Objects without degradation: catalog pages p95, empty and after seeding 20,000 feature sets, 10,000 models and 100,000 pins | no degradation | features 2.1 → 12.8 ms, feature sets 1.0 → 8.1 ms, models 1.1 → 5.5 ms, a feature's detail page 5.5 → 29.2 ms |
+| Cold start: `run_maya_web.py` on the seeded storage to its first `200` from `/readyz` | under 30 s | **1.26 s** |
+
+How pin throughput got there, measured on the same pin: 6.4 MB/s when first run. Then:
+
+- Canonical row hashing done a column at a time, and a pin reassembled by one sort: 28.1 MB/s.
+- Sealing that compares values with what was hashed instead of hashing twice, and vectorised logical-type conversion: 37.9 MB/s.
+- The pin's 2,349 fragment files read in parallel, and rows of one layout hashed from contiguous slabs: 51–60 MB/s.
+
+Each replacement is tested equal to the code it replaced (`tests/test_canonical_fast.py`, `tests/test_shapes_arrow.py`). What remains is the per-row sha256 loop, the Delta write and the read-back, in roughly equal parts.
+
+"No degradation" is read as every page staying well inside SC-4's 300 ms. The pages do
+slow as the catalog grows, five to eight times from an empty catalog, but from
+milliseconds to tens of milliseconds. Two fixes made that true: a feature's page shows
+its latest 100 pins and pages the rest, where it had loaded all 100,000 (4.3 s); and a
+list's total under row-level authorization is counted in the database by namespace and
+ownership, where it had tested every row (0.15 s for feature sets).
+
 ## Not yet measured
 
-The rest of §24.3:
-
-- pin write throughput (50 MB/s per worker);
-- objects without degradation (20k feature sets, 10k models, 100k pins; the 100k
-  features are covered only by the search benchmark);
-- job queue throughput (1,000 small jobs an hour per worker);
-- cold start to serving (under 30 s);
 - Delta table size per feature (2 TB).
+- The per-pod figures of §24.3 on the specified topology.
+- Any §24.3 figure on PostgreSQL.
 
-The availability and recovery objectives (§24) have not been measured either.
+The availability and recovery objectives (§24) have not been measured. The restore
+drill has been performed and timed, but on a small estate
+([runbook](runbooks/restore-drill.md#5-record-the-result)), which says the procedure
+works, not what a real recovery takes.

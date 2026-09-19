@@ -2,6 +2,7 @@
 Properties configurator for managing application properties with auto-reload
 Enhanced with command-line args, precedence ordering, and source tracking
 """
+
 import logging
 import os
 import re
@@ -29,6 +30,7 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
     2. Environment variables
     3. Property files (rightmost file has highest precedence)
     """
+
     _instance = None
     _lock = threading.Lock()
 
@@ -47,7 +49,7 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
             properties_files: List of property file paths OR comma-delimited string of file paths
             reload_interval: Interval in seconds for auto-reload (default: 300 seconds = 5 minutes)
         """
-        if hasattr(self, '_initialized'):
+        if hasattr(self, "_initialized"):
             return
 
         self._initialized = True
@@ -57,7 +59,8 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
         # per-instance configs (e.g. the twonode/ dev setup) robust regardless
         # of import order. Unset -> unchanged behavior.
         import os as _os
-        _override = _os.environ.get('MAYA_CONFIG_FILE')
+
+        _override = _os.environ.get("MAYA_CONFIG_FILE")
         if _override:
             properties_files = _override
 
@@ -128,7 +131,7 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
 
         if isinstance(properties_files, str):
             # Split by comma and strip whitespace
-            return [path.strip() for path in properties_files.split(',') if path.strip()]
+            return [path.strip() for path in properties_files.split(",") if path.strip()]
 
         if isinstance(properties_files, list):
             return [str(path).strip() for path in properties_files if path]
@@ -141,12 +144,12 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
         Stores them in _commandline_args dictionary
         """
         for arg in sys.argv[1:]:
-            if arg.startswith('--') and '=' in arg:
+            if arg.startswith("--") and "=" in arg:
                 # Remove leading '--'
                 arg = arg[2:]
 
                 # Split by first '=' only
-                key, value = arg.split('=', 1)
+                key, value = arg.split("=", 1)
                 key = key.strip()
                 value = value.strip()
 
@@ -179,16 +182,14 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
                     parsed = parse_config_file(file_path)
                     for key, value in parsed.items():
                         new_properties[key] = value
-                        new_sources[key] = 'file'
+                        new_sources[key] = "file"
                 except ConfigParseError as e:
                     # A malformed config file is fatal - never start with a
                     # half-loaded configuration.
-                    logger.error(f"Error loading configuration from "
-                                 f"{file_path}: {e}")
+                    logger.error(f"Error loading configuration from {file_path}: {e}")
                     raise
                 except Exception as e:
-                    logger.error(f"Error loading configuration from "
-                                 f"{file_path}: {e}")
+                    logger.error(f"Error loading configuration from {file_path}: {e}")
                     raise
 
             # Resolve all property references (only for file-based properties)
@@ -201,18 +202,18 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
             for key in resolved_properties:
                 # Start with file value (lowest precedence)
                 value = resolved_properties[key]
-                source = 'file'
+                source = "file"
 
                 # Check environment variables (higher precedence)
                 env_value = os.environ.get(key)
                 if env_value is not None:
                     value = env_value
-                    source = 'env'
+                    source = "env"
 
                 # Check command line arguments (highest precedence)
                 if key in self._commandline_args:
                     value = self._commandline_args[key]
-                    source = 'commandline'
+                    source = "commandline"
 
                 final_properties[key] = value
                 final_sources[key] = source
@@ -221,7 +222,7 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
             for key, value in self._commandline_args.items():
                 if key not in final_properties:
                     final_properties[key] = value
-                    final_sources[key] = 'commandline'
+                    final_sources[key] = "commandline"
 
             # Also add env-only keys (not in files or commandline)
             # Optional: You can enable this if you want ALL env vars accessible
@@ -254,22 +255,22 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
         Returns:
             Resolved value
         """
-        if not value or '${' not in value:
+        if not value or "${" not in value:
             return value
 
         max_iterations = 100  # Prevent infinite loops
         iteration = 0
 
-        while '${' in value and iteration < max_iterations:
+        while "${" in value and iteration < max_iterations:
             iteration += 1
 
             # Find innermost ${...} pattern
-            pattern = r'\$\{([^{}]+)\}'
+            pattern = r"\$\{([^{}]+)\}"
             matches = list(re.finditer(pattern, value))
 
             if not matches:
                 # Handle nested patterns like ${x${y}}
-                nested_pattern = r'\$\{([^}]*\$\{[^}]*\}[^}]*)\}'
+                nested_pattern = r"\$\{([^}]*\$\{[^}]*\}[^}]*)\}"
                 nested_matches = list(re.finditer(nested_pattern, value))
 
                 if nested_matches:
@@ -277,7 +278,13 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
                     for match in reversed(nested_matches):
                         inner_ref = match.group(1)
                         resolved_inner = self._resolve_value(inner_ref, properties, visited)
-                        value = value[:match.start()] + '${' + resolved_inner + '}' + value[match.end():]
+                        value = (
+                            value[: match.start()]
+                            + "${"
+                            + resolved_inner
+                            + "}"
+                            + value[match.end() :]
+                        )
                     continue
                 else:
                     break
@@ -291,8 +298,8 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
                 # as a key name, so defaults never applied and any
                 # ${SECRET_KEY:...} resolved to the literal placeholder.
                 # Split on the FIRST ':' into (name, default).
-                if ':' in ref_token:
-                    ref_key, default_value = ref_token.split(':', 1)
+                if ":" in ref_token:
+                    ref_key, default_value = ref_token.split(":", 1)
                     ref_key = ref_key.strip()
                 else:
                     ref_key, default_value = ref_token, None
@@ -315,19 +322,17 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
                             # Recursively resolve the replacement
                             new_visited = visited.copy()
                             new_visited.add(ref_key)
-                            replacement = self._resolve_value(
-                                prop_value, properties, new_visited)
+                            replacement = self._resolve_value(prop_value, properties, new_visited)
                         elif default_value is not None:
                             # Use the inline default, resolving any
                             # references inside it too.
-                            replacement = self._resolve_value(
-                                default_value, properties, visited)
+                            replacement = self._resolve_value(default_value, properties, visited)
                         else:
                             # Unresolved and no default: keep the original
                             # placeholder so the problem is visible.
                             replacement = match.group(0)
 
-                value = value[:match.start()] + replacement + value[match.end():]
+                value = value[: match.start()] + replacement + value[match.end() :]
 
         return value
 
@@ -341,8 +346,10 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
                 for file_path in self._properties_files:
                     if os.path.exists(file_path):
                         current_mtime = os.path.getmtime(file_path)
-                        if file_path not in self._file_timestamps or \
-                                self._file_timestamps[file_path] < current_mtime:
+                        if (
+                            file_path not in self._file_timestamps
+                            or self._file_timestamps[file_path] < current_mtime
+                        ):
                             needs_reload = True
                             break
 
@@ -391,13 +398,14 @@ class PropertiesConfigurator(TypedAccessorsMixin, ContentResolutionMixin):
         Returns:
             Value of 'app.name' property or None if not found
         """
-        return self.get('app.name')
+        return self.get("app.name")
 
     def stop_reload(self):
         """Stop the auto-reload thread"""
         self._stop_reload.set()
-        if hasattr(self, '_reload_thread'):
+        if hasattr(self, "_reload_thread"):
             self._reload_thread.join(timeout=5)
+
 
 # v2.2: format-neutral alias. New code should prefer ConfigurationManager;
 # PropertiesConfigurator is retained for backward compatibility (it is used
@@ -415,10 +423,13 @@ def _require(self, key: str) -> str:
     value = self.get(key)
     if value is None or str(value).strip() == "":
         from maya.core.errors import ConfigurationError
+
         raise ConfigurationError(
             f"Required setting '{key}' is not set. Add it to "
             f"config/application.yaml, the local overlay, the environment, "
-            f"or pass --{key}=<value>.", key=key)
+            f"or pass --{key}=<value>.",
+            key=key,
+        )
     return str(value)
 
 

@@ -7,6 +7,7 @@ cookie, and uses it for every later call — never a shared key (§12, §18.2.2)
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -16,8 +17,17 @@ from fastapi.responses import RedirectResponse
 
 from maya.core.errors import MayaError
 from maya.sdk import AsyncClient
-from maya.web.routes.common import (action, api_json, check_csrf, client, csrf_token, flash,
-                                    form, page, render)
+from maya.web.routes.common import (
+    action,
+    api_json,
+    check_csrf,
+    client,
+    csrf_token,
+    flash,
+    form,
+    page,
+    render,
+)
 
 router = APIRouter()
 
@@ -38,20 +48,28 @@ async def _sign_in_options(request: Request) -> dict[str, Any]:
 async def login_page(request: Request) -> Any:
     if request.session.get("token") and request.session.get("mfa", "ok") == "ok":
         return RedirectResponse("/", status_code=303)
-    return await render(request, "login.html", {"next": request.query_params.get("next", "/"),
-                                                "signin": await _sign_in_options(request)})
+    return await render(
+        request,
+        "login.html",
+        {"next": request.query_params.get("next", "/"), "signin": await _sign_in_options(request)},
+    )
 
 
 async def _establish(request: Request, result: dict[str, Any], nxt: str | None) -> Any:
     """Bind a fresh session to the token the API issued, then route by its state."""
     request.session.clear()
-    request.session.update(token=result["token"], username=result["username"],
-                           must_change=bool(result.get("must_change_password")),
-                           mfa=result.get("mfa", "ok"), next=_safe_next(nxt))
+    request.session.update(
+        token=result["token"],
+        username=result["username"],
+        must_change=bool(result.get("must_change_password")),
+        mfa=result.get("mfa", "ok"),
+        next=_safe_next(nxt),
+    )
     csrf_token(request)
     if request.session["mfa"] != "ok":
-        return RedirectResponse("/mfa" if request.session["mfa"] == "challenge"
-                                else "/account/mfa", status_code=303)
+        return RedirectResponse(
+            "/mfa" if request.session["mfa"] == "challenge" else "/account/mfa", status_code=303
+        )
     return await _enter(request)
 
 
@@ -74,13 +92,15 @@ async def sso_login(request: Request) -> Any:
     try:
         start = await anon.auth.sso_start()
     except MayaError as exc:
-        return await render(request, "login.html", {"error": exc.message, "signin": {}},
-                            status=400)
+        return await render(request, "login.html", {"error": exc.message, "signin": {}}, status=400)
     finally:
         await anon.aclose()
-    request.session.update(sso_state=start["state"], sso_nonce=start["nonce"],
-                           sso_verifier=start["code_verifier"],
-                           next=_safe_next(request.query_params.get("next")))
+    request.session.update(
+        sso_state=start["state"],
+        sso_nonce=start["nonce"],
+        sso_verifier=start["code_verifier"],
+        next=_safe_next(request.query_params.get("next")),
+    )
     return RedirectResponse(start["authorize_url"], status_code=303)
 
 
@@ -90,8 +110,7 @@ async def _saml_login(request: Request, nxt: str) -> Any:
     try:
         start = await anon.auth.saml_start(relay_state=nxt)
     except MayaError as exc:
-        return await render(request, "login.html", {"error": exc.message, "signin": {}},
-                            status=400)
+        return await render(request, "login.html", {"error": exc.message, "signin": {}}, status=400)
     finally:
         await anon.aclose()
     return RedirectResponse(start["redirect_url"], status_code=303)
@@ -107,9 +126,12 @@ async def saml_acs(request: Request) -> Any:
     try:
         result = await anon.auth.saml_acs(data.get("SAMLResponse", ""))
     except MayaError as exc:
-        return await render(request, "login.html", {"error": exc.message,
-                                                    "signin": await _sign_in_options(request)},
-                            status=401)
+        return await render(
+            request,
+            "login.html",
+            {"error": exc.message, "signin": await _sign_in_options(request)},
+            status=401,
+        )
     finally:
         await anon.aclose()
     return await _establish(request, result, data.get("RelayState"))
@@ -124,9 +146,12 @@ async def saml_sls(request: Request) -> Any:
     try:
         result = await anon.auth.saml_sls(request.url.query)
     except MayaError as exc:
-        return await render(request, "login.html", {"error": exc.message,
-                                                    "signin": await _sign_in_options(request)},
-                            status=400)
+        return await render(
+            request,
+            "login.html",
+            {"error": exc.message, "signin": await _sign_in_options(request)},
+            status=400,
+        )
     finally:
         await anon.aclose()
     if result["outcome"] == "idp_logout":
@@ -144,17 +169,27 @@ async def sso_callback(request: Request) -> Any:
     verifier = request.session.pop("sso_verifier", None)
     nxt = request.session.get("next")
     if params.get("error") or not expected or params.get("state") != expected:
-        return await render(request, "login.html", {
-            "error": params.get("error_description") or "Sign-in was not completed, or the "
-                     "response did not match the request that started it. Try again.",
-            "signin": await _sign_in_options(request)}, status=400)
+        return await render(
+            request,
+            "login.html",
+            {
+                "error": params.get("error_description")
+                or "Sign-in was not completed, or the "
+                "response did not match the request that started it. Try again.",
+                "signin": await _sign_in_options(request),
+            },
+            status=400,
+        )
     anon = AsyncClient(app=request.app, channel="web")
     try:
         result = await anon.auth.sso_callback(params.get("code", ""), verifier, nonce)
     except MayaError as exc:
-        return await render(request, "login.html", {"error": exc.message,
-                                                    "signin": await _sign_in_options(request)},
-                            status=401)
+        return await render(
+            request,
+            "login.html",
+            {"error": exc.message, "signin": await _sign_in_options(request)},
+            status=401,
+        )
     finally:
         await anon.aclose()
     return await _establish(request, result, nxt)
@@ -194,7 +229,7 @@ async def mfa_key_verify(request: Request) -> Any:
         async with client(request) as sdk:
             await sdk.auth.security_key_verify(body.get("credential") or {})
     except MayaError:
-        request.session.clear()               # the server ended that sign-in attempt
+        request.session.clear()  # the server ended that sign-in attempt
         raise
     request.session["mfa"] = "ok"
     return {"next": await _roles_and_next(request)}
@@ -212,8 +247,9 @@ async def security_key_options(request: Request) -> Any:
 async def security_key_register(request: Request) -> Any:
     body = await request.json()
     async with client(request) as sdk:
-        await sdk.auth.register_security_key(body.get("credential") or {},
-                                             name=str(body.get("name") or "security key"))
+        await sdk.auth.register_security_key(
+            body.get("credential") or {}, name=str(body.get("name") or "security key")
+        )
     flash(request, "Security key registered.", "success")
     if request.session.get("mfa") == "enroll":
         request.session["mfa"] = "ok"
@@ -240,9 +276,12 @@ async def mfa_verify(request: Request) -> Any:
             await sdk.auth.mfa_verify(data.get("code", ""))
     except MayaError as exc:
         request.session.clear()
-        return await render(request, "login.html", {"error": exc.message,
-                                                    "signin": await _sign_in_options(request)},
-                            status=401)
+        return await render(
+            request,
+            "login.html",
+            {"error": exc.message, "signin": await _sign_in_options(request)},
+            status=401,
+        )
     request.session["mfa"] = "ok"
     return await _enter(request)
 
@@ -254,9 +293,16 @@ async def mfa_account(request: Request) -> Any:
     async with client(request) as sdk:
         status = await sdk.auth.mfa_status()
         keys = await sdk.auth.security_keys() if request.session.get("mfa") == "ok" else []
-    return await render(request, "account/mfa.html", {
-        "status": status, "enrollment": request.session.pop("mfa_enrollment", None),
-        "forced": request.session.get("mfa") == "enroll", "keys": keys})
+    return await render(
+        request,
+        "account/mfa.html",
+        {
+            "status": status,
+            "enrollment": request.session.pop("mfa_enrollment", None),
+            "forced": request.session.get("mfa") == "enroll",
+            "keys": keys,
+        },
+    )
 
 
 @router.post("/account/mfa/enroll")
@@ -285,26 +331,37 @@ async def mfa_confirm(request: Request) -> Any:
     forced = request.session.get("mfa") == "enroll"
     request.session["mfa"] = "ok"
     flash(request, "Two-factor authentication is on.", "success")
-    return await _enter(request) if forced else RedirectResponse("/account/mfa",
-                                                                 status_code=303)
+    return await _enter(request) if forced else RedirectResponse("/account/mfa", status_code=303)
 
 
 @router.post("/login")
 async def login(request: Request) -> Any:
     if not await check_csrf(request):
-        return await render(request, "login.html", {"error": "Your session expired. Try again.",
-                                                    "signin": await _sign_in_options(request)},
-                            status=403)
+        return await render(
+            request,
+            "login.html",
+            {
+                "error": "Your session expired. Try again.",
+                "signin": await _sign_in_options(request),
+            },
+            status=403,
+        )
     data = await form(request)
     anon = AsyncClient(app=request.app, channel="web")
     try:
         result = await anon.auth.login(data.get("username", ""), data.get("password", ""))
     except MayaError as exc:
-        return await render(request, "login.html", {"error": exc.message,
-                                                    "username": data.get("username", ""),
-                                                    "next": data.get("next", "/"),
-                                                    "signin": await _sign_in_options(request)},
-                            status=401)
+        return await render(
+            request,
+            "login.html",
+            {
+                "error": exc.message,
+                "username": data.get("username", ""),
+                "next": data.get("next", "/"),
+                "signin": await _sign_in_options(request),
+            },
+            status=401,
+        )
     finally:
         await anon.aclose()
     return await _establish(request, result, data.get("next"))
@@ -326,8 +383,9 @@ async def logout(request: Request) -> Any:
 @router.get("/account/password")
 @page
 async def password_page(request: Request) -> Any:
-    return await render(request, "account/password.html",
-                        {"forced": request.session.get("must_change")})
+    return await render(
+        request, "account/password.html", {"forced": request.session.get("must_change")}
+    )
 
 
 @router.post("/account/password")
@@ -341,6 +399,7 @@ async def change_password(request: Request) -> Any:
         await sdk.auth.change_password(data.get("old_password", ""), data.get("new_password", ""))
     request.session["must_change"] = False
     from maya.web.routes.common import invalidate_health
+
     invalidate_health()
     flash(request, "Password changed.", "success")
     return RedirectResponse("/", status_code=303)
@@ -352,8 +411,11 @@ async def keys_page(request: Request) -> Any:
     async with client(request) as sdk:
         keys = await sdk.auth.api_keys()
         namespaces = await sdk.namespaces.list()
-    return await render(request, "account/keys.html", {
-        "keys": keys, "namespaces": namespaces, "new_key": request.session.pop("new_key", None)})
+    return await render(
+        request,
+        "account/keys.html",
+        {"keys": keys, "namespaces": namespaces, "new_key": request.session.pop("new_key", None)},
+    )
 
 
 @router.post("/account/keys")
@@ -364,12 +426,19 @@ async def create_key(request: Request) -> Any:
     namespaces = data.getlist("namespaces")
     actions = [a.strip() for a in (data.get("actions") or "").split(",") if a.strip()]
     async with client(request) as sdk:
-        key = await sdk.auth.create_api_key(data.get("name", "key"), roles=roles,
-                                            namespaces=namespaces, actions=actions,
-                                            days=int(data.get("days") or 90))
+        key = await sdk.auth.create_api_key(
+            data.get("name", "key"),
+            roles=roles,
+            namespaces=namespaces,
+            actions=actions,
+            days=int(data.get("days") or 90),
+        )
     request.session["new_key"] = key["api_key"]
-    flash(request, "API key created. Copy it now: it is shown once and stored only as a hash.",
-          "warning")
+    flash(
+        request,
+        "API key created. Copy it now: it is shown once and stored only as a hash.",
+        "warning",
+    )
     return RedirectResponse("/account/keys", status_code=303)
 
 

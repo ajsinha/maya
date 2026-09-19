@@ -20,9 +20,16 @@ implementation is tested against. This page documents all of it.
 ```python
 # Create a formula model from text
 import maya.sdk as maya
+
 my = maya.connect(base_url="http://127.0.0.1:8600", api_key="maya_…")
-my.models.create("eq", "linear", kind="formula", description="y on x",
-                 formula="yhat = a*x + b", roles={"a": "parameter", "b": "parameter"})
+my.models.create(
+    "eq",
+    "linear",
+    kind="formula",
+    description="y on x",
+    formula="yhat = a*x + b",
+    roles={"a": "parameter", "b": "parameter"},
+)
 ```
 
 `create` takes `kind`, `description` and one way of giving the mathematics:
@@ -251,8 +258,13 @@ data = open("mortgage.xlsx", "rb").read()
 preview = my.models.lift_workbook(data, output="Model!B7", roles={"rate": "parameter"})
 print(preview["lifted_from"]["workbook"]["check"]["statement"])
 my.models.create("credit", "mortgage_payment")
-my.models.import_workbook("credit/mortgage_payment", data, output="Model!B7",
-                          roles={"rate": "parameter"}, filename="mortgage.xlsx")
+my.models.import_workbook(
+    "credit/mortgage_payment",
+    data,
+    output="Model!B7",
+    roles={"rate": "parameter"},
+    filename="mortgage.xlsx",
+)
 ```
 
 ```bash
@@ -372,6 +384,7 @@ A model may carry a Python implementation: a class `Model` with
 # model.py: an artifact for the linear model
 import numpy as np
 
+
 class Model:
     def fit(self, X, y, ctx):
         a, b = np.polyfit(np.asarray(X["x"]), np.asarray(y), 1)
@@ -437,10 +450,10 @@ Python generated from the IR, a `predict(X, params)` function:
 ```python
 # Generated reference code for yhat = a*x + b
 def predict(X, params):
-    v_a = params['a']
-    v_b = params['b']
-    v_x = np.asarray(X['x'], dtype=float)
-    return {'yhat': ((v_a * v_x) + v_b)}
+    v_a = params["a"]
+    v_b = params["b"]
+    v_x = np.asarray(X["x"], dtype=float)
+    return {"yhat": ((v_a * v_x) + v_b)}
 ```
 
 ## Review, approval and deprecation

@@ -8,15 +8,17 @@ decision is recoverable.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
 from typing import Any
 
-from maya.core.errors import NotApproved, PermissionDenied, ValidationFailed
+from maya.core.errors import MayaError, NotApproved, PermissionDenied, ValidationFailed
 from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.workflow import policy as pol
+
 
 # policy object type -> (table, how to transition an object of it)
 def _namespace_of(ref: str) -> str | None:
@@ -33,20 +35,26 @@ def _admin_ids(uow: Any) -> set[str]:
 
 
 TABLES = {
-    "feature_version": "feature_versions", "featureset_version": "feature_set_versions",
-    "model_version": "model_versions", "parameter_set": "parameter_sets",
-    "training_warrant": "training_warrants", "execution_warrant": "execution_warrants",
+    "feature_version": "feature_versions",
+    "featureset_version": "feature_set_versions",
+    "model_version": "model_versions",
+    "parameter_set": "parameter_sets",
+    "training_warrant": "training_warrants",
+    "execution_warrant": "execution_warrants",
 }
 
 
 # object type -> (its table, key of the governing object, that object's table, access kind)
 GOVERNING = {
     "feature_version": ("feature_versions", "feature_id", "features", "feature"),
-    "featureset_version": ("feature_set_versions", "feature_set_id", "feature_sets",
-                           "featureset"),
+    "featureset_version": ("feature_set_versions", "feature_set_id", "feature_sets", "featureset"),
     "model_version": ("model_versions", "model_id", "models", "model"),
-    "parameter_set": ("parameter_sets", "training_warrant_id", "training_warrants",
-                      "training_warrant"),
+    "parameter_set": (
+        "parameter_sets",
+        "training_warrant_id",
+        "training_warrants",
+        "training_warrant",
+    ),
     "training_warrant": ("training_warrants", None, None, "training_warrant"),
     "execution_warrant": ("execution_warrants", None, None, "execution_warrant"),
 }
@@ -74,31 +82,56 @@ class WorkflowService:
             roles = [r["name"] for r in uow.repo("roles").list()]
         return pol.validate(policy, checks=self.p.workflow.checks.keys(), roles=roles)
 
-    def draft_policy(self, p: Principal, object_type: str, policy: dict[str, Any], *,
-                     scope: str = "*", note: str = "") -> dict[str, Any]:
+    def draft_policy(
+        self,
+        p: Principal,
+        object_type: str,
+        policy: dict[str, Any],
+        *,
+        scope: str = "*",
+        note: str = "",
+    ) -> dict[str, Any]:
         """Save a policy draft — refused at edit time if it is invalid (§10.6)."""
         self._admin(p)
         if object_type not in TABLES:
             raise ValidationFailed(f"Unknown object type '{object_type}'")
         errors = self.validate(policy)
         if errors:
-            raise ValidationFailed("The policy cannot be saved: " + "; ".join(errors),
-                                   errors=errors)
+            raise ValidationFailed(
+                "The policy cannot be saved: " + "; ".join(errors), errors=errors
+            )
         impact = self.preview(object_type, policy)
         with self.p.uow(p.username) as uow:
-            last = uow.repo("workflow_policies").list(object_type=object_type, scope=scope,
-                                                      order_by=["-version_no"], limit=1)
-            row = uow.repo("workflow_policies").add({
-                "object_type": object_type, "scope": scope,
-                "version_no": last[0]["version_no"] + 1 if last else 1, "state": "draft",
-                "policy": policy, "note": note})
-            uow.audit("policy.drafted", object_type="workflow_policy",
-                      object_ref=f"{object_type}@{scope}#v{row['version_no']}",
-                      detail={"impact": impact})
+            last = uow.repo("workflow_policies").list(
+                object_type=object_type, scope=scope, order_by=["-version_no"], limit=1
+            )
+            row = uow.repo("workflow_policies").add(
+                {
+                    "object_type": object_type,
+                    "scope": scope,
+                    "version_no": last[0]["version_no"] + 1 if last else 1,
+                    "state": "draft",
+                    "policy": policy,
+                    "note": note,
+                }
+            )
+            uow.audit(
+                "policy.drafted",
+                object_type="workflow_policy",
+                object_ref=f"{object_type}@{scope}#v{row['version_no']}",
+                detail={"impact": impact},
+            )
             return {**row, "impact": impact}
 
-    def import_yaml(self, p: Principal, object_type: str, text: str, *, scope: str = "*",
-                    note: str = "imported from YAML") -> dict[str, Any]:
+    def import_yaml(
+        self,
+        p: Principal,
+        object_type: str,
+        text: str,
+        *,
+        scope: str = "*",
+        note: str = "imported from YAML",
+    ) -> dict[str, Any]:
         return self.draft_policy(p, object_type, pol.from_yaml(text), scope=scope, note=note)
 
     def activate(self, p: Principal, policy_id: str) -> dict[str, Any]:
@@ -109,15 +142,22 @@ class WorkflowService:
             if row["state"] != "draft":
                 raise NotApproved(f"Policy v{row['version_no']} is {row['state']}")
             if row["created_by"] == p.username and not self.p.workflow.allow_self_approval:
-                raise PermissionDenied("A policy you drafted must be activated by another "
-                                       "administrator: the rules of governance are governed too")
-            for old in uow.repo("workflow_policies").list(object_type=row["object_type"],
-                                                          scope=row["scope"], state="active"):
+                raise PermissionDenied(
+                    "A policy you drafted must be activated by another "
+                    "administrator: the rules of governance are governed too"
+                )
+            for old in uow.repo("workflow_policies").list(
+                object_type=row["object_type"], scope=row["scope"], state="active"
+            ):
                 uow.repo("workflow_policies").update(old["id"], {"state": "superseded"})
-            out = uow.repo("workflow_policies").update(policy_id, {
-                "state": "active", "approved_by": p.username, "activated_at": utcnow()})
-            uow.audit("policy.activated", object_type="workflow_policy",
-                      object_ref=f"{row['object_type']}@{row['scope']}#v{row['version_no']}")
+            out = uow.repo("workflow_policies").update(
+                policy_id, {"state": "active", "approved_by": p.username, "activated_at": utcnow()}
+            )
+            uow.audit(
+                "policy.activated",
+                object_type="workflow_policy",
+                object_ref=f"{row['object_type']}@{row['scope']}#v{row['version_no']}",
+            )
             return out
 
     def preview(self, object_type: str, policy: dict[str, Any]) -> dict[str, Any]:
@@ -126,22 +166,31 @@ class WorkflowService:
         states = set(policy.get("states") or [])
         stranded = {s: n for s, n in population.items() if s not in states and n}
         exits = {s: pol.transitions_from(policy, s) for s in states}
-        blocked = {s: n for s, n in population.items()
-                   if s in states and n and not exits.get(s) and s not in ("retired", "withdrawn")}
+        blocked = {
+            s: n
+            for s, n in population.items()
+            if s in states and n and not exits.get(s) and s not in ("retired", "withdrawn")
+        }
         messages = []
         if stranded:
-            messages.append("would strand " + ", ".join(f"{n} object(s) in '{s}'"
-                                                        for s, n in stranded.items()))
+            messages.append(
+                "would strand " + ", ".join(f"{n} object(s) in '{s}'" for s, n in stranded.items())
+            )
         if blocked:
-            messages.append("would block " + ", ".join(f"{n} object(s) in '{s}' (no way out)"
-                                                       for s, n in blocked.items()))
-        return {"population": population, "stranded": stranded, "blocked": blocked,
-                "messages": messages or ["no object currently in flight is affected"]}
+            messages.append(
+                "would block "
+                + ", ".join(f"{n} object(s) in '{s}' (no way out)" for s, n in blocked.items())
+            )
+        return {
+            "population": population,
+            "stranded": stranded,
+            "blocked": blocked,
+            "messages": messages or ["no object currently in flight is affected"],
+        }
 
     def population(self, object_type: str) -> dict[str, int]:
         if object_type not in TABLES:
-            raise ValidationFailed(f"Unknown object type '{object_type}'",
-                                   allowed=sorted(TABLES))
+            raise ValidationFailed(f"Unknown object type '{object_type}'", allowed=sorted(TABLES))
         with self.p.uow() as uow:
             counts: dict[str, int] = {}
             for row in uow.repo(TABLES[object_type]).list():
@@ -158,62 +207,108 @@ class WorkflowService:
             raise PermissionDenied("Workflow policy is administered by 'admin'")
 
     # -- people-facing ------------------------------------------------------------------
-    def queue(self, p: Principal) -> list[dict[str, Any]]:
-        """Everything in review that this user could act on (My queue, §16.2)."""
+    def queue(self, p: Principal, *, everything: bool = False) -> list[dict[str, Any]]:
+        """Everything in review that this user may read (My queue, §16.2): an object
+        they may not read is not so much as named. ``everything`` is for the system's
+        own sweeps (SLA escalation), never for a caller."""
         out = []
         with self.p.uow() as uow:
             names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
             for object_type, table in TABLES.items():
-                _, parent_key, parent_table, _ = GOVERNING[object_type]
+                _, parent_key, parent_table, kind = GOVERNING[object_type]
+                keep = None if everything else self.p.access.reader(uow, p, kind)
                 for row in uow.repo(table).list(state="in_review"):
                     owner = uow.repo(parent_table).get(row[parent_key]) if parent_key else row
-                    ev = uow.repo("workflow_events").list(object_type=object_type,
-                                                          object_id=row["id"],
-                                                          order_by=["-created_at"], limit=1)
+                    if keep is not None and not (owner and keep(uow, owner)):
+                        continue
+                    ev = uow.repo("workflow_events").list(
+                        object_type=object_type,
+                        object_id=row["id"],
+                        order_by=["-created_at"],
+                        limit=1,
+                    )
                     ref = ev[0]["object_ref"] if ev else row["id"]
                     since = ev[0]["created_at"] if ev else row["updated_at"]
-                    out.append({"object_type": object_type, "id": row["id"], "ref": ref,
-                                "submitted_by": row.get("submitted_by") or row.get("created_by"),
-                                "since": since, "age_days": (utcnow() - since).days,
-                                "namespace": names.get((owner or {}).get("namespace_id")),
-                                "mine": (row.get("submitted_by") or row.get("created_by"))
-                                == p.username})
+                    out.append(
+                        {
+                            "object_type": object_type,
+                            "id": row["id"],
+                            "ref": ref,
+                            "submitted_by": row.get("submitted_by") or row.get("created_by"),
+                            "since": since,
+                            "age_days": (utcnow() - since).days,
+                            "namespace": names.get((owner or {}).get("namespace_id")),
+                            "mine": (row.get("submitted_by") or row.get("created_by"))
+                            == p.username,
+                        }
+                    )
         return sorted(out, key=lambda r: r["since"])
 
     def require_read(self, uow: Any, p: Principal, object_type: str, object_id: str) -> None:
         """Review history and comments belong to the object: reading or adding them needs
         read access to the object that governs it (a version's feature, model, …)."""
         if object_type not in GOVERNING:
-            raise ValidationFailed(f"Unknown object type '{object_type}'",
-                                   allowed=sorted(GOVERNING))
+            raise ValidationFailed(
+                f"Unknown object type '{object_type}'", allowed=sorted(GOVERNING)
+            )
         table, parent_key, parent_table, kind = GOVERNING[object_type]
         row = uow.repo(table).require(object_id)
         obj = uow.repo(parent_table).require(row[parent_key]) if parent_key else row
         self.p.access.require(uow, p, "read", kind, obj)
 
-    def history(self, object_type: str, object_id: str,
-                p: Principal | None = None) -> list[dict[str, Any]]:
+    def history(
+        self, object_type: str, object_id: str, p: Principal | None = None
+    ) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
             if p is not None:
                 self.require_read(uow, p, object_type, object_id)
-            events = uow.repo("workflow_events").list(object_type=object_type, object_id=object_id,
-                                                      order_by=["created_at"])
-            approvals = uow.repo("approvals").list(object_type=object_type, object_id=object_id,
-                                                   order_by=["created_at"])
-        return events + [{**a, "transition": "approval", "from_state": "", "to_state": "",
-                          "actor": a["approver"]} for a in approvals]
+            events = uow.repo("workflow_events").list(
+                object_type=object_type, object_id=object_id, order_by=["created_at"]
+            )
+            approvals = uow.repo("approvals").list(
+                object_type=object_type, object_id=object_id, order_by=["created_at"]
+            )
+        return events + [
+            {
+                **a,
+                "transition": "approval",
+                "from_state": "",
+                "to_state": "",
+                "actor": a["approver"],
+            }
+            for a in approvals
+        ]
 
-    def comment(self, p: Principal, object_type: str, object_id: str, body: str, *,
-                blocking: bool = False, anchor: str | None = None) -> dict[str, Any]:
+    def comment(
+        self,
+        p: Principal,
+        object_type: str,
+        object_id: str,
+        body: str,
+        *,
+        blocking: bool = False,
+        anchor: str | None = None,
+    ) -> dict[str, Any]:
         if not body.strip():
             raise ValidationFailed("A comment needs a body")
         with self.p.uow(p.username) as uow:
             self.require_read(uow, p, object_type, object_id)
-            row = uow.repo("comments").add({"object_type": object_type, "object_id": object_id,
-                                            "author": p.username, "body": body,
-                                            "blocking": blocking, "anchor": anchor})
-            uow.audit("review.commented", object_type=object_type, object_ref=object_id,
-                      detail={"blocking": blocking})
+            row = uow.repo("comments").add(
+                {
+                    "object_type": object_type,
+                    "object_id": object_id,
+                    "author": p.username,
+                    "body": body,
+                    "blocking": blocking,
+                    "anchor": anchor,
+                }
+            )
+            uow.audit(
+                "review.commented",
+                object_type=object_type,
+                object_ref=object_id,
+                detail={"blocking": blocking},
+            )
             return row
 
     def resolve_comment(self, p: Principal, comment_id: str) -> dict[str, Any]:
@@ -223,37 +318,60 @@ class WorkflowService:
                 raise PermissionDenied("Only the comment's author resolves it")
             return uow.repo("comments").update(comment_id, {"resolved": True})
 
-    def comments(self, object_type: str, object_id: str,
-                 p: Principal | None = None) -> list[dict[str, Any]]:
+    def comments(
+        self, object_type: str, object_id: str, p: Principal | None = None
+    ) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
             if p is not None:
                 self.require_read(uow, p, object_type, object_id)
-            return uow.repo("comments").list(object_type=object_type, object_id=object_id,
-                                             order_by=["created_at"])
+            return uow.repo("comments").list(
+                object_type=object_type, object_id=object_id, order_by=["created_at"]
+            )
 
     def check_no_blocking_comments(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         subject = ctx["subject"]
-        open_blocking = uow.repo("comments").count(object_type=subject.object_type,
-                                                   object_id=subject.id, blocking=True,
-                                                   resolved=False)
-        return (open_blocking == 0, f"{open_blocking} open blocking comment(s)"
-                if open_blocking else "no open blocking comments")
+        open_blocking = uow.repo("comments").count(
+            object_type=subject.object_type, object_id=subject.id, blocking=True, resolved=False
+        )
+        return (
+            open_blocking == 0,
+            f"{open_blocking} open blocking comment(s)"
+            if open_blocking
+            else "no open blocking comments",
+        )
 
-    def break_glass_report(self, days: int = 31) -> list[dict[str, Any]]:
+    def break_glass_report(
+        self, p: Principal | None = None, days: int = 31
+    ) -> list[dict[str, Any]]:
+        """Forced transitions in the last ``days``: all of them for an administrator, for
+        anyone else those on objects they may read."""
         with self.p.uow() as uow:
-            return uow.repo("workflow_events").list(
-                forced=True, created_at__ge=utcnow() - dt.timedelta(days=days),
-                order_by=["-created_at"])
+            rows = uow.repo("workflow_events").list(
+                forced=True,
+                created_at__ge=utcnow() - dt.timedelta(days=days),
+                order_by=["-created_at"],
+            )
+            if p is None or p.is_admin:
+                return rows
+            out = []
+            for r in rows:
+                try:
+                    self.require_read(uow, p, r["object_type"], r["object_id"])
+                except MayaError:
+                    continue
+                out.append(r)
+            return out
 
-    def aging(self) -> list[dict[str, Any]]:
-        """Items past their SLA (§10.4)."""
+    def aging(self, p: Principal | None = None) -> list[dict[str, Any]]:
+        """Items past their SLA (§10.4): for ``p``, those they may read; else all."""
         out = []
         with self.p.uow() as uow:
-            for item in self.queue_all():
+            for item in self.queue(p) if p is not None else self.queue_all():
                 # the policy that governs the item: its namespace's, else the global one
                 try:
-                    policy = self.p.workflow.active_policy(uow, item["object_type"],
-                                                           item["namespace"] or "*")["policy"]
+                    policy = self.p.workflow.active_policy(
+                        uow, item["object_type"], item["namespace"] or "*"
+                    )["policy"]
                 except ValidationFailed:
                     continue
                 sla = (policy.get("sla_days") or {}).get("in_review")
@@ -263,11 +381,20 @@ class WorkflowService:
 
     def queue_all(self) -> list[dict[str, Any]]:
         from maya.security.authz import Principal as P
-        return self.queue(P("", "", [], {}))
+
+        return self.queue(P("", "", [], {}), everything=True)
 
     # -- delegation and escalation (§10.4) -----------------------------------------------
-    def delegate(self, p: Principal, *, to: str, starts_on: dt.date, ends_on: dt.date,
-                 object_types: list[str] | None = None, reason: str = "") -> dict[str, Any]:
+    def delegate(
+        self,
+        p: Principal,
+        *,
+        to: str,
+        starts_on: dt.date,
+        ends_on: dt.date,
+        object_types: list[str] | None = None,
+        reason: str = "",
+    ) -> dict[str, Any]:
         """Name a stand-in for a date range. Only someone who can approve can delegate."""
         if not any("A" in letters for letters in p.capabilities.values()):
             raise PermissionDenied("Only an approver can delegate approvals")
@@ -282,18 +409,36 @@ class WorkflowService:
                 raise ValidationFailed(f"'{to}' is not an active user")
             if delegate["id"] == p.user_id:
                 raise ValidationFailed("You cannot delegate to yourself")
-            row = uow.repo("delegations").add({
-                "delegator_id": p.user_id, "delegate_id": delegate["id"], "starts_on": starts_on,
-                "ends_on": ends_on, "object_types": object_types or [], "reason": reason})
-            uow.repo("notifications").add({
-                "user_id": delegate["id"], "kind": "delegation",
-                "message": f"{p.username} delegated approvals to you from {starts_on} to "
-                           f"{ends_on}" + (f" ({', '.join(object_types)})" if object_types
-                                           else ""), "object_ref": None})
-            uow.audit("workflow.delegated", object_ref=f"user:{to}",
-                      detail={"from": p.username, "starts_on": starts_on.isoformat(),
-                              "ends_on": ends_on.isoformat(), "object_types": object_types,
-                              "reason": reason})
+            row = uow.repo("delegations").add(
+                {
+                    "delegator_id": p.user_id,
+                    "delegate_id": delegate["id"],
+                    "starts_on": starts_on,
+                    "ends_on": ends_on,
+                    "object_types": object_types or [],
+                    "reason": reason,
+                }
+            )
+            uow.repo("notifications").add(
+                {
+                    "user_id": delegate["id"],
+                    "kind": "delegation",
+                    "message": f"{p.username} delegated approvals to you from {starts_on} to "
+                    f"{ends_on}" + (f" ({', '.join(object_types)})" if object_types else ""),
+                    "object_ref": None,
+                }
+            )
+            uow.audit(
+                "workflow.delegated",
+                object_ref=f"user:{to}",
+                detail={
+                    "from": p.username,
+                    "starts_on": starts_on.isoformat(),
+                    "ends_on": ends_on.isoformat(),
+                    "object_types": object_types,
+                    "reason": reason,
+                },
+            )
             return row
 
     def delegations(self, p: Principal) -> list[dict[str, Any]]:
@@ -306,8 +451,14 @@ class WorkflowService:
         for r in rows:
             if p.is_admin or p.user_id in (r["delegator_id"], r["delegate_id"]):
                 active = not r["revoked_at"] and r["starts_on"] <= today <= r["ends_on"]
-                out.append({**r, "delegator": users.get(r["delegator_id"]),
-                            "delegate": users.get(r["delegate_id"]), "active": active})
+                out.append(
+                    {
+                        **r,
+                        "delegator": users.get(r["delegator_id"]),
+                        "delegate": users.get(r["delegate_id"]),
+                        "active": active,
+                    }
+                )
         return out
 
     def revoke_delegation(self, p: Principal, delegation_id: str) -> None:
@@ -327,39 +478,71 @@ class WorkflowService:
                 ns = uow.repo("namespaces").find_one(name=ns_name) if ns_name else None
                 owners = {ns["owner_id"]} if ns and ns["owner_id"] else _admin_ids(uow)
                 for owner in owners:
-                    if uow.repo("notifications").find_one(user_id=owner, kind="escalation",
-                                                          object_ref=item["ref"]):
+                    if uow.repo("notifications").find_one(
+                        user_id=owner, kind="escalation", object_ref=item["ref"]
+                    ):
                         continue
-                    uow.repo("notifications").add({
-                        "user_id": owner, "kind": "escalation", "object_ref": item["ref"],
-                        "message": f"{item['ref']} has waited {item['age_days']} days in review "
-                                   f"(SLA {item['sla_days']} days)"})
+                    uow.repo("notifications").add(
+                        {
+                            "user_id": owner,
+                            "kind": "escalation",
+                            "object_ref": item["ref"],
+                            "message": f"{item['ref']} has waited {item['age_days']} days in review "
+                            f"(SLA {item['sla_days']} days)",
+                        }
+                    )
                     sent += 1
             if sent:
-                uow.audit("workflow.escalated", principal_type="system", channel="scheduler",
-                          detail={"notifications": sent})
+                uow.audit(
+                    "workflow.escalated",
+                    principal_type="system",
+                    channel="scheduler",
+                    detail={"notifications": sent},
+                )
         return sent
 
     # -- campaigns ------------------------------------------------------------------------
-    def run_campaign(self, p: Principal, name: str, transition: str,
-                     items: list[dict[str, Any]], rationale: str = "") -> dict[str, Any]:
+    def run_campaign(
+        self,
+        p: Principal,
+        name: str,
+        transition: str,
+        items: list[dict[str, Any]],
+        rationale: str = "",
+    ) -> dict[str, Any]:
         """One transition over many objects, per-item status, one audit record (§10.5)."""
         results = []
         for item in items:
             try:
-                out = self.p.dispatch_transition(p, item["object_type"], item["id"], transition,
-                                                 rationale=rationale)
-                results.append({**item, "ok": True, "state": out["state"],
-                                "message": out["message"]})
+                out = self.p.dispatch_transition(
+                    p, item["object_type"], item["id"], transition, rationale=rationale
+                )
+                results.append(
+                    {**item, "ok": True, "state": out["state"], "message": out["message"]}
+                )
             except Exception as exc:  # noqa: BLE001 - partial failure is reported per item
                 results.append({**item, "ok": False, "message": str(getattr(exc, "message", exc))})
         with self.p.uow(p.username) as uow:
-            row = uow.repo("campaigns").add({"name": name, "transition": transition,
-                                             "items": items, "state": "done", "results": results,
-                                             "rationale": rationale})
-            uow.audit("campaign.run", object_type="campaign", object_ref=name,
-                      detail={"transition": transition, "items": len(items),
-                              "succeeded": sum(1 for r in results if r["ok"])})
+            row = uow.repo("campaigns").add(
+                {
+                    "name": name,
+                    "transition": transition,
+                    "items": items,
+                    "state": "done",
+                    "results": results,
+                    "rationale": rationale,
+                }
+            )
+            uow.audit(
+                "campaign.run",
+                object_type="campaign",
+                object_ref=name,
+                detail={
+                    "transition": transition,
+                    "items": len(items),
+                    "succeeded": sum(1 for r in results if r["ok"]),
+                },
+            )
             return row
 
     def campaigns(self) -> list[dict[str, Any]]:

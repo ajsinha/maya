@@ -16,6 +16,7 @@ Resolution happens in a fixed, deterministic order:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -81,8 +82,9 @@ def bitemporal_cut(raw: pd.DataFrame, index: list[str], as_of_known: Any) -> pd.
     return df.drop_duplicates(subset=index, keep="last").reset_index(drop=True)
 
 
-def _calendar_grid(df: pd.DataFrame, index: list[str], cal: str,
-                   start: date | None, end: date | None) -> pd.DataFrame:
+def _calendar_grid(
+    df: pd.DataFrame, index: list[str], cal: str, start: date | None, end: date | None
+) -> pd.DataFrame:
     dcol = index[0]
     if df.empty and (start is None or end is None):
         return df
@@ -96,7 +98,9 @@ def _calendar_grid(df: pd.DataFrame, index: list[str], cal: str,
     return days.merge(df, on=index, how="left")
 
 
-def _range_filter(df: pd.DataFrame, dcol: str, start: date | None, end: date | None) -> pd.DataFrame:
+def _range_filter(
+    df: pd.DataFrame, dcol: str, start: date | None, end: date | None
+) -> pd.DataFrame:
     if start is not None:
         df = df[df[dcol] >= pd.Timestamp(start)]
     if end is not None:
@@ -104,8 +108,9 @@ def _range_filter(df: pd.DataFrame, dcol: str, start: date | None, end: date | N
     return df.reset_index(drop=True)
 
 
-def apply_rules(df: pd.DataFrame, index: list[str], attributes: list[str],
-                rules: dict[str, Any]) -> tuple[pd.DataFrame, dict[str, Any]]:
+def apply_rules(
+    df: pd.DataFrame, index: list[str], attributes: list[str], rules: dict[str, Any]
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Apply one rule per attribute, per non-date group, in date order.
 
     Groups are computed once for all attributes and indexed by position; the ``none``
@@ -120,21 +125,35 @@ def apply_rules(df: pd.DataFrame, index: list[str], attributes: list[str],
     for attr in attributes:
         spec = parse_rule(rules.get(attr))
         if spec.name == "none":
-            report[attr] = {"rule": spec.canonical(), "filled": 0, "longest_run": 0,
-                            "non_causal": False}
+            report[attr] = {
+                "rule": spec.canonical(),
+                "filled": 0,
+                "longest_run": 0,
+                "non_causal": False,
+            }
             continue
         if parts is None:
-            parts = list(out.groupby(groups, sort=False).indices.values()) if groups \
+            parts = (
+                list(out.groupby(groups, sort=False).indices.values())
+                if groups
                 else [np.arange(len(out))]
-            codes = out.groupby(groups, sort=False).ngroup().to_numpy() if groups \
+            )
+            codes = (
+                out.groupby(groups, sort=False).ngroup().to_numpy()
+                if groups
                 else np.zeros(len(out), dtype=np.int64)
+            )
             dates = pd.to_datetime(out[dcol]).to_numpy()
         values = out[attr].to_numpy()
         if grouped.eligible(spec.name, spec.params, values):
             resolved, st = grouped.apply_grouped(values, dates, codes, spec.name, spec.params)
             out[attr] = resolved
-            report[attr] = {"rule": spec.canonical(), "filled": st["filled"],
-                            "longest_run": st["longest_run"], "non_causal": spec.non_causal}
+            report[attr] = {
+                "rule": spec.canonical(),
+                "filled": st["filled"],
+                "longest_run": st["longest_run"],
+                "non_causal": spec.non_causal,
+            }
             continue
         filled, longest, results = 0, 0, []
         for rows in parts:
@@ -144,10 +163,14 @@ def apply_rules(df: pd.DataFrame, index: list[str], attributes: list[str],
             longest = max(longest, st["longest_run"])
         if parts:
             new = out[attr].copy()
-            new.iloc[np.concatenate(parts)] = np.concatenate(results)   # one write, pandas upcasting
+            new.iloc[np.concatenate(parts)] = np.concatenate(results)  # one write, pandas upcasting
             out[attr] = new
-        report[attr] = {"rule": spec.canonical(), "filled": filled, "longest_run": longest,
-                        "non_causal": spec.non_causal}
+        report[attr] = {
+            "rule": spec.canonical(),
+            "filled": filled,
+            "longest_run": longest,
+            "non_causal": spec.non_causal,
+        }
     return out, report
 
 
@@ -161,18 +184,25 @@ def _gaps(df: pd.DataFrame, dcol: str, attributes: list[str]) -> tuple[str | Non
     return str(dates.min().date()), str(dates.max().date())
 
 
-def resolve_feature(raw: pd.DataFrame, *, index: list[str], attributes: list[str],
-                    policy: dict[str, Any] | None, as_of_known: Any = None,
-                    start: date | None = None, end: date | None = None,
-                    ) -> tuple[pd.DataFrame, dict[str, Any]]:
+def resolve_feature(
+    raw: pd.DataFrame,
+    *,
+    index: list[str],
+    attributes: list[str],
+    policy: dict[str, Any] | None,
+    as_of_known: Any = None,
+    start: date | None = None,
+    end: date | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Resolve raw bitemporal rows into a feature frame plus its fill report."""
     policy = policy or {}
     missing = [c for c in index + attributes if c not in raw.columns]
     if missing:
         raise ValidationFailed(f"source is missing column(s) {missing}", missing=missing)
     dcol = index[0]
-    df = bitemporal_cut(raw[index + attributes + ([KT] if KT in raw.columns else [])],
-                        index, as_of_known)
+    df = bitemporal_cut(
+        raw[index + attributes + ([KT] if KT in raw.columns else [])], index, as_of_known
+    )
     raw_rows = len(df)
     cal = parse_grid(policy.get("grid"))
     if cal:

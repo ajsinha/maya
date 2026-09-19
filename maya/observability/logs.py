@@ -5,6 +5,7 @@ touching a call site — the same arrangement as DishtaYantra's log_config.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -16,9 +17,13 @@ from pathlib import Path
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         from maya.observability.tracing import current
-        payload = {"ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
-                   "level": record.levelname, "logger": record.name,
-                   "message": record.getMessage()}
+
+        payload = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
         ctx = current()
         if ctx is not None:
             payload.update(trace_id=ctx.trace_id, span_id=ctx.span_id)
@@ -31,14 +36,18 @@ def configure(level: str = "INFO", fmt: str = "text", logfile: str | None = None
     root = logging.getLogger()
     root.handlers.clear()
     root.setLevel(level.upper())
-    formatter: logging.Formatter = JsonFormatter() if fmt == "json" else \
-        logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s")
+    formatter: logging.Formatter = (
+        JsonFormatter()
+        if fmt == "json"
+        else logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s")
+    )
     console = logging.StreamHandler()
     console.setFormatter(formatter)
     root.addHandler(console)
     if logfile:
         Path(logfile).parent.mkdir(parents=True, exist_ok=True)
-        handler = logging.handlers.RotatingFileHandler(logfile, maxBytes=20 * 2 ** 20,
-                                                       backupCount=5, encoding="utf-8")
+        handler = logging.handlers.RotatingFileHandler(
+            logfile, maxBytes=20 * 2**20, backupCount=5, encoding="utf-8"
+        )
         handler.setFormatter(formatter)
         root.addHandler(handler)

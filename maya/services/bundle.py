@@ -14,6 +14,7 @@ verification it cannot perform.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -117,8 +118,13 @@ def run_verifier(data: bytes, script: str) -> dict[str, Any]:
         path = Path(tmp) / "bundle.zip"
         path.write_bytes(data)
         (Path(tmp) / "verify.py").write_text(script, encoding="utf-8")
-        proc = subprocess.run([sys.executable, "-I", str(Path(tmp) / "verify.py"), str(path)],
-                              capture_output=True, text=True, timeout=300, check=False)
+        proc = subprocess.run(
+            [sys.executable, "-I", str(Path(tmp) / "verify.py"), str(path)],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
     try:
         return json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -135,9 +141,9 @@ class BundleService:
         self.p.licences.export(p, "featureset", w["featureset_ref"], "external")
         with self.p.uow() as uow:
             mv = uow.repo("model_versions").require(w["model_version_id"])
-            params = next((ps for ps in w["parameter_sets"]
-                           if ps["state"] in ("approved", "published")), None) or \
-                (w["parameter_sets"][-1] if w["parameter_sets"] else None)
+            params = next(
+                (ps for ps in w["parameter_sets"] if ps["state"] in ("approved", "published")), None
+            ) or (w["parameter_sets"][-1] if w["parameter_sets"] else None)
         df, _ = self.p.warrants.training_frame(self._row(warrant_id), include_test=True)
         table = pa.Table.from_pandas(df, preserve_index=False).replace_schema_metadata(None)
         buf = io.BytesIO()
@@ -160,9 +166,14 @@ class BundleService:
             out_hash = output_hash(pred)
             if members:
                 files["model/reference_model.py"] = to_python_composite(ir, members).encode()
-                inputs = sorted({c["name"] for m in members.values()
-                                 for c in irmod.input_contract(m)
-                                 if bindings.get(c["name"], c["name"]) in df.columns})
+                inputs = sorted(
+                    {
+                        c["name"]
+                        for m in members.values()
+                        for c in irmod.input_contract(m)
+                        if bindings.get(c["name"], c["name"]) in df.columns
+                    }
+                )
             else:
                 files["model/reference_model.py"] = to_python(ir).encode()
                 inputs = [c["name"] for c in irmod.input_contract(ir)]
@@ -171,17 +182,22 @@ class BundleService:
         files["lib/chunker.py"] = Path(chunker.__file__).read_bytes()
         files["verify.py"] = VERIFY_PY.encode()
         manifest = {
-            "maya_version": VERSION, "warrant": w["uri"], "exported_at": utcnow().isoformat(),
+            "maya_version": VERSION,
+            "warrant": w["uri"],
+            "exported_at": utcnow().isoformat(),
             "exported_by": p.username,
             "files": {k: hashlib.sha256(v).hexdigest() for k, v in sorted(files.items())},
-            "data_content_hash": self._content(table), "reexecutable": reexec,
-            "not_reexecutable_reason": why, "output_hash": out_hash,
+            "data_content_hash": self._content(table),
+            "reexecutable": reexec,
+            "not_reexecutable_reason": why,
+            "output_hash": out_hash,
             "model_inputs": inputs,
             "bindings": w["spec"].get("bindings", {}),
             "sealed_featureset_pin": w["featureset_ref"],
         }
         manifest["signature"] = self.p.signer.signature_block(
-            json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode())
+            json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
+        )
         zbuf = io.BytesIO()
         with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as z:
             for name, data in sorted(files.items()):
@@ -189,10 +205,15 @@ class BundleService:
             z.writestr("manifest.json", json.dumps(manifest, indent=2, sort_keys=True))
         digest = self.p.blobs.put(zbuf.getvalue())
         with self.p.uow(p.username) as uow:
-            self.p.warrants._custody(uow, warrant_id, "bundle_exported", p.username,
-                                     checksum=digest)
-            uow.audit("bundle.exported", object_type="training_warrant", object_ref=w["uri"],
-                      detail={"blob": digest, "reexecutable": reexec})
+            self.p.warrants._custody(
+                uow, warrant_id, "bundle_exported", p.username, checksum=digest
+            )
+            uow.audit(
+                "bundle.exported",
+                object_type="training_warrant",
+                object_ref=w["uri"],
+                detail={"blob": digest, "reexecutable": reexec},
+            )
         return {"blob": digest, "size": len(zbuf.getvalue()), "manifest": manifest}
 
     def _row(self, warrant_id: str) -> dict[str, Any]:
@@ -204,44 +225,86 @@ class BundleService:
         return canonical.table_content_hash(table)
 
     @staticmethod
-    def _reexecutable(ir: dict[str, Any], params: dict[str, Any] | None,
-                      members: dict[str, Any] | None = None) -> tuple[bool, str | None]:
+    def _reexecutable(
+        ir: dict[str, Any], params: dict[str, Any] | None, members: dict[str, Any] | None = None
+    ) -> tuple[bool, str | None]:
         if not ir or irmod.is_opaque(ir):
-            return False, ("declared black box: MAYA holds no executable specification, so "
-                           "this bundle verifies inputs only and says so")
+            return False, (
+                "declared black box: MAYA holds no executable specification, so "
+                "this bundle verifies inputs only and says so"
+            )
         if "composite" in ir:
             opaque = sorted(a for a, m in (members or {}).items() if "body" not in m)
             if opaque:
-                return False, ("composite with members that are not closed-form ("
-                               + ", ".join(opaque) + "): nested composites and black boxes "
-                               "cannot be re-executed, so this bundle verifies inputs only")
+                return False, (
+                    "composite with members that are not closed-form ("
+                    + ", ".join(opaque)
+                    + "): nested composites and black boxes "
+                    "cannot be re-executed, so this bundle verifies inputs only"
+                )
             needs_params = bool(irmod.parameter_inputs(ir)) or any(
-                irmod.parameter_inputs(m) for m in (members or {}).values())
-            return (False, "no parameter set has been uploaded against this warrant") \
-                if needs_params and not params else (True, None)
+                irmod.parameter_inputs(m) for m in (members or {}).values()
+            )
+            return (
+                (False, "no parameter set has been uploaded against this warrant")
+                if needs_params and not params
+                else (True, None)
+            )
         if irmod.parameter_inputs(ir) and not params:
             return False, "no parameter set has been uploaded against this warrant"
         return True, None
 
-    def _documents(self, w: dict[str, Any], mv: dict[str, Any], params: dict[str, Any] | None,
-                   values: dict[str, Any]) -> dict[str, bytes]:
+    def _documents(
+        self,
+        w: dict[str, Any],
+        mv: dict[str, Any],
+        params: dict[str, Any] | None,
+        values: dict[str, Any],
+    ) -> dict[str, bytes]:
         def dump(obj: Any) -> bytes:
             return djson.dumps(obj, indent=2).encode()
+
         return {
-            "warrant.json": dump({k: w[k] for k in ("uri", "name", "version_no", "spec",
-                                                    "featureset_ref", "contract_report",
-                                                    "backends", "custody")}),
+            "warrant.json": dump(
+                {
+                    k: w[k]
+                    for k in (
+                        "uri",
+                        "name",
+                        "version_no",
+                        "spec",
+                        "featureset_ref",
+                        "contract_report",
+                        "backends",
+                        "custody",
+                    )
+                }
+            ),
             "certificate.json": dump(w["leakage_certificate"]),
-            "model/model_version.json": dump({k: mv[k] for k in (
-                "version_no", "maturity", "ir_hash", "artifact_hash", "input_contract",
-                "definition_hash")}),
+            "model/model_version.json": dump(
+                {
+                    k: mv[k]
+                    for k in (
+                        "version_no",
+                        "maturity",
+                        "ir_hash",
+                        "artifact_hash",
+                        "input_contract",
+                        "definition_hash",
+                    )
+                }
+            ),
             "model/formula_ir.json": dump(mv["formula_ir"]),
             "model/spec.tex": (mv["spec_latex"] or "").encode(),
             "model/parameters.json": dump(values),
             "model/parameter_set.json": dump(params or {}),
-            "environment.json": dump({"python": sys.version.split()[0],
-                                      "declared": w["spec"].get("environment"),
-                                      "backends": w["backends"]}),
+            "environment.json": dump(
+                {
+                    "python": sys.version.split()[0],
+                    "declared": w["spec"].get("environment"),
+                    "backends": w["backends"],
+                }
+            ),
         }
 
     def verify(self, data: bytes) -> dict[str, Any]:
@@ -272,6 +335,7 @@ class BundleService:
     def _untrusted(self, data: bytes) -> dict[str, Any] | None:
         """Why the server will not execute this bundle's code, or None when it may."""
         from maya.core.crypto import verify as verify_signature
+
         try:
             z = zipfile.ZipFile(io.BytesIO(data))
             manifest = json.loads(z.read("manifest.json"))
@@ -282,23 +346,35 @@ class BundleService:
         signer = self.p.signer_or_none()
         body = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
         if signer is None or sig.get("public_key") != signer.public_key_b64:
-            return {"check": "signed by this MAYA", "ok": False,
-                    "detail": f"{why}: the bundle is not signed by this instance's key; "
-                              "verify it offline with 'python verify.py bundle.zip'"}
+            return {
+                "check": "signed by this MAYA",
+                "ok": False,
+                "detail": f"{why}: the bundle is not signed by this instance's key; "
+                "verify it offline with 'python verify.py bundle.zip'",
+            }
         try:
             signed = verify_signature(sig["public_key"], body, str(sig.get("signature", "")))
         except ValueError:
             signed = False
         if not signed:
-            return {"check": "Ed25519 signature over the file list", "ok": False,
-                    "detail": f"{why}: the signature does not verify"}
+            return {
+                "check": "Ed25519 signature over the file list",
+                "ok": False,
+                "detail": f"{why}: the signature does not verify",
+            }
         names = set(z.namelist())
         for name, digest in files.items():
             if name not in names or hashlib.sha256(z.read(name)).hexdigest() != digest:
-                return {"check": f"file hash {name}", "ok": False,
-                        "detail": f"{why}: {name} is missing or altered"}
+                return {
+                    "check": f"file hash {name}",
+                    "ok": False,
+                    "detail": f"{why}: {name} is missing or altered",
+                }
         if names - set(files) - {"manifest.json"}:
-            return {"check": "file list", "ok": False,
-                    "detail": f"{why}: files outside the signed list: "
-                              + ", ".join(sorted(names - set(files) - {"manifest.json"}))}
+            return {
+                "check": "file list",
+                "ok": False,
+                "detail": f"{why}: files outside the signed list: "
+                + ", ".join(sorted(names - set(files) - {"manifest.json"})),
+            }
         return None

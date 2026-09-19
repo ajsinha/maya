@@ -14,6 +14,7 @@ A meta is ``{"index": [...], "schema": [...], "non_causal": bool}``.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,8 +26,7 @@ import pandas as pd
 
 from maya.core.errors import ValidationFailed
 from maya.resolution.expr import compile_expr
-from maya.resolution.transforms import (apply_pipeline, canonical_pipeline,
-                                        pipeline_output_schema)
+from maya.resolution.transforms import apply_pipeline, canonical_pipeline, pipeline_output_schema
 from maya.resolution.types import unify
 
 Meta = dict[str, Any]
@@ -52,7 +52,8 @@ def _same_index(op: str, metas: list[Meta]) -> list[str]:
     for m in metas[1:]:
         if list(m["index"]) != first:
             raise ValidationFailed(
-                f"operator '{op}' needs identical indexes; got {first} and {list(m['index'])}")
+                f"operator '{op}' needs identical indexes; got {first} and {list(m['index'])}"
+            )
     return first
 
 
@@ -60,8 +61,10 @@ def _unify_schemas(op: str, metas: list[Meta]) -> list[dict[str, Any]]:
     names = _attrs(metas[0])
     for m in metas[1:]:
         if sorted(_attrs(m)) != sorted(names):
-            raise ValidationFailed(f"operator '{op}' needs identical attributes; "
-                                   f"got {sorted(names)} and {sorted(_attrs(m))}")
+            raise ValidationFailed(
+                f"operator '{op}' needs identical attributes; "
+                f"got {sorted(names)} and {sorted(_attrs(m))}"
+            )
     out = []
     for n in names:
         merged = _by_name(metas[0])[n]
@@ -75,13 +78,23 @@ def _nc(metas: list[Meta], extra: bool = False) -> bool:
     return extra or any(bool(m.get("non_causal")) for m in metas)
 
 
-def _meta(index: list[str], schema: list[dict[str, Any]], metas: list[Meta],
-          change: str = "additive", extra_nc: bool = False) -> Meta:
-    return {"index": list(index), "schema": schema, "non_causal": _nc(metas, extra_nc),
-            "change_class": change}
+def _meta(
+    index: list[str],
+    schema: list[dict[str, Any]],
+    metas: list[Meta],
+    change: str = "additive",
+    extra_nc: bool = False,
+) -> Meta:
+    return {
+        "index": list(index),
+        "schema": schema,
+        "non_causal": _nc(metas, extra_nc),
+        "change_class": change,
+    }
 
 
 # ---------------------------------------------------------------- typecheck
+
 
 def _tc_project(o: dict[str, Any], m: list[Meta]) -> Meta:
     _arity("project", m, 1, 1)
@@ -137,8 +150,9 @@ def _compose_index(m: list[Meta], broadcast: bool) -> list[str]:
         return a
     if broadcast and (set(b) <= set(a) or set(a) <= set(b)):
         return a if len(a) >= len(b) else b
-    raise ValidationFailed(f"compose needs identical indexes or a declared broadcast; "
-                           f"got {a} and {b}")
+    raise ValidationFailed(
+        f"compose needs identical indexes or a declared broadcast; got {a} and {b}"
+    )
 
 
 def _tc_compose(o: dict[str, Any], m: list[Meta]) -> Meta:
@@ -149,8 +163,9 @@ def _tc_compose(o: dict[str, Any], m: list[Meta]) -> Meta:
     right = [dict(a, name=prefixes[1] + a["name"]) for a in m[1]["schema"]]
     clash = sorted({a["name"] for a in left} & {a["name"] for a in right})
     if clash:
-        raise ValidationFailed(f"compose attribute name clash {clash}; declare prefixes",
-                               clash=clash)
+        raise ValidationFailed(
+            f"compose attribute name clash {clash}; declare prefixes", clash=clash
+        )
     return _meta(index, left + right, m)
 
 
@@ -168,9 +183,15 @@ def _tc_aggregate(o: dict[str, Any], m: list[Meta]) -> Meta:
     unknown = [a for a in agg if a not in have]
     if unknown or not agg:
         raise ValidationFailed(f"aggregate needs an aggregation per attribute; unknown {unknown}")
-    schema = [dict(have[a], type="int64" if fn == "count" else
-                   ("float64" if fn in {"mean", "std"} else have[a]["type"]))
-              for a, fn in agg.items()]
+    schema = [
+        dict(
+            have[a],
+            type="int64"
+            if fn == "count"
+            else ("float64" if fn in {"mean", "std"} else have[a]["type"]),
+        )
+        for a, fn in agg.items()
+    ]
     return _meta(by, schema, m, "breaking")
 
 
@@ -203,6 +224,7 @@ def _tc_case(o: dict[str, Any], m: list[Meta]) -> Meta:
 
 # ------------------------------------------------------------------ execute
 
+
 def _prep(df: pd.DataFrame, meta: Meta) -> pd.DataFrame:
     cols = list(meta["index"]) + [c for c in _attrs(meta) if c in df.columns]
     if KT in df.columns:
@@ -229,11 +251,16 @@ def _ex_union(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.Dat
     dup = both.duplicated(subset=idx, keep=False)
     policy = o.get("collision", "error")
     if dup.any() and policy == "error":
-        raise ValidationFailed(f"union has {int(dup.sum())} colliding index row(s) and "
-                               "collision policy 'error'", rows=int(dup.sum()))
+        raise ValidationFailed(
+            f"union has {int(dup.sum())} colliding index row(s) and collision policy 'error'",
+            rows=int(dup.sum()),
+        )
     keep = "first" if policy != "prefer_right" else "last"
-    return both.drop_duplicates(subset=idx, keep=keep).sort_values(idx, kind="mergesort") \
+    return (
+        both.drop_duplicates(subset=idx, keep=keep)
+        .sort_values(idx, kind="mergesort")
         .reset_index(drop=True)
+    )
 
 
 def _keys(df: pd.DataFrame, idx: list[str]) -> pd.MultiIndex:
@@ -301,8 +328,11 @@ def _ex_lag(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataF
 
 
 def _ex_resample(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
-    step = {"op": "resample", "freq": o["freq"],
-            "agg": o.get("agg") or {a: "last" for a in _attrs(m[0])}}
+    step = {
+        "op": "resample",
+        "freq": o["freq"],
+        "agg": o.get("agg") or {a: "last" for a in _attrs(m[0])},
+    }
     return apply_pipeline(f[0][list(m[0]["index"]) + _attrs(m[0])], [step], m[0]["index"])
 
 
@@ -328,20 +358,23 @@ class Operator:
     commutative: bool = False
 
 
-OPERATORS: dict[str, Operator] = {op.name: op for op in (
-    Operator("project", "π[attrs](F)", _tc_project, _ex_project),
-    Operator("rename", "ρ[a→b](F)", _tc_rename, _ex_rename),
-    Operator("transform", "τ[pipeline](F)", _tc_transform, _ex_transform),
-    Operator("union", "F₁ ∪ F₂", _tc_union, _ex_union, commutative=True),
-    Operator("intersect", "F₁ ∩ F₂", _tc_intersect, _ex_intersect),
-    Operator("difference", "F₁ ∖ F₂", _tc_difference, _ex_difference),
-    Operator("compose", "F₁ ⋈ F₂", _tc_compose, _ex_compose),
-    Operator("coalesce", "⊕(F₁, F₂, …)", _tc_coalesce, _ex_coalesce),
-    Operator("aggregate", "γ[by, agg](F)", _tc_aggregate, _ex_aggregate),
-    Operator("lag", "lag[n](F)", _tc_lag, _ex_lag),
-    Operator("resample", "resample[freq](F)", _tc_resample, _ex_resample),
-    Operator("case", "σ[cond](F₁, F₂)", _tc_case, _ex_case),
-)}
+OPERATORS: dict[str, Operator] = {
+    op.name: op
+    for op in (
+        Operator("project", "π[attrs](F)", _tc_project, _ex_project),
+        Operator("rename", "ρ[a→b](F)", _tc_rename, _ex_rename),
+        Operator("transform", "τ[pipeline](F)", _tc_transform, _ex_transform),
+        Operator("union", "F₁ ∪ F₂", _tc_union, _ex_union, commutative=True),
+        Operator("intersect", "F₁ ∩ F₂", _tc_intersect, _ex_intersect),
+        Operator("difference", "F₁ ∖ F₂", _tc_difference, _ex_difference),
+        Operator("compose", "F₁ ⋈ F₂", _tc_compose, _ex_compose),
+        Operator("coalesce", "⊕(F₁, F₂, …)", _tc_coalesce, _ex_coalesce),
+        Operator("aggregate", "γ[by, agg](F)", _tc_aggregate, _ex_aggregate),
+        Operator("lag", "lag[n](F)", _tc_lag, _ex_lag),
+        Operator("resample", "resample[freq](F)", _tc_resample, _ex_resample),
+        Operator("case", "σ[cond](F₁, F₂)", _tc_case, _ex_case),
+    )
+}
 
 
 def _get(op: str) -> Operator:
@@ -355,16 +388,21 @@ def typecheck(op: str, options: dict[str, Any] | None, operand_metas: list[Meta]
     return _get(op).typecheck(dict(options or {}), list(operand_metas))
 
 
-def execute(op: str, options: dict[str, Any] | None, operand_frames: list[pd.DataFrame],
-            operand_metas: list[Meta]) -> pd.DataFrame:
+def execute(
+    op: str,
+    options: dict[str, Any] | None,
+    operand_frames: list[pd.DataFrame],
+    operand_metas: list[Meta],
+) -> pd.DataFrame:
     """Replay an operator over resolved operand frames."""
     opts = dict(options or {})
     typecheck(op, opts, operand_metas)
     return _get(op).execute(opts, list(operand_frames), list(operand_metas))
 
 
-def canonical_derivation(op: str, options: dict[str, Any] | None,
-                         operand_refs: list[str]) -> dict[str, Any]:
+def canonical_derivation(
+    op: str, options: dict[str, Any] | None, operand_refs: list[str]
+) -> dict[str, Any]:
     """Normalized derivation for the definition hash.
 
     Operands of a commutative operator are sorted when its options make order
@@ -381,5 +419,6 @@ def canonical_derivation(op: str, options: dict[str, Any] | None,
     if OPERATORS[op].commutative and opts.get("collision", "error") == "error":
         opts["collision"] = "error"
         refs = sorted(refs)
-    return json.loads(json.dumps({"op": op, "options": opts, "operands": refs},
-                                 sort_keys=True, default=str))
+    return json.loads(
+        json.dumps({"op": op, "options": opts, "operands": refs}, sort_keys=True, default=str)
+    )

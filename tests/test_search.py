@@ -5,6 +5,7 @@ object the caller cannot read.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import copy
@@ -16,14 +17,17 @@ from maya.persistence.search_index import tokens
 from tests.conftest import PASSWORD, PX_DEF
 
 
-@pytest.mark.parametrize("text, expected", [
-    ("adj_close", ["adj_close", "adj", "close"]),
-    ("adjClose", ["adjclose", "adj", "close"]),
-    ("Equity Pricing, v2", ["equity", "pricing", "v2"]),
-    ("credit.pd-12m", ["credit.pd-12m", "credit", "pd", "12m"]),
-    ("", []),
-    (None, []),
-])
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("adj_close", ["adj_close", "adj", "close"]),
+        ("adjClose", ["adjclose", "adj", "close"]),
+        ("Equity Pricing, v2", ["equity", "pricing", "v2"]),
+        ("credit.pd-12m", ["credit.pd-12m", "credit", "pd", "12m"]),
+        ("", []),
+        (None, []),
+    ],
+)
 def test_tokenizer_splits_words_the_way_people_search(text, expected):
     assert tokens(text) == expected
 
@@ -32,14 +36,28 @@ def test_tokenizer_splits_words_the_way_people_search(text, expected):
 def cat(world):
     w = world
     w.p.access.create_namespace(w.admin, name="srch", preset="standard")
-    w.p.features.create(w.dana, namespace="srch", name="adj_close",
-                        definition=copy.deepcopy(PX_DEF),
-                        description="Dividend-adjusted closing price", tags=["equity", "daily"])
-    w.p.features.create(w.dana, namespace="srch", name="volume",
-                        definition=copy.deepcopy(PX_DEF),
-                        description="Traded volume, not adjusted for close auctions")
-    w.p.features.create(w.dana, namespace="srch", name="pct_50_off",
-                        definition=copy.deepcopy(PX_DEF), description="wildcards in a name")
+    w.p.features.create(
+        w.dana,
+        namespace="srch",
+        name="adj_close",
+        definition=copy.deepcopy(PX_DEF),
+        description="Dividend-adjusted closing price",
+        tags=["equity", "daily"],
+    )
+    w.p.features.create(
+        w.dana,
+        namespace="srch",
+        name="volume",
+        definition=copy.deepcopy(PX_DEF),
+        description="Traded volume, not adjusted for close auctions",
+    )
+    w.p.features.create(
+        w.dana,
+        namespace="srch",
+        name="pct_50_off",
+        definition=copy.deepcopy(PX_DEF),
+        description="wildcards in a name",
+    )
     return w
 
 
@@ -80,8 +98,13 @@ def test_the_index_follows_edits_in_the_same_transaction(cat):
     w = cat
     assert w.p.ops.search(w.admin, "microstructure") == []
     draft = w.p.features.get(w.dana, "srch/volume")["versions"][0]
-    w.p.features.update_draft(w.dana, "srch/volume", draft["definition"],
-                              description="Microstructure volume", tags=["liquidity"])
+    w.p.features.update_draft(
+        w.dana,
+        "srch/volume",
+        draft["definition"],
+        description="Microstructure volume",
+        tags=["liquidity"],
+    )
     assert names(w.p.ops.search(w.admin, "microstructure")) == ["volume"]
     assert names(w.p.ops.search(w.admin, "liquidity")) == ["volume"]
     assert "volume" not in names(w.p.ops.search(w.admin, "auctions"))

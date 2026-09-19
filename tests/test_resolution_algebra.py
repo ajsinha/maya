@@ -4,6 +4,7 @@ array serialization contract.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import math
@@ -23,10 +24,19 @@ from maya.resolution.transforms import apply_pipeline, canonical_pipeline
 IDX = ["date", "symbol"]
 
 
-def _meta(*attrs: str, types: str = "float64", nc: bool = False, index: list[str] | None = None,
-          policy: dict | None = None) -> dict:
-    return {"index": index or IDX, "schema": [{"name": a, "type": types} for a in attrs],
-            "non_causal": nc, "policy": policy or {}}
+def _meta(
+    *attrs: str,
+    types: str = "float64",
+    nc: bool = False,
+    index: list[str] | None = None,
+    policy: dict | None = None,
+) -> dict:
+    return {
+        "index": index or IDX,
+        "schema": [{"name": a, "type": types} for a in attrs],
+        "non_causal": nc,
+        "policy": policy or {},
+    }
 
 
 def _frame(dates: list[str], syms: list[str], **cols: list) -> pd.DataFrame:
@@ -35,6 +45,7 @@ def _frame(dates: list[str], syms: list[str], **cols: list) -> pd.DataFrame:
 
 
 # ----------------------------------------------------------------- algebra
+
 
 def test_union_typing_and_collision() -> None:
     a = _frame(["2026-01-02"], ["A"], px=[1.0])
@@ -102,8 +113,9 @@ def test_compose_broadcast() -> None:
 
 def test_aggregate_and_lag() -> None:
     df = _frame(["2026-01-02", "2026-01-05", "2026-01-02"], ["A", "A", "B"], px=[1.0, 3.0, 5.0])
-    agg = algebra.execute("aggregate", {"by": ["symbol"], "agg": {"px": "mean"}}, [df],
-                          [_meta("px")])
+    agg = algebra.execute(
+        "aggregate", {"by": ["symbol"], "agg": {"px": "mean"}}, [df], [_meta("px")]
+    )
     assert agg["px"].tolist() == [2.0, 5.0]
     lag = algebra.execute("lag", {"n": 1}, [df], [_meta("px")])
     assert lag[lag["symbol"] == "A"]["px"].tolist()[1] == 1.0
@@ -111,8 +123,9 @@ def test_aggregate_and_lag() -> None:
 
 def test_canonical_derivation_commutative_union() -> None:
     a = algebra.canonical_derivation("union", {}, ["maya://feature/b@v1", "maya://feature/a@v1"])
-    b = algebra.canonical_derivation("union", {"collision": "error"},
-                                     ["maya://feature/a@v1", "maya://feature/b@v1"])
+    b = algebra.canonical_derivation(
+        "union", {"collision": "error"}, ["maya://feature/a@v1", "maya://feature/b@v1"]
+    )
     assert a == b
     c = algebra.canonical_derivation("union", {"collision": "prefer_left"}, ["x", "y"])
     d = algebra.canonical_derivation("union", {"collision": "prefer_left"}, ["y", "x"])
@@ -121,47 +134,68 @@ def test_canonical_derivation_commutative_union() -> None:
 
 # -------------------------------------------------------------- transforms
 
+
 def test_pipeline() -> None:
     df = _frame(["2026-01-02", "2026-01-05", "2026-01-06"], ["A", "A", "A"], px=[1.0, 2.0, 4.0])
-    steps = [{"op": "derive", "name": "lpx", "expr": "log(px)"},
-             {"op": "lag", "attr": "px", "n": 1},
-             {"op": "window", "attr": "px", "fn": "mean", "size": 2, "name": "ma2"},
-             {"op": "filter", "expr": "px > 1"}]
+    steps = [
+        {"op": "derive", "name": "lpx", "expr": "log(px)"},
+        {"op": "lag", "attr": "px", "n": 1},
+        {"op": "window", "attr": "px", "fn": "mean", "size": 2, "name": "ma2"},
+        {"op": "filter", "expr": "px > 1"},
+    ]
     out = apply_pipeline(df, steps, IDX)
     assert out["px_lag1"].tolist() == [1.0, 2.0] and out["ma2"].tolist() == [1.5, 3.0]
-    assert canonical_pipeline([{"expr": "px>1", "op": "filter"}]) == \
-        canonical_pipeline([{"op": "filter", "expr": "(px) > 1"}])
+    assert canonical_pipeline([{"expr": "px>1", "op": "filter"}]) == canonical_pipeline(
+        [{"op": "filter", "expr": "(px) > 1"}]
+    )
     with pytest.raises(ValidationFailed):
         apply_pipeline(df, [{"op": "exec"}], IDX)
 
 
 # -------------------------------------------------------------- featureset
 
+
 def _members() -> dict:
-    px = _frame(["2026-01-02", "2026-01-05", "2026-01-06", "2026-01-02", "2026-01-06"],
-                ["A", "A", "A", "B", "B"], adjusted_close=[1.0, None, 3.0, 10.0, 12.0],
-                daily_volume=[5.0, None, 7.0, 50.0, 70.0])
+    px = _frame(
+        ["2026-01-02", "2026-01-05", "2026-01-06", "2026-01-02", "2026-01-06"],
+        ["A", "A", "A", "B", "B"],
+        adjusted_close=[1.0, None, 3.0, 10.0, 12.0],
+        daily_volume=[5.0, None, 7.0, 50.0, 70.0],
+    )
     beta = pd.DataFrame({"symbol": ["A", "B"], "beta_mkt": [1.1, 0.9]})
     return {
-        "daily": (px, _meta("adjusted_close", "daily_volume",
-                            policy={"rules": {"daily_volume": "zero"}})),
+        "daily": (
+            px,
+            _meta("adjusted_close", "daily_volume", policy={"rules": {"daily_volume": "zero"}}),
+        ),
         "betas": (beta, _meta("beta_mkt", index=["symbol"])),
     }
 
 
 def test_featureset_precedence_layers_and_broadcast() -> None:
     mapping = [
-        {"attr": "px", "member": "daily", "source_attr": "adjusted_close",
-         "rule": "forward_fill(limit=3)"},
+        {
+            "attr": "px",
+            "member": "daily",
+            "source_attr": "adjusted_close",
+            "rule": "forward_fill(limit=3)",
+        },
         {"attr": "vol", "member": "daily", "source_attr": "daily_volume"},
         {"attr": "beta", "member": "betas", "source_attr": "beta_mkt"},
     ]
-    df, man = resolve_featureset(_members(), mapping, index=IDX, alignment={"mode": "outer"},
-                                 inherited_policies=[{"source": "market_panel",
-                                                      "rules": {"beta": "zero"}}])
+    df, man = resolve_featureset(
+        _members(),
+        mapping,
+        index=IDX,
+        alignment={"mode": "outer"},
+        inherited_policies=[{"source": "market_panel", "rules": {"beta": "zero"}}],
+    )
     layers = {a: (m["layer"], m["source"]) for a, m in man["attributes"].items()}
-    assert layers == {"px": ("attribute", "featureset"), "vol": ("member", "daily"),
-                      "beta": ("inherited", "market_panel")}
+    assert layers == {
+        "px": ("attribute", "featureset"),
+        "vol": ("member", "daily"),
+        "beta": ("inherited", "market_panel"),
+    }
     a = df[df["symbol"] == "A"]
     assert a["px"].tolist() == [1.0, 1.0, 3.0] and a["vol"].tolist() == [5.0, 0.0, 7.0]
     assert set(df["beta"]) == {1.1, 0.9}
@@ -169,19 +203,31 @@ def test_featureset_precedence_layers_and_broadcast() -> None:
 
 
 def test_featureset_global_and_group_layers() -> None:
-    mapping = [{"attr": "px", "member": "daily", "source_attr": "adjusted_close"},
-               {"attr": "vol", "member": "daily", "source_attr": "daily_volume"}]
-    _, man = resolve_featureset(_members(), mapping, index=IDX,
-                                global_policy={"rules": {"px": "zero"}},
-                                group_policies=[{"attrs": ["vol"], "rule": "constant(v=1)"}])
+    mapping = [
+        {"attr": "px", "member": "daily", "source_attr": "adjusted_close"},
+        {"attr": "vol", "member": "daily", "source_attr": "daily_volume"},
+    ]
+    _, man = resolve_featureset(
+        _members(),
+        mapping,
+        index=IDX,
+        global_policy={"rules": {"px": "zero"}},
+        group_policies=[{"attrs": ["vol"], "rule": "constant(v=1)"}],
+    )
     assert man["attributes"]["px"]["layer"] == "global"
     assert man["attributes"]["vol"]["layer"] == "group"
 
 
 def test_featureset_calendar_grid_inner_and_universe() -> None:
     mapping = [{"attr": "px", "member": "daily", "source_attr": "adjusted_close"}]
-    df, man = resolve_featureset(_members(), mapping, index=IDX, alignment={"mode": "inner"},
-                                 grid={"calendar": "NYSE"}, filters={"universe": ["B"]})
+    df, man = resolve_featureset(
+        _members(),
+        mapping,
+        index=IDX,
+        alignment={"mode": "inner"},
+        grid={"calendar": "NYSE"},
+        filters={"universe": ["B"]},
+    )
     assert set(df["symbol"]) == {"B"} and len(df) == 3  # 2, 5, 6 Jan
     assert man["attributes"]["px"]["layer"] == "default"
 
@@ -200,27 +246,35 @@ def test_featureset_asof_alignment() -> None:
     marks = _frame(["2026-01-05", "2026-01-07"], ["A", "A"], mark=[100.0, 101.0])
     funda = _frame(["2026-01-02"], ["A"], eps=[2.5])
     members = {"marks": (marks, _meta("mark")), "funda": (funda, _meta("eps"))}
-    mapping = [{"attr": "mark", "member": "marks", "source_attr": "mark"},
-               {"attr": "eps", "member": "funda", "source_attr": "eps"}]
-    df, man = resolve_featureset(members, mapping, index=IDX,
-                                 alignment={"mode": "asof", "member": "marks",
-                                            "tolerance_days": 3, "direction": "backward"})
+    mapping = [
+        {"attr": "mark", "member": "marks", "source_attr": "mark"},
+        {"attr": "eps", "member": "funda", "source_attr": "eps"},
+    ]
+    df, man = resolve_featureset(
+        members,
+        mapping,
+        index=IDX,
+        alignment={"mode": "asof", "member": "marks", "tolerance_days": 3, "direction": "backward"},
+    )
     assert df["eps"].tolist()[0] == 2.5 and math.isnan(df["eps"].tolist()[1])
     assert any("asof" in p for p in man["plan"])
 
 
 def test_non_causal_rule_reported() -> None:
-    mapping = [{"attr": "px", "member": "daily", "source_attr": "adjusted_close",
-                "rule": "linear_interp"}]
+    mapping = [
+        {"attr": "px", "member": "daily", "source_attr": "adjusted_close", "rule": "linear_interp"}
+    ]
     _, man = resolve_featureset(_members(), mapping, index=IDX)
     assert man["non_causal"] == ["px"]
 
 
 # ------------------------------------------------------------------ shapes
 
-SCHEMA = [{"name": "px", "type": "float64"},
-          {"name": "surface", "type": "tensor<float64,[2,3]>"},
-          {"name": "tags", "type": "list<int64>"}]
+SCHEMA = [
+    {"name": "px", "type": "float64"},
+    {"name": "surface", "type": "tensor<float64,[2,3]>"},
+    {"name": "tags", "type": "list<int64>"},
+]
 
 
 def _nested() -> pd.DataFrame:
@@ -230,8 +284,9 @@ def _nested() -> pd.DataFrame:
     return df
 
 
-@pytest.mark.parametrize("fmt,enc", [(f, None) for f in FORMATS if f != "csv"] +
-                         [("csv", "packed"), ("csv", "json")])
+@pytest.mark.parametrize(
+    "fmt,enc", [(f, None) for f in FORMATS if f != "csv"] + [("csv", "packed"), ("csv", "json")]
+)
 def test_tensor_round_trip_every_format(fmt: str, enc: str | None) -> None:
     df = _nested()
     back = import_export(export(df, SCHEMA, fmt, enc), fmt)
@@ -270,12 +325,20 @@ finite = st.floats(allow_nan=False, allow_infinity=False, width=64)
 
 
 @settings(max_examples=40, deadline=None)
-@given(rows=st.lists(st.tuples(finite, st.lists(finite, min_size=4, max_size=4)),
-                     min_size=1, max_size=8),
-       fmt=st.sampled_from(["arrow", "parquet", "json", "ndjson", "csv"]))
+@given(
+    rows=st.lists(
+        st.tuples(finite, st.lists(finite, min_size=4, max_size=4)), min_size=1, max_size=8
+    ),
+    fmt=st.sampled_from(["arrow", "parquet", "json", "ndjson", "csv"]),
+)
 def test_property_round_trip(rows: list, fmt: str) -> None:
-    df = pd.DataFrame({"date": pd.date_range("2026-01-01", periods=len(rows)),
-                       "x": [r[0] for r in rows], "v": [r[1] for r in rows]})
+    df = pd.DataFrame(
+        {
+            "date": pd.date_range("2026-01-01", periods=len(rows)),
+            "x": [r[0] for r in rows],
+            "v": [r[1] for r in rows],
+        }
+    )
     schema = [{"name": "x", "type": "float64"}, {"name": "v", "type": "fixed_vector<float64,4>"}]
     back = import_export(export(df, schema, fmt, "packed" if fmt == "csv" else None), fmt)
     assert back["x"].tolist() == df["x"].tolist()

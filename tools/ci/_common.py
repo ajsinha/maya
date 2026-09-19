@@ -4,6 +4,7 @@ Windows, Linux and macOS alike (spec §22.4).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import ast
@@ -40,14 +41,23 @@ def code_lines(path: Path) -> int:
     for node in ast.walk(tree):
         if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             body = getattr(node, "body", [])
-            if body and isinstance(body[0], ast.Expr) and isinstance(
-                    getattr(body[0], "value", None), ast.Constant) and isinstance(
-                    body[0].value.value, str):
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(getattr(body[0], "value", None), ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
                 doc_lines.update(range(body[0].lineno, (body[0].end_lineno or body[0].lineno) + 1))
     code: set[int] = set()
     for tok in tokenize.generate_tokens(io.StringIO(text).readline):
-        if tok.type in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
-                        tokenize.DEDENT, tokenize.ENDMARKER):
+        if tok.type in (
+            tokenize.COMMENT,
+            tokenize.NL,
+            tokenize.NEWLINE,
+            tokenize.INDENT,
+            tokenize.DEDENT,
+            tokenize.ENDMARKER,
+        ):
             continue
         for line in range(tok.start[0], tok.end[0] + 1):
             if line not in doc_lines:
@@ -89,11 +99,29 @@ API_PREFIX = "/api/v1"
 def api_app():  # type: ignore[no-untyped-def]
     """Every API router on a bare FastAPI app — its OpenAPI document, with no platform."""
     from fastapi import FastAPI
-    from maya.api.routers import (admin, assistant, catalog, custody, events, identity, registry,
-                                  workflow, workspaces)
+    from maya.api.routers import (
+        admin,
+        assistant,
+        catalog,
+        custody,
+        events,
+        identity,
+        registry,
+        workflow,
+        workspaces,
+    )
+
     app = FastAPI()
-    for r in (admin.router, catalog.router, registry.router, workflow.router,
-              workspaces.router, events.router, custody.router, identity.router,
-              assistant.router):
+    for r in (
+        admin.router,
+        catalog.router,
+        registry.router,
+        workflow.router,
+        workspaces.router,
+        events.router,
+        custody.router,
+        identity.router,
+        assistant.router,
+    ):
         app.include_router(r, prefix=API_PREFIX)
     return app

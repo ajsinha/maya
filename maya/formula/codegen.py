@@ -6,6 +6,7 @@ validator's machine with no MAYA installed.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,10 +14,26 @@ from typing import Any
 from maya.core.errors import ValidationFailed
 from maya.formula.ir import let_order, refs_of, validate_ir
 
-_BIN = {"add": "+", "sub": "-", "mul": "*", "div": "/", "pow": "**",
-        "gt": ">", "lt": "<", "ge": ">=", "le": "<=", "eq": "=="}
-_FN = {"exp": "np.exp", "log": "np.log", "sqrt": "np.sqrt", "abs": "np.abs",
-       "ncdf": "_ncdf", "npdf": "_npdf"}
+_BIN = {
+    "add": "+",
+    "sub": "-",
+    "mul": "*",
+    "div": "/",
+    "pow": "**",
+    "gt": ">",
+    "lt": "<",
+    "ge": ">=",
+    "le": "<=",
+    "eq": "==",
+}
+_FN = {
+    "exp": "np.exp",
+    "log": "np.log",
+    "sqrt": "np.sqrt",
+    "abs": "np.abs",
+    "ncdf": "_ncdf",
+    "npdf": "_npdf",
+}
 _RED = {"max": "np.maximum", "min": "np.minimum", "and": "np.logical_and", "or": "np.logical_or"}
 
 
@@ -88,27 +105,33 @@ def to_python_composite(ir: dict[str, Any], member_irs: dict[str, dict[str, Any]
     for alias in order:
         member = member_irs[alias]
         if "body" not in member:
-            raise ValidationFailed(f"member '{alias}' is not closed-form; a composite is "
-                                   "re-executable only over closed-form members")
+            raise ValidationFailed(
+                f"member '{alias}' is not closed-form; a composite is "
+                "re-executable only over closed-form members"
+            )
         parts.append(_function(member, _member_fn(alias)) + "\n\n")
-    lines = ["def predict(X, params):",
-             "    env = {k: np.asarray(v, dtype=float) for k, v in X.items()}"]
+    lines = [
+        "def predict(X, params):",
+        "    env = {k: np.asarray(v, dtype=float) for k, v in X.items()}",
+    ]
     for alias in order:
-        lines += [f"    for _k, _v in {_member_fn(alias)}(env, "
-                  f"_member_params(params, {alias!r})).items():",
-                  f"        env[{alias!r} + '.' + _k] = np.asarray(_v, dtype=float)"]
+        lines += [
+            f"    for _k, _v in {_member_fn(alias)}(env, "
+            f"_member_params(params, {alias!r})).items():",
+            f"        env[{alias!r} + '.' + _k] = np.asarray(_v, dtype=float)",
+        ]
     lines += [f"    {_ident(ref)} = env[{ref!r}]" for ref in sorted(refs_of(comp["combine"]))]
     out = ir["outputs"][0]["name"] if ir.get("outputs") else "y"
     lines.append(f"    return {{{out!r}: np.asarray({py_expr(comp['combine'])}, dtype=float)}}")
     return "".join(parts) + "\n".join(lines) + "\n"
 
 
-_MEMBER_PARAMS = '''def _member_params(params, alias):
+_MEMBER_PARAMS = """def _member_params(params, alias):
     prefix = alias + "."
     return {k[len(prefix):]: v for k, v in params.items() if k.startswith(prefix)}
 
 
-'''
+"""
 
 
 def _member_fn(alias: str) -> str:

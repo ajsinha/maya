@@ -21,6 +21,7 @@ would make it an ID token presented as a logout token).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -67,8 +68,13 @@ class OIDCSettings:
 class OIDCClient:
     """One relying party against one issuer."""
 
-    def __init__(self, cfg: OIDCSettings, *, transport: httpx.BaseTransport | None = None,
-                 timeout: float = 10.0) -> None:
+    def __init__(
+        self,
+        cfg: OIDCSettings,
+        *,
+        transport: httpx.BaseTransport | None = None,
+        timeout: float = 10.0,
+    ) -> None:
         self.cfg = cfg
         self._http = httpx.Client(transport=transport, timeout=timeout)
         self._meta: dict[str, Any] | None = None
@@ -80,8 +86,10 @@ class OIDCClient:
             url = self.cfg.issuer.rstrip("/") + "/.well-known/openid-configuration"
             meta = self._get_json(url)
             if meta.get("issuer", "").rstrip("/") != self.cfg.issuer.rstrip("/"):
-                raise NotAuthenticated("The identity provider's discovery document names a "
-                                       "different issuer than MAYA is configured with")
+                raise NotAuthenticated(
+                    "The identity provider's discovery document names a "
+                    "different issuer than MAYA is configured with"
+                )
             self._meta = meta
         return self._meta
 
@@ -103,18 +111,34 @@ class OIDCClient:
         """State, nonce and PKCE verifier to keep, and the URL to send the browser to."""
         state, nonce = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
         verifier, challenge = pkce_pair()
-        query = urlencode({"response_type": "code", "client_id": self.cfg.client_id,
-                           "redirect_uri": self.cfg.redirect_uri, "scope": self.cfg.scopes,
-                           "state": state, "nonce": nonce, "code_challenge": challenge,
-                           "code_challenge_method": "S256"})
-        return {"authorize_url": f"{self.metadata()['authorization_endpoint']}?{query}",
-                "state": state, "nonce": nonce, "code_verifier": verifier}
+        query = urlencode(
+            {
+                "response_type": "code",
+                "client_id": self.cfg.client_id,
+                "redirect_uri": self.cfg.redirect_uri,
+                "scope": self.cfg.scopes,
+                "state": state,
+                "nonce": nonce,
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+            }
+        )
+        return {
+            "authorize_url": f"{self.metadata()['authorization_endpoint']}?{query}",
+            "state": state,
+            "nonce": nonce,
+            "code_verifier": verifier,
+        }
 
     def finish(self, code: str, code_verifier: str, nonce: str) -> dict[str, Any]:
         """Exchange the code and return the validated ID-token claims."""
-        form = {"grant_type": "authorization_code", "code": code,
-                "redirect_uri": self.cfg.redirect_uri, "client_id": self.cfg.client_id,
-                "code_verifier": code_verifier}
+        form = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": self.cfg.redirect_uri,
+            "client_id": self.cfg.client_id,
+            "code_verifier": code_verifier,
+        }
         if self.cfg.client_secret:
             form["client_secret"] = self.cfg.client_secret
         try:
@@ -156,12 +180,18 @@ class OIDCClient:
         endpoint = self.metadata().get("end_session_endpoint")
         if not endpoint or not self.cfg.post_logout_redirect_uri:
             return None
-        return endpoint + "?" + urlencode({
-            "client_id": self.cfg.client_id,
-            "post_logout_redirect_uri": self.cfg.post_logout_redirect_uri})
+        return (
+            endpoint
+            + "?"
+            + urlencode(
+                {
+                    "client_id": self.cfg.client_id,
+                    "post_logout_redirect_uri": self.cfg.post_logout_redirect_uri,
+                }
+            )
+        )
 
-    def validate_logout_token(self, token: str, *, now: float | None = None
-                              ) -> dict[str, Any]:
+    def validate_logout_token(self, token: str, *, now: float | None = None) -> dict[str, Any]:
         """A back-channel logout token's claims, or NotAuthenticated naming what failed."""
         claims = self._verified(token, "logout token")
         now = time.time() if now is None else now
@@ -185,11 +215,15 @@ class OIDCClient:
             raise NotAuthenticated("A logout token must carry a jti")
         return claims
 
-    def _signature_ok(self, header: dict[str, Any], alg: str, signing_input: bytes,
-                      signature: bytes) -> bool:
-        for refresh in (False, True):   # a rotated key: refetch the JWKS once
-            candidates = [k for k in self._keys(refresh)
-                          if not header.get("kid") or k.get("kid") == header["kid"]]
+    def _signature_ok(
+        self, header: dict[str, Any], alg: str, signing_input: bytes, signature: bytes
+    ) -> bool:
+        for refresh in (False, True):  # a rotated key: refetch the JWKS once
+            candidates = [
+                k
+                for k in self._keys(refresh)
+                if not header.get("kid") or k.get("kid") == header["kid"]
+            ]
             if any(crypto.verify_jws(k, alg, signing_input, signature) for k in candidates):
                 return True
         return False
@@ -215,9 +249,11 @@ def settings_from(props: Any) -> OIDCSettings:
     client_id = (props.get("auth.sso.client_id") or "").strip()
     if not issuer or not client_id:
         raise ValidationFailed("auth.sso.issuer and auth.sso.client_id must be set for SSO")
-    return OIDCSettings(issuer=issuer, client_id=client_id,
-                        client_secret=props.get("auth.sso.client_secret") or "",
-                        redirect_uri=props.get("auth.sso.redirect_uri") or "",
-                        scopes=props.get("auth.sso.scopes") or "openid profile email groups",
-                        post_logout_redirect_uri=(props.get("auth.sso.post_logout_redirect_uri")
-                                                  or "").strip())
+    return OIDCSettings(
+        issuer=issuer,
+        client_id=client_id,
+        client_secret=props.get("auth.sso.client_secret") or "",
+        redirect_uri=props.get("auth.sso.redirect_uri") or "",
+        scopes=props.get("auth.sso.scopes") or "openid profile email groups",
+        post_logout_redirect_uri=(props.get("auth.sso.post_logout_redirect_uri") or "").strip(),
+    )

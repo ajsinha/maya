@@ -12,6 +12,7 @@ per non-date index group (per symbol, for a panel).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import ast
@@ -104,12 +105,15 @@ def parse_rule(spec: str | dict[str, Any] | RuleSpec | None) -> RuleSpec:
     if unknown:
         raise ValidationFailed(f"rule '{rs.name}' has unknown parameter(s) {sorted(unknown)}")
     if rs.name == "custom":
-        raise ValidationFailed("custom(fn) rules need a registered sandboxed function; "
-                               "none are registered in this build")
+        raise ValidationFailed(
+            "custom(fn) rules need a registered sandboxed function; "
+            "none are registered in this build"
+        )
     _check_bounds(rs)
     if rs.name == "spline_interp" and importlib.util.find_spec("scipy") is None:
-        raise ValidationFailed("spline_interp needs the 'scipy' package, which is not installed",
-                               package="scipy")
+        raise ValidationFailed(
+            "spline_interp needs the 'scipy' package, which is not installed", package="scipy"
+        )
     return rs
 
 
@@ -123,10 +127,11 @@ def _check_bounds(rs: RuleSpec) -> None:
         if key not in _MINIMUM:
             continue
         if isinstance(value, bool) or not isinstance(value, int) or value < _MINIMUM[key]:
-            raise ValidationFailed(f"rule '{rs.name}': {key} must be a whole number of at least "
-                                   f"{_MINIMUM[key]}"
-                                   + ("; a negative lag is look-ahead" if key == "lag" else ""),
-                                   rule=rs.canonical())
+            raise ValidationFailed(
+                f"rule '{rs.name}': {key} must be a whole number of at least "
+                f"{_MINIMUM[key]}" + ("; a negative lag is look-ahead" if key == "lag" else ""),
+                rule=rs.canonical(),
+            )
 
 
 def _runs(mask: np.ndarray) -> np.ndarray:
@@ -197,8 +202,9 @@ def _mean_window(s: pd.Series, dates: pd.Series, p: dict[str, Any]) -> pd.Series
 def _last_known(s: pd.Series, dates: pd.Series, p: dict[str, Any]) -> pd.Series:
     lag = int(p.get("lag", 0))
     known = pd.DataFrame({"d": dates[s.notna()].to_numpy(), "v": s[s.notna()].to_numpy()})
-    probe = pd.DataFrame({"d": (dates - pd.Timedelta(days=lag)).to_numpy(),
-                          "pos": np.arange(len(s))})
+    probe = pd.DataFrame(
+        {"d": (dates - pd.Timedelta(days=lag)).to_numpy(), "pos": np.arange(len(s))}
+    )
     if known.empty:
         return s
     known = known.sort_values("d")
@@ -239,6 +245,9 @@ def apply_rule(series: pd.Series, spec: Any, dates: pd.Series) -> tuple[pd.Serie
     after = out.isna().to_numpy()
     filled_mask = before & ~after
     out.index = series.index
-    stats = {"rule": rs.canonical(), "filled": int(filled_mask.sum()),
-             "longest_run": _longest(filled_mask)}
+    stats = {
+        "rule": rs.canonical(),
+        "filled": int(filled_mask.sum()),
+        "longest_run": _longest(filled_mask),
+    }
     return out, stats

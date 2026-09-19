@@ -13,6 +13,7 @@ with an installed Chrome.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -32,17 +33,19 @@ MERMAID_JS = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
 def render_diagrams(sources: list[str], out: Path) -> list[Path]:
     """Each Mermaid source as a PNG, drawn by mermaid.js in headless Chrome."""
     from playwright.sync_api import sync_playwright
+
     paths = []
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel="chrome", headless=True)
         page = browser.new_page(device_scale_factor=2)
-        page.set_content(f'<html><body style="background:white"><div id="d"></div>'
-                         f'<script src="{MERMAID_JS}"></script></body></html>')
+        page.set_content(
+            f'<html><body style="background:white"><div id="d"></div>'
+            f'<script src="{MERMAID_JS}"></script></body></html>'
+        )
         page.wait_for_function("window.mermaid !== undefined")
         page.evaluate("mermaid.initialize({startOnLoad: false, theme: 'neutral'})")
         for i, src in enumerate(sources, start=1):
-            svg = page.evaluate("async s => (await mermaid.render('m' + Date.now(), s)).svg",
-                                src)
+            svg = page.evaluate("async s => (await mermaid.render('m' + Date.now(), s)).svg", src)
             page.evaluate("s => document.getElementById('d').innerHTML = s", svg)
             path = out / f"diagram-{i}.png"
             page.locator("#d svg").screenshot(path=str(path))
@@ -69,9 +72,18 @@ def main() -> int:
         images = render_diagrams(MERMAID.findall(text), work)
         source = work / "spec.md"
         source.write_text(with_images(text, images), encoding="utf-8")
-        common = [a.pandoc, str(source), "--from", "markdown-yaml_metadata_block", "--resource-path", str(work),
-                  "--toc", "--toc-depth=2", "--metadata",
-                  "title=MAYA — System Requirements & Design Specification"]
+        common = [
+            a.pandoc,
+            str(source),
+            "--from",
+            "markdown-yaml_metadata_block",
+            "--resource-path",
+            str(work),
+            "--toc",
+            "--toc-depth=2",
+            "--metadata",
+            "title=MAYA — System Requirements & Design Specification",
+        ]
         if a.only in (None, "docx"):
             out = SPEC.with_suffix(".docx")
             subprocess.run([*common, "-o", str(out)], check=True)
@@ -79,11 +91,28 @@ def main() -> int:
         if a.only in (None, "pdf"):
             engine = shutil.which("tectonic") or str(Path.home() / ".local/bin/tectonic")
             out = SPEC.with_suffix(".pdf")
-            subprocess.run([*common, "--pdf-engine", engine,
-                            "-V", "mainfont=DejaVu Serif", "-V", "sansfont=DejaVu Sans",
-                            "-V", "monofont=DejaVu Sans Mono", "-V", "fontsize=10pt",
-                            "-V", "geometry:margin=2cm", "-V", "colorlinks=true",
-                            "-o", str(out)], check=True)
+            subprocess.run(
+                [
+                    *common,
+                    "--pdf-engine",
+                    engine,
+                    "-V",
+                    "mainfont=DejaVu Serif",
+                    "-V",
+                    "sansfont=DejaVu Sans",
+                    "-V",
+                    "monofont=DejaVu Sans Mono",
+                    "-V",
+                    "fontsize=10pt",
+                    "-V",
+                    "geometry:margin=2cm",
+                    "-V",
+                    "colorlinks=true",
+                    "-o",
+                    str(out),
+                ],
+                check=True,
+            )
             print(f"wrote {out.relative_to(ROOT)}")
     return 0
 

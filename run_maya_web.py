@@ -16,6 +16,7 @@ runs identically on Windows, Linux and macOS and ``spawn`` re-imports.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import multiprocessing
@@ -66,25 +67,42 @@ def _config_path(argv: list[str]) -> str:
 def _print_banner(platform: object) -> None:
     from maya.core.backends import Backends
     from maya.security.sandbox import sandbox_tier
-    print(BANNER.format(tagline=APP_TAGLINE, slogan=APP_SLOGAN, version=VERSION,
-                        build=BUILD_DATE, python=sys.version.split()[0], platform=sys.platform))
+
+    print(
+        BANNER.format(
+            tagline=APP_TAGLINE,
+            slogan=APP_SLOGAN,
+            version=VERSION,
+            build=BUILD_DATE,
+            python=sys.version.split()[0],
+            platform=sys.platform,
+        )
+    )
     s = platform.settings  # type: ignore[attr-defined]
     tier = sandbox_tier()
-    rows = [("Environment", s.environment),
-            ("Database", f"{platform.db.dialect}  (schema/{platform.db.dialect}.sql)"),  # type: ignore[attr-defined]
-            ("maya_delta", f"{platform.lake.backend_name}  — {platform.lake.delta.info.reason}"),  # type: ignore[attr-defined]
-            ("Sandbox tier", f"{tier['tier']}  — {tier['reason']}"),
-            ("Storage root", str(s.storage_root.resolve())),
-            ("Job workers", str(platform.jobs.n_workers))]  # type: ignore[attr-defined]
+    rows = [
+        ("Environment", s.environment),
+        ("Database", f"{platform.db.dialect}  (schema/{platform.db.dialect}.sql)"),  # type: ignore[attr-defined]
+        ("maya_delta", f"{platform.lake.backend_name}  — {platform.lake.delta.info.reason}"),  # type: ignore[attr-defined]
+        ("Sandbox tier", f"{tier['tier']}  — {tier['reason']}"),
+        ("Storage root", str(s.storage_root.resolve())),
+        ("Job workers", str(platform.jobs.n_workers)),
+    ]  # type: ignore[attr-defined]
     for label, value in rows:
         print(f"  {label:<14}{value}")
-    print("  Seams         " + ", ".join(
-        f"{c['seam']}={c['selected']}" + ("*" if c["selected"] != c["preferred"] else "")
-        for c in Backends.report()))
+    print(
+        "  Seams         "
+        + ", ".join(
+            f"{c['seam']}={c['selected']}" + ("*" if c["selected"] != c["preferred"] else "")
+            for c in Backends.report()
+        )
+    )
     print("                (* = not the preferred backend; see the health page for the cost)")
     if platform.auth.default_admin_password_active():  # type: ignore[attr-defined]
-        print("\n  !! The bootstrap admin still uses the default password 'maya-dev-admin'. "
-              "Change it now.")
+        print(
+            "\n  !! The bootstrap admin still uses the default password 'maya-dev-admin'. "
+            "Change it now."
+        )
     print("=" * 80)
 
 
@@ -103,6 +121,7 @@ def _supervise(workers: int, host: str, port: int, loop: str) -> None:
     spreads connections evenly; restart any that dies until MAYA is asked to stop."""
     import time
     from maya.server import serve_web_process
+
     ctx = multiprocessing.get_context("spawn")
 
     def start() -> multiprocessing.Process:
@@ -115,8 +134,9 @@ def _supervise(workers: int, host: str, port: int, loop: str) -> None:
         while not _shutting_down:
             for i, proc in enumerate(procs):
                 if not proc.is_alive():
-                    logger.warning("web process %s exited (%s); starting another",
-                                   proc.pid, proc.exitcode)
+                    logger.warning(
+                        "web process %s exited (%s); starting another", proc.pid, proc.exitcode
+                    )
                     procs[i] = start()
             time.sleep(1.0)
     finally:
@@ -130,50 +150,81 @@ def main(argv: list[str]) -> int:
     global _platform
     if any(a in ("-h", "--help") for a in argv[1:]):
         print(__doc__)
-        print(BANNER.format(tagline=APP_TAGLINE, slogan=APP_SLOGAN, version=VERSION,
-                            build=BUILD_DATE, python=sys.version.split()[0],
-                            platform=sys.platform))
+        print(
+            BANNER.format(
+                tagline=APP_TAGLINE,
+                slogan=APP_SLOGAN,
+                version=VERSION,
+                build=BUILD_DATE,
+                python=sys.version.split()[0],
+                platform=sys.platform,
+            )
+        )
         return 0
     from maya.config import load_settings
     from maya.observability.logs import configure
+
     settings = load_settings(_config_path(argv))
-    configure(settings.get("logging.level", "INFO") or "INFO",
-              settings.get("logging.format", "text") or "text",
-              settings.get("logging.file"))
-    logger.info("MAYA %s starting at %s (pid %s)", VERSION, datetime.now().isoformat(),
-                os.getpid())
+    configure(
+        settings.get("logging.level", "INFO") or "INFO",
+        settings.get("logging.format", "text") or "text",
+        settings.get("logging.file"),
+    )
+    logger.info("MAYA %s starting at %s (pid %s)", VERSION, datetime.now().isoformat(), os.getpid())
     from maya.services.platform import Platform
     from maya.server import build_app
+
     _platform = Platform.build(settings)
     _print_banner(_platform)
     atexit.register(_shutdown)
     signal.signal(signal.SIGINT, lambda *a: (_shutdown(), sys.exit(0)))
     signal.signal(signal.SIGTERM, lambda *a: (_shutdown(), sys.exit(0)))
     import uvicorn
+
     host = settings.get("server.host", "127.0.0.1") or "127.0.0.1"
     port = settings.int("server.port", 8600)
     workers = settings.int("server.workers", 1)
     from maya.core.backends import Backends
+
     loop = "uvloop" if Backends.selected("event_loop") == "uvloop" else "asyncio"
-    print(f"\n  Serving on http://{host}:{port}   (API docs: /api/v1/docs)"
-          + (f"   ·   {workers} web processes" if workers > 1 else "") + "\n")
+    print(
+        f"\n  Serving on http://{host}:{port}   (API docs: /api/v1/docs)"
+        + (f"   ·   {workers} web processes" if workers > 1 else "")
+        + "\n"
+    )
     if workers > 1:
         # This process keeps the job workers, webhooks and scheduler and starts
         # ``workers`` web processes (spawned, so each re-reads the same configuration
         # and --key=value overrides). Make the signing keys now, not in a race between them.
         from maya.server import balanced_sockets, check_web_processes
+
         check_web_processes(workers, _platform.db.dialect)
         os.environ["MAYA_CONFIG_FILE"] = os.path.abspath(_config_path(argv))
         _platform.signer_or_none()
         if balanced_sockets():
             _supervise(workers, host, port, loop)
         else:
-            uvicorn.run("maya.server:web_worker", factory=True, workers=workers, host=host,
-                        port=port, log_level="warning", loop=loop, proxy_headers=True,
-                        access_log=False)
+            uvicorn.run(
+                "maya.server:web_worker",
+                factory=True,
+                workers=workers,
+                host=host,
+                port=port,
+                log_level="warning",
+                loop=loop,
+                proxy_headers=True,
+                access_log=False,
+            )
     else:
-        uvicorn.run(build_app(_platform), host=host, port=port, log_level="warning",
-                    loop=loop, proxy_headers=True, access_log=False)
+        uvicorn.run(
+            build_app(_platform),
+            host=host,
+            port=port,
+            log_level="warning",
+            loop=loop,
+            proxy_headers=True,
+            access_log=False,
+        )
     return 0
 
 

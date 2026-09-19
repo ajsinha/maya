@@ -8,6 +8,7 @@ happy path goes all the way to a session whose roles came from the IdP's groups.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -26,6 +27,7 @@ def saml():
     idp = SamlIdP()
     platform = build_platform(idp.argv())
     from maya.api.app import create_api
+
     yield platform, idp, create_api(platform)
     platform.shutdown()
 
@@ -36,8 +38,11 @@ def _start(app) -> str:
 
 def _refusals(platform, reason: str) -> list:
     with platform.uow() as uow:
-        return [a for a in uow.repo("audit_events").list(action="auth.sso_refused")
-                if reason in a["detail"].get("reason", "")]
+        return [
+            a
+            for a in uow.repo("audit_events").list(action="auth.sso_refused")
+            if reason in a["detail"].get("reason", "")
+        ]
 
 
 def test_signed_response_opens_a_session_with_mapped_roles(saml):
@@ -56,7 +61,6 @@ def test_signed_response_opens_a_session_with_mapped_roles(saml):
         assert uow.repo("audit_events").list(action="auth.sso_login")
 
 
-
 def test_repeated_attribute_elements_are_merged_not_refused(saml):
     """Keycloak sends one ``Role`` Attribute element per role by default, and a groups
     mapper without "single attribute" one ``groups`` element per group. python3-saml
@@ -64,14 +68,19 @@ def test_repeated_attribute_elements_are_merged_not_refused(saml):
     against Keycloak 26.4)."""
     platform, idp, app = saml
     rid = _start(app)
-    out = Client(app=app).auth.saml_acs(idp.response(
-        rid, "kira", groups=("unmapped-team", "maya-admins"), repeat_attributes=True))
+    out = Client(app=app).auth.saml_acs(
+        idp.response(rid, "kira", groups=("unmapped-team", "maya-admins"), repeat_attributes=True)
+    )
     me = Client(app=app, token=out["token"]).auth.me()
     assert me["username"] == "kira" and "admin" in me["roles"]
     with platform.uow() as uow:
-        login = [a for a in uow.repo("audit_events").list(action="auth.sso_login")
-                 if a["object_ref"] == "user:kira"]
+        login = [
+            a
+            for a in uow.repo("audit_events").list(action="auth.sso_login")
+            if a["object_ref"] == "user:kira"
+        ]
         assert login and login[0]["detail"]["groups"] == ["unmapped-team", "maya-admins"]
+
 
 def test_the_sp_metadata_names_entity_and_acs(saml):
     _, _, app = saml
@@ -80,14 +89,17 @@ def test_the_sp_metadata_names_entity_and_acs(saml):
     assert f'entityID="{SP}"' in xml and ACS in xml
 
 
-@pytest.mark.parametrize("change, reason", [
-    ({"rogue": True}, "Signature validation failed"),
-    ({"unsigned": True}, "signed"),
-    ({"audience": "https://someone-else.example.test"}, "audience"),
-    ({"issuer": "https://evil.example.test"}, "ssuer"),
-    ({"destination": "https://evil.example.test/acs"}, "received at .* instead of"),
-    ({"recipient": "https://evil.example.test/acs"}, "SubjectConfirmation|recipient"),
-])
+@pytest.mark.parametrize(
+    "change, reason",
+    [
+        ({"rogue": True}, "Signature validation failed"),
+        ({"unsigned": True}, "signed"),
+        ({"audience": "https://someone-else.example.test"}, "audience"),
+        ({"issuer": "https://evil.example.test"}, "ssuer"),
+        ({"destination": "https://evil.example.test/acs"}, "received at .* instead of"),
+        ({"recipient": "https://evil.example.test/acs"}, "SubjectConfirmation|recipient"),
+    ],
+)
 def test_each_assertion_check_refuses_on_its_own(saml, change, reason):
     platform, idp, app = saml
     rid = _start(app)
@@ -115,7 +127,7 @@ def test_unsolicited_unknown_and_replayed_responses_are_refused(saml):
     good = idp.response(rid, "sara")
     assert anon.auth.saml_acs(good)["token"]
     with pytest.raises(NotAuthenticated, match="already answered"):
-        anon.auth.saml_acs(good)                      # the same Response again
+        anon.auth.saml_acs(good)  # the same Response again
     with pytest.raises(NotAuthenticated, match="already answered"):
         anon.auth.saml_acs(idp.response(rid, "sara"))  # a new Response to the used request
     assert _refusals(platform, "unsolicited") and _refusals(platform, "replay")
@@ -134,8 +146,9 @@ def test_an_expired_request_cannot_be_answered(saml):
     rid = _start(app)
     with platform.uow() as uow:
         row = uow.repo("auth_challenges").find_one(kind="saml_request", handle=rid)
-        uow.repo("auth_challenges").update(row["id"], {
-            "expires_at": dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=1)})
+        uow.repo("auth_challenges").update(
+            row["id"], {"expires_at": dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=1)}
+        )
     with pytest.raises(NotAuthenticated, match="expired"):
         Client(app=app).auth.saml_acs(idp.response(rid, "sara"))
 
@@ -152,6 +165,7 @@ def test_startup_refuses_incomplete_or_unavailable_saml(monkeypatch):
     with pytest.raises(CapabilityRefused, match="must be 'oidc' or 'saml2'"):
         build_platform(["--auth.mode=sso", "--auth.sso.protocol=ws-fed"])
     from maya.security import saml
+
     monkeypatch.setattr(saml, "available", lambda: False)
     with pytest.raises(CapabilityRefused, match="python3-saml"):
         build_platform(SamlIdP().argv())
@@ -160,6 +174,7 @@ def test_startup_refuses_incomplete_or_unavailable_saml(monkeypatch):
 def test_web_login_redirects_to_the_idp_and_the_acs_signs_in():
     from starlette.testclient import TestClient
     from maya.server import build_app
+
     idp = SamlIdP()
     platform = build_platform(idp.argv())
     web = TestClient(build_app(platform))
@@ -171,9 +186,11 @@ def test_web_login_redirects_to_the_idp_and_the_acs_signs_in():
     assert pending and "SAMLRequest" in rid
     # the IdP posts back cross-site: no session cookie comes with it
     fresh = TestClient(build_app(platform))
-    r = fresh.post("/auth/sso/saml/acs", data={
-        "SAMLResponse": idp.response(pending[-1]["handle"], "sara"), "RelayState": "/models"},
-        follow_redirects=False)
+    r = fresh.post(
+        "/auth/sso/saml/acs",
+        data={"SAMLResponse": idp.response(pending[-1]["handle"], "sara"), "RelayState": "/models"},
+        follow_redirects=False,
+    )
     assert r.status_code == 303 and r.headers["location"] == "/models"
     assert fresh.get("/", follow_redirects=False).status_code == 200
     bad = fresh.post("/auth/sso/saml/acs", data={"SAMLResponse": idp.response(None, "sara")})
@@ -186,19 +203,24 @@ def test_the_admin_downloads_the_sp_metadata_from_the_ui(saml):
     import re
     from starlette.testclient import TestClient
     from maya.server import build_app
+
     platform, _, _ = saml
     web = TestClient(build_app(platform))
     csrf = re.search(r'name="csrf_token" value="([^"]+)"', web.get("/login").text).group(1)
-    web.post("/login", data={"username": "admin", "password": "maya-dev-admin",
-                             "csrf_token": csrf})
+    web.post("/login", data={"username": "admin", "password": "maya-dev-admin", "csrf_token": csrf})
     r = web.get("/admin/sso/saml-metadata.xml", follow_redirects=False)
-    if r.status_code == 303:                           # first use: change the password
+    if r.status_code == 303:  # first use: change the password
         page = web.get("/account/password")
         csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
-        web.post("/account/password", data={"old_password": "maya-dev-admin",
-                                            "new_password": "Admin-pass-2026",
-                                            "confirm_password": "Admin-pass-2026",
-                                            "csrf_token": csrf})
+        web.post(
+            "/account/password",
+            data={
+                "old_password": "maya-dev-admin",
+                "new_password": "Admin-pass-2026",
+                "confirm_password": "Admin-pass-2026",
+                "csrf_token": csrf,
+            },
+        )
         r = web.get("/admin/sso/saml-metadata.xml", follow_redirects=False)
     assert r.status_code == 200 and "EntityDescriptor" in r.text, r.text[:300]
     assert "attachment" in r.headers["content-disposition"]

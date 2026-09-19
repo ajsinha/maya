@@ -134,6 +134,12 @@ python -m maya.cli admin verify-integrity
 !!! warning "Import into an empty schema, and do not start MAYA in between"
     Starting MAYA on an empty database seeds the built-in roles, policies and the bootstrap admin, and the import would then collide with those rows. Run `init-db --force` and `import-estate` back to back.
 
+The import checks everything before it writes anything, and refuses:
+
+- a database that already holds data;
+- an estate whose own audit chain does not link, naming the first broken event;
+- a column the new version does not know. If the new version dropped that data on purpose, run the import again with `--allow-drop`; the result names every column it dropped.
+
 When MAYA refuses to start with a schema mismatch, its message prints the same three commands.
 
 ## Backups
@@ -168,6 +174,7 @@ The scheduler compacts and vacuums every lake table every `lake.maintenance.inte
 ```python
 # Run lake maintenance now (administrators and techops)
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 out = my.admin.lake_maintain()
 print(out["filesRemoved"], out["filesAdded"], out["vacuumed"])
@@ -291,10 +298,13 @@ Events are numbered by an increasing sequence. Administrators and techops read t
 
 ```python
 # Subscribe a receiver to warrant events and approvals
-hook = my.events.create_webhook("risk-bus", "https://hooks.example.com/maya",
-                                event_types=["warrant.*", "model_version.approved"])
-print(hook["secret"])          # whsec_…, shown once
-my.events.ping(hook["id"])     # a maya.ping event, delivered now
+hook = my.events.create_webhook(
+    "risk-bus",
+    "https://hooks.example.com/maya",
+    event_types=["warrant.*", "model_version.approved"],
+)
+print(hook["secret"])  # whsec_…, shown once
+my.events.ping(hook["id"])  # a maya.ping event, delivered now
 ```
 
 An empty `event_types` subscribes to everything; a trailing `*` is a prefix. Each delivery is a JSON POST with `X-Maya-Event`, `X-Maya-Delivery` (use it as an idempotency key: delivery is at-least-once), `X-Maya-Timestamp` and `X-Maya-Signature: sha256=<HMAC-SHA256 of "<timestamp>.<body>">`.

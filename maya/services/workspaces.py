@@ -23,6 +23,7 @@ versions are approved; a base approved over in the meantime is a conflict.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import builtins
@@ -36,8 +37,10 @@ from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
 
-KINDS = {"feature": ("features", "feature_versions", "feature_id"),
-         "featureset": ("feature_sets", "feature_set_versions", "feature_set_id")}
+KINDS = {
+    "feature": ("features", "feature_versions", "feature_id"),
+    "featureset": ("feature_sets", "feature_set_versions", "feature_set_id"),
+}
 
 
 class WorkspaceService:
@@ -52,10 +55,20 @@ class WorkspaceService:
         if not name.strip():
             raise ValidationFailed("A workspace needs a name")
         with self.p.uow(p.username) as uow:
-            row = uow.repo("workspaces").add({"name": name.strip(), "owner_id": p.user_id,
-                                              "description": description, "state": "open"})
-            uow.audit("workspace.created", object_type="workspace", object_ref=row["id"],
-                      detail={"name": name})
+            row = uow.repo("workspaces").add(
+                {
+                    "name": name.strip(),
+                    "owner_id": p.user_id,
+                    "description": description,
+                    "state": "open",
+                }
+            )
+            uow.audit(
+                "workspace.created",
+                object_type="workspace",
+                object_ref=row["id"],
+                detail={"name": name},
+            )
             return row
 
     def list(self, p: Principal) -> list[dict[str, Any]]:
@@ -65,20 +78,24 @@ class WorkspaceService:
             for r in rows:
                 r["owner"] = users.get(r["owner_id"])
                 r["changes"] = uow.repo("workspace_changes").count(workspace_id=r["id"])
-        return [r for r in rows if r["owner_id"] == p.user_id or p.is_admin
-                or r["state"] != "open"]
+        return [r for r in rows if r["owner_id"] == p.user_id or p.is_admin or r["state"] != "open"]
 
     def get(self, p: Principal, ws_id: str) -> dict[str, Any]:
         self._refresh_merge_state(ws_id)
         with self.p.uow() as uow:
             ws = uow.repo("workspaces").require(ws_id)
-            changes = uow.repo("workspace_changes").list(workspace_id=ws_id,
-                                                         order_by=["created_at"])
+            changes = uow.repo("workspace_changes").list(
+                workspace_id=ws_id, order_by=["created_at"]
+            )
             owner = uow.repo("users").get(ws["owner_id"])
         for c in changes:
             c["diff"] = self._diff(c)
-        return {**ws, "owner": owner["username"] if owner else None, "changes": changes,
-                "mine": ws["owner_id"] == p.user_id}
+        return {
+            **ws,
+            "owner": owner["username"] if owner else None,
+            "changes": changes,
+            "mine": ws["owner_id"] == p.user_id,
+        }
 
     def _owned_open(self, uow: Any, p: Principal, ws_id: str) -> dict[str, Any]:
         ws = uow.repo("workspaces").require(ws_id)
@@ -89,35 +106,58 @@ class WorkspaceService:
         return ws
 
     # -- staging ------------------------------------------------------------------------
-    def stage(self, p: Principal, ws_id: str, *, kind: str, ref: str,
-              definition: dict[str, Any], note: str = "") -> dict[str, Any]:
+    def stage(
+        self,
+        p: Principal,
+        ws_id: str,
+        *,
+        kind: str,
+        ref: str,
+        definition: dict[str, Any],
+        note: str = "",
+    ) -> dict[str, Any]:
         """Stage a proposed definition. Rehearsal needs read; submitting needs update."""
         if kind not in KINDS:
             raise ValidationFailed("Workspaces stage features and feature sets")
         table, vtable, fk = KINDS[kind]
         errors = self._validate(kind, definition)
         if errors:
-            raise ValidationFailed("The proposed definition is not valid: " + "; ".join(errors),
-                                   errors=errors)
+            raise ValidationFailed(
+                "The proposed definition is not valid: " + "; ".join(errors), errors=errors
+            )
         with self.p.uow(p.username) as uow:
             self._owned_open(uow, p, ws_id)
             obj, ns = catalog.find_object(uow, table, kind, refs.parse(ref, kind))
             self.p.access.require(uow, p, "read", kind, obj)
             base = catalog.version_of(uow, vtable, fk, obj, None)
-            existing = uow.repo("workspace_changes").find_one(workspace_id=ws_id,
-                                                              object_kind=kind,
-                                                              object_id=obj["id"])
-            values = {"definition": definition, "note": note, "base_version_id": base["id"],
-                      "base_version_no": base["version_no"]}
+            existing = uow.repo("workspace_changes").find_one(
+                workspace_id=ws_id, object_kind=kind, object_id=obj["id"]
+            )
+            values = {
+                "definition": definition,
+                "note": note,
+                "base_version_id": base["id"],
+                "base_version_no": base["version_no"],
+            }
             if existing:
                 row = uow.repo("workspace_changes").update(existing["id"], values)
             else:
-                row = uow.repo("workspace_changes").add({
-                    "workspace_id": ws_id, "object_kind": kind, "object_id": obj["id"],
-                    "object_ref": refs.object_ref(kind, ns["name"], obj["name"]), **values})
-            uow.repo("workspaces").update(ws_id, {"replay": {}})   # a stale report is no report
-            uow.audit("workspace.staged", object_type="workspace", object_ref=ws_id,
-                      detail={"object": row["object_ref"], "base": base["version_no"]})
+                row = uow.repo("workspace_changes").add(
+                    {
+                        "workspace_id": ws_id,
+                        "object_kind": kind,
+                        "object_id": obj["id"],
+                        "object_ref": refs.object_ref(kind, ns["name"], obj["name"]),
+                        **values,
+                    }
+                )
+            uow.repo("workspaces").update(ws_id, {"replay": {}})  # a stale report is no report
+            uow.audit(
+                "workspace.staged",
+                object_type="workspace",
+                object_ref=ws_id,
+                detail={"object": row["object_ref"], "base": base["version_no"]},
+            )
             return row
 
     def _validate(self, kind: str, definition: dict[str, Any]) -> builtins.list[str]:
@@ -133,11 +173,14 @@ class WorkspaceService:
 
     def _overlay(self, ws_id: str) -> dict[tuple[str, str], dict[str, Any]]:
         with self.p.uow() as uow:
-            return {(c["object_kind"], c["object_id"]): c for c in
-                    uow.repo("workspace_changes").list(workspace_id=ws_id)}
+            return {
+                (c["object_kind"], c["object_id"]): c
+                for c in uow.repo("workspace_changes").list(workspace_id=ws_id)
+            }
 
     def _diff(self, change: dict[str, Any]) -> builtins.list[dict[str, Any]]:
         from maya.services.features import diff_definitions
+
         with self.p.uow() as uow:
             base = uow.repo(KINDS[change["object_kind"]][1]).get(change["base_version_id"])
         return diff_definitions((base or {}).get("definition") or {}, change["definition"])
@@ -164,16 +207,21 @@ class WorkspaceService:
                 for n in graph["nodes"]:
                     if n["id"] not in (base_ref, c["object_ref"]):
                         nodes.setdefault(n["id"], set()).add(c["object_ref"])
-        return {"downstream": [{"ref": ref, "via": sorted(via), "kind": _kind(ref)}
-                               for ref, via in sorted(nodes.items())],
-                "warrants": sorted(ref for ref in nodes if ref.startswith("maya://warrant/"))}
+        return {
+            "downstream": [
+                {"ref": ref, "via": sorted(via), "kind": _kind(ref)}
+                for ref, via in sorted(nodes.items())
+            ],
+            "warrants": sorted(ref for ref in nodes if ref.startswith("maya://warrant/")),
+        }
 
     # -- shadow replay (§29.2) -------------------------------------------------------------
     def request_replay(self, p: Principal, ws_id: str) -> dict[str, Any]:
         with self.p.uow(p.username) as uow:
             uow.repo("workspaces").require(ws_id)
-            return self.p.jobs.submit(uow, "workspace.shadow_replay", {"workspace_id": ws_id},
-                                      owner=p.username)
+            return self.p.jobs.submit(
+                uow, "workspace.shadow_replay", {"workspace_id": ws_id}, owner=p.username
+            )
 
     def run_replay_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
         ws_id = params["workspace_id"]
@@ -187,18 +235,26 @@ class WorkspaceService:
             ctx.progress(10 + int(80 * i / max(len(impacted), 1)), f"replaying {uri}")
             results.append(self._replay_one(uri, overlay))
         moved = [r for r in results if r.get("rows_over_materiality")]
-        report = {"generated_at": utcnow().isoformat(), "sample_rows": self.sample_rows,
-                  "materiality": self.materiality, "warrants": results,
-                  "summary": _summary(results, moved),
-                  "basis": "Each warrant's feature set version is resolved live twice — "
-                           "current definitions, then the workspace's — and scored with the "
-                           "warrant's own model and parameters. Sealed pins never change, so "
-                           "the replay shows what the warrant would see if drawn today. "
-                           "Sampled agreement is not proof."}
+        report = {
+            "generated_at": utcnow().isoformat(),
+            "sample_rows": self.sample_rows,
+            "materiality": self.materiality,
+            "warrants": results,
+            "summary": _summary(results, moved),
+            "basis": "Each warrant's feature set version is resolved live twice — "
+            "current definitions, then the workspace's — and scored with the "
+            "warrant's own model and parameters. Sealed pins never change, so "
+            "the replay shows what the warrant would see if drawn today. "
+            "Sampled agreement is not proof.",
+        }
         with self.p.uow(ctx.actor) as uow:
             uow.repo("workspaces").update(ws_id, {"replay": report})
-            uow.audit("workspace.replayed", object_type="workspace", object_ref=ws_id,
-                      detail={"warrants": len(results), "moved": len(moved)})
+            uow.audit(
+                "workspace.replayed",
+                object_type="workspace",
+                object_ref=ws_id,
+                detail={"warrants": len(results), "moved": len(moved)},
+            )
         return {"warrants": len(results), "moved": len(moved)}
 
     def _replay_one(self, uri: str, overlay: dict[tuple[str, str], Any]) -> dict[str, Any]:
@@ -209,8 +265,11 @@ class WorkspaceService:
             mv = uow.repo("model_versions").require(w["model_version_id"])
             params = w["values"] if "values" in w else self._params(uow, w)
         if params is None:
-            return {"warrant": uri, "replayed": False,
-                    "reason": "no parameter set to score with yet"}
+            return {
+                "warrant": uri,
+                "replayed": False,
+                "reason": "no parameter set to score with yet",
+            }
         fs_ref = self._version_ref(w["featureset_ref"])
         bindings = w["spec"].get("bindings", {})
         try:
@@ -218,8 +277,9 @@ class WorkspaceService:
             with catalog.overlay(overlay):
                 proposed = self.p.featuresets.resolve_ref(None, fs_ref)
             index = base.meta["index"]
-            joined = base.df.merge(proposed.df, on=index, how="outer", suffixes=("", "__new"),
-                                   indicator=True)
+            joined = base.df.merge(
+                proposed.df, on=index, how="outer", suffixes=("", "__new"), indicator=True
+            )
             both = joined[joined["_merge"] == "both"].sort_values(index).tail(self.sample_rows)
             old = self.p.warrants.predict(mv, both, bindings, params)
             new_frame = both[[c for c in both.columns if not c.endswith("__new")]].copy()
@@ -229,24 +289,32 @@ class WorkspaceService:
             new = self.p.warrants.predict(mv, new_frame, bindings, params)
         except Exception as exc:  # noqa: BLE001 - one warrant's failure is reported, not fatal
             return {"warrant": uri, "replayed": False, "reason": str(getattr(exc, "message", exc))}
-        return {"warrant": uri, "replayed": True, "featureset": fs_ref,
-                "rows_added": int((joined["_merge"] == "right_only").sum()),
-                "rows_removed": int((joined["_merge"] == "left_only").sum()),
-                **self._stats(np.asarray(new) - np.asarray(old), both, index)}
+        return {
+            "warrant": uri,
+            "replayed": True,
+            "featureset": fs_ref,
+            "rows_added": int((joined["_merge"] == "right_only").sum()),
+            "rows_removed": int((joined["_merge"] == "left_only").sum()),
+            **self._stats(np.asarray(new) - np.asarray(old), both, index),
+        }
 
-    def _stats(self, delta: np.ndarray, rows: pd.DataFrame, index: builtins.list[str]) -> dict[str, Any]:
+    def _stats(
+        self, delta: np.ndarray, rows: pd.DataFrame, index: builtins.list[str]
+    ) -> dict[str, Any]:
         finite = np.abs(delta[np.isfinite(delta)])
         if not len(finite):
             return {"rows_compared": int(len(delta)), "median_abs_shift": None}
         worst = int(np.nanargmax(np.where(np.isfinite(delta), np.abs(delta), -1)))
         over = int((finite > self.materiality).sum())
-        return {"rows_compared": int(len(delta)),
-                "median_abs_shift": float(np.median(finite)),
-                "p95_abs_shift": float(np.percentile(finite, 95)),
-                "max_abs_shift": float(finite.max()),
-                "worst_row": {c: str(rows.iloc[worst][c]) for c in index},
-                "rows_over_materiality": over,
-                "share_over_materiality": over / len(delta)}
+        return {
+            "rows_compared": int(len(delta)),
+            "median_abs_shift": float(np.median(finite)),
+            "p95_abs_shift": float(np.percentile(finite, 95)),
+            "max_abs_shift": float(finite.max()),
+            "worst_row": {c: str(rows.iloc[worst][c]) for c in index},
+            "rows_over_materiality": over,
+            "share_over_materiality": over / len(delta),
+        }
 
     def _target(self, uow: Any, uri: str) -> tuple[dict[str, Any] | None, str]:
         """What to replay for a warrant URI: a training warrant as it is; an execution
@@ -259,8 +327,10 @@ class WorkspaceService:
         if kind == "train":
             return w, ""
         if not w.get("training_warrant_id"):
-            return None, ("execution warrant has no training warrant: its inputs come from "
-                          "callers, so there is no feature set to replay")
+            return None, (
+                "execution warrant has no training warrant: its inputs come from "
+                "callers, so there is no feature set to replay"
+            )
         tw = uow.repo("training_warrants").require(w["training_warrant_id"])
         target = {**tw, "model_version_id": w["model_version_id"]}
         if w.get("parameter_set_id"):
@@ -275,13 +345,13 @@ class WorkspaceService:
         if ns is None or not version.isdigit():
             return None
         table = "execution_warrants" if kind == "exec" else "training_warrants"
-        return uow.repo(table).find_one(namespace_id=ns["id"], name=name,
-                                        version_no=int(version))
+        return uow.repo(table).find_one(namespace_id=ns["id"], name=name, version_no=int(version))
 
     @staticmethod
     def _params(uow: Any, w: dict[str, Any]) -> dict[str, Any] | None:
-        sets = uow.repo("parameter_sets").list(training_warrant_id=w["id"],
-                                               order_by=["-created_at"])
+        sets = uow.repo("parameter_sets").list(
+            training_warrant_id=w["id"], order_by=["-created_at"]
+        )
         approved = [s for s in sets if s["state"] in catalog.APPROVED_STATES]
         chosen = (approved or sets or [None])[0]
         return chosen["values"] if chosen else None
@@ -310,21 +380,42 @@ class WorkspaceService:
             if draft["version_no"] <= c["base_version_no"]:
                 raise ConflictError("Unexpected draft numbering; reload the workspace")
             svc.update_draft(p, c["object_ref"], c["definition"])
-            out = svc.transition(p, c["object_ref"], draft["version_no"], "submit",
-                                 rationale=f"Rehearsed in workspace '{ws['name']}'")
-            submitted.append({"kind": c["object_kind"], "ref": c["object_ref"],
-                              "version_no": draft["version_no"], "version_id": draft["id"],
-                              "state": out["state"]})
+            out = svc.transition(
+                p,
+                c["object_ref"],
+                draft["version_no"],
+                "submit",
+                rationale=f"Rehearsed in workspace '{ws['name']}'",
+            )
+            submitted.append(
+                {
+                    "kind": c["object_kind"],
+                    "ref": c["object_ref"],
+                    "version_no": draft["version_no"],
+                    "version_id": draft["id"],
+                    "state": out["state"],
+                }
+            )
             self.p.workflow_svc.comment(
-                p, f"{c['object_kind']}_version" if c["object_kind"] == "feature"
-                else "featureset_version", draft["id"],
+                p,
+                f"{c['object_kind']}_version"
+                if c["object_kind"] == "feature"
+                else "featureset_version",
+                draft["id"],
                 f"Rehearsed in workspace '{ws['name']}' ({ws_id}). Shadow replay: "
-                f"{(ws['replay'] or {}).get('summary', 'not run')}")
+                f"{(ws['replay'] or {}).get('summary', 'not run')}",
+            )
         with self.p.uow(p.username) as uow:
-            uow.repo("workspaces").update(ws_id, {"state": "in_review", "submitted_at": utcnow(),
-                                                  "submitted_versions": submitted})
-            uow.audit("workspace.submitted", object_type="workspace", object_ref=ws_id,
-                      detail={"versions": submitted})
+            uow.repo("workspaces").update(
+                ws_id,
+                {"state": "in_review", "submitted_at": utcnow(), "submitted_versions": submitted},
+            )
+            uow.audit(
+                "workspace.submitted",
+                object_type="workspace",
+                object_ref=ws_id,
+                detail={"versions": submitted},
+            )
         return {"submitted": submitted}
 
     def _check_bases(self, changes: builtins.list[dict[str, Any]]) -> None:
@@ -337,12 +428,16 @@ class WorkspaceService:
                     raise ConflictError(
                         f"{c['object_ref']} moved on: v{latest_approved['version_no']} was "
                         f"approved after this workspace staged against "
-                        f"v{c['base_version_no']}. Re-stage the change (rebase) and replay.")
-                editable = uow.repo(vtable).list(**{fk: obj["id"],
-                                                    "state__in": ("draft", "changes_requested")})
+                        f"v{c['base_version_no']}. Re-stage the change (rebase) and replay."
+                    )
+                editable = uow.repo(vtable).list(
+                    **{fk: obj["id"], "state__in": ("draft", "changes_requested")}
+                )
                 if editable:
-                    raise ConflictError(f"{c['object_ref']} already has an open draft "
-                                        f"(v{editable[0]['version_no']}); finish or withdraw it")
+                    raise ConflictError(
+                        f"{c['object_ref']} already has an open draft "
+                        f"(v{editable[0]['version_no']}); finish or withdraw it"
+                    )
 
     def abandon(self, p: Principal, ws_id: str) -> dict[str, Any]:
         with self.p.uow(p.username) as uow:
@@ -363,8 +458,12 @@ class WorkspaceService:
                 states.append((uow.repo(table).get(v["version_id"]) or {}).get("state"))
             if states and all(s in catalog.APPROVED_STATES for s in states):
                 uow.repo("workspaces").update(ws_id, {"state": "merged", "merged_at": utcnow()})
-                uow.audit("workspace.merged", object_type="workspace", object_ref=ws_id,
-                          principal_type="system")
+                uow.audit(
+                    "workspace.merged",
+                    object_type="workspace",
+                    object_ref=ws_id,
+                    principal_type="system",
+                )
 
 
 def _kind(ref: str) -> str:
@@ -377,9 +476,11 @@ def _summary(results: list[dict[str, Any]], moved: list[dict[str, Any]]) -> str:
         return "No training warrant depends on the staged changes."
     parts = [f"moves {len(moved)} of {len(replayed)} replayed dependent model(s)"]
     for r in moved:
-        parts.append(f"{r['warrant']}: median |Δ| {r['median_abs_shift']:.4g}, p95 "
-                     f"{r['p95_abs_shift']:.4g}, {r['share_over_materiality']:.1%} of rows over "
-                     f"materiality")
+        parts.append(
+            f"{r['warrant']}: median |Δ| {r['median_abs_shift']:.4g}, p95 "
+            f"{r['p95_abs_shift']:.4g}, {r['share_over_materiality']:.1%} of rows over "
+            f"materiality"
+        )
     skipped = len(results) - len(replayed)
     if skipped:
         parts.append(f"{skipped} could not be replayed (see each entry)")

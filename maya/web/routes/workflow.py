@@ -6,6 +6,7 @@ YAML import/export as a projection, campaigns, SLA aging and break-glass.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,16 +16,33 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.core.errors import ValidationFailed
-from maya.web.routes.common import (action, api_json, client, flash, form, is_admin, page,
-                                    render)
+from maya.web.routes.common import action, api_json, client, flash, form, is_admin, page, render
 
 router = APIRouter()
-OBJECT_TYPES = ["feature_version", "featureset_version", "model_version", "parameter_set",
-                "training_warrant", "execution_warrant"]
-CHECKS = ["definition_valid", "quality_passes", "members_approved", "no_open_blocking_comments",
-          "formula_typechecks", "spec_document_complete", "code_artifact_validated",
-          "spec_true_build", "composite_members_mature", "contract_valid", "leakage_certified",
-          "parameters_within_bounds", "data_verified_or_justified", "parameters_approved"]
+OBJECT_TYPES = [
+    "feature_version",
+    "featureset_version",
+    "model_version",
+    "parameter_set",
+    "training_warrant",
+    "execution_warrant",
+]
+CHECKS = [
+    "definition_valid",
+    "quality_passes",
+    "members_approved",
+    "no_open_blocking_comments",
+    "formula_typechecks",
+    "spec_document_complete",
+    "code_artifact_validated",
+    "spec_true_build",
+    "composite_members_mature",
+    "contract_valid",
+    "leakage_certified",
+    "parameters_within_bounds",
+    "data_verified_or_justified",
+    "parameters_approved",
+]
 
 
 @router.get("/workflow")
@@ -42,10 +60,14 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
         history = await sdk.workflow.history(object_type, object_id)
         comments = await sdk.workflow.comments(object_type, object_id)
         policies = await sdk.workflow.policies()
-        memos = await sdk.assistant.memos(object_type, object_id) if object_type in (
-            "feature_version", "featureset_version", "model_version") else None
-    active = next((p for p in policies if p["object_type"] == object_type and
-                   p["state"] == "active"), None)
+        memos = (
+            await sdk.assistant.memos(object_type, object_id)
+            if object_type in ("feature_version", "featureset_version", "model_version")
+            else None
+        )
+    active = next(
+        (p for p in policies if p["object_type"] == object_type and p["state"] == "active"), None
+    )
     events = [e for e in history if e.get("to_state")]
     state = events[-1]["to_state"] if events else "draft"
     ref = next((e.get("object_ref") for e in reversed(events) if e.get("object_ref")), object_id)
@@ -55,11 +77,22 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
             sources = t.get("from") or []
             if state in (sources if isinstance(sources, list) else [sources]):
                 names.append(name)
-    return await render(request, "workflow/review.html", {
-        "object_type": object_type, "object_id": object_id, "history": history,
-        "comments": comments, "state": state, "ref": ref, "names": names, "policy": active,
-        "memos": memos,
-        "is_admin": is_admin(request)})
+    return await render(
+        request,
+        "workflow/review.html",
+        {
+            "object_type": object_type,
+            "object_id": object_id,
+            "history": history,
+            "comments": comments,
+            "state": state,
+            "ref": ref,
+            "names": names,
+            "policy": active,
+            "memos": memos,
+            "is_admin": is_admin(request),
+        },
+    )
 
 
 @router.post("/workflow/review/{object_type}/{object_id}/transition")
@@ -67,9 +100,13 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
 async def review_transition(request: Request, object_type: str, object_id: str) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        out = await sdk.workflow.transition(object_type, object_id, data["transition"],
-                                            rationale=data.get("rationale") or None,
-                                            force=bool(data.get("force")))
+        out = await sdk.workflow.transition(
+            object_type,
+            object_id,
+            data["transition"],
+            rationale=data.get("rationale") or None,
+            force=bool(data.get("force")),
+        )
     flash(request, out["message"], "success" if out["moved"] else "info")
     return RedirectResponse(f"/workflow/review/{object_type}/{object_id}", status_code=303)
 
@@ -80,8 +117,9 @@ async def review_transition(request: Request, object_type: str, object_id: str) 
 async def policies(request: Request) -> Any:
     async with client(request) as sdk:
         rows = await sdk.workflow.policies()
-    return await render(request, "workflow/policies.html",
-                        {"rows": rows, "object_types": OBJECT_TYPES})
+    return await render(
+        request, "workflow/policies.html", {"rows": rows, "object_types": OBJECT_TYPES}
+    )
 
 
 @router.get("/workflow/policies/{policy_id}")
@@ -90,11 +128,19 @@ async def policy_editor(request: Request, policy_id: str) -> Any:
     async with client(request) as sdk:
         pol = await sdk.workflow.policy(policy_id)
         roles = [r["name"] for r in await sdk.admin.roles()]
-    editor = {"object_type": pol["object_type"], "scope": pol["scope"], "policy": pol["policy"],
-              "roles": roles, "checks": CHECKS, "population": pol["population"]}
-    return await render(request, "workflow/policy.html",
-                        {"p": pol, "editor_json": json.dumps(editor, default=str)
-                         .replace("</", "<\\/")})
+    editor = {
+        "object_type": pol["object_type"],
+        "scope": pol["scope"],
+        "policy": pol["policy"],
+        "roles": roles,
+        "checks": CHECKS,
+        "population": pol["population"],
+    }
+    return await render(
+        request,
+        "workflow/policy.html",
+        {"p": pol, "editor_json": json.dumps(editor, default=str).replace("</", "<\\/")},
+    )
 
 
 @router.post("/workflow/policies/validate")
@@ -110,9 +156,12 @@ async def policy_validate(request: Request) -> Any:
 async def policy_save(request: Request) -> Any:
     body = await request.json()
     async with client(request) as sdk:
-        row = await sdk.workflow.draft_policy(body["object_type"], body["policy"],
-                                              scope=body.get("scope", "*"),
-                                              note=body.get("note", ""))
+        row = await sdk.workflow.draft_policy(
+            body["object_type"],
+            body["policy"],
+            scope=body.get("scope", "*"),
+            note=body.get("note", ""),
+        )
     return {"id": row["id"], "version_no": row["version_no"], "impact": row.get("impact")}
 
 
@@ -121,8 +170,11 @@ async def policy_save(request: Request) -> Any:
 async def policy_activate(request: Request, policy_id: str) -> Any:
     async with client(request) as sdk:
         row = await sdk.workflow.activate_policy(policy_id)
-    flash(request, f"Policy v{row['version_no']} is active; the previous version is retained.",
-          "success")
+    flash(
+        request,
+        f"Policy v{row['version_no']} is active; the previous version is retained.",
+        "success",
+    )
     return RedirectResponse(f"/workflow/policies/{policy_id}", status_code=303)
 
 
@@ -133,10 +185,12 @@ async def policy_import(request: Request) -> Any:
     if not data.get("yaml", "").strip():
         raise ValidationFailed("Paste a policy in YAML")
     async with client(request) as sdk:
-        row = await sdk.workflow.import_policy(data["object_type"], data["yaml"],
-                                               scope=data.get("scope") or "*")
-    flash(request, f"Imported as draft v{row['version_no']}; another admin activates it.",
-          "success")
+        row = await sdk.workflow.import_policy(
+            data["object_type"], data["yaml"], scope=data.get("scope") or "*"
+        )
+    flash(
+        request, f"Imported as draft v{row['version_no']}; another admin activates it.", "success"
+    )
     return RedirectResponse(f"/workflow/policies/{row['id']}", status_code=303)
 
 
@@ -161,11 +215,15 @@ async def run_campaign(request: Request) -> Any:
     if not items:
         raise ValidationFailed("Select at least one object for the campaign")
     async with client(request) as sdk:
-        row = await sdk.workflow.run_campaign(data.get("name") or "campaign", data["transition"],
-                                              items, data.get("rationale", ""))
+        row = await sdk.workflow.run_campaign(
+            data.get("name") or "campaign", data["transition"], items, data.get("rationale", "")
+        )
     ok = sum(1 for r in row["results"] if r["ok"])
-    flash(request, f"Campaign '{row['name']}': {ok} of {len(row['results'])} succeeded.",
-          "success" if ok == len(row["results"]) else "warning")
+    flash(
+        request,
+        f"Campaign '{row['name']}': {ok} of {len(row['results'])} succeeded.",
+        "success" if ok == len(row["results"]) else "warning",
+    )
     return RedirectResponse("/workflow/campaigns", status_code=303)
 
 
@@ -192,9 +250,16 @@ async def delegations_page(request: Request) -> Any:
     async with client(request) as sdk:
         rows = await sdk.workflow.delegations()
         users = await sdk.admin.users()
-    return await render(request, "workflow/delegations.html", {
-        "rows": rows, "users": [u["username"] for u in users
-                                if u["username"] != request.session.get("username")]})
+    return await render(
+        request,
+        "workflow/delegations.html",
+        {
+            "rows": rows,
+            "users": [
+                u["username"] for u in users if u["username"] != request.session.get("username")
+            ],
+        },
+    )
 
 
 @router.post("/workflow/delegations")
@@ -202,9 +267,13 @@ async def delegations_page(request: Request) -> Any:
 async def delegate(request: Request) -> Any:
     data = await request.form()
     async with client(request) as sdk:
-        await sdk.workflow.delegate(data.get("to", ""), data.get("starts_on", ""),
-                                    data.get("ends_on", ""), data.getlist("object_types"),
-                                    data.get("reason", ""))
+        await sdk.workflow.delegate(
+            data.get("to", ""),
+            data.get("starts_on", ""),
+            data.get("ends_on", ""),
+            data.getlist("object_types"),
+            data.get("reason", ""),
+        )
     flash(request, f"Approvals delegated to {data.get('to')}.", "success")
     return RedirectResponse("/workflow/delegations", status_code=303)
 
@@ -229,8 +298,9 @@ async def ask_challenge(request: Request, object_type: str, object_id: str) -> A
 
 @router.post("/workflow/review/{object_type}/{object_id}/challenge/{memo_id}")
 @action
-async def respond_challenge(request: Request, object_type: str, object_id: str,
-                            memo_id: str) -> Any:
+async def respond_challenge(
+    request: Request, object_type: str, object_id: str, memo_id: str
+) -> Any:
     data = await form(request)
     async with client(request) as sdk:
         await sdk.assistant.respond(memo_id, data.get("stance", ""), data.get("note", ""))
@@ -242,8 +312,11 @@ async def respond_challenge(request: Request, object_type: str, object_id: str,
 @page
 async def policy_yaml(request: Request, policy_id: str) -> Any:
     from fastapi.responses import Response
+
     async with client(request) as sdk:
         text = await sdk.workflow.policy_yaml(policy_id)
-    return Response(text if isinstance(text, (bytes, str)) else str(text),
-                    media_type="application/yaml",
-                    headers={"Content-Disposition": f'attachment; filename="policy-{policy_id[:8]}.yaml"'})
+    return Response(
+        text if isinstance(text, (bytes, str)) else str(text),
+        media_type="application/yaml",
+        headers={"Content-Disposition": f'attachment; filename="policy-{policy_id[:8]}.yaml"'},
+    )

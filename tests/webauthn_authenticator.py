@@ -7,6 +7,7 @@ mocked on the verifying side: py_webauthn checks these like any other key.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -40,13 +41,16 @@ class SoftKey:
 
     def _cose(self) -> bytes:
         from webauthn.helpers import encode_cbor
+
         nums = self.key.public_key().public_numbers()
-        return encode_cbor({1: 2, 3: -7, -1: 1, -2: nums.x.to_bytes(32, "big"),
-                            -3: nums.y.to_bytes(32, "big")})
+        return encode_cbor(
+            {1: 2, 3: -7, -1: 1, -2: nums.x.to_bytes(32, "big"), -3: nums.y.to_bytes(32, "big")}
+        )
 
     def _client_data(self, kind: str, challenge: str) -> bytes:
-        return json.dumps({"type": kind, "challenge": challenge, "origin": self.origin,
-                           "crossOrigin": False}).encode()
+        return json.dumps(
+            {"type": kind, "challenge": challenge, "origin": self.origin, "crossOrigin": False}
+        ).encode()
 
     def _auth_data(self, flags: int, extra: bytes = b"") -> bytes:
         rp_hash = hashlib.sha256(self.rp_id.encode()).digest()
@@ -55,28 +59,46 @@ class SoftKey:
     def create(self, options: dict[str, Any]) -> dict[str, Any]:
         """navigator.credentials.create(): a registration response to MAYA's options."""
         from webauthn.helpers import encode_cbor
+
         self.user_handle = unb64u(options["user"]["id"])
-        attested = (bytes(16) + struct.pack(">H", len(self.credential_id)) +
-                    self.credential_id + self._cose())
+        attested = (
+            bytes(16)
+            + struct.pack(">H", len(self.credential_id))
+            + self.credential_id
+            + self._cose()
+        )
         auth_data = self._auth_data(UP | UV | AT, attested)
         attestation = encode_cbor({"fmt": "none", "attStmt": {}, "authData": auth_data})
-        return {"id": b64u(self.credential_id), "rawId": b64u(self.credential_id),
-                "type": "public-key", "clientExtensionResults": {},
-                "authenticatorAttachment": "cross-platform",
-                "response": {"clientDataJSON": b64u(self._client_data("webauthn.create",
-                                                                      options["challenge"])),
-                             "attestationObject": b64u(attestation), "transports": ["usb"]}}
+        return {
+            "id": b64u(self.credential_id),
+            "rawId": b64u(self.credential_id),
+            "type": "public-key",
+            "clientExtensionResults": {},
+            "authenticatorAttachment": "cross-platform",
+            "response": {
+                "clientDataJSON": b64u(self._client_data("webauthn.create", options["challenge"])),
+                "attestationObject": b64u(attestation),
+                "transports": ["usb"],
+            },
+        }
 
     def get(self, options: dict[str, Any], *, bump: int = 1) -> dict[str, Any]:
         """navigator.credentials.get(): an assertion answering MAYA's challenge."""
         self.counter += bump
         client_data = self._client_data("webauthn.get", options["challenge"])
         auth_data = self._auth_data(UP | UV)
-        signature = self.key.sign(auth_data + hashlib.sha256(client_data).digest(),
-                                  ec.ECDSA(hashes.SHA256()))
-        return {"id": b64u(self.credential_id), "rawId": b64u(self.credential_id),
-                "type": "public-key", "clientExtensionResults": {},
-                "response": {"clientDataJSON": b64u(client_data),
-                             "authenticatorData": b64u(auth_data),
-                             "signature": b64u(signature),
-                             "userHandle": b64u(self.user_handle)}}
+        signature = self.key.sign(
+            auth_data + hashlib.sha256(client_data).digest(), ec.ECDSA(hashes.SHA256())
+        )
+        return {
+            "id": b64u(self.credential_id),
+            "rawId": b64u(self.credential_id),
+            "type": "public-key",
+            "clientExtensionResults": {},
+            "response": {
+                "clientDataJSON": b64u(client_data),
+                "authenticatorData": b64u(auth_data),
+                "signature": b64u(signature),
+                "userHandle": b64u(self.user_handle),
+            },
+        }

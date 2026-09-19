@@ -5,6 +5,7 @@ trips in both directions, and loud refusal of unsupported protocol features
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,8 +33,9 @@ def test_conformance(lakes: dict[str, DeltaLake], backend: str, case: str, tmp_p
 
 @pytest.mark.parametrize("writer,reader", [("native", "pure"), ("pure", "native")])
 @pytest.mark.parametrize("partitioned", [False, True])
-def test_cross_backend_round_trip(lakes: dict[str, DeltaLake], writer: str, reader: str,
-                                  partitioned: bool, tmp_path: Path) -> None:
+def test_cross_backend_round_trip(
+    lakes: dict[str, DeltaLake], writer: str, reader: str, partitioned: bool, tmp_path: Path
+) -> None:
     w, r = lakes[writer], lakes[reader]
     part = ["part"] if partitioned else None
     for k in range(12):  # past the pure checkpoint interval
@@ -43,11 +45,15 @@ def test_cross_backend_round_trip(lakes: dict[str, DeltaLake], writer: str, read
     assert got.equals(written)
     assert got.num_rows == 36
     assert r.version(tmp_path / "t") == w.version(tmp_path / "t") == 11
-    assert r.read(tmp_path / "t", version=3, sort_by=["id"]).equals(w.read(tmp_path / "t", version=3, sort_by=["id"]))
+    assert r.read(tmp_path / "t", version=3, sort_by=["id"]).equals(
+        w.read(tmp_path / "t", version=3, sort_by=["id"])
+    )
 
 
 @pytest.mark.parametrize("first,second", [("native", "pure"), ("pure", "native")])
-def test_interleaved_writers(lakes: dict[str, DeltaLake], first: str, second: str, tmp_path: Path) -> None:
+def test_interleaved_writers(
+    lakes: dict[str, DeltaLake], first: str, second: str, tmp_path: Path
+) -> None:
     """Each backend appends to a table the other created; both see all rows."""
     lakes[first].write(tmp_path / "t", sample_table(2), partition_by=["part"])
     lakes[second].write(tmp_path / "t", sample_table(2, offset=2))
@@ -59,11 +65,14 @@ def test_interleaved_writers(lakes: dict[str, DeltaLake], first: str, second: st
 
 def test_pure_reads_native_checkpoint(lakes: dict[str, DeltaLake], tmp_path: Path) -> None:
     from maya_delta.native import NativeBackend
+
     for k in range(4):
         lakes["native"].write(tmp_path / "t", sample_table(2, offset=2 * k))
     NativeBackend().create_checkpoint(tmp_path / "t")
     lakes["native"].write(tmp_path / "t", sample_table(2, offset=8))
-    assert any(p.name.endswith(".checkpoint.parquet") for p in (tmp_path / "t" / "_delta_log").iterdir())
+    assert any(
+        p.name.endswith(".checkpoint.parquet") for p in (tmp_path / "t" / "_delta_log").iterdir()
+    )
     # Remove the JSON commits the checkpoint covers: the pure reader must use it.
     for p in (tmp_path / "t" / "_delta_log").glob("0000000000000000000[0-2].json"):
         p.unlink()
@@ -80,8 +89,15 @@ def _table_with_protocol(tmp: Path, protocol: dict) -> Path:
 
 @pytest.mark.parametrize("feature", ["deletionVectors", "columnMapping", "v2Checkpoint"])
 def test_unsupported_reader_feature_is_refused_by_name(tmp_path: Path, feature: str) -> None:
-    path = _table_with_protocol(tmp_path, {"minReaderVersion": 3, "minWriterVersion": 7,
-                                           "readerFeatures": [feature], "writerFeatures": [feature]})
+    path = _table_with_protocol(
+        tmp_path,
+        {
+            "minReaderVersion": 3,
+            "minWriterVersion": 7,
+            "readerFeatures": [feature],
+            "writerFeatures": [feature],
+        },
+    )
     with pytest.raises(UnsupportedFeature) as err:
         DeltaLake("pure").read(path)
     assert err.value.feature == feature and feature in str(err.value)
@@ -89,8 +105,9 @@ def test_unsupported_reader_feature_is_refused_by_name(tmp_path: Path, feature: 
 
 @pytest.mark.parametrize("feature", ["changeDataFeed", "clustering", "domainMetadata"])
 def test_unsupported_writer_feature_is_refused_by_name(tmp_path: Path, feature: str) -> None:
-    path = _table_with_protocol(tmp_path, {"minReaderVersion": 1, "minWriterVersion": 7,
-                                           "writerFeatures": [feature]})
+    path = _table_with_protocol(
+        tmp_path, {"minReaderVersion": 1, "minWriterVersion": 7, "writerFeatures": [feature]}
+    )
     assert DeltaLake("pure").read(path).num_rows == 1  # reading is unaffected
     with pytest.raises(UnsupportedFeature) as err:
         DeltaLake("pure").write(path, pa.table({"a": pa.array([2], pa.int64())}))
@@ -102,9 +119,21 @@ def test_deletion_vector_on_a_file_is_refused(tmp_path: Path) -> None:
     lake.write(tmp_path / "t", pa.table({"a": pa.array([1], pa.int64())}))
     add = lake.files(tmp_path / "t")[0]
     entry = tmp_path / "t" / "_delta_log" / f"{1:020d}.json"
-    entry.write_text(json.dumps({"add": {"path": add["path"], "partitionValues": {}, "size": add["size"],
-                                         "modificationTime": 0, "dataChange": False,
-                                         "deletionVector": {"storageType": "u"}}}) + "\n")
+    entry.write_text(
+        json.dumps(
+            {
+                "add": {
+                    "path": add["path"],
+                    "partitionValues": {},
+                    "size": add["size"],
+                    "modificationTime": 0,
+                    "dataChange": False,
+                    "deletionVector": {"storageType": "u"},
+                }
+            }
+        )
+        + "\n"
+    )
     with pytest.raises(UnsupportedFeature, match="deletionVectors"):
         lake.read(tmp_path / "t")
 
@@ -140,47 +169,51 @@ def _same(a: pa.Table, b: pa.Table) -> bool:
 
 @pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize("partitioned", [False, True])
-def test_optimize_compacts_without_changing_content(lakes: dict[str, DeltaLake], backend: str,
-                                                    partitioned: bool, tmp_path: Path) -> None:
+def test_optimize_compacts_without_changing_content(
+    lakes: dict[str, DeltaLake], backend: str, partitioned: bool, tmp_path: Path
+) -> None:
     lake = lakes[backend]
     path = tmp_path / "t"
     before = _small_writes(lake, path, 12, partitioned)
     files_before, version_before = len(lake.files(path)), lake.version(path)
     out = lake.optimize(path, target_size=64 * 1024 * 1024)
     assert out["numFilesRemoved"] == files_before and out["numFilesAdded"] < files_before
-    assert len(lake.files(path)) == out["numFilesAdded"] and lake.version(path) == version_before + 1
+    assert (
+        len(lake.files(path)) == out["numFilesAdded"] and lake.version(path) == version_before + 1
+    )
     assert _same(lake.read(path), before)
     assert lake.history(path)[-1]["operation"] == "OPTIMIZE"
-    assert _same(lake.read(path, version=version_before), before)   # time travel still works
+    assert _same(lake.read(path, version=version_before), before)  # time travel still works
     other = lakes["pure" if backend == "native" else "native"]
-    assert _same(other.read(path), before)                           # the other backend agrees
+    assert _same(other.read(path), before)  # the other backend agrees
     again = lake.optimize(path, target_size=64 * 1024 * 1024)
     assert again["numFilesRemoved"] == 0 and lake.version(path) == version_before + 1
 
 
 @pytest.mark.parametrize("backend", BACKENDS)
-def test_vacuum_removes_only_unreferenced_files_past_retention(lakes: dict[str, DeltaLake],
-                                                               backend: str,
-                                                               tmp_path: Path) -> None:
+def test_vacuum_removes_only_unreferenced_files_past_retention(
+    lakes: dict[str, DeltaLake], backend: str, tmp_path: Path
+) -> None:
     lake = lakes[backend]
     path = tmp_path / "t"
     before = _small_writes(lake, path, 6, partitioned=True)
     old_files = {f["path"] for f in lake.files(path)}
     lake.optimize(path, target_size=64 * 1024 * 1024)
-    assert lake.vacuum(path) == []                       # just removed: inside the 7-day window
+    assert lake.vacuum(path) == []  # just removed: inside the 7-day window
     with pytest.raises(MayaDeltaError, match="below the 168h minimum"):
         lake.vacuum(path, retention_hours=0)
     planned = lake.vacuum(path, retention_hours=0, enforce_retention=False, dry_run=True)
     assert len(planned) == len(old_files) and all((path / p).exists() for p in planned)
     deleted = lake.vacuum(path, retention_hours=0, enforce_retention=False)
     assert deleted == planned and not any((path / p).exists() for p in deleted)
-    assert _same(lake.read(path), before)                # the current snapshot is untouched
+    assert _same(lake.read(path), before)  # the current snapshot is untouched
     assert lake.vacuum(path, retention_hours=0, enforce_retention=False) == []
 
 
 def test_pure_vacuum_also_clears_old_orphans_but_not_new_ones(tmp_path: Path) -> None:
     import os
     import time as _time
+
     lake = DeltaLake("pure")
     path = tmp_path / "t"
     _small_writes(lake, path, 2, partitioned=False)

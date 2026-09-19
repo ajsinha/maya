@@ -8,6 +8,15 @@ wrote it, and the human approver records whether they agreed.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 SEVERITIES = ("high", "medium", "low", "info")
-CATEGORIES = ("look_ahead", "unbounded_fill", "schema_drift", "missing_limitations",
-              "doc_ir_inconsistency", "data_quality", "licence", "other")
+CATEGORIES = (
+    "look_ahead",
+    "unbounded_fill",
+    "schema_drift",
+    "missing_limitations",
+    "doc_ir_inconsistency",
+    "data_quality",
+    "licence",
+    "other",
+)

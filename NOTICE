@@ -15,7 +15,13 @@ Author and copyright holder:   Ashutosh Sinha <ajsinha@gmail.com>
 Repository:                    github.com/ajsinha/maya
 
   Everything except docs/research/   Proprietary, All Rights Reserved (LICENSE)
-  docs/research/                     CC BY-NC-ND 4.0 (docs/research/LICENSE)
+  docs/research/                     CC BY-NC-ND 4.0 (docs/research/LICENSE): the
+                                     paper models-as-parametric-kernels.tex and
+                                     .pdf, and its article version,
+                                     models-as-parametric-kernels-article.md
+
+  The presentation decks (docs/*.pptx) and their generator (tools/deck/) are
+  proprietary, under LICENSE, like everything outside docs/research/.
 
 --------------------------------------------------------------------------------
 2. TRADEMARKS
@@ -40,7 +46,8 @@ Catalog, Amazon SageMaker, Google Vertex AI, Domino Data Lab, Dataiku,
 DataRobot, H2O, Feast, Tecton, Hopsworks, KServe, Seldon, BentoML, Arize,
 Fiddler, Arthur, Evidently, WhyLabs, NannyML, ServiceNow, Collibra, Alation,
 Microsoft Purview, Archer, PostgreSQL, Delta Lake, Apache Spark, Apache Kafka,
-Redis, Kubernetes, HashiCorp Vault, Sigstore and GitHub.
+Redis, Kubernetes, HashiCorp Vault, Sigstore, GitHub, dbt, Cube, Malloy,
+Keycloak, LibreOffice and Microsoft Excel.
 
 --------------------------------------------------------------------------------
 3. QUOTED REGULATORY AND SCHOLARLY MATERIAL
@@ -98,7 +105,8 @@ investment or financial advice, and must not be relied upon as such.
   • Any encoding of a regulation in this work is a CLAIM ABOUT that regulation,
     not the regulation. The formalism makes the claim explicit and testable for
     internal consistency; it does not make it correct. This limitation is
-    stated in docs/00-mathematical-foundations.md and in the research paper.
+    stated in the research paper, docs/research/models-as-parametric-kernels.tex
+    (section "Limitations and falsification").
   • Nothing here creates an attorney–client, advisory or fiduciary relationship.
   • Obtain qualified professional advice before acting on anything in this
     repository.
@@ -119,13 +127,15 @@ any university or institution.
 6. THIRD-PARTY TOOLING USED TO PRODUCE THIS WORK
 --------------------------------------------------------------------------------
 
-The tools in tools/deck/ depend on the following, which are not distributed
-here and remain under their own licences:
+The deck generator in tools/deck/ and the build of the research paper depend
+on the following, which are not distributed here and remain under their own
+licences:
 
-  python-pptx        MIT Licence
-  Pillow             MIT-CMU Licence
-  LaTeX / TeX Live   LaTeX Project Public Licence and others
-  Liberation Fonts   SIL Open Font Licence 1.1
+  python-pptx        MIT Licence (with its own dependencies, Pillow under the
+                     MIT-CMU Licence and lxml under the BSD Licence)
+  Tectonic           MIT Licence; the TeX packages it downloads to build
+                     docs/research/models-as-parametric-kernels.pdf are under
+                     the LaTeX Project Public Licence and others
 
 Fonts referenced by name in the decks and documents (Georgia, Calibri,
 Consolas) are the property of their owners and are not distributed here.

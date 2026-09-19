@@ -7,6 +7,7 @@ file creates the database. Nothing outside this package ever sees an engine.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import threading
@@ -22,13 +23,19 @@ from maya.persistence import schema
 class Database:
     """One engine, one session factory, and the SQLite write mutex."""
 
-    def __init__(self, url: str, *, echo: bool = False, pool_size: int = 10,
-                 max_overflow: int = 10, busy_timeout_ms: int = 30000) -> None:
+    def __init__(
+        self,
+        url: str,
+        *,
+        echo: bool = False,
+        pool_size: int = 10,
+        max_overflow: int = 10,
+        busy_timeout_ms: int = 30000,
+    ) -> None:
         kwargs: dict[str, Any] = {"echo": echo, "future": True}
         self.is_sqlite = url.startswith("sqlite")
         if self.is_sqlite:
-            kwargs["connect_args"] = {"check_same_thread": False,
-                                      "timeout": busy_timeout_ms / 1000}
+            kwargs["connect_args"] = {"check_same_thread": False, "timeout": busy_timeout_ms / 1000}
         else:
             kwargs.update(pool_size=pool_size, max_overflow=max_overflow, pool_pre_ping=True)
         self.engine: Engine = create_engine(url, **kwargs)
@@ -36,6 +43,7 @@ class Database:
             event.listen(self.engine, "connect", _sqlite_pragmas(busy_timeout_ms))
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         from maya.persistence import search_index
+
         search_index.install()
         # SQLite admits one writer. Every unit of work takes this mutex so
         # concurrent requests queue here instead of failing with "database is
@@ -76,6 +84,7 @@ def _sqlite_pragmas(busy_timeout_ms: int):  # type: ignore[no-untyped-def]
         cur.execute("PRAGMA foreign_keys=ON")
         cur.execute("PRAGMA synchronous=NORMAL")
         cur.close()
+
     return on_connect
 
 

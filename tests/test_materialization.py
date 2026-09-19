@@ -8,6 +8,7 @@ sealed at pinning, or nothing is served and integrity verification reports drift
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -32,13 +33,19 @@ def sets(world):
         if policy != "always":
             w.p.access.update_namespace(w.admin, ns, {"materialize_policy": policy})
         # distinct definitions (no near-copies), identical output: each starts before the data
-        fs = {"index": ["date", "symbol"], "filters": {"start": f"2020-01-0{day}"}, "members": [
-            {"attr": "close", "ref": f"maya://feature/{ref}@v1", "source_attr": "close"}]}
+        fs = {
+            "index": ["date", "symbol"],
+            "filters": {"start": f"2020-01-0{day}"},
+            "members": [
+                {"attr": "close", "ref": f"maya://feature/{ref}@v1", "source_attr": "close"}
+            ],
+        }
         w.p.featuresets.create(w.devi, namespace=ns, name="panel", definition=fs)
         w.p.featuresets.transition(w.devi, f"{ns}/panel", 1, "submit")
         w.p.featuresets.transition(w.mick, f"{ns}/panel", 1, "approve")
-        w.p.featuresets.pin(w.mick, f"{ns}/panel", version_no=1, pin_name="m", as_of=AS_OF,
-                            cascade=True)
+        w.p.featuresets.pin(
+            w.mick, f"{ns}/panel", version_no=1, pin_name="m", as_of=AS_OF, cascade=True
+        )
         w.drain()
         out[policy] = f"maya://featureset/{ns}/panel#m/{AS_OF.isoformat()}"
     return w, out
@@ -76,7 +83,7 @@ def test_on_demand_is_written_at_the_first_read(sets):
     assert _frame(w, refs["on_demand"]).equals(expected)
     pin = _pin(w, refs["on_demand"])
     assert w.p.featuresets.stored(pin) and pin["lake_table"]
-    assert _frame(w, refs["on_demand"]).equals(expected)       # now from the lake
+    assert _frame(w, refs["on_demand"]).equals(expected)  # now from the lake
     with w.p.uow() as uow:
         assert uow.repo("audit_events").find_one(action="pin.materialized")
 

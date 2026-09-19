@@ -6,6 +6,7 @@ point in time before a restatement (SC-11 on this dataset).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -74,8 +75,7 @@ def test_restatements_reissue_the_same_key_later(data):
     restated = f[f["revision"] == 1]
     assert len(restated) == len(data.events["restatements"]) >= 1
     for _, row in restated.iterrows():
-        orig = f[(f["date"] == row["date"]) & (f["symbol"] == row["symbol"]) &
-                 (f["revision"] == 0)]
+        orig = f[(f["date"] == row["date"]) & (f["symbol"] == row["symbol"]) & (f["revision"] == 0)]
         assert len(orig) == 1
         assert row["kt"] > orig["kt"].iloc[0] and row["eps"] != orig["eps"].iloc[0]
         assert row["period_end"] == orig["period_end"].iloc[0]
@@ -109,8 +109,7 @@ def _download(client, ref: str, kind: str = "features") -> pd.DataFrame:
 
 def test_market_to_certified_warrant_and_point_in_time(maya, data):
     prices = maya.approved_feature("prices", data.prices_csv(), market.PRICES_DEF)
-    funds = maya.approved_feature("fundamentals", data.fundamentals_csv(),
-                                  market.FUNDAMENTALS_DEF)
+    funds = maya.approved_feature("fundamentals", data.fundamentals_csv(), market.FUNDAMENTALS_DEF)
     first = data.events["restatements"][0]
     before = first["restated_kt"] - dt.timedelta(seconds=1)
 
@@ -118,8 +117,9 @@ def test_market_to_certified_warrant_and_point_in_time(maya, data):
     dana = maya.client("dana")
     day = str(first["date"])
     point = {"start": day, "end": day}
-    old = dana.features.preview(f"maya://feature/{funds}@v1", as_of_known=before.isoformat(),
-                                **point)
+    old = dana.features.preview(
+        f"maya://feature/{funds}@v1", as_of_known=before.isoformat(), **point
+    )
     new = dana.features.preview(f"maya://feature/{funds}@v1", **point)
     pick = [r for r in old["rows"] if r["symbol"] == first["symbol"]]
     assert pick[0]["eps"] == pytest.approx(first["original_eps"]) and pick[0]["revision"] == 0
@@ -128,13 +128,18 @@ def test_market_to_certified_warrant_and_point_in_time(maya, data):
 
     # a cascade pin as known just before the restatement, fundamentals as-of joined
     pin = maya.approved_featureset(
-        "panel", {"close": prices, "eps": funds, "revenue": funds},
+        "panel",
+        {"close": prices, "eps": funds, "revenue": funds},
         alignment={"mode": "asof", "tolerance_days": 120},
-        pin=("pit", before.date()), as_of_known=before)
-    model = maya.approved_model("eps_linear", "eps_hat = a*sales + b",
-                                {"a": "parameter", "b": "parameter"})
-    tw = maya.training_warrant("eps_fit", model, pin,
-                               {"target": "eps", "bindings": {"sales": "revenue"}})
+        pin=("pit", before.date()),
+        as_of_known=before,
+    )
+    model = maya.approved_model(
+        "eps_linear", "eps_hat = a*sales + b", {"a": "parameter", "b": "parameter"}
+    )
+    tw = maya.training_warrant(
+        "eps_fit", model, pin, {"target": "eps", "bindings": {"sales": "revenue"}}
+    )
     assert tw["contract_report"]["ok"] and tw["contract_report"]["mapping"] == {"sales": "revenue"}
     cert = tw["leakage_certificate"]
     assert cert["status"] == "certified" and cert["violations"] == 0
@@ -144,8 +149,10 @@ def test_market_to_certified_warrant_and_point_in_time(maya, data):
 
     # the pinned panel carries the original eps on and after the announcement
     panel = _download(maya.client("devi"), pin, "featuresets")
-    rows = panel[(panel["symbol"] == first["symbol"]) &
-                 (pd.to_datetime(panel["date"]) >= pd.Timestamp(first["date"]))]
+    rows = panel[
+        (panel["symbol"] == first["symbol"])
+        & (pd.to_datetime(panel["date"]) >= pd.Timestamp(first["date"]))
+    ]
     assert len(rows) and rows["eps"].iloc[0] == pytest.approx(first["original_eps"])
     assert pd.to_datetime(panel["date"]).max() <= pd.Timestamp(before.date())
 
@@ -155,11 +162,13 @@ def test_a_pin_that_includes_restatements_is_refused_a_certificate(maya, data):
     though known on the day is leakage, and the certificate refuses it."""
     ref = maya.ref("fundamentals")
     last = data.events["restatements"][-1]["restated_kt"] + dt.timedelta(hours=1)
-    pin = maya.approved_featureset("restated_panel", {"eps": ref, "revenue": ref},
-                                   pin=("late", last.date()), as_of_known=last)
+    pin = maya.approved_featureset(
+        "restated_panel", {"eps": ref, "revenue": ref}, pin=("late", last.date()), as_of_known=last
+    )
     model = maya.ref("eps_linear") + "@v1"
-    tw = maya.training_warrant("eps_late", model, pin,
-                               {"target": "eps", "bindings": {"sales": "revenue"}})
+    tw = maya.training_warrant(
+        "eps_late", model, pin, {"target": "eps", "bindings": {"sales": "revenue"}}
+    )
     cert = tw["leakage_certificate"]
     assert cert["status"] == "refused"
     assert cert["violations"] == len(data.events["restatements"])

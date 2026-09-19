@@ -6,6 +6,7 @@ the estate export that is MAYA's only schema-upgrade path.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,12 +15,27 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.web.routes.tables import first_page
-from maya.web.routes.common import (action, client, download, flash, form, invalidate_health,
-                                    page, parse_json, render)
+from maya.web.routes.common import (
+    action,
+    client,
+    download,
+    flash,
+    form,
+    invalidate_health,
+    page,
+    parse_json,
+    render,
+)
 
 router = APIRouter()
-GRANT_KINDS = ["feature", "featureset", "model", "training_warrant", "execution_warrant",
-               "namespace"]
+GRANT_KINDS = [
+    "feature",
+    "featureset",
+    "model",
+    "training_warrant",
+    "execution_warrant",
+    "namespace",
+]
 LEVELS = ["read", "read_write", "approve", "own", "admin"]
 
 
@@ -47,9 +63,17 @@ async def users(request: Request) -> Any:
         groups = await sdk.admin.groups()
         sessions = await sdk.auth.sessions() if "admin" in request.session.get("roles", []) else []
     object_types = sorted({k for r in roles for k in r["capabilities"]})
-    return await render(request, "admin/users.html", {
-        "rows": rows, "roles": roles, "groups": groups, "sessions": sessions,
-        "object_types": object_types})
+    return await render(
+        request,
+        "admin/users.html",
+        {
+            "rows": rows,
+            "roles": roles,
+            "groups": groups,
+            "sessions": sessions,
+            "object_types": object_types,
+        },
+    )
 
 
 @router.post("/admin/users")
@@ -57,14 +81,20 @@ async def users(request: Request) -> Any:
 async def create_user(request: Request) -> Any:
     data = await request.form()
     async with client(request) as sdk:
-        await sdk.admin.create_user(data["username"], password=data.get("password") or None,
-                                    email=data.get("email", ""),
-                                    display_name=data.get("display_name", ""),
-                                    roles=data.getlist("roles"),
-                                    is_service=bool(data.get("is_service")),
-                                    desk=data.get("desk") or None)
-    flash(request, f"User {data['username']} created; they must change the password at first login.",
-          "success")
+        await sdk.admin.create_user(
+            data["username"],
+            password=data.get("password") or None,
+            email=data.get("email", ""),
+            display_name=data.get("display_name", ""),
+            roles=data.getlist("roles"),
+            is_service=bool(data.get("is_service")),
+            desk=data.get("desk") or None,
+        )
+    flash(
+        request,
+        f"User {data['username']} created; they must change the password at first login.",
+        "success",
+    )
     return RedirectResponse("/admin/users", status_code=303)
 
 
@@ -93,8 +123,7 @@ async def reset_password(request: Request, username: str) -> Any:
 async def reset_mfa(request: Request, username: str) -> Any:
     async with client(request) as sdk:
         await sdk.admin.reset_mfa(username)
-    flash(request, f"Two-factor authentication of {username} reset; they enroll again.",
-          "success")
+    flash(request, f"Two-factor authentication of {username} reset; they enroll again.", "success")
     return RedirectResponse("/admin/users", status_code=303)
 
 
@@ -113,9 +142,11 @@ async def set_status(request: Request, username: str) -> Any:
 async def create_role(request: Request) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        await sdk.admin.create_role(data["name"], parse_json(data.get("capabilities"),
-                                                             "Capabilities", {}),
-                                    description=data.get("description", ""))
+        await sdk.admin.create_role(
+            data["name"],
+            parse_json(data.get("capabilities"), "Capabilities", {}),
+            description=data.get("description", ""),
+        )
     flash(request, f"Role {data['name']} created.", "success")
     return RedirectResponse("/admin/users#roles", status_code=303)
 
@@ -126,8 +157,12 @@ async def create_group(request: Request) -> Any:
     data = await request.form()
     members = [m.strip() for m in data.get("members", "").split(",") if m.strip()]
     async with client(request) as sdk:
-        await sdk.admin.create_group(data["name"], description=data.get("description", ""),
-                                     roles=data.getlist("roles"), members=members)
+        await sdk.admin.create_group(
+            data["name"],
+            description=data.get("description", ""),
+            roles=data.getlist("roles"),
+            members=members,
+        )
     flash(request, f"Group {data['name']} created.", "success")
     return RedirectResponse("/admin/users#groups", status_code=303)
 
@@ -149,9 +184,16 @@ async def webhooks(request: Request) -> Any:
     async with client(request) as sdk:
         rows = await sdk.events.webhooks()
         deliveries = await sdk.events.deliveries(show) if show else None
-    return await render(request, "admin/webhooks.html", {
-        "rows": rows, "deliveries": deliveries, "shown": show,
-        "new_secret": request.session.pop("new_webhook_secret", None)})
+    return await render(
+        request,
+        "admin/webhooks.html",
+        {
+            "rows": rows,
+            "deliveries": deliveries,
+            "shown": show,
+            "new_secret": request.session.pop("new_webhook_secret", None),
+        },
+    )
 
 
 @router.post("/admin/webhooks")
@@ -160,8 +202,9 @@ async def create_webhook(request: Request) -> Any:
     data = await form(request)
     types = [t.strip() for t in (data.get("event_types") or "").split(",") if t.strip()]
     async with client(request) as sdk:
-        hook = await sdk.events.create_webhook(data.get("name", ""), data.get("url", ""), types,
-                                               data.get("description", ""))
+        hook = await sdk.events.create_webhook(
+            data.get("name", ""), data.get("url", ""), types, data.get("description", "")
+        )
     request.session["new_webhook_secret"] = hook["secret"]
     flash(request, "Webhook created. Copy its signing secret now: it is shown once.", "warning")
     return RedirectResponse("/admin/webhooks", status_code=303)
@@ -172,9 +215,12 @@ async def create_webhook(request: Request) -> Any:
 async def ping_webhook(request: Request, webhook_id: str) -> Any:
     async with client(request) as sdk:
         out = await sdk.events.ping(webhook_id)
-    flash(request, f"Ping {out['state']} (HTTP {out['last_status'] or '—'})"
-          + (f": {out['last_error']}" if out.get("last_error") else ""),
-          "success" if out["state"] == "delivered" else "warning")
+    flash(
+        request,
+        f"Ping {out['state']} (HTTP {out['last_status'] or '—'})"
+        + (f": {out['last_error']}" if out.get("last_error") else ""),
+        "success" if out["state"] == "delivered" else "warning",
+    )
     return RedirectResponse(f"/admin/webhooks?deliveries={webhook_id}", status_code=303)
 
 
@@ -193,8 +239,7 @@ async def events_page(request: Request) -> Any:
     q = request.query_params
     async with client(request) as sdk:
         page = await first_page(request, sdk, "events", type=q.get("type") or None)
-    return await render(request, "admin/events.html", {"page": page,
-                                                       "type": q.get("type", "")})
+    return await render(request, "admin/events.html", {"page": page, "type": q.get("type", "")})
 
 
 # -- custody anchors (§29.6) --------------------------------------------------------------------
@@ -213,8 +258,13 @@ async def custody_page(request: Request) -> Any:
 async def custody_anchor(request: Request) -> Any:
     async with client(request) as sdk:
         row = await sdk.custody.anchor()
-    flash(request, f"Chain head anchored at seq {row['seq']}." if row else
-          "The audit log is empty; nothing to anchor.", "success" if row else "info")
+    flash(
+        request,
+        f"Chain head anchored at seq {row['seq']}."
+        if row
+        else "The audit log is empty; nothing to anchor.",
+        "success" if row else "info",
+    )
     return RedirectResponse("/admin/custody", status_code=303)
 
 
@@ -232,9 +282,12 @@ async def sources(request: Request) -> Any:
 async def create_source(request: Request) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        await sdk.sources.create_connection(data.get("name", ""), data.get("url", ""),
-                                            data.get("password_env") or None,
-                                            data.get("description", ""))
+        await sdk.sources.create_connection(
+            data.get("name", ""),
+            data.get("url", ""),
+            data.get("password_env") or None,
+            data.get("description", ""),
+        )
     flash(request, "Connection saved.", "success")
     return RedirectResponse("/admin/sources", status_code=303)
 
@@ -244,8 +297,13 @@ async def create_source(request: Request) -> Any:
 async def test_source(request: Request, name: str) -> Any:
     async with client(request) as sdk:
         out = await sdk.sources.test_connection(name)
-    flash(request, f"{name}: connected ({out['dialect']}, read-only)" if out["ok"]
-          else f"{name}: {out['error']}", "success" if out["ok"] else "danger")
+    flash(
+        request,
+        f"{name}: connected ({out['dialect']}, read-only)"
+        if out["ok"]
+        else f"{name}: {out['error']}",
+        "success" if out["ok"] else "danger",
+    )
     return RedirectResponse("/admin/sources", status_code=303)
 
 
@@ -272,13 +330,15 @@ async def namespaces(request: Request) -> Any:
 async def create_namespace(request: Request) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        await sdk.namespaces.create(data["name"], description=data.get("description", ""),
-                                    parent=data.get("parent") or None,
-                                    preset=data.get("preset", "standard"),
-                                    default_visibility=data.get("default_visibility",
-                                                                "namespace_read"),
-                                    production=bool(data.get("production")),
-                                    classification=data.get("classification", "internal"))
+        await sdk.namespaces.create(
+            data["name"],
+            description=data.get("description", ""),
+            parent=data.get("parent") or None,
+            preset=data.get("preset", "standard"),
+            default_visibility=data.get("default_visibility", "namespace_read"),
+            production=bool(data.get("production")),
+            classification=data.get("classification", "internal"),
+        )
     flash(request, f"Namespace {data['name']} created.", "success")
     return RedirectResponse("/admin/namespaces", status_code=303)
 
@@ -305,9 +365,18 @@ async def grants(request: Request) -> Any:
         if ref:
             rows = await sdk.access.grants(kind, ref)
         recert = await sdk.access.recertification()
-    return await render(request, "admin/grants.html", {
-        "rows": rows, "kind": kind, "ref": ref, "kinds": GRANT_KINDS, "levels": LEVELS,
-        "recert": recert})
+    return await render(
+        request,
+        "admin/grants.html",
+        {
+            "rows": rows,
+            "kind": kind,
+            "ref": ref,
+            "kinds": GRANT_KINDS,
+            "levels": LEVELS,
+            "recert": recert,
+        },
+    )
 
 
 def _conditions(data: dict[str, Any]) -> dict[str, Any]:
@@ -332,17 +401,21 @@ def _conditions(data: dict[str, Any]) -> dict[str, Any]:
 async def grant(request: Request) -> Any:
     data = await form(request)
     async with client(request) as sdk:
-        row = await sdk.access.grant(data["kind"], data["ref"], data["principal_type"],
-                                     data.get("principal_id") or "*", data["level"],
-                                     days=int(data["days"]) if data.get("days") else None,
-                                     deny=bool(data.get("deny")),
-                                     conditions=_conditions(data))
+        row = await sdk.access.grant(
+            data["kind"],
+            data["ref"],
+            data["principal_type"],
+            data.get("principal_id") or "*",
+            data["level"],
+            days=int(data["days"]) if data.get("days") else None,
+            deny=bool(data.get("deny")),
+            conditions=_conditions(data),
+        )
     if row.get("inert_reason"):
         flash(request, f"Grant recorded but INERT: {row['inert_reason']}", "warning")
     else:
         flash(request, "Grant recorded.", "success")
-    return RedirectResponse(f"/admin/grants?kind={data['kind']}&ref={data['ref']}",
-                            status_code=303)
+    return RedirectResponse(f"/admin/grants?kind={data['kind']}&ref={data['ref']}", status_code=303)
 
 
 @router.post("/admin/grants/{grant_id}/revoke")
@@ -380,11 +453,15 @@ async def job_action(request: Request, job_id: str, verb: str) -> Any:
 async def audit(request: Request) -> Any:
     qp = request.query_params
     async with client(request) as sdk:
-        page = await first_page(request, sdk, "audit", q=qp.get("q") or None,
-                                action=qp.get("action") or None)
+        page = await first_page(
+            request, sdk, "audit", q=qp.get("q") or None, action=qp.get("action") or None
+        )
         chain = await sdk.admin.verify_audit()
-    return await render(request, "admin/audit.html", {
-        "page": page, "chain": chain, "q": qp.get("q", ""), "action": qp.get("action", "")})
+    return await render(
+        request,
+        "admin/audit.html",
+        {"page": page, "chain": chain, "q": qp.get("q", ""), "action": qp.get("action", "")},
+    )
 
 
 @router.get("/admin/config")
@@ -400,9 +477,15 @@ async def config(request: Request) -> Any:
 async def storage(request: Request) -> Any:
     async with client(request) as sdk:
         report = await sdk.admin.storage()
-    return await render(request, "admin/storage.html", {
-        "r": report, "integrity": request.session.pop("integrity", None),
-        "maintained": request.session.pop("maintained", None)})
+    return await render(
+        request,
+        "admin/storage.html",
+        {
+            "r": report,
+            "integrity": request.session.pop("integrity", None),
+            "maintained": request.session.pop("maintained", None),
+        },
+    )
 
 
 @router.post("/admin/lake/maintain")
@@ -410,9 +493,9 @@ async def storage(request: Request) -> Any:
 async def lake_maintain(request: Request) -> Any:
     async with client(request) as sdk:
         out = await sdk.admin.lake_maintain()
-    request.session["maintained"] = {k: out[k] for k in ("filesRemoved", "filesAdded",
-                                                         "vacuumed")} | {
-        "tables": [t["table"] for t in out["tables"]]}
+    request.session["maintained"] = {
+        k: out[k] for k in ("filesRemoved", "filesAdded", "vacuumed")
+    } | {"tables": [t["table"] for t in out["tables"]]}
     flash(request, "Lake compacted and vacuumed.", "success")
     return RedirectResponse("/admin/storage", status_code=303)
 
@@ -422,11 +505,17 @@ async def lake_maintain(request: Request) -> Any:
 async def integrity(request: Request) -> Any:
     async with client(request) as sdk:
         out = await sdk.admin.verify_integrity()
-    request.session["integrity"] = {"checked": out["checked"], "drift": out["drift"],
-                                    "audit_chain": out["audit_chain"]}
+    request.session["integrity"] = {
+        "checked": out["checked"],
+        "drift": out["drift"],
+        "audit_chain": out["audit_chain"],
+    }
     invalidate_health()
-    flash(request, f"Integrity verified: {out['checked']} pin(s), {len(out['drift'])} with drift.",
-          "danger" if out["drift"] else "success")
+    flash(
+        request,
+        f"Integrity verified: {out['checked']} pin(s), {len(out['drift'])} with drift.",
+        "danger" if out["drift"] else "success",
+    )
     return RedirectResponse("/admin/storage", status_code=303)
 
 
@@ -453,5 +542,6 @@ async def saml_metadata(request: Request) -> Any:
     """MAYA's SAML service-provider metadata, for the identity provider's administrator."""
     async with client(request) as sdk:
         result = await sdk.auth.saml_metadata()
-    return download({**result, "content_type": "application/samlmetadata+xml"},
-                    "maya-sp-metadata.xml")
+    return download(
+        {**result, "content_type": "application/samlmetadata+xml"}, "maya-sp-metadata.xml"
+    )

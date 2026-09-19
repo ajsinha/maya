@@ -235,8 +235,7 @@ python -m maya.cli featureset pin eq/panel --version 1 --name q1 --as-of 2026-02
 
 ```python
 # The same from the SDK
-out = my.featuresets.pin("eq/panel", version_no=1, pin_name="q1",
-                         as_of="2026-02-28", cascade=True)
+out = my.featuresets.pin("eq/panel", version_no=1, pin_name="q1", as_of="2026-02-28", cascade=True)
 print(my.wait(out["job"])["result"])
 ```
 

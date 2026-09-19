@@ -13,6 +13,7 @@ directions and normalises Arrow types to the exact shape the native backend
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -46,10 +47,14 @@ def _primitive_name(t: pa.DataType) -> str:
     if pa.types.is_string(t) or pa.types.is_large_string(t) or pa.types.is_string_view(t):
         return "string"
     table = [
-        (pa.types.is_int64, "long"), (pa.types.is_int32, "integer"),
-        (pa.types.is_int16, "short"), (pa.types.is_int8, "byte"),
-        (pa.types.is_float64, "double"), (pa.types.is_float32, "float"),
-        (pa.types.is_boolean, "boolean"), (pa.types.is_date32, "date"),
+        (pa.types.is_int64, "long"),
+        (pa.types.is_int32, "integer"),
+        (pa.types.is_int16, "short"),
+        (pa.types.is_int8, "byte"),
+        (pa.types.is_float64, "double"),
+        (pa.types.is_float32, "float"),
+        (pa.types.is_boolean, "boolean"),
+        (pa.types.is_date32, "date"),
     ]
     for pred, name in table:
         if pred(t):
@@ -66,26 +71,41 @@ def _primitive_name(t: pa.DataType) -> str:
 def arrow_type_to_delta(t: pa.DataType) -> Any:
     """Arrow type -> Delta JSON type (a string for primitives, a dict otherwise)."""
     if pa.types.is_list(t) or pa.types.is_large_list(t) or pa.types.is_fixed_size_list(t):
-        return {"type": "array", "elementType": arrow_type_to_delta(t.value_type),
-                "containsNull": t.value_field.nullable}
+        return {
+            "type": "array",
+            "elementType": arrow_type_to_delta(t.value_type),
+            "containsNull": t.value_field.nullable,
+        }
     if pa.types.is_struct(t):
-        return {"type": "struct", "fields": [field_to_delta(t.field(i)) for i in range(t.num_fields)]}
+        return {
+            "type": "struct",
+            "fields": [field_to_delta(t.field(i)) for i in range(t.num_fields)],
+        }
     if pa.types.is_map(t):
-        return {"type": "map", "keyType": arrow_type_to_delta(t.key_type),
-                "valueType": arrow_type_to_delta(t.item_type),
-                "valueContainsNull": t.item_field.nullable}
+        return {
+            "type": "map",
+            "keyType": arrow_type_to_delta(t.key_type),
+            "valueType": arrow_type_to_delta(t.item_type),
+            "valueContainsNull": t.item_field.nullable,
+        }
     return _primitive_name(t)
 
 
 def field_to_delta(f: pa.Field) -> dict[str, Any]:
     """One Arrow field as a Delta StructField."""
-    return {"name": f.name, "type": arrow_type_to_delta(f.type), "nullable": f.nullable, "metadata": {}}
+    return {
+        "name": f.name,
+        "type": arrow_type_to_delta(f.type),
+        "nullable": f.nullable,
+        "metadata": {},
+    }
 
 
 def schema_to_delta_json(schema: pa.Schema) -> str:
     """Arrow schema -> Delta ``schemaString``."""
-    return json.dumps({"type": "struct", "fields": [field_to_delta(f) for f in schema]},
-                      separators=(",", ":"))
+    return json.dumps(
+        {"type": "struct", "fields": [field_to_delta(f) for f in schema]}, separators=(",", ":")
+    )
 
 
 def delta_type_to_arrow(t: Any) -> pa.DataType:
@@ -99,14 +119,24 @@ def delta_type_to_arrow(t: Any) -> pa.DataType:
         raise MayaDeltaError(f"Unknown Delta primitive type '{t}'")
     kind = t.get("type")
     if kind == "array":
-        return pa.list_(pa.field("element", delta_type_to_arrow(t["elementType"]),
-                                 nullable=t.get("containsNull", True)))
+        return pa.list_(
+            pa.field(
+                "element",
+                delta_type_to_arrow(t["elementType"]),
+                nullable=t.get("containsNull", True),
+            )
+        )
     if kind == "struct":
         return pa.struct([delta_field_to_arrow(f) for f in t["fields"]])
     if kind == "map":
-        return pa.map_(pa.field("key", delta_type_to_arrow(t["keyType"]), nullable=False),
-                       pa.field("value", delta_type_to_arrow(t["valueType"]),
-                                nullable=t.get("valueContainsNull", True)))
+        return pa.map_(
+            pa.field("key", delta_type_to_arrow(t["keyType"]), nullable=False),
+            pa.field(
+                "value",
+                delta_type_to_arrow(t["valueType"]),
+                nullable=t.get("valueContainsNull", True),
+            ),
+        )
     raise MayaDeltaError(f"Unknown Delta complex type '{kind}'")
 
 
@@ -123,6 +153,7 @@ def schema_from_delta_json(schema_string: str) -> pa.Schema:
 
 def field_metadata_has(schema_string: str, key: str) -> bool:
     """True when any (top-level or nested) field carries metadata ``key``."""
+
     def walk(fields: list[dict[str, Any]]) -> bool:
         for f in fields:
             if key in (f.get("metadata") or {}):
@@ -131,6 +162,7 @@ def field_metadata_has(schema_string: str, key: str) -> bool:
             if isinstance(t, dict) and t.get("type") == "struct" and walk(t["fields"]):
                 return True
         return False
+
     return walk(json.loads(schema_string)["fields"])
 
 

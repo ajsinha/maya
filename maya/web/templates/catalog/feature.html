@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_rows.html" import pin_row %}
 {% from "_macros/table.html" import table %}
 {% from "_macros/ui.html" import pill, kv, licence_panel, transitions, tabs, json_block %}
 {% block title %}{{ f.name }}{% endblock %}
@@ -65,13 +66,7 @@
   {% include "_preview.html" %}
 </div>
 <div class="tab-pane {% if tab == 'pins' %}show active{% endif %}" id="tab-pins" role="tabpanel">
-  {% call(p) table("pins", ["Series", "As of", "Version", "State", "Rows", "Content hash", "New bytes", "Sealed", "!Actions"], f.pins, empty="No pins. Pin an approved version to freeze its values forever.") %}
-    <td>{{ p.pin_name }}</td><td>{{ p.as_of_date }}</td><td>v{{ p.version_no }}</td><td>{{ pill(p.state) }}{% if p.failure %}<div class="small-muted">{{ p.failure }}</div>{% endif %}</td>
-    <td>{{ p.row_count }}</td><td class="mono">{{ p.content_hash|short }}</td><td data-sort="{{ p.bytes_new }}">{{ p.bytes_new }} / {{ p.bytes_total }}</td><td>{{ p.sealed_at|dt }}</td>
-    <td class="d-flex gap-1">{% if p.state == 'sealed' %}<a class="btn btn-sm btn-outline-secondary" href="?tab=data&ref={{ p.ref|urlq }}">Data</a>{% endif %}
-      {% if p.state == 'requested' %}<form method="post" action="/catalog/pins/{{ p.id }}/approve"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-primary" type="submit">Approve pin</button></form>{% endif %}
-      {% if p.state == 'sealed' and is_admin %}<form method="post" action="/catalog/pins/{{ p.id }}/retire" data-confirm="Retire this pin? It stays resolvable for audit."><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="reason" value="retired from the UI"><button class="btn btn-sm btn-outline-secondary" type="submit">Retire</button></form>{% endif %}</td>
-  {% endcall %}
+  {% call(p) table("pins", ["Series", "As of", "Version", "State", "Rows", "Content hash", "New bytes", "Sealed", "!Actions"], pins_page["items"], empty="No pins. Pin an approved version to freeze its values forever.", page=pins_page) %}{{ pin_row(p, csrf) }}{% endcall %}
   {% if f.can_pin %}
   <form method="post" action="/catalog/features/{{ f.namespace }}/{{ f.name }}/pin" class="card card-body">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">

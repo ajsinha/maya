@@ -6,6 +6,7 @@ export → recreate → import with the audit chain intact, plus tamper detectio
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import copy
@@ -19,8 +20,11 @@ from tests.conftest import PX_DEF, World, approved_feature, build_platform, pric
 
 
 def _active(w, object_type):
-    return next(p for p in w.p.workflow_svc.policies()
-                if p["object_type"] == object_type and p["state"] == "active")
+    return next(
+        p
+        for p in w.p.workflow_svc.policies()
+        if p["object_type"] == object_type and p["state"] == "active"
+    )
 
 
 def test_invalid_policies_are_refused_at_edit_time(world):
@@ -43,8 +47,9 @@ def test_policy_is_governed_and_changes_behaviour(world):
     base = _active(world, "feature_version")["policy"]
     stricter = copy.deepcopy(base)
     stricter["transitions"]["approve"]["approvals"] = [{"role": "feature_manager", "count": 2}]
-    draft = world.p.workflow_svc.draft_policy(world.admin, "feature_version", stricter,
-                                              scope="eq", note="two approvers")
+    draft = world.p.workflow_svc.draft_policy(
+        world.admin, "feature_version", stricter, scope="eq", note="two approvers"
+    )
     with pytest.raises(PermissionDenied, match="another administrator"):
         world.p.workflow_svc.activate(world.admin, draft["id"])
     world.p.workflow_svc.activate(world.admin2, draft["id"])
@@ -55,8 +60,9 @@ def test_policy_is_governed_and_changes_behaviour(world):
     assert first["moved"] is False and "outstanding" in first["message"]
     with pytest.raises(NotApproved, match="already approved"):
         world.p.features.transition(world.mick, "eq/twice", 1, "approve")
-    world.p.access.create_user(world.admin, username="mick2", password="Test-password-1",
-                               roles=["feature_manager"])
+    world.p.access.create_user(
+        world.admin, username="mick2", password="Test-password-1", roles=["feature_manager"]
+    )
     second = world.p.features.transition(world.principal("mick2"), "eq/twice", 1, "approve")
     assert second["state"] == "approved"
     # the old, still-active default governs every other namespace unchanged
@@ -77,15 +83,23 @@ def test_break_glass_is_loud_and_permanent(world):
     with pytest.raises(ValidationFailed, match="reason"):
         world.p.features.transition(world.admin, "eq/forced", 1, "approve", force=True)
     with pytest.raises(PermissionDenied):
-        world.p.features.transition(world.mick, "eq/forced", 1, "approve", force=True,
-                                    rationale="because I said so, loudly")
-    out = world.p.features.transition(world.admin, "eq/forced", 1, "approve", force=True,
-                                      rationale="regulator deadline; reviewed offline by CRO")
+        world.p.features.transition(
+            world.mick, "eq/forced", 1, "approve", force=True, rationale="because I said so, loudly"
+        )
+    out = world.p.features.transition(
+        world.admin,
+        "eq/forced",
+        1,
+        "approve",
+        force=True,
+        rationale="regulator deadline; reviewed offline by CRO",
+    )
     assert out["state"] == "approved"
     feature = world.p.features.get(world.dana, "eq/forced")
     assert feature["versions"][0]["force_approved"] is True
-    assert any(e["object_ref"].endswith("forced@v1") for e in
-               world.p.workflow_svc.break_glass_report())
+    assert any(
+        e["object_ref"].endswith("forced@v1") for e in world.p.workflow_svc.break_glass_report()
+    )
     inbox = world.p.access.inbox(world.dana)
     assert any("BREAK-GLASS" in n["message"] for n in inbox)
 
@@ -96,13 +110,16 @@ def test_blocking_comment_blocks_approval_until_resolved(world):
     world.p.features.ingest(world.dana, "cmt/commented", price_csv(3), fmt="csv")
     world.p.features.transition(world.dana, "cmt/commented", 1, "submit")
     version = world.p.features.get(world.dana, "cmt/commented")["versions"][0]
-    c = world.p.workflow_svc.comment(world.mick, "feature_version", version["id"],
-                                     "units are wrong", blocking=True)
+    c = world.p.workflow_svc.comment(
+        world.mick, "feature_version", version["id"], "units are wrong", blocking=True
+    )
     with pytest.raises(NotApproved, match="blocking"):
         world.p.features.transition(world.mick, "cmt/commented", 1, "approve")
     world.p.workflow_svc.resolve_comment(world.mick, c["id"])
-    assert world.p.features.transition(world.mick, "cmt/commented", 1,
-                                       "approve")["state"] == "approved"
+    assert (
+        world.p.features.transition(world.mick, "cmt/commented", 1, "approve")["state"]
+        == "approved"
+    )
 
 
 def test_campaign_reports_per_item(world):
@@ -135,8 +152,13 @@ def test_estate_round_trip_and_audit_tamper_detection():
     # tamper: bypass the append-only trigger and rewrite one entry
     with platform.db.engine.begin() as conn:
         pg = conn.dialect.name == "postgresql"
-        conn.execute(text("DROP TRIGGER audit_events_no_update ON audit_events" if pg
-                          else "DROP TRIGGER audit_events_no_update"))
+        conn.execute(
+            text(
+                "DROP TRIGGER audit_events_no_update ON audit_events"
+                if pg
+                else "DROP TRIGGER audit_events_no_update"
+            )
+        )
         conn.execute(text("UPDATE audit_events SET actor='mallory' WHERE seq=3"))
     broken = platform.access.verify_audit()
     assert broken["ok"] is False and broken["broken_at"] == 3
@@ -148,6 +170,7 @@ def test_schema_mismatch_refuses_to_start():
     with platform.db.engine.begin() as conn:
         conn.execute(text("UPDATE schema_meta SET value='deadbeef' WHERE key='schema_hash'"))
     from maya.core.errors import ConfigurationError
+
     with pytest.raises(ConfigurationError, match="export-estate"):
         platform.db.verify_schema()
     platform.shutdown()
@@ -164,12 +187,13 @@ def test_a_database_from_another_schema_still_exports_and_loads():
     from maya.core.errors import ConfigurationError
     from maya.core.version import VERSION
     from maya.persistence import estate
+
     platform = build_platform()
     w = World(platform)
     platform.access.create_namespace(w.admin, name="eq")
     approved_feature(w, "old_schema_px", price_csv(3))
     head = platform.access.verify_audit()["head"]
-    with platform.db.engine.begin() as conn:     # an "older" database
+    with platform.db.engine.begin() as conn:  # an "older" database
         conn.execute(text("ALTER TABLE features ADD COLUMN legacy_note TEXT"))
         conn.execute(text("ALTER TABLE sessions DROP COLUMN user_agent"))
         conn.execute(text("UPDATE schema_meta SET value='0ld5c4e7a' WHERE key='schema_hash'"))
@@ -181,8 +205,7 @@ def test_a_database_from_another_schema_still_exports_and_loads():
     platform.db.init_schema(force=True)
     result = platform.ops.import_estate(data)
     assert result["audit_chain"]["ok"] and result["audit_chain"]["head"] == head
-    assert platform.features.get(w.admin, "eq/old_schema_px")["versions"][0]["state"] \
-        == "approved"
+    assert platform.features.get(w.admin, "eq/old_schema_px")["versions"][0]["state"] == "approved"
     with platform.uow() as uow:
         assert all(s["user_agent"] is None for s in uow.repo("sessions").list())
     platform.db.verify_schema()
@@ -196,10 +219,15 @@ def test_a_required_column_the_estate_cannot_fill_is_named():
 
     from maya.core.errors import ValidationFailed
     from maya.persistence.estate import _require_carried
-    table = Table("t", MetaData(), Column("id", String, primary_key=True),
-                  Column("added", String, nullable=False),
-                  Column("optional", String), Column("defaulted", String, nullable=False,
-                                                     default="x"))
+
+    table = Table(
+        "t",
+        MetaData(),
+        Column("id", String, primary_key=True),
+        Column("added", String, nullable=False),
+        Column("optional", String),
+        Column("defaulted", String, nullable=False, default="x"),
+    )
     _require_carried(table, {"id": "1", "added": "a"})
     with pytest.raises(ValidationFailed, match="added"):
         _require_carried(table, {"id": "1"})

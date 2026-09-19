@@ -11,11 +11,14 @@ It also computes the per-file statistics (``numRecords``, ``minValues``,
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
 import decimal
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote
@@ -58,15 +61,28 @@ def matches(partition_values: dict[str, Any], wanted: dict[str, list[str]] | Non
     return True
 
 
-def read_files(root: Path, adds: list[dict[str, Any]], schema: pa.Schema,
-               partition_columns: list[str], columns: list[str] | None = None) -> pa.Table:
+PARALLEL_FROM = 16
+READERS = min(8, os.cpu_count() or 1)
+
+
+def read_files(
+    root: Path,
+    adds: list[dict[str, Any]],
+    schema: pa.Schema,
+    partition_columns: list[str],
+    columns: list[str] | None = None,
+) -> pa.Table:
     """Read ``adds`` in order, attach partition columns, conform to ``schema``."""
     out_schema = schema if columns is None else pa.schema([schema.field(c) for c in columns])
     data_cols = [f.name for f in out_schema if f.name not in partition_columns]
-    pieces: list[pa.Table] = []
-    for add in adds:
+
+    def one(add: dict[str, Any]) -> pa.Table:
         path = from_add_path(root, add["path"])
-        piece = pq.read_table(path, columns=data_cols) if data_cols else pq.read_metadata(path)
+        piece = (
+            pq.read_table(path, columns=data_cols, use_threads=False)
+            if data_cols
+            else pq.read_metadata(path)
+        )
         if not isinstance(piece, pa.Table):  # partition-only projection
             piece = pa.table({"__n": pa.nulls(piece.num_rows)})
         pv = add.get("partitionValues") or {}
@@ -74,7 +90,15 @@ def read_files(root: Path, adds: list[dict[str, Any]], schema: pa.Schema,
             if col in out_schema.names:
                 val = pv.get(col)
                 piece = piece.append_column(col, pa.array([val] * piece.num_rows, pa.string()))
-        pieces.append(conform(piece, out_schema))
+        return conform(piece, out_schema)
+
+    # Many small files (a pin's fragments): read them side by side — the parquet reader
+    # releases the GIL — and keep them in order.
+    if len(adds) >= PARALLEL_FROM:
+        with ThreadPoolExecutor(max_workers=READERS) as pool:
+            pieces = list(pool.map(one, adds))
+    else:
+        pieces = [one(add) for add in adds]
     if not pieces:
         return out_schema.empty_table()
     return pa.concat_tables(pieces)
@@ -94,8 +118,14 @@ def _stat_value(v: Any) -> Any:
 
 
 def _statable(t: pa.DataType) -> bool:
-    return (pa.types.is_integer(t) or pa.types.is_floating(t) or pa.types.is_string(t)
-            or pa.types.is_date(t) or pa.types.is_timestamp(t) or pa.types.is_decimal(t))
+    return (
+        pa.types.is_integer(t)
+        or pa.types.is_floating(t)
+        or pa.types.is_string(t)
+        or pa.types.is_date(t)
+        or pa.types.is_timestamp(t)
+        or pa.types.is_decimal(t)
+    )
 
 
 def file_stats(table: pa.Table) -> str:
@@ -118,5 +148,7 @@ def file_stats(table: pa.Table) -> str:
             if len(lo) > 32 or len(hi) > 32:
                 continue
         mins[f.name], maxs[f.name] = _stat_value(lo), _stat_value(hi)
-    return json.dumps({"numRecords": table.num_rows, "minValues": mins,
-                       "maxValues": maxs, "nullCount": nulls}, separators=(",", ":"))
+    return json.dumps(
+        {"numRecords": table.num_rows, "minValues": mins, "maxValues": maxs, "nullCount": nulls},
+        separators=(",", ":"),
+    )

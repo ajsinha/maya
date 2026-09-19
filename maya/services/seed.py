@@ -8,6 +8,7 @@ health page while that password is unchanged.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,16 +29,23 @@ def seed(platform: Any) -> None:
         _admin(uow)
         _policies(uow)
     if platform.auth.default_admin_password_active():
-        logger.warning("The bootstrap admin still uses the default password "
-                       "'maya-dev-admin'. Change it now.")
+        logger.warning(
+            "The bootstrap admin still uses the default password 'maya-dev-admin'. Change it now."
+        )
 
 
 def _roles(uow: Any) -> None:
     for name, caps in MATRIX.items():
         role = uow.repo("roles").find_one(name=name)
         if role is None:
-            uow.repo("roles").add({"name": name, "description": DESCRIPTIONS[name],
-                                   "capabilities": caps, "builtin": True})
+            uow.repo("roles").add(
+                {
+                    "name": name,
+                    "description": DESCRIPTIONS[name],
+                    "capabilities": caps,
+                    "builtin": True,
+                }
+            )
         elif role["builtin"] and role["capabilities"] != caps:
             uow.repo("roles").update(role["id"], {"capabilities": caps})
 
@@ -45,21 +53,40 @@ def _roles(uow: Any) -> None:
 def _admin(uow: Any) -> None:
     if uow.repo("users").count() > 0:
         return
-    user = uow.repo("users").add({
-        "username": "admin", "display_name": "Administrator", "email": "",
-        "auth_source": "db", "password_hash": kdf.hash_password(DEFAULT_ADMIN_PASSWORD),
-        "must_change_password": True, "password_changed_at": utcnow()})
+    user = uow.repo("users").add(
+        {
+            "username": "admin",
+            "display_name": "Administrator",
+            "email": "",
+            "auth_source": "db",
+            "password_hash": kdf.hash_password(DEFAULT_ADMIN_PASSWORD),
+            "must_change_password": True,
+            "password_changed_at": utcnow(),
+        }
+    )
     role = uow.repo("roles").find_one(name="admin")
     uow.repo("user_roles").add({"user_id": user["id"], "role_id": role["id"]})
-    uow.audit("bootstrap.admin_created", object_ref="user:admin", principal_type="system",
-              channel="system")
+    uow.audit(
+        "bootstrap.admin_created",
+        object_ref="user:admin",
+        principal_type="system",
+        channel="system",
+    )
 
 
 def _policies(uow: Any) -> None:
     for object_type, policy in default_policies().items():
         if uow.repo("workflow_policies").find_one(object_type=object_type, scope="*"):
             continue
-        uow.repo("workflow_policies").add({
-            "object_type": object_type, "scope": "*", "version_no": 1, "state": "active",
-            "policy": policy, "note": "Seeded default", "approved_by": "system",
-            "activated_at": utcnow()})
+        uow.repo("workflow_policies").add(
+            {
+                "object_type": object_type,
+                "scope": "*",
+                "version_no": 1,
+                "state": "active",
+                "policy": policy,
+                "note": "Seeded default",
+                "approved_by": "system",
+                "activated_at": utcnow(),
+            }
+        )

@@ -3,6 +3,7 @@ The event stream and webhooks (§18.1).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,19 +21,31 @@ router = APIRouter(tags=["events"])
 
 
 @router.get("/events")
-def events(after: int = 0, limit: int = 500, type: str | None = None,
-           page_size: int | None = None, cursor: str | None = None,
-                  sort: str | None = None, total: bool = False, me: Principal = Me, plat: Any = Plat) -> Response:
+def events(
+    after: int = 0,
+    limit: int = 500,
+    type: str | None = None,
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
     """Events after a sequence number; ``type`` is a prefix (``pin.`` for every pin event)."""
     if page_size is not None or cursor is not None:
-        return ok(plat.webhooks.events_page(me, type_prefix=type, page_size=page_size, cursor=cursor, sort=sort, total=total))
+        return ok(
+            plat.webhooks.events_page(
+                me, type_prefix=type, page_size=page_size, cursor=cursor, sort=sort, total=total
+            )
+        )
     return ok(plat.webhooks.events(me, after=after, limit=limit, type_prefix=type))
 
 
 @router.get("/events/stream")
 async def event_stream(after: int = 0, me: Principal = Me, plat: Any = Plat) -> StreamingResponse:
     """Server-sent events from ``after`` onward; reconnect with the last id seen."""
-    plat.webhooks.events(me, after=after, limit=1)          # authorization first
+    plat.webhooks.events(me, after=after, limit=1)  # authorization first
 
     async def stream() -> Any:
         cursor = after
@@ -42,6 +55,7 @@ async def event_stream(after: int = 0, me: Principal = Me, plat: Any = Plat) -> 
                 cursor = e["seq"]
                 yield f"id: {cursor}\nevent: {e['type']}\ndata: {json.dumps(e, default=str)}\n\n"
             await asyncio.sleep(0.5 if rows else 2.0)
+
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 

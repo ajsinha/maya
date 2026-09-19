@@ -17,6 +17,7 @@ or one replayed against a different query, is refused as ``InvalidCursor``
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -37,14 +38,14 @@ _BATCH = 64
 @dataclass
 class Listing:
     table: str
-    sorts: dict[str, str]              # public sort name -> column ("name", "-created_at")
+    sorts: dict[str, str]  # public sort name -> column ("name", "-created_at")
     default: str
     filters: dict[str, Any] = field(default_factory=dict)
     search: tuple[list[str], str] | None = None
     keep: Callable[[Any, dict[str, Any]], bool] | None = None
     enrich: Callable[[Any, dict[str, Any]], dict[str, Any]] | None = None
     enrich_many: Callable[[Any, list[dict[str, Any]]], list[dict[str, Any]]] | None = None
-    scope: dict[str, Any] = field(default_factory=dict)   # conditions ``keep`` applies
+    scope: dict[str, Any] = field(default_factory=dict)  # conditions ``keep`` applies
 
     def finish(self, uow: Any, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """The rows as callers see them: ``enrich_many`` in bulk, else ``enrich`` per row."""
@@ -57,8 +58,9 @@ class Listing:
         order = self.sorts[sort or self.default]
         pk = uow.repo(self.table).model.__mapper__.primary_key[0].key
         tiebreak = ("-" if order.startswith("-") else "") + pk
-        rows = uow.repo(self.table).list(order_by=[order, tiebreak], search=self.search,
-                                         **self.filters)
+        rows = uow.repo(self.table).list(
+            order_by=[order, tiebreak], search=self.search, **self.filters
+        )
         return self.finish(uow, [r for r in rows if self.keep is None or self.keep(uow, r)])
 
 
@@ -93,42 +95,62 @@ class Pager:
     @staticmethod
     def shape(listing: Listing, sort: str) -> str:
         """The query a cursor belongs to: table, sort, filters and search, as a digest."""
-        body = json.dumps({"t": listing.table, "s": sort, "f": listing.filters,
-                           "c": listing.scope,
-                           "q": list(listing.search) if listing.search else None},
-                          sort_keys=True, default=str)
+        body = json.dumps(
+            {
+                "t": listing.table,
+                "s": sort,
+                "f": listing.filters,
+                "c": listing.scope,
+                "q": list(listing.search) if listing.search else None,
+            },
+            sort_keys=True,
+            default=str,
+        )
         return hashlib.sha256(body.encode()).hexdigest()[:24]
 
     def _sign(self, payload: str) -> str:
         return _b64(hmac.new(self._key, payload.encode(), hashlib.sha256).digest()[:18])
 
     def encode(self, shape: str, key: tuple[Any, Any]) -> str:
-        payload = _b64(json.dumps({"h": shape, "k": [_enc(key[0]), _enc(key[1])]},
-                                  separators=(",", ":")).encode())
+        payload = _b64(
+            json.dumps(
+                {"h": shape, "k": [_enc(key[0]), _enc(key[1])]}, separators=(",", ":")
+            ).encode()
+        )
         return f"{payload}.{self._sign(payload)}"
 
     def decode(self, token: str, shape: str) -> tuple[Any, Any]:
         payload, _, sig = token.partition(".")
         if not payload or not hmac.compare_digest(sig, self._sign(payload)):
-            raise InvalidCursor("The cursor is not one MAYA issued (it was altered or "
-                                "truncated); start again without a cursor")
+            raise InvalidCursor(
+                "The cursor is not one MAYA issued (it was altered or "
+                "truncated); start again without a cursor"
+            )
         try:
             body = json.loads(_unb64(payload))
             if body["h"] != shape:
-                raise InvalidCursor("The cursor belongs to a different query (sort, filter or "
-                                    "search changed); start again without a cursor")
+                raise InvalidCursor(
+                    "The cursor belongs to a different query (sort, filter or "
+                    "search changed); start again without a cursor"
+                )
             value, key = body["k"]
         except (ValueError, KeyError, TypeError) as exc:
             raise InvalidCursor("The cursor is malformed; start again without a cursor") from exc
         return _dec(value), _dec(key)
 
-    def page(self, uow: Any, listing: Listing, *, page_size: int | None = None,
-             cursor: str | None = None, sort: str | None = None,
-             total: bool = False) -> dict[str, Any]:
+    def page(
+        self,
+        uow: Any,
+        listing: Listing,
+        *,
+        page_size: int | None = None,
+        cursor: str | None = None,
+        sort: str | None = None,
+        total: bool = False,
+    ) -> dict[str, Any]:
         size = DEFAULT_PAGE if page_size is None else int(page_size)
         if not 1 <= size <= MAX_PAGE:
-            raise ValidationFailed(f"page_size must be between 1 and {MAX_PAGE}",
-                                   page_size=size)
+            raise ValidationFailed(f"page_size must be between 1 and {MAX_PAGE}", page_size=size)
         sort = sort or listing.default
         if sort not in listing.sorts:
             raise ValidationFailed(f"sort must be one of {', '.join(listing.sorts)}", sort=sort)
@@ -143,8 +165,9 @@ class Pager:
         more = False
         batch = max(size + 1, _BATCH)
         while not more:
-            rows = repo.keyset(order, after=after, limit=batch, search=listing.search,
-                               **listing.filters)
+            rows = repo.keyset(
+                order, after=after, limit=batch, search=listing.search, **listing.filters
+            )
             for row in rows:
                 after = (row[column], row[pk])
                 if listing.keep is not None and not listing.keep(uow, row):
@@ -157,19 +180,29 @@ class Pager:
             if len(rows) < batch:
                 break
         items = listing.finish(uow, kept)
-        out: dict[str, Any] = {"items": items, "page_size": size, "sort": sort,
-                               "next_cursor": self.encode(shape, last) if more and last else None}
+        out: dict[str, Any] = {
+            "items": items,
+            "page_size": size,
+            "sort": sort,
+            "next_cursor": self.encode(shape, last) if more and last else None,
+        }
         if total:
-            out["total"] = (repo.count(search=listing.search, **listing.filters)
-                            if listing.keep is None else
-                            sum(1 for _ in _kept_all(uow, listing)))
+            counter = getattr(listing.keep, "count", None)
+            out["total"] = (
+                repo.count(search=listing.search, **listing.filters)
+                if listing.keep is None
+                else counter(uow, listing.table, listing.search, listing.filters)
+                if counter is not None
+                else sum(1 for _ in _kept_all(uow, listing))
+            )
         return out
 
 
 def _kept_all(uow: Any, listing: Listing) -> Any:
     repo = uow.repo(listing.table)
-    columns = [c for c in ("id", "namespace_id", "owner_id")
-               if c in repo.model.__mapper__.columns]          # all ``keep`` ever reads
+    columns = [
+        c for c in ("id", "namespace_id", "owner_id") if c in repo.model.__mapper__.columns
+    ]  # all ``keep`` ever reads
     for row in repo.slim(columns, search=listing.search, **listing.filters):
         if listing.keep is None or listing.keep(uow, row):
             yield row
@@ -184,10 +217,17 @@ def pager(platform: Any) -> Pager:
     return cached
 
 
-def run_page(platform: Any, build: Callable[[Any], Listing], *, page_size: int | None = None,
-             cursor: str | None = None, sort: str | None = None,
-             total: bool = False) -> dict[str, Any]:
+def run_page(
+    platform: Any,
+    build: Callable[[Any], Listing],
+    *,
+    page_size: int | None = None,
+    cursor: str | None = None,
+    sort: str | None = None,
+    total: bool = False,
+) -> dict[str, Any]:
     """One page of the listing ``build(uow)`` describes, in one unit of work."""
     with platform.uow() as uow:
-        return pager(platform).page(uow, build(uow), page_size=page_size, cursor=cursor,
-                                    sort=sort, total=total)
+        return pager(platform).page(
+            uow, build(uow), page_size=page_size, cursor=cursor, sort=sort, total=total
+        )

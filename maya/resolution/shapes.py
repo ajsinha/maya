@@ -15,6 +15,7 @@ and every nested attribute's axis manifest, so a reader never infers:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import base64
@@ -46,9 +47,12 @@ def axis_manifest(schema: list[dict[str, Any]]) -> dict[str, Any]:
         if lt.kind not in {"list", "fixed_vector", "tensor"}:
             continue
         out[a["name"]] = {
-            "dtype": lt.element, "shape": list(lt.shape) if lt.shape else None,
-            "order": "row_major", "axis_names": a.get("axis_names"),
-            "axis_values": a.get("axis_values"), "null_policy": "null_row",
+            "dtype": lt.element,
+            "shape": list(lt.shape) if lt.shape else None,
+            "order": "row_major",
+            "axis_names": a.get("axis_names"),
+            "axis_values": a.get("axis_values"),
+            "null_policy": "null_row",
         }
     return out
 
@@ -87,10 +91,14 @@ def _array(series: pd.Series, logical: str) -> pa.Array:
         return pa.array([_flat(v) for v in series.tolist()], type=at)
     if lt.kind == "date":
         vals = pd.to_datetime(series)
-        return pa.array([None if pd.isna(v) else v.date() for v in vals], type=at)
+        days = vals.to_numpy().astype("datetime64[D]")  # floor, as .date() does
+        return pa.array(days, type=at, mask=vals.isna().to_numpy())
     if lt.kind == "timestamp":
         return pa.array(pd.to_datetime(series, utc=True), type=at)
-    return pa.array(series.astype(object).where(series.notna(), None).tolist(), type=at)
+    try:  # the column as it is; NaN and None become null
+        return pa.array(series, type=at, from_pandas=True)
+    except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError, ValueError):
+        return pa.array(series.astype(object).where(series.notna(), None).tolist(), type=at)
 
 
 def manifest_for(df: pd.DataFrame, schema: list[dict[str, Any]], **extra: Any) -> dict[str, Any]:
@@ -117,8 +125,9 @@ def parquet_safe(table: pa.Table) -> pa.Table:
     fields = []
     for f in table.schema:
         t = f.type
-        fields.append(pa.field(f.name, pa.list_(t.value_type)) if pa.types.is_fixed_size_list(t)
-                      else f)
+        fields.append(
+            pa.field(f.name, pa.list_(t.value_type)) if pa.types.is_fixed_size_list(t) else f
+        )
     return table.cast(pa.schema(fields, metadata=table.schema.metadata))
 
 
@@ -127,11 +136,15 @@ def _explode(df: pd.DataFrame, schema: list[dict[str, Any]]) -> pd.DataFrame:
     out = df.copy()
     for name, ax in axes.items():
         if not ax["shape"]:
-            raise ValidationFailed(f"attribute '{name}' is a ragged list and cannot be widened; "
-                                   "use tabular, or the packed/json CSV encoding")
+            raise ValidationFailed(
+                f"attribute '{name}' is a ragged list and cannot be widened; "
+                "use tabular, or the packed/json CSV encoding"
+            )
         shape = tuple(ax["shape"])
-        cells = [np.full(shape, np.nan) if _flat(v) is None else np.asarray(_flat(v)).reshape(shape)
-                 for v in df[name].tolist()]
+        cells = [
+            np.full(shape, np.nan) if _flat(v) is None else np.asarray(_flat(v)).reshape(shape)
+            for v in df[name].tolist()
+        ]
         stacked = np.stack(cells) if cells else np.empty((0, *shape))
         pos = out.columns.get_loc(name)
         out = out.drop(columns=[name])
@@ -141,7 +154,9 @@ def _explode(df: pd.DataFrame, schema: list[dict[str, Any]]) -> pd.DataFrame:
     return out
 
 
-def to_shape(df: pd.DataFrame, schema: list[dict[str, Any]], shape: str) -> tuple[Any, dict[str, Any]]:
+def to_shape(
+    df: pd.DataFrame, schema: list[dict[str, Any]], shape: str
+) -> tuple[Any, dict[str, Any]]:
     """Materialize a frame in one of the three shapes. Returns (data, manifest)."""
     manifest = {"shape": shape, "axes": axis_manifest(schema)}
     if shape == "tabular":
@@ -161,9 +176,12 @@ def _tensor(df: pd.DataFrame, schema: list[dict[str, Any]]) -> dict[str, Any]:
         if lt.kind == "list":
             raise ValidationFailed(f"ragged attribute '{a['name']}' has no dense tensor form")
         if lt.shape:
-            cells = [np.full(lt.shape, np.nan) if _flat(v) is None
-                     else np.asarray(_flat(v), dtype="float64").reshape(lt.shape)
-                     for v in df[a["name"]].tolist()]
+            cells = [
+                np.full(lt.shape, np.nan)
+                if _flat(v) is None
+                else np.asarray(_flat(v), dtype="float64").reshape(lt.shape)
+                for v in df[a["name"]].tolist()
+            ]
             out[a["name"]] = np.stack(cells) if cells else np.empty((0, *lt.shape))
         else:
             out[a["name"]] = pd.to_numeric(df[a["name"]], errors="coerce").to_numpy(dtype="float64")
@@ -171,6 +189,7 @@ def _tensor(df: pd.DataFrame, schema: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------- export
+
 
 def _jsonable(df: pd.DataFrame, types: dict[str, str]) -> list[dict[str, Any]]:
     rows = []
@@ -208,9 +227,13 @@ def _csv(df: pd.DataFrame, schema: list[dict[str, Any]], encoding: str | None) -
     if axes and encoding not in CSV_ENCODINGS:
         raise ValidationFailed(
             "CSV export of nested attributes needs a declared encoding",
-            nested=sorted(axes), choices={"wide": "exploded columns, readable, fixed shapes only",
-                                          "packed": "base64 little-endian, lossless, not readable",
-                                          "json": "JSON text per cell, readable, slow"})
+            nested=sorted(axes),
+            choices={
+                "wide": "exploded columns, readable, fixed shapes only",
+                "packed": "base64 little-endian, lossless, not readable",
+                "json": "JSON text per cell, readable, slow",
+            },
+        )
     types = _column_types(df, schema)
     manifest = manifest_for(df, schema, encoding=encoding if axes else None)
     body = df.copy()
@@ -218,24 +241,32 @@ def _csv(df: pd.DataFrame, schema: list[dict[str, Any]], encoding: str | None) -
         body = _explode(df, schema)
     elif axes:
         for name, ax in axes.items():
-            body[name] = [(_pack(v, ax["dtype"]) if encoding == "packed" else
-                           (None if _flat(v) is None else json.dumps(_flat(v))))
-                          for v in df[name].tolist()]
+            body[name] = [
+                (
+                    _pack(v, ax["dtype"])
+                    if encoding == "packed"
+                    else (None if _flat(v) is None else json.dumps(_flat(v)))
+                )
+                for v in df[name].tolist()
+            ]
     for col in body.columns:
         if pd.api.types.is_float_dtype(body[col]):
             # repr is the shortest string that round-trips a float64 exactly.
             body[col] = [None if pd.isna(v) else repr(float(v)) for v in body[col]]
     for col, t in types.items():
         if t == "date" and col in body.columns:
-            body[col] = [None if pd.isna(v) else pd.Timestamp(v).date().isoformat() for v in body[col]]
+            body[col] = [
+                None if pd.isna(v) else pd.Timestamp(v).date().isoformat() for v in body[col]
+            ]
     buf = io.StringIO()
     buf.write("# maya-manifest: " + json.dumps(manifest, sort_keys=True) + "\n")
     body.to_csv(buf, index=False, lineterminator="\n")
     return buf.getvalue().encode("utf-8")
 
 
-def export(df: pd.DataFrame, schema: list[dict[str, Any]], fmt: str,
-           csv_encoding: str | None = None) -> bytes:
+def export(
+    df: pd.DataFrame, schema: list[dict[str, Any]], fmt: str, csv_encoding: str | None = None
+) -> bytes:
     """Serialize a frame losslessly in a declared format."""
     if fmt not in FORMATS:
         raise ValidationFailed(f"unknown export format '{fmt}'", allowed=list(FORMATS))
@@ -262,6 +293,7 @@ def export(df: pd.DataFrame, schema: list[dict[str, Any]], fmt: str,
 
 # ------------------------------------------------------------------- import
 
+
 def _restore(df: pd.DataFrame, manifest: dict[str, Any]) -> pd.DataFrame:
     types = manifest["columns"]
     out = pd.DataFrame(index=range(len(df)))
@@ -269,8 +301,10 @@ def _restore(df: pd.DataFrame, manifest: dict[str, Any]) -> pd.DataFrame:
         kind = parse_type(t).kind
         s = df[col] if col in df.columns else pd.Series([None] * len(df))
         if kind in {"list", "fixed_vector", "tensor"}:
-            out[col] = [_flat(v) if v is not None and not (isinstance(v, float) and math.isnan(v))
-                        else None for v in s.tolist()]
+            out[col] = [
+                _flat(v) if v is not None and not (isinstance(v, float) and math.isnan(v)) else None
+                for v in s.tolist()
+            ]
         elif kind == "date":
             out[col] = pd.to_datetime(s).astype("datetime64[ns]")
         elif kind == "timestamp":
@@ -314,9 +348,16 @@ def _read_csv(data: bytes) -> tuple[pd.DataFrame, dict[str, Any]]:
     elif enc in {"packed", "json"}:
         for name, ax in manifest["axes"].items():
             dt = _NUMPY.get(ax["dtype"], "<f8")
-            df[name] = [None if v is None else
-                        (np.frombuffer(base64.b64decode(v[4:]), dtype=dt).tolist() if enc == "packed"
-                         else json.loads(v)) for v in df[name]]
+            df[name] = [
+                None
+                if v is None
+                else (
+                    np.frombuffer(base64.b64decode(v[4:]), dtype=dt).tolist()
+                    if enc == "packed"
+                    else json.loads(v)
+                )
+                for v in df[name]
+            ]
     for col, t in types.items():
         if t in {"float64", "float32"}:
             df[col] = _floats(df[col])
@@ -326,8 +367,11 @@ def _read_csv(data: bytes) -> tuple[pd.DataFrame, dict[str, Any]]:
 def import_export(data: bytes, fmt: str) -> pd.DataFrame:
     """Read back an export produced by :func:`export` (the round-trip reader)."""
     if fmt in {"arrow", "parquet"}:
-        table = ipc.open_file(pa.py_buffer(data)).read_all() if fmt == "arrow" \
+        table = (
+            ipc.open_file(pa.py_buffer(data)).read_all()
+            if fmt == "arrow"
             else pq.read_table(pa.py_buffer(data))
+        )
         manifest = json.loads(table.schema.metadata[MANIFEST_KEY])
         return _restore(table.to_pandas(types_mapper=None, date_as_object=True), manifest)
     if fmt == "json":

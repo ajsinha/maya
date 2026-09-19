@@ -21,6 +21,7 @@ filters are AND-ed, masks unioned (where two grants mask one column differently,
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -38,10 +39,12 @@ KEYS = ("row_filter", "column_mask", "time_bound")
 def validate(conditions: dict[str, Any]) -> dict[str, Any]:
     """Refuse malformed conditions at grant time, not at first read."""
     from maya.resolution.expr import compile_expr
+
     unknown = set(conditions) - set(KEYS)
     if unknown:
-        raise ValidationFailed(f"Unknown grant condition(s): {', '.join(sorted(unknown))}; "
-                               f"allowed: {', '.join(KEYS)}")
+        raise ValidationFailed(
+            f"Unknown grant condition(s): {', '.join(sorted(unknown))}; allowed: {', '.join(KEYS)}"
+        )
     if conditions.get("row_filter"):
         compile_expr(_substitute(conditions["row_filter"], {"username": "x", "desk": "x"}))
     for attr, how in (conditions.get("column_mask") or {}).items():
@@ -66,8 +69,9 @@ def combine(many: list[dict[str, Any]]) -> dict[str, Any]:
     for c in many:
         for attr, how in (c.get("column_mask") or {}).items():
             masks[attr] = "null" if "null" in (how, masks.get(attr)) else how
-    untils = [str(c["time_bound"]["until"]) for c in many
-              if (c.get("time_bound") or {}).get("until")]
+    untils = [
+        str(c["time_bound"]["until"]) for c in many if (c.get("time_bound") or {}).get("until")
+    ]
     out: dict[str, Any] = {}
     if filters:
         out["row_filter"] = " and ".join(f"({f})" for f in filters)
@@ -88,12 +92,14 @@ def _substitute(expr: str, user: dict[str, Any]) -> str:
     return expr
 
 
-def apply(df: pd.DataFrame, conditions: dict[str, Any], *, event_col: str | None,
-          user: dict[str, Any]) -> tuple[pd.DataFrame, dict[str, Any]]:
+def apply(
+    df: pd.DataFrame, conditions: dict[str, Any], *, event_col: str | None, user: dict[str, Any]
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Apply conditions to a frame; returns the frame and a statement of what was done."""
     if not conditions:
         return df, {}
     from maya.resolution.expr import compile_expr
+
     report: dict[str, Any] = {"rows_before": int(len(df))}
     out = df
     if conditions.get("row_filter"):
@@ -126,9 +132,14 @@ def _hash(value: Any) -> str | None:
     return hashlib.sha256(str(value).encode("utf-8")).hexdigest()
 
 
-def apply_mapped(df: pd.DataFrame, conditions: dict[str, Any],
-                 mapping: list[tuple[str, str]], *,
-                 index: list[str], user: dict[str, Any]) -> tuple[pd.DataFrame, dict[str, Any]]:
+def apply_mapped(
+    df: pd.DataFrame,
+    conditions: dict[str, Any],
+    mapping: list[tuple[str, str]],
+    *,
+    index: list[str],
+    user: dict[str, Any],
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Apply a member feature's conditions to a feature set frame.
 
     The member's conditions name the member's own attributes; ``mapping`` lists which
@@ -144,8 +155,12 @@ def apply_mapped(df: pd.DataFrame, conditions: dict[str, Any],
         if attr in df.columns and src not in view.columns:
             view[src] = df[attr].to_numpy()
     probe = view.assign(_row=range(len(view)))
-    kept, report = apply(probe, {k: v for k, v in conditions.items() if k != "column_mask"},
-                         event_col=index[0] if index else None, user=user)
+    kept, report = apply(
+        probe,
+        {k: v for k, v in conditions.items() if k != "column_mask"},
+        event_col=index[0] if index else None,
+        user=user,
+    )
     out = df.iloc[kept["_row"].to_list()].copy() if len(kept) != len(df) else df.copy()
     masks = conditions.get("column_mask") or {}
     masked: dict[str, str] = {}

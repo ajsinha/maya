@@ -9,6 +9,7 @@ or replace its TOTP authenticator (which would bypass the challenge entirely).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -27,6 +28,7 @@ def env():
     platform = build_platform()
     World(platform)
     from maya.api.app import create_api
+
     yield platform, create_api(platform)
     platform.shutdown()
 
@@ -83,14 +85,16 @@ def test_a_replayed_or_expired_challenge_is_refused(env):
     again, _ = _login(app, "mick")
     again.auth.security_key_options()
     with pytest.raises(NotAuthenticated, match="another sign-in|already used"):
-        again.auth.security_key_verify(answer)            # the old challenge, replayed
+        again.auth.security_key_verify(answer)  # the old challenge, replayed
     late, _ = _login(app, "mick")
     options = late.auth.security_key_options()["options"]
     with platform.uow() as uow:
-        row = uow.repo("auth_challenges").find_one(kind="webauthn_login",
-                                                   handle=options["challenge"])
-        uow.repo("auth_challenges").update(row["id"], {
-            "expires_at": dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=1)})
+        row = uow.repo("auth_challenges").find_one(
+            kind="webauthn_login", handle=options["challenge"]
+        )
+        uow.repo("auth_challenges").update(
+            row["id"], {"expires_at": dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=1)}
+        )
     with pytest.raises(NotAuthenticated, match="expired"):
         late.auth.security_key_verify(key.get(options))
     with platform.uow() as uow:
@@ -102,31 +106,38 @@ def test_wrong_origin_or_relying_party_is_refused(env):
     _, app = env
     me, _ = _login(app, "mona")
     with pytest.raises(ValidationFailed, match="did not verify"):
-        me.auth.register_security_key(SoftKey(origin="https://evil.example.test").create(
-            me.auth.security_key_register_options()["options"]))
+        me.auth.register_security_key(
+            SoftKey(origin="https://evil.example.test").create(
+                me.auth.security_key_register_options()["options"]
+            )
+        )
     with pytest.raises(ValidationFailed, match="did not verify"):
-        me.auth.register_security_key(SoftKey(rp_id="evil.example.test").create(
-            me.auth.security_key_register_options()["options"]))
+        me.auth.register_security_key(
+            SoftKey(rp_id="evil.example.test").create(
+                me.auth.security_key_register_options()["options"]
+            )
+        )
     key = SoftKey()
     _register(app, "mona", key)
     key.origin = "https://evil.example.test"
     with pytest.raises(NotAuthenticated, match="did not verify"):
         _answer(app, "mona", key)
     key.origin = "http://localhost:8600"
-    _answer(app, "mona", key)                           # the real origin still works
+    _answer(app, "mona", key)  # the real origin still works
 
 
 def test_a_counter_that_does_not_rise_is_refused_and_ends_the_attempt(env):
     platform, app = env
     key = SoftKey()
     _register(app, "devi", key)
-    _answer(app, "devi", key)                           # counter now 1
+    _answer(app, "devi", key)  # counter now 1
     me, _ = _login(app, "devi")
     with pytest.raises(NotAuthenticated, match="sign count"):
-        me.auth.security_key_verify(key.get(me.auth.security_key_options()["options"],
-                                            bump=0))    # a cloned key repeats the count
+        me.auth.security_key_verify(
+            key.get(me.auth.security_key_options()["options"], bump=0)
+        )  # a cloned key repeats the count
     with pytest.raises(NotAuthenticated):
-        me.auth.me()                                    # that sign-in attempt is over
+        me.auth.me()  # that sign-in attempt is over
     with platform.uow() as uow:
         assert uow.repo("users").find_one(username="devi")["failed_attempts"] >= 1
 
@@ -181,19 +192,22 @@ def test_keys_are_listed_removed_and_cleared_by_an_admin_reset(env):
 
 def _register_extra(app, me: Client, key: SoftKey, name: str) -> dict:
     return me.auth.register_security_key(
-        key.create(me.auth.security_key_register_options()["options"]), name=name)
+        key.create(me.auth.security_key_register_options()["options"]), name=name
+    )
 
 
 def test_enrolling_a_key_satisfies_a_forced_enrollment():
     platform = build_platform(["--auth.mfa.enforce=true"])
     from maya.api.app import create_api
+
     app = create_api(platform)
     login = Client(app=app).auth.login("admin", "maya-dev-admin")
     assert login["mfa"] == "enroll"
     admin = Client(app=app, token=login["token"])
     key = SoftKey()
     out = admin.auth.register_security_key(
-        key.create(admin.auth.security_key_register_options()["options"]))
+        key.create(admin.auth.security_key_register_options()["options"])
+    )
     assert out["mfa"] == "ok" and admin.admin.users()
     platform.shutdown()
 
@@ -202,6 +216,7 @@ def test_with_totp_and_a_key_either_answers_the_challenge():
     platform = build_platform()
     World(platform)
     from maya.api.app import create_api
+
     app = create_api(platform)
     me, _ = _login(app, "dana")
     secret = me.auth.mfa_enroll()["secret"]
@@ -223,6 +238,7 @@ def test_the_web_flow_registers_a_key_and_answers_the_challenge_with_it():
     import re
     from starlette.testclient import TestClient
     from maya.server import build_app
+
     platform = build_platform()
     World(platform)
     web = TestClient(build_app(platform))
@@ -231,8 +247,11 @@ def test_the_web_flow_registers_a_key_and_answers_the_challenge_with_it():
         return re.search(r'name="csrf_token" value="([^"]+)"', web.get(path).text).group(1)
 
     def sign_in() -> None:
-        web.post("/login", data={"username": "dana", "password": PASSWORD,
-                                 "csrf_token": csrf("/login")}, follow_redirects=False)
+        web.post(
+            "/login",
+            data={"username": "dana", "password": PASSWORD, "csrf_token": csrf("/login")},
+            follow_redirects=False,
+        )
 
     sign_in()
     page = web.get("/account/mfa")
@@ -241,8 +260,11 @@ def test_the_web_flow_registers_a_key_and_answers_the_challenge_with_it():
     assert web.post("/account/security-keys/options", json={}).status_code == 403  # no CSRF
     key = SoftKey()
     options = web.post("/account/security-keys/options", json={}, headers=headers).json()
-    r = web.post("/account/security-keys", headers=headers,
-                 json={"name": "desk key", "credential": key.create(options["options"])})
+    r = web.post(
+        "/account/security-keys",
+        headers=headers,
+        json={"name": "desk key", "credential": key.create(options["options"])},
+    )
     assert r.status_code == 200 and r.json()["next"] == "/account/mfa"
     assert "desk key" in web.get("/account/mfa").text
     web.post("/logout", data={"csrf_token": csrf("/")})

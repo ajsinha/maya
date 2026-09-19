@@ -7,6 +7,7 @@ offline — and fails after one byte changes.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -15,16 +16,19 @@ import zipfile
 
 import pytest
 
-from maya.core.errors import (ContractMismatch, NotApproved, ValidationFailed,
-                              WarrantSuspended)
+from maya.core.errors import ContractMismatch, NotApproved, ValidationFailed, WarrantSuspended
 from maya.formula.specdoc import REQUIRED_SECTIONS
 from tests.conftest import PASSWORD
 
-XY_DEF = {"index": ["date", "symbol"], "index_types": {"date": "date", "symbol": "string"},
-          "schema": [{"name": "x", "type": "float64"}, {"name": "y", "type": "float64"}],
-          "source": {"type": "csv", "knowledge_time_column": "kt"},
-          "resolution": {"grid": "as_is", "rules": {}}, "transform": [],
-          "quality": [{"check": "not_null", "attr": "x"}]}
+XY_DEF = {
+    "index": ["date", "symbol"],
+    "index_types": {"date": "date", "symbol": "string"},
+    "schema": [{"name": "x", "type": "float64"}, {"name": "y", "type": "float64"}],
+    "source": {"type": "csv", "knowledge_time_column": "kt"},
+    "resolution": {"grid": "as_is", "rules": {}},
+    "transform": [],
+    "quality": [{"check": "not_null", "attr": "x"}],
+}
 
 
 def xy_csv(days: int = 60, late: bool = False) -> bytes:
@@ -39,8 +43,9 @@ def xy_csv(days: int = 60, late: bool = False) -> bytes:
 
 
 def complete_spec(name: str) -> str:
-    body = "\n".join(f"\\section{{{s}}}\n{s} for {name}: stated in full.\n"
-                     for s in REQUIRED_SECTIONS)
+    body = "\n".join(
+        f"\\section{{{s}}}\n{s} for {name}: stated in full.\n" for s in REQUIRED_SECTIONS
+    )
     return f"\\documentclass{{article}}\n\\begin{{document}}\n{body}\n\\end{{document}}\n"
 
 
@@ -53,25 +58,38 @@ def journey(world):
     w.p.features.ingest(w.dana, "quant/xy", xy_csv(), fmt="csv")
     w.p.features.transition(w.dana, "quant/xy", 1, "submit")
     w.p.features.transition(w.mick, "quant/xy", 1, "approve")
-    fs_def = {"index": ["date", "symbol"], "grid": "as_is", "alignment": {"mode": "inner"},
-              "members": [{"attr": "x", "ref": "maya://feature/quant/xy@v1", "source_attr": "x"},
-                          {"attr": "y", "ref": "maya://feature/quant/xy@v1", "source_attr": "y"}]}
+    fs_def = {
+        "index": ["date", "symbol"],
+        "grid": "as_is",
+        "alignment": {"mode": "inner"},
+        "members": [
+            {"attr": "x", "ref": "maya://feature/quant/xy@v1", "source_attr": "x"},
+            {"attr": "y", "ref": "maya://feature/quant/xy@v1", "source_attr": "y"},
+        ],
+    }
     w.p.featuresets.create(w.devi, namespace="quant", name="panel", definition=fs_def)
     w.p.featuresets.transition(w.devi, "quant/panel", 1, "submit")
     w.p.featuresets.transition(w.mick, "quant/panel", 1, "approve")
-    w.p.featuresets.pin(w.mick, "quant/panel", version_no=1, pin_name="q1",
-                        as_of=dt.date(2026, 2, 28), cascade=True)
+    w.p.featuresets.pin(
+        w.mick, "quant/panel", version_no=1, pin_name="q1", as_of=dt.date(2026, 2, 28), cascade=True
+    )
     w.drain()
-    w.p.models.create(w.mona, namespace="quant", name="linear", formula="yhat = a*x + b",
-                      roles={"a": "parameter", "b": "parameter"})
+    w.p.models.create(
+        w.mona,
+        namespace="quant",
+        name="linear",
+        formula="yhat = a*x + b",
+        roles={"a": "parameter", "b": "parameter"},
+    )
     return w
 
 
 def test_featureset_refuses_to_pin_unpinned_members_without_cascade(journey):
     w = journey
     with pytest.raises(NotApproved, match="cascade"):
-        w.p.featuresets.pin(w.mick, "quant/panel", version_no=1, pin_name="nocascade",
-                            as_of=dt.date(2026, 2, 28))
+        w.p.featuresets.pin(
+            w.mick, "quant/panel", version_no=1, pin_name="nocascade", as_of=dt.date(2026, 2, 28)
+        )
     fs = w.p.featuresets.get(w.devi, "quant/panel")
     assert fs["pins"][0]["state"] == "sealed" and len(fs["pins"][0]["member_pin_ids"]) == 1
 
@@ -84,17 +102,30 @@ def test_cascade_rolls_back_entirely_on_a_member_failure(journey):
     w.p.features.transition(w.dana, "quant/xy_strict", 1, "submit")
     w.p.features.transition(w.mick, "quant/xy_strict", 1, "approve")
     # the data goes bad after approval: a vendor restatement out of the contract's range
-    w.p.features.ingest(w.dana, "quant/xy_strict",
-                        b"date,symbol,x,y,kt\n2026-01-05,AAA,5000,1,2026-01-06T00:00:00Z\n",
-                        fmt="csv")
-    fs_def = {"index": ["date", "symbol"], "members": [
-        {"attr": "x", "ref": "maya://feature/quant/xy@v1", "source_attr": "x"},
-        {"attr": "x2", "ref": "maya://feature/quant/xy_strict@v1", "source_attr": "x"}]}
+    w.p.features.ingest(
+        w.dana,
+        "quant/xy_strict",
+        b"date,symbol,x,y,kt\n2026-01-05,AAA,5000,1,2026-01-06T00:00:00Z\n",
+        fmt="csv",
+    )
+    fs_def = {
+        "index": ["date", "symbol"],
+        "members": [
+            {"attr": "x", "ref": "maya://feature/quant/xy@v1", "source_attr": "x"},
+            {"attr": "x2", "ref": "maya://feature/quant/xy_strict@v1", "source_attr": "x"},
+        ],
+    }
     w.p.featuresets.create(w.devi, namespace="quant", name="doomed", definition=fs_def)
     w.p.featuresets.transition(w.devi, "quant/doomed", 1, "submit")
     w.p.featuresets.transition(w.mick, "quant/doomed", 1, "approve")
-    w.p.featuresets.pin(w.mick, "quant/doomed", version_no=1, pin_name="boom",
-                        as_of=dt.date(2026, 2, 28), cascade=True)
+    w.p.featuresets.pin(
+        w.mick,
+        "quant/doomed",
+        version_no=1,
+        pin_name="boom",
+        as_of=dt.date(2026, 2, 28),
+        cascade=True,
+    )
     w.drain()
     with w.p.uow() as uow:
         fsp = uow.repo("feature_set_pins").find_one(pin_name="boom")
@@ -118,8 +149,14 @@ def test_contract_mismatch_is_refused_listing_every_attribute(journey):
     w.p.models.transition(w.mona, "quant/needs_z", 1, "submit")
     w.p.models.transition(w.mgr, "quant/needs_z", 1, "approve")
     with pytest.raises(ContractMismatch) as exc:
-        w.p.warrants.create(w.devi, namespace="quant", name="bad", model="quant/needs_z@v1",
-                            featureset="maya://featureset/quant/panel#q1/2026-02-28", spec={})
+        w.p.warrants.create(
+            w.devi,
+            namespace="quant",
+            name="bad",
+            model="quant/needs_z@v1",
+            featureset="maya://featureset/quant/panel#q1/2026-02-28",
+            spec={},
+        )
     assert "z" in exc.value.message and "w2" in exc.value.message
 
 
@@ -129,14 +166,24 @@ def test_leakage_certificate_refuses_late_knowledge(journey):
     w.p.features.ingest(w.dana, "quant/late", xy_csv(late=True), fmt="csv")
     w.p.features.transition(w.dana, "quant/late", 1, "submit")
     w.p.features.transition(w.mick, "quant/late", 1, "approve")
-    fs_def = {"index": ["date", "symbol"], "members": [
-        {"attr": "x", "ref": "maya://feature/quant/late@v1", "source_attr": "x"},
-        {"attr": "y", "ref": "maya://feature/quant/late@v1", "source_attr": "y"}]}
+    fs_def = {
+        "index": ["date", "symbol"],
+        "members": [
+            {"attr": "x", "ref": "maya://feature/quant/late@v1", "source_attr": "x"},
+            {"attr": "y", "ref": "maya://feature/quant/late@v1", "source_attr": "y"},
+        ],
+    }
     w.p.featuresets.create(w.devi, namespace="quant", name="leaky", definition=fs_def)
     w.p.featuresets.transition(w.devi, "quant/leaky", 1, "submit")
     w.p.featuresets.transition(w.mick, "quant/leaky", 1, "approve")
-    tw = w.p.warrants.create(w.devi, namespace="quant", name="leaky_tw", model="quant/linear@v1",
-                             featureset="maya://featureset/quant/leaky@v1", spec={"target": "y"})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="leaky_tw",
+        model="quant/linear@v1",
+        featureset="maya://featureset/quant/leaky@v1",
+        spec={"target": "y"},
+    )
     cert = tw["leakage_certificate"]
     assert cert["status"] == "refused" and cert["violations"] == 180
     assert cert["signature"]["algorithm"] == "Ed25519"
@@ -146,17 +193,24 @@ def test_leakage_certificate_refuses_late_knowledge(journey):
 
 def test_the_checksum_cycle_seal_score_execute_and_bundle(journey, tmp_path):
     w = journey
-    tw = w.p.warrants.create(w.devi, namespace="quant", name="calib", model="quant/linear@v1",
-                             featureset="maya://featureset/quant/panel#q1/2026-02-28",
-                             spec={"target": "y", "seed": 7})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="calib",
+        model="quant/linear@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 7},
+    )
     assert tw["leakage_certificate"]["status"] == "certified"
     data = w.p.warrants.data(w.devi, tw["id"])
     checksum = data["manifest"]["checksum"]
     assert data["manifest"]["escrowed_holdout"] is True
-    good = w.p.warrants.upload_parameters(w.devi, tw["id"], values={"a": 2.0, "b": 0.5},
-                                          metrics={"rmse": 0.0}, data_checksum=checksum)
-    bad = w.p.warrants.upload_parameters(w.devi, tw["id"], values={"a": 2.0, "b": 0.4},
-                                         data_checksum="0" * 64)
+    good = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"a": 2.0, "b": 0.5}, metrics={"rmse": 0.0}, data_checksum=checksum
+    )
+    bad = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"a": 2.0, "b": 0.4}, data_checksum="0" * 64
+    )
     assert good["verified_data"] and bad["flag"] == "unverified_data"
     w.p.warrants.parameter_transition(w.devi, bad["id"], "submit")
     with pytest.raises(NotApproved, match="unverified_data"):
@@ -169,17 +223,25 @@ def test_the_checksum_cycle_seal_score_execute_and_bundle(journey, tmp_path):
     w.p.warrants.transition(w.mgr, tw["id"], "approve")
     assert w.p.warrants.seal(w.mgr, tw["id"])["sealed_at"] is not None
 
-    ew = w.p.execution.create(w.mgr, namespace="quant", name="live", training_warrant_id=tw["id"],
-                              parameter_set_id=good["id"],
-                              spec={"environments": ["dev"], "contact": "risk@example.com",
-                                    "covenants": [{"kind": "input_null_rate", "attr": "x",
-                                                   "max": 0.1}]})
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="live",
+        training_warrant_id=tw["id"],
+        parameter_set_id=good["id"],
+        spec={
+            "environments": ["dev"],
+            "contact": "risk@example.com",
+            "covenants": [{"kind": "input_null_rate", "attr": "x", "max": 0.1}],
+        },
+    )
     w.p.execution.transition(w.mgr, ew["id"], "submit")
     w.p.execution.transition(w.principal("mgr2"), ew["id"], "approve")
     w.p.execution.seal(w.mgr, ew["id"])
     assert w.p.execution.bundle(w.devi, ew["id"], "dev")["status"] == "live"
-    breach = w.p.execution.report(w.devi, ew["id"], environment="dev", rows=10,
-                                  input_stats={"x": {"null_rate": 0.4}})
+    breach = w.p.execution.report(
+        w.devi, ew["id"], environment="dev", rows=10, input_stats={"x": {"null_rate": 0.4}}
+    )
     assert breach["status"] == "suspended"
     with pytest.raises(WarrantSuspended, match="risk@example.com"):
         w.p.execution.bundle(w.devi, ew["id"], "dev")
@@ -232,11 +294,14 @@ def test_model_diff_names_the_compounding_change(journey):
 
 def test_artifact_validation_ladder_runs_as_a_job(journey):
     w = journey
-    good = ("import numpy as np\n\nclass Model:\n    def fit(self, X, y, ctx):\n        return {}\n\n"
-            "    def predict(self, X, params, ctx):\n"
-            "        return [params.get('a', 1.0) * v for v in X['x']]\n")
-    w.p.models.create(w.mona, namespace="quant", name="coded", formula="yhat = a*x",
-                      roles={"a": "parameter"})
+    good = (
+        "import numpy as np\n\nclass Model:\n    def fit(self, X, y, ctx):\n        return {}\n\n"
+        "    def predict(self, X, params, ctx):\n"
+        "        return [params.get('a', 1.0) * v for v in X['x']]\n"
+    )
+    w.p.models.create(
+        w.mona, namespace="quant", name="coded", formula="yhat = a*x", roles={"a": "parameter"}
+    )
     w.p.models.upload_artifact(w.mona, "quant/coded", good)
     w.drain()
     model = w.p.models.get(w.mona, "quant/coded")
@@ -253,17 +318,31 @@ def test_training_data_download_honours_the_downloaders_masks(journey):
     """A warrant is not a way around a column mask: the download is masked, and the
     checksum MAYA issues is of what was actually delivered."""
     import pyarrow.parquet as pq
+
     w = journey
-    tw = w.p.warrants.create(w.devi, namespace="quant", name="masked", model="quant/linear@v1",
-                             featureset="maya://featureset/quant/panel#q1/2026-02-28",
-                             spec={"target": "y"})
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="masked",
+        model="quant/linear@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y"},
+    )
     obj = w.p.access.resolve_object("feature", "quant/xy")
-    w.p.access.grant(w.admin, kind="feature", obj=obj, principal_type="user",
-                     principal_id="devi", level="read", conditions={"column_mask": {"y": "null"}})
+    w.p.access.grant(
+        w.admin,
+        kind="feature",
+        obj=obj,
+        principal_type="user",
+        principal_id="devi",
+        level="read",
+        conditions={"column_mask": {"y": "null"}},
+    )
     data = w.p.warrants.data(w.devi, tw["id"])
     table = pq.read_table(io.BytesIO(data["data"]))
     assert set(table.column("y").to_pylist()) == {None}
     from maya.core.canonical import table_content_hash
+
     assert table_content_hash(table) == data["manifest"]["checksum"]
 
 
@@ -281,20 +360,37 @@ def test_execution_limits_throttle_and_record_overage(journey):
     """Rate and volume limits (§9.2): unknown or non-positive limits are refused; once today's
     allowance is spent, no token or bundle is issued; an over-limit run is recorded, not hidden."""
     from maya.core.errors import QuotaExceeded
+
     w = journey
     with w.p.uow() as uow:
         tw = uow.repo("training_warrants").find_one(name="calib")
-        ps = next(p for p in uow.repo("parameter_sets").list(training_warrant_id=tw["id"])
-                  if p["state"] == "approved")
+        ps = next(
+            p
+            for p in uow.repo("parameter_sets").list(training_warrant_id=tw["id"])
+            if p["state"] == "approved"
+        )
     for bad in ({"max_calls_per_week": 5}, {"max_calls_per_day": 0}):
         with pytest.raises(ValidationFailed, match="[Ll]imit"):
-            w.p.execution.create(w.mgr, namespace="quant", name="badlim",
-                                 training_warrant_id=tw["id"], parameter_set_id=ps["id"],
-                                 spec={"limits": bad})
-    ew = w.p.execution.create(w.mgr, namespace="quant", name="metered",
-                              training_warrant_id=tw["id"], parameter_set_id=ps["id"],
-                              spec={"environments": ["dev"], "contact": "desk@example.com",
-                                    "limits": {"max_calls_per_day": 2, "max_rows_per_call": 100}})
+            w.p.execution.create(
+                w.mgr,
+                namespace="quant",
+                name="badlim",
+                training_warrant_id=tw["id"],
+                parameter_set_id=ps["id"],
+                spec={"limits": bad},
+            )
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="metered",
+        training_warrant_id=tw["id"],
+        parameter_set_id=ps["id"],
+        spec={
+            "environments": ["dev"],
+            "contact": "desk@example.com",
+            "limits": {"max_calls_per_day": 2, "max_rows_per_call": 100},
+        },
+    )
     assert ew["manifest"]["limits"] == {"max_calls_per_day": 2, "max_rows_per_call": 100}
     w.p.execution.transition(w.mgr, ew["id"], "submit")
     w.p.execution.transition(w.principal("mgr2"), ew["id"], "approve")
@@ -303,8 +399,10 @@ def test_execution_limits_throttle_and_record_overage(journey):
     assert first["limits_exceeded"] == [] and first["status"] == "live"
     big = w.p.execution.report(w.devi, ew["id"], environment="dev", rows=500, input_stats={})
     assert big["limits_exceeded"] == [{"limit": "max_rows_per_call", "max": 100, "observed": 500}]
-    for issue in (lambda: w.p.execution.bundle(w.devi, ew["id"], "dev"),
-                  lambda: w.p.execution.token(w.devi, ew["id"], "dev")):
+    for issue in (
+        lambda: w.p.execution.bundle(w.devi, ew["id"], "dev"),
+        lambda: w.p.execution.token(w.devi, ew["id"], "dev"),
+    ):
         with pytest.raises(QuotaExceeded, match="desk@example.com"):
             issue()
     with w.p.uow() as uow:

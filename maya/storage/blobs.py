@@ -9,6 +9,7 @@ filesystem. Writes go to a temporary file and are moved into place with
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -45,8 +46,9 @@ class LocalBlobStore:
                 while chunk := stream.read(CHUNK):
                     size += len(chunk)
                     if size > self.max_bytes:
-                        raise ValidationFailed("Upload exceeds the size limit",
-                                               limit=self.max_bytes)
+                        raise ValidationFailed(
+                            "Upload exceeds the size limit", limit=self.max_bytes
+                        )
                     h.update(chunk)
                     out.write(chunk)
             digest = h.hexdigest()
@@ -64,6 +66,7 @@ class LocalBlobStore:
 
     def put(self, data: bytes) -> str:
         import io
+
         return self.put_stream(io.BytesIO(data))[0]
 
     def get(self, digest: str) -> bytes:
@@ -72,8 +75,9 @@ class LocalBlobStore:
             raise NotFound(f"blob {digest[:12]}… is not in the store", hash=digest)
         data = path.read_bytes()
         if hashlib.sha256(data).hexdigest() != digest:
-            raise ValidationFailed("Blob content does not match its hash: storage "
-                                   "corruption", hash=digest)
+            raise ValidationFailed(
+                "Blob content does not match its hash: storage corruption", hash=digest
+            )
         return data
 
     def exists(self, digest: str) -> bool:

@@ -13,6 +13,7 @@ read and raises ``ConflictError`` when someone else wrote first (§14.2).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any, Generic, Iterable, TypeVar
@@ -37,7 +38,7 @@ _OPS = {
     "notin": lambda c, v: c.not_in(list(v)),
     "isnull": lambda c, v: c.is_(None) if v else c.is_not(None),
     "ilike": lambda c, v: func.lower(c).like(f"%{str(v).lower()}%"),
-    "prefix": lambda c, v: c.startswith(str(v), autoescape=True),   # % and _ are literal
+    "prefix": lambda c, v: c.startswith(str(v), autoescape=True),  # % and _ are literal
 }
 
 
@@ -45,7 +46,7 @@ def _chunks(ids: Iterable[Any], size: int = 900) -> Iterable[list[Any]]:
     """``ids`` in chunks small enough for any backend's bound-parameter limit."""
     items = list(dict.fromkeys(ids))
     for i in range(0, len(items), size):
-        yield items[i:i + size]
+        yield items[i : i + size]
 
 
 def _row(obj: Base | None) -> dict[str, Any] | None:
@@ -92,9 +93,15 @@ class Repository(Generic[M]):
         stmt = self._where(select(self.model), filters).limit(1)
         return _row(self.session.scalars(stmt).first())
 
-    def list(self, *, order_by: Iterable[str] | None = None, limit: int | None = None,
-             offset: int = 0, search: tuple[list[str], str] | None = None,
-             **filters: Any) -> list[dict[str, Any]]:
+    def list(
+        self,
+        *,
+        order_by: Iterable[str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+        search: tuple[list[str], str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
         stmt = self._where(select(self.model), filters)
         if search and search[1]:
             cols, q = search
@@ -106,9 +113,15 @@ class Repository(Generic[M]):
             stmt = stmt.limit(limit)
         return [o.to_dict() for o in self.session.scalars(stmt).all()]
 
-    def keyset(self, order: str, *, after: tuple[Any, Any] | None = None, limit: int = 100,
-               search: tuple[list[str], str] | None = None,
-               **filters: Any) -> list[dict[str, Any]]:
+    def keyset(
+        self,
+        order: str,
+        *,
+        after: tuple[Any, Any] | None = None,
+        limit: int = 100,
+        search: tuple[list[str], str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
         """One keyset page: rows strictly after ``after`` = (sort value, primary key).
 
         Ordered by the sort column then the primary key, both in the sort's direction,
@@ -122,8 +135,9 @@ class Repository(Generic[M]):
             before = (col < value) if desc else (col > value)
             tie = (pk < key) if desc else (pk > key)
             stmt = stmt.where(or_(before, and_(col == value, tie)))
-        stmt = stmt.order_by(col.desc() if desc else col.asc(),
-                             pk.desc() if desc else pk.asc()).limit(limit)
+        stmt = stmt.order_by(
+            col.desc() if desc else col.asc(), pk.desc() if desc else pk.asc()
+        ).limit(limit)
         return [o.to_dict() for o in self.session.scalars(stmt).all()]
 
     def _search(self, stmt: Select[Any], search: tuple[list[str], str] | None) -> Select[Any]:
@@ -133,38 +147,70 @@ class Repository(Generic[M]):
         return stmt
 
     def count(self, *, search: tuple[list[str], str] | None = None, **filters: Any) -> int:
-        stmt = self._search(self._where(select(func.count()).select_from(self.model), filters),
-                            search)
+        stmt = self._search(
+            self._where(select(func.count()).select_from(self.model), filters), search
+        )
         return int(self.session.execute(stmt).scalar_one())
 
-    def slim(self, columns: Iterable[str], *, search: tuple[list[str], str] | None = None,
-             **filters: Any) -> list[dict[str, Any]]:
+    def slim(
+        self, columns: Iterable[str], *, search: tuple[list[str], str] | None = None, **filters: Any
+    ) -> list[dict[str, Any]]:
         """Matching rows carrying only ``columns`` — for walking a whole table cheaply."""
         names = list(columns)
-        stmt = self._search(self._where(select(*[getattr(self.model, c) for c in names]),
-                                        filters), search)
+        stmt = self._search(
+            self._where(select(*[getattr(self.model, c) for c in names]), filters), search
+        )
         return [dict(zip(names, r)) for r in self.session.execute(stmt)]
 
-    def latest_per(self, key: str, ids: Iterable[Any], order: str = "version_no"
-                   ) -> dict[Any, dict[str, Any]]:
+    def owner_namespace_counts(
+        self,
+        owner_id: Any,
+        exclude_ids: Iterable[Any],
+        *,
+        search: tuple[list[str], str] | None = None,
+        **filters: Any,
+    ) -> list[tuple[Any, bool, int]]:
+        """(namespace_id, owned by ``owner_id``, rows) over the matching rows, leaving out
+        ``exclude_ids`` — what a read rule that depends only on those two needs to count."""
+        owned = (self.model.owner_id == owner_id).label("owned")
+        stmt = self._search(
+            self._where(select(self.model.namespace_id, owned, func.count()), filters), search
+        )
+        excluded = list(dict.fromkeys(exclude_ids))
+        if excluded:
+            stmt = stmt.where(self.model.id.not_in(excluded))
+        stmt = stmt.group_by(self.model.namespace_id, owned)
+        return [(ns, bool(own), int(n)) for ns, own, n in self.session.execute(stmt)]
+
+    def latest_per(
+        self, key: str, ids: Iterable[Any], order: str = "version_no"
+    ) -> dict[Any, dict[str, Any]]:
         """{key value: the row with the highest ``order``} for each of ``ids`` — one query
         per chunk, where a loop of ``list(..., limit=1)`` would be one query per id."""
         col, rank = getattr(self.model, key), getattr(self.model, order)
         out: dict[Any, dict[str, Any]] = {}
         for chunk in _chunks(ids):
-            top = (select(col.label("k"), func.max(rank).label("r"))
-                   .where(col.in_(chunk)).group_by(col).subquery())
+            top = (
+                select(col.label("k"), func.max(rank).label("r"))
+                .where(col.in_(chunk))
+                .group_by(col)
+                .subquery()
+            )
             stmt = select(self.model).join(top, and_(col == top.c.k, rank == top.c.r))
             out.update({getattr(o, key): o.to_dict() for o in self.session.scalars(stmt)})
         return out
 
-    def latest_in(self, key: str, column: str, values: Iterable[Any],
-                  order: str = "version_no") -> set[Any]:
+    def latest_in(
+        self, key: str, column: str, values: Iterable[Any], order: str = "version_no"
+    ) -> set[Any]:
         """The ``key`` values whose highest-``order`` row has ``column`` in ``values``."""
         col, rank = getattr(self.model, key), getattr(self.model, order)
         top = select(col.label("k"), func.max(rank).label("r")).group_by(col).subquery()
-        stmt = (select(col).join(top, and_(col == top.c.k, rank == top.c.r))
-                .where(getattr(self.model, column).in_(list(values))))
+        stmt = (
+            select(col)
+            .join(top, and_(col == top.c.k, rank == top.c.r))
+            .where(getattr(self.model, column).in_(list(values)))
+        )
         return set(self.session.scalars(stmt))
 
     def count_per(self, key: str, ids: Iterable[Any], **filters: Any) -> dict[Any, int]:
@@ -190,8 +236,9 @@ class Repository(Generic[M]):
         self.session.flush()
         return obj.to_dict()
 
-    def update(self, obj_id: Any, changes: dict[str, Any], *,
-               expected_version: int | None = None) -> dict[str, Any]:
+    def update(
+        self, obj_id: Any, changes: dict[str, Any], *, expected_version: int | None = None
+    ) -> dict[str, Any]:
         obj = self.session.get(self.model, obj_id, with_for_update=self._lock_rows())
         if obj is None:
             raise NotFound(f"{self.label} '{obj_id}' does not exist", id=str(obj_id))
@@ -201,7 +248,9 @@ class Repository(Generic[M]):
                 f"{self.label} '{obj_id}' was changed by someone else "
                 f"(you read version {expected_version}, it is now {obj.row_version}). "
                 "Reload and re-apply your edit.",
-                expected=expected_version, actual=obj.row_version)
+                expected=expected_version,
+                actual=obj.row_version,
+            )
         for key, value in changes.items():
             setattr(obj, key, value)
         if has_version:

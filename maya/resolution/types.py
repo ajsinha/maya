@@ -9,6 +9,7 @@ carried in the axis manifest.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import math
@@ -227,8 +228,10 @@ def schema_warnings(schema: list[dict[str, Any]]) -> list[str]:
     warns = []
     for a in schema:
         if a.get("tag") == "price" and a["type"].startswith("float"):
-            warns.append(f"attribute '{a['name']}' is a float carrying the 'price' tag; "
-                         "decimal is mandatory for monetary attributes")
+            warns.append(
+                f"attribute '{a['name']}' is a float carrying the 'price' tag; "
+                "decimal is mandatory for monetary attributes"
+            )
     return warns
 
 
@@ -242,7 +245,7 @@ def _cast_scalar(value: Any, lt: LogicalType) -> Any:  # noqa: C901 - one case p
         if not f.is_integer():
             raise ValueError("not integral")
         bits = 31 if k == "int32" else 63
-        if not -2 ** bits <= f < 2 ** bits:          # else Arrow overflows at write time
+        if not -(2**bits) <= f < 2**bits:  # else Arrow overflows at write time
             raise ValueError(f"outside {k}")
         return int(f)
     if k in {"float32", "float64"}:
@@ -295,7 +298,8 @@ def cast_series(series: pd.Series, logical: str) -> pd.Series:
     if preview["failures"]:
         raise ValidationFailed(
             f"{preview['failures']} value(s) of '{series.name}' cannot be cast to {logical}",
-            attr=str(series.name), examples=[str(x) for x in preview["examples"]],
+            attr=str(series.name),
+            examples=[str(x) for x in preview["examples"]],
         )
     values = [_cast_scalar(v, lt) for v in series.tolist()]
     if lt.kind in {"int32", "int64"}:
@@ -305,8 +309,11 @@ def cast_series(series: pd.Series, logical: str) -> pd.Series:
     if lt.kind == "bool":
         return pd.Series(values, index=series.index, dtype="boolean", name=series.name)
     if lt.kind == "date":
-        return pd.to_datetime(pd.Series(values, index=series.index), errors="raise") \
-            .astype("datetime64[ns]").rename(series.name)
+        return (
+            pd.to_datetime(pd.Series(values, index=series.index), errors="raise")
+            .astype("datetime64[ns]")
+            .rename(series.name)
+        )
     if lt.kind == "timestamp":
         return pd.to_datetime(pd.Series(values, index=series.index), utc=True).rename(series.name)
     return pd.Series(values, index=series.index, dtype=object, name=series.name)
@@ -326,12 +333,15 @@ def unify(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     if a["type"] != b["type"]:
         raise ValidationFailed(
             f"attribute '{a['name']}' has conflicting types {a['type']} and {b['type']}; "
-            "declare an explicit cast", attr=a["name"])
+            "declare an explicit cast",
+            attr=a["name"],
+        )
     for key in ("unit", "tag"):
         if a.get(key) and b.get(key) and a[key] != b[key]:
             raise ValidationFailed(
-                f"attribute '{a['name']}' has conflicting {key}s "
-                f"'{a[key]}' and '{b[key]}'", attr=a["name"])
+                f"attribute '{a['name']}' has conflicting {key}s '{a[key]}' and '{b[key]}'",
+                attr=a["name"],
+            )
     merged = dict(a)
     merged["nullable"] = bool(a.get("nullable", True) or b.get("nullable", True))
     for key in ("unit", "tag"):

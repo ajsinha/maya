@@ -4,6 +4,7 @@ service dictionaries, serialized by MAYA's JSON seam.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -248,7 +249,7 @@ class SamlAcsIn(BaseModel):
 
 
 class SamlSlsIn(BaseModel):
-    query_string: str          # exactly as the IdP's redirect carried it (signatures)
+    query_string: str  # exactly as the IdP's redirect carried it (signatures)
 
 
 class WebAuthnRegisterIn(BaseModel):

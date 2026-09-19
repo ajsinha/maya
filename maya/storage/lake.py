@@ -16,6 +16,7 @@ over file bytes, so they do not depend on which Delta backend wrote them.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -38,7 +39,7 @@ class FragmentWrite:
     content_hash: str
     schema_digest: str
     fragments: list[str]
-    new_fragments: list[tuple[str, int, int]]   # (hash, rows, bytes)
+    new_fragments: list[tuple[str, int, int]]  # (hash, rows, bytes)
     rows: int
     bytes_total: int
     bytes_new: int
@@ -47,9 +48,9 @@ class FragmentWrite:
 class LakeStore:
     """MAYA's adapter over ``maya_delta``. The only module that touches it."""
 
-    def __init__(self, root: Path, backend: str = "auto",
-                 chunk: ChunkParams | None = None) -> None:
+    def __init__(self, root: Path, backend: str = "auto", chunk: ChunkParams | None = None) -> None:
         from maya_delta import DeltaLake
+
         self.root = root / "lake"
         self.root.mkdir(parents=True, exist_ok=True)
         self.delta = DeltaLake(backend)
@@ -79,11 +80,18 @@ class LakeStore:
         out = []
         for path in self.tables():
             compacted = self.delta.optimize(path, target_size=target_size)
-            vacuumed = self.delta.vacuum(path, retention_hours=retention_hours,
-                                         enforce_retention=retention_hours >= 168)
-            out.append({"table": self.rel(path), "filesRemoved": compacted["numFilesRemoved"],
-                        "filesAdded": compacted["numFilesAdded"], "vacuumed": len(vacuumed),
-                        "version": compacted["version"]})
+            vacuumed = self.delta.vacuum(
+                path, retention_hours=retention_hours, enforce_retention=retention_hours >= 168
+            )
+            out.append(
+                {
+                    "table": self.rel(path),
+                    "filesRemoved": compacted["numFilesRemoved"],
+                    "filesAdded": compacted["numFilesAdded"],
+                    "vacuumed": len(vacuumed),
+                    "version": compacted["version"],
+                }
+            )
         return out
 
     # -- raw, bitemporal ingest ------------------------------------------
@@ -99,15 +107,18 @@ class LakeStore:
     # -- content-addressed pins --------------------------------------------
     def plan_fragments(self, table: pa.Table) -> tuple[str, list[tuple[str, int, int]]]:
         """Schema digest and ``(hash, start, end)`` runs for an index-sorted table."""
-        cols = canonical.table_columns(table)
-        digests = canonical.row_digests(cols)
+        from maya.core import canonical_fast  # the same digests, a column at a time
+
+        digests = canonical_fast.row_digests(table)
+        if digests is None:  # a type it does not cover
+            digests = canonical.row_digests(canonical.table_columns(table))
         runs = boundaries(digests, self.chunk)
-        schema_hex = canonical.schema_digest(
-            (f.name, str(f.type)) for f in table.schema)
+        schema_hex = canonical.schema_digest((f.name, str(f.type)) for f in table.schema)
         return schema_hex, [(canonical.fragment_hash(digests[s:e]), s, e) for s, e in runs]
 
-    def write_pin(self, kind: str, namespace: str, name: str, table: pa.Table,
-                  known: set[str]) -> FragmentWrite:
+    def write_pin(
+        self, kind: str, namespace: str, name: str, table: pa.Table, known: set[str]
+    ) -> FragmentWrite:
         """Write the fragments of ``table`` that ``known`` does not already hold."""
         schema_hex, runs = self.plan_fragments(table)
         path = self.table_path(kind, namespace, name)
@@ -127,11 +138,19 @@ class LakeStore:
             batches.append(part)
             new.append((digest, end - start, size))
         if batches:
-            self.delta.write(path, pa.concat_tables(batches), mode="append",
-                             partition_by=[FRAGMENT_COL])
+            self.delta.write(
+                path, pa.concat_tables(batches), mode="append", partition_by=[FRAGMENT_COL]
+            )
         hashes = [d for d, _, _ in runs]
-        return FragmentWrite(canonical.content_hash(schema_hex, hashes), schema_hex, hashes,
-                             new, table.num_rows, total, sum(b for _, _, b in new))
+        return FragmentWrite(
+            canonical.content_hash(schema_hex, hashes),
+            schema_hex,
+            hashes,
+            new,
+            table.num_rows,
+            total,
+            sum(b for _, _, b in new),
+        )
 
     def describe_pin(self, table: pa.Table) -> FragmentWrite:
         """What ``write_pin`` would record for ``table`` — content hash, schema digest and
@@ -139,29 +158,100 @@ class LakeStore:
         schema_hex, runs = self.plan_fragments(table)
         hashes = [d for d, _, _ in runs]
         total = sum(table.slice(s, e - s).nbytes for _, s, e in runs)
-        return FragmentWrite(canonical.content_hash(schema_hex, hashes), schema_hex, hashes,
-                             [], table.num_rows, total, 0)
+        return FragmentWrite(
+            canonical.content_hash(schema_hex, hashes),
+            schema_hex,
+            hashes,
+            [],
+            table.num_rows,
+            total,
+            0,
+        )
 
-    def read_pin(self, kind: str, namespace: str, name: str,
-                 fragments: list[str]) -> pa.Table:
+    def read_pin(self, kind: str, namespace: str, name: str, fragments: list[str]) -> pa.Table:
         """Reassemble a pin from its manifest, in manifest order."""
         path = self.table_path(kind, namespace, name)
         if not fragments:
             raise ValueError("empty fragment manifest")
         data = self.delta.read(path, partitions={FRAGMENT_COL: sorted(set(fragments))})
+        # one sort by (fragment, row), then each fragment is a contiguous slice
+        data = data.take(
+            pa.compute.sort_indices(
+                data, sort_keys=[(FRAGMENT_COL, "ascending"), (ROW_COL, "ascending")]
+            )
+        )
+        keys = data.column(FRAGMENT_COL).to_numpy(zero_copy_only=False)
+        where: dict[str, tuple[int, int]] = {}
+        if len(keys):
+            import numpy as np
+
+            edges = np.flatnonzero(keys[1:] != keys[:-1]) + 1
+            starts = np.concatenate(([0], edges))
+            ends = np.concatenate((edges, [len(keys)]))
+            where = {str(keys[a]): (int(a), int(b)) for a, b in zip(starts, ends)}
+        body = data.drop_columns([FRAGMENT_COL, ROW_COL])
         pieces = []
         for digest in fragments:
-            mask = pa.compute.equal(data.column(FRAGMENT_COL), digest)
-            part = data.filter(mask)
-            part = part.take(pa.compute.sort_indices(part.column(ROW_COL)))
-            pieces.append(part.drop_columns([FRAGMENT_COL, ROW_COL]))
+            if digest not in where:
+                raise ValueError(f"fragment {digest[:12]} is missing from the lake")
+            a, b = where[digest]
+            pieces.append(body.slice(a, b - a))
         return pa.concat_tables(pieces)
 
-    def verify_pin(self, kind: str, namespace: str, name: str, fragments: list[str],
-                   expected_hash: str) -> dict[str, Any]:
-        """Re-read a pin and recompute its content hash (integrity verification)."""
+    def verify_pin(
+        self,
+        kind: str,
+        namespace: str,
+        name: str,
+        fragments: list[str],
+        expected_hash: str,
+        written: pa.Table | None = None,
+    ) -> dict[str, Any]:
+        """Re-read a pin and recompute its content hash (integrity verification).
+
+        At sealing, ``written`` is the table whose hash was just computed: if what the
+        lake returns equals it value for value, the hash is the same by construction and
+        need not be recomputed. Anything short of equal is hashed and reported."""
         table = self.read_pin(kind, namespace, name, fragments)
+        if written is not None and same_values(table, written):
+            return {
+                "ok": True,
+                "expected": expected_hash,
+                "actual": expected_hash,
+                "rows": table.num_rows,
+                "compared": "values",
+            }
         schema_hex, runs = self.plan_fragments(table)
         actual = canonical.content_hash(schema_hex, [d for d, _, _ in runs])
-        return {"ok": actual == expected_hash, "expected": expected_hash, "actual": actual,
-                "rows": table.num_rows}
+        return {
+            "ok": actual == expected_hash,
+            "expected": expected_hash,
+            "actual": actual,
+            "rows": table.num_rows,
+        }
+
+
+def same_values(a: pa.Table, b: pa.Table) -> bool:
+    """Equal names, types, nulls and values — with NaN equal to NaN, as the canonical
+    encoding makes it — so equal tables have equal content hashes."""
+    import numpy as np
+
+    if (
+        a.column_names != b.column_names
+        or a.schema.types != b.schema.types
+        or a.num_rows != b.num_rows
+    ):
+        return False
+    for name in a.column_names:
+        x, y = a.column(name).combine_chunks(), b.column(name).combine_chunks()
+        if pa.types.is_floating(x.type):
+            if not np.array_equal(np.asarray(x.is_valid()), np.asarray(y.is_valid())):
+                return False
+            xv = x.to_numpy(zero_copy_only=False)
+            yv = y.to_numpy(zero_copy_only=False)
+            valid = np.asarray(x.is_valid())
+            if not np.array_equal(xv[valid], yv[valid], equal_nan=True):
+                return False
+        elif not x.equals(y):
+            return False
+    return True

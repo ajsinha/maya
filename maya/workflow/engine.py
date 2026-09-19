@@ -15,6 +15,7 @@ owner, namespace and grants — and names a transition. The engine:
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -32,11 +33,11 @@ SUBMITTERS = ("created_by", "submitted_by", "updated_by")
 class Subject:
     """What the engine needs to know about the object moving through workflow."""
 
-    object_type: str              # policy key, e.g. feature_version
-    table: str                    # repository name
+    object_type: str  # policy key, e.g. feature_version
+    table: str  # repository name
     id: str
-    ref: str                      # maya:// reference, for audit and notifications
-    cap_type: str                 # capability object type, e.g. feature
+    ref: str  # maya:// reference, for audit and notifications
+    cap_type: str  # capability object type, e.g. feature
     row: dict[str, Any]
     namespace: dict[str, Any]
     owner_id: str | None
@@ -81,8 +82,13 @@ class WorkflowEngine:
     def active_policy(self, uow: Any, object_type: str, namespace: str) -> dict[str, Any]:
         repo = uow.repo("workflow_policies")
         for scope in (namespace, "*"):
-            rows = repo.list(object_type=object_type, scope=scope, state="active",
-                             order_by=["-version_no"], limit=1)
+            rows = repo.list(
+                object_type=object_type,
+                scope=scope,
+                state="active",
+                order_by=["-version_no"],
+                limit=1,
+            )
             if rows:
                 return rows[0]
         raise ValidationFailed(f"No active workflow policy for {object_type}")
@@ -92,8 +98,16 @@ class WorkflowEngine:
         return transitions_from(policy["policy"], subject.state)
 
     # -- the transition --------------------------------------------------------
-    def transition(self, uow: Any, p: Principal, subject: Subject, name: str, *,
-                   rationale: str | None = None, force: bool = False) -> Outcome:
+    def transition(
+        self,
+        uow: Any,
+        p: Principal,
+        subject: Subject,
+        name: str,
+        *,
+        rationale: str | None = None,
+        force: bool = False,
+    ) -> Outcome:
         record = self.active_policy(uow, subject.object_type, subject.namespace["name"])
         policy = record["policy"]
         t = (policy.get("transitions") or {}).get(name)
@@ -101,23 +115,38 @@ class WorkflowEngine:
             raise ValidationFailed(f"'{name}' is not a transition of {subject.object_type}")
         sources = t["from"] if isinstance(t["from"], list) else [t["from"]]
         if subject.state not in sources:
-            raise NotApproved(f"Cannot {name} from state '{subject.state}'; "
-                              f"allowed from {', '.join(sources)}", state=subject.state)
+            raise NotApproved(
+                f"Cannot {name} from state '{subject.state}'; allowed from {', '.join(sources)}",
+                state=subject.state,
+            )
         if force:
             return self._break_glass(uow, p, subject, name, t, rationale, record)
         acting = self._acting(uow, p, subject, t, name)
         results = self._run_checks(uow, subject, t)
         failed = [r for r in results if not r["passed"]]
         if failed:
-            raise NotApproved("Blocked by check(s): " + "; ".join(
-                f"{r['check']} — {r['detail']}" for r in failed), checks=results)
+            raise NotApproved(
+                "Blocked by check(s): "
+                + "; ".join(f"{r['check']} — {r['detail']}" for r in failed),
+                checks=results,
+            )
         if t.get("approvals"):
-            return self._approve(uow, p, subject, name, t, rationale, record, results,
-                                 delegator=acting if acting is not p else None)
+            return self._approve(
+                uow,
+                p,
+                subject,
+                name,
+                t,
+                rationale,
+                record,
+                results,
+                delegator=acting if acting is not p else None,
+            )
         return self._move(uow, p, subject, name, t, rationale, record, results)
 
-    def _acting(self, uow: Any, p: Principal, subject: Subject, t: dict[str, Any],
-                name: str) -> Principal:
+    def _acting(
+        self, uow: Any, p: Principal, subject: Subject, t: dict[str, Any], name: str
+    ) -> Principal:
         """Who the approval is taken as: the person, or someone who delegated to them."""
         try:
             self._authorize(p, subject, t, name)
@@ -138,10 +167,12 @@ class WorkflowEngine:
     def delegators(uow: Any, p: Principal, object_type: str) -> list[str]:
         """Users with an active delegation to ``p`` covering this object type (§10.4)."""
         import datetime as _dt
+
         today = _dt.date.today()
         out = []
-        for d in uow.repo("delegations").list(delegate_id=p.user_id, revoked_at__isnull=True,
-                                              starts_on__le=today, ends_on__ge=today):
+        for d in uow.repo("delegations").list(
+            delegate_id=p.user_id, revoked_at__isnull=True, starts_on__le=today, ends_on__ge=today
+        ):
             if not d["object_types"] or object_type in d["object_types"]:
                 out.append(d["delegator_id"])
         return out
@@ -152,13 +183,21 @@ class WorkflowEngine:
             raise PermissionDenied(f"'{name}' requires one of the roles {', '.join(roles)}")
         letter = t.get("capability")
         if letter:
-            action = {"A": "approve", "U": "submit", "C": "create", "P": "seal"}.get(letter, "update")
-            obj = {"type": subject.cap_type, "id": subject.id, "owner_id": subject.owner_id,
-                   "state": subject.row.get("state"), "namespace_name": subject.namespace["name"]}
+            action = {"A": "approve", "U": "submit", "C": "create", "P": "seal"}.get(
+                letter, "update"
+            )
+            obj = {
+                "type": subject.cap_type,
+                "id": subject.id,
+                "owner_id": subject.owner_id,
+                "state": subject.row.get("state"),
+                "namespace_name": subject.namespace["name"],
+            }
             decision = can(p, action, obj, subject.grants, subject.namespace)
             if not decision:
-                raise PermissionDenied(f"You may not {name} this object: {decision.rule}",
-                                       rule=decision.rule)
+                raise PermissionDenied(
+                    f"You may not {name} this object: {decision.rule}", rule=decision.rule
+                )
 
     def _run_checks(self, uow: Any, subject: Subject, t: dict[str, Any]) -> list[dict[str, Any]]:
         out = []
@@ -167,8 +206,7 @@ class WorkflowEngine:
             if fn is None:
                 out.append({"check": check, "passed": False, "detail": "check is not registered"})
                 continue
-            passed, detail = fn(uow, {"subject": subject, "row": subject.row,
-                                      **subject.context})
+            passed, detail = fn(uow, {"subject": subject, "row": subject.row, **subject.context})
             out.append({"check": check, "passed": bool(passed), "detail": detail})
         return out
 
@@ -179,17 +217,30 @@ class WorkflowEngine:
         if level == "none":
             return None
         row = subject.row
-        involved = {row.get(k) for k in SUBMITTERS if row.get(k)} if level == "strict" \
+        involved = (
+            {row.get(k) for k in SUBMITTERS if row.get(k)}
+            if level == "strict"
             else {row.get("submitted_by") or row.get("created_by")}
+        )
         if p.username in involved:
-            return (f"segregation of duties ({level}): you created, submitted or last "
-                    "modified this object, so you cannot approve it")
+            return (
+                f"segregation of duties ({level}): you created, submitted or last "
+                "modified this object, so you cannot approve it"
+            )
         return None
 
-    def _approve(self, uow: Any, p: Principal, subject: Subject, name: str,
-                 t: dict[str, Any], rationale: str | None, record: dict[str, Any],
-                 results: list[dict[str, Any]], delegator: Principal | None = None
-                 ) -> Outcome:
+    def _approve(
+        self,
+        uow: Any,
+        p: Principal,
+        subject: Subject,
+        name: str,
+        t: dict[str, Any],
+        rationale: str | None,
+        record: dict[str, Any],
+        results: list[dict[str, Any]],
+        delegator: Principal | None = None,
+    ) -> Outcome:
         for person in [p] + ([delegator] if delegator else []):
             violation = self._sod_violation(person, subject)
             if violation:
@@ -198,36 +249,70 @@ class WorkflowEngine:
         role_holder = delegator or p
         reqs = self._requirements(t, subject)
         round_no = self._round(uow, subject)
-        existing = uow.repo("approvals").list(object_type=subject.object_type,
-                                              object_id=subject.id, round_no=round_no,
-                                              decision="approve")
+        existing = uow.repo("approvals").list(
+            object_type=subject.object_type,
+            object_id=subject.id,
+            round_no=round_no,
+            decision="approve",
+        )
         people = {p.username} | ({delegator.username} if delegator else set())
         if any(a["approver"] in people or a.get("on_behalf_of") in people for a in existing):
-            raise NotApproved("You have already approved this object in this round"
-                              + (" (directly or through a delegation)" if delegator else ""))
-        role = next((r["role"] for r in reqs if r["role"] in role_holder.roles
-                     and self._count(existing, r["role"]) < r["count"]),
-                    None) or ("admin" if role_holder.is_admin else None)
+            raise NotApproved(
+                "You have already approved this object in this round"
+                + (" (directly or through a delegation)" if delegator else "")
+            )
+        role = next(
+            (
+                r["role"]
+                for r in reqs
+                if r["role"] in role_holder.roles and self._count(existing, r["role"]) < r["count"]
+            ),
+            None,
+        ) or ("admin" if role_holder.is_admin else None)
         if role is None:
-            raise PermissionDenied("Your roles do not satisfy any outstanding approval: "
-                                   + self._outstanding_text(reqs, existing))
-        uow.repo("approvals").add({"object_type": subject.object_type, "object_id": subject.id,
-                                   "round_no": round_no, "approver": p.username, "role": role,
-                                   "decision": "approve", "rationale": rationale,
-                                   "on_behalf_of": delegator.username if delegator else None})
+            raise PermissionDenied(
+                "Your roles do not satisfy any outstanding approval: "
+                + self._outstanding_text(reqs, existing)
+            )
+        uow.repo("approvals").add(
+            {
+                "object_type": subject.object_type,
+                "object_id": subject.id,
+                "round_no": round_no,
+                "approver": p.username,
+                "role": role,
+                "decision": "approve",
+                "rationale": rationale,
+                "on_behalf_of": delegator.username if delegator else None,
+            }
+        )
         existing.append({"role": role, "approver": p.username})
         if delegator:
             rationale = f"{rationale or ''} [as delegate of {delegator.username}]".strip()
-        outstanding = [r for r in reqs if self._count(existing, r["role"]) < r["count"]
-                       and not (role == "admin" and role_holder.is_admin)]
+        outstanding = [
+            r
+            for r in reqs
+            if self._count(existing, r["role"]) < r["count"]
+            and not (role == "admin" and role_holder.is_admin)
+        ]
         if outstanding:
-            uow.audit("workflow.approval_recorded", object_type=subject.object_type,
-                      object_ref=subject.ref, detail={"role": role, "rationale": rationale,
-                                                      "on_behalf_of": delegator.username
-                                                      if delegator else None})
-            return Outcome(False, subject.state, "Approval recorded; still outstanding: "
-                           + self._outstanding_text(reqs, existing), results,
-                           {"outstanding": outstanding})
+            uow.audit(
+                "workflow.approval_recorded",
+                object_type=subject.object_type,
+                object_ref=subject.ref,
+                detail={
+                    "role": role,
+                    "rationale": rationale,
+                    "on_behalf_of": delegator.username if delegator else None,
+                },
+            )
+            return Outcome(
+                False,
+                subject.state,
+                "Approval recorded; still outstanding: " + self._outstanding_text(reqs, existing),
+                results,
+                {"outstanding": outstanding},
+            )
         return self._move(uow, p, subject, name, t, rationale, record, results)
 
     def _requirements(self, t: dict[str, Any], subject: Subject) -> list[dict[str, Any]]:
@@ -244,29 +329,55 @@ class WorkflowEngine:
         return sum(1 for a in approvals if a["role"] == role)
 
     def _outstanding_text(self, reqs: list[dict[str, Any]], existing: list[dict[str, Any]]) -> str:
-        parts = [f"{r['role']} ×{r['count'] - self._count(existing, r['role'])}"
-                 for r in reqs if self._count(existing, r["role"]) < r["count"]]
+        parts = [
+            f"{r['role']} ×{r['count'] - self._count(existing, r['role'])}"
+            for r in reqs
+            if self._count(existing, r["role"]) < r["count"]
+        ]
         return ", ".join(parts) or "none"
 
     def _round(self, uow: Any, subject: Subject) -> int:
-        events = uow.repo("workflow_events").count(object_type=subject.object_type,
-                                                   object_id=subject.id, transition="submit")
+        events = uow.repo("workflow_events").count(
+            object_type=subject.object_type, object_id=subject.id, transition="submit"
+        )
         return max(events, 1)
 
-    def _move(self, uow: Any, p: Principal, subject: Subject, name: str, t: dict[str, Any],
-              rationale: str | None, record: dict[str, Any], results: list[dict[str, Any]],
-              forced: bool = False) -> Outcome:
+    def _move(
+        self,
+        uow: Any,
+        p: Principal,
+        subject: Subject,
+        name: str,
+        t: dict[str, Any],
+        rationale: str | None,
+        record: dict[str, Any],
+        results: list[dict[str, Any]],
+        forced: bool = False,
+    ) -> Outcome:
         target = t["to"]
         uow.repo(subject.table).update(subject.id, self._state_changes(p, name, target, forced))
-        uow.repo("workflow_events").add({
-            "object_type": subject.object_type, "object_id": subject.id, "object_ref": subject.ref,
-            "transition": name, "from_state": subject.state, "to_state": target,
-            "actor": p.username, "rationale": rationale, "forced": forced,
-            "policy_id": record["id"], "checks": results})
-        uow.audit("workflow.break_glass" if forced else f"workflow.{name}",
-                  object_type=subject.object_type, object_ref=subject.ref,
-                  detail={"from": subject.state, "to": target, "rationale": rationale},
-                  channel=p.channel)
+        uow.repo("workflow_events").add(
+            {
+                "object_type": subject.object_type,
+                "object_id": subject.id,
+                "object_ref": subject.ref,
+                "transition": name,
+                "from_state": subject.state,
+                "to_state": target,
+                "actor": p.username,
+                "rationale": rationale,
+                "forced": forced,
+                "policy_id": record["id"],
+                "checks": results,
+            }
+        )
+        uow.audit(
+            "workflow.break_glass" if forced else f"workflow.{name}",
+            object_type=subject.object_type,
+            object_ref=subject.ref,
+            detail={"from": subject.state, "to": target, "rationale": rationale},
+            channel=p.channel,
+        )
         self._notify(uow, record["policy"], subject, target, name, p, forced)
         for listener in self.listeners:
             listener(uow, subject, name, target)
@@ -275,6 +386,7 @@ class WorkflowEngine:
     @staticmethod
     def _state_changes(p: Principal, name: str, target: str, forced: bool) -> dict[str, Any]:
         from maya.core.clock import utcnow
+
         changes: dict[str, Any] = {"state": target}
         if name == "submit":
             changes.update(submitted_by=p.username, submitted_at=utcnow())
@@ -284,20 +396,48 @@ class WorkflowEngine:
             changes["force_approved"] = True
         return changes
 
-    def _break_glass(self, uow: Any, p: Principal, subject: Subject, name: str,
-                     t: dict[str, Any], rationale: str | None,
-                     record: dict[str, Any]) -> Outcome:
+    def _break_glass(
+        self,
+        uow: Any,
+        p: Principal,
+        subject: Subject,
+        name: str,
+        t: dict[str, Any],
+        rationale: str | None,
+        record: dict[str, Any],
+    ) -> Outcome:
         if not p.is_admin:
             raise PermissionDenied("Break-glass is reserved to administrators")
         if not rationale or len(rationale.strip()) < 10:
             raise ValidationFailed("Break-glass requires a written reason (10+ characters)")
-        return self._move(uow, p, subject, name, t, rationale, record,
-                          [{"check": "break_glass", "passed": True,
-                            "detail": "checks and approvals bypassed by an administrator"}],
-                          forced=True)
+        return self._move(
+            uow,
+            p,
+            subject,
+            name,
+            t,
+            rationale,
+            record,
+            [
+                {
+                    "check": "break_glass",
+                    "passed": True,
+                    "detail": "checks and approvals bypassed by an administrator",
+                }
+            ],
+            forced=True,
+        )
 
-    def _notify(self, uow: Any, policy: dict[str, Any], subject: Subject, target: str,
-                name: str, p: Principal, forced: bool) -> None:
+    def _notify(
+        self,
+        uow: Any,
+        policy: dict[str, Any],
+        subject: Subject,
+        target: str,
+        name: str,
+        p: Principal,
+        forced: bool,
+    ) -> None:
         audience = list((policy.get("notify") or {}).get(target, []))
         if forced and "owner" not in audience:
             audience.append("owner")
@@ -309,10 +449,14 @@ class WorkflowEngine:
                 users |= _users_with_role(uow, who)
         prefix = "BREAK-GLASS: " if forced else ""
         for uid in users:
-            uow.repo("notifications").add({
-                "user_id": uid, "kind": "break_glass" if forced else "workflow",
-                "message": f"{prefix}{p.username} took '{name}' on {subject.ref} → {target}",
-                "object_ref": subject.ref})
+            uow.repo("notifications").add(
+                {
+                    "user_id": uid,
+                    "kind": "break_glass" if forced else "workflow",
+                    "message": f"{prefix}{p.username} took '{name}' on {subject.ref} → {target}",
+                    "object_ref": subject.ref,
+                }
+            )
 
 
 def _users_with_role(uow: Any, role_name: str) -> set[str]:

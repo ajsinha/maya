@@ -6,6 +6,7 @@ virtual authenticator. Skipped where Playwright or Chrome is absent.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import copy
@@ -52,20 +53,28 @@ def site():
     import uvicorn
 
     from maya.server import build_app
+
     port = _free_port()
-    platform = build_platform([f"--auth.webauthn.origins=http://localhost:{port}",
-                               "--auth.webauthn.rp_id=localhost"])
+    platform = build_platform(
+        [f"--auth.webauthn.origins=http://localhost:{port}", "--auth.webauthn.rp_id=localhost"]
+    )
     w = World(platform)
     platform.access.create_namespace(w.admin, name="eq")
     for i in range(30):
-        platform.features.create(w.dana, namespace="eq", name=f"feat_{i:02d}",
-                                 definition=copy.deepcopy(PX_DEF), description=f"feature {i}")
+        platform.features.create(
+            w.dana,
+            namespace="eq",
+            name=f"feat_{i:02d}",
+            definition=copy.deepcopy(PX_DEF),
+            description=f"feature {i}",
+        )
     with platform.uow() as uow:
         for name in ("admin", "dana", "mick"):
             user = uow.repo("users").find_one(username=name)
             uow.repo("users").update(user["id"], {"must_change_password": False})
-    server = uvicorn.Server(uvicorn.Config(build_app(platform), host="127.0.0.1", port=port,
-                                           log_level="warning"))
+    server = uvicorn.Server(
+        uvicorn.Config(build_app(platform), host="127.0.0.1", port=port, log_level="warning")
+    )
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     for _ in range(100):
@@ -219,9 +228,18 @@ def test_a_security_key_registers_and_then_answers_the_challenge(site, browser):
     ctx, page = _page(browser)
     cdp = ctx.new_cdp_session(page)
     cdp.send("WebAuthn.enable")
-    cdp.send("WebAuthn.addVirtualAuthenticator", {"options": {
-        "protocol": "ctap2", "transport": "usb", "hasResidentKey": True,
-        "hasUserVerification": True, "isUserVerified": True}})
+    cdp.send(
+        "WebAuthn.addVirtualAuthenticator",
+        {
+            "options": {
+                "protocol": "ctap2",
+                "transport": "usb",
+                "hasResidentKey": True,
+                "hasUserVerification": True,
+                "isUserVerified": True,
+            }
+        },
+    )
     _login(page, base, "mick", "Test-password-1")
     page.goto(f"{base}/account/mfa")
     page.fill("#key-name", "virtual key")
@@ -244,15 +262,27 @@ def test_a_security_key_registers_and_then_answers_the_challenge(site, browser):
     ctx.close()
 
 
-JOURNEY = [("home", "/"), ("catalog", "/catalog/features"), ("feature", "/catalog/features/eq/feat_00"),
-           ("featuresets", "/catalog/featuresets"), ("models", "/models"),
-           ("workbench", "/workbench"), ("workflow", "/workflow"), ("warrants", "/warrants"),
-           ("search", "/search?q=feat"), ("health", "/admin/health"), ("help", "/help"),
-           ("about", "/about")]
+JOURNEY = [
+    ("home", "/"),
+    ("catalog", "/catalog/features"),
+    ("feature", "/catalog/features/eq/feat_00"),
+    ("featuresets", "/catalog/featuresets"),
+    ("models", "/models"),
+    ("workbench", "/workbench"),
+    ("workflow", "/workflow"),
+    ("warrants", "/warrants"),
+    ("search", "/search?q=feat"),
+    ("health", "/admin/health"),
+    ("help", "/help"),
+    ("about", "/about"),
+]
 
 
-@pytest.mark.parametrize("viewport", [{"width": 1366, "height": 900},
-                                      {"width": 390, "height": 844}], ids=["desktop", "phone"])
+@pytest.mark.parametrize(
+    "viewport",
+    [{"width": 1366, "height": 900}, {"width": 390, "height": 844}],
+    ids=["desktop", "phone"],
+)
 def test_the_main_journeys_render_and_are_captured(site, browser, viewport, tmp_path):
     """Gate 24: every main screen, as a person sees it, in a real browser, saved as a
     screenshot (to MAYA_SCREENSHOT_DIR when set). Each must load without a script error
@@ -260,6 +290,7 @@ def test_the_main_journeys_render_and_are_captured(site, browser, viewport, tmp_
     import os
 
     from PIL import Image, ImageStat
+
     base, _ = site
     out = Path(os.environ.get("MAYA_SCREENSHOT_DIR") or tmp_path)
     out.mkdir(parents=True, exist_ok=True)

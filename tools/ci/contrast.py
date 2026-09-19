@@ -5,6 +5,7 @@ non-text pairs ≥ 3:1, in both the light and the dark scheme.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
+
 from __future__ import annotations
 
 import re
@@ -13,17 +14,23 @@ import sys
 from _common import ROOT, report
 
 TOKENS = ROOT / "maya" / "web" / "static" / "css" / "tokens.css"
-TEXT_PAIRS = [("--maya-ink", "--maya-surface"), ("--maya-ink", "--maya-canvas"),
-              ("--maya-crimson", "--maya-surface"), ("--maya-slate", "--maya-surface"),
-              ("--maya-crimson-deep", "--maya-surface"), ("--maya-ink", "--maya-crimson-tint"),
-              ("--maya-on-nav", "--maya-nav-from"), ("--maya-on-nav", "--maya-nav-via"),
-              ("--maya-on-nav", "--maya-nav-to")]
+TEXT_PAIRS = [
+    ("--maya-ink", "--maya-surface"),
+    ("--maya-ink", "--maya-canvas"),
+    ("--maya-crimson", "--maya-surface"),
+    ("--maya-slate", "--maya-surface"),
+    ("--maya-crimson-deep", "--maya-surface"),
+    ("--maya-ink", "--maya-crimson-tint"),
+    ("--maya-on-nav", "--maya-nav-from"),
+    ("--maya-on-nav", "--maya-nav-via"),
+    ("--maya-on-nav", "--maya-nav-to"),
+]
 NON_TEXT = [("--maya-crimson", "--maya-canvas"), ("--maya-indigo", "--maya-surface")]
 
 
 def luminance(hex_colour: str) -> float:
     h = hex_colour.lstrip("#")
-    rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    rgb = [int(h[i : i + 2], 16) / 255 for i in (0, 2, 4)]
     lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
     return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
 

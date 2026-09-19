@@ -59,9 +59,11 @@ hash.
 ```python
 # Create a feature with the SDK
 import maya.sdk as maya
+
 my = maya.connect(base_url="http://127.0.0.1:8600", api_key="maya_…")
-my.features.create("eq", "prices", definition,
-                   description="Daily closing prices", tags=["equity", "eod"])
+my.features.create(
+    "eq", "prices", definition, description="Daily closing prices", tags=["equity", "eod"]
+)
 ```
 
 ## Index and event time
@@ -163,8 +165,13 @@ true publication time:
 
 ```python
 # Ingest a CSV with its real publication time
-my.features.ingest("eq/prices", open("prices.csv", "rb").read(), fmt="csv",
-                   filename="prices.csv", knowledge_time="2026-01-09T18:00:00Z")
+my.features.ingest(
+    "eq/prices",
+    open("prices.csv", "rb").read(),
+    fmt="csv",
+    filename="prices.csv",
+    knowledge_time="2026-01-09T18:00:00Z",
+)
 ```
 
 ```bash

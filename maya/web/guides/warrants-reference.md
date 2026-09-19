@@ -20,13 +20,20 @@ Every warrant keeps a **custody log**: an append-only list of events with the ac
 ```python
 # Draw up a training warrant on a sealed feature set pin
 import maya.sdk as maya
+
 my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
 w = my.training.create(
-    namespace="credit", name="pd-2026q1",
+    namespace="credit",
+    name="pd-2026q1",
     model="maya://model/credit/pd_logit@v3",
     featureset="maya://featureset/credit/pd_panel#q1/2026-03-31",
-    spec={"target": "default_12m", "bindings": {"ltv": "loan_to_value"},
-          "holdout": "escrowed", "expiry_days": 365})
+    spec={
+        "target": "default_12m",
+        "bindings": {"ltv": "loan_to_value"},
+        "holdout": "escrowed",
+        "expiry_days": 365,
+    },
+)
 print(w["id"], w["state"], w["leakage_certificate"]["status"])
 ```
 
@@ -96,9 +103,9 @@ A training warrant's `status` is computed, in this order: `revoked` if revoked; 
 
 ```python
 # Download, verify and use the training data
-table, manifest = my.training_data(w["id"])      # a pyarrow Table, checksum verified
+table, manifest = my.training_data(w["id"])  # a pyarrow Table, checksum verified
 print(manifest["rows"], manifest["checksum"], manifest["escrowed_holdout"])
-df = table.to_pandas()                           # the _split column: train, validation, test
+df = table.to_pandas()  # the _split column: train, validation, test
 ```
 
 | Rule | Behaviour |
@@ -122,10 +129,14 @@ Train anywhere, then upload the fitted values, naming the checksum you trained o
 
 ```python
 # Upload fitted parameters with the checksum they were trained on
-ps = my.training.upload_parameters(w["id"], {"beta0": -3.1, "beta_ltv": 2.4},
-                                   metrics={"auc": 0.81}, data_checksum=manifest["checksum"],
-                                   notes="L2, C=1.0")
-print(ps["verified_data"], ps["flag"])            # True None
+ps = my.training.upload_parameters(
+    w["id"],
+    {"beta0": -3.1, "beta_ltv": 2.4},
+    metrics={"auc": 0.81},
+    data_checksum=manifest["checksum"],
+    notes="L2, C=1.0",
+)
+print(ps["verified_data"], ps["flag"])  # True None
 ```
 
 | Field | Meaning |
@@ -144,8 +155,9 @@ If `data_checksum` is one MAYA issued for this warrant's downloads, the set is `
 
 ```python
 # Approve an unverified set, on the record
-my.training.parameter_transition(ps["id"], "approve",
-                                 justification="Trained on the vendor's corrected file; see ticket 4411")
+my.training.parameter_transition(
+    ps["id"], "approve", justification="Trained on the vendor's corrected file; see ticket 4411"
+)
 ```
 
 The upload writes a `parameters_uploaded` custody event with the checksum and the verification result, a lineage edge, and the audit entry `warrant.parameters_uploaded` (an event).
@@ -180,16 +192,23 @@ Every transition that moves writes a custody event named after it.
 ```python
 # License the trained model to run in UAT and production
 ew = my.execution.create(
-    namespace="credit", name="pd-scoring",
-    training_warrant_id=w["id"], parameter_set_id=ps["id"],
-    spec={"environments": ["uat", "prod"], "valid_days": 90,
-          "contact": "credit-model-owners@example.com",
-          "limits": {"max_calls_per_day": 24, "max_rows_per_day": 500000},
-          "covenants": [
-              {"kind": "input_null_rate", "attr": "ltv", "max": 0.05},
-              {"kind": "input_range", "attr": "ltv", "min": 0, "max": 2.5},
-              {"kind": "output_range", "attr": "pd", "min": 0, "max": 1},
-              {"kind": "staleness_days", "attr": "ltv", "max": 3}]})
+    namespace="credit",
+    name="pd-scoring",
+    training_warrant_id=w["id"],
+    parameter_set_id=ps["id"],
+    spec={
+        "environments": ["uat", "prod"],
+        "valid_days": 90,
+        "contact": "credit-model-owners@example.com",
+        "limits": {"max_calls_per_day": 24, "max_rows_per_day": 500000},
+        "covenants": [
+            {"kind": "input_null_rate", "attr": "ltv", "max": 0.05},
+            {"kind": "input_range", "attr": "ltv", "min": 0, "max": 2.5},
+            {"kind": "output_range", "attr": "pd", "min": 0, "max": 1},
+            {"kind": "staleness_days", "attr": "ltv", "max": 3},
+        ],
+    },
+)
 ```
 
 Name a training warrant (and its parameter set) for a trainable model. A model with no parameters can be named directly with `model=`; naming a trainable model that way is refused.
@@ -253,10 +272,13 @@ The token's claims are `warrant`, `id`, `env`, `model_ir_hash`, `params_hash`, `
 
 ```python
 # Report a run so covenants and limits are evaluated
-out = my.execution.report(ew["id"], environment="prod", rows=184_220,
-                          input_stats={"ltv": {"null_rate": 0.002, "min": 0.1, "max": 1.9,
-                                               "age_days": 1}},
-                          output_stats={"pd": {"min": 0.0004, "max": 0.61}})
+out = my.execution.report(
+    ew["id"],
+    environment="prod",
+    rows=184_220,
+    input_stats={"ltv": {"null_rate": 0.002, "min": 0.1, "max": 1.9, "age_days": 1}},
+    output_stats={"pd": {"min": 0.0004, "max": 0.61}},
+)
 print(out["status"], out["breaches"], out["limits_exceeded"])
 ```
 
@@ -354,6 +376,7 @@ python verify.py pd-2026q1.zip
 # Read a bundle offline and evaluate the signed formula
 import numpy as np
 import maya.sdk as maya
+
 with maya.offline("pd-2026q1.zip") as off:
     print(off.verify()["verified"])
     table, manifest = off.training_data()

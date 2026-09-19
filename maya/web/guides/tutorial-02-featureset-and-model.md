@@ -32,8 +32,11 @@ server is running, `eq` exists, and `connect_as` is defined. Add the new people:
 
 ```python
 # Three more people
-for user, roles in [("devi", ["model_developer"]), ("mona", ["model_designer"]),
-                    ("mgr", ["model_manager"])]:
+for user, roles in [
+    ("devi", ["model_developer"]),
+    ("mona", ["model_designer"]),
+    ("mgr", ["model_manager"]),
+]:
     admin.admin.create_user(user, password=PW, roles=roles)
 devi, mona, mgr = connect_as("devi"), connect_as("mona"), connect_as("mgr")
 ```
@@ -46,6 +49,7 @@ devi, mona, mgr = connect_as("devi"), connect_as("mona"), connect_as("mgr")
 ```python
 # Write signals.csv
 import datetime as dt
+
 lines = ["date,symbol,x,y,known_at"]
 for i in range(60):
     day = dt.date(2026, 1, 1) + dt.timedelta(days=i)
@@ -172,8 +176,9 @@ the set, in one job. If any part failed, all of it would be rolled back.
 
 ```python
 # The cascade pin
-out = mick.featuresets.pin("eq/panel", version_no=1, pin_name="q1",
-                           as_of="2026-02-28", cascade=True)
+out = mick.featuresets.pin(
+    "eq/panel", version_no=1, pin_name="q1", as_of="2026-02-28", cascade=True
+)
 print(mick.wait(out["job"])["result"])
 ```
 
@@ -199,8 +204,13 @@ parameters; every other free name is a feature the set must supply.
 
 ```python
 # Create the model from LaTeX
-m = mona.models.create("eq", "linear", formula=r"y_{hat} = a \cdot x + b",
-                       roles={"a": "parameter", "b": "parameter"}, description="y on x")
+m = mona.models.create(
+    "eq",
+    "linear",
+    formula=r"y_{hat} = a \cdot x + b",
+    roles={"a": "parameter", "b": "parameter"},
+    description="y on x",
+)
 v = mona.models.get("eq/linear")["versions"][0]
 print(v["formula_ir"]["latex"])
 print([(i["name"], i["role"]) for i in v["formula_ir"]["inputs"]])
@@ -325,10 +335,10 @@ print(mgr.models.reference_code("eq/linear", 1)["source"])
 ```python
 # Its predict function (the file also defines normal CDF and PDF helpers)
 def predict(X, params):
-    v_a = params['a']
-    v_b = params['b']
-    v_x = np.asarray(X['x'], dtype=float)
-    return {'yhat': ((v_a * v_x) + v_b)}
+    v_a = params["a"]
+    v_b = params["b"]
+    v_x = np.asarray(X["x"], dtype=float)
+    return {"yhat": ((v_a * v_x) + v_b)}
 ```
 
 ## On screen
