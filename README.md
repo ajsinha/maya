@@ -89,7 +89,7 @@ execution warrant → reproducibility bundle.
 | **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
 | **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 532 passing on SQLite and on PostgreSQL 18, Linux, including real-browser tests in headless Chrome. `python -m pytest -q` |
+| **Tests** | 929 passing on SQLite and on PostgreSQL 18, Linux, including real-browser tests in headless Chrome; 92% line coverage, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
 | **Gates** | `python tools/ci/gates.py`: all green (file size, both import boundaries, seam imports, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 176 endpoints, schema drift) |
 
 ### Not yet — stated so nobody has to discover it

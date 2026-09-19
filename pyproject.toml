@@ -31,3 +31,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12
+
+[tool.coverage.run]
+# the sandbox child runs in its own interpreter; its paths are proved by test_sandbox_linux
+omit = ["maya/security/sandbox_runner.py"]
