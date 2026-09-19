@@ -130,13 +130,16 @@ def _check_bounds(rs: RuleSpec) -> None:
 
 
 def _runs(mask: np.ndarray) -> np.ndarray:
-    """For each True position, its 1-based position within its run of Trues."""
-    out = np.zeros(len(mask), dtype=np.int64)
-    run = 0
-    for i, m in enumerate(mask):
-        run = run + 1 if m else 0
-        out[i] = run
-    return out
+    """For each True position, its 1-based position within its run of Trues (0 elsewhere).
+
+    Vectorised: a running count of Trues, minus that count as it stood at the last False.
+    """
+    m = np.asarray(mask, dtype=bool)
+    if not len(m):
+        return np.zeros(0, dtype=np.int64)
+    count = np.cumsum(m, dtype=np.int64)
+    at_reset = np.maximum.accumulate(np.where(m, 0, count))
+    return (count - at_reset) * m
 
 
 def _longest(mask: np.ndarray) -> int:

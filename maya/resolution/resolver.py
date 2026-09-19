@@ -21,10 +21,12 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from maya.core.calendars import business_days
 from maya.core.errors import ValidationFailed
+from maya.resolution import grouped
 from maya.resolution.rules import apply_rule, parse_rule
 
 KT = "_knowledge_time"
@@ -104,21 +106,46 @@ def _range_filter(df: pd.DataFrame, dcol: str, start: date | None, end: date | N
 
 def apply_rules(df: pd.DataFrame, index: list[str], attributes: list[str],
                 rules: dict[str, Any]) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """Apply one rule per attribute, per non-date group, in date order."""
+    """Apply one rule per attribute, per non-date group, in date order.
+
+    Groups are computed once for all attributes and indexed by position; the ``none``
+    rule is the identity and does no per-group work at all.
+    """
     dcol, groups = index[0], index[1:]
     out = df.sort_values(index, kind="mergesort").reset_index(drop=True)
     report: dict[str, Any] = {}
+    parts: list[Any] | None = None
+    dates: Any = None
+    codes: Any = None
     for attr in attributes:
         spec = parse_rule(rules.get(attr))
-        filled, longest = 0, 0
-        parts = list(out.groupby(groups, sort=False).indices.values()) if groups else [out.index]
-        new = out[attr].copy()
+        if spec.name == "none":
+            report[attr] = {"rule": spec.canonical(), "filled": 0, "longest_run": 0,
+                            "non_causal": False}
+            continue
+        if parts is None:
+            parts = list(out.groupby(groups, sort=False).indices.values()) if groups \
+                else [np.arange(len(out))]
+            codes = out.groupby(groups, sort=False).ngroup().to_numpy() if groups \
+                else np.zeros(len(out), dtype=np.int64)
+            dates = pd.to_datetime(out[dcol]).to_numpy()
+        values = out[attr].to_numpy()
+        if grouped.eligible(spec.name, spec.params, values):
+            resolved, st = grouped.apply_grouped(values, dates, codes, spec.name, spec.params)
+            out[attr] = resolved
+            report[attr] = {"rule": spec.canonical(), "filled": st["filled"],
+                            "longest_run": st["longest_run"], "non_causal": spec.non_causal}
+            continue
+        filled, longest, results = 0, 0, []
         for rows in parts:
-            s, st = apply_rule(out.loc[rows, attr], spec, out.loc[rows, dcol])
-            new.loc[rows] = s.to_numpy()
+            s, st = apply_rule(pd.Series(values[rows]), spec, pd.Series(dates[rows]))
+            results.append(s.to_numpy())
             filled += st["filled"]
             longest = max(longest, st["longest_run"])
-        out[attr] = new
+        if parts:
+            new = out[attr].copy()
+            new.iloc[np.concatenate(parts)] = np.concatenate(results)   # one write, pandas upcasting
+            out[attr] = new
         report[attr] = {"rule": spec.canonical(), "filled": filled, "longest_run": longest,
                         "non_causal": spec.non_causal}
     return out, report
