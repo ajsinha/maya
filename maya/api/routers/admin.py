@@ -252,8 +252,13 @@ def mark_read(body: s.ReadIn, me: Principal = Me, plat: Any = Plat) -> Response:
 
 
 @router.get("/search", tags=["catalog"])
-def search(q: str, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.ops.search(me, q))
+def search(q: str, limit: int = 50, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.ops.search(me, q, limit=limit))
+
+
+@router.post("/search/reindex", tags=["ops"])
+def reindex_search(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.ops.reindex_search(me))
 
 
 @router.get("/lineage", tags=["lineage"])

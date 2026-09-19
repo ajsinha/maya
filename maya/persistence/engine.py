@@ -35,6 +35,8 @@ class Database:
         if self.is_sqlite:
             event.listen(self.engine, "connect", _sqlite_pragmas(busy_timeout_ms))
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
+        from maya.persistence import search_index
+        search_index.install()
         # SQLite admits one writer. Every unit of work takes this mutex so
         # concurrent requests queue here instead of failing with "database is
         # locked" (§14.1). PostgreSQL uses row and advisory locks instead.

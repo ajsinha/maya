@@ -191,15 +191,39 @@ class OpsService:
                 "edges": [{"source": e["src_ref"], "target": e["dst_ref"],
                            "type": e["edge_type"], "label": e["label"]} for e in edges]}
 
-    def search(self, p: Principal, q: str) -> list[dict[str, Any]]:
-        if not q or len(q) < 2:
+    SEARCH_KINDS = {"feature": "feature", "featureset": "featureset", "model": "model",
+                    "warrant/train": "training_warrant", "warrant/exec": "execution_warrant"}
+
+    def search(self, p: Principal, q: str, limit: int = 50) -> list[dict[str, Any]]:
+        """Ranked catalog hits the caller may read; nothing else is so much as named."""
+        if not q or len(q.strip()) < 2:
             return []
+        out = []
         with self.p.uow() as uow:
             names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
-            hits = uow.repo("search").search(q)
-        for h in hits:
-            h["namespace"] = names.get(h.get("namespace_id"))
-        return hits
+            for h in uow.repo("search").search(q, limit=max(1, min(limit, 200)) * 3):
+                kind = self.SEARCH_KINDS.get(h["kind"])
+                if kind is not None:
+                    table = {"feature": "features", "featureset": "feature_sets",
+                             "model": "models", "training_warrant": "training_warrants",
+                             "execution_warrant": "execution_warrants"}[kind]
+                    if not self.p.access.allowed(uow, p, "read", kind,
+                                                 uow.repo(table).require(h["id"])):
+                        continue
+                h["namespace"] = names.get(h.get("namespace_id"))
+                out.append(h)
+                if len(out) >= limit:
+                    break
+        return out
+
+    def reindex_search(self, p: Principal) -> dict[str, Any]:
+        """Recreate the derived search index from the catalog (admin; recovery only)."""
+        if not p.is_admin:
+            raise PermissionDenied("Rebuilding the search index is for administrators")
+        with self.p.uow(p.username) as uow:
+            n = uow.repo("search").rebuild()
+            uow.audit("search.reindexed", detail={"objects": n})
+        return {"objects": n}
 
     # -- estate (§14.3) -------------------------------------------------------------------
     def export_estate(self) -> bytes:

@@ -245,3 +245,18 @@ class Anchor(Tracked, Base):
     signature: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
     tsa_token: Mapped[str | None] = mapped_column(Text)            # base64 DER, RFC 3161
     detail: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+
+
+class SearchTerm(Base):
+    """MAYA's own inverted index over the catalog (§13.4 search seam): one row per term per
+    field of an object. Derived data, kept current in the writing transaction and rebuilt
+    from the catalog on demand."""
+
+    __tablename__ = "search_terms"
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"),
+                                    primary_key=True, autoincrement=True)
+    term: Mapped[str] = mapped_column(String(64), index=True)
+    kind: Mapped[str] = mapped_column(String(24))
+    object_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    field: Mapped[str] = mapped_column(String(16))
+    weight: Mapped[int] = mapped_column(Integer)

@@ -292,8 +292,12 @@ class Access(_Resource):
         return self._c("POST", "/inbox/read", json_body={"ids": ids})
 
     @endpoint("GET", "/search")
-    def search(self, q: str) -> Any:
-        return self._c("GET", "/search", params={"q": q})
+    def search(self, q: str, limit: int = 50) -> Any:
+        return self._c("GET", "/search", params={"q": q, "limit": limit})
+
+    @endpoint("POST", "/search/reindex")
+    def reindex_search(self) -> Any:
+        return self._c("POST", "/search/reindex")
 
     @endpoint("GET", "/lineage")
     def lineage(self, root: str, direction: str = "both", depth: int = 3) -> Any:

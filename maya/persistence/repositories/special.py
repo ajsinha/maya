@@ -134,18 +134,21 @@ class SearchRepository:
         self.session = session
 
     def search(self, q: str, limit: int = 50) -> list[dict[str, Any]]:
-        needle = f"%{q.lower()}%"
-        out: list[dict[str, Any]] = []
-        for kind, model in self.TARGETS:
-            cols = [model.name]
-            for extra in ("description",):
-                if hasattr(model, extra):
-                    cols.append(getattr(model, extra))
-            from sqlalchemy import func
-            stmt = select(model).where(or_(*[func.lower(c).like(needle) for c in cols])).limit(limit)
-            for obj in self.session.scalars(stmt):
-                row = obj.to_dict()
-                out.append({"kind": kind, "id": row["id"], "name": row["name"],
-                            "description": row.get("description"),
-                            "namespace_id": row.get("namespace_id")})
-        return out[:limit]
+        """Ranked hits from the inverted index; every query term must match (as a prefix)."""
+        from maya.persistence import search_index
+        hits = search_index.search(self.session, q, limit)
+        models = {kind: model for kind, model in self.TARGETS}
+        out = []
+        for kind, oid, score in hits:
+            obj = self.session.get(models[kind], oid)
+            if obj is None:
+                continue
+            row = obj.to_dict()
+            out.append({"kind": kind, "id": row["id"], "name": row["name"],
+                        "description": row.get("description"), "tags": row.get("tags") or [],
+                        "namespace_id": row.get("namespace_id"), "score": score})
+        return out
+
+    def rebuild(self) -> int:
+        from maya.persistence import search_index
+        return search_index.rebuild(self.session)

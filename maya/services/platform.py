@@ -63,6 +63,7 @@ class Platform:
             db.init_schema()
         db.verify_schema()
         platform = cls(settings, db)
+        platform.ensure_search_index()
         from maya.observability import tracing
         tracing.configure(settings.get("observability.otlp.endpoint") or None)
         platform.wire()
@@ -83,6 +84,13 @@ class Platform:
     def signer(self) -> Any:
         from maya.core.crypto import Signer
         return Signer(self.root / "keys")
+
+    def ensure_search_index(self) -> None:
+        """Rebuild the derived search index when it is empty but the catalog is not."""
+        from maya.persistence import search_index
+        with self.uow("system") as uow:
+            if search_index.needs_rebuild(uow.session):
+                search_index.rebuild(uow.session)
 
     def signer_or_none(self) -> Any:
         try:
