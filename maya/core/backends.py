@@ -68,9 +68,18 @@ class _SeamSpec:
     refuse_without_preferred: bool = False
 
 
+def _native_lake_usable() -> bool:
+    """The test maya_delta itself applies: importing deltalake is not enough, it must
+    pass the write/read self-check — else health would say native while pins say pure."""
+    if not has_module("deltalake"):
+        return False
+    from maya_delta import _native_problem
+    return _native_problem() is None
+
+
 def _specs() -> list[_SeamSpec]:
     return [
-        _SeamSpec("lake", "A", "native", "pure", lambda: has_module("deltalake"),
+        _SeamSpec("lake", "A", "native", "pure", _native_lake_usable,
                   "Slower Delta reads and writes; declared protocol subset"),
         _SeamSpec("json", "A", "orjson", "stdlib", lambda: has_module("orjson"),
                   "Slower encode; canonical JSON is always stdlib (Type B)"),

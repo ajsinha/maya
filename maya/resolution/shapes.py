@@ -87,10 +87,14 @@ def _array(series: pd.Series, logical: str) -> pa.Array:
         return pa.array([_flat(v) for v in series.tolist()], type=at)
     if lt.kind == "date":
         vals = pd.to_datetime(series)
-        return pa.array([None if pd.isna(v) else v.date() for v in vals], type=at)
+        days = vals.to_numpy().astype("datetime64[D]")      # floor, as .date() does
+        return pa.array(days, type=at, mask=vals.isna().to_numpy())
     if lt.kind == "timestamp":
         return pa.array(pd.to_datetime(series, utc=True), type=at)
-    return pa.array(series.astype(object).where(series.notna(), None).tolist(), type=at)
+    try:          # the column as it is; NaN and None become null
+        return pa.array(series, type=at, from_pandas=True)
+    except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError, ValueError):
+        return pa.array(series.astype(object).where(series.notna(), None).tolist(), type=at)
 
 
 def manifest_for(df: pd.DataFrame, schema: list[dict[str, Any]], **extra: Any) -> dict[str, Any]:

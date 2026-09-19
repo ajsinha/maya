@@ -552,7 +552,7 @@ class FeatureSetService:
             write, lake_table = self.p.feature_data._write_fragments(
                 ns["name"], fs["name"], table, kind="fspins")
             verify = self.p.lake.verify_pin("fspins", ns["name"], fs["name"], write.fragments,
-                                            write.content_hash)
+                                            write.content_hash, written=table)
             if not verify["ok"]:
                 raise ValidationFailed("Feature set pin failed hash verification", **verify)
         else:        # sealed by its hash; the bytes are replayed from member pins when read

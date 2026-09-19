@@ -119,6 +119,9 @@ def row_digests(table: Any) -> list[bytes] | None:
         parts.append(seg)
     if not parts:
         return [hashlib.sha256(b"").digest() for _ in range(n)]
+    grouped = _by_layout(parts, n)
+    if grouped is not None:
+        return grouped
     row_len = np.sum([p[0] for p in parts], axis=0).astype(np.int64)
     row_start = np.zeros(n, dtype=np.int64)
     np.cumsum(row_len[:-1], out=row_start[1:])
@@ -144,3 +147,26 @@ def row_digests(table: Any) -> list[bytes] | None:
     starts_l = row_start.tolist()
     sha = hashlib.sha256
     return [sha(buf[s:e]).digest() for s, e in zip(starts_l, ends)]
+
+
+def _by_layout(parts: list[Any], n: int) -> list[bytes] | None:
+    """The same digests, assembled without a per-byte scatter when every row has the
+    same layout — each column's encoding the same length in every row (no nulls in
+    fixed-width columns, equal-length strings), the usual shape of a pin. Each column is
+    then an (n × length) slab and one hstack lays the rows out contiguously. None for
+    any other table, which the scatter assembles."""
+    if n == 0:
+        return []
+    slabs = []
+    for lens, _, flat, starts in parts:
+        width = int(lens[0])
+        if not (lens == width).all():
+            return None
+        if len(flat) == n * width:
+            slabs.append(flat.reshape(n, width))
+        else:
+            slabs.append(flat[starts[:, None] + np.arange(width)])
+    buf = np.ascontiguousarray(np.hstack(slabs)).tobytes()
+    step = sum(s.shape[1] for s in slabs)
+    sha = hashlib.sha256
+    return [sha(buf[i:i + step]).digest() for i in range(0, len(buf), step)]

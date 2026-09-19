@@ -420,7 +420,15 @@ class Features(_Resource):
 
     @endpoint("GET", "/features/{namespace}/{name}")
     def get(self, ref: str) -> Any:
+        """The feature with its 100 most recent pins (``pins_total`` counts them all)."""
         return self._c("GET", f"/features/{_nn(ref, 'feature')}")
+
+    @endpoint("GET", "/features/{namespace}/{name}/pins")
+    def pins(self, ref: str, page_size: int = PAGE_SIZE, cursor: str | None = None,
+             sort: str | None = None, total: bool = False) -> Any:
+        """A feature's pins a page at a time: sort -as_of (default), as_of, series."""
+        return self._page(f"/features/{_nn(ref, 'feature')}/pins", {}, page_size, cursor,
+                          sort, total)
 
     @endpoint("PUT", "/features/{namespace}/{name}/draft")
     def update_draft(self, ref: str, definition: dict[str, Any], **kw: Any) -> Any:

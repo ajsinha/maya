@@ -7,7 +7,9 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import atexit
 import os
+import shutil
 import statistics
 import sys
 import tempfile
@@ -25,7 +27,10 @@ def platform(home: str | None = None, extra: list[str] | None = None,
              db_url: str | None = None, init: bool = True) -> Any:
     """A platform over ``home`` (new if None); ``db_url`` reuses an existing PG database."""
     sys.argv = ["bench"] + (extra or [])
-    os.environ["MAYA_HOME"] = home or tempfile.mkdtemp(prefix="maya-bench-")
+    if home is None:                   # scratch storage: gone when the benchmark exits
+        home = tempfile.mkdtemp(prefix="maya-bench-")
+        atexit.register(shutil.rmtree, home, True)
+    os.environ["MAYA_HOME"] = home
     pg = db_url or os.environ.get("MAYA_BENCH_PG_URL")
     if pg:
         sys.argv.append("--db.dialect=postgresql")
@@ -53,7 +58,19 @@ def fresh_pg(url: str) -> str:
     with admin.connect() as conn:
         conn.execute(text(f'CREATE DATABASE "{name}"'))
     admin.dispose()
+    atexit.register(_drop, base.set(database="postgres"), name)
     return base.set(database=name).render_as_string(hide_password=False)
+
+
+def _drop(server: Any, name: str) -> None:
+    from sqlalchemy import create_engine, text
+    try:
+        admin = create_engine(server, isolation_level="AUTOCOMMIT")
+        with admin.connect() as conn:
+            conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        admin.dispose()
+    except Exception:  # noqa: BLE001 - best effort at exit
+        pass
 
 
 def principal(p: Any, username: str) -> Any:

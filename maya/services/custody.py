@@ -74,7 +74,8 @@ def check_timestamp_response(raw: bytes, digest: bytes) -> dict[str, Any]:
     if _der(0x04, digest) not in raw:
         return {"ok": False, "detail": "the token does not carry this head's imprint"}
     return {"ok": True, "detail": "granted; imprint matches. Verify the TSA's signature with "
-                                  "'openssl ts -verify -data <head> -in <token> -CAfile <tsa>'"}
+                                  "'openssl ts -verify -digest <head hash> -in <token> "
+                                  "-CAfile <tsa CA>', or set custody.anchor.tsa_ca_file"}
 
 
 def verify_tsa_signature(raw: bytes, digest: bytes, ca_file: str) -> dict[str, Any]:
@@ -204,6 +205,8 @@ class CustodyService:
             rows = {r["seq"]: r["hash"] for r in uow.repo("audit_events").list(
                 seq__in=[a["seq"] for a in anchors])} if anchors else {}
         file_lines = self._file_lines()
+        signer = self.p.signer_or_none()
+        own_key = signer.public_key_b64 if signer else None
         results = []
         for a in anchors:
             live = rows.get(a["seq"])
@@ -216,6 +219,8 @@ class CustodyService:
                                     "at": a["detail"].get("at")}).encode()
             if sig and not verify_signature(sig["public_key"], body, sig["signature"]):
                 problems.append("the anchor's signature does not verify")
+            elif sig and own_key and sig["public_key"] != own_key:
+                problems.append("the anchor is signed by a key that is not this MAYA's")
             if "file" in a["methods"] and (a["seq"], a["head_hash"]) not in file_lines:
                 problems.append("the anchor is missing from the append-only file")
             if a["tsa_token"]:

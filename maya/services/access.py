@@ -103,14 +103,43 @@ class AccessService:
         for g in uow.repo("grants").list(object_type__in=[kind, "namespace"]):
             grants.setdefault((g["object_type"], g["object_id"]), []).append(g)
 
+        # Without grants of its own, an object's read decision depends only on its
+        # namespace (grants, visibility, owner) and whether p owns it: decided once per
+        # such pair, not once per row — a 20k-object total is then a scan, not 20k rules.
+        decided: dict[tuple[Any, bool], bool] = {}
+
         def keep(_uow: Any, obj: dict[str, Any]) -> bool:
+            own = grants.get((kind, obj["id"]))
+            key = (obj.get("namespace_id"), obj.get("owner_id") == p.user_id)
+            if own is None and key in decided:
+                return decided[key]
             ns = namespaces.get(obj.get("namespace_id"))
-            found = list(grants.get((kind, obj["id"]), ()))
+            found = list(own or ())
             if ns:
                 found += grants.get(("namespace", ns["id"]), [])
             view = {"type": KINDS[kind][1], "id": obj["id"], "owner_id": obj.get("owner_id"),
                     "state": None, "namespace_name": ns["name"] if ns else None}
-            return bool(can(p, "read", view, found, ns))
+            allowed = bool(can(p, "read", view, found, ns))
+            if own is None:
+                decided[key] = allowed
+            return allowed
+
+        def count(uow: Any, table: str, search: Any, filters: dict[str, Any]) -> int:
+            """How many rows ``keep`` admits, counted by the database: rows without grants
+            of their own by (namespace, owned) group, decided once per group; the few
+            with their own grants one by one."""
+            granted = [oid for (k, oid) in grants if k == kind]
+            repo = uow.repo(table)
+            total = sum(n for ns_id, owned, n in repo.owner_namespace_counts(
+                p.user_id, granted, search=search, **filters)
+                if keep(uow, {"id": None, "namespace_id": ns_id,
+                              "owner_id": p.user_id if owned else None}))
+            if granted:
+                rows = repo.slim(["id", "namespace_id", "owner_id"], search=search,
+                                 id__in=granted, **filters)
+                total += sum(1 for r in rows if keep(uow, r))
+            return total
+        keep.count = count          # type: ignore[attr-defined]
         return keep
 
     def require_capability(self, p: Principal, object_type: str, letter: str) -> None:

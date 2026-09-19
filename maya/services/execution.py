@@ -115,14 +115,19 @@ class ExecutionService:
                 r = refs.parse(model, "model")
                 mobj, _ = catalog.find_object(uow, "models", "model", r)
                 mv = catalog.version_of(uow, "model_versions", "model_id", mobj, r.version)
-                if irmod.parameter_inputs(mv["formula_ir"]) if (mv["formula_ir"] or {}).get("body") \
-                        else False:
+                if _trainable(mv):
                     raise ValidationFailed("A trainable model needs a training warrant and an "
                                            "approved parameter set")
             else:
                 raise ValidationFailed("Name a training warrant, or a model for a "
                                        "non-trainable one")
             ps = uow.repo("parameter_sets").require(parameter_set_id) if parameter_set_id else None
+            if _trainable(mv) and ps is None:
+                raise ValidationFailed("The model declares parameters: name the approved "
+                                       "parameter set this warrant runs")
+            if ps is not None and tw is not None and ps["training_warrant_id"] != tw["id"]:
+                raise ValidationFailed("The parameter set was not fitted under this training "
+                                       "warrant")
             manifest = self._manifest(uow, mv, ps, tw, spec)
         with self.p.uow(p.username) as uow:
             prior = uow.repo("execution_warrants").list(namespace_id=ns["id"], name=name,
@@ -199,6 +204,8 @@ class ExecutionService:
     def check_params(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         ew = ctx["row"]
         if not ew["parameter_set_id"]:
+            if _trainable(uow.repo("model_versions").require(ew["model_version_id"])):
+                return False, "the model declares parameters, but no parameter set is named"
             return True, "non-trainable model: no parameter set required"
         ps = uow.repo("parameter_sets").require(ew["parameter_set_id"])
         ok = ps["state"] in catalog.APPROVED_STATES
@@ -360,6 +367,8 @@ class ExecutionService:
             ew, ns = self._load(uow, ew_id)
             if not (p.is_admin or self.p.access.allowed(uow, p, "grant", "execution_warrant", ew)):
                 raise PermissionDenied("Only the model owner or an administrator reinstates")
+            if not ew["suspended_at"]:
+                raise NotApproved("The warrant is not suspended; there is nothing to reinstate")
             row = uow.repo("execution_warrants").update(ew_id, {"suspended_at": None,
                                                                 "suspend_reason": None})
             self.p.warrants._custody(uow, ew_id, "reinstated", p.username,
@@ -434,3 +443,9 @@ def over_limits(limits: dict[str, int], rows: int, used: dict[str, int]) -> list
             "max_calls_per_day": used["calls"] + 1}
     return [{"limit": k, "max": v, "observed": seen[k]}
             for k, v in limits.items() if seen[k] > v]
+
+
+def _trainable(mv: dict[str, Any]) -> bool:
+    """Whether a model version declares parameters — closed-form or black box alike: a
+    declared parameter is a value someone must fit and someone must approve."""
+    return bool(irmod.parameter_inputs(mv["formula_ir"] or {}))

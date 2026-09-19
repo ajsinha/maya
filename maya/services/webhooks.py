@@ -173,7 +173,9 @@ class WebhookService:
     def _attempt(self, d: dict[str, Any], hook: dict[str, Any] | None,
                  event: dict[str, Any] | None) -> None:
         if hook is None or event is None or not hook["active"]:
-            self._settle(d, "dead", None, "webhook or event no longer exists")
+            why = "webhook is inactive; nothing was sent" if hook and event \
+                else "webhook or event no longer exists"
+            self._settle(d, "dead", None, why)
             return
         body = json.dumps({"id": event["seq"], "type": event["type"],
                            "at": event["at"].isoformat(), "object_type": event["object_type"],

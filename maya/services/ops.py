@@ -16,7 +16,7 @@ from typing import Any
 from maya.core.backends import Backends
 from maya.core.clock import utcnow
 from maya.core.compress import procstat
-from maya.core.errors import PermissionDenied, ValidationFailed
+from maya.core.errors import MayaError, NotFound, PermissionDenied, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
 from maya.core.version import BUILD_DATE, VERSION
 from maya.persistence import estate
@@ -202,13 +202,33 @@ class OpsService:
         return self.p.blobs.get(digest)
 
     # -- lineage and search ------------------------------------------------------------
-    def lineage(self, root: str, *, direction: str = "both", depth: int = 3) -> dict[str, Any]:
+    def lineage(self, root: str, *, direction: str = "both", depth: int = 3,
+                p: Principal | None = None) -> dict[str, Any]:
+        """The lineage graph around ``root``. For a caller ``p``, catalog objects they may
+        not read are left out — named nowhere, only counted in ``hidden`` — and so is any
+        internal node (an operation, a parameter set, an execution) that no object they can
+        read connects to. A root they may not read does not exist, as far as they know."""
         with self.p.uow() as uow:
             edges = uow.repo("lineage_edges").walk(root, direction=direction, depth=depth)
-        nodes = {root} | {e["src_ref"] for e in edges} | {e["dst_ref"] for e in edges}
+            nodes = {root} | {e["src_ref"] for e in edges} | {e["dst_ref"] for e in edges}
+            hidden = 0
+            if p is not None:
+                may = _lineage_reader(self.p, uow, p)
+                if may(root) is False:
+                    raise NotFound(f"Nothing called {root}", ref=root)
+                verdict = {n: may(n) for n in nodes}
+                seen = {n for n, v in verdict.items() if v}
+                for e in edges:                       # internal nodes next to a readable one
+                    for a, b in ((e["src_ref"], e["dst_ref"]), (e["dst_ref"], e["src_ref"])):
+                        if verdict[a] and verdict[b] is None:
+                            seen.add(b)
+                hidden = sum(1 for v in verdict.values() if v is False)
+                nodes = seen
+                edges = [e for e in edges if e["src_ref"] in nodes and e["dst_ref"] in nodes]
         return {"root": root, "nodes": [{"id": n, "kind": _kind(n)} for n in sorted(nodes)],
                 "edges": [{"source": e["src_ref"], "target": e["dst_ref"],
-                           "type": e["edge_type"], "label": e["label"]} for e in edges]}
+                           "type": e["edge_type"], "label": e["label"]} for e in edges],
+                "hidden": hidden}
 
     SEARCH_KINDS = {"feature": "feature", "featureset": "featureset", "model": "model",
                     "warrant/train": "training_warrant", "warrant/exec": "execution_warrant"}
@@ -267,14 +287,14 @@ class OpsService:
         """Dialect-neutral dump of every table, hashed per table, in dependency order."""
         return estate.export(self.p.db, VERSION)
 
-    def import_estate(self, data: bytes) -> dict[str, Any]:
-        """Load an estate into an empty, freshly created schema, verifying every hash."""
-        counts = estate.load(self.p.db, data)
+    def import_estate(self, data: bytes, *, allow_drop: bool = False) -> dict[str, Any]:
+        """Load an estate into an empty, freshly created schema, verifying every hash and
+        the audit chain before anything is written."""
+        loaded = estate.load(self.p.db, data, allow_drop=allow_drop)
         with self.p.uow() as uow:
             chain = uow.repo("audit_events").verify_chain()
-        if not chain["ok"]:
-            raise ValidationFailed("The imported audit chain does not verify", **chain)
-        return {"tables": counts, "audit_chain": chain}
+        return {"tables": loaded["tables"], "dropped": loaded["dropped"],
+                "audit_chain": chain}
 
 
 def _tracing_status() -> dict[str, Any]:
@@ -286,6 +306,34 @@ def _webhook_backlog(platform: Any) -> dict[str, int]:
     from maya.services.webhooks import deliveries_backlog
     with platform.uow() as uow:
         return deliveries_backlog(uow)
+
+
+_LINEAGE_KINDS = {"feature": "feature", "featureset": "featureset", "model": "model",
+                  "warrant/train": "training_warrant", "warrant/exec": "execution_warrant"}
+
+
+def _lineage_reader(platform: Any, uow: Any, p: Principal) -> Any:
+    """``may(ref)``: True or False for a catalog object ``p`` may or may not read (one
+    that does not exist counts as unreadable), None for a node that is not one."""
+    from maya.services import access, catalog, refs
+    readers: dict[str, Any] = {}
+
+    def may(ref: str) -> bool | None:
+        try:
+            r = refs.parse(ref)
+        except ValidationFailed:
+            return None
+        kind = _LINEAGE_KINDS.get(r.kind)
+        if kind is None:
+            return None
+        try:
+            obj, _ = catalog.find_object(uow, access.KINDS[kind][0], kind, r)
+        except MayaError:
+            return False
+        if kind not in readers:
+            readers[kind] = platform.access.reader(uow, p, kind)
+        return bool(readers[kind](uow, obj))
+    return may
 
 
 def _kind(ref: str) -> str:

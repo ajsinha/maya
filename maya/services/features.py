@@ -22,6 +22,7 @@ from maya.services.feature_data import schema_generation
 from maya.workflow.engine import Subject
 
 EDITABLE = ("draft", "changes_requested")
+PINS_SHOWN = 100          # pins returned with a feature; the rest via pins_page
 PREVIEW_ROWS = 200
 
 
@@ -91,8 +92,11 @@ class FeatureService:
             self.p.access.require(uow, p, "read", "feature", feature)
             versions = uow.repo("feature_versions").list(feature_id=feature["id"],
                                                          order_by=["-version_no"])
+            # the most recent pins; a feature may have 100k — the rest are paged (pins_page)
             pins = uow.repo("feature_pins").list(feature_id=feature["id"],
-                                                 order_by=["pin_name", "-as_of_date"])
+                                                 order_by=["-as_of_date", "pin_name"],
+                                                 limit=PINS_SHOWN)
+            pins_total = uow.repo("feature_pins").count(feature_id=feature["id"])
             ingests = uow.repo("feature_ingests").list(feature_id=feature["id"],
                                                        order_by=["-knowledge_time"])
             vno = {v["id"]: v["version_no"] for v in versions}
@@ -105,13 +109,37 @@ class FeatureService:
                 v["transitions"] = self._transitions(uow, feature, ns, v)
             return {**feature, "namespace": ns["name"], "namespace_row": ns,
                     "owner": owner["username"] if owner else None, "versions": versions,
-                    "pins": pins, "ingests": ingests,
+                    "pins": pins, "pins_total": pins_total, "ingests": ingests,
                     "ref": refs.object_ref("feature", ns["name"], feature["name"]),
                     "grants": uow.repo("grants").list(object_type="feature",
                                                       object_id=feature["id"]),
                     "can_edit": self.p.access.allowed(uow, p, "update", "feature", feature),
                     "can_pin": p.has_capability("feature_pin", "P") or
                     p.has_capability("feature_pin", "Q")}
+
+    def pins_page(self, p: Principal, ref: str, *, page_size: int | None = None,
+                  cursor: str | None = None, sort: str | None = None,
+                  total: bool = False) -> dict[str, Any]:
+        """A feature's pins a page at a time, newest as-of first."""
+        from maya.services.paging import Listing, run_page
+
+        def build(uow: Any) -> Any:
+            feature, ns = catalog.find_object(uow, "features", "feature",
+                                              refs.parse(ref, "feature"))
+            self.p.access.require(uow, p, "read", "feature", feature)
+            vno = {v["id"]: v["version_no"] for v in
+                   uow.repo("feature_versions").list(feature_id=feature["id"])}
+
+            def enrich(uow: Any, pin: dict[str, Any]) -> dict[str, Any]:
+                return {**pin, "version_no": vno.get(pin["feature_version_id"]),
+                        "ref": refs.pin_ref("feature", ns["name"], feature["name"],
+                                            pin["pin_name"], pin["as_of_date"]),
+                        "can_retire": p.is_admin}
+            return Listing("feature_pins", {"-as_of": "-as_of_date", "as_of": "as_of_date",
+                                            "series": "pin_name", "-series": "-pin_name"},
+                           "-as_of", {"feature_id": feature["id"]}, None, enrich=enrich)
+        return run_page(self.p, build, page_size=page_size, cursor=cursor, sort=sort,
+                        total=total)
 
     def _transitions(self, uow: Any, feature: dict[str, Any], ns: dict[str, Any],
                      v: dict[str, Any]) -> builtins.list[str]:

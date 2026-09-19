@@ -55,7 +55,7 @@ class Platform:
     # -- construction ------------------------------------------------------
     @classmethod
     def build(cls, settings: Settings, *, init_if_empty: bool = True,
-              start_workers: bool = True, primary: bool = True) -> "Platform":
+              start_workers: bool | str = True, primary: bool = True) -> "Platform":
         """A running MAYA. ``primary=False`` is an extra web process (``server.workers``
         above 1): it serves requests over the database the primary prepared — no schema
         creation, seeding, job reaping, job workers, webhooks or scheduler of its own."""
@@ -81,8 +81,9 @@ class Platform:
             platform.jobs.reap()
         if start_workers and primary:
             platform.jobs.start()
-            platform.webhooks.start()
-            platform.scheduler.start()
+            if start_workers != "jobs":        # "jobs": no webhook delivery, no scheduler
+                platform.webhooks.start()
+                platform.scheduler.start()
         return platform
 
     def uow(self, actor: str | None = None) -> UnitOfWork:

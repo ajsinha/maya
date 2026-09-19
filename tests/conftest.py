@@ -7,7 +7,9 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 from __future__ import annotations
 
+import atexit
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -41,15 +43,31 @@ def fresh_pg_database(url: str) -> str:
     with admin.connect() as conn:
         conn.execute(text(f'CREATE DATABASE "{name}"'))
     admin.dispose()
+    atexit.register(_drop_pg_database, base.set(database="postgres"), name)
     return base.set(database=name).render_as_string(hide_password=False)
 
 
-def build_platform(extra_argv: list[str] | None = None, lake: str = "auto") -> Any:
+def _drop_pg_database(server: Any, name: str) -> None:
+    """The run's own database, dropped when the run ends (the server is left as found)."""
+    from sqlalchemy import create_engine, text
+    try:
+        admin = create_engine(server, isolation_level="AUTOCOMMIT")
+        with admin.connect() as conn:
+            conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        admin.dispose()
+    except Exception:  # noqa: BLE001 - best effort at exit; never fail a run over cleanup
+        pass
+
+
+def build_platform(extra_argv: list[str] | None = None, lake: str = "auto",
+                   start_workers: bool | str = False) -> Any:
     # MAYA_TEST_EXTRA_ARGV: settings for every platform in the run, e.g. the fallback
     # matrix's seam pins (tools/ci/gates.py --fallback); they come last, so they win
     sys.argv = ["pytest", f"--lake.backend={lake}"] + (extra_argv or []) + \
         os.environ.get("MAYA_TEST_EXTRA_ARGV", "").split()
-    os.environ["MAYA_HOME"] = tempfile.mkdtemp(prefix="maya-test-")
+    home = tempfile.mkdtemp(prefix="maya-test-")
+    atexit.register(shutil.rmtree, home, True)         # gone when the run ends
+    os.environ["MAYA_HOME"] = home
     pg = os.environ.get("MAYA_TEST_PG_URL")
     if pg:
         sys.argv.append("--db.dialect=postgresql")
@@ -65,7 +83,7 @@ def build_platform(extra_argv: list[str] | None = None, lake: str = "auto") -> A
         db = database_from_settings(settings)
         db.init_schema(force=True)
         db.dispose()
-    return Platform.build(settings, start_workers=False)
+    return Platform.build(settings, start_workers=start_workers)
 
 
 class World:

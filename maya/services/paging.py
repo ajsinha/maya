@@ -160,8 +160,11 @@ class Pager:
         out: dict[str, Any] = {"items": items, "page_size": size, "sort": sort,
                                "next_cursor": self.encode(shape, last) if more and last else None}
         if total:
+            counter = getattr(listing.keep, "count", None)
             out["total"] = (repo.count(search=listing.search, **listing.filters)
                             if listing.keep is None else
+                            counter(uow, listing.table, listing.search, listing.filters)
+                            if counter is not None else
                             sum(1 for _ in _kept_all(uow, listing)))
         return out
 

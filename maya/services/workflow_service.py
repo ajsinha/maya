@@ -13,7 +13,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from maya.core.errors import NotApproved, PermissionDenied, ValidationFailed
+from maya.core.errors import MayaError, NotApproved, PermissionDenied, ValidationFailed
 from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.workflow import policy as pol
@@ -158,15 +158,20 @@ class WorkflowService:
             raise PermissionDenied("Workflow policy is administered by 'admin'")
 
     # -- people-facing ------------------------------------------------------------------
-    def queue(self, p: Principal) -> list[dict[str, Any]]:
-        """Everything in review that this user could act on (My queue, §16.2)."""
+    def queue(self, p: Principal, *, everything: bool = False) -> list[dict[str, Any]]:
+        """Everything in review that this user may read (My queue, §16.2): an object
+        they may not read is not so much as named. ``everything`` is for the system's
+        own sweeps (SLA escalation), never for a caller."""
         out = []
         with self.p.uow() as uow:
             names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
             for object_type, table in TABLES.items():
-                _, parent_key, parent_table, _ = GOVERNING[object_type]
+                _, parent_key, parent_table, kind = GOVERNING[object_type]
+                keep = None if everything else self.p.access.reader(uow, p, kind)
                 for row in uow.repo(table).list(state="in_review"):
                     owner = uow.repo(parent_table).get(row[parent_key]) if parent_key else row
+                    if keep is not None and not (owner and keep(uow, owner)):
+                        continue
                     ev = uow.repo("workflow_events").list(object_type=object_type,
                                                           object_id=row["id"],
                                                           order_by=["-created_at"], limit=1)
@@ -239,17 +244,30 @@ class WorkflowService:
         return (open_blocking == 0, f"{open_blocking} open blocking comment(s)"
                 if open_blocking else "no open blocking comments")
 
-    def break_glass_report(self, days: int = 31) -> list[dict[str, Any]]:
+    def break_glass_report(self, p: Principal | None = None,
+                           days: int = 31) -> list[dict[str, Any]]:
+        """Forced transitions in the last ``days``: all of them for an administrator, for
+        anyone else those on objects they may read."""
         with self.p.uow() as uow:
-            return uow.repo("workflow_events").list(
+            rows = uow.repo("workflow_events").list(
                 forced=True, created_at__ge=utcnow() - dt.timedelta(days=days),
                 order_by=["-created_at"])
+            if p is None or p.is_admin:
+                return rows
+            out = []
+            for r in rows:
+                try:
+                    self.require_read(uow, p, r["object_type"], r["object_id"])
+                except MayaError:
+                    continue
+                out.append(r)
+            return out
 
-    def aging(self) -> list[dict[str, Any]]:
-        """Items past their SLA (§10.4)."""
+    def aging(self, p: Principal | None = None) -> list[dict[str, Any]]:
+        """Items past their SLA (§10.4): for ``p``, those they may read; else all."""
         out = []
         with self.p.uow() as uow:
-            for item in self.queue_all():
+            for item in (self.queue(p) if p is not None else self.queue_all()):
                 # the policy that governs the item: its namespace's, else the global one
                 try:
                     policy = self.p.workflow.active_policy(uow, item["object_type"],
@@ -263,7 +281,7 @@ class WorkflowService:
 
     def queue_all(self) -> list[dict[str, Any]]:
         from maya.security.authz import Principal as P
-        return self.queue(P("", "", [], {}))
+        return self.queue(P("", "", [], {}), everything=True)
 
     # -- delegation and escalation (§10.4) -----------------------------------------------
     def delegate(self, p: Principal, *, to: str, starts_on: dt.date, ends_on: dt.date,

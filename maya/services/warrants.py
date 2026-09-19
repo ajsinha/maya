@@ -138,6 +138,7 @@ class WarrantService:
                 raise NotApproved(f"{model} is '{mv['state']}'; warrants are drawn on approved "
                                   "model versions")
             model_uri = refs.version_ref("model", mns["name"], mobj["name"], mv["version_no"])
+        given, featureset = featureset, self._fixed_ref(featureset)
         self.p.licences.derivation("featureset", [featureset], "training a model on it")
         res = self.p.featuresets.resolve_ref(p, featureset)
         report = self.validate_contract(mv, res.meta, spec)
@@ -158,7 +159,9 @@ class WarrantService:
                 "backends": Backends.provenance(),
                 "expires_at": utcnow() + dt.timedelta(days=int(spec["expiry_days"]))})
             self._custody(uow, w["id"], "created", p.username,
-                          detail={"model": model_uri, "featureset": featureset})
+                          detail={"model": model_uri, "featureset": featureset,
+                                  **({"featureset_as_given": given} if given != featureset
+                                     else {})})
             me = self.uri(w, ns)
             uow.repo("lineage_edges").link(model_uri, me, "trained_on", "model")
             uow.repo("lineage_edges").link(featureset, me, "trained_on", "data")
@@ -177,6 +180,18 @@ class WarrantService:
         if out["holdout"] not in ("escrowed", "none"):
             raise ValidationFailed("holdout must be 'escrowed' or 'none'")
         return out
+
+    def _fixed_ref(self, featureset: str) -> str:
+        """The reference a warrant keeps: what ``featureset`` means now, written so it
+        cannot come to mean anything else — a bare name becomes the version it resolved
+        to, a pin series without a date the date of the sealed pin it found. A warrant is
+        drawn on data; "the latest" is not data."""
+        r = refs.parse(featureset, "featureset")
+        fs, ns, v, pin, _, _ = self.p.featuresets.load(featureset)
+        if pin is not None:
+            return str(refs.Ref("featureset", ns["name"], fs["name"], series=r.series,
+                                as_of=pin["as_of_date"]))
+        return refs.version_ref("featureset", ns["name"], fs["name"], v["version_no"])
 
     def _fs_pin_id(self, featureset: str) -> str | None:
         r = refs.parse(featureset, "featureset")
@@ -449,8 +464,7 @@ class WarrantService:
             if w["sealed_at"]:
                 raise NotApproved("Already sealed")
             mv = uow.repo("model_versions").require(w["model_version_id"])
-            trainable = bool(irmod.parameter_inputs(mv["formula_ir"])) \
-                if (mv["formula_ir"] or {}).get("body") else False
+            trainable = bool(irmod.parameter_inputs(mv["formula_ir"] or {}))
             accepted = uow.repo("parameter_sets").count(training_warrant_id=warrant_id,
                                                         state__in=catalog.APPROVED_STATES)
             if trainable and not accepted:

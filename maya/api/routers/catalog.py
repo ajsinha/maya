@@ -75,6 +75,16 @@ def get_feature(namespace: str, name: str, me: Principal = Me, plat: Any = Plat)
     return ok(plat.features.get(me, ref_of("feature", namespace, name)))
 
 
+@router.get("/features/{namespace}/{name}/pins", tags=["features"])
+def feature_pins(namespace: str, name: str, page_size: int | None = None,
+                 cursor: str | None = None, sort: str | None = None, total: bool = False,
+                 me: Principal = Me, plat: Any = Plat) -> Response:
+    """A feature's pins, paged; sort is -as_of (default), as_of, series, -series."""
+    return ok(plat.features.pins_page(me, ref_of("feature", namespace, name),
+                                      page_size=page_size, cursor=cursor, sort=sort,
+                                      total=total))
+
+
 @router.put("/features/{namespace}/{name}/draft", tags=["features"])
 def update_feature_draft(namespace: str, name: str, body: s.DraftIn, me: Principal = Me,
                          plat: Any = Plat) -> Response:

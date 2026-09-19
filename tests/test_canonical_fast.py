@@ -106,3 +106,46 @@ def test_the_lake_plans_fragments_with_it_and_the_hash_is_unchanged(monkeypatch,
     fast = lake.plan_fragments(t)
     monkeypatch.setattr(canonical_fast, "row_digests", lambda table: None)
     assert lake.plan_fragments(t) == fast
+
+
+def test_sealing_compares_values_and_hashes_only_what_differs(tmp_path):
+    """Verification at sealing: equal read-back needs no rehash; NaN equals NaN; a real
+    difference falls through to the hash, which then reports it."""
+    from maya.storage.lake import LakeStore, same_values
+    t = pa.table({"date": pa.array([dt.date(2026, 1, d) for d in range(1, 5)]),
+                  "v": pa.array([1.0, float("nan"), None, -0.0])})
+    assert same_values(t, t.slice(0))
+    other = t.set_column(1, "v", pa.array([1.0, float("nan"), None, 2.0]))
+    assert not same_values(t, other)
+    lake = LakeStore(tmp_path)
+    write = lake.write_pin("pins", "ns", "f", t, set())
+    ok = lake.verify_pin("pins", "ns", "f", write.fragments, write.content_hash, written=t)
+    assert ok["ok"] and ok["compared"] == "values"
+    bad = lake.verify_pin("pins", "ns", "f", write.fragments, write.content_hash, written=other)
+    assert bad["ok"] and "compared" not in bad          # hashed: the lake itself is intact
+    wrong = lake.verify_pin("pins", "ns", "f", write.fragments, "0" * 64)
+    assert not wrong["ok"]
+
+
+@pytest.mark.parametrize("layouts", ["one", "few", "many"])
+def test_rows_assembled_by_layout_and_by_scatter_agree(layouts, monkeypatch):
+    """One row layout (no nulls, equal-length strings) is assembled as whole slabs;
+    a few layouts (sparse nulls, two string lengths) and many (random lengths) go to
+    the byte scatter. Slabs, scatter and the reference give the same digests."""
+    rng = np.random.default_rng(3)
+    n = 6000
+    if layouts == "one":
+        sym = [f"S{i % 900:04d}" for i in range(n)]
+    elif layouts == "few":
+        sym = [f"S{i % 900:04d}" if i % 3 else f"T{i % 70:02d}" for i in range(n)]
+    else:
+        sym = ["x" * int(k) for k in rng.integers(0, 4000, n)]
+    x = rng.standard_normal(n).tolist()
+    if layouts != "one":
+        x = [None if i % 97 == 0 else v for i, v in enumerate(x)]
+    table = pa.table({"symbol": pa.array(sym), "x": pa.array(x, pa.float64()),
+                      "d": pa.array([dt.date(2026, 1, 1 + i % 28) for i in range(n)])})
+    grouped = canonical_fast.row_digests(table)
+    monkeypatch.setattr(canonical_fast, "_by_layout", lambda parts, n: None)
+    scattered = canonical_fast.row_digests(table)
+    assert grouped == scattered == _reference(table)

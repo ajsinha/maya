@@ -145,6 +145,20 @@ class Repository(Generic[M]):
                                         filters), search)
         return [dict(zip(names, r)) for r in self.session.execute(stmt)]
 
+    def owner_namespace_counts(self, owner_id: Any, exclude_ids: Iterable[Any], *,
+                               search: tuple[list[str], str] | None = None,
+                               **filters: Any) -> list[tuple[Any, bool, int]]:
+        """(namespace_id, owned by ``owner_id``, rows) over the matching rows, leaving out
+        ``exclude_ids`` — what a read rule that depends only on those two needs to count."""
+        owned = (self.model.owner_id == owner_id).label("owned")
+        stmt = self._search(self._where(
+            select(self.model.namespace_id, owned, func.count()), filters), search)
+        excluded = list(dict.fromkeys(exclude_ids))
+        if excluded:
+            stmt = stmt.where(self.model.id.not_in(excluded))
+        stmt = stmt.group_by(self.model.namespace_id, owned)
+        return [(ns, bool(own), int(n)) for ns, own, n in self.session.execute(stmt)]
+
     def latest_per(self, key: str, ids: Iterable[Any], order: str = "version_no"
                    ) -> dict[Any, dict[str, Any]]:
         """{key value: the row with the highest ``order``} for each of ``ids`` — one query

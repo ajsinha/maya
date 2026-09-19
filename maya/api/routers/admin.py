@@ -275,7 +275,7 @@ def reindex_search(me: Principal = Me, plat: Any = Plat) -> Response:
 @router.get("/lineage", tags=["lineage"])
 def lineage(root: str, direction: str = "both", depth: int = 3, me: Principal = Me,
             plat: Any = Plat) -> Response:
-    return ok(plat.ops.lineage(root, direction=direction, depth=min(depth, 8)))
+    return ok(plat.ops.lineage(root, direction=direction, depth=min(depth, 8), p=me))
 
 
 # -- operations -----------------------------------------------------------------------------

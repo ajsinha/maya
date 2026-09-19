@@ -266,7 +266,7 @@ class FeatureData:
         table = self.to_table(res)
         write, lake_table = self._write_fragments(ns["name"], feature["name"], table)
         verify = self.p.lake.verify_pin("pins", ns["name"], feature["name"], write.fragments,
-                                        write.content_hash)
+                                        write.content_hash, written=table)
         if not verify["ok"]:
             self._fail_pin(pin_id, actor, checks, "hash verification after write failed")
             raise ValidationFailed("Pin hash verification failed after write", **verify)

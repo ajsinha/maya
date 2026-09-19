@@ -63,12 +63,14 @@ async def feature(request: Request, ns: str, name: str) -> Any:
             preview, preview_error = await _preview(sdk.features.preview(
                 data_ref, as_of_known=qp.get("as_of_known") or None))
         licence = await sdk.custody.licence("feature", ref) if latest else None
+        pins_page = await first_page(request, sdk, "pins", feature=ref)
     lineage_root = f"{ref}@v{latest['version_no']}" if latest else ref
     return await render(request, "catalog/feature.html", {
         "f": f, "latest": latest, "history": history, "comments": comments,
         "data_ref": data_ref, "preview": preview, "preview_error": preview_error,
         "licence": licence, "as_of_known": qp.get("as_of_known", ""), "root": lineage_root, "direction": "both",
         "depth": "3", "is_admin": is_admin(request), "job_id": qp.get("job"),
+        "pins_page": pins_page,
         "tab": qp.get("tab", "overview")})
 
 

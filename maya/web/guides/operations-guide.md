@@ -134,6 +134,12 @@ python -m maya.cli admin verify-integrity
 !!! warning "Import into an empty schema, and do not start MAYA in between"
     Starting MAYA on an empty database seeds the built-in roles, policies and the bootstrap admin, and the import would then collide with those rows. Run `init-db --force` and `import-estate` back to back.
 
+The import checks everything before it writes anything, and refuses:
+
+- a database that already holds data;
+- an estate whose own audit chain does not link, naming the first broken event;
+- a column the new version does not know. If the new version dropped that data on purpose, run the import again with `--allow-drop`; the result names every column it dropped.
+
 When MAYA refuses to start with a schema mismatch, its message prints the same three commands.
 
 ## Backups

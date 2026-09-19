@@ -35,3 +35,11 @@
   <td class="d-flex gap-1">{% if j.state in ('queued','running') %}<form method="post" action="/admin/jobs/{{ j.id }}/cancel"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Cancel</button></form>{% endif %}
     {% if j.state in ('failed','dead_letter') %}<form method="post" action="/admin/jobs/{{ j.id }}/retry"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Retry</button></form>{% endif %}</td>
 {%- endmacro %}
+
+{% macro pin_row(p, csrf) -%}
+  <td>{{ p.pin_name }}</td><td>{{ p.as_of_date }}</td><td>v{{ p.version_no }}</td><td>{{ pill(p.state) }}{% if p.failure %}<div class="small-muted">{{ p.failure }}</div>{% endif %}</td>
+  <td>{{ p.row_count }}</td><td class="mono">{{ p.content_hash|short }}</td><td data-sort="{{ p.bytes_new }}">{{ p.bytes_new }} / {{ p.bytes_total }}</td><td>{{ p.sealed_at|dt }}</td>
+  <td class="d-flex gap-1">{% if p.state == 'sealed' %}<a class="btn btn-sm btn-outline-secondary" href="?tab=data&ref={{ p.ref|urlq }}">Data</a>{% endif %}
+    {% if p.state == 'requested' %}<form method="post" action="/catalog/pins/{{ p.id }}/approve"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-primary" type="submit">Approve pin</button></form>{% endif %}
+    {% if p.state == 'sealed' and p.can_retire %}<form method="post" action="/catalog/pins/{{ p.id }}/retire" data-confirm="Retire this pin? It stays resolvable for audit."><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="reason" value="retired from the UI"><button class="btn btn-sm btn-outline-secondary" type="submit">Retire</button></form>{% endif %}</td>
+{%- endmacro %}

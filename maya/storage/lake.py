@@ -172,10 +172,39 @@ class LakeStore:
         return pa.concat_tables(pieces)
 
     def verify_pin(self, kind: str, namespace: str, name: str, fragments: list[str],
-                   expected_hash: str) -> dict[str, Any]:
-        """Re-read a pin and recompute its content hash (integrity verification)."""
+                   expected_hash: str, written: pa.Table | None = None) -> dict[str, Any]:
+        """Re-read a pin and recompute its content hash (integrity verification).
+
+        At sealing, ``written`` is the table whose hash was just computed: if what the
+        lake returns equals it value for value, the hash is the same by construction and
+        need not be recomputed. Anything short of equal is hashed and reported."""
         table = self.read_pin(kind, namespace, name, fragments)
+        if written is not None and same_values(table, written):
+            return {"ok": True, "expected": expected_hash, "actual": expected_hash,
+                    "rows": table.num_rows, "compared": "values"}
         schema_hex, runs = self.plan_fragments(table)
         actual = canonical.content_hash(schema_hex, [d for d, _, _ in runs])
         return {"ok": actual == expected_hash, "expected": expected_hash, "actual": actual,
                 "rows": table.num_rows}
+
+
+def same_values(a: pa.Table, b: pa.Table) -> bool:
+    """Equal names, types, nulls and values — with NaN equal to NaN, as the canonical
+    encoding makes it — so equal tables have equal content hashes."""
+    import numpy as np
+    if a.column_names != b.column_names or a.schema.types != b.schema.types or \
+            a.num_rows != b.num_rows:
+        return False
+    for name in a.column_names:
+        x, y = a.column(name).combine_chunks(), b.column(name).combine_chunks()
+        if pa.types.is_floating(x.type):
+            if not np.array_equal(np.asarray(x.is_valid()), np.asarray(y.is_valid())):
+                return False
+            xv = x.to_numpy(zero_copy_only=False)
+            yv = y.to_numpy(zero_copy_only=False)
+            valid = np.asarray(x.is_valid())
+            if not np.array_equal(xv[valid], yv[valid], equal_nan=True):
+                return False
+        elif not x.equals(y):
+            return False
+    return True

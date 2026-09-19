@@ -92,33 +92,85 @@ def export(db: Any, maya_version: str) -> bytes:
     return out.getvalue()
 
 
-def load(db: Any, data: bytes) -> dict[str, int]:
-    """Load an estate into an empty, freshly created schema; row counts per table."""
+def load(db: Any, data: bytes, *, allow_drop: bool = False) -> dict[str, Any]:
+    """Load an estate into an empty, freshly created schema; row counts per table.
+
+    Everything that could make the load wrong is checked before a row is written: the
+    bundle's hashes, that the target is empty, that the estate's own audit chain links,
+    and — unless ``allow_drop`` — that it carries no table or column this code does not
+    know (which would otherwise be lost without a word)."""
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         manifest = json.loads(z.read("manifest.json"))
         if manifest.get("format") != FORMAT:
             raise ValidationFailed("Not a MAYA estate bundle")
-        counts: dict[str, int] = {}
-        with db.engine.begin() as conn:
-            for table in Base.metadata.sorted_tables:
-                if table.name not in manifest["tables"]:
-                    continue
-                body = z.read(f"tables/{table.name}.jsonl").decode()
-                if hashlib.sha256(body.encode()).hexdigest() != \
-                        manifest["tables"][table.name]["sha256"]:
-                    raise ValidationFailed(f"Table {table.name} failed its hash check")
-                if table.name == "schema_meta":
-                    continue
-                known = {c.name for c in table.columns}
-                rows = [{k: v for k, v in _decode(json.loads(line)).items() if k in known}
-                        for line in body.splitlines() if line]
-                if rows:
-                    _require_carried(table, rows[0])
-                    conn.execute(table.insert(), rows)
-                counts[table.name] = len(rows)
-            if db.dialect == "postgresql":
-                _advance_sequences(conn)
-    return counts
+        tables = {t.name: t for t in Base.metadata.sorted_tables}
+        bodies: dict[str, list[dict[str, Any]]] = {}
+        for name, meta in manifest["tables"].items():
+            body = z.read(f"tables/{name}.jsonl").decode()
+            if hashlib.sha256(body.encode()).hexdigest() != meta["sha256"]:
+                raise ValidationFailed(f"Table {name} failed its hash check")
+            bodies[name] = [_decode(json.loads(line)) for line in body.splitlines() if line]
+    dropped = _not_known(bodies, tables)
+    if dropped and not allow_drop:
+        raise ValidationFailed(
+            "The estate carries data this version does not know, which the load would "
+            "drop: " + "; ".join(f"{t}: {', '.join(c)}" for t, c in sorted(dropped.items()))
+            + ". Load with the version that made it, or accept the loss explicitly "
+              "(--allow-drop).", not_carried=dropped)
+    _require_empty(db, tables)
+    _require_chain(bodies.get("audit_events", []))
+    counts: dict[str, int] = {}
+    with db.engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if table.name not in bodies or table.name == "schema_meta":
+                continue
+            known = {c.name for c in table.columns}
+            rows = [{k: v for k, v in r.items() if k in known} for r in bodies[table.name]]
+            if rows:
+                _require_carried(table, rows[0])
+                conn.execute(table.insert(), rows)
+            counts[table.name] = len(rows)
+        if db.dialect == "postgresql":
+            _advance_sequences(conn)
+    return {"tables": counts, "dropped": dropped}
+
+
+def _not_known(bodies: dict[str, list[dict[str, Any]]], tables: dict[str, Any]
+               ) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for name, rows in bodies.items():
+        if name not in tables:
+            out[name] = ["(the whole table)"]
+        elif rows:
+            extra = sorted(set(rows[0]) - {c.name for c in tables[name].columns})
+            if extra:
+                out[name] = extra
+    return out
+
+
+def _require_empty(db: Any, tables: dict[str, Any]) -> None:
+    from sqlalchemy import func, select
+    with db.engine.connect() as conn:
+        for name, table in tables.items():
+            if name == "schema_meta":
+                continue
+            n = conn.execute(select(func.count()).select_from(table)).scalar_one()
+            if n:
+                raise ValidationFailed(
+                    f"The database already holds data ({name} has {n} rows); an estate "
+                    "loads only into a freshly created schema: run init-db --force first",
+                    table=name, rows=n)
+
+
+def _require_chain(rows: list[dict[str, Any]]) -> None:
+    """The estate's audit chain must link before any of it is written."""
+    from maya.persistence.repositories.special import GENESIS, audit_digest
+    prev = GENESIS
+    for row in sorted(rows, key=lambda r: r["seq"]):
+        if row.get("prev_hash") != prev or audit_digest(prev, row) != row.get("hash"):
+            raise ValidationFailed("The estate's audit chain does not verify; nothing was "
+                                   "loaded", broken_at=row["seq"])
+        prev = row["hash"]
 
 
 def _require_carried(table: Any, row: dict[str, Any]) -> None:

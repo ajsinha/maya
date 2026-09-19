@@ -56,6 +56,9 @@ TABLES: dict[str, Table] = {
         "audit_row", {"#": "seq"}, "-seq", ("action",)),
     "events": Table(lambda sdk, qp, **kw: sdk.events.page(type=_opt(qp, "type"), **kw),
                     "event_row", {"Seq": "seq"}, "-seq", ("type",)),
+    "pins": Table(lambda sdk, qp, **kw: sdk.features.pins(qp["feature"], **kw),
+                  "pin_row", {"As of": "as_of", "Series": "series"}, "-as_of", ("feature",),
+                  needs_csrf=True),
     "jobs": Table(lambda sdk, qp, **kw: sdk.jobs.page(all=True, q=_opt(qp, "q"), **kw),
                   "job_row", {"Created": "created"}, "-created", needs_csrf=True),
 }

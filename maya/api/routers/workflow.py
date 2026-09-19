@@ -24,12 +24,12 @@ def queue(me: Principal = Me, plat: Any = Plat) -> Response:
 
 @router.get("/aging")
 def aging(me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.aging())
+    return ok(plat.workflow_svc.aging(me))
 
 
 @router.get("/break-glass")
 def break_glass(days: int = 31, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.workflow_svc.break_glass_report(days))
+    return ok(plat.workflow_svc.break_glass_report(me, days))
 
 
 @router.get("/policies")

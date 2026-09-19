@@ -263,7 +263,7 @@ curl -N https://maya.example.com/api/v1/jobs/$JOB/events -H "Authorization: Bear
 | `GET /inbox`, `POST /inbox/read` | Your notifications. |
 | `GET /search?q=&limit=` | Catalog search over what you may read. |
 | `POST /search/reindex` | Rebuild the search index (administrators). |
-| `GET /lineage?root=&direction=&depth=` | The lineage graph around an object. |
+| `GET /lineage?root=&direction=&depth=` | The lineage graph around an object, without what the caller may not read (counted in `hidden`). |
 
 ### Catalog: features and feature sets
 

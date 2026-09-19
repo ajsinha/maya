@@ -25,7 +25,9 @@ def _client(args: argparse.Namespace) -> Any:
         from maya.config import load_settings
         from maya.server import build_app
         from maya.services.platform import Platform
-        platform = Platform.build(load_settings(args.config), start_workers=True)
+        # job workers only: a CLI run must not deliver webhooks or run the scheduler —
+        # on a restored copy of production that would reach production's receivers
+        platform = Platform.build(load_settings(args.config), start_workers="jobs")
         anon = Client(app=build_app(platform), channel="cli")
         user = os.environ.get("MAYA_USER", "admin")
         pw = os.environ.get("MAYA_PASSWORD")
@@ -87,7 +89,8 @@ def admin_import_estate(args: argparse.Namespace) -> int:
     if not db.is_initialized():
         db.init_schema()
     platform = _local_platform(args, seed=False)
-    result = platform.ops.import_estate(Path(args.input).read_bytes())
+    result = platform.ops.import_estate(Path(args.input).read_bytes(),
+                                        allow_drop=args.allow_drop)
     print(json.dumps(result, indent=2, default=str))
     return EXIT_OK
 
@@ -301,7 +304,10 @@ def _parser() -> argparse.ArgumentParser:
     a = groups.add_parser("admin").add_subparsers(dest="cmd", required=True)
     cmd(a, "init-db", admin_init_db, (("--force",), {"action": "store_true"}))
     cmd(a, "export-estate", admin_export_estate, (("--out",), {"required": True}))
-    cmd(a, "import-estate", admin_import_estate, (("--in",), {"dest": "input", "required": True}))
+    cmd(a, "import-estate", admin_import_estate, (("--in",), {"dest": "input", "required": True}),
+        (("--allow-drop",), {"action": "store_true",
+                             "help": "load even though data this version does not know "
+                                     "would be dropped (named in the output)"}))
     cmd(a, "verify-integrity", admin_verify_integrity)
 
     f = groups.add_parser("feature").add_subparsers(dest="cmd", required=True)
@@ -363,6 +369,9 @@ def main(argv: list[str] | None = None) -> int:
     except MayaError as exc:
         code = getattr(exc, "code", "maya_error")
         print(f"maya: {type(exc).__name__}: {exc.message}", file=sys.stderr)
+        if getattr(exc, "context", None):
+            print("maya: " + json.dumps(exc.context, default=str, sort_keys=True),
+                  file=sys.stderr)
         return EXIT_NETWORK if code == "transport_error" else EXIT_REFUSED
 
 
