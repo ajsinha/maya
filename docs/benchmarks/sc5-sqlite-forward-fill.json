@@ -1,0 +1,38 @@
+{
+ "criterion": "SC-5",
+ "target": {
+  "warm_p95_s": 15,
+  "cold_s": 60
+ },
+ "machine": {
+  "python": "3.13.15",
+  "os": "Linux-7.0.4-76070004-generic-x86_64-with-glibc2.43",
+  "cpus": 24,
+  "cpu": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+  "memory_gb": 61.1
+ },
+ "build": {
+  "home": "/tmp/maya-bench-ta5voh3u",
+  "rows": 1260000,
+  "columns": 50,
+  "symbols": 500,
+  "days": 2520,
+  "ingest_seconds": 22.82,
+  "db_url": null,
+  "rule": "forward_fill(limit=3)"
+ },
+ "resolution": {
+  "startup_seconds": 0.7,
+  "cold_seconds": 6.336,
+  "warm": {
+   "n": 5,
+   "p50": 6.0146,
+   "p95": 6.0636,
+   "max": 6.0636,
+   "mean": 5.9861
+  },
+  "result_rows": 1260000,
+  "result_columns": 53
+ },
+ "pass": true
+}
