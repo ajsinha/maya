@@ -106,10 +106,27 @@ def parse_rule(spec: str | dict[str, Any] | RuleSpec | None) -> RuleSpec:
     if rs.name == "custom":
         raise ValidationFailed("custom(fn) rules need a registered sandboxed function; "
                                "none are registered in this build")
+    _check_bounds(rs)
     if rs.name == "spline_interp" and importlib.util.find_spec("scipy") is None:
         raise ValidationFailed("spline_interp needs the 'scipy' package, which is not installed",
                                package="scipy")
     return rs
+
+
+# parameter -> smallest allowed whole number. last_known_as_of(lag=-k) would probe k days
+# into the future: look-ahead that the non-causal classification would not catch.
+_MINIMUM = {"limit": 0, "max_age": 0, "lag": 0, "n": 1, "order": 1}
+
+
+def _check_bounds(rs: RuleSpec) -> None:
+    for key, value in rs.params.items():
+        if key not in _MINIMUM:
+            continue
+        if isinstance(value, bool) or not isinstance(value, int) or value < _MINIMUM[key]:
+            raise ValidationFailed(f"rule '{rs.name}': {key} must be a whole number of at least "
+                                   f"{_MINIMUM[key]}"
+                                   + ("; a negative lag is look-ahead" if key == "lag" else ""),
+                                   rule=rs.canonical())
 
 
 def _runs(mask: np.ndarray) -> np.ndarray:

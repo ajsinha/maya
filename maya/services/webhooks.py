@@ -117,6 +117,7 @@ class WebhookService:
     def deliveries(self, p: Principal, webhook_id: str) -> list[dict[str, Any]]:
         self._admin(p)
         with self.p.uow() as uow:
+            uow.repo("webhooks").require(webhook_id)
             return uow.repo("webhook_deliveries").list(webhook_id=webhook_id,
                                                        order_by=["-created_at"], limit=500)
 

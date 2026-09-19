@@ -1,7 +1,7 @@
 """The gate ladder's single entry point (plan §7). Never a remembered list.
 
     python tools/ci/gates.py            # the fast static gates
-    python tools/ci/gates.py --tests    # … then the full test suite
+    python tools/ci/gates.py --tests    # … then the full suite, failing under 90% coverage
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -27,7 +27,10 @@ def main(argv: list[str]) -> int:
     if rc:
         failed.append("gen_schema.py --check")
     if "--tests" in argv and not failed:
-        rc = subprocess.call([sys.executable, "-m", "pytest", "-q"], cwd=HERE.parents[1])
+        # the full suite, under a coverage floor: a change that drops below it fails here
+        rc = subprocess.call([sys.executable, "-m", "pytest", "-q", "--cov=maya",
+                              "--cov=maya_delta", "--cov-report=term:skip-covered",
+                              "--cov-fail-under=90"], cwd=HERE.parents[1])
         if rc:
             failed.append("pytest")
     print("\n" + ("ALL GATES GREEN" if not failed else "RED: " + ", ".join(failed)))

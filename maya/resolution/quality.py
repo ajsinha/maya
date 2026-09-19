@@ -114,7 +114,9 @@ def _max_change(df: pd.DataFrame, c: Check, idx: list[str]) -> Result:
     limit, bad = float(c["max"]), 0
     for g in _per_group(df, idx):
         s = g[c["attr"]].dropna().astype("float64")
-        rel = (s.pct_change().abs()).replace([np.inf], np.nan).dropna()
+        # a move away from zero is an infinite relative change: over any limit, not ignored
+        # (0 -> 0 is 0/0, no change, and drops out as NaN)
+        rel = s.pct_change(fill_method=None).abs().dropna()
         bad += int((rel > limit).sum())
     return _res(c, bad == 0, f"{bad} change(s) larger than {limit:.4g} relative")
 

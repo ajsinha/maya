@@ -39,6 +39,19 @@ TABLES = {
 }
 
 
+# object type -> (its table, key of the governing object, that object's table, access kind)
+GOVERNING = {
+    "feature_version": ("feature_versions", "feature_id", "features", "feature"),
+    "featureset_version": ("feature_set_versions", "feature_set_id", "feature_sets",
+                           "featureset"),
+    "model_version": ("model_versions", "model_id", "models", "model"),
+    "parameter_set": ("parameter_sets", "training_warrant_id", "training_warrants",
+                      "training_warrant"),
+    "training_warrant": ("training_warrants", None, None, "training_warrant"),
+    "execution_warrant": ("execution_warrants", None, None, "execution_warrant"),
+}
+
+
 class WorkflowService:
     def __init__(self, platform: Any) -> None:
         self.p = platform
@@ -126,6 +139,9 @@ class WorkflowService:
                 "messages": messages or ["no object currently in flight is affected"]}
 
     def population(self, object_type: str) -> dict[str, int]:
+        if object_type not in TABLES:
+            raise ValidationFailed(f"Unknown object type '{object_type}'",
+                                   allowed=sorted(TABLES))
         with self.p.uow() as uow:
             counts: dict[str, int] = {}
             for row in uow.repo(TABLES[object_type]).list():
@@ -160,8 +176,22 @@ class WorkflowService:
                                 == p.username})
         return sorted(out, key=lambda r: r["since"])
 
-    def history(self, object_type: str, object_id: str) -> list[dict[str, Any]]:
+    def require_read(self, uow: Any, p: Principal, object_type: str, object_id: str) -> None:
+        """Review history and comments belong to the object: reading or adding them needs
+        read access to the object that governs it (a version's feature, model, …)."""
+        if object_type not in GOVERNING:
+            raise ValidationFailed(f"Unknown object type '{object_type}'",
+                                   allowed=sorted(GOVERNING))
+        table, parent_key, parent_table, kind = GOVERNING[object_type]
+        row = uow.repo(table).require(object_id)
+        obj = uow.repo(parent_table).require(row[parent_key]) if parent_key else row
+        self.p.access.require(uow, p, "read", kind, obj)
+
+    def history(self, object_type: str, object_id: str,
+                p: Principal | None = None) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
+            if p is not None:
+                self.require_read(uow, p, object_type, object_id)
             events = uow.repo("workflow_events").list(object_type=object_type, object_id=object_id,
                                                       order_by=["created_at"])
             approvals = uow.repo("approvals").list(object_type=object_type, object_id=object_id,
@@ -174,6 +204,7 @@ class WorkflowService:
         if not body.strip():
             raise ValidationFailed("A comment needs a body")
         with self.p.uow(p.username) as uow:
+            self.require_read(uow, p, object_type, object_id)
             row = uow.repo("comments").add({"object_type": object_type, "object_id": object_id,
                                             "author": p.username, "body": body,
                                             "blocking": blocking, "anchor": anchor})
@@ -188,8 +219,11 @@ class WorkflowService:
                 raise PermissionDenied("Only the comment's author resolves it")
             return uow.repo("comments").update(comment_id, {"resolved": True})
 
-    def comments(self, object_type: str, object_id: str) -> list[dict[str, Any]]:
+    def comments(self, object_type: str, object_id: str,
+                 p: Principal | None = None) -> list[dict[str, Any]]:
         with self.p.uow() as uow:
+            if p is not None:
+                self.require_read(uow, p, object_type, object_id)
             return uow.repo("comments").list(object_type=object_type, object_id=object_id,
                                              order_by=["created_at"])
 

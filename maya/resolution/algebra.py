@@ -178,6 +178,9 @@ def _tc_lag(o: dict[str, Any], m: list[Meta]) -> Meta:
     _arity("lag", m, 1, 1)
     if int(o.get("n", 1)) < 0:
         raise ValidationFailed("lag n must be non-negative; a negative lag is look-ahead")
+    unknown = sorted(set(o.get("attrs") or []) - set(_attrs(m[0])))
+    if unknown:
+        raise ValidationFailed(f"lag names unknown attribute(s) {unknown}")
     return _meta(m[0]["index"], m[0]["schema"], m, "breaking")
 
 

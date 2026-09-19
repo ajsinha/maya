@@ -575,7 +575,12 @@ class FeatureSetService:
         schema = self._full_schema(res)
         if shape == "wide":
             df, axis = shapes.to_shape(res.df, schema, "wide")
-            payload = shapes.export(df, shapes_infer(df), fmt, csv_encoding)
+            # keep every declared type (a date index stays a date); infer only the
+            # columns widening created
+            known = {a["name"]: a for a in schema}
+            inferred = {a["name"]: a for a in shapes_infer(df)}
+            payload = shapes.export(df, [known.get(c) or inferred[c] for c in df.columns],
+                                    fmt, csv_encoding)
         else:
             payload, axis = shapes.export(res.df, schema, fmt, csv_encoding), None
         manifest = {"ref": ref, "rows": len(res.df), "format": fmt, "shape": shape,

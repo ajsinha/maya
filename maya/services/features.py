@@ -172,10 +172,13 @@ class FeatureService:
             src, ns = catalog.find_object(uow, "features", "feature", refs.parse(ref, "feature"))
             self.p.access.require(uow, p, "read", "feature", src)
             latest = catalog.latest_version(uow, "feature_versions", "feature_id", src["id"])
+            # extend the latest *approved* version: a draft can still change under the child
+            parent = catalog.version_of(uow, "feature_versions", "feature_id", src, None) \
+                if extend else None
         target_ns = namespace or ns["name"]
         if extend:
             definition = {"extends": {"parent": refs.version_ref(
-                "feature", ns["name"], src["name"], latest["version_no"]),
+                "feature", ns["name"], src["name"], parent["version_no"]),
                 "binding": "pinned", "override": {}}}
         else:
             definition = dict(latest["definition"])
@@ -306,6 +309,7 @@ class FeatureService:
                 catalog.validate_feature_definition(version["definition"],
                                                     production=ns["production"]))
             errors += catalog.blocking_errors(catalog.validate_feature_definition(eff))
+            errors += catalog.pinned_parent_errors(uow, version["definition"])
         if errors:
             raise ValidationFailed("The definition is not valid: " + "; ".join(errors),
                                    errors=errors)

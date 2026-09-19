@@ -95,22 +95,38 @@ def parse_type(text: str) -> LogicalType:
         raise ValidationFailed(f"unknown logical type '{text}'")
     kind, inner = m.group(1), m.group(2)
     parts = _split_top(inner)
-    if kind == "list" and len(parts) == 1:
-        parse_type(parts[0])
-        return LogicalType(kind, (parts[0],))
-    if kind == "fixed_vector" and len(parts) == 2:
-        return LogicalType(kind, (parts[0], int(parts[1])))
-    if kind == "tensor" and len(parts) == 2:
-        dims = tuple(int(x) for x in parts[1].strip("[]").split(","))
-        return LogicalType(kind, (parts[0], dims))
-    if kind == "map" and len(parts) == 2:
-        return LogicalType(kind, (parts[0], parts[1]))
-    if kind == "struct":
-        fields = []
-        for p in parts:
-            name, _, ftype = p.partition(":")
-            fields.append((name.strip(), ftype.strip()))
-        return LogicalType(kind, tuple(fields))
+    try:
+        # every element type is itself a logical type; sizes are positive whole numbers
+        if kind == "list" and len(parts) == 1:
+            parse_type(parts[0])
+            return LogicalType(kind, (parts[0],))
+        if kind == "fixed_vector" and len(parts) == 2:
+            parse_type(parts[0])
+            size = int(parts[1])
+            if size < 1:
+                raise ValueError(size)
+            return LogicalType(kind, (parts[0], size))
+        if kind == "tensor" and len(parts) == 2:
+            parse_type(parts[0])
+            dims = tuple(int(x) for x in parts[1].strip("[]").split(","))
+            if not dims or min(dims) < 1:
+                raise ValueError(dims)
+            return LogicalType(kind, (parts[0], dims))
+        if kind == "map" and len(parts) == 2:
+            parse_type(parts[0])
+            parse_type(parts[1])
+            return LogicalType(kind, (parts[0], parts[1]))
+        if kind == "struct" and parts:
+            fields = []
+            for p in parts:
+                name, _, ftype = p.partition(":")
+                if not name.strip():
+                    raise ValueError(p)
+                parse_type(ftype.strip())
+                fields.append((name.strip(), ftype.strip()))
+            return LogicalType(kind, tuple(fields))
+    except ValueError as exc:
+        raise ValidationFailed(f"malformed logical type '{text}'") from exc
     raise ValidationFailed(f"malformed logical type '{text}'")
 
 
@@ -225,6 +241,9 @@ def _cast_scalar(value: Any, lt: LogicalType) -> Any:
         f = float(value)
         if not f.is_integer():
             raise ValueError("not integral")
+        bits = 31 if k == "int32" else 63
+        if not -2 ** bits <= f < 2 ** bits:          # else Arrow overflows at write time
+            raise ValueError(f"outside {k}")
         return int(f)
     if k in {"float32", "float64"}:
         return float(value)

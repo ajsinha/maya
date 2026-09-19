@@ -191,7 +191,7 @@ def _eval(node: ast.AST, df: pd.DataFrame) -> Any:
             return {"True": True, "False": False, "None": None}[node.id]
         return _col(df, node.id)
     if isinstance(node, ast.BinOp):
-        return _BINOPS[type(node.op)](_eval(node.left, df), _eval(node.right, df))
+        return _binop(node, _eval(node.left, df), _eval(node.right, df))
     if isinstance(node, ast.UnaryOp):
         v = _eval(node.operand, df)
         if isinstance(node.op, ast.Not):
@@ -210,6 +210,30 @@ def _eval(node: ast.AST, df: pd.DataFrame) -> Any:
         return _where(_eval(node.test, df), _eval(node.body, df), _eval(node.orelse, df))
     _refuse(node)
     return None
+
+
+def _is_text(value: Any) -> bool:
+    """A string, or a column holding strings (numpy keeps those as object or U/S arrays)."""
+    if isinstance(value, str):
+        return True
+    if isinstance(value, np.ndarray):
+        if value.dtype.kind in "US":
+            return True
+        return value.dtype.kind == "O" and any(isinstance(v, str) for v in value.ravel())
+    return False
+
+
+def _binop(node: ast.BinOp, left: Any, right: Any) -> Any:
+    """Arithmetic that cannot be made to run away: ``**`` is computed in floating point
+    (``10**10**10`` is inf, not a billion-digit integer), and text takes part only in
+    concatenation (``'a' * 10**9`` and ``'%999999999d' % 1`` would allocate gigabytes)."""
+    if not isinstance(node.op, ast.Add) and (_is_text(left) or _is_text(right)):
+        raise ValidationFailed("text may only be joined with '+' in an expression",
+                               construct=type(node.op).__name__)
+    if isinstance(node.op, ast.Pow):
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            return np.power(np.asarray(left, dtype="float64"), np.asarray(right, dtype="float64"))
+    return _BINOPS[type(node.op)](left, right)
 
 
 def _eval_compare(node: ast.Compare, df: pd.DataFrame) -> Any:

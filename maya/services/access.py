@@ -27,6 +27,9 @@ KINDS = {
 CREDENTIAL_FIELDS = ("password_hash", "mfa_secret", "mfa_last_step")
 
 
+DIRECTORY_FIELDS = ("id", "username", "display_name", "status")
+
+
 def public_user(row: dict[str, Any]) -> dict[str, Any]:
     """A user row with every credential field removed — the only form that leaves."""
     return {k: v for k, v in row.items() if k not in CREDENTIAL_FIELDS}
@@ -336,11 +339,15 @@ class AccessService:
                 "failed_attempts": 0, "locked_until": None})
             uow.audit("user.password_reset", object_ref=f"user:{username}")
 
-    def list_users(self) -> list[dict[str, Any]]:
+    def list_users(self, p: Principal | None = None) -> list[dict[str, Any]]:
+        """Administrators and techops see whole accounts; everyone else sees a directory
+        (who exists, for delegation and grants) without lockout or password state."""
         with self.p.uow() as uow:
             users = uow.repo("users").list(order_by=["username"])
             roles = {r["id"]: r["name"] for r in uow.repo("roles").list()}
             links = uow.repo("user_roles").list()
+        if p is not None and not (p.is_admin or "techops" in p.roles):
+            return [{k: u.get(k) for k in DIRECTORY_FIELDS} for u in users]
         users = [public_user(u) for u in users]
         for u in users:
             u["roles"] = sorted(roles[lnk["role_id"]] for lnk in links

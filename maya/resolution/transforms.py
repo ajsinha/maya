@@ -169,6 +169,11 @@ def validate_step(step: Step) -> None:
     for key in ("expr",):
         if key in step:
             compile_expr(step[key])
+    # the same guard the algebra's lag operator has: a transform must not be a back door
+    if op == "lag" and "n" in step and int(step["n"]) < 0:
+        raise ValidationFailed("lag n must be non-negative; a negative lag is look-ahead")
+    if op == "window" and "size" in step and int(step["size"]) < 1:
+        raise ValidationFailed("window size must be at least 1")
 
 
 def apply_pipeline(df: pd.DataFrame, steps: list[Step], index_cols: list[str]) -> pd.DataFrame:
