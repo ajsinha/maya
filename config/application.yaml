@@ -169,6 +169,11 @@ observability:
     # dev only: allow http://localhost and private addresses (never outside dev)
     allow_private: "false"
 
+health:
+  # The health page re-walks the whole audit chain at most this often; the audit page
+  # and the integrity check always walk it afresh.
+  audit_verify_seconds: 60
+
 sources:
   # §5.2 'python' sources: a producer function run in the sandbox on each pull.
   python:

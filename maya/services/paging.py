@@ -3,11 +3,11 @@ Cursor pagination (§18.1 conventions): keyset pages over any list that can grow
 
 A ``Listing`` says what a list is — its table, the sorts it offers, its filters
 and search, a per-row ``keep`` (authorization, where rows are filtered one by
-one) and an ``enrich`` applied to the rows of one page only. The pager walks the
-table in keyset order (the sort column, then the primary key as tiebreak, both
-in the sort's direction), drops the rows ``keep`` refuses, and stops as soon as
-it holds one row more than the page: that extra row is how it knows a next page
-exists, without counting.
+one) and an ``enrich`` (or a bulk ``enrich_many``) applied to the rows of one
+page only. The pager walks the table in keyset order (the sort column, then the
+primary key as tiebreak, both in the sort's direction), drops the rows ``keep``
+refuses, and stops as soon as it holds one row more than the page: that extra
+row is how it knows a next page exists, without counting.
 
 A cursor is opaque to callers and bound to its query. It carries the last row's
 (sort value, primary key) and a digest of the table, sort, filters and search it
@@ -43,6 +43,14 @@ class Listing:
     search: tuple[list[str], str] | None = None
     keep: Callable[[Any, dict[str, Any]], bool] | None = None
     enrich: Callable[[Any, dict[str, Any]], dict[str, Any]] | None = None
+    enrich_many: Callable[[Any, list[dict[str, Any]]], list[dict[str, Any]]] | None = None
+    scope: dict[str, Any] = field(default_factory=dict)   # conditions ``keep`` applies
+
+    def finish(self, uow: Any, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """The rows as callers see them: ``enrich_many`` in bulk, else ``enrich`` per row."""
+        if self.enrich_many:
+            return self.enrich_many(uow, rows)
+        return [self.enrich(uow, r) for r in rows] if self.enrich else rows
 
     def collect(self, uow: Any, sort: str | None = None) -> list[dict[str, Any]]:
         """Every kept row, enriched, in the sort's order: the unpaged list."""
@@ -51,8 +59,7 @@ class Listing:
         tiebreak = ("-" if order.startswith("-") else "") + pk
         rows = uow.repo(self.table).list(order_by=[order, tiebreak], search=self.search,
                                          **self.filters)
-        return [self.enrich(uow, r) if self.enrich else r for r in rows
-                if self.keep is None or self.keep(uow, r)]
+        return self.finish(uow, [r for r in rows if self.keep is None or self.keep(uow, r)])
 
 
 def _enc(value: Any) -> Any:
@@ -87,6 +94,7 @@ class Pager:
     def shape(listing: Listing, sort: str) -> str:
         """The query a cursor belongs to: table, sort, filters and search, as a digest."""
         body = json.dumps({"t": listing.table, "s": sort, "f": listing.filters,
+                           "c": listing.scope,
                            "q": list(listing.search) if listing.search else None},
                           sort_keys=True, default=str)
         return hashlib.sha256(body.encode()).hexdigest()[:24]
@@ -148,7 +156,7 @@ class Pager:
                 last = after
             if len(rows) < batch:
                 break
-        items = [listing.enrich(uow, r) if listing.enrich else r for r in kept]
+        items = listing.finish(uow, kept)
         out: dict[str, Any] = {"items": items, "page_size": size, "sort": sort,
                                "next_cursor": self.encode(shape, last) if more and last else None}
         if total:
@@ -159,7 +167,10 @@ class Pager:
 
 
 def _kept_all(uow: Any, listing: Listing) -> Any:
-    for row in uow.repo(listing.table).list(search=listing.search, **listing.filters):
+    repo = uow.repo(listing.table)
+    columns = [c for c in ("id", "namespace_id", "owner_id")
+               if c in repo.model.__mapper__.columns]          # all ``keep`` ever reads
+    for row in repo.slim(columns, search=listing.search, **listing.filters):
         if listing.keep is None or listing.keep(uow, row):
             yield row
 

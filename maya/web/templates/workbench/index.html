@@ -12,12 +12,14 @@
   <div class="col-md-3"><a class="card card-body h-100 text-decoration-none" href="/workbench/featuresets/new"><strong><i class="bi bi-grid-1x2" aria-hidden="true"></i> Feature set builder</strong><span class="small-muted">Map attributes, align members, set policy precedence.</span></a></div>
 </div>
 <h2>Feature drafts</h2>
-{% call(f) table("drafts", ["Feature", "Namespace", "Version", "State", "!Actions"], drafts, empty="No feature drafts in flight.") %}
+{% if drafts.total > drafts["items"]|length %}<p class="small-muted">The {{ drafts["items"]|length }} most recently changed of {{ drafts.total }} drafts; find others in the <a href="/catalog/features">catalog</a>.</p>{% endif %}
+{% call(f) table("drafts", ["Feature", "Namespace", "Version", "State", "!Actions"], drafts["items"], empty="No feature drafts in flight.") %}
   <td>{{ f.name }}</td><td>{{ f.namespace }}</td><td>v{{ f.latest_version }}</td><td>{{ pill(f.latest_state) }}</td>
   <td><a href="/workbench/features/{{ f.namespace }}/{{ f.name }}/edit">Edit</a> · <a href="/workbench/features/{{ f.namespace }}/{{ f.name }}/preview">Preview</a> · <a href="/workbench/features/{{ f.namespace }}/{{ f.name }}/ingest">Ingest</a></td>
 {% endcall %}
 <h2>Feature set drafts</h2>
-{% call(s) table("setdrafts", ["Feature set", "Namespace", "Version", "State", "!Actions"], sets, empty="No feature set drafts in flight.") %}
+{% if sets.total > sets["items"]|length %}<p class="small-muted">The {{ sets["items"]|length }} most recently changed of {{ sets.total }} drafts; find others in the <a href="/catalog/featuresets">catalog</a>.</p>{% endif %}
+{% call(s) table("setdrafts", ["Feature set", "Namespace", "Version", "State", "!Actions"], sets["items"], empty="No feature set drafts in flight.") %}
   <td>{{ s.name }}</td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td><td>{{ pill(s.latest_state) }}</td>
   <td><a href="/workbench/featuresets/{{ s.namespace }}/{{ s.name }}/edit">Edit</a> · <a href="/workbench/featuresets/{{ s.namespace }}/{{ s.name }}/preview">Preview</a></td>
 {% endcall %}

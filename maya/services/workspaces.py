@@ -202,11 +202,11 @@ class WorkspaceService:
 
     def _replay_one(self, uri: str, overlay: dict[tuple[str, str], Any]) -> dict[str, Any]:
         with self.p.uow() as uow:
-            w = self._warrant(uow, uri)
+            w, why = self._target(uow, uri)
             if w is None:
-                return {"warrant": uri, "replayed": False, "reason": "warrant not found"}
+                return {"warrant": uri, "replayed": False, "reason": why}
             mv = uow.repo("model_versions").require(w["model_version_id"])
-            params = self._params(uow, w)
+            params = w["values"] if "values" in w else self._params(uow, w)
         if params is None:
             return {"warrant": uri, "replayed": False,
                     "reason": "no parameter set to score with yet"}
@@ -247,15 +247,35 @@ class WorkspaceService:
                 "rows_over_materiality": over,
                 "share_over_materiality": over / len(delta)}
 
-    def _warrant(self, uow: Any, uri: str) -> dict[str, Any] | None:
-        body = uri.split("maya://warrant/train/", 1)[-1]
+    def _target(self, uow: Any, uri: str) -> tuple[dict[str, Any] | None, str]:
+        """What to replay for a warrant URI: a training warrant as it is; an execution
+        warrant as the training warrant it was issued from — its feature set and bindings —
+        scored with the execution warrant's own model version and sealed parameters."""
+        kind = "exec" if uri.startswith("maya://warrant/exec/") else "train"
+        w = self._warrant(uow, uri, kind)
+        if w is None:
+            return None, "warrant not found"
+        if kind == "train":
+            return w, ""
+        if not w.get("training_warrant_id"):
+            return None, ("execution warrant has no training warrant: its inputs come from "
+                          "callers, so there is no feature set to replay")
+        tw = uow.repo("training_warrants").require(w["training_warrant_id"])
+        target = {**tw, "model_version_id": w["model_version_id"]}
+        if w.get("parameter_set_id"):
+            target["values"] = uow.repo("parameter_sets").require(w["parameter_set_id"])["values"]
+        return target, ""
+
+    def _warrant(self, uow: Any, uri: str, kind: str = "train") -> dict[str, Any] | None:
+        body = uri.split(f"maya://warrant/{kind}/", 1)[-1]
         path, _, version = body.partition("@v")
         ns_name, _, name = path.partition("/")
         ns = uow.repo("namespaces").find_one(name=ns_name)
         if ns is None or not version.isdigit():
             return None
-        return uow.repo("training_warrants").find_one(namespace_id=ns["id"], name=name,
-                                                      version_no=int(version))
+        table = "execution_warrants" if kind == "exec" else "training_warrants"
+        return uow.repo(table).find_one(namespace_id=ns["id"], name=name,
+                                        version_no=int(version))
 
     @staticmethod
     def _params(uow: Any, w: dict[str, Any]) -> dict[str, Any] | None:

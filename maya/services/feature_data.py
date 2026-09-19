@@ -328,6 +328,12 @@ class FeatureData:
                 "wall_clock": utcnow().isoformat(), "plan": res.plan,
                 "inputs": res.inputs, "content_hash": write.content_hash}
 
+    def fail_if_unfinished(self, pin_id: str, actor: str, exc: BaseException) -> None:
+        with self.p.uow() as uow:
+            state = uow.repo("feature_pins").require(pin_id)["state"]
+        if state == "materializing":
+            self._fail_pin(pin_id, actor, [], f"{type(exc).__name__}: {exc}"[:2000])
+
     def _fail_pin(self, pin_id: str, actor: str, checks: list[dict[str, Any]], why: str) -> None:
         with self.p.uow(actor) as uow:
             uow.repo("feature_pins").update(pin_id, {"state": "failed", "quality": checks,

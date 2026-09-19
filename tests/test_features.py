@@ -102,6 +102,21 @@ def test_quality_contract_blocks_the_pin(world):
     assert pin["state"] == "failed" and "not_null" in pin["failure"]
 
 
+def test_an_unexpected_error_leaves_the_pin_failed_not_stuck(world, monkeypatch):
+    """A lake or resolver error is not one of the failures materialize records itself;
+    the pin must still end 'failed' — a pin stuck in 'materializing' would block its
+    name and date forever — and pinning the same name and date again then succeeds."""
+    ref = approved_feature(world, "flaky", price_csv(5))
+
+    def broken(*a, **kw):
+        raise OSError("lake unavailable")
+    monkeypatch.setattr(world.p.feature_data, "_write_fragments", broken)
+    pin = _pin(world, ref, "f", dt.date(2026, 1, 5))
+    assert pin["state"] == "failed" and "lake unavailable" in pin["failure"]
+    monkeypatch.undo()
+    assert _pin(world, ref, "f", dt.date(2026, 1, 5))["state"] == "sealed"
+
+
 def test_only_approved_versions_pin_and_designer_needs_approval(world):
     world.p.features.create(world.dana, namespace="eq", name="unapproved", definition=PX_DEF)
     with pytest.raises(NotApproved):

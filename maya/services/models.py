@@ -52,21 +52,25 @@ class ModelService:
             filters["namespace_id"] = self.p.access.namespace(uow, namespace)["id"]
         names = {n["id"]: n["name"] for n in uow.repo("namespaces").list()}
 
-        def enrich(uow: Any, m: dict[str, Any]) -> dict[str, Any]:
-            latest = catalog.latest_version(uow, "model_versions", "model_id", m["id"])
-            return {**m, "namespace": names.get(m["namespace_id"]),
-                    "latest_version": latest["version_no"] if latest else None,
-                    "latest_state": latest["state"] if latest else None,
-                    "maturity": latest["maturity"] if latest else None,
-                    "opaque": latest["opaque"] if latest else None,
-                    "ref": refs.object_ref("model", names.get(m["namespace_id"], ""),
-                                           m["name"])}
+        def enrich_many(uow: Any, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            latest = uow.repo("model_versions").latest_per("model_id", [m["id"] for m in rows])
+            out = []
+            for m in rows:
+                v = latest.get(m["id"])
+                out.append({**m, "namespace": names.get(m["namespace_id"]),
+                            "latest_version": v["version_no"] if v else None,
+                            "latest_state": v["state"] if v else None,
+                            "maturity": v["maturity"] if v else None,
+                            "opaque": v["opaque"] if v else None,
+                            "ref": refs.object_ref("model", names.get(m["namespace_id"], ""),
+                                                   m["name"])})
+            return out
         return Listing("models", {"name": "name", "-name": "-name", "updated": "updated_at",
                                   "-updated": "-updated_at", "created": "created_at",
                                   "-created": "-created_at"},
                        "name", filters, (["name", "description"], q or ""),
-                       keep=lambda uow, m: self.p.access.allowed(uow, p, "read", "model", m),
-                       enrich=enrich)
+                       keep=self.p.access.reader(uow, p, "model"),
+                       enrich_many=enrich_many)
 
     def list(self, p: Principal, *, namespace: str | None = None, q: str | None = None
              ) -> list[dict[str, Any]]:

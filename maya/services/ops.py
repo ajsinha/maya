@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import platform as pyplatform
 import sys
+import time
 from typing import Any
 
 from maya.core.backends import Backends
+from maya.core.clock import utcnow
 from maya.core.compress import procstat
 from maya.core.errors import PermissionDenied, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
@@ -53,8 +55,20 @@ class OpsService:
             "default_admin_password": self.p.auth.default_admin_password_active(),
             "tracing": _tracing_status(),
             "webhooks": _webhook_backlog(self.p),
-            "audit_chain": self.p.access.verify_audit(),
+            "audit_chain": self._audit_chain(),
         }
+
+    def _audit_chain(self) -> dict[str, Any]:
+        """The whole chain verified, at most once per ``health.audit_verify_seconds``: the
+        walk grows with the log, and health is read on every home page. The answer says
+        when it was taken; the audit page and the integrity check always walk afresh."""
+        ttl = self.p.settings.int("health.audit_verify_seconds", 60)
+        now = time.monotonic()
+        cached = getattr(self, "_chain", None)
+        if cached is None or now - cached[0] >= ttl or not cached[1]["ok"]:
+            result = dict(self.p.access.verify_audit(), verified_at=utcnow().isoformat())
+            self._chain = cached = (now, result)
+        return cached[1]
 
     def _db_ok(self) -> tuple[bool, str]:
         try:

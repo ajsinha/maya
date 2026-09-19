@@ -40,6 +40,13 @@ _OPS = {
 }
 
 
+def _chunks(ids: Iterable[Any], size: int = 900) -> Iterable[list[Any]]:
+    """``ids`` in chunks small enough for any backend's bound-parameter limit."""
+    items = list(dict.fromkeys(ids))
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+
 def _row(obj: Base | None) -> dict[str, Any] | None:
     return None if obj is None else obj.to_dict()
 
@@ -128,6 +135,45 @@ class Repository(Generic[M]):
         stmt = self._search(self._where(select(func.count()).select_from(self.model), filters),
                             search)
         return int(self.session.execute(stmt).scalar_one())
+
+    def slim(self, columns: Iterable[str], *, search: tuple[list[str], str] | None = None,
+             **filters: Any) -> list[dict[str, Any]]:
+        """Matching rows carrying only ``columns`` — for walking a whole table cheaply."""
+        names = list(columns)
+        stmt = self._search(self._where(select(*[getattr(self.model, c) for c in names]),
+                                        filters), search)
+        return [dict(zip(names, r)) for r in self.session.execute(stmt)]
+
+    def latest_per(self, key: str, ids: Iterable[Any], order: str = "version_no"
+                   ) -> dict[Any, dict[str, Any]]:
+        """{key value: the row with the highest ``order``} for each of ``ids`` — one query
+        per chunk, where a loop of ``list(..., limit=1)`` would be one query per id."""
+        col, rank = getattr(self.model, key), getattr(self.model, order)
+        out: dict[Any, dict[str, Any]] = {}
+        for chunk in _chunks(ids):
+            top = (select(col.label("k"), func.max(rank).label("r"))
+                   .where(col.in_(chunk)).group_by(col).subquery())
+            stmt = select(self.model).join(top, and_(col == top.c.k, rank == top.c.r))
+            out.update({getattr(o, key): o.to_dict() for o in self.session.scalars(stmt)})
+        return out
+
+    def latest_in(self, key: str, column: str, values: Iterable[Any],
+                  order: str = "version_no") -> set[Any]:
+        """The ``key`` values whose highest-``order`` row has ``column`` in ``values``."""
+        col, rank = getattr(self.model, key), getattr(self.model, order)
+        top = select(col.label("k"), func.max(rank).label("r")).group_by(col).subquery()
+        stmt = (select(col).join(top, and_(col == top.c.k, rank == top.c.r))
+                .where(getattr(self.model, column).in_(list(values))))
+        return set(self.session.scalars(stmt))
+
+    def count_per(self, key: str, ids: Iterable[Any], **filters: Any) -> dict[Any, int]:
+        """{key value: number of matching rows} for each of ``ids`` that has any."""
+        col = getattr(self.model, key)
+        out: dict[Any, int] = {}
+        for chunk in _chunks(ids):
+            stmt = self._where(select(col, func.count()).where(col.in_(chunk)), filters)
+            out.update({k: int(n) for k, n in self.session.execute(stmt.group_by(col))})
+        return out
 
     # -- writes ------------------------------------------------------------
     def add(self, values: dict[str, Any]) -> dict[str, Any]:

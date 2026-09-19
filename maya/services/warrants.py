@@ -80,7 +80,7 @@ class WarrantService:
             "training_warrants", {"-created": "-created_at", "created": "created_at",
                                   "name": "name", "-name": "-name"},
             "-created", {}, (["name"], q or ""),
-            keep=lambda uow, w: self.p.access.allowed(uow, p, "read", "training_warrant", w),
+            keep=self.p.access.reader(uow, p, "training_warrant"),
             enrich=lambda uow, w: {**w, "namespace": names.get(w["namespace_id"]),
                                    "status": self.status(w),
                                    "uri": f"maya://warrant/train/{names.get(w['namespace_id'])}/"

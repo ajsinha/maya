@@ -25,6 +25,8 @@ from maya.web.routes.common import action, client, flash, page, parse_json, rend
 router = APIRouter()
 _STASH: dict[str, tuple[float, bytes, str, str]] = {}
 STASH_SECONDS = 1800
+IN_FLIGHT = "draft,changes_requested"      # the states a draft is in until approved
+DRAFTS_SHOWN = 50
 TYPES = ["float64", "float32", "int64", "int32", "decimal(18,6)", "bool", "string", "date",
          "timestamp", "list<float64>", "fixed_vector<float64,8>", "tensor<float64,[8,12]>"]
 CALENDARS = ["natural_days", "ISO_business_days", "NYSE", "LSE", "TARGET"]
@@ -58,10 +60,10 @@ def _ctx(namespaces: list[dict[str, Any]], refs: list[str]) -> dict[str, Any]:
 @page
 async def workbench(request: Request) -> Any:
     async with client(request) as sdk:
-        drafts = [f for f in await sdk.features.list() if f["latest_state"] in
-                  ("draft", "changes_requested")]
-        sets = [s for s in await sdk.featuresets.list() if s["latest_state"] in
-                ("draft", "changes_requested")]
+        drafts = await sdk.features.page(state=IN_FLIGHT, sort="-updated",
+                                         page_size=DRAFTS_SHOWN, total=True)
+        sets = await sdk.featuresets.page(state=IN_FLIGHT, sort="-updated",
+                                          page_size=DRAFTS_SHOWN, total=True)
     return await render(request, "workbench/index.html", {"drafts": drafts, "sets": sets})
 
 
