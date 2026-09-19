@@ -1,0 +1,130 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Nobody writes the IR by hand') %}
+<p>A model's mathematics is held as a <strong>formula IR</strong>: a typed expression tree of inputs,
+intermediate <em>lets</em> and one output. You never author it directly. You write the formula the way
+you already do, in LaTeX or plain text, or you upload a simple Python function, and MAYA derives the
+tree. The tree then earns its keep: it type-checks against a feature set, renders the specification's
+equations, produces a <em>semantic</em> diff between versions, generates reference code, and is the
+yardstick your implementation is tested against.</p>
+{% endcall %}
+
+{{ cards([
+  ('calculator', 'Formula', 'A closed-form model: LaTeX, text or lifted Python becomes the IR.'),
+  ('box-seam', 'Black box or vendor', 'No closed form; a mandatory statement of what it estimates, and what cannot be verified.'),
+  ('diagram-3', 'Composite', 'ensemble, pipeline, router, residual or hierarchical over other model versions.'),
+]) }}
+
+{% call step(1, 'Write the mathematics in LaTeX') %}
+<p>Open {{ screen('/models/new', 'Models → New model') }} and paste the equations: lets first, the output
+last, one per line. Implicit multiplication, <code>\frac</code>, <code>\sqrt</code>, Greek letters,
+<code>N(·)</code> / <code>\Phi</code> for the normal CDF and <code>e^{…}</code> are understood. Anything
+the parser cannot read is refused with the position named, never guessed.</p>
+{% call example('Black–Scholes call', 'latex') %}
+d_1 = \frac{\ln(S/K) + (r + \sigma^2/2) T}{\sigma \sqrt{T}}
+d_2 = d_1 - \sigma \sqrt{T}
+C = S N(d_1) - K e^{-rT} N(d_2)
+{% endcall %}
+<p>Then say which free names are not features. Every name defaults to <code>feature</code> (supplied by
+the bound feature set); mark the rest:</p>
+{% call example('Create it from Python', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+my.models.create("quant", "bs_call", kind="formula",
+                 formula=open("bs.tex").read(),
+                 roles={"sigma": "parameter"})          # S, K, T, r: features
+{% endcall %}
+{{ fields([
+  ('feature', 'an input the bound feature set must provide (the input contract)'),
+  ('parameter', 'a value produced by training and uploaded as a parameter set'),
+  ('constant', 'a fixed value supplied with the parameters, not learned'),
+]) }}
+{% endcall %}
+
+{% call step(2, 'Or lift it from Python') %}
+<p>A function whose body is assignments followed by one <code>return</code> can be lifted. Names read
+from <code>params["…"]</code> become parameters; names from <code>X["…"]</code> become features.
+<code>math</code>, <code>numpy</code> and <code>scipy.stats.norm</code> calls map onto IR operators. Loops,
+branches and unknown calls are refused with the line named.</p>
+{% call example('A liftable function', 'python') %}
+import numpy as np
+
+def predict(X, params):
+    signal = X["momentum"] - X["reversal"]
+    return params["beta"] * signal + params["alpha"]
+{% endcall %}
+{% call example('Create the model from it', 'python') %}
+my.models.create("quant", "tilt", python_source=open("tilt.py").read())
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Read what MAYA derived') %}
+<p>The model page shows the rendered equations, the input contract and the IR itself. The IR's
+operators are:</p>
+<p><code>add</code> <code>sub</code> <code>mul</code> <code>div</code> <code>pow</code> <code>neg</code>
+<code>exp</code> <code>log</code> <code>sqrt</code> <code>abs</code> <code>ncdf</code> <code>npdf</code>
+<code>max</code> <code>min</code> <code>where</code> <code>gt</code> <code>lt</code> <code>ge</code>
+<code>le</code> <code>eq</code> <code>and</code> <code>or</code></p>
+{% call example('The IR of yhat = a*x + b (roles a, b: parameter)', 'json') %}
+{
+  "outputs": [{"name": "yhat", "type": "float64"}],
+  "inputs": [{"name": "a", "type": "float64", "role": "parameter"},
+             {"name": "b", "type": "float64", "role": "parameter"},
+             {"name": "x", "type": "float64", "role": "feature"}],
+  "lets": {},
+  "body": {"op": "add", "args": [{"op": "mul", "args": [{"ref": "a"}, {"ref": "x"}]},
+                                 {"ref": "b"}]}
+}
+{% endcall %}
+{% call tip('The hash ignores cosmetics') %}
+<p>The IR hash is taken over the canonical tree without its rendered <code>latex</code>, so reformatting
+an equation does not look like a change to the mathematics.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Compare two versions semantically') %}
+<p>A reviewer is told what changed in the mathematics, such as an input added or a bound tightened,
+not shown a JSON diff.</p>
+{% call example('Command line', 'bash') %}
+python -m maya.cli model diff quant/bs_call 1 2
+# v2 adds a dividend yield q:
+# - constant 'q' added
+# - let 'd1' changed: … → … (now uses q)
+# - output equation changed: … → … (now uses q)
+{% endcall %}
+{% call example('Reference code generated from the IR', 'python') %}
+print(my.models.reference_code("quant/bs_call", 1)["source"])
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'Models without a closed form') %}
+<p>A gradient-boosted tree or a vendor library has no formula to derive. Register it anyway: choose
+kind <code>black_box</code> or <code>vendor</code>. A black box must state, in prose, what it estimates
+and describe its architecture; a vendor model records the vendor's details and lists what cannot be
+verified rather than omitting it.</p>
+{% call example('A declared black box', 'json') %}
+{"outputs": [{"name": "pd", "type": "float64"}],
+ "inputs": [{"name": "leverage", "type": "float64", "role": "feature"}],
+ "black_box": {"estimates": "12-month probability of default for a corporate obligor",
+               "architecture": "gradient-boosted trees, 400 estimators, depth 4"}}
+{% endcall %}
+{% call warn('A black box cannot be conformance-tested') %}
+<p>With no documented closed form there is nothing to compare an implementation against. MAYA says
+so in the conformance report instead of implying a check it did not perform.</p>
+{% endcall %}
+{% endcall %}
+
+<h2>Maturity</h2>
+<p>Every model version carries a maturity: <code>experimental</code>, <code>candidate</code>,
+<code>approved</code>, <code>restricted</code>, <code>deprecated</code> or <code>retired</code>. A composite
+can never claim more maturity than its least mature member.</p>
+
+<h2>Related</h2>
+{{ cards([
+  ('file-earmark-check', 'Specifications and conformance', 'The spec document, the code artifact and the differential test.'),
+  ('mortarboard', 'Training warrants', 'Freeze a model version against a feature-set pin.'),
+  ('diagram-2', 'Workflow', 'Checks such as the formula check block a submit by name.'),
+]) }}
+{% endblock %}

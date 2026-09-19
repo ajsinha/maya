@@ -1,0 +1,98 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A pull is an ingest, not a live view') %}
+<p>A feature whose source is <code>sql</code> runs one reviewed query against a database you already
+have and <strong>appends</strong> the rows to its bitemporal ingest log, exactly like an uploaded file.
+Each pull lands with a knowledge time — the source's own publication column when the definition names
+one, otherwise the moment of the pull. MAYA never reads the source live at resolution time: that would
+absorb upstream restatements silently, which is the one thing
+<a href="/help/bitemporal">bitemporality</a> exists to prevent.</p>
+{% endcall %}
+
+{{ cards([
+  ('shield-lock', 'Read-only, twice over', 'One SELECT (or WITH … SELECT) passes a text check, and the connection itself is opened read-only by the driver.'),
+  ('key', 'No stored passwords', 'A connection names an environment variable; the password is read from it at the moment of use.'),
+  ('file-earmark-check', 'Reviewed like code', 'The query is part of the feature definition, so it is versioned, diffed and approved with it.'),
+]) }}
+
+{% call step(1, 'An administrator creates the connection') %}
+<p>Connections live under {{ screen('/admin/sources', 'Admin → Sources') }} and are managed by the
+<code>admin</code> role only. The URL may name a user but must never carry a password; SQLite and
+PostgreSQL are the supported source databases.</p>
+{% call example('On the server: the password lives in the environment', 'bash') %}
+export WAREHOUSE_PW='…'          # read at the moment of each pull, never stored by MAYA
+python run_maya_web.py
+{% endcall %}
+{% call example('Create and test it from Python', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+my.sources.create_connection(
+    "warehouse",
+    "postgresql+psycopg://reader@db.internal:5432/markets",
+    password_env="WAREHOUSE_PW",
+    description="Read replica of the markets warehouse")
+print(my.sources.test_connection("warehouse"))    # {'ok': True, 'dialect': 'postgresql'}
+{% endcall %}
+{% call warn('A password in the URL is refused') %}
+<p><code>postgresql://reader:secret@host/db</code> is rejected with a message telling you to move the
+password into an environment variable and name it in <code>password_env</code>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'The designer writes the query into the feature') %}
+<p>In the <a href="/help/features">feature designer</a>, set the source type to <code>sql</code>, name
+the connection, write the query, and declare its parameters. Values are bound, never interpolated.</p>
+{% call example('The source block of a feature definition', 'json') %}
+"source": {
+  "type": "sql",
+  "connection": "warehouse",
+  "query": "SELECT d AS date, sym AS symbol, close, published_at FROM px WHERE d >= :start",
+  "params": {"start": {"type": "date", "value": "2026-01-01"}},
+  "knowledge_time_column": "published_at"
+}
+{% endcall %}
+{{ fields([
+  ('connection', 'the administrator-managed connection name'),
+  ('query', 'exactly one SELECT or WITH … SELECT statement; parameters as :name'),
+  ('params', 'name → {"type": string | int | float | date | bool, "value": …}'),
+  ('knowledge_time_column', 'optional: the column that says when each row was published'),
+]) }}
+{% call warn('What the text check refuses') %}
+<p>A second statement (a <code>;</code> inside the query), anything that does not start with
+<code>SELECT</code> or <code>WITH</code>, and words such as <code>insert</code>, <code>update</code>,
+<code>delete</code>, <code>drop</code>, <code>create</code>, <code>copy</code>, <code>attach</code> or
+<code>pragma</code> outside string literals. Even if something slipped past, the connection is opened
+read-only (SQLite <code>mode=ro</code>; PostgreSQL <code>default_transaction_read_only</code> with a
+five-minute statement timeout).</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Pull the rows') %}
+<p>Pulls run on demand: the <strong>Pull now</strong> button on the feature's ingest page, the API, or
+the SDK. The definition must validate first. Each pull records the connection and a SHA-256 of the query
+in the ingest note and in the audit log (<code>feature.pulled</code>).</p>
+{% call example('Pull from Python', 'python') %}
+row = my.features.pull("eq/prices")
+print(row["rows"], row["restatement"], row["note"])
+# 1250 False pulled from connection 'warehouse' (query 3f9a1c0b2e77)
+{% endcall %}
+{% call example('Pull over REST', 'bash') %}
+curl -X POST http://localhost:8600/api/v1/features/eq/prices/pull \
+     -H "Authorization: Bearer $MAYA_API_KEY" -H "Content-Type: application/json" -d '{}'
+{% endcall %}
+{% call tip('Restatements are flagged, not hidden') %}
+<p>When a pull brings rows whose index overlaps rows already in the log, the ingest is marked a
+<strong>restatement</strong>. The old values stay; <code>as_of_known</code> still answers what you
+knew before.</p>
+{% endcall %}
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('cloud-upload', 'Ingesting data', 'Files, Delta tables and SQL all land in the same ingest log.'),
+  ('clock-history', 'Bitemporality', 'Why a pull appends, and how to resolve as of a knowledge time.'),
+  ('journal-text', 'Audit and custody', 'Where connection changes and pulls are recorded.'),
+]) }}
+{% endblock %}

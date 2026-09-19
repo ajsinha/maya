@@ -1,0 +1,108 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('MAYA in sixty seconds') %}
+<p>MAYA is the system of record for quantitative <strong>features</strong>, <strong>feature sets</strong>,
+<strong>models</strong> and the <strong>warrants</strong> that license a model to be trained or run. A number
+is <em>defined</em> once, <em>versioned</em> when submitted, <em>approved</em> by someone else, and
+<em>pinned</em> — frozen as hashed data — so that any result a model produced can be rebuilt exactly,
+years later, by someone who was not there. Everything is audited, and nothing approved is ever edited
+in place.</p>
+{% endcall %}
+
+{{ cards([
+  ('pencil-square', 'Define', 'Describe how a number is produced: its index, schema, source and resolution rules.'),
+  ('check2-circle', 'Approve', 'Submitting mints an immutable version; a second person approves it.'),
+  ('pin-angle', 'Pin', 'Freeze exactly what the data was, as content-addressed, sealed fragments.'),
+]) }}
+
+{% call step(1, 'Install and run') %}
+<p>You need Python 3.13 and nothing else: SQLite, local storage and an in-process job queue are the
+defaults. PostgreSQL is one setting away when you need it (see
+<a href="/help/operations">Configuration and databases</a>).</p>
+{% call example('Install', 'bash') %}
+git clone https://github.com/ajsinha/maya.git
+cd maya
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+{% endcall %}
+{% call example('Start the server', 'bash') %}
+python run_maya_web.py
+# MAYA listens on http://localhost:8600 (override: --server.port=9000)
+{% endcall %}
+{% call tip('Any setting, from the command line') %}
+<p>Every key in <code>config/application.yaml</code> can be overridden as <code>--key=value</code>, for
+example <code>--db.dialect=postgresql</code>. <code>run_maya_web.py</code> is the only supported way to
+start MAYA.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Sign in and change the bootstrap password') %}
+<p>Open <code>http://localhost:8600</code> and sign in as <strong>admin</strong> with
+<code>maya-dev-admin</code>. MAYA makes you choose your own password before anything else, and shows a
+warning on every page until you do.</p>
+{% call warn('The bootstrap password is public') %}
+<p>It is printed in this help and in the README. Outside a laptop, change it before creating any
+data, then create named accounts: <strong>Admin → Users &amp; roles</strong>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Your first feature, from one CSV') %}
+<p>The fastest route is {{ screen('/workbench/quick', 'Workbench → Quick feature') }}. Give it a CSV with
+a date column and it infers the schema, creates the feature in your personal
+<code>scratch.&lt;you&gt;</code> namespace, ingests the rows and submits version 1.</p>
+{% call example('prices.csv', 'csv') %}
+date,symbol,close
+2026-01-02,AAA,101.5
+2026-01-02,BBB,52.0
+2026-01-05,AAA,102.1
+2026-01-05,BBB,51.4
+{% endcall %}
+<p>The same thing from the command line, or from Python:</p>
+{% call example('Command line', 'bash') %}
+python -m maya.cli feature quick prices.csv --name prices
+{% endcall %}
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+out = my.features.quick(open("prices.csv", "rb").read(), name="prices")
+print(out["ref"], out["rows"])        # maya://feature/scratch.admin/prices  4
+{% endcall %}
+{% call tip('Scratch has no ceremony, and says so') %}
+<p>Your scratch namespace skips review so you can explore freely. Anything that matters belongs in a
+governed namespace, built with the full <a href="/help/features">feature designer</a>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Look at it') %}
+<p>Open the feature from {{ screen('/catalog/features', 'Catalog → Features') }}. Every object page has
+the same five tabs:</p>
+{{ fields([
+  ('Overview', 'versions with their state, the ingests (knowledge-time batches), the effective licence'),
+  ('Definition', 'the exact definition behind each version, as JSON'),
+  ('Data', 'a live, resolved preview of any approved version or sealed pin'),
+  ('Lineage', 'what this is built from and what is built on it'),
+  ('History', 'every transition, who made it, and the comments'),
+]) }}
+{% endcall %}
+
+{% call step(5, 'Approve and pin it') %}
+<p>In a governed namespace a different person approves the submitted version — separation of duties
+stops you approving your own work. Once approved, <strong>pin</strong> it: MAYA resolves the data as of
+a date, runs the quality contract, writes content-addressed fragments and seals them.</p>
+{% call example('Pin month-end', 'bash') %}
+python -m maya.cli feature pin eq/prices --version 1 --name eom --as-of 2026-01-31
+# → maya://feature/eq/prices#eom/2026-01-31
+{% endcall %}
+<p>That reference now means the same bytes forever. Train against it, cite it in a report, hand it to
+a validator: they will all see exactly what you saw.</p>
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('compass', 'Tour the screens', 'What lives under each menu, and the table every list uses.'),
+  ('clock-history', 'Bitemporality', 'Why a restatement never overwrites, and how to ask what you knew when.'),
+  ('mortarboard', 'Training warrants', 'Bind a model to a pin and get a signed leakage certificate.'),
+]) }}
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A stand-in, not a loophole') %}
+<p>When an approver is away, reviews should not stall and nobody should borrow a password. A
+<strong>delegation</strong> names a stand-in for a date range, optionally for certain object types.
+While it is active the stand-in can approve exactly what the delegator could — no more — and every such
+approval is recorded as <em>on behalf of</em> the delegator. Separately, reviews that sit past their
+SLA <strong>escalate</strong> on their own.</p>
+{% endcall %}
+
+{{ cards([
+  ('calendar-range', 'Bounded in time', 'A start and an end date, inclusive. Outside the window the delegation does nothing.'),
+  ('funnel', 'Bounded in scope', 'Optionally limited to object types, such as feature_version or execution_warrant.'),
+  ('person-check', 'Recorded on behalf', 'History shows who clicked and whose authority they used.'),
+]) }}
+
+{% call step(1, 'Delegate your approvals') %}
+<p>Open {{ screen('/workflow/delegations', 'Workflow → Delegations') }} and fill in <strong>Delegate my
+approvals</strong>, or use the SDK. Only someone who can approve something may delegate, you cannot
+delegate to yourself, and the stand-in must be an active user. They are notified at once.</p>
+{% call example('Cover two weeks of leave', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+d = my.workflow.delegate(
+    to="priya", starts_on="2026-10-01", ends_on="2026-10-14",
+    object_types=["feature_version", "featureset_version"],   # omit for every type
+    reason="Annual leave")
+{% endcall %}
+{{ fields([
+  ('to', 'the stand-in\'s username'),
+  ('starts_on / ends_on', 'ISO dates; the delegation is active on both days'),
+  ('object_types', 'any of feature_version, featureset_version, model_version, parameter_set, training_warrant, execution_warrant; empty means all'),
+  ('reason', 'kept on the delegation and in the audit log'),
+]) }}
+{% endcall %}
+
+{% call step(2, 'What the stand-in sees and does') %}
+<p>The stand-in approves from their own queue, exactly as usual. When their own roles are not enough,
+the engine tries each active delegation that covers the object type and takes the approval as that
+delegator — if the delegator's roles and grants would have allowed it.</p>
+{% call example('The history entry', 'text') %}
+approval   actor: priya   on behalf of: mick   role: feature_manager
+           rationale: "Checked the restatement [as delegate of mick]"
+{% endcall %}
+{% call warn('Separation of duties binds both people') %}
+<p>If <em>either</em> the stand-in or the delegator created, submitted or last changed the object (at
+the namespace's strictness), the approval is refused. And one person cannot approve the same round
+twice — not directly, and not again through a delegation.</p>
+{% endcall %}
+{% call tip('Delegations do not chain') %}
+<p>A stand-in cannot pass on authority they only hold by delegation: the engine only looks at
+delegations made <em>to</em> the person acting, and approves as the original delegator.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'List and revoke') %}
+<p>You see the delegations you gave and received; an administrator sees all of them, each marked
+active or not. The delegator or an administrator can revoke one early.</p>
+{% call example('Review and end a delegation', 'python') %}
+for d in my.workflow.delegations():
+    print(d["delegator"], "→", d["delegate"], d["starts_on"], d["ends_on"], d["active"])
+my.workflow.revoke_delegation(d["id"])
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Escalation of overdue reviews') %}
+<p>A policy's <code>sla_days</code> says how long an item may wait <code>in_review</code> — five days
+for most shipped policies. {{ screen('/workflow/aging', 'Workflow → SLA aging') }} lists everything past
+it. The scheduler also runs <strong>hourly</strong> and escalates each overdue item to the owner of
+its namespace (or to the administrators when the namespace has no owner), once per item.</p>
+{% call example('What the namespace owner receives', 'text') %}
+maya://feature/credit/ltv@v4 has waited 7 days in review (SLA 5 days)
+{% endcall %}
+{% call example('Change the SLA in a policy', 'yaml') %}
+sla_days: {in_review: 3}
+{% endcall %}
+{% endcall %}
+
+{% call tip('Everything is audited') %}
+<p>Creating a delegation writes <code>workflow.delegated</code>, revoking writes
+<code>workflow.delegation_revoked</code>, and each escalation run writes <code>workflow.escalated</code>
+— all in the hash-chained audit log.</p>
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('diagram-2', 'Workflow and policies', 'Where approvals, checks and sla_days are defined.'),
+  ('key', 'Access and grants', 'The roles and grants a delegate borrows, and nothing beyond them.'),
+  ('journal-text', 'Audit and custody', 'The record every delegated approval leaves.'),
+]) }}
+{% endblock %}

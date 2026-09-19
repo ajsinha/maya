@@ -29,7 +29,7 @@
       </form>
       {% endif %}
     </div></div>
-    <p class="small text-center mt-3 on-gradient">MAYA {{ VERSION }} · {% if signin and signin.sso %}{{ signin.mode }} sign-in ({{ signin.protocol|upper }}){% else %}database authentication{% endif %}</p>
+    <p class="small text-center mt-3 on-gradient"><a class="on-gradient fw-semibold" href="/help">Help</a> · <a class="on-gradient fw-semibold" href="/about">About</a> · MAYA {{ VERSION }} · {% if signin and signin.sso %}{{ signin.mode }} sign-in ({{ signin.protocol|upper }}){% else %}database authentication{% endif %}</p>
   </div>
 </div>
 {% endblock %}

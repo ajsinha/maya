@@ -1,0 +1,137 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('The SDK is the only client') %}
+<p>The web UI does not talk to MAYA's database or services directly: every screen calls the public Python
+SDK with your own session, and the SDK calls the REST API at <code>/api/v1</code>. So anything you can do
+in the browser, a script, a notebook or a CI job can do too, with the same permissions and the same audit
+trail. The command line is an SDK client as well. The interactive API reference lives at
+<a href="/api/v1/docs">/api/v1/docs</a>.</p>
+{% endcall %}
+
+{{ cards([
+  ('code-square', 'Python SDK', 'maya.sdk — Client, AsyncClient and connect(), with one attribute per area.'),
+  ('globe', 'REST API', 'JSON under /api/v1; errors as RFC 9457 problem documents.'),
+  ('terminal', 'Command line', 'python -m maya.cli — features, pins, warrants, jobs, bundles, estate.'),
+]) }}
+
+{% call step(1, 'Get an API key') %}
+<p>Create one under {{ screen('/account/keys', 'your menu → My API keys') }}. The key is shown
+<strong>once</strong>; MAYA stores only a hash of its secret. A key can be narrowed to fewer roles than
+you hold, to particular namespaces, actions and client networks, and expires (90 days by default, never
+more than <code>auth.api_keys.max_days</code>).</p>
+{% call example('Create a narrow key from Python', 'python') %}
+key = my.auth.create_api_key("nightly-pins", namespaces=["eq"],
+                             actions=["read", "pin"], days=30)
+print(key["api_key"])     # maya_prod_<key id>_<secret> — copy it now
+{% endcall %}
+{% call warn('A key is a bearer credential') %}
+<p>The SDK refuses to send a key over plain <code>http://</code> to anything but localhost. Keep keys in
+an environment variable or a secret store, never in code or notebooks.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Connect') %}
+{% call example('The shortest path', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
+for f in my.features.list(namespace="eq"):
+    print(f["name"], f["latest_state"])
+{% endcall %}
+<p><code>connect()</code> also reads the environment and a profile file, so scripts carry no
+credentials:</p>
+{{ fields([
+  ('MAYA_URL', 'the base URL (default http://127.0.0.1:8600)'),
+  ('MAYA_API_KEY', 'the key to use'),
+  ('MAYA_CONFIG', 'profile file path (default ~/.maya/config.toml)'),
+  ('MAYA_DEBUG_AUTH', 'set to print where the credential came from'),
+]) }}
+{% call example('~/.maya/config.toml', 'toml') %}
+[profiles.prod]
+base_url = "https://maya.example.com"
+api_key_env = "MAYA_PROD_KEY"      # the key itself stays in the environment
+{% endcall %}
+{% call example('Use the profile', 'python') %}
+my = maya.connect("prod")
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'A worked example: pin, download, verify') %}
+{% call example('Month-end pin of a feature set, then training data', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect("prod")
+
+job = my.featuresets.pin("eq/panel", version_no=2, pin_name="eom",
+                         as_of="2026-03-31", cascade=True,
+                         idempotency_key="panel-eom-2026-03-31")
+my.wait(job, progress=lambda j: print(j["progress"], j["message"]))
+
+# training data for a warrant: downloaded, checksum-verified, as an Arrow table
+table, manifest = my.training_data("<training warrant id>")
+print(table.num_rows, manifest["checksum"])
+{% endcall %}
+{% call tip('Retries are safe where they can be') %}
+<p>GET, PUT and DELETE, and any call carrying an <code>Idempotency-Key</code>, are retried on network
+failures and on 429, 502, 503 and 504. Other writes are not retried, so a pin started twice is started
+twice unless you give it a key. <code>my.wait()</code> polls a job to a terminal state and never blocks
+forever.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Handle errors by name') %}
+<p>Every refusal arrives as a problem document and is raised as a typed exception, all subclasses of
+<code>maya.sdk.MayaError</code>:</p>
+{{ fields([
+  ('PermissionDenied', '403 — your roles or grants do not allow it'),
+  ('NotFound', '404 — no such object'),
+  ('ValidationFailed', '422 — the request or definition is invalid; details in the context'),
+  ('ConflictError / NotApproved', '409 — the object moved on, or is not in a state that allows it'),
+  ('ContractMismatch', '422 — inputs do not satisfy a declared input contract'),
+  ('WarrantExpired / WarrantSuspended', '410 / 423 — the execution warrant no longer licenses this'),
+  ('LicenceBreach', '451 — a data licence forbids it, naming the clause and source'),
+]) }}
+{% call example('Catch a licence refusal', 'python') %}
+try:
+    blob = my.features.download("maya://feature/eq/prices@v1")
+except maya.LicenceBreach as exc:
+    print("refused:", exc.message, exc.context["source"])
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'The same over REST') %}
+{% call example('Sign in, then call the API', 'bash') %}
+TOKEN=$(curl -s -X POST https://maya.example.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "val.jones", "password": "…"}' | jq -r .token)
+
+curl https://maya.example.com/api/v1/features?namespace=eq \
+  -H "Authorization: Bearer $TOKEN"
+{% endcall %}
+{% call example('A problem document', 'json') %}
+{"type": "permission_denied", "title": "PermissionDenied", "status": 403,
+ "detail": "…", "context": {}}
+{% endcall %}
+<p>Send a W3C <code>traceparent</code> header and the same trace id follows your call through the API,
+its audit entries and any job it starts. See <a href="/help/observability">Metrics and tracing</a>.</p>
+{% endcall %}
+
+{% call step(6, 'The command line') %}
+{% call example('Common commands', 'bash') %}
+python -m maya.cli --profile prod feature list --namespace eq
+python -m maya.cli --profile prod feature pin eq/prices --version 1 --name eom --as-of 2026-03-31
+python -m maya.cli --profile prod featureset download eq/panel --out panel.parquet --shape tabular
+python -m maya.cli --profile prod job watch <job id>
+python -m maya.cli --json --profile prod export verify bundle.zip
+{% endcall %}
+<p><code>--json</code> gives machine-readable output; <code>--local</code> runs against an in-process
+platform instead of a server (it needs <code>MAYA_USER</code> and <code>MAYA_PASSWORD</code>).</p>
+{% endcall %}
+
+{% call tip('Async, and in-process') %}
+<p><code>maya.sdk.AsyncClient</code> has the same surface for asyncio code — it is what the web tier
+itself uses. Passing <code>app=</code> to either client runs against an in-process ASGI app, which is how
+MAYA's own tests exercise the full stack without a server.</p>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Three layers, each narrower than the last') %}
+<p>Whether you may do something is decided by one pure function, <code>can(principal, action, object)</code>,
+that every surface calls — the web UI, the REST API, the SDK and the CLI alike. It asks three questions in
+order: does one of your <strong>roles</strong> allow this kind of action on this kind of object at all
+(the ceiling)? Does a <strong>grant</strong> on this particular object open it to you? And does that grant
+carry <strong>conditions</strong> that narrow what you actually see? A grant can never lift you above
+your role's ceiling, and a condition can only ever take rows or values away.</p>
+{% endcall %}
+
+{{ cards([
+  ('person-badge', 'Roles: the ceiling', 'Eight shipped roles hold capability letters per object type — C create, R read, U update, A approve, P pin, G grant, Q request a pin.'),
+  ('key', 'Grants: the door', 'A grant opens one object to a user, group, role or everyone, at a level from read to admin, and expires.'),
+  ('funnel', 'Conditions: the filter', 'A grant may filter rows, mask columns or cut off at a date. The most restrictive combination wins.'),
+]) }}
+
+<h2>The order of evaluation</h2>
+<p>Deny always wins. After the role ceiling, an API key's scope and the object's state (sealed and retired
+objects are read-only to everyone, administrators included), MAYA resolves the grants on the object:</p>
+{{ fields([
+  ('1. explicit deny', 'a grant with deny set refuses, whatever else applies'),
+  ('2. user grant', 'a grant to you by name'),
+  ('3. group / role grant', 'the highest level among your groups and roles'),
+  ('4. everyone', 'a grant to every signed-in principal'),
+  ('5. ownership', 'you own the object'),
+  ('6. namespace default', 'what the namespace gives its members'),
+  ('7. deny', 'nothing matched: no access'),
+]) }}
+
+<h2>Grant levels</h2>
+{{ fields([
+  ('read', 'read and download'),
+  ('read_write', 'read, download, update, submit, request a pin'),
+  ('approve', 'read, download, approve, pin, seal'),
+  ('own', 'everything above, plus grant and revoke'),
+  ('admin', 'every action; only an administrator can grant it'),
+]) }}
+{% call warn('An inert grant is recorded, and flagged') %}
+<p>Granting <code>approve</code> to someone whose roles hold no approve capability for that object type
+does not give them approval: the role ceiling still applies. MAYA stores the grant with an
+<code>inert_reason</code> so the grants page shows why it does nothing, rather than letting it look live.</p>
+{% endcall %}
+
+{% call step(1, 'Grant access to an object') %}
+<p>Open {{ screen('/admin/grants', 'Admin → Grants') }}, choose the object kind and reference, then the
+principal, level and expiry. Grants expire after 90 days unless you say otherwise, which keeps
+re-certification honest. The same thing from Python:</p>
+{% call example('Give a validator read access for 30 days', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="https://maya.example.com", api_key="maya_prod_…")
+my.access.grant(kind="feature", object_ref="eq/prices",
+                principal_type="user", principal_id="val.jones",
+                level="read", days=30)
+print(my.access.grants(kind="feature", ref="eq/prices"))
+{% endcall %}
+<p>Kinds you can grant on: <code>feature</code>, <code>featureset</code>, <code>model</code>,
+<code>training_warrant</code>, <code>execution_warrant</code> and <code>namespace</code>. Principal types:
+<code>user</code>, <code>group</code>, <code>role</code> and <code>everyone</code>.</p>
+{% endcall %}
+
+{% call step(2, 'Narrow it with conditions') %}
+<p>Conditions travel with the grant and are applied to every frame returned to that principal —
+previews, downloads, feature set resolutions and training data alike, live or pinned.</p>
+{{ fields([
+  ('row_filter', 'an expression in MAYA\'s expression language; @user.username and @user.desk are substituted from the reader'),
+  ('time_bound', '{"until": "YYYY-MM-DD"} — no row whose event date is after the cut-off'),
+  ('column_mask', '{attribute: "null" | "hash"} — the column stays, its values do not; hash is SHA-256, so joins still work'),
+]) }}
+{% call example('A validator who must not see the out-of-sample period', 'json') %}
+{
+  "row_filter": "symbol in ['AAA', 'BBB']",
+  "time_bound": {"until": "2025-12-31"},
+  "column_mask": {"vol": "hash"}
+}
+{% endcall %}
+{% call example('The same grant over REST', 'bash') %}
+curl -X POST https://maya.example.com/api/v1/grants \
+  -H "Authorization: Bearer $MAYA_API_KEY" -H "Content-Type: application/json" \
+  -d '{"kind": "feature", "object_ref": "eq/prices",
+       "principal_type": "user", "principal_id": "val.jones", "level": "read",
+       "days": 30,
+       "conditions": {"time_bound": {"until": "2025-12-31"},
+                      "column_mask": {"vol": "hash"}}}'
+{% endcall %}
+{% call tip('A filter on a missing column withholds everything') %}
+<p>If a row filter names a column the frame does not have, the reader gets no rows rather than all of
+them. Several grants that apply at once combine to the most restrictive: filters are AND-ed, masks
+unioned (<code>null</code> beats <code>hash</code>), and the earliest cut-off wins.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Revoke and re-certify') %}
+<p>Revoking deletes the grant and writes <code>access.revoked</code> to the audit log; granting writes
+<code>access.granted</code>. Periodically, owners confirm who still needs what:</p>
+{% call example('Revoke, and list what needs re-certifying', 'python') %}
+g = my.access.grant(kind="model", object_ref="eq/pricing", principal_type="group",
+                    principal_id="desk-rates", level="read")
+my.access.revoke(g["id"])
+for row in my.access.recertification():
+    print(row)
+{% endcall %}
+{% endcall %}
+
+<h2>Namespace presets and separation of duties</h2>
+<p>A namespace is created with a preset that says which roles it expects and how strict separation of
+duties is: <code>small_team</code> (three roles, SoD <code>none</code>), <code>standard</code> (six
+roles, <code>two_person</code>) or <code>regulated</code> (all eight, <code>strict</code>). Your personal
+<code>scratch.&lt;you&gt;</code> namespace has no ceremony at all. See
+<a href="/help/workflow">Workflow and policies</a>.</p>
+
+{% call warn('Licences can refuse a grant') %}
+<p>On a feature or feature set whose effective licence restricts its population, a grant to
+<code>everyone</code> or to a role is refused, and a grant to a user or group outside the population is
+refused too. See <a href="/help/licences">Data licences</a>.</p>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Two clocks on every row') %}
+<p>Every row MAYA stores carries two times. The <strong>event time</strong> is what the value is
+<em>about</em> — the first index column, such as the trading day. The <strong>knowledge time</strong>
+is when MAYA could first have <em>known</em> it — stamped at ingest as <code>_knowledge_time</code>.
+Because a correction is a new row with a later knowledge time, never an overwrite, MAYA can answer
+both "what is the value?" and "what did we believe the value was on 31 March?".</p>
+{% endcall %}
+
+{{ cards([
+  ('calendar-event', 'Event time', 'The date the number describes. Declared as the first index column.'),
+  ('clock-history', 'Knowledge time', 'When the number became known. Stamped by MAYA on every ingest.'),
+  ('filter', 'as_of_known', 'A cut-off on knowledge time. Rows known later are simply not there.'),
+]) }}
+
+<h2>A worked example</h2>
+<p>A vendor publishes a close for 5 January on the evening of the 5th, then corrects it on the 9th.
+Both batches are ingested with their true knowledge times:</p>
+{% call example('What the log holds for AAA on 2026-01-05', 'text') %}
+event time   close   _knowledge_time          ingest
+2026-01-05   102.1   2026-01-05T18:00:00Z     the evening file
+2026-01-05   102.4   2026-01-09T09:00:00Z     the vendor's correction (a restatement)
+{% endcall %}
+{{ fields([
+  ('as_of_known = 2026-01-06', '102.1 — the correction did not exist yet'),
+  ('as_of_known = 2026-01-10', '102.4 — the latest row known by then wins'),
+  ('as_of_known not given', 'resolves "now": 102.4'),
+  ('as_of_known = 2026-01-04', 'no row for 5 January at all: nothing about it was known'),
+]) }}
+
+{% call step(1, 'How resolution uses it') %}
+<p>Resolution always runs in the same order, so the result is reproducible:</p>
+<ol>
+  <li><strong>Knowledge-time cut:</strong> drop rows known after <code>as_of_known</code>.</li>
+  <li><strong>Latest knowledge per key:</strong> for each full index key, keep the row with the
+    greatest remaining knowledge time.</li>
+  <li><strong>Grid:</strong> <code>as_is</code>, or a calendar crossed with every non-date key.</li>
+  <li><strong>Rules:</strong> fill gaps per attribute, per group, in event-time order.</li>
+</ol>
+<p>The resolution plan shown under a preview states the cut it used, e.g. "knowledge-time cut at
+now".</p>
+{% endcall %}
+
+{% call step(2, 'Ask what you knew') %}
+<p>On a feature's <strong>Data</strong> tab, fill in <em>as of known</em> and preview. The same cut is
+available everywhere data leaves MAYA:</p>
+{% call example('Python SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+then = my.features.preview("maya://feature/eq/prices@v1",
+                           as_of_known="2026-01-06T00:00:00Z")
+now = my.features.preview("maya://feature/eq/prices@v1")
+data = my.features.download("maya://feature/eq/prices@v1", format="csv",
+                            as_of_known="2026-01-06T00:00:00Z")
+open("prices_as_known_jan6.csv", "wb").write(data["data"])
+{% endcall %}
+{% call example('Pin exactly what was known at month-end', 'bash') %}
+python -m maya.cli feature pin eq/prices --version 1 --name eom --as-of 2026-01-31 \
+    --as-of-known 2026-01-31T23:59:59Z
+{% endcall %}
+{% call tip('A pin records its cut') %}
+<p>If you pin without <code>--as-of-known</code>, MAYA uses the moment of pinning and records that it
+defaulted, so the pin's provenance always says which knowledge it froze. A download's manifest
+records its <code>as_of_known</code> too.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Why it matters for models: leakage') %}
+<p>A model trained on a restated history learns from numbers nobody had at the time. A
+<a href="/help/training-warrants">training warrant</a> therefore issues a signed <strong>leakage
+certificate</strong>: it checks every training row and flags any whose knowledge time is later than
+its event date plus the allowed lag (<code>leakage_lag_days</code>, one day by default). The
+certificate's status is <code>certified</code>, <code>certified_with_exceptions</code> (every
+exception justified) or <code>refused</code> (an exception without a justification).</p>
+{% call warn('Non-causal rules are a second kind of leakage') %}
+<p><code>backward_fill</code>, <code>linear_interp</code> and <code>spline_interp</code> fill a gap with
+values from its future. They are reported in the fill report and on the version, and a training
+warrant's certificate is refused unless the warrant sets <code>allow_non_causal</code> and gives a
+<code>non_causal_justification</code>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Load history honestly') %}
+<p>The knowledge time is only as good as what you give it. When you backfill, pass the real
+publication time per batch (<code>--knowledge-time</code>) or per row
+(<code>source.knowledge_time_column</code>); see <a href="/help/ingest">Ingesting data</a>.</p>
+{% call example('Per-row knowledge times in the file', 'csv') %}
+date,symbol,close,published_at
+2026-01-05,AAA,102.1,2026-01-05T18:00:00Z
+2026-01-05,AAA,102.4,2026-01-09T09:00:00Z
+{% endcall %}
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('pin-angle', 'Pins and content addressing', 'Freeze a cut as sealed data.'),
+  ('mortarboard', 'Training warrants', 'The leakage certificate in full.'),
+  ('cloud-upload', 'Ingesting data', 'Uploads, restatements and knowledge times.'),
+]) }}
+{% endblock %}

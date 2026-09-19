@@ -104,12 +104,23 @@ async def job_json(request: Request, job_id: str) -> Any:
 
 
 @router.get("/about")
-@page
 async def about(request: Request) -> Any:
-    return await render(request, "help/about.html", {"highlights": HIGHLIGHTS})
+    """Public, like Help: what MAYA is, before anyone has an account."""
+    return await render(request, "help/about.html", {"highlights": HIGHLIGHTS,
+                                                     "public_nav": True})
 
 
 @router.get("/help")
-@page
 async def help_index(request: Request) -> Any:
-    return await render(request, "help/index.html")
+    from maya.web.help_catalog import CATEGORIES
+    return await render(request, "help/index.html", {"catalog": CATEGORIES, "public_nav": True})
+
+
+@router.get("/help/{slug}")
+async def help_topic(request: Request, slug: str) -> Any:
+    from maya.web.help_catalog import find
+    topic = find(slug)
+    if topic is None:
+        return RedirectResponse("/help", status_code=303)
+    return await render(request, f"help/topics/{slug}.html", {"topic": topic,
+                                                              "public_nav": True})

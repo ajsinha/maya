@@ -1,0 +1,103 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Three words carry most of MAYA') %}
+<p>A <strong>definition</strong> says how a number is produced. A <strong>version</strong> freezes the
+definition — <em>how</em>. A <strong>pin</strong> freezes the resolved data — <em>what</em>. Almost
+every other term below is a way of governing, deriving from, or proving one of those three.</p>
+{% endcall %}
+
+{{ cards([
+  ('pencil-square', 'Definition', 'Editable while a draft; describes index, schema, source, rules, transforms and quality.'),
+  ('check2-circle', 'Version', 'Minted on submit, identified by a definition hash, never edited once approved.'),
+  ('pin-angle', 'Pin', 'Resolved, quality-checked, content-addressed data, sealed and citable forever.'),
+]) }}
+
+<h2>References</h2>
+{% call example('How objects are named', 'text') %}
+maya://feature/eq/prices            the feature (its latest approved version)
+maya://feature/eq/prices@v3         version 3
+maya://feature/eq/prices#eom/2026-03-31   the pin in series "eom" dated 2026-03-31
+maya://featureset/eq/panel@v2       a feature set version
+maya://model/eq/linear@v1           a model version
+{% endcall %}
+<p>Most screens and SDK calls also accept the short form <code>eq/prices</code>.</p>
+
+<h2>Features and data</h2>
+{{ fields([
+  ('namespace', 'a folder with its own owners, preset and separation-of-duties strictness, e.g. eq or credit.pd'),
+  ('scratch.<you>', 'your personal namespace: no review, marked ungoverned, for exploring'),
+  ('index', 'the columns that identify a row; the first is always the event time (date or timestamp)'),
+  ('schema', 'the value attributes, each with a logical type such as float64, int64, string, date'),
+  ('event time', 'what a value is about: the trading day, the reporting date'),
+  ('knowledge time', 'when MAYA could first have known the value; stored on every row as _knowledge_time'),
+  ('as_of_known', 'a cut-off on knowledge time: resolve only what was known by then'),
+  ('ingest', 'one uploaded or pulled batch of rows, stamped with one knowledge time'),
+  ('restatement', 'an ingest whose index keys overlap earlier rows; it appends, it never overwrites'),
+  ('resolution rule', 'how a gap is filled: none, forward_fill(limit=3), zero, constant(v=0), linear_interp…'),
+  ('non-causal', 'a rule that uses later values (backward_fill, linear_interp, spline_interp); flagged, and refused by training warrants unless justified'),
+  ('grid', 'as_is (the source rows) or a calendar such as NYSE, LSE, TARGET, ISO_business_days, natural_days'),
+  ('fill report', 'what resolution did, per attribute: how many values each rule filled'),
+  ('quality contract', 'checks such as not_null, range, unique_on_index, freshness_within; a failure blocks the pin'),
+  ('definition hash', 'the canonical hash of a definition; an identical hash means nothing changed'),
+  ('change class', 'breaking, behavioral or additive, computed against the previous version'),
+  ('derived feature', 'a feature whose source is an operator over other features (the algebra)'),
+  ('extends', 'a feature stored as a diff over a parent version, with a pinned or tracking binding'),
+  ('pin series', 'the name before the date in a pin reference, e.g. eom, so pins form a series'),
+  ('fragment', 'a content-defined chunk of pin data; unchanged fragments are shared between pins'),
+  ('content hash', 'the canonical hash of a pin\'s data; the same hash means the same data'),
+]) }}
+
+<h2>Feature sets</h2>
+{{ fields([
+  ('feature set', 'features mapped attribute by attribute onto the names a model expects'),
+  ('member', 'one mapping: attribute name, member reference, source attribute, optional cast and rule override'),
+  ('cascade pin', 'pinning a set and every member that is not yet pinned at that date, together'),
+  ('shape', 'how a set is downloaded: tabular, wide or tensor'),
+]) }}
+
+<h2>Models and warrants</h2>
+{{ fields([
+  ('formula IR', 'a model\'s mathematics as a typed expression tree, derived from LaTeX or lifted from Python'),
+  ('black box', 'a model with no closed form; it must state what it estimates and its architecture'),
+  ('composite', 'a model built from other models\' outputs'),
+  ('spec document', 'the LaTeX specification bound to an IR hash; a changed IR marks it for review'),
+  ('artifact', 'the uploaded Python implementation, validated in the sandbox'),
+  ('conformance', 'a differential test of the artifact against the IR on sampled inputs'),
+  ('training warrant', 'a model version bound to a feature-set pin, with checksummed data downloads'),
+  ('leakage certificate', 'the signed proof that no training row used a value known after its event time plus the allowed lag'),
+  ('parameter set', 'the parameters that training produced, uploaded against the data checksum'),
+  ('execution warrant', 'a live licence to run a trained model; revocable, and suspended on a covenant breach'),
+  ('covenant', 'a declared bound on inputs or outputs; breaching it suspends the execution warrant'),
+  ('bundle', 'a signed reproducibility archive that verifies offline'),
+]) }}
+
+<h2>Governance</h2>
+{{ fields([
+  ('state', 'draft, in_review, changes_requested, approved, published, deprecated, retired, withdrawn'),
+  ('policy', 'the transitions, checks, approvals and SLAs for an object type; stored as data, edited in the UI'),
+  ('check', 'a named condition a transition requires, e.g. definition_valid, quality_passes'),
+  ('SoD', 'separation of duties at the namespace\'s strictness: strict, two_person or none'),
+  ('preset', 'the roles a namespace expects: small_team, standard or regulated'),
+  ('break-glass', 'an administrator\'s forced approval; always recorded and reported'),
+  ('delegation', 'a window in which a stand-in approves on your behalf, recorded as such'),
+  ('grant', 'opens one object to a user, group, role or everyone, optionally expiring'),
+  ('condition', 'a grant restriction: a row filter, a column mask or a time bound'),
+  ('licence', 'vendor terms that combine to the most restrictive across everything an object is built from'),
+  ('workspace', 'a staging area for changes, replayed for numeric impact before it merges'),
+  ('audit chain', 'the append-only log where each entry hashes the one before it'),
+  ('anchor', 'the chain head pinned outside the database, so a rewritten history is caught'),
+]) }}
+
+<h2>Roles</h2>
+{{ fields([
+  ('admin', 'users, roles, SSO, system settings, storage, workflow policy'),
+  ('feature_designer', 'feature definitions, schemas, resolution rules, sources'),
+  ('feature_manager', 'approval of features and feature sets, pin authorization'),
+  ('model_designer', 'model definitions, formula, Python artifact, LaTeX specification'),
+  ('model_developer', 'training warrants, parameter upload, experiment iteration'),
+  ('model_manager', 'approval of models, warrants and parameter sets'),
+  ('model_owner', 'access policy for a model and its lineage; accountable for its use'),
+  ('techops', 'runtime health, job queues, retries, storage compaction, backups'),
+]) }}
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Evidence someone else can check') %}
+<p>A <strong>reproducibility bundle</strong> is a signed zip exported from a training warrant: the
+warrant, the model version and its formula IR, generated reference code, the parameters, the training
+data, the leakage certificate, the environment — and a <code>verify.py</code> that checks all of it
+<em>without MAYA</em>. It is what you hand to a validator or a regulator.</p>
+{% endcall %}
+
+{{ cards([
+  ('hash', 'Hashes every file', 'The manifest lists a SHA-256 for each file, and the list itself is Ed25519-signed.'),
+  ('fingerprint', 'Re-hashes the data', 'The training data\'s content hash is recomputed with MAYA\'s canonical encoder, shipped inside.'),
+  ('arrow-repeat', 'Re-executes the model', 'Where it can, the reference model is run again and its output hash compared.'),
+]) }}
+
+{% call step(1, 'Export') %}
+<p>From the training warrant's page choose <strong>Export bundle</strong>, or use the SDK or CLI. The
+export is refused if the feature set's <a href="/help/licences">licence</a> does not allow it to leave
+the firm.</p>
+{% call example('Export with the SDK', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+out = my.training.export_bundle(w["id"])
+print(out["blob"], out["size"], out["manifest"]["reexecutable"])
+{% endcall %}
+{% call example('Export from the command line', 'bash') %}
+python -m maya.cli export bundle <warrant-id> --out pd-2026q1.zip
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'What is inside') %}
+{{ fields([
+  ('manifest.json', 'file hashes, data content hash, output hash, re-executability, signature'),
+  ('warrant.json', 'the warrant: spec, feature set reference, contract report, backends, custody log'),
+  ('certificate.json', 'the signed leakage certificate'),
+  ('data/training.parquet', 'the training data, all partitions'),
+  ('model/formula_ir.json', 'the model\'s mathematics as the typed IR'),
+  ('model/reference_model.py', 'Python generated from the IR (only when re-executable)'),
+  ('model/parameters.json', 'the parameter values'),
+  ('model/spec.tex', 'the specification document source'),
+  ('environment.json', 'Python version, declared environment and backend set'),
+  ('lib/canonical.py', 'MAYA\'s canonical hash — it is the definition of the hash, so it ships'),
+  ('verify.py', 'the offline verifier'),
+]) }}
+{% endcall %}
+
+{% call step(3, 'Verify — anywhere') %}
+<p>The verifier needs Python, <code>pyarrow</code> and <code>numpy</code>; with
+<code>cryptography</code> installed it also checks the signature. It prints a JSON report and exits
+non-zero if anything fails.</p>
+{% call example('Verify with nothing but the bundle', 'bash') %}
+unzip -p pd-2026q1.zip verify.py > verify.py
+python verify.py pd-2026q1.zip
+{% endcall %}
+{% call example('Or with the MAYA CLI (still offline)', 'bash') %}
+python -m maya.cli export verify pd-2026q1.zip
+#   [ok] file hash data/training.parquet
+#   [ok] Ed25519 signature over the file list
+#   [ok] data content hash (canonical, value-based)
+#   [ok] re-execution output hash
+# verified: True
+{% endcall %}
+<p>Or upload it at {{ screen('/warrants/verify', 'Warrants → Verify a bundle') }}: MAYA runs the
+bundle's own <code>verify.py</code> in a clean interpreter, exactly as offline.</p>
+{% endcall %}
+
+{% call warn('When re-execution is impossible, the bundle says so') %}
+<p>A declared black box has no executable specification, a composite model's re-execution is not
+shipped in this build, and a model with parameters needs an uploaded parameter set. In those cases
+<code>reexecutable</code> is false and <code>not_reexecutable_reason</code> explains why; the verifier
+reports that check as not performed instead of implying a verification it cannot do.</p>
+{% endcall %}
+
+{% call tip('Every export is on the record') %}
+<p>Exporting writes a <code>bundle_exported</code> custody event on the warrant, with the bundle's
+digest, and an audit entry — so you can always say which bundle went to whom.</p>
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('mortarboard', 'Training warrants', 'The instrument a bundle is exported from.'),
+  ('file-earmark-lock', 'Data licences', 'Why an export can be refused, and who imposed the term.'),
+  ('journal-text', 'Audit and custody', 'The log that records every export.'),
+]) }}
+{% endblock %}

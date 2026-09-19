@@ -15,7 +15,8 @@ import zipfile
 
 import pytest
 
-from maya.core.errors import (ContractMismatch, NotApproved, WarrantSuspended)
+from maya.core.errors import (ContractMismatch, NotApproved, ValidationFailed,
+                              WarrantSuspended)
 from maya.formula.specdoc import REQUIRED_SECTIONS
 from tests.conftest import PASSWORD
 
@@ -253,3 +254,13 @@ def test_training_data_download_honours_the_downloaders_masks(journey):
     assert set(table.column("y").to_pylist()) == {None}
     from maya.core.canonical import table_content_hash
     assert table_content_hash(table) == data["manifest"]["checksum"]
+
+
+def test_featureset_download_refuses_a_shape_it_cannot_write(journey):
+    """A download is tabular or wide; asking for tensor must not return tabular labelled tensor."""
+    w = journey
+    ref = "maya://featureset/quant/panel@v1"
+    assert w.p.featuresets.download(w.mick, ref, shape="wide")["manifest"]["shape"] == "wide"
+    for bad in ("tensor", "cube"):
+        with pytest.raises(ValidationFailed, match="tabular or wide"):
+            w.p.featuresets.download(w.mick, ref, shape=bad)

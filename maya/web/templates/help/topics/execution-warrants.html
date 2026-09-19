@@ -1,0 +1,129 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A live instrument, not a document') %}
+<p>An <strong>execution warrant</strong> answers <em>what may be run, on what inputs, where, and until
+when</em>. It packages a model version, its approved parameter set and its input contract. Once
+sealed it is <strong>live</strong>: it issues short-lived signed tokens, every call checks it, and it
+fails closed — naming whom to contact — the moment it is expired, suspended or revoked. Executions are
+reported back, and <strong>covenants</strong> on each report can suspend it automatically.</p>
+{% endcall %}
+
+{{ cards([
+  ('lock', 'Fails closed', 'Revoked, suspended or expired: the SDK call raises, with the escalation contact in the message.'),
+  ('speedometer2', 'Covenants', 'Declared bounds on inputs, outputs and volume. A breach suspends the warrant at once.'),
+  ('arrow-repeat', 'Reinstated deliberately', 'Only the owner or an administrator lifts a suspension, with a written, audited reason.'),
+]) }}
+
+{% call step(1, 'Draft the warrant') %}
+<p>Use {{ screen('/warrants/execution/new', 'Warrants → Execution warrant') }}, or the SDK. A trainable
+model needs its training warrant and an approved parameter set; a model with no parameters can be
+named directly with <code>model=</code>.</p>
+{% call example('Create an execution warrant', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+ew = my.execution.create(
+    namespace="credit", name="pd-scoring",
+    training_warrant_id=w["id"], parameter_set_id=ps["id"],
+    spec={
+        "environments": ["uat", "prod"],
+        "valid_days": 90,
+        "contact": "credit-model-owners@example.com",
+        "covenants": [
+            {"kind": "input_null_rate", "attr": "ltv", "max": 0.05},
+            {"kind": "input_range", "attr": "ltv", "min": 0, "max": 2.5},
+            {"kind": "output_range", "attr": "pd", "min": 0, "max": 1},
+            {"kind": "max_rows_per_day", "max": 2000000},
+            {"kind": "staleness_days", "attr": "ltv", "max": 3},
+        ],
+    })
+{% endcall %}
+{{ fields([
+  ('environments', 'where it may run: any of dev, uat, prod (default ["dev"])'),
+  ('valid_days', 'validity from the moment it is sealed (default 90)'),
+  ('contact', 'who callers are told to contact when it refuses them'),
+  ('covenants', 'the list of bounds evaluated on every execution report'),
+]) }}
+{% endcall %}
+
+{% call step(2, 'Covenants, precisely') %}
+<p>Each covenant has a <code>kind</code>, usually an <code>attr</code>, and bounds. They are evaluated
+against the statistics you report with each execution:</p>
+{{ fields([
+  ('input_null_rate', 'breached when the reported null_rate of attr exceeds max'),
+  ('input_range', 'breached when the reported min of attr is below min, or its max above max'),
+  ('output_range', 'the same, against the output statistics'),
+  ('max_rows_per_day', 'breached when today\'s reported rows, summed, exceed max'),
+  ('staleness_days', 'breached when the reported age_days of attr exceeds max'),
+]) }}
+{% call warn('A breach suspends immediately') %}
+<p>The report is accepted and recorded, the warrant moves to <strong>suspended</strong>, a custody
+event and an audit entry are written, and the owner is notified. Every later call fails with
+<code>WarrantSuspended</code> until someone reinstates it.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Approve and seal') %}
+<p>Submitting runs <code>parameters_approved</code>. The default policy asks for one
+<strong>model_manager</strong> approval, and in a production namespace a <strong>model_owner</strong>
+approval as well. Sealing starts the validity clock.</p>
+{% call example('Review and seal', 'python') %}
+my.execution.transition(ew["id"], "submit")
+# approvers act, then the owner seals:
+my.execution.seal(ew["id"])
+print(my.execution.get(ew["id"])["status"])     # live
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Run under the warrant') %}
+<p>One call returns everything needed to execute: the manifest, the formula IR (and member IRs for a
+composite), the parameter values, and a signed token valid for fifteen minutes. The call itself checks
+the warrant for the environment you name.</p>
+{% call example('Fetch the run bundle', 'python') %}
+run = my.execution.bundle(ew["id"], environment="prod")
+ir, params, token = run["formula_ir"], run["parameters"], run["token"]
+# evaluate the model in your own runtime with ir + params…
+{% endcall %}
+{% call example('A token on its own', 'python') %}
+tok = my.execution.token(ew["id"], environment="prod")
+print(tok["claims"])   # warrant, env, model_ir_hash, params_hash, sub, exp (15 minutes)
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'Report every execution') %}
+<p>Reporting back is what makes the warrant a control: it links the run into lineage and evaluates the
+covenants. Send per-attribute statistics in the shape the covenants read.</p>
+{% call example('Report a run', 'python') %}
+out = my.execution.report(
+    ew["id"], environment="prod", rows=184_220,
+    input_stats={"ltv": {"null_rate": 0.002, "min": 0.1, "max": 1.9, "age_days": 1}},
+    output_stats={"pd": {"min": 0.0004, "max": 0.61}})
+print(out["status"], out["breaches"])           # live []
+{% endcall %}
+{% endcall %}
+
+<h2>When it refuses you</h2>
+{{ fields([
+  ('NotApproved', 'revoked, or not yet sealed and live'),
+  ('WarrantSuspended', 'a covenant was breached; the message carries the reason and the contact'),
+  ('WarrantExpired', 'past its validity date; draft a new version'),
+  ('PermissionDenied', 'the environment you named is not one the warrant allows'),
+]) }}
+{% call example('Lift a suspension, or end the warrant', 'python') %}
+my.execution.reinstate(ew["id"], reason="Upstream LTV feed fixed; null rate back to 0.1%")
+my.execution.revoke(ew["id"], reason="Model found wrong on backtest; stop all scoring")
+{% endcall %}
+{% call tip('Expiry is announced') %}
+<p>The scheduler checks hourly and notifies the owner once, thirty days before a warrant expires.
+Revoking the <a href="/help/training-warrants">training warrant</a> revokes every execution warrant
+drawn on it.</p>
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('mortarboard', 'Training warrants', 'Where the parameters and the leakage certificate come from.'),
+  ('box-seam', 'Reproducibility bundles', 'Hand a regulator something that verifies without MAYA.'),
+  ('broadcast-pin', 'Events and webhooks', 'Get told the moment a warrant is suspended.'),
+]) }}
+{% endblock %}

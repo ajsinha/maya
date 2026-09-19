@@ -1,0 +1,134 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('One engine, policies as data') %}
+<p>Every governed object — feature versions, feature set versions, model versions, parameter sets,
+training warrants and execution warrants — moves through the same workflow engine. What each type may
+do is a <strong>policy</strong>: plain data, stored in the database, edited in the UI, validated as it
+is edited and activated by a <em>second</em> administrator. The rules of governance are governed too.</p>
+{% endcall %}
+
+{{ cards([
+  ('diagram-2', 'States and transitions', 'draft → in_review → approved → published → deprecated → retired, plus changes_requested and withdrawn.'),
+  ('patch-check', 'Checks block by name', 'A transition lists checks; any that fails refuses the move and says which, and why.'),
+  ('people', 'Separation of duties', 'You cannot approve what you created, submitted or last changed — at the namespace\'s strictness.'),
+]) }}
+
+{% call step(1, 'The lifecycle every object shares') %}
+{{ fields([
+  ('submit', 'draft or changes_requested → in_review; mints the immutable version'),
+  ('request_changes', 'in_review → changes_requested; back to the author'),
+  ('approve', 'in_review → approved, once every required approval is in and every check passes'),
+  ('withdraw', 'in_review → withdrawn, by the author'),
+  ('publish', 'approved → published (feature, feature set and model versions)'),
+  ('deprecate', 'approved or published → deprecated'),
+  ('retire', 'the end of the road; administrators only'),
+]) }}
+<p>Your queue at {{ screen('/workflow', 'Workflow → My queue') }} lists everything waiting for a decision
+you can make. Each review page shows the checks, the outstanding approvals, the history and the
+comments.</p>
+{% endcall %}
+
+{% call step(2, 'Read a policy') %}
+<p>This is the shipped policy for feature versions, as YAML. Each transition names where it may start
+(<code>from</code>), where it lands (<code>to</code>), the capability letter the actor needs, the checks
+that must pass and the approvals required.</p>
+{% call example('feature_version policy', 'yaml') %}
+states: [draft, in_review, changes_requested, approved, published, deprecated, retired, withdrawn]
+transitions:
+  submit: {from: [draft, changes_requested], to: in_review, capability: U, checks: [definition_valid]}
+  approve:
+    from: [in_review]
+    to: approved
+    capability: A
+    approvals: [{role: feature_manager, count: 1}]
+    checks: [definition_valid, quality_passes, no_open_blocking_comments]
+  retire: {from: [deprecated], to: retired, roles: [admin]}
+sla_days: {in_review: 5}
+notify: {in_review: [feature_manager], approved: [owner], changes_requested: [owner]}
+{% endcall %}
+{{ fields([
+  ('capability', 'one of C create, R read, U update, A approve, P pin/seal, G grant, Q request a pin'),
+  ('roles', 'restrict a transition to named roles (retire is admin-only)'),
+  ('checks', 'registered check names; see the list below'),
+  ('approvals', '{role, count} requirements; "when": "prod" applies only in a production namespace'),
+  ('sla_days', 'how long an item may wait in a state before it counts as overdue'),
+  ('notify', 'who is told when an object lands in a state: a role, or owner'),
+]) }}
+{% endcall %}
+
+{% call step(3, 'The checks') %}
+{{ fields([
+  ('definition_valid', 'the feature or feature set definition validates'),
+  ('quality_passes', 'the quality contract passes on current data'),
+  ('members_approved', 'every member of a feature set is approved'),
+  ('formula_typechecks', 'the model\'s formula IR is valid and typechecks'),
+  ('spec_document_complete', 'the specification document is complete'),
+  ('code_artifact_validated', 'the uploaded code artifact passed its validation ladder'),
+  ('spec_true_build', 'the spec PDF is a true build, not a watermarked draft (when required)'),
+  ('composite_members_mature', 'a composite model\'s members are mature enough'),
+  ('contract_valid', 'a training warrant\'s input contract is satisfied'),
+  ('leakage_certified', 'its leakage certificate is certified'),
+  ('parameters_within_bounds', 'every parameter lies within its declared bounds'),
+  ('data_verified_or_justified', 'parameters were trained on data MAYA issued, or are justified'),
+  ('parameters_approved', 'an execution warrant\'s parameter set is approved'),
+  ('no_open_blocking_comments', 'no reviewer comment marked blocking is still open'),
+]) }}
+{% call tip('A comment can block') %}
+<p>Reviewers can mark a comment as <strong>blocking</strong>. Approval then waits until it is
+resolved: <code>my.workflow.comment(object_type, object_id, "Unit of ltv?", blocking=True)</code>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Change a policy safely') %}
+<p>Edit policies at {{ screen('/workflow/policies', 'Workflow → Policies') }}. A draft is refused at
+save time if it has an unknown or unreachable state, a check nobody registered, a role that does not
+exist, an approval no role could satisfy, or no route to <code>approved</code>. Saving also previews the
+impact: objects the new policy would <em>strand</em> or <em>block</em>.</p>
+{% call example('Draft, then have a second admin activate', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+text = my.workflow.policy_yaml(policy_id)          # start from the active one
+print(my.workflow.validate_policy("feature_version", edited_policy))
+draft = my.workflow.draft_policy("feature_version", edited_policy, scope="credit",
+                                 note="two approvals in credit")
+# a different administrator:
+my.workflow.activate_policy(draft["id"])
+{% endcall %}
+<p>A policy can be scoped to one namespace (<code>scope="credit"</code>); the engine uses the
+namespace's active policy first and falls back to the global one (<code>"*"</code>). The old version is
+kept as <em>superseded</em>, and export → import → export of the YAML is byte-identical.</p>
+{% endcall %}
+
+{% call step(5, 'Separation of duties') %}
+<p>Each namespace sets its strictness; the presets choose one for you.</p>
+{{ fields([
+  ('strict', 'you cannot approve if you created, submitted or last modified the object (preset: regulated)'),
+  ('two_person', 'you cannot approve what you submitted (preset: standard)'),
+  ('none', 'no restriction (preset: small_team, and every scratch namespace)'),
+]) }}
+{% call warn('Self-approval is a dev-only escape hatch') %}
+<p><code>workflow.allow_self_approval</code> in <code>config/application.yaml</code> is honoured only
+when <code>app.environment</code> is <code>dev</code>.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(6, 'Break-glass') %}
+<p>An administrator can force a transition past its checks and approvals — for an emergency, never
+quietly. It needs a written reason of at least ten characters, marks the object
+<code>force_approved</code>, notifies the owner with a <strong>BREAK-GLASS</strong> prefix, and appears
+on {{ screen('/workflow/break-glass', 'Workflow → Break-glass report') }} for review.</p>
+{% call example('Force an approval', 'python') %}
+my.features.transition("credit/ltv", 4, "approve", force=True,
+                       rationale="Regulator deadline today; review scheduled 2026-09-21")
+{% endcall %}
+{% endcall %}
+
+<h2>Also under Workflow</h2>
+{{ cards([
+  ('person-badge', 'Delegations', 'Hand your approvals to a stand-in while you are away. See the next topic.'),
+  ('hourglass', 'SLA aging', 'Items waiting longer than their policy\'s sla_days; the scheduler escalates them.'),
+  ('collection', 'Campaigns', 'One transition over many objects — a re-certification — with per-item results and one audit record.'),
+]) }}
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('One file, three overrides, no surprises at first use') %}
+<p>All configuration lives in <code>config/application.yaml</code>, a tracked file that carries no
+secret. Settings that change MAYA's behaviour — database dialect, environment, auth mode, sandbox tier —
+are validated at startup. A bad combination refuses to start, naming the key, rather than failing at
+first use.</p>
+{% endcall %}
+
+{{ cards([
+  ('file-earmark-text', 'application.yaml', 'The tracked defaults. A test keeps secrets out of it.'),
+  ('file-earmark-lock', 'application.local.yaml', 'A git-ignored overlay beside it, for this machine and its secrets.'),
+  ('terminal', 'Environment and flags', '${VAR:default} placeholders read the environment; --key=value on the command line wins over everything.'),
+]) }}
+
+{% call step(1, 'Override a setting') %}
+<p>Precedence, lowest to highest: the YAML file, <code>config/application.local.yaml</code>, the environment,
+then command-line flags. Values like <code>"${MAYA_PORT:8600}"</code> read an environment variable with a
+default.</p>
+{% call example('Three ways to change the port', 'bash') %}
+MAYA_PORT=9000 python run_maya_web.py          # the ${MAYA_PORT:8600} placeholder
+python run_maya_web.py --server.port=9000       # a flag, highest precedence
+# or: server.port in config/application.local.yaml
+{% endcall %}
+<p>{{ screen('/admin/config', 'Admin → Configuration') }} lists every effective setting and where it came
+from, with passwords, secrets and tokens redacted.</p>
+{% endcall %}
+
+{% call step(2, 'Pick the environment') %}
+{{ fields([
+  ('app.environment', 'dev | uat | prod (MAYA_ENV). Outside dev: no default admin password, a session secret must be set, the sandbox minimum tier is enforced'),
+  ('app.secret_key', 'the session-signing secret (MAYA_SECRET_KEY). In dev, generated under storage.root/keys when unset'),
+  ('storage.root', 'blobs, the Delta lake, keys, logs and the SQLite file (MAYA_HOME, default data)'),
+  ('logging.format', 'text | json'),
+]) }}
+{% call warn('Production refuses SQLite') %}
+<p><code>app.environment: prod</code> with <code>db.dialect: sqlite</code> does not start. SQLite is for a
+single node and a small team: one writer at a time.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Switch SQLite and PostgreSQL') %}
+<p>Two schema files are generated from the same ORM metadata:
+<code>maya/persistence/schema/sqlite.sql</code> and <code>postgresql.sql</code>. One key chooses between
+them; nothing else changes.</p>
+{% call example('config/application.yaml', 'yaml') %}
+db:
+  dialect: "${MAYA_DB_DIALECT:sqlite}"      # sqlite | postgresql
+  postgresql:
+    host: "${MAYA_PG_HOST:localhost}"
+    port: "${MAYA_PG_PORT:5432}"
+    database: "${MAYA_PG_DATABASE:maya}"
+    user: "${MAYA_PG_USER:maya}"
+    password: "${MAYA_PG_PASSWORD:}"        # environment or local overlay, never here
+{% endcall %}
+{% call example('Create the schema on a new PostgreSQL database', 'bash') %}
+export MAYA_DB_DIALECT=postgresql MAYA_PG_HOST=db.internal MAYA_PG_PASSWORD='…'
+python -m maya.cli admin init-db
+python run_maya_web.py
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Upgrade without migrations') %}
+<p>MAYA has no migration framework. The hash of the schema is stamped into the database; if the code
+expects a different schema, MAYA refuses to start and prints these three commands. The same route moves
+an estate from SQLite to PostgreSQL.</p>
+{% call example('Export, rebuild, import', 'bash') %}
+python -m maya.cli admin export-estate --out estate.mayabundle
+python -m maya.cli admin init-db --force
+python -m maya.cli admin import-estate --in estate.mayabundle
+{% endcall %}
+{% call tip('Check integrity afterwards') %}
+<p><code>python -m maya.cli admin verify-integrity</code> re-hashes every pin and walks the audit chain.
+It exits non-zero on any drift or a broken chain, so it can gate a deployment script.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'The gates, run locally') %}
+<p>There is no hosted CI. The gate ladder runs on your machine: file size, import boundaries, seam
+imports, the single version source, no secrets in the tracked config, the table contract, colour
+contrast, SDK↔API parity, and schema drift.</p>
+{% call example('Run the gates', 'bash') %}
+git config core.hooksPath .githooks          # once: the pre-commit hook runs the gates
+python tools/ci/gates.py                     # the fast static gates
+python tools/ci/gates.py --tests             # …then the full test suite
+{% endcall %}
+{% call example('The whole suite against PostgreSQL', 'bash') %}
+MAYA_TEST_PG_URL=postgresql+psycopg://maya:…@localhost/maya_test python -m pytest -q
+{% endcall %}
+{% endcall %}
+
+<h2>Related</h2>
+{{ cards([
+  ('shield-lock', 'Sign-in and security', 'Auth modes, MFA, API keys and the sandbox tier.'),
+  ('activity', 'Metrics and tracing', 'What to scrape and how to follow a request.'),
+  ('journal-text', 'Audit and custody', 'The chain that verify-integrity walks, and its anchors.'),
+]) }}
+{% endblock %}

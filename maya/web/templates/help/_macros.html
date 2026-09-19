@@ -1,0 +1,48 @@
+{# Building blocks for help topics. Code inside an example is written verbatim:
+   the macro escapes it, so < and > need no entities; wrap {{ }} in {% raw %}. #}
+
+{% macro step(n, title) -%}
+<section class="card help-step mb-3">
+  <div class="card-header"><span class="step-no">{{ n }}</span> {{ title }}</div>
+  <div class="card-body">{{ caller() }}</div>
+</section>
+{%- endmacro %}
+
+{% macro concept(title='The idea') -%}
+<div class="help-box concept"><div class="hb-title"><i class="bi bi-lightbulb" aria-hidden="true"></i> {{ title }}</div>{{ caller() }}</div>
+{%- endmacro %}
+
+{% macro tip(title='Tip') -%}
+<div class="help-box tip"><div class="hb-title"><i class="bi bi-check2-circle" aria-hidden="true"></i> {{ title }}</div>{{ caller() }}</div>
+{%- endmacro %}
+
+{% macro warn(title='Watch out') -%}
+<div class="help-box warn"><div class="hb-title"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ title }}</div>{{ caller() }}</div>
+{%- endmacro %}
+
+{% macro example(title, lang='text') -%}
+<figure class="help-example">
+  <figcaption><span><i class="bi bi-terminal" aria-hidden="true"></i> {{ title }}</span><span class="lang">{{ lang }}</span>
+    <button type="button" class="copy" data-copy aria-label="Copy {{ title }}"><i class="bi bi-clipboard" aria-hidden="true"></i> Copy</button></figcaption>
+  <pre><code>{{ caller()|forceescape|trim }}</code></pre>
+</figure>
+{%- endmacro %}
+
+{# fields([('name', 'what it means'), ...]) — a two-column reference list #}
+{% macro fields(rows) -%}
+<dl class="help-defs">{% for k, v in rows %}<dt><code>{{ k }}</code></dt><dd>{{ v }}</dd>{% endfor %}</dl>
+{%- endmacro %}
+
+{# screen('/workbench/quick', 'Workbench → Quick feature') — where this lives in the UI #}
+{% macro screen(href, label) -%}
+<a class="help-screen" href="{{ href }}"><i class="bi bi-window" aria-hidden="true"></i> {{ label }}</a>
+{%- endmacro %}
+
+{# cards([(icon, title, text), ...]) — a grid of small explanatory cards #}
+{% macro cards(items, cols=3) -%}
+<div class="row g-3 mb-3">{% for icon, title, text in items %}
+  <div class="col-md-{{ 12 // cols }}"><div class="card help-mini h-100"><div class="card-body">
+    <span class="mini-ico"><i class="bi bi-{{ icon }}" aria-hidden="true"></i></span>
+    <div class="fw-bold mb-1">{{ title }}</div><div class="small">{{ text }}</div></div></div></div>
+{% endfor %}</div>
+{%- endmacro %}

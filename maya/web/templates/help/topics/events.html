@@ -1,0 +1,112 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Every event is backed by a committed audit entry') %}
+<p>An event is written by the same transaction as the audit entry that caused it. So an event can never
+describe something that did not commit, and nothing that committed goes unannounced. Events are
+numbered by an increasing sequence, so a consumer resumes from the last number it saw. MAYA offers the stream
+three ways: a paged REST list, server-sent events, and signed webhooks.</p>
+{% endcall %}
+
+{{ cards([
+  ('list-ol', 'Poll', 'GET /api/v1/events?after=<seq> — ordered, resumable, filterable by type.'),
+  ('broadcast', 'Stream', 'GET /api/v1/events/stream — server-sent events; reconnect with the last id seen.'),
+  ('broadcast-pin', 'Push', 'Webhooks POST each event to your HTTPS endpoint, HMAC-signed, with retries.'),
+]) }}
+
+<h2>What is announced</h2>
+<p>Workflow transitions are named by the object and the state reached — <code>feature_version.approved</code>,
+<code>model_version.deprecated</code>, <code>featureset_version.in_review</code>. The other event types:</p>
+{{ fields([
+  ('pin.sealed · pin.failed · pin.retired', 'a pin finished, failed its checks, or was retired'),
+  ('feature.ingested · feature.pulled', 'rows landed from an upload or a SQL pull'),
+  ('warrant.*', 'created, parameters_uploaded, sealed, revoked, exec_created, exec_sealed, suspended, reinstated, exec_revoked'),
+  ('bundle.exported', 'a reproducibility bundle was built'),
+  ('access.granted · access.revoked', 'a grant changed'),
+  ('auth.lockout · auth.mfa_reset', 'an account was locked, or its two-factor reset'),
+  ('workspace.submitted · workspace.merged', 'a staged change moved'),
+  ('policy.activated · workflow.break_glass', 'a policy went live; someone forced an approval'),
+  ('job.dead_letter · integrity.verified · audit.anchored', 'a job gave up; an integrity check ran; the audit head was anchored'),
+  ('featureset.cascade_rolled_back', 'a cascade pin failed and was undone'),
+]) }}
+
+{% call step(1, 'Read the stream') %}
+<p>Both the stream and webhooks are for administrators and <code>techops</code>. Browse it at
+{{ screen('/admin/events', 'Admin → Events') }}, or read it over the API:</p>
+{% call example('Poll from where you left off', 'bash') %}
+curl -s "http://localhost:8600/api/v1/events?after=1200&limit=500&type=warrant" \
+     -H "Authorization: Bearer $MAYA_API_KEY"
+{% endcall %}
+{% call example('Follow it live (server-sent events)', 'bash') %}
+curl -N "http://localhost:8600/api/v1/events/stream?after=1200" \
+     -H "Authorization: Bearer $MAYA_API_KEY"
+# id: 1201
+# event: pin.sealed
+# data: {"seq": 1201, "type": "pin.sealed", "object_ref": "…", …}
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Register a webhook') %}
+<p>Create it under {{ screen('/admin/webhooks', 'Admin → Webhooks') }}. Subscribe to everything (leave
+the types empty), to exact types, or to a prefix with a trailing <code>*</code>. The signing secret
+(<code>whsec_…</code>) is shown <strong>once</strong>, then stored sealed.</p>
+{% call example('Create one from Python', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+hook = my.events.create_webhook(
+    "risk-bus", "https://hooks.example.com/maya",
+    event_types=["warrant.*", "pin.sealed", "model_version.approved"])
+print(hook["secret"])            # store it now: it is never shown again
+my.events.ping(hook["id"])       # sends a maya.ping event and delivers it immediately
+{% endcall %}
+{% call warn('HTTPS, and never your own network') %}
+<p>The URL must be <code>https://</code>, and it may not resolve to a private, loopback, link-local or
+reserved address. The check is repeated at every delivery, in case DNS changed. Only in the dev
+environment, with <code>observability.webhooks.allow_private: "true"</code>, may a webhook target
+localhost over plain http.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Verify the signature on your side') %}
+<p>Each POST carries the event as JSON and four headers:</p>
+{{ fields([
+  ('X-Maya-Event', 'the event type'),
+  ('X-Maya-Delivery', 'a delivery id — use it as an idempotency key, delivery is at-least-once'),
+  ('X-Maya-Timestamp', 'Unix seconds when the attempt was signed'),
+  ('X-Maya-Signature', 'sha256=<hex HMAC of "<timestamp>.<body>" with your secret>'),
+]) }}
+{% call example('A receiver in Python', 'python') %}
+import hashlib, hmac, time
+
+SECRET = b"whsec_…"
+
+def verify(headers, body: bytes) -> bool:
+    stamp = headers["X-Maya-Timestamp"]
+    if abs(time.time() - int(stamp)) > 300:          # refuse replays older than 5 minutes
+        return False
+    mac = hmac.new(SECRET, stamp.encode() + b"." + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest("sha256=" + mac, headers["X-Maya-Signature"])
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Retries and the dead-letter state') %}
+<p>A 2xx response settles a delivery. Anything else — a timeout, a refused connection, a 500 — is retried
+with exponential backoff and jitter, capped at an hour. After
+<code>observability.webhooks.max_attempts</code> (default 8) the delivery is <strong>dead</strong>, with the
+last status and error kept. Inspect deliveries per webhook on the Webhooks page; deactivating a webhook
+drops its pending deliveries.</p>
+{% call example('config/application.yaml', 'yaml') %}
+observability:
+  webhooks:
+    max_attempts: 8
+    timeout_seconds: 5
+    allow_private: "false"     # dev only
+{% endcall %}
+{% call tip('Watch the backlog') %}
+<p>The gauge <code>maya_webhook_backlog{state="pending|dead"}</code> and the counter
+<code>maya_webhook_deliveries_total{outcome=…}</code> are on <code>/metrics</code>; see
+<a href="/help/observability">Metrics and tracing</a>.</p>
+{% endcall %}
+{% endcall %}
+{% endblock %}

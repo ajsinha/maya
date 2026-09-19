@@ -1,0 +1,125 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('Two credentials, one principal') %}
+<p>People sign in with a password or through single sign-on and get a server-side session. Scripts use
+an <strong>API key</strong>. Both resolve to the same principal, carrying roles and grants, so the
+authorization rules are identical however a request arrives. Only hashes of credentials are stored,
+and MFA secrets are sealed at rest.</p>
+{% endcall %}
+
+{{ cards([
+  ('person-check', 'Passwords', 'Twelve characters minimum, lockout after repeated failures, and a forced change for the bootstrap admin.'),
+  ('box-arrow-in-right', 'Single sign-on', 'OIDC authorization code flow with PKCE; IdP groups map to MAYA roles at every login.'),
+  ('phone', 'Two-factor', 'TOTP codes for password logins, required by role outside dev.'),
+  ('key', 'API keys', 'Scoped by role, namespace, action and network, bound to one environment, expiring.'),
+  ('shield-lock', 'The sandbox', 'Uploaded model code runs in a separate, jailed interpreter with a verified tier.'),
+  ('lock', 'Secrets', 'Sealed with authenticated encryption under storage.root/keys; never in the YAML file.'),
+], cols=3) }}
+
+{% call step(1, 'Choose how people sign in') %}
+<p>One setting, <code>auth.mode</code>, decides it:</p>
+{{ fields([
+  ('db', 'MAYA passwords only (the default)'),
+  ('sso', 'OIDC for people; password login is refused'),
+  ('hybrid', 'OIDC for people, passwords kept for break-glass and service accounts'),
+]) }}
+{% call example('config/application.yaml — OIDC single sign-on', 'yaml') %}
+auth:
+  mode: hybrid
+  sso:
+    protocol: oidc
+    issuer: "${MAYA_OIDC_ISSUER:}"                 # e.g. https://login.example.com/realms/bank
+    client_id: "${MAYA_OIDC_CLIENT_ID:maya}"
+    client_secret: "${MAYA_OIDC_CLIENT_SECRET:}"   # from the environment, never this file
+    redirect_uri: "${MAYA_OIDC_REDIRECT_URI:http://127.0.0.1:8600/auth/sso/callback}"
+    groups_claim: groups
+    jit_provision: "true"
+    on_missing_group: deny
+    group_role_map:
+      maya-admins: [admin]
+      quant-desk: [model_designer, model_developer]
+{% endcall %}
+{% call tip('Leaving a group takes effect at the next login') %}
+<p>Group-to-role mapping is re-applied at every sign-in, so removing someone from an IdP group removes
+the matching MAYA capability at their next session, with no manual step. First-time users are created
+with the mapped roles and no object grants.</p>
+{% endcall %}
+{% call warn('SAML is not shipped') %}
+<p><code>auth.sso.protocol: saml2</code> is refused at startup; it would need <code>python3-saml</code>
+and <code>xmlsec</code>. WebAuthn is not built either.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Passwords and lockout') %}
+{% call example('config/application.yaml', 'yaml') %}
+auth:
+  password:
+    min_length: 12
+  lockout:
+    attempts: 5              # failures inside the window…
+    window_minutes: 15
+    duration_minutes: 30     # …lock the account this long
+  session:
+    idle_timeout_minutes: 30
+    absolute_timeout_hours: 12
+{% endcall %}
+<p>Outside the dev environment, MAYA refuses to start while the bootstrap admin still has its default
+password, unless <code>app.allow_default_admin_password</code> is set. Administrators can see and end
+sessions under {{ screen('/admin/users', 'Admin → Users & roles') }}.</p>
+{% endcall %}
+
+{% call step(3, 'Two-factor codes') %}
+<p>Enroll under {{ screen('/account/mfa', 'Account → Two-factor authentication') }}: add the shown secret
+(or its <code>otpauth://</code> link) to any authenticator app and confirm one code. After that, a password sign-in opens a session that
+can do nothing but verify a code.</p>
+{% call example('config/application.yaml', 'yaml') %}
+auth:
+  mfa:
+    enforce: "${MAYA_MFA_ENFORCE:auto}"      # auto | true | false
+    required_for_roles: [admin, model_owner]
+    issuer_name: MAYA
+{% endcall %}
+<p><code>auto</code> enforces the role requirement outside dev; in dev only users who enrolled are
+challenged. A user whose role requires MFA but who has not enrolled can do nothing but enroll. SSO
+sessions leave the second factor to the identity provider. An administrator can reset a user's
+enrollment; that is audited as <code>auth.mfa_reset</code>.</p>
+{% endcall %}
+
+{% call step(4, 'API keys for scripts') %}
+<p>Create keys under {{ screen('/account/keys', 'Account → My API keys') }}. A key looks like
+<code>maya_&lt;env&gt;_&lt;key id&gt;_&lt;secret&gt;</code>: the environment segment stops a UAT key being
+accepted in production, and the key id is what the audit log shows. The full key is shown once.</p>
+{% call example('A narrow, short-lived key', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_dev_…")
+key = my.auth.create_api_key(
+    "nightly-pins",
+    roles=["feature_manager"],        # never more than you hold yourself
+    namespaces=["eq"],
+    cidrs=["10.20.0.0/16"],
+    days=30)                          # at most auth.api_keys.max_days (365)
+print(key["api_key"])                 # shown once
+{% endcall %}
+{% call example('Use it', 'bash') %}
+curl -s http://localhost:8600/api/v1/features -H "Authorization: Bearer $MAYA_API_KEY"
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'The sandbox for uploaded code') %}
+<p>Model artifacts run in a separate interpreter with an empty working directory, a stripped environment,
+resource limits, a wall-clock kill, and networking disabled. The tier is <em>measured</em> by a probe that
+tries to escape, not assumed, and it is recorded on every validation report:</p>
+{{ fields([
+  ('strong', 'Linux: a bubblewrap jail (fresh namespaces, unmapped uid, read-only system root without home or MAYA storage), a seccomp-bpf filter and a cgroup v2 scope — all verified, all unprivileged'),
+  ('moderate', 'macOS with sandbox-exec; or Linux when seccomp and one of the other two are verified'),
+  ('minimal', 'resource limits (POSIX) or the wall clock alone (Windows)'),
+]) }}
+{% call example('config/application.yaml', 'yaml') %}
+sandbox:
+  min_tier: strong     # outside dev, MAYA refuses to start below this
+{% endcall %}
+<p>{{ screen('/admin/health', 'Admin → System health') }} shows the tier this host delivers and why.</p>
+{% endcall %}
+{% endblock %}

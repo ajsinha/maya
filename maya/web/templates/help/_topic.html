@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title }} · Help{% endblock %}
+{% block content %}
+<nav class="help-crumbs" aria-label="Breadcrumb">
+  <a href="/help"><i class="bi bi-book" aria-hidden="true"></i> Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  <a href="/help#cat-{{ topic.category_id }}">{{ topic.category }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  <span aria-current="page">{{ topic.title }}</span>
+</nav>
+<header class="help-topic-hero">
+  <span class="ico"><i class="bi bi-{{ topic.icon }}" aria-hidden="true"></i></span>
+  <div><h1>{{ topic.title }}{% if topic.badge %} <span class="badge">{{ topic.badge }}</span>{% endif %}</h1>
+    <p>{{ topic.summary }}</p></div>
+</header>
+<article class="help-article">
+{% block body %}{% endblock %}
+</article>
+<div class="help-pager">
+  {% if topic.prev %}<a class="btn btn-outline-secondary" href="/help/{{ topic.prev.slug }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> {{ topic.prev.title }}</a>{% else %}<span></span>{% endif %}
+  {% if topic.next %}<a class="btn btn-primary" href="/help/{{ topic.next.slug }}">{{ topic.next.title }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+</div>
+<div class="help-related">
+  <div class="head"><i class="bi bi-signpost-2" aria-hidden="true"></i> More in {{ topic.category }}</div>
+  <div class="chips">
+    {% for t in topic.siblings %}<a class="chip" href="/help/{{ t.slug }}"><i class="bi bi-{{ t.icon }}" aria-hidden="true"></i> {{ t.title }}</a>{% endfor %}
+    <a class="chip all" href="/help"><i class="bi bi-grid" aria-hidden="true"></i> All help</a>
+  </div>
+</div>
+{% endblock %}

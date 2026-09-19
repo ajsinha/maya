@@ -1,0 +1,150 @@
+{% extends "help/_topic.html" %}
+{% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
+{% block body %}
+{% call concept('A feature is a definition first, data second') %}
+<p>A <strong>feature</strong> is a governed recipe for a number: which rows identify it, what types
+its values have, where they come from, how gaps are filled, how the data is shaped, and what it must
+satisfy before anyone may rely on it. The data arrives separately (see
+<a href="/help/ingest">Ingesting data</a>) and is resolved through the definition every time it is
+read.</p>
+{% endcall %}
+
+{{ cards([
+  ('box-seam', 'From a source', 'csv, parquet, json, sql or delta: rows come from outside MAYA.'),
+  ('diagram-3', 'Derived', 'An operator over other features: union, join, lag… type-checked at submit.'),
+  ('layers', 'Extends a parent', 'Store only the diff over a parent version; pinned or tracking binding.'),
+]) }}
+<p>Open {{ screen('/workbench/features/new', 'Workbench → Feature designer') }} and pick the kind of
+definition first; the form shows only the fields that kind needs.</p>
+
+{% call step(1, 'Index: what identifies a row') %}
+<p>The index lists the columns that identify one row. The <strong>first column is the event
+time</strong> and must be of type <code>date</code> or <code>timestamp</code>; the rest (a symbol, an
+issuer) must each declare a type. Knowledge time is added by MAYA — do not declare it.</p>
+{% call example('A daily price panel', 'json') %}
+"index": ["date", "symbol"],
+"index_types": {"date": "date", "symbol": "string"}
+{% endcall %}
+{% endcall %}
+
+{% call step(2, 'Schema: the value attributes') %}
+<p>Each attribute has a name and a logical type; a unit and a semantic tag are optional. At least one
+value attribute is required and names must be unique.</p>
+{{ fields([
+  ('int32 · int64 · float32 · float64', 'numbers'),
+  ('bool · string · date · timestamp · duration', 'scalars; timestamps are stored in UTC'),
+  ('decimal(p,s)', 'exact decimals'),
+  ('list · fixed_vector · tensor · struct · map', 'nested values, for embeddings and curves'),
+]) }}
+{% call example('Two attributes', 'json') %}
+"schema": [
+  {"name": "close", "type": "float64", "unit": "USD"},
+  {"name": "volume", "type": "int64"}
+]
+{% endcall %}
+{% endcall %}
+
+{% call step(3, 'Source') %}
+<p><code>source.type</code> is one of <code>csv</code>, <code>parquet</code>, <code>json</code>,
+<code>sql</code>, <code>delta</code> or <code>derived</code>. For uploads you may name a
+<code>knowledge_time_column</code>, a column in the file that says when each row became known;
+otherwise the upload instant is used. The <code>python</code> driver is refused by name: it is not
+shipped.</p>
+{% call example('A CSV source with its own knowledge times', 'json') %}
+"source": {"type": "csv", "knowledge_time_column": "published_at"}
+{% endcall %}
+{% endcall %}
+
+{% call step(4, 'Resolution: grid and rules') %}
+<p>The <strong>grid</strong> is either <code>as_is</code> (the source's own rows) or a calendar —
+<code>natural_days</code>, <code>ISO_business_days</code>, <code>NYSE</code>, <code>LSE</code> or
+<code>TARGET</code> — crossed with every distinct non-date key. Then each attribute's
+<strong>rule</strong> fills the gaps, per symbol, in event-time order.</p>
+{{ fields([
+  ('none', 'leave gaps as null (the default)'),
+  ('forward_fill(limit=3, max_age=5)', 'carry the last value, at most 3 periods and 5 days old'),
+  ('backward_fill(limit=2)', 'take the next value — non-causal'),
+  ('linear_interp(limit=2) · spline_interp(order=3)', 'interpolate — non-causal'),
+  ('constant(v=0) · zero', 'a fixed value'),
+  ('mean_of_window(n=5)', 'the mean of the previous n values'),
+  ('last_known_as_of(lag=1)', 'the last value on or before the date minus lag days'),
+  ('previous_period', 'the previous row\'s value, one period only'),
+]) }}
+{% call example('Resolution on the NYSE calendar', 'json') %}
+"resolution": {
+  "grid": {"calendar": "NYSE"},
+  "rules": {"close": "forward_fill(limit=3)", "volume": "zero"},
+  "default": "none"
+}
+{% endcall %}
+{% call warn('Non-causal rules look into the future') %}
+<p><code>backward_fill</code>, <code>linear_interp</code> and <code>spline_interp</code> use values
+from after the gap. MAYA marks the version <em>non-causal</em>, and a training warrant refuses it
+unless someone records a justification.</p>
+{% endcall %}
+{% endcall %}
+
+{% call step(5, 'Transform and quality') %}
+<p><strong>Transforms</strong> run in order: <code>rename</code>, <code>cast</code>,
+<code>filter</code>, <code>derive</code>, <code>aggregate</code>, <code>pivot</code>,
+<code>unpivot</code>, <code>window</code>, <code>lag</code>, <code>resample</code>,
+<code>dedupe</code>, <code>clip</code>, <code>winsorize</code>. Expressions use a restricted Python
+subset (arithmetic, comparisons, <code>and</code>/<code>or</code>/<code>not</code>, <code>in</code>,
+and functions such as <code>abs</code>, <code>log</code>, <code>where</code>, <code>isnull</code>,
+<code>round</code>, <code>clip</code>); anything else is refused by name.</p>
+{% call example('Transforms', 'json') %}
+"transform": [
+  {"op": "filter", "expr": "close > 0"},
+  {"op": "derive", "name": "log_close", "expr": "log(close)", "type": "float64"},
+  {"op": "lag", "attr": "close", "n": 1},
+  {"op": "window", "attr": "close", "fn": "mean", "size": 20}
+]
+{% endcall %}
+<p>The <strong>quality contract</strong> runs on every resolution and always on pin; a failing check
+blocks the pin. Checks: <code>not_null</code>, <code>unique_on_index</code>, <code>range</code>,
+<code>allowed_values</code>, <code>monotonic</code>, <code>max_daily_change</code>,
+<code>row_count_between</code>, <code>freshness_within</code>.</p>
+{% call example('A quality contract', 'json') %}
+"quality": [
+  {"check": "not_null", "attr": "close"},
+  {"check": "range", "attr": "close", "min": 0, "max": 100000},
+  {"check": "unique_on_index"}
+]
+{% endcall %}
+{% endcall %}
+
+{% call step(6, 'Create, preview, submit') %}
+<p>Creating makes draft v1. Preview the draft against real data, then submit. Submitting validates the
+definition, type-checks a derivation, computes the <strong>definition hash</strong> and the
+<strong>change class</strong> against the previous version (<code>breaking</code>,
+<code>behavioral</code> or <code>additive</code>), and moves the version to <code>in_review</code>.</p>
+{% call example('The same thing from Python', 'python') %}
+import maya.sdk as maya
+
+my = maya.connect(base_url="http://localhost:8600", api_key="maya_…")
+definition = {
+    "index": ["date", "symbol"], "index_types": {"date": "date", "symbol": "string"},
+    "schema": [{"name": "close", "type": "float64"}],
+    "source": {"type": "csv"},
+    "resolution": {"grid": "as_is", "rules": {"close": "forward_fill(limit=3)"}},
+    "transform": [], "quality": [{"check": "not_null", "attr": "close"}],
+}
+my.features.create("eq", "prices", definition, description="Daily closes")
+my.features.ingest("eq/prices", open("prices.csv", "rb").read(), fmt="csv")
+print(my.features.draft_preview("eq/prices")["fill_report"])
+my.features.transition("eq/prices", 1, "submit")
+{% endcall %}
+{% call tip('Cosmetic edits do not mint a version') %}
+<p>If a new draft hashes identically to the previous version, submit says “Nothing changed” instead
+of creating a duplicate. To change an approved feature, start a new draft from its page; the approved
+version is never edited.</p>
+{% endcall %}
+{% endcall %}
+
+<h2>Where next</h2>
+{{ cards([
+  ('cloud-upload', 'Ingesting data', 'Uploads, pulls and restatements.'),
+  ('clock-history', 'Bitemporality and as-of', 'Ask what was known on a date.'),
+  ('pin-angle', 'Pins', 'Freeze an approved version as sealed data.'),
+]) }}
+{% endblock %}
