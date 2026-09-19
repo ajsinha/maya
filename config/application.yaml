@@ -86,10 +86,10 @@ auth:
     duration_minutes: 30
   api_keys:
     max_days: 365
-  # mode: sso or hybrid needs these. OIDC authorization code flow with PKCE.
-  # SAML 2.0 (protocol: saml2) is not shipped and is refused at startup.
+  # mode: sso or hybrid needs these. protocol: oidc (authorization code flow with
+  # PKCE) or saml2 (SP-initiated Web SSO; needs python3-saml and xmlsec).
   sso:
-    protocol: oidc
+    protocol: "${MAYA_SSO_PROTOCOL:oidc}"
     issuer: "${MAYA_OIDC_ISSUER:}"
     client_id: "${MAYA_OIDC_CLIENT_ID:maya}"
     client_secret: "${MAYA_OIDC_CLIENT_SECRET:}"
@@ -104,8 +104,29 @@ auth:
     # IdP group -> MAYA roles, re-applied at every login
     group_role_map:
       maya-admins: [admin]
+    # SAML 2.0 (protocol: saml2). MAYA's metadata: GET /api/v1/auth/sso/saml/metadata.
+    # The IdP must sign assertions; its certificate is public, not a secret.
+    saml:
+      sp_entity_id: "${MAYA_SAML_SP_ENTITY_ID:}"
+      acs_url: "${MAYA_SAML_ACS_URL:http://127.0.0.1:8600/auth/sso/saml/acs}"
+      idp_entity_id: "${MAYA_SAML_IDP_ENTITY_ID:}"
+      idp_sso_url: "${MAYA_SAML_IDP_SSO_URL:}"
+      idp_cert: "${MAYA_SAML_IDP_CERT:}"
+      idp_cert_file: "${MAYA_SAML_IDP_CERT_FILE:}"
+      # empty: the NameID is the username
+      username_attribute: ""
+      groups_attribute: groups
+      email_attribute: email
+      name_attribute: displayName
+  # Security keys and passkeys (WebAuthn) as a second factor, alongside TOTP.
+  # rp_id is the site's domain (not an IP address); origins are the exact
+  # scheme://host:port the browser shows, comma-separated.
+  webauthn:
+    rp_id: "${MAYA_WEBAUTHN_RP_ID:localhost}"
+    rp_name: MAYA
+    origins: "${MAYA_WEBAUTHN_ORIGINS:http://localhost:8600}"
   mfa:
-    # TOTP for password logins. auto = enforce the role requirement outside dev
+    # TOTP or a security key for password logins. auto = enforce the role requirement outside dev
     # (in dev only users who enrolled are challenged); true; false.
     enforce: "${MAYA_MFA_ENFORCE:auto}"
     required_for_roles: [admin, model_owner]

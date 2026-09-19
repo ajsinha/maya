@@ -29,6 +29,7 @@ def wire(platform: Any) -> None:
     from maya.services.webhooks import WebhookService
     from maya.services.licensing import LicenceService
     from maya.services.custody import CustodyService
+    from maya.services.passkeys import PasskeyService
     from maya.services.warrants import WarrantService
     from maya.services.workflow_service import WorkflowService
 
@@ -40,7 +41,8 @@ def wire(platform: Any) -> None:
                       ("ops", OpsService), ("sso", SsoService),
                       ("workspaces", WorkspaceService), ("sources", SourceService),
                       ("webhooks", WebhookService), ("licences", LicenceService),
-                      ("custody", CustodyService)):
+                      ("custody", CustodyService),
+                      ("passkeys", PasskeyService)):
         platform.register_service(name, cls(platform))
     _jobs(platform)
     _checks(platform)

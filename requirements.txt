@@ -42,6 +42,14 @@ tzdata==2026.3     # hard requirement on Windows: no system tz database
 openpyxl==3.1.5
 defusedxml==0.7.1
 
+# SAML 2.0 single sign-on (auth.sso.protocol: saml2): python3-saml over the native
+# xmlsec binding. Without them SAML is refused at startup; OIDC needs neither.
+python3-saml==1.16.0
+xmlsec==1.3.17
+
+# Security keys and passkeys (WebAuthn) as a second factor.
+webauthn==3.0.0
+
 # Tracing seam: OpenTelemetry span export over OTLP/HTTP (observability.otlp.endpoint).
 # Without it trace ids still propagate to responses, logs, audit and jobs.
 opentelemetry-api==1.44.0

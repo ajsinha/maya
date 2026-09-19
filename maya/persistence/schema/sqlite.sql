@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 4e5da7d906468938934bd0c7e501a87e3dcff9ad5f5f3459ee3290847717643e
+-- schema-hash: 0ab36292627b68d9e5988e056a83a35564a3e7755361dbf8107283cad0aa9f06
 -- ==========================================================================
 
 CREATE TABLE anchors (
@@ -575,6 +575,31 @@ CREATE TABLE api_keys (
 
 CREATE INDEX ix_api_keys_user_id ON api_keys (user_id);
 
+CREATE TABLE auth_challenges (
+	kind VARCHAR(32) NOT NULL, 
+	handle VARCHAR(256) NOT NULL, 
+	user_id CHAR(36), 
+	session_id CHAR(36), 
+	expires_at DATETIME NOT NULL, 
+	consumed_at DATETIME, 
+	detail JSON NOT NULL, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_auth_challenges PRIMARY KEY (id), 
+	CONSTRAINT uq_auth_challenges_handle UNIQUE (handle), 
+	CONSTRAINT fk_auth_challenges_user_id_users FOREIGN KEY(user_id) REFERENCES users (id)
+);
+
+CREATE INDEX ix_auth_challenges_expires_at ON auth_challenges (expires_at);
+
+CREATE INDEX ix_auth_challenges_kind ON auth_challenges (kind);
+
+CREATE INDEX ix_auth_challenges_user_id ON auth_challenges (user_id);
+
 CREATE TABLE group_members (
 	group_id CHAR(36) NOT NULL, 
 	user_id CHAR(36) NOT NULL, 
@@ -648,6 +673,29 @@ CREATE TABLE user_roles (
 	CONSTRAINT fk_user_roles_user_id_users FOREIGN KEY(user_id) REFERENCES users (id), 
 	CONSTRAINT fk_user_roles_role_id_roles FOREIGN KEY(role_id) REFERENCES roles (id)
 );
+
+CREATE TABLE webauthn_credentials (
+	user_id CHAR(36) NOT NULL, 
+	credential_id VARCHAR(512) NOT NULL, 
+	public_key TEXT NOT NULL, 
+	sign_count BIGINT NOT NULL, 
+	transports JSON NOT NULL, 
+	name VARCHAR(128) NOT NULL, 
+	aaguid VARCHAR(64), 
+	backed_up BOOLEAN NOT NULL, 
+	last_used_at DATETIME, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_webauthn_credentials PRIMARY KEY (id), 
+	CONSTRAINT fk_webauthn_credentials_user_id_users FOREIGN KEY(user_id) REFERENCES users (id), 
+	CONSTRAINT uq_webauthn_credentials_credential_id UNIQUE (credential_id)
+);
+
+CREATE INDEX ix_webauthn_credentials_user_id ON webauthn_credentials (user_id);
 
 CREATE TABLE feature_sets (
 	namespace_id CHAR(36) NOT NULL, 

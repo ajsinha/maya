@@ -78,6 +78,47 @@ class Auth(_Resource):
     def mfa_confirm(self, code: str) -> Any:
         return self._c("POST", "/auth/mfa/confirm", json_body={"code": code})
 
+    # SAML 2.0 (auth.sso.protocol: saml2)
+    @endpoint("GET", "/auth/sso/saml/metadata")
+    def saml_metadata(self) -> Any:
+        """MAYA's service-provider metadata XML, as bytes plus headers."""
+        return self._c("GET", "/auth/sso/saml/metadata", raw=True)
+
+    @endpoint("POST", "/auth/sso/saml/start")
+    def saml_start(self, relay_state: str = "") -> Any:
+        return self._c("POST", "/auth/sso/saml/start", json_body={"relay_state": relay_state})
+
+    @endpoint("POST", "/auth/sso/saml/acs")
+    def saml_acs(self, saml_response: str) -> Any:
+        return self._c("POST", "/auth/sso/saml/acs", json_body={"saml_response": saml_response})
+
+    # security keys (WebAuthn) as a second factor
+    @endpoint("GET", "/auth/mfa/webauthn")
+    def security_keys(self) -> Any:
+        return self._c("GET", "/auth/mfa/webauthn")
+
+    @endpoint("DELETE", "/auth/mfa/webauthn/{key_id}")
+    def remove_security_key(self, key_id: str) -> Any:
+        return self._c("DELETE", f"/auth/mfa/webauthn/{seg(key_id)}")
+
+    @endpoint("POST", "/auth/mfa/webauthn/register/options")
+    def security_key_register_options(self) -> Any:
+        return self._c("POST", "/auth/mfa/webauthn/register/options")
+
+    @endpoint("POST", "/auth/mfa/webauthn/register")
+    def register_security_key(self, credential: dict[str, Any], name: str = "security key"
+                              ) -> Any:
+        return self._c("POST", "/auth/mfa/webauthn/register",
+                       json_body={"credential": credential, "name": name})
+
+    @endpoint("POST", "/auth/mfa/webauthn/options")
+    def security_key_options(self) -> Any:
+        return self._c("POST", "/auth/mfa/webauthn/options")
+
+    @endpoint("POST", "/auth/mfa/webauthn/verify")
+    def security_key_verify(self, credential: dict[str, Any]) -> Any:
+        return self._c("POST", "/auth/mfa/webauthn/verify", json_body={"credential": credential})
+
     @endpoint("POST", "/auth/logout")
     def logout(self) -> Any:
         return self._c("POST", "/auth/logout")

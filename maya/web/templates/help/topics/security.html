@@ -10,8 +10,8 @@ and MFA secrets are sealed at rest.</p>
 
 {{ cards([
   ('person-check', 'Passwords', 'Twelve characters minimum, lockout after repeated failures, and a forced change for the bootstrap admin.'),
-  ('box-arrow-in-right', 'Single sign-on', 'OIDC authorization code flow with PKCE; IdP groups map to MAYA roles at every login.'),
-  ('phone', 'Two-factor', 'TOTP codes for password logins, required by role outside dev.'),
+  ('box-arrow-in-right', 'Single sign-on', 'OIDC (code flow with PKCE) or SAML 2.0; IdP groups map to MAYA roles at every login.'),
+  ('phone', 'Two-factor', 'TOTP codes or a security key for password logins, required by role outside dev.'),
   ('key', 'API keys', 'Scoped by role, namespace, action and network, bound to one environment, expiring.'),
   ('shield-lock', 'The sandbox', 'Uploaded model code runs in a separate, jailed interpreter with a verified tier.'),
   ('lock', 'Secrets', 'Sealed with authenticated encryption under storage.root/keys; never in the YAML file.'),
@@ -45,9 +45,29 @@ auth:
 the matching MAYA capability at their next session, with no manual step. First-time users are created
 with the mapped roles and no object grants.</p>
 {% endcall %}
-{% call warn('SAML is not shipped') %}
-<p><code>auth.sso.protocol: saml2</code> is refused at startup; it would need <code>python3-saml</code>
-and <code>xmlsec</code>. WebAuthn is not built either.</p>
+{% call example('config/application.yaml — SAML 2.0 instead', 'yaml') %}
+auth:
+  mode: hybrid
+  sso:
+    protocol: saml2
+    saml:
+      sp_entity_id: "https://maya.example.com/saml"
+      acs_url: "https://maya.example.com/auth/sso/saml/acs"
+      idp_entity_id: "https://login.example.com/saml"
+      idp_sso_url: "https://login.example.com/saml/sso"
+      idp_cert_file: "/etc/maya/idp-signing.pem"    # public: the IdP's signing certificate
+      groups_attribute: groups                      # SAML attribute holding group names
+      username_attribute: ""                        # empty: the NameID is the username
+{% endcall %}
+<p>Register MAYA at the IdP from its metadata, <code>GET /api/v1/auth/sso/saml/metadata</code>. The IdP
+must <strong>sign the assertion</strong>. MAYA checks the signature, issuer, audience, destination and
+recipient, and the validity window, and requires every Response to answer a request MAYA made, once:
+an unsolicited Response, a replayed Response and a replayed assertion are all refused and audited as
+<code>auth.sso_refused</code>. SAML needs <code>python3-saml</code> and <code>xmlsec</code>; without
+them <code>saml2</code> is refused at startup, naming both.</p>
+{% call warn('Not built for SAML') %}
+<p>Single logout, IdP-initiated sign-in (by design: it cannot be tied to a request) and signed
+AuthnRequests. Only a test IdP has been used, not a commercial one.</p>
 {% endcall %}
 {% endcall %}
 
@@ -69,7 +89,7 @@ password, unless <code>app.allow_default_admin_password</code> is set. Administr
 sessions under {{ screen('/admin/users', 'Admin → Users & roles') }}.</p>
 {% endcall %}
 
-{% call step(3, 'Two-factor codes') %}
+{% call step(3, 'Two-factor: codes or a security key') %}
 <p>Enroll under {{ screen('/account/mfa', 'Account → Two-factor authentication') }}: add the shown secret
 (or its <code>otpauth://</code> link) to any authenticator app and confirm one code. After that, a password sign-in opens a session that
 can do nothing but verify a code.</p>
@@ -83,7 +103,25 @@ auth:
 <p><code>auto</code> enforces the role requirement outside dev; in dev only users who enrolled are
 challenged. A user whose role requires MFA but who has not enrolled can do nothing but enroll. SSO
 sessions leave the second factor to the identity provider. An administrator can reset a user's
-enrollment; that is audited as <code>auth.mfa_reset</code>.</p>
+enrollment; that is audited as <code>auth.mfa_reset</code> and removes security keys too.</p>
+<h3 class="mt-3">Security keys and passkeys</h3>
+<p>On the same page, <strong>Add a key</strong> registers a hardware security key or a passkey
+(WebAuthn). A key can stand alone or sit beside an authenticator app; at the challenge, either answers.
+Each challenge is issued by MAYA, bound to your sign-in, single-use and valid for five minutes. A key
+whose signature counter fails to rise — what a cloned key does — is refused, ends that sign-in attempt
+and counts toward lockout. A session still owing its second factor can neither add a key nor replace
+its authenticator app, so a stolen password is never enough.</p>
+{% call example('config/application.yaml', 'yaml') %}
+auth:
+  webauthn:
+    rp_id: "${MAYA_WEBAUTHN_RP_ID:localhost}"              # the site's domain, not an IP
+    rp_name: MAYA
+    origins: "${MAYA_WEBAUTHN_ORIGINS:http://localhost:8600}"   # exactly what the browser shows
+{% endcall %}
+{% call tip('What MAYA does not claim about a key') %}
+<p>Attestation is not requested, so MAYA records the model a key reports (its AAGUID) but does not
+claim the key is hardware-backed.</p>
+{% endcall %}
 {% endcall %}
 
 {% call step(4, 'API keys for scripts') %}

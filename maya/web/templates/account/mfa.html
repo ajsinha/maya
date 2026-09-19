@@ -40,4 +40,33 @@
   {% if status.enrolled %}<div class="small-muted mt-1">Replacing the authenticator switches two-factor off until you confirm the new one.</div>{% endif %}
 </form>
 {% endif %}
+
+{% if status.auth_method != "sso" %}
+<div class="card card-body mt-4" style="max-width:640px">
+  <h2 class="h5"><i class="bi bi-usb-drive" aria-hidden="true"></i> Security keys</h2>
+  <p class="small-muted">A hardware security key or a passkey answers the second-factor challenge
+    with a touch instead of a code. You can have several, and an authenticator app as well.</p>
+  {% if keys %}
+  <ul class="list-group mb-3">
+    {% for k in keys %}
+    <li class="list-group-item d-flex align-items-center gap-2">
+      <i class="bi bi-key" aria-hidden="true"></i>
+      <span class="me-auto"><strong>{{ k.name }}</strong>
+        <span class="small-muted d-block">added {{ k.created_at|dt }}{% if k.last_used_at %} · last used {{ k.last_used_at|dt }}{% endif %}{% if k.transports %} · {{ k.transports|join(', ') }}{% endif %}</span></span>
+      <form method="post" action="/account/security-keys/{{ k.id }}/delete">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Remove {{ k.name }}">Remove</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <div class="input-group" style="max-width:420px">
+    <label class="visually-hidden" for="key-name">Name for the new key</label>
+    <input class="form-control" id="key-name" placeholder="Name it, e.g. YubiKey 5 (desk)" maxlength="128">
+    <button class="btn btn-primary" type="button" data-webauthn="register"><i class="bi bi-plus-circle" aria-hidden="true"></i> Add a key</button>
+  </div>
+  <div id="webauthn-status" class="small small-muted mt-2" role="status"></div>
+</div>
+{% endif %}
 {% endblock %}
+{% block scripts %}<script src="/static/js/webauthn.js"></script>{% endblock %}
