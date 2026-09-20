@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any, Callable
 
+from maya.core.errors import MayaError
 from maya.sdk.transport import AsyncTransport, Call, seg, split_ref
 
 ENDPOINTS: dict[tuple[str, str], str] = {}
@@ -97,6 +98,17 @@ class _Resource:
 def _nn(ref: str, kind: str) -> str:
     ns, name = split_ref(ref, kind)
     return f"{seg(ns)}/{seg(name)}"
+
+
+def _stream(transport: Any, call: Call, to: Any, resume: bool) -> Any:
+    """Hand a download to the transport's streaming path, or say why there isn't one."""
+    streamer = getattr(transport, "download", None)
+    if streamer is None:
+        raise MayaError(
+            "Streaming a download to a file needs a live client; a cassette serves whole "
+            "responses, so ask for the bytes without 'to' and write them yourself"
+        )
+    return streamer(call, to, resume=resume)
 
 
 def _files(data: bytes, filename: str) -> dict[str, Any]:
@@ -735,10 +747,15 @@ class Features(_Resource):
 
     @endpoint("PUT", "/features/{namespace}/{name}/draft")
     def update_draft(self, ref: str, definition: dict[str, Any], **kw: Any) -> Any:
+        """Rewrite the open draft. Guarded by the feature as this client last read it: the
+        ETag of that read goes out as ``If-Match``, so an edit written against a definition
+        someone has since changed is refused rather than applied over theirs (§18.2.5)."""
+        path = f"/features/{_nn(ref, 'feature')}"
         return self._c(
             "PUT",
-            f"/features/{_nn(ref, 'feature')}/draft",
+            f"{path}/draft",
             json_body={"definition": definition, **kw},
+            guard=path,
         )
 
     @endpoint("POST", "/features/{namespace}/{name}/drafts")
@@ -856,8 +873,13 @@ class Features(_Resource):
         format: str = "parquet",
         csv_encoding: str | None = None,
         as_of_known: str | None = None,
+        to: Any = None,
+        resume: bool = True,
     ) -> Any:
-        return self._c(
+        """A version's or a pin's rows. Without ``to`` the bytes come back in memory; with
+        it they are streamed to that path and a part left by an interrupted attempt is
+        continued rather than thrown away (§18.2.3)."""
+        call = Call(
             "GET",
             "/feature-data",
             raw=True,
@@ -868,6 +890,7 @@ class Features(_Resource):
                 "as_of_known": as_of_known,
             },
         )
+        return self._t.call(call) if to is None else _stream(self._t, call, to, resume)
 
 
 class FeatureSets(_Resource):
@@ -924,10 +947,13 @@ class FeatureSets(_Resource):
 
     @endpoint("PUT", "/featuresets/{namespace}/{name}/draft")
     def update_draft(self, ref: str, definition: dict[str, Any], **kw: Any) -> Any:
+        """Rewrite the open draft, guarded by the ETag of this client's last read of it."""
+        path = f"/featuresets/{_nn(ref, 'featureset')}"
         return self._c(
             "PUT",
-            f"/featuresets/{_nn(ref, 'featureset')}/draft",
+            f"{path}/draft",
             json_body={"definition": definition, **kw},
+            guard=path,
         )
 
     @endpoint("POST", "/featuresets/{namespace}/{name}/fork")
@@ -1003,13 +1029,17 @@ class FeatureSets(_Resource):
         format: str = "parquet",
         shape: str = "tabular",
         csv_encoding: str | None = None,
+        to: Any = None,
+        resume: bool = True,
     ) -> Any:
-        return self._c(
+        """The set's rows in the shape asked for; resumable through ``to`` (§18.2.3)."""
+        call = Call(
             "GET",
             "/featureset-data",
             raw=True,
             params={"ref": ref, "format": format, "shape": shape, "csv_encoding": csv_encoding},
         )
+        return self._t.call(call) if to is None else _stream(self._t, call, to, resume)
 
 
 class Models(_Resource):
@@ -1049,7 +1079,9 @@ class Models(_Resource):
 
     @endpoint("PUT", "/models/{namespace}/{name}/draft")
     def update_draft(self, ref: str, **kw: Any) -> Any:
-        return self._c("PUT", f"/models/{_nn(ref, 'model')}/draft", json_body=kw)
+        """Rewrite the open draft, guarded by the ETag of this client's last read of it."""
+        path = f"/models/{_nn(ref, 'model')}"
+        return self._c("PUT", f"{path}/draft", json_body=kw, guard=path)
 
     @endpoint("POST", "/models/{namespace}/{name}/drafts")
     def new_draft(self, ref: str) -> Any:

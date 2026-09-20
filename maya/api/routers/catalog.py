@@ -5,6 +5,11 @@ Objects are addressed as ``/{namespace}/{name}``; data endpoints take a full
 reference in ``ref`` so a version (``@vN``) or a pin (``#series/date``) can be
 named exactly.
 
+Listings and definition reads carry an ``ETag`` and answer ``If-None-Match``
+with 304; a draft edit honours ``If-Match``; the data endpoints advertise
+``Accept-Ranges`` and serve a ``Range``, so a large download resumes instead of
+starting again (§18.1, §18.2.3).
+
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 
@@ -18,7 +23,19 @@ from fastapi import APIRouter, File, Form, Header, UploadFile
 from fastapi.responses import Response
 
 from maya.api import schemas as s
-from maya.api.deps import Me, Plat, ok, parse_date, parse_instant, ref_of
+from maya.api.deps import (
+    Me,
+    Plat,
+    byte_range,
+    etag,
+    etags_in,
+    ok,
+    ok_if_changed,
+    parse_date,
+    parse_instant,
+    ref_of,
+    require_match,
+)
 from maya.security.authz import Principal
 
 router = APIRouter()
@@ -31,7 +48,18 @@ MEDIA = {
 }
 
 
-def _data_response(result: dict[str, Any], fmt: str, stem: str) -> Response:
+def _data_response(
+    result: dict[str, Any],
+    fmt: str,
+    stem: str,
+    *,
+    wants: str | None = None,
+    if_range: str | None = None,
+) -> Response:
+    """A download, whole or in part. ``Accept-Ranges`` says a part may be asked for, and
+    the ``ETag`` is what a caller sends back as ``If-Range`` when resuming: a resume is only
+    safe while the bytes have not moved underneath them, and if they have, MAYA sends the
+    whole object rather than let two halves of two downloads be stitched together."""
     ext = {
         "arrow": "arrow",
         "parquet": "parquet",
@@ -39,13 +67,25 @@ def _data_response(result: dict[str, Any], fmt: str, stem: str) -> Response:
         "json": "json",
         "ndjson": "ndjson",
     }[fmt]
+    payload: bytes = result["data"]
+    tag = etag(payload)
+    headers = {
+        "Content-Disposition": f"attachment; filename={stem}.{ext}",
+        "X-Maya-Manifest": json.dumps(result["manifest"], default=str),
+        "Accept-Ranges": "bytes",
+        "ETag": tag,
+    }
+    moved = bool(if_range) and tag not in etags_in(if_range)
+    asked = None if moved else byte_range(wants, len(payload))
+    if asked is None:
+        return Response(payload, media_type=MEDIA[fmt], headers=headers)
+    start, end = asked
+    if start >= len(payload) or start > end:
+        headers["Content-Range"] = f"bytes */{len(payload)}"
+        return Response(status_code=416, headers=headers)
+    headers["Content-Range"] = f"bytes {start}-{end}/{len(payload)}"
     return Response(
-        result["data"],
-        media_type=MEDIA[fmt],
-        headers={
-            "Content-Disposition": f"attachment; filename={stem}.{ext}",
-            "X-Maya-Manifest": json.dumps(result["manifest"], default=str),
-        },
+        payload[start : end + 1], status_code=206, media_type=MEDIA[fmt], headers=headers
     )
 
 
@@ -66,6 +106,7 @@ def browse(
     total: bool = False,
     me: Principal = Me,
     plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
 ) -> Response:
     """The catalog you may read, narrowed by the §16.2 facets: type, namespace, owner,
     status, tag and freshness. Opt-in cursor paging: pass ``page_size`` or ``cursor``."""
@@ -80,12 +121,13 @@ def browse(
         "q": q,
     }
     if page_size is not None or cursor is not None:
-        return ok(
+        return ok_if_changed(
             plat.catalog.browse_page(
                 me, page_size=page_size, cursor=cursor, sort=sort, total=total, **facets
-            )
+            ),
+            if_none_match,
         )
-    return ok(plat.catalog.browse(me, **facets))
+    return ok_if_changed(plat.catalog.browse(me, **facets), if_none_match)
 
 
 @router.get("/catalog/facets", tags=["catalog"])
@@ -129,11 +171,12 @@ def list_features(
     total: bool = False,
     me: Principal = Me,
     plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
 ) -> Response:
     """The features you may read. Opt-in cursor paging: pass ``page_size`` or ``cursor``.
     ``state`` keeps those whose latest version is in it (``draft,changes_requested``)."""
     if page_size is not None or cursor is not None:
-        return ok(
+        return ok_if_changed(
             plat.features.page(
                 me,
                 namespace=namespace,
@@ -144,9 +187,12 @@ def list_features(
                 cursor=cursor,
                 sort=sort,
                 total=total,
-            )
+            ),
+            if_none_match,
         )
-    return ok(plat.features.list(me, namespace=namespace, q=q, status=status, state=state))
+    return ok_if_changed(
+        plat.features.list(me, namespace=namespace, q=q, status=status, state=state), if_none_match
+    )
 
 
 @router.post("/features", tags=["features"], status_code=201)
@@ -185,8 +231,17 @@ async def quick_feature(
 
 
 @router.get("/features/{namespace}/{name}", tags=["features"])
-def get_feature(namespace: str, name: str, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.features.get(me, ref_of("feature", namespace, name)))
+def get_feature(
+    namespace: str,
+    name: str,
+    me: Principal = Me,
+    plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
+) -> Response:
+    """The feature's definition and history. Its ``ETag`` is what a draft edit sends back
+    as ``If-Match``, so an edit written against what you read cannot overwrite what you
+    did not."""
+    return ok_if_changed(plat.features.get(me, ref_of("feature", namespace, name)), if_none_match)
 
 
 @router.get("/features/{namespace}/{name}/pins", tags=["features"])
@@ -215,12 +270,20 @@ def feature_pins(
 
 @router.put("/features/{namespace}/{name}/draft", tags=["features"])
 def update_feature_draft(
-    namespace: str, name: str, body: s.DraftIn, me: Principal = Me, plat: Any = Plat
+    namespace: str,
+    name: str,
+    body: s.DraftIn,
+    me: Principal = Me,
+    plat: Any = Plat,
+    if_match: str | None = Header(default=None),
 ) -> Response:
+    ref = ref_of("feature", namespace, name)
+    if if_match:
+        require_match(if_match, plat.features.get(me, ref))
     return ok(
         plat.features.update_draft(
             me,
-            ref_of("feature", namespace, name),
+            ref,
             body.definition,
             expected_version=body.expected_version,
             description=body.description,
@@ -434,7 +497,11 @@ def feature_data(
     as_of_known: str | None = None,
     me: Principal = Me,
     plat: Any = Plat,
+    range: str | None = Header(default=None),
+    if_range: str | None = Header(default=None),
 ) -> Response:
+    """A feature version's or pin's rows. Resumable: send ``Range`` with the ``If-Range``
+    of the part already on disk and MAYA serves the rest of exactly those bytes."""
     result = plat.features.download(
         me,
         ref,
@@ -442,7 +509,7 @@ def feature_data(
         csv_encoding=csv_encoding,
         as_of_known=parse_instant(as_of_known, "as_of_known"),
     )
-    return _data_response(result, format, "feature")
+    return _data_response(result, format, "feature", wants=range, if_range=if_range)
 
 
 # -- feature sets -------------------------------------------------------------------------
@@ -457,9 +524,10 @@ def list_featuresets(
     total: bool = False,
     me: Principal = Me,
     plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
 ) -> Response:
     if page_size is not None or cursor is not None:
-        return ok(
+        return ok_if_changed(
             plat.featuresets.page(
                 me,
                 namespace=namespace,
@@ -469,9 +537,12 @@ def list_featuresets(
                 cursor=cursor,
                 sort=sort,
                 total=total,
-            )
+            ),
+            if_none_match,
         )
-    return ok(plat.featuresets.list(me, namespace=namespace, q=q, state=state))
+    return ok_if_changed(
+        plat.featuresets.list(me, namespace=namespace, q=q, state=state), if_none_match
+    )
 
 
 @router.post("/featuresets", tags=["featuresets"], status_code=201)
@@ -490,18 +561,34 @@ def create_featureset(body: s.DefinitionIn, me: Principal = Me, plat: Any = Plat
 
 
 @router.get("/featuresets/{namespace}/{name}", tags=["featuresets"])
-def get_featureset(namespace: str, name: str, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.featuresets.get(me, ref_of("featureset", namespace, name)))
+def get_featureset(
+    namespace: str,
+    name: str,
+    me: Principal = Me,
+    plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
+) -> Response:
+    return ok_if_changed(
+        plat.featuresets.get(me, ref_of("featureset", namespace, name)), if_none_match
+    )
 
 
 @router.put("/featuresets/{namespace}/{name}/draft", tags=["featuresets"])
 def update_featureset_draft(
-    namespace: str, name: str, body: s.DraftIn, me: Principal = Me, plat: Any = Plat
+    namespace: str,
+    name: str,
+    body: s.DraftIn,
+    me: Principal = Me,
+    plat: Any = Plat,
+    if_match: str | None = Header(default=None),
 ) -> Response:
+    ref = ref_of("featureset", namespace, name)
+    if if_match:
+        require_match(if_match, plat.featuresets.get(me, ref))
     return ok(
         plat.featuresets.update_draft(
             me,
-            ref_of("featureset", namespace, name),
+            ref,
             body.definition,
             expected_version=body.expected_version,
         )
@@ -622,6 +709,10 @@ def featureset_data(
     csv_encoding: str | None = None,
     me: Principal = Me,
     plat: Any = Plat,
+    range: str | None = Header(default=None),
+    if_range: str | None = Header(default=None),
 ) -> Response:
+    """A feature set version's or pin's rows, in the shape asked for. Resumable, as
+    ``/feature-data`` is."""
     result = plat.featuresets.download(me, ref, fmt=format, shape=shape, csv_encoding=csv_encoding)
-    return _data_response(result, format, "featureset")
+    return _data_response(result, format, "featureset", wants=range, if_range=if_range)

@@ -9,11 +9,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, Header, UploadFile
 from fastapi.responses import Response
 
 from maya.api import schemas as s
-from maya.api.deps import Me, Plat, ok, ref_of
+from maya.api.deps import Me, Plat, ok, ok_if_changed, ref_of, require_match
 from maya.security.authz import Principal
 
 router = APIRouter()
@@ -30,9 +30,10 @@ def list_models(
     total: bool = False,
     me: Principal = Me,
     plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
 ) -> Response:
     if page_size is not None or cursor is not None:
-        return ok(
+        return ok_if_changed(
             plat.models.page(
                 me,
                 namespace=namespace,
@@ -41,9 +42,10 @@ def list_models(
                 cursor=cursor,
                 sort=sort,
                 total=total,
-            )
+            ),
+            if_none_match,
         )
-    return ok(plat.models.list(me, namespace=namespace, q=q))
+    return ok_if_changed(plat.models.list(me, namespace=namespace, q=q), if_none_match)
 
 
 @router.post("/models", tags=["models"], status_code=201)
@@ -52,15 +54,29 @@ def create_model(body: s.ModelIn, me: Principal = Me, plat: Any = Plat) -> Respo
 
 
 @router.get("/models/{namespace}/{name}", tags=["models"])
-def get_model(namespace: str, name: str, me: Principal = Me, plat: Any = Plat) -> Response:
-    return ok(plat.models.get(me, ref_of("model", namespace, name)))
+def get_model(
+    namespace: str,
+    name: str,
+    me: Principal = Me,
+    plat: Any = Plat,
+    if_none_match: str | None = Header(default=None),
+) -> Response:
+    return ok_if_changed(plat.models.get(me, ref_of("model", namespace, name)), if_none_match)
 
 
 @router.put("/models/{namespace}/{name}/draft", tags=["models"])
 def update_model_draft(
-    namespace: str, name: str, body: s.ModelDraftIn, me: Principal = Me, plat: Any = Plat
+    namespace: str,
+    name: str,
+    body: s.ModelDraftIn,
+    me: Principal = Me,
+    plat: Any = Plat,
+    if_match: str | None = Header(default=None),
 ) -> Response:
-    return ok(plat.models.update_draft(me, ref_of("model", namespace, name), **body.model_dump()))
+    ref = ref_of("model", namespace, name)
+    if if_match:
+        require_match(if_match, plat.models.get(me, ref))
+    return ok(plat.models.update_draft(me, ref, **body.model_dump()))
 
 
 @router.post("/models/{namespace}/{name}/drafts", tags=["models"], status_code=201)
