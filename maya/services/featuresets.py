@@ -489,9 +489,13 @@ class FeatureSetService:
                     me = refs.version_ref("featureset", ns["name"], fs["name"], v["version_no"])
                     for m in eff.get("members", []):
                         uow.repo("lineage_edges").link(m["ref"], me, "member_of", m["attr"])
-                    if v["definition"].get("extends"):
+                    ext = v["definition"].get("extends")
+                    if ext:
                         uow.repo("lineage_edges").link(
-                            v["definition"]["extends"]["parent"], me, "extends"
+                            ext["parent"],
+                            me,
+                            "extends",
+                            str(catalog.override_count(ext.get("override"))),
                         )
             return out.__dict__
 

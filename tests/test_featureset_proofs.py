@@ -172,6 +172,39 @@ def test_project_of_extend_is_recognised_as_the_directly_written_set(members):
     assert _submit(w, "eqv_projected_ruled", ruled)["state"] == "in_review"
 
 
+def test_a_sets_inheritance_edge_carries_its_override_count(members):
+    """The same §16.3 label on the feature-set side: a desk that inherits a firm panel and
+    changes three things says three, not "extends"."""
+    w = members
+    parent = {
+        "index": ["date", "symbol"],
+        "grid": "as_is",
+        "alignment": {"mode": "asof"},
+        "members": [
+            {"attr": "px", "ref": XY, "source_attr": "close"},
+            {"attr": "vol", "ref": XY, "source_attr": "volume"},
+            {"attr": "alt", "ref": OTHER, "source_attr": "close"},
+        ],
+    }
+    _submit(w, "ovc_parent", parent)
+    w.p.featuresets.transition(w.mick, f"{NS}/ovc_parent", 1, "approve")
+    child = {
+        "extends": {
+            "parent": f"maya://featureset/{NS}/ovc_parent@v1",
+            "override": {
+                "drop_attributes": ["alt"],
+                "attribute_rules": {"px": "forward_fill(limit=1)"},
+                "alignment": {"mode": "inner"},
+            },
+        }
+    }
+    _submit(w, "ovc_desk", child)
+    w.p.featuresets.transition(w.mick, f"{NS}/ovc_desk", 1, "approve")
+    graph = w.p.ops.lineage(f"maya://featureset/{NS}/ovc_desk@v1", direction="upstream")
+    edge = next(e for e in graph["edges"] if e["type"] == "extends")
+    assert edge["source"] == f"maya://featureset/{NS}/ovc_parent@v1" and edge["label"] == "3"
+
+
 # -- withheld attributes -----------------------------------------------------------------------
 def test_an_unreadable_member_is_withheld_named_and_null_never_dropped(members):
     w = members

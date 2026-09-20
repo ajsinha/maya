@@ -131,7 +131,7 @@
           var negate = isName('not');
           if (negate) { take(); }
           take();
-          if (!isOp('[') && !isOp('(')) { throw fail("'in' needs a literal list"); }
+          if (!isOp('[')) { throw fail("'in' needs a literal list, written [a, b]"); }
           node = { k: 'in', negate: negate, l: node, r: literalList() };
           continue;
         }
@@ -139,22 +139,20 @@
       }
     }
     function literalList() {
-      // The server accepts a list or a tuple of literals after `in`, so both are read
-      // here; a parenthesised form without a comma is not a tuple, and it refuses that.
-      var close = isOp('(') ? ')' : ']';
+      // A list of literals, and only a list: the server takes nothing else after `in`,
+      // and an editor that accepted a tuple would green-light what the save then refuses.
       take();
-      var items = [], commas = 0;
-      while (!isOp(close)) {
+      var items = [];
+      while (!isOp(']')) {
         var t = peek();
         if (!t) { throw fail('a list is not closed'); }
         if (t.t === 'num' || t.t === 'str') { items.push(take().v); }
         else if (t.t === 'name' && ['True', 'False', 'None'].indexOf(t.v) >= 0) {
           items.push({ True: true, False: false, None: null }[take().v]);
         } else { throw fail("an 'in' list holds literals only"); }
-        if (isOp(',')) { take(); commas += 1; }
+        if (isOp(',')) { take(); }
       }
       take();
-      if (close === ')' && commas === 0) { throw fail("'in' needs a literal list"); }
       return items;
     }
     function arith() {

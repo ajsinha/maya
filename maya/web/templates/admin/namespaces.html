@@ -5,13 +5,15 @@
 {% block content %}
 <h1>Namespaces</h1>
 <p class="lead-slate">The unit of permission, quota and export. Presets set the expected roles and the segregation-of-duties level; SoD is shown on every review screen.</p>
-{% call(n) table("namespaces", ["Name", "Preset", "SoD", "Visibility", "Classification", "Production", "Objects", "!Edit"], rows, empty="No namespaces yet. Create one below.") %}
+{% call(n) table("namespaces", ["Name", "Preset", "SoD", "Visibility", "Classification", "Production", "Key ceiling", "Objects", "!Edit"], rows, empty="No namespaces yet. Create one below.") %}
   <td>{{ n.name }}{% if n.is_scratch %} <span class="pill warn">scratch — ungoverned</span>{% endif %}<div class="small-muted">{{ n.description or '' }}</div></td>
   <td>{{ n.preset }}</td><td>{{ n.sod }}</td><td>{{ n.default_visibility }}</td><td>{{ n.classification }}</td><td>{{ pill('true' if n.production else 'false', 'yes' if n.production else 'no') }}</td>
+  <td>{% if n.api_key_max_days %}{{ n.api_key_max_days }} day(s){% else %}<span class="small-muted">global maximum</span>{% endif %}</td>
   <td>{{ n.counts.get('features', 0) }} features · {{ n.counts.get('feature_sets', 0) }} sets · {{ n.counts.get('models', 0) }} models</td>
   <td><form method="post" action="/admin/namespaces/{{ n.name }}" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}">
     <select class="form-select form-select-sm" name="sod" aria-label="SoD for {{ n.name }}">{% for s in ['strict','two_person','none'] %}<option {% if s == n.sod %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
     <select class="form-select form-select-sm" name="default_visibility" aria-label="Visibility for {{ n.name }}">{% for s in ['private','namespace_read','public_read'] %}<option {% if s == n.default_visibility %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    <input class="form-control form-control-sm" type="number" min="1" name="api_key_max_days" style="max-width:7rem" value="{{ n.api_key_max_days or '' }}" placeholder="key days" aria-label="Maximum API-key life in days for {{ n.name }}, empty for the global maximum">
     <button class="btn btn-sm btn-outline-secondary" type="submit">Save</button></form></td>
 {% endcall %}
 <form method="post" action="/admin/namespaces" class="card card-body"><input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create a namespace</h3>

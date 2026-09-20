@@ -36,6 +36,24 @@ logger = logging.getLogger(__name__)
 PREFIX = f"/api/{API_VERSION}"
 MIN_CLIENT = (0, 1)
 
+# Every router the public API mounts, in one place. The gates that read the OpenAPI
+# document without a platform (SDK parity, the API snapshot) build their app from this
+# tuple, so a router added here is inspected by them the day it arrives; when they kept
+# their own copy of the list, a new router could pass every gate while being unreachable.
+ROUTERS = (
+    admin.router,
+    catalog.router,
+    registry.router,
+    workflow.router,
+    workspaces.router,
+    events.router,
+    custody.router,
+    identity.router,
+    auth.router,
+    assistant.router,
+    retention.router,
+)
+
 
 def create_api(platform: Any) -> FastAPI:
     app = FastAPI(
@@ -48,19 +66,7 @@ def create_api(platform: Any) -> FastAPI:
         redoc_url=None,
     )
     app.state.platform = platform
-    for r in (
-        admin.router,
-        catalog.router,
-        registry.router,
-        workflow.router,
-        workspaces.router,
-        events.router,
-        custody.router,
-        identity.router,
-        auth.router,
-        assistant.router,
-        retention.router,
-    ):
+    for r in ROUTERS:
         app.include_router(r, prefix=PREFIX)
     install_handlers(app)
 

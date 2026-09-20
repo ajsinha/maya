@@ -116,6 +116,37 @@ def test_a_password_whose_age_is_unknown_never_expires(creds):
     assert w.p.auth.login("devi", PASSWORD)["token"]
 
 
+def test_an_administrators_reset_obeys_the_history_and_starts_the_clock(creds):
+    """A reset used to write the hash straight to the row: it could hand back a password
+    the account had just stopped using, and left the age unrecorded, so the §12 maximum
+    never expired it. It goes through the one password path now."""
+    w, _ = creds
+    w.p.access.create_user(w.admin, username="rusty", password=PASSWORD, roles=["feature_designer"])
+    w.p.access.reset_password(w.admin, "rusty", NEW)
+    with pytest.raises(ValidationFailed) as exc:
+        w.p.access.reset_password(w.admin, "rusty", PASSWORD)
+    assert "used before" in exc.value.message
+    user = _user(w, "rusty")
+    assert user["must_change_password"] is True
+    assert user["password_changed_at"] is not None
+    assert (utcnow() - user["password_changed_at"]).total_seconds() < 120
+    # and the reset password works, so the new hash really was the one written
+    assert w.p.auth.login("rusty", NEW)["token"]
+
+
+def test_a_new_accounts_password_has_an_age_from_the_first_day(creds):
+    """Without a recorded change time a password never ages, so a brand-new account would
+    be exempt from the maximum age for as long as it existed."""
+    w, _ = creds
+    w.p.access.create_user(w.admin, username="fresh", password=PASSWORD, roles=[])
+    assert _user(w, "fresh")["password_changed_at"] is not None
+    _touch_user(w, "fresh", {"password_changed_at": utcnow() - dt.timedelta(days=45)})
+    with pytest.raises(NotAuthenticated, match="30-day maximum age"):
+        w.p.auth.login("fresh", PASSWORD)
+    # a service account gets no password at all, and no clock to go with it
+    assert _user(w, "robot")["password_changed_at"] is None
+
+
 def test_the_class_requirement_is_configurable():
     platform = build_platform(["--auth.password.require_classes=4"])
     try:
@@ -342,10 +373,19 @@ def test_a_key_is_refused_from_an_address_outside_its_allowlist(creds):
 
 
 def test_a_namespace_may_cap_a_keys_life_below_the_global_maximum(creds):
+    """The ceiling is set through the service, not by hand in the database: until
+    ``update_namespace`` allowed the field, that was the only way to set it at all."""
     w, _ = creds
+    assert (
+        w.p.access.update_namespace(w.admin, "eq", {"api_key_max_days": 7})["api_key_max_days"] == 7
+    )
+    with pytest.raises(ValidationFailed, match="at least 1 day"):
+        w.p.access.update_namespace(w.admin, "eq", {"api_key_max_days": 0})
+    with pytest.raises(ValidationFailed, match="whole number of days"):
+        w.p.access.update_namespace(w.admin, "eq", {"api_key_max_days": "a fortnight"})
     with w.p.uow() as uow:
         ns = uow.repo("namespaces").find_one(name="eq")
-        uow.repo("namespaces").update(ns["id"], {"api_key_max_days": 7})
+    assert ns["api_key_max_days"] == 7, "a refused change left the ceiling alone"
     try:
         with pytest.raises(ValidationFailed, match="1–7 days"):
             w.p.auth.create_api_key(
@@ -355,8 +395,11 @@ def test_a_namespace_may_cap_a_keys_life_below_the_global_maximum(creds):
             w.principal("dana"), name="within", days=7, namespaces=["eq"]
         )["api_key"]
     finally:
-        with w.p.uow() as uow:
-            uow.repo("namespaces").update(ns["id"], {"api_key_max_days": None})
+        cleared = w.p.access.update_namespace(w.admin, "eq", {"api_key_max_days": ""})
+    assert cleared["api_key_max_days"] is None, "an empty value means the global maximum"
+    assert w.p.auth.create_api_key(
+        w.principal("dana"), name="long again", days=30, namespaces=["eq"]
+    )["api_key"]
 
 
 # -- service accounts and client credentials ----------------------------------------------

@@ -95,6 +95,56 @@ def test_openapi_is_published_and_complete(api):
     assert "/api/v1/features/{namespace}/{name}/pins" in doc["paths"]
 
 
+def test_the_gates_inspect_the_same_routers_the_api_mounts(api):
+    """The parity and snapshot gates read an app with no platform behind it. They must
+    build it from ``maya.api.app``'s own router list: while they kept a copy, a router
+    added to the API was invisible to them, so a new endpoint could pass every gate with
+    no SDK method and no UI path."""
+    _, app = api
+    sys.path.insert(0, str(CI))
+    try:
+        from _common import api_app
+    finally:
+        sys.path.remove(str(CI))
+
+    def paths(a):
+        return {
+            (method, path)
+            for path, ops in a.openapi()["paths"].items()
+            for method in ops
+            if path.startswith("/api/v1/")
+        }
+
+    assert paths(api_app()) == paths(app)
+
+
+def test_the_gate_app_sees_a_router_the_api_adds(api):
+    """The mechanism, not just today's agreement: a router mounted on the API shows up in
+    the gates' app without anyone editing the gates."""
+    from fastapi import APIRouter
+
+    import maya.api.app as api_module
+
+    sys.path.insert(0, str(CI))
+    try:
+        from _common import api_app
+
+        planted = APIRouter()
+
+        @planted.get("/planted-for-the-gate")
+        def _planted() -> dict[str, str]:
+            return {}
+
+        original = api_module.ROUTERS
+        api_module.ROUTERS = (*original, planted)
+        try:
+            assert "/api/v1/planted-for-the-gate" in api_app().openapi()["paths"]
+        finally:
+            api_module.ROUTERS = original
+    finally:
+        sys.path.remove(str(CI))
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))

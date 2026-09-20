@@ -86,6 +86,11 @@ class UnitOfWork:
             if exc_type is None:
                 for entry in self._durable:
                     self.repo("audit_events").append(entry)
+                    # A durable entry on the committing path is an ordinary committed
+                    # audit entry, so it announces its event like any other. Only the
+                    # rollback path (``_write_durable``) stays silent: there the entry
+                    # records a refusal, and nothing happened for a subscriber to hear.
+                    self._emit(entry)
                 changed = self.session.info.pop("identity_changed", False)
                 self.session.commit()
                 changed = changed or self.session.info.pop("identity_changed", False)

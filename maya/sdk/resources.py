@@ -473,6 +473,11 @@ class Namespaces(_Resource):
 
     @endpoint("PATCH", "/namespaces/{name}")
     def update(self, name: str, **changes: Any) -> Any:
+        """Change ``description``, ``sod``, ``default_visibility``, ``classification``,
+        ``production``, ``preset``, ``quota_bytes``, ``materialize_policy``,
+        ``shadow_materiality`` or ``api_key_max_days`` (§12's per-namespace ceiling on how
+        far out an API key scoped here may expire; null lets the global maximum apply).
+        Anything else is refused by name."""
         return self._c("PATCH", f"/namespaces/{seg(name)}", json_body=changes)
 
 

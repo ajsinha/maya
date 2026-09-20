@@ -194,6 +194,29 @@ def apply_override(
     return out
 
 
+def override_count(override: dict[str, Any] | None) -> int:
+    """How many things a child's ``extends`` diff changes — the number §16.3 draws on the
+    inheritance edge.
+
+    It counts changes, not JSON keys, because that is the sentence a reader wants: §6.8's
+    own example ("overrides two resolution rules, drops an attribute it cannot see, and
+    adds three of its own") should read as six. So a list counts its entries and a mapping
+    of per-attribute rules its keys; ``resolution`` is opened one level, since its own
+    entries are the overrides and it is not itself one.
+    """
+
+    def entries(value: Any) -> int:
+        return len(value) if isinstance(value, (list, dict)) else 1
+
+    total = 0
+    for key, value in (override or {}).items():
+        if key == "resolution" and isinstance(value, dict):
+            total += sum(entries(v) for v in value.values())
+        else:
+            total += entries(value)
+    return total
+
+
 def definition_hash(effective: dict[str, Any], self_ref: str | None = None) -> str:
     """Canonical hash of what determines values; cosmetic fields excluded.
 
