@@ -4,28 +4,34 @@ Regenerates MAYA's presentation decks from source, so each deck is reproducible
 rather than a binary nobody can edit safely.
 
 ```bash
-.venv/bin/python tools/deck/build.py                     # all three decks, into docs/
-.venv/bin/python tools/deck/build.py design              # one: executive, design or capabilities
+.venv/bin/python tools/deck/build.py                     # all four decks, into docs/
+.venv/bin/python tools/deck/build.py design              # one: executive, design, capabilities or concepts
 .venv/bin/python tools/deck/audit.py docs/MAYA-System-Design.pptx   # must report no geometry issues
 .venv/bin/python -m pytest -q tests/test_deck_geometry.py            # the audit, as a test
 ```
 
-## Three decks, three audiences
+## Four decks, four audiences
 
 | Deck | Slides | For | Source |
 |---|---|---|---|
 | `docs/MAYA-Executive-Briefing.pptx` | 18 | Whoever decides whether to adopt MAYA: what it is, what it delivers, what has been measured, and what it does not do | `exec_deck.py` |
 | `docs/MAYA-System-Design.pptx` | 41 | Whoever builds or operates it: every subsystem, with the module and the test behind each claim | `design_deck.py`, `design_deck_2.py` |
 | `docs/MAYA-Capabilities.pptx` | 37 | Whoever wants to know what the product actually does: the platform through its own screens and objects, then one model — the IFRS 9 study — carried end to end, refusals included | `capabilities_deck.py`, `capabilities_deck_2.py` |
+| `docs/MAYA-Concepts-and-Formalism.pptx` | 31 | Whoever wants to know why MAYA is shaped as it is: the definition, the order, the operator and the polynomial, and the two results that bound them | `concepts_deck.py`, `concepts_deck_2.py` |
 
-**One deck is not here.** *Concepts and Formalism* presented the research paper's
-theory beside a register of what the code implements. A deck that spends its
-slides comparing a paper with an implementation is a deck about the project
-rather than about the product, so it was removed and **MAYA-Capabilities**
-replaces it. The theory now lives only in the paper. No deck cites, summarises
-or marks the paper, and none of them carries a paper-versus-implementation
-slide; where a deck needs to show the mathematics working, it shows a worked
-model instead.
+**The fourth deck is not a summary of the paper.** *Concepts and Formalism*
+presents the mathematics in its own right — a model as a kernel with a parameter
+object, one order read as *A can stand in for B*, the point-in-time read as an
+operator, provenance as a polynomial, and the two negative results that bound
+them — each glossed in plain terms and carried by a worked example from a bank.
+An earlier deck of that name walked the research paper construction by
+construction and marked each with what the code implements. A deck whose subject
+is a paper, or a register of what is and is not built, is a deck about the
+project rather than about the ideas, so that one was removed. This one therefore
+carries no implementation-status table and no slide whose subject is the paper,
+and cites it once, on the closing slide, as where to read the proofs. Each
+slide's note names the section its mathematics comes from, which is the
+counterpart of the other decks naming a module.
 
 ## How it is put together
 
@@ -34,7 +40,7 @@ model instead.
 | `metrics.py` | The text estimator: greedy word-wrap simulation and paragraph heights. Shared by the builder and the audit, so the builder never believes a box fits that the audit then reports |
 | `theme.py` | The Harvard Crimson design system (#A51C30, spec §16.6): palette, typography, chrome, tables, cards, stat bars, and `fitted()`, which shrinks a text block until it fits or raises `DoesNotFit` |
 | `layouts.py` | Slide kinds drawn from plain dictionaries: `title`, `divider`, `bullets`, `table`, `cards`, `stats`, `split`, `flow` |
-| `exec_deck.py`, `design_deck.py`(`_2`), `capabilities_deck.py`(`_2`) | The decks, as data. A deck is split across two modules only to keep each file small enough to read |
+| `exec_deck.py`, `design_deck.py`(`_2`), `capabilities_deck.py`(`_2`), `concepts_deck.py`(`_2`) | The decks, as data. A deck is split across two modules only to keep each file small enough to read |
 | `build.py` | Builds the decks and sets the document properties (author, title, subject) explicitly |
 | `audit.py` | The geometry audit (below) |
 
