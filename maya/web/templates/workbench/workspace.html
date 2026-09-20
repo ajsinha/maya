@@ -51,12 +51,13 @@
 
 <h2>Shadow replay</h2>
 {% if ws.replay and ws.replay.warrants is defined %}
-<div class="alert alert-info"><strong>{{ ws.replay.summary }}</strong><div class="small mt-1">{{ ws.replay.basis }} Sample: up to {{ ws.replay.sample_rows }} most recent rows per warrant; material if |Δ| &gt; {{ ws.replay.materiality }}. Generated {{ ws.replay.generated_at }}.</div></div>
-{% call(r) table("replay", ["Warrant", "Replayed", "Rows compared", "Median |Δ|", "p95 |Δ|", "Max |Δ|", "Over materiality", "Worst row", "Note"], ws.replay.warrants, empty="No dependent warrant.") %}
+<div class="alert alert-info"><strong>{{ ws.replay.summary }}</strong><div class="small mt-1">{{ ws.replay.basis }} Sample: up to {{ ws.replay.sample_rows }} most recent rows per warrant{% if ws.replay.coverage and ws.replay.coverage.share is not none %} — {{ ws.replay.coverage.rows_compared }} of {{ ws.replay.coverage.rows_available }} matched rows in all ({{ '%.1f'|format(100 * ws.replay.coverage.share) }}%){% endif %}. Each warrant's threshold is shown with where it came from: the model's own declaration, its namespace's, or the configured default ({{ ws.replay.materiality }}).{% if ws.replay.budget %} Budget: {{ ws.replay.budget.rows_per_day or 'no' }} row comparisons per namespace per day{% if ws.replay.budget.spent %}, and this replay spent {% for ns, rows in ws.replay.budget.spent.items() %}{{ rows }} in {{ ns }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}.{% endif %} Generated {{ ws.replay.generated_at }}.</div></div>
+{% call(r) table("replay", ["Warrant", "Replayed", "Rows compared", "Median |Δ|", "p95 |Δ|", "Max |Δ|", "Over materiality", "Threshold", "Worst row", "Note"], ws.replay.warrants, empty="No dependent warrant.") %}
   <td class="mono">{{ r.warrant }}</td><td>{{ pill('true' if r.replayed else 'false', 'yes' if r.replayed else 'no') }}</td>
-  <td>{{ r.rows_compared if r.rows_compared is defined else '' }}</td><td>{{ '%.4g'|format(r.median_abs_shift) if r.median_abs_shift is not none and r.median_abs_shift is defined else '' }}</td>
+  <td>{% if r.rows_compared is defined %}{{ r.rows_compared }}{% if r.rows_available is defined %} of {{ r.rows_available }}{% endif %}{% endif %}</td><td>{{ '%.4g'|format(r.median_abs_shift) if r.median_abs_shift is not none and r.median_abs_shift is defined else '' }}</td>
   <td>{{ '%.4g'|format(r.p95_abs_shift) if r.p95_abs_shift is defined else '' }}</td><td>{{ '%.4g'|format(r.max_abs_shift) if r.max_abs_shift is defined else '' }}</td>
   <td>{% if r.rows_over_materiality is defined %}{{ r.rows_over_materiality }} ({{ '%.1f'|format(100 * r.share_over_materiality) }}%){% endif %}</td>
+  <td>{% if r.materiality is defined %}{{ '%.4g'|format(r.materiality) }} <span class="small-muted">({{ r.materiality_from }})</span>{% endif %}</td>
   <td class="mono small">{{ r.worst_row if r.worst_row is defined else '' }}</td><td class="small">{{ r.reason or '' }}</td>
 {% endcall %}
 {% else %}

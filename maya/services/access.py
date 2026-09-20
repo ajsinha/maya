@@ -265,6 +265,7 @@ class AccessService:
             "preset",
             "materialize_policy",
             "shadow_materiality",
+            "shadow_budget_rows",
         }
         bad = set(changes) - allowed
         if bad:
@@ -285,6 +286,11 @@ class AccessService:
             raise ValidationFailed(
                 "shadow_materiality is the shift this namespace calls material; it is "
                 "above zero, or unset to use the global default"
+            )
+        if changes.get("shadow_budget_rows") is not None and int(changes["shadow_budget_rows"]) < 0:
+            raise ValidationFailed(
+                "shadow_budget_rows is what a replay may cost this namespace in a day, "
+                "counted in row comparisons; it is zero for no ceiling or a positive count"
             )
         with self.p.uow(p.username) as uow:
             ns = self.namespace(uow, name)

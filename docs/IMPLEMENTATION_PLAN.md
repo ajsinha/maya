@@ -516,10 +516,12 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > A dedicated benchmark host is out of scope by decision.
 >
 > **Since the specification audit** ([docs/audit](audit/spec-audit-2026-09-19.md)), which read
-> the specification against the code requirement by requirement, 27 of its 36 ranked gaps are
-> closed with tests and 3 are partly closed. The plan's milestones are not the whole
-> specification, and the audit is the list of what the specification asks for beyond them;
-> read it rather than this section for what is left.
+> the specification against the code requirement by requirement, all 36 of its ranked gaps are
+> closed, each with a test, but for one clause of gap 14: a bulk download is ranged, resumable
+> and verified, and still goes through the API tier rather than a presigned object-store URL.
+> The plan's milestones are not the whole specification, and the audit is the list of what the
+> specification asks for beyond them; read its preface rather than this section for what has
+> been done since it was written.
 
 **Deliverables**
 

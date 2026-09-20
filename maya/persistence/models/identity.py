@@ -156,8 +156,13 @@ class Namespace(Tracked, Base):
     api_key_max_days: Mapped[int | None] = mapped_column(Integer)
     # What counts as a material shift when a change is replayed here (§29.2). A desk whose
     # numbers are basis points and one whose numbers are prices cannot share one threshold;
-    # unset falls back to workspaces.shadow.materiality.
+    # unset falls back to workspaces.shadow.materiality, and a model that declares its own
+    # wins over both, because only the model knows its output's units.
     shadow_materiality: Mapped[float | None] = mapped_column(Float)
+    # What a replay of this namespace's warrants may cost in a rolling day, counted in row
+    # comparisons (§29.2's "gated by a per-namespace budget"). Unset falls back to
+    # workspaces.shadow.budget_rows; zero anywhere means no ceiling.
+    shadow_budget_rows: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class Grant(Tracked, Base):

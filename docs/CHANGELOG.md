@@ -190,6 +190,32 @@
   can change under you. `~/.maya/cache` by default, bounded, least-recently-used eviction,
   `MAYA_CACHE=0` to turn it off.
 
+**Shadow replay: a declared threshold, honest coverage, a budget, and the approver (§29.2)**
+
+- **The model declares what is material.** A model version carries its own
+  `shadow_materiality`, and the replay measures against that in preference to its namespace's
+  figure and to the configured default — a rate in basis points, a price and a probability are
+  material at three different numbers, and only the model knows which it produces. Every
+  report entry names the threshold *and* where it came from (`model`, `namespace`, `default`),
+  because a report that quietly used the wrong one reads as "nothing moved". A new draft
+  inherits the declaration; zero is refused.
+- **The sampling owns up to its coverage.** Each entry now states how many rows matched on
+  both sides as well as how many were replayed, and the share that covers; the report totals
+  the same across warrants; and the basis says plainly that the sample is the most recent rows
+  of each index, which is a recency bias and not a random draw.
+- **Replaying is gated by a per-namespace budget.** A namespace spends at most
+  `workspaces.shadow.budget_rows` row comparisons in a rolling day, or its own
+  `shadow_budget_rows`, charged against what the audit log says earlier replays spent — the one
+  ledger nothing can quietly adjust. The check is before the work and the charge after it, so
+  the first warrant of a day always runs however small the ceiling. A warrant whose namespace
+  has spent its budget is reported unreplayed with the figures, never counted as unmoved.
+- **The numbers reach the approver.** A version submitted from a workspace carries its shadow
+  replay onto the review screen: the summary, the per-model shift, the threshold used and the
+  rows it was measured on, beside the list of dependents. §29.2 asked the review screen to read
+  "this change moves 3 of 11 dependent models"; it does.
+- The governed-change tutorial said an execution warrant in the impact list comes back
+  `warrant not found`. It has been replayed for some time; the guide now says so.
+
 **Conditional reads and resumable downloads (§18.1, §18.2.3, §18.2.5)**
 
 - **A read MAYA has already answered costs a round trip and not a body.** Catalog listings,

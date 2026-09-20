@@ -283,8 +283,12 @@ workspaces:
   shadow:
     # rows replayed per dependent warrant (the most recent, by index); stated on the report
     sample_rows: 5000
-    # an absolute output shift above this counts as material
+    # an absolute output shift above this counts as material, unless the model declares its
+    # own figure or its namespace sets one
     materiality: 0.0001
+    # what a replay may cost a namespace in a rolling day, in row comparisons; a namespace
+    # may set its own (shadow_budget_rows), and 0 anywhere means no ceiling
+    budget_rows: 2000000
 
 # Dependency seams (spec §13.4). auto, or pin a backend to force it.
 seams:

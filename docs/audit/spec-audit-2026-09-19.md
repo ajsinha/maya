@@ -60,7 +60,8 @@
 > register and the six missing runbooks;
 > gap 34 — typed configuration (`tests/test_config_schema.py`).
 >
-> **Every ranked gap is now closed except the two noted below.** Beyond the above:
+> **Every ranked gap is now closed but for one clause of gap 14, named below.** Beyond the
+> above:
 > gap 14 — the SDK object model, typed record handles and the sealed-pin cache
 > (`tests/test_sdk_handles.py`);
 > gap 17 — §6.7 nested set members, fork and diff, and §6.2 per-member alignment
@@ -76,9 +77,30 @@
 > channels (`maya/plugins.py`, `maya/notifiers.py`, `tests/test_plugins.py`);
 > gap 36 — the capacity benchmark, run and recorded ([BENCHMARKS](../BENCHMARKS.md)).
 >
-> Partly closed, and the only work the audit still asks for: gap 24 (shadow replay has a
-> per-namespace materiality budget; the replay extras are not built) and the SDK's ETag
-> and resumable-download half of gap 14.
+> The last two, which were partly closed and are now finished:
+> the open half of gap 14 — conditional catalog and definition reads with an `ETag` and a
+> 304, `If-Match` on a draft write raising the `ConflictError` MAYA already uses, and ranged,
+> resumable pin downloads that end at the sealed pin's own checksum
+> (`tests/test_conditional_reads_and_resume.py`);
+> gap 24 — the materiality threshold a model version declares for its own output, in
+> preference to its namespace's and to the configured default and named on the report; a
+> sample that states the share of the matched rows it covered; a per-namespace replay budget
+> in row comparisons a day, charged from the audit log; and the numbers on the review screen,
+> which is where §29.2 asks the approver to read them
+> (`tests/test_shadow_replay_extras.py`).
+>
+> What remains of gap 14 is its presigned-URL clause alone (row 18.2-7): a download still
+> takes every byte through the API tier. That is §18.2.3's own stated fallback rather than
+> nothing — and it is now a ranged, resumable, checksum-verified fallback — but the shorter
+> path it describes needs an object store to presign from and the config flag that chooses
+> between them, which is a piece of work in the storage layer and not in the SDK.
+>
+> Two things found in the specification rather than the code while closing these, for the
+> owner to settle: §29.2 uses "budget" twice over, once for the materiality threshold and once
+> for the compute ceiling under **Cost** — both now exist, but the wording invites the reading
+> that they are one thing — and §18.2.5's caching row says definitions "are never cached",
+> which is no longer the whole truth now that a read is held against its `ETag` and re-served
+> only on a 304.
 >
 > Everything else below stands as written; line numbers are as of b30a428.
 

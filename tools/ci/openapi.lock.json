@@ -15608,6 +15608,16 @@
      },
      "type": "object"
     },
+    "shadow_materiality": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
     "spec_latex": {
      "anyOf": [
       {
