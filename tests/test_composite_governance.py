@@ -300,3 +300,175 @@ def test_the_combiners_own_features_are_part_of_the_contract(journey):  # noqa: 
     # a member output is produced, not supplied, so it is not an input
     assert "one.yhat" not in by_name
     assert comp.combiner_features(ir["composite"]["combine"]) == {"gate"}
+
+
+def test_the_combiners_own_parameters_are_declared_and_owed(journey):  # noqa: F811
+    """A composite can be more than a product of its members.
+
+    The weight in a blend, the threshold in a router, the horizon multiple in an impairment
+    model: those are numbers somebody has to decide, they belong to no member, and undeclared
+    they were checked by nothing — the bounds check had nothing to look for and the warrant
+    sealed with the most argued-over figures in the model unapproved. They are part of the
+    composite's contract now, and the seal waits for them.
+    """
+    w = journey
+    one = _member(w, "cp_one", "yhat = a*x", {"a": "parameter"})
+    two = _member(w, "cp_two", "yhat = b*x", {"b": "parameter"})
+    ir = {
+        "outputs": [{"name": "yhat", "type": "float64"}],
+        "inputs": [],
+        "composite": {
+            "kind": "ensemble",
+            "members": [{"alias": "one", "ref": one}, {"alias": "two", "ref": two}],
+            "combine": {
+                "op": "add",
+                "args": [
+                    {"op": "mul", "args": [{"param": "weight"}, {"ref": "one.yhat"}]},
+                    {"ref": "two.yhat"},
+                ],
+            },
+        },
+    }
+    w.p.models.create(w.mona, namespace="quant", name="cp_blend", kind="composite")
+    w.p.models.update_draft(w.mona, "quant/cp_blend", ir=ir, spec_latex=complete_spec("cp_blend"))
+    contract = w.p.models.get(w.mona, "quant/cp_blend")["versions"][0]["input_contract"]
+    by_name = {c["name"]: c for c in contract}
+    assert by_name["weight"]["role"] == "parameter" and by_name["weight"]["needed_by"] == [
+        "combine"
+    ]
+    assert by_name["x"]["role"] == "feature", "the members' inputs are still features"
+    assert comp.combiner_parameters(ir["composite"]["combine"]) == {"weight"}
+
+    w.p.models.transition(w.mona, "quant/cp_blend", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/cp_blend", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="cp_calib",
+        model="quant/cp_blend@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 3},
+    )
+    checksum = w.p.warrants.data(w.devi, tw["id"])["manifest"]["checksum"]
+    for alias, values in (("one", {"a": 2.0}), ("two", {"b": 0.5})):
+        ps = w.p.warrants.upload_parameters(
+            w.devi, tw["id"], values=values, data_checksum=checksum, member_alias=alias
+        )
+        w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
+        w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
+    w.p.warrants.transition(w.devi, tw["id"], "submit")
+    w.p.warrants.transition(w.mgr, tw["id"], "approve")
+    with pytest.raises(NotApproved, match="the combiner's own parameters"):
+        w.p.warrants.seal(w.mgr, tw["id"])
+    own = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"weight": 0.4}, data_checksum=checksum
+    )
+    assert own["member_alias"] is None, "the combiner's set belongs to no member"
+    w.p.warrants.parameter_transition(w.devi, own["id"], "submit")
+    w.p.warrants.parameter_transition(w.mgr, own["id"], "approve")
+    assert w.p.warrants.seal(w.mgr, tw["id"])["sealed_at"] is not None
+
+
+def test_deprecating_a_version_moves_its_maturity_down_the_ladder(journey):  # noqa: F811
+    """§8.6's maturity ladder ends in `deprecated` and `retired`, and nothing reached them.
+
+    `maturity` is only settable through `update_draft`, which requires an editable draft, so
+    an approved version could never be moved down the ladder at all: the `deprecate` and
+    `retire` transitions moved the workflow *state* and left the maturity at `candidate`. A
+    deprecated version went on advertising itself as a candidate, and — because §8.7's cap
+    reads a member's maturity rather than its state — a composite went on treating a
+    deprecated member as a usable one, which is the opposite of "deprecating a member warns
+    every composite that contains it"."""
+    w = journey
+    stale = _member(w, "cg_stale", "yhat = e*x", {"e": "parameter"})
+    fresh = _member(w, "cg_fresh", "yhat = f*x", {"f": "parameter"})
+    w.p.models.create(w.mona, namespace="quant", name="cg_over_stale", kind="composite")
+    w.p.models.update_draft(
+        w.mona,
+        "quant/cg_over_stale",
+        ir=_composite_ir({"stale": stale, "fresh": fresh}),
+        spec_latex=complete_spec("cg_over_stale"),
+    )
+
+    def maturity(name: str) -> str:
+        return str(w.p.models.get(w.mona, f"quant/{name}")["versions"][0]["maturity"])
+
+    assert maturity("cg_stale") == "candidate", "approval promotes experimental to candidate"
+    w.p.models.transition(
+        w.mgr, "quant/cg_stale", 1, "deprecate", successor="maya://model/quant/cg_stale@v2"
+    )
+    assert maturity("cg_stale") == "deprecated"
+    with w.p.uow("admin") as uow:
+        ir = w.p.models.get(w.mona, "quant/cg_over_stale")["versions"][0]["formula_ir"]
+        cap = comp.capped_maturity(w.p.models._member_maturities(uow, ir))
+    assert cap == "deprecated", "a composite cannot claim more maturity than a deprecated member"
+    with pytest.raises(ValidationFailed, match=r"capped at its lowest member's \('deprecated'\)"):
+        w.p.models.update_draft(w.mona, "quant/cg_over_stale", maturity="candidate")
+    w.p.models.transition(w.admin, "quant/cg_stale", 1, "retire")
+    assert maturity("cg_stale") == "retired"
+
+
+def test_a_version_still_serving_production_cannot_be_retired(journey):  # noqa: F811
+    """Retirement is an administrative end of life, not an outage (§8.6, §9.4).
+
+    Unguarded it was neither: a version could be retired while a sealed execution warrant went
+    on serving it, so production ran a retired model and nothing said so. Taking a model out of
+    service *now* is revocation, a different and deliberate act, and the order matters. A
+    training warrant does not block — it is a record, its seal exists to keep the fit
+    reproducible, and withdrawing that would destroy the thing the seal is for — so its owner is
+    warned instead.
+    """
+    w = journey
+    w.p.models.create(
+        w.mona,
+        namespace="quant",
+        name="rt_model",
+        formula="yhat = g*x",
+        roles={"g": "parameter"},
+    )
+    w.p.models.update_draft(w.mona, "quant/rt_model", spec_latex=complete_spec("rt_model"))
+    w.p.models.transition(w.mona, "quant/rt_model", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/rt_model", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="rt_fit",
+        model="quant/rt_model@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 2},
+    )
+    data = w.p.warrants.data(w.devi, tw["id"])
+    ps = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"g": 1.5}, data_checksum=data["manifest"]["checksum"]
+    )
+    w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
+    w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="rt_live",
+        training_warrant_id=tw["id"],
+        parameter_set_id=ps["id"],
+        spec={"environments": ["dev"], "contact": "risk@example.com"},
+    )
+    w.p.execution.transition(w.mgr, ew["id"], "submit")
+    w.p.execution.transition(w.principal("mgr2"), ew["id"], "approve")
+    w.p.execution.seal(w.mgr, ew["id"])
+    assert w.p.execution.bundle(w.devi, ew["id"], "dev")["status"] == "live"
+
+    w.p.models.transition(
+        w.mgr, "quant/rt_model", 1, "deprecate", successor="none: the book was sold"
+    )
+    with pytest.raises(NotApproved, match="quant/rt_live.*revoke the warrant first"):
+        w.p.models.transition(w.admin, "quant/rt_model", 1, "retire")
+
+    w.p.execution.revoke(w.admin, ew["id"], "the book was sold; the model is out of service")
+    assert w.p.models.transition(w.admin, "quant/rt_model", 1, "retire")["state"] == "retired"
+    # and the training warrant's owner was told, both times, without losing the warrant
+    told = [n for n in w.p.access.inbox(w.devi) if "rt_model@v1" in (n["object_ref"] or "")]
+    assert {n["kind"] for n in told} == {"deprecation", "retirement"}
+    assert w.p.warrants.get(w.devi, tw["id"])["sealed_at"] is None, "sealing was never claimed"
+    assert (
+        w.p.warrants.data(w.devi, tw["id"])["manifest"]["checksum"]
+        == (data["manifest"]["checksum"])
+    ), "a retired version's warrant is still reproducible"

@@ -60,7 +60,7 @@ model_version:
     withdraw: {from: [in_review], to: withdrawn, capability: U}
     publish: {from: [approved], to: published, capability: A}
     deprecate: {from: [approved, published], to: deprecated, capability: A}
-    retire: {from: [deprecated], to: retired, roles: [admin]}
+    retire: {from: [deprecated], to: retired, roles: [admin], checks: [no_live_execution_warrant]}
   sla_days: {in_review: 5}
   notify: {in_review: [model_manager], approved: [owner], changes_requested: [owner]}
 

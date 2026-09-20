@@ -86,7 +86,7 @@ nobody can find its password.
    second factor. From a script, `POST /api/v1/auth/login` needs nothing special:
 
    ```python
-   anon = maya.connect(base_url="https://maya.example.com")   # no API key: anonymous
+   anon = maya.connect(base_url="https://maya.example.com")  # no API key: anonymous
    out = anon.auth.login("breakglass-admin", "<the password>")  # out["break_glass"] is True
    ```
 
@@ -100,8 +100,8 @@ nobody can find its password.
 4. **When the IdP is back**, review and close:
 
    ```python
-   my.admin.audit(action="auth.break_glass_login")   # every use, with its ip
-   my.admin.audit(action="auth.login")               # every password sign-in in the window
+   my.admin.audit(action="auth.break_glass_login")  # every use, with its ip
+   my.admin.audit(action="auth.login")  # every password sign-in in the window
    my.admin.update_user("breakglass-admin", status="disabled")  # or rotate its password
    ```
 

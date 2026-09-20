@@ -78,94 +78,101 @@ same six calls would demonstrate nothing that one study could not.
 | 03 | [Mortgage prepayment](03-mortgage-prepayment/) | Banking, mortgage valuation | Fitted logistic hazard | What happens when somebody proposes changing a feature underneath a live model: a workspace, an impact analysis, and a shadow replay that prices a reasonable-sounding change at 60% of the book. |
 | 04 | [HELOC exposure at default](04-heloc-exposure/) | Banking, retail secured credit | **Composite router** over two fitted members | One warrant over two models with different functional forms, a parameter set per member, and a seal that refuses while half the composite is unfitted. |
 | 05 | [European option pricing](05-option-pricing/) | Finance, equity derivatives | Closed-form, **calibrated** | A parameter nobody can observe. Black–Scholes from LaTeX, a volatility surface as nine parameters, and a conformance test that passes on a narrow domain and fails on the whole chain. |
+| 06 | [IFRS 9 expected credit loss](06-ifrs9-expected-credit-loss/) | Banking, impairment | Composite with its own parameters | Judgements as approved parameter sets, and a portfolio test that finds a 2.67× over-provision the per-account error cannot see. |
+| 10 | [Factor models, CAPM to Fama–French](10-factor-models/) | Asset management | Simple then multiple regression | Two versions of one model: a semantic diff, a contract that grew, and the maturity ladder from candidate to retired. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
 
 ### The catalogue
 
-Fifty in total. The order is roughly the delivery order, and it is chosen so that each new
-study adds a capability rather than another instance of one.
+Fifty in all. Six are built; the rest are listed with their final numbers, so a folder name
+never has to be renumbered. The order within each group is roughly the delivery order, and
+every entry is there for a **distinct thing it makes MAYA do** — fifty models that all
+exercised the same six calls would demonstrate nothing one study could not.
 
 **Banking — retail and wholesale credit**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 05 | LGD and recovery, two-stage | A target conditional on another model's event: cure rate, then loss given no cure |
-| 06 | IFRS 9 / CECL expected credit loss | A **composite pipeline** over PD, LGD and EAD — reusing studies 01, 05 and 04 as members, under one warrant |
-| 07 | Basel IRB regulatory capital | Regulatory constants that are approved, never fitted; the Vasicek single-factor formula |
-| 08 | Credit card behavioural scoring and limits | A model whose own output changes the population it next sees |
-| 09 | Collections roll-rate | A Markov transition matrix as a parameter set: a matrix, not a vector |
-| 10 | SME / low-default-portfolio rating | A model with almost no events, and what a warrant can honestly claim about one |
-| 11 | Auto residual value | A depreciation curve, and a feature that is a published index |
-| 13 | AML transaction monitoring | A gradient-boosted ensemble, and weights carried as a parameter file |
-| 14 | AML segmentation | **No target at all** — a warrant for an unsupervised model |
-| 15 | Vendor bureau score | A bought black box, with what MAYA cannot verify *marked* unverifiable |
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 01 | Retail credit PD scorecard ✅ | Fitted logistic | Bitemporality; a leakage certificate that refuses every row; a fit tied to its data by checksum |
+| 02 | Scheduled mortgage cashflow ✅ | Closed-form, no fit | Whether the code the desk runs *is* the mathematics that was approved |
+| 03 | Mortgage prepayment ✅ | Fitted hazard | A workspace, an impact analysis and a shadow replay of a change proposed under a live model |
+| 04 | HELOC exposure at default ✅ | **Composite router** | Two members with different functional forms; a parameter set each; a seal that waits for both |
+| 06 | IFRS 9 expected credit loss ✅ | **Composite** with its own parameters | PD × LGD × EAD under one warrant, plus two judgements that belong to the combination rather than to any member |
+| 09 | Basel IRB regulatory capital | Closed-form, no fit | Regulatory constants that are approved and never fitted; the Vasicek single-factor formula |
+| 12 | LGD and recovery, two-stage | Fitted, conditional | A target conditional on another model's event: cure rate, then loss given no cure |
+| 13 | Credit card behavioural scoring | Fitted | A model whose own output changes the population it next sees |
+| 14 | Collections roll-rate | Estimated matrix | A Markov transition matrix as a parameter set: a matrix, not a vector |
+| 15 | Low-default portfolio rating | Fitted, almost no events | What a warrant can honestly claim when there are twelve defaults |
+| 16 | Auto residual value | Fitted curve | A depreciation curve, and a feature that is a published index |
+| 07 | Card-fraud neural network ✅ | **Declared black box** | What is left to hold to account when the mathematics is unreadable |
+| 17 | AML transaction monitoring | Tree ensemble | An opaque ensemble, and weights carried as a parameter file |
+| 18 | AML segmentation | Unsupervised | **No target at all** — a warrant for a model with nothing to predict |
+| 19 | Vendor bureau score | Bought black box | What MAYA cannot verify, *marked* unverifiable rather than omitted |
 
-**Banking — ALM and treasury**
+**Banking — asset-liability management and treasury**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 16 | Deposit beta | Market rate as a date-indexed feature driving a behavioural response |
-| 17 | Deposit decay and runoff | An **exponential** fitted in log space and stated in natural space |
-| 18 | LCR outflow rates | A model that is entirely regulatory constants, and the argument for governing it anyway |
-| 19 | Funds transfer pricing curve | A model whose consumers are other desks, and the licence question that raises |
-| 20 | Interest-rate risk in the banking book | Scenario-conditional output: the scenario as a pinned feature set |
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 20 | Deposit beta | Fitted regression | A market rate as a date-indexed feature driving a behavioural response |
+| 21 | Deposit decay and runoff | **Exponential** | Fitted in log space, stated and used in natural space |
+| 22 | LCR outflow rates | Regulatory constants | A model that is nothing but constants, and the argument for governing it anyway |
+| 23 | Funds transfer pricing curve | Constructed | A model whose consumers are other desks, and the licence question that raises |
+| 24 | Interest-rate risk in the banking book | Scenario-conditional | The scenario as a pinned feature set |
 
 **Markets — pricing**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 22 | Implied volatility surface | Calibration per bucket, and a misfit the model cannot hide |
-| 23 | Hull–White / Vasicek short rate | Calibration to a grid of instruments, not to outcomes |
-| 24 | Nelson–Siegel yield curve | **Non-linear in a parameter**: a grid search with least squares inside it |
-| 25 | Curve bootstrapping (Svensson) | The sharpest governance question in the set: is a yield curve a feature or a model? |
-| 26 | CDS hazard-rate bootstrapping | A term structure of hazards, each solved from the last |
-| 27 | Bond pricing, duration and convexity | Analytic derivatives of a governed formula |
-| 28 | American option, binomial lattice | **Recursion**: the boundary of MAYA's row-wise formula language |
-| 29 | Asian and barrier options, Monte Carlo | A model whose output is not deterministic, and what reproducibility means then |
-| 30 | Convertible bond | A composite over an equity model and a credit model |
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 05 | European option pricing ✅ | Closed-form, **calibrated** | A parameter nobody can observe; a conformance test that passes on a narrow domain |
+| 11 | Nelson–Siegel yield curve | **Non-linear** calibration | Non-linear in one parameter: a search with least squares inside it |
+| 25 | Implied volatility surface (SABR) | Calibrated | A misfit the model cannot hide |
+| 26 | Hull–White short rate | Calibrated | Calibration to a grid of instruments rather than to outcomes |
+| 27 | Curve bootstrapping (Svensson) | Constructed | The sharpest governance question in the set: is a yield curve a feature or a model? |
+| 28 | CDS hazard-rate bootstrapping | Constructed | A term structure of hazards, each solved from the last |
+| 29 | Bond duration and convexity | Closed-form | Analytic derivatives of a governed formula |
+| 30 | American option, binomial lattice | Recursive | **Recursion**: the boundary of MAYA's row-wise formula language |
+| 31 | Asian and barrier options | Monte Carlo | Output that is not deterministic, and what reproducibility means then |
+| 32 | Convertible bond | Composite | A composite over an equity model and a credit model |
 
 **Markets — risk**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 31 | Historical-simulation VaR | A covenant on **model performance** — the regulatory backtest exception count — rather than on inputs |
-| 32 | Expected shortfall / FRTB sensitivities | Many outputs from one governed calculation |
-| 33 | GARCH(1,1) volatility | State carried between rows, and a **joint** parameter constraint (α + β < 1) |
-| 34 | ARIMA forecasting | Lags as **governed feature definitions** rather than hidden in code |
-| 35 | EWMA covariance | A parameter that is a decay, and a matrix output |
-| 36 | Stress testing and scenario expansion | One model, many scenarios, one warrant each |
-| 37 | CVA / counterparty exposure | Monte Carlo behind a black box, plus market-data **licence algebra** |
-| 38 | Mean-variance portfolio optimisation | An output that is a **vector of weights**, not a scalar |
-| 39 | Black–Litterman | Prior and view as separately approved parameter sets |
-| 40 | CAPM beta → Fama–French factors | Simple then multiple linear regression as **two versions of one model**, with MAYA's semantic diff and the deprecation path |
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 08 | ARIMA and GARCH | Time series | Lags as **governed feature definitions**; state between rows; a **joint** parameter constraint |
+| 33 | Historical-simulation VaR | No fit | A covenant on **model performance** — the regulatory backtest exception count |
+| 34 | Expected shortfall / FRTB | Closed-form | Many outputs from one governed calculation |
+| 35 | EWMA covariance | Estimated matrix | A parameter that is a decay, and a matrix output |
+| 36 | Stress testing and scenarios | Scenario-conditional | One model, many scenarios, one warrant each |
+| 37 | CVA / counterparty exposure | Monte Carlo | A black box plus market-data **licence algebra** |
+| 38 | Mean-variance optimisation | Optimisation | An output that is a **vector of weights**, not a scalar |
+| 39 | Black–Litterman | Bayesian | Prior and views as separately approved parameter sets |
+| 10 | CAPM beta → Fama–French ✅ | Simple then multiple regression | **Two versions of one model**, MAYA's semantic diff, and the whole maturity ladder to retirement |
 
 **Economics**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 41 | Inflation nowcast | Mixed frequency, and **data vintages**: what was knowable at the time |
-| 42 | GDP nowcast, dynamic factor | A latent state nobody observes |
-| 43 | Demand elasticity | A **log–log** fit used in natural space |
-| 44 | Okun's law | The simplest possible regression, governed properly, as a floor case |
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 40 | Inflation nowcast | Mixed-frequency regression | **Data vintages**: what was knowable at the time |
+| 41 | GDP nowcast, dynamic factor | Latent state | A state nobody observes |
+| 42 | Demand elasticity | **Log–log** | A logarithmic fit used in natural space |
+| 43 | Okun's law | Simple linear regression | The simplest possible model, governed properly, as the floor case |
 
 **Life sciences**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 45 | Cox proportional hazards survival | Censoring: rows whose outcome has not happened *yet* |
-| 46 | Gompertz–Makeham mortality | An exponential law with a century of published parameters to argue with |
-| 47 | Gene-expression classifier | Many more features than rows, and what a contract means then |
-| 48 | Pharmacokinetics, two-compartment | An ODE solution as a sum of exponentials |
-| 49 | SIR epidemic model | Recursion again, and a model used to make decisions before it can be validated |
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 44 | Cox proportional hazards | Survival | Censoring: rows whose outcome has not happened *yet* |
+| 45 | Gompertz–Makeham mortality | **Exponential law** | A century of published parameters to argue with |
+| 46 | Gene-expression classifier | Regularised, wide | More features than rows, and what a contract means then |
+| 47 | Pharmacokinetics, two compartments | ODE solution | A sum of exponentials |
+| 48 | SIR epidemic | Recursive | A model used for decisions before it can be validated |
 
 **Operations**
 
-| | Study | What it adds |
-| --- | --- | --- |
-| 50 | LLM complaint triage | A prompt as a versioned parameter set, and a model MAYA never executes |
-| 51 | Spreadsheet-lifted provision overlay | Lifting a model out of Excel, and MAYA judging the lift against the workbook's own results |
-
-Fifty-one are listed; the last one to be built gets dropped if the count matters.
+| | Study | Model type | What it adds |
+| --- | --- | --- | --- |
+| 49 | LLM complaint triage | LLM | A prompt as a versioned parameter set, and a model MAYA never executes |
+| 50 | Spreadsheet-lifted provision overlay | Lifted from Excel | MAYA judging the lift against the workbook's own results |
 
 ## What a case study is not
 

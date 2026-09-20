@@ -278,6 +278,7 @@ def _checks(platform: Any) -> None:
         "spec_document_complete": models.check_spec,
         "code_artifact_validated": models.check_artifact,
         "code_matches_specification": models.check_conformance,
+        "no_live_execution_warrant": models.check_no_live_warrant,
         "spec_true_build": models.check_true_build,
         "composite_members_mature": models.check_members,
         "contract_valid": warrants.check_contract,

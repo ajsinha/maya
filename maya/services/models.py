@@ -702,15 +702,28 @@ class ModelService:
         uow.repo("models").update(model["id"], {"status": state})
         if state == "approved" and v["maturity"] == "experimental":
             uow.repo("model_versions").update(v["id"], {"maturity": "candidate"})
+        elif state in ("deprecated", "retired") and v["maturity"] != state:
+            # §8.6's ladder ends in these two rungs and nothing else could reach them:
+            # ``maturity`` is only settable through ``update_draft``, which needs an
+            # editable draft, so an approved version could never be moved down it. A
+            # deprecated version therefore went on advertising itself as a 'candidate',
+            # and — because §8.7's cap reads a member's *maturity* and not its state — a
+            # composite went on treating a deprecated member as a usable one.
+            uow.repo("model_versions").update(v["id"], {"maturity": state})
         me = refs.version_ref("model", ns["name"], model["name"], v["version_no"])
         if state == "approved" and v["formula_ir"] and "composite" in v["formula_ir"]:
             for m in v["formula_ir"]["composite"]["members"]:
                 uow.repo("lineage_edges").link(m["ref"], me, "composite_member", m["alias"])
-        if state == "deprecated":
-            self._warn_dependents(uow, v["id"], me)
+        if state in ("deprecated", "retired"):
+            self._warn_dependents(uow, v["id"], me, state)
 
-    def _warn_dependents(self, uow: Any, version_id: str, me: str) -> None:
-        """Deprecation warns every owner of a warrant that depends on the version (§8.6)."""
+    def _warn_dependents(self, uow: Any, version_id: str, me: str, state: str) -> None:
+        """Deprecation and retirement both warn every owner of a dependent warrant (§8.6).
+
+        Retirement used to warn nobody, which left the owner of a sealed training warrant to
+        discover by accident that the version it was drawn on had reached the end of its life.
+        The warrant stays valid and stays reproducible — that is what sealing is for — but its
+        owner should hear about it from MAYA rather than from somebody else's audit."""
         owners = {
             w["owner_id"]
             for tbl in ("training_warrants", "execution_warrants")
@@ -720,8 +733,11 @@ class ModelService:
             uow.repo("notifications").add(
                 {
                     "user_id": owner,
-                    "kind": "deprecation",
-                    "message": f"{me} was deprecated; a warrant you own depends on it",
+                    "kind": "deprecation" if state == "deprecated" else "retirement",
+                    "message": (
+                        f"{me} was {state}; a warrant you own depends on it. A sealed warrant "
+                        "stays valid and reproducible."
+                    ),
                     "object_ref": me,
                 }
             )
@@ -825,6 +841,31 @@ class ModelService:
         return True, (
             f"agreed with the specification on all {got['total']} sampled inputs, "
             f"{got.get('domain', 'domain not recorded')}"
+        )
+
+    def check_no_live_warrant(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
+        """A version still serving production cannot be retired (§8.6, §9.4).
+
+        Retirement is an administrative end of life, not an outage. Left unguarded it was
+        neither: a version could be retired while a sealed execution warrant went on serving
+        it, so production ran a retired model and nothing said so. Taking a model out of
+        service *now* is revocation, which is a different and deliberate act, and this check
+        makes the operator do the two in the right order.
+
+        A *training* warrant does not block. It is a record rather than a service, and its
+        seal exists to keep the fit reproducible — withdrawing that because the version was
+        retired would destroy the thing the seal is for. Its owner is warned instead."""
+        live = []
+        for ew in uow.repo("execution_warrants").list(model_version_id=ctx["row"]["id"]):
+            if self.p.execution.status(ew) in ("live", "suspended"):
+                ns = uow.repo("namespaces").get(ew["namespace_id"])
+                live.append(f"{(ns or {}).get('name', '?')}/{ew['name']}")
+        if not live:
+            return True, "no execution warrant is serving this version"
+        return False, (
+            "an execution warrant is still serving this version: "
+            + ", ".join(sorted(live))
+            + ". Retirement is not an outage — revoke the warrant first (§9.4)"
         )
 
     def check_true_build(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:

@@ -484,7 +484,9 @@ class WarrantService:
                     warrant_type="train", warrant_id=warrant_id, event="downloaded"
                 )
             }
-        problems = self.check_bounds(mv["formula_ir"] or {}, values, member_alias)
+        problems = self.check_bounds(
+            mv["formula_ir"] or {}, values, member_alias, self.declared_parameters(mv)
+        )
         if problems:
             raise ValidationFailed(
                 "Parameters out of bounds: " + "; ".join(problems), problems=problems
@@ -540,6 +542,19 @@ class WarrantService:
         table = pa.Table.from_pandas(test, preserve_index=False).replace_schema_metadata(None)
         return {"holdout_hash": table_checksum(table), "holdout_rows": table.num_rows}
 
+    @staticmethod
+    def declared_parameters(mv: dict[str, Any]) -> builtins.list[dict[str, Any]]:
+        """The parameters a version declares, wherever they are written down.
+
+        A formula's own are in its IR. A composite's are in its computed input contract: its
+        stored IR carries ``inputs: []`` because the list is derived from its members and its
+        combiner, so reading the IR alone finds nothing — which is how a composite came to seal
+        with the numbers its combiner needs unapproved."""
+        ir = mv.get("formula_ir") or {}
+        if "composite" in ir:
+            return [c for c in (mv.get("input_contract") or []) if c.get("role") == "parameter"]
+        return irmod.parameter_inputs(ir)
+
     def outstanding_parameters(
         self, uow: Any, warrant_id: str, mv: dict[str, Any]
     ) -> builtins.list[str]:
@@ -571,12 +586,25 @@ class WarrantService:
                 ):
                     continue
                 outstanding.append(alias)
+            # And the combiner's own. A composite can be more than a product of its members:
+            # the weight in a blend, the threshold in a router, the horizon multiple in an
+            # impairment model. Those are numbers somebody has to decide, they belong to no
+            # member, and a composite that sealed without them would license an allowance whose
+            # most argued-over figures nobody had approved.
+            own = {i["name"] for i in self.declared_parameters(mv)}
+            if own and not any(
+                ps["member_alias"] is None and own <= set(ps["values"]) for ps in sets
+            ):
+                outstanding.append("the combiner's own parameters")
             return outstanding
         return ["this model's parameters"] if irmod.parameter_inputs(ir) and not sets else []
 
     @staticmethod
     def check_bounds(
-        ir: dict[str, Any], values: dict[str, Any], alias: str | None = None
+        ir: dict[str, Any],
+        values: dict[str, Any],
+        alias: str | None = None,
+        declared: builtins.list[dict[str, Any]] | None = None,
     ) -> builtins.list[str]:
         """Every parameter the model version declares is present and within its bounds (§8.4).
 
@@ -587,7 +615,12 @@ class WarrantService:
         if not (ir.get("body") or "composite" in ir or irmod.is_opaque(ir)):
             return []
         problems = []
-        for inp in irmod.parameter_inputs(ir):
+        wanted = irmod.parameter_inputs(ir) if declared is None else declared
+        if alias is not None and "composite" in ir:
+            # A set uploaded under a member alias answers for that member, not for the
+            # combiner's own parameters, which belong to no alias.
+            wanted = []
+        for inp in wanted:
             key = f"{alias}.{inp['name']}" if alias else inp["name"]
             if key not in values and inp["name"] not in values:
                 problems.append(f"missing parameter '{key}'")
@@ -900,7 +933,9 @@ class WarrantService:
     def check_bounds_ok(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         ps = ctx["row"]
         mv = uow.repo("model_versions").require(ps["model_version_id"])
-        problems = self.check_bounds(mv["formula_ir"] or {}, ps["values"], ps["member_alias"])
+        problems = self.check_bounds(
+            mv["formula_ir"] or {}, ps["values"], ps["member_alias"], self.declared_parameters(mv)
+        )
         return (not problems, "; ".join(problems) or "all parameters within declared bounds")
 
     def check_data_verified(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
