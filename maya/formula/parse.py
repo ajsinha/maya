@@ -359,11 +359,18 @@ def parse_model(
     stmts = _split_statements(text)
     if not stmts:
         raise ValidationFailed("a model needs at least one 'output = expression' line")
+    # A name is read as one symbol only if it is known; anything else is a product of
+    # single letters, which is the right reading of LaTeX (`xy` is x times y). An
+    # intermediate line's own name has to join that set as soon as it is defined, or a
+    # model can define `annuity = ...` and then not refer to it: the next line silently
+    # reads a·n·n·u·i·t·y and asks for seven features nobody has.
+    known = set(roles)
     lets: dict[str, Any] = {}
     for name, expr in stmts[:-1]:
-        lets[name] = parse_formula(expr, inputs=roles.keys())
+        lets[name] = parse_formula(expr, inputs=known)
+        known.add(name)
     out_name, body_text = stmts[-1]
-    body = parse_formula(body_text, inputs=roles.keys())
+    body = parse_formula(body_text, inputs=known)
     free: set[str] = refs_of(body)
     for node in lets.values():
         free |= refs_of(node)

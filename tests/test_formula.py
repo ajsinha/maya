@@ -312,3 +312,34 @@ def test_constants_declare_a_value_that_evaluation_and_code_both_use() -> None:
     assert ModelService._default_params({"formula_ir": ir}) == {"sigma": 0.5, "r": 0.05}
     bad = dict(ir, inputs=[dict(i, value=1.0) if i["name"] == "S" else i for i in ir["inputs"]])
     assert any("only a constant carries a value" in e for e in validate_ir(bad))
+
+
+def test_an_intermediate_line_can_be_referred_to_by_its_own_name() -> None:
+    """A multi-letter name is one symbol only if it is known, which is the right reading of
+    LaTeX. An intermediate's own name has to become known the moment it is defined, or a
+    model can define ``annuity`` and then not use it: the next line reads a·n·n·u·i·t·y and
+    asks for seven features nobody has. The level-payment mortgage below is the case that
+    found this, and it is the shape every cashflow model has."""
+    tex = r"""
+    i = \frac{rate}{12}
+    n = term - age
+    annuity = \frac{1 - (1 + i)^{-n}}{i}
+    payment = \frac{balance}{annuity}
+    netCash = payment - balance \cdot \frac{fee}{12}
+    """
+    roles = {
+        "rate": "feature",
+        "term": "feature",
+        "age": "feature",
+        "balance": "feature",
+        "fee": "parameter",
+    }
+    ir = parse_model(tex, roles=roles)
+    assert [c["name"] for c in input_contract(ir)] == ["age", "balance", "rate", "term"]
+    point = {"rate": 0.055, "term": 360.0, "age": 24.0, "balance": 250_000.0}
+    got = float(np.asarray(evaluate(ir, point, {"fee": 0.0025})["netCash"]).ravel()[0])
+    # 336 payments left on 250,000 at 5.5%: 1,459.91 a month, less 52.08 of servicing
+    assert abs(got - 1407.83) < 0.01
+    np.testing.assert_allclose(
+        np.asarray(compile_reference(ir)(point, {"fee": 0.0025})["netCash"]).ravel()[0], got
+    )
