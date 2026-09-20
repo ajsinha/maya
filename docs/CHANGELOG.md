@@ -95,6 +95,23 @@
   `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
   `--data-checksum`, `--notes` and `--member-alias`.
 
+**The SDK's object shape and its cache (§18.2.4, §18.2.5)**
+
+- The SDK spoke only in dictionaries. It now also speaks the shape the specification
+  writes: `client.feature(ref).version(4).pin("q1", as_of=date)` returns a job handle,
+  `job.wait(progress=print)` reports as it goes, `pin.to_arrow()` / `.to_pandas()` /
+  `.to_polars()` / `.to_file()` give the rows, and `with warrant.data() as ds:` yields the
+  frame with `ds.X`, `ds.y` and the checksum a parameter upload must quote.
+- Every record **is** still a dict, so nothing that consumed the old return values changed;
+  attribute access is added on top, one level at a time, and an unknown field raises an
+  error naming the fields that are there.
+- **A local cache, for sealed pins only.** A pin is immutable and carries a content hash, so
+  a cached copy can be proved identical: the key is that hash and the shape asked for, every
+  hit is checked against the bytes' own digest, and a corrupted or edited file is a miss
+  rather than an answer. Definitions and live resolutions are never cached, because they
+  can change under you. `~/.maya/cache` by default, bounded, least-recently-used eviction,
+  `MAYA_CACHE=0` to turn it off.
+
 **Retention (§7.3), which was not built at all**
 
 - **Cold pins are named.** MAYA records when a pin was last read (the first read always,

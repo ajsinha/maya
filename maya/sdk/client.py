@@ -27,6 +27,7 @@ from typing import Any
 import httpx
 
 from maya.core.errors import MayaError, ValidationFailed
+from maya.sdk.cache import PinCache
 from maya.sdk.resources import (
     Access,
     Admin,
@@ -72,6 +73,7 @@ class _Namespaces:
         self.events = Events(transport)
         self.custody = Custody(transport)
         self.assistant = Assistant(transport)
+        self.cache = PinCache()
 
 
 class Client(_Namespaces):
@@ -162,6 +164,41 @@ class Client(_Namespaces):
             if time.monotonic() > deadline:
                 raise MayaError(f"Timed out waiting for job {job_id}", job=job_id)
             time.sleep(0.3)
+
+    # -- handles: §18.2.4's object shape over the same calls ----------------------
+    def feature(self, ref: str) -> Any:
+        """A feature as an object: ``feature(ref).version(4).pin("q1", as_of=...)``."""
+        from maya.sdk.handles import FeatureHandle
+
+        return FeatureHandle.of(
+            self, self.features.get(ref), ref=ref, kind="feature", resource="features"
+        )
+
+    def featureset(self, ref: str) -> Any:
+        """A feature set as an object, including a cascade pin over its members."""
+        from maya.sdk.handles import FeatureSetHandle
+
+        return FeatureSetHandle.of(
+            self, self.featuresets.get(ref), ref=ref, kind="featureset", resource="featuresets"
+        )
+
+    def model(self, ref: str) -> Any:
+        from maya.sdk.handles import ModelHandle
+
+        return ModelHandle.of(self, self.models.get(ref), ref=ref, kind="model", resource="models")
+
+    def warrant(self, warrant_id: str) -> Any:
+        """A training warrant as an object: ``with warrant(id).data() as ds: …``."""
+        from maya.sdk.handles import TrainingWarrantHandle
+
+        return TrainingWarrantHandle.of(self, self.training.get(warrant_id))
+
+    def job(self, job: dict[str, Any] | str) -> Any:
+        """A job as an object: ``job(row).wait(progress=print)``."""
+        from maya.sdk.handles import JobHandle
+
+        row = job if isinstance(job, dict) else self.jobs.get(job)
+        return JobHandle.of(self, row.get("job") or row)
 
     def training_data(self, warrant_id: str) -> tuple[Any, dict[str, Any]]:
         """Download, verify the checksum MAYA issued, and yield an Arrow table."""

@@ -96,6 +96,14 @@
      "sso_start": "(self)"
     }
    },
+   "cache": {
+    "class": "PinCache",
+    "methods": {
+     "clear": "(self)",
+     "pin_bytes": "(self, client, ref, pin, **kw)",
+     "stats": "(self)"
+    }
+   },
    "catalog": {
     "class": "Catalog",
     "methods": {
@@ -316,10 +324,15 @@
  "Client": {
   "methods": {
    "close": "(self)",
+   "feature": "(self, ref)",
+   "featureset": "(self, ref)",
+   "job": "(self, job)",
+   "model": "(self, ref)",
    "record": "(cassette, base_url='http://127.0.0.1:8600', **kw)",
    "replay": "(cassette)",
    "training_data": "(self, warrant_id)",
-   "wait": "(self, job, *, timeout=600.0, progress=None)"
+   "wait": "(self, job, *, timeout=600.0, progress=None)",
+   "warrant": "(self, warrant_id)"
   },
   "namespaces": {
    "access": {
@@ -410,6 +423,14 @@
      "sso_callback": "(self, code, code_verifier, nonce)",
      "sso_config": "(self)",
      "sso_start": "(self)"
+    }
+   },
+   "cache": {
+    "class": "PinCache",
+    "methods": {
+     "clear": "(self)",
+     "pin_bytes": "(self, client, ref, pin, **kw)",
+     "stats": "(self)"
     }
    },
    "catalog": {
