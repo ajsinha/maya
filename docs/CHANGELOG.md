@@ -95,6 +95,29 @@
   `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
   `--data-checksum`, `--notes` and `--member-alias`.
 
+**Extension points, and the notification channels §25 lists**
+
+- §25 promises that "every axis of variation is a registered plugin implementing a declared
+  protocol, discovered by entry point, configured by name". MAYA had the variation — seven
+  source drivers, eleven resolution rules, six export formats, three auth providers, five
+  calendars, its own search index — and no registry, so none of it was discoverable and a
+  third party could add nothing without editing MAYA. `maya/plugins.py` is that registry:
+  ten points, each with the protocol §25 declares and what MAYA actually ships at it,
+  discovered from `maya.<point>` entry points, listed on an admin **Extensions** page.
+  What it lists is what exists; nothing is listed to fill the table.
+- **An installed plugin is not a loaded plugin.** An entry-point plugin runs in MAYA's own
+  process with MAYA's privileges — it can read the database and the signing key — so §25's
+  "untrusted plugins run under the sandbox rules" cannot be true of it. MAYA loads a
+  third-party plugin only when `plugins.allow` names it, and a refusal is recorded with
+  that reason rather than swallowed, so an operator can see why their plugin is absent. A
+  plugin that fails to import is reported too, and does not stop MAYA.
+- **Email, Slack and Teams channels**, beside the in-app inbox and signed webhooks that
+  already existed. Each is off until configured — a platform that mails people by default
+  mails the wrong people the first time it starts — and a channel that cannot send says so
+  instead of dropping the notice; the inbox copy is always written first. The webhook URLs
+  are secrets, so they live in the environment or the local overlay, which the no-secrets
+  gate enforces.
+
 **The fragment collector (§29.3), and a lake that can let go**
 
 - `maya_delta` had no delete, so an unreferenced fragment could only be reclaimed by

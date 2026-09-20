@@ -52,6 +52,13 @@ def collect_fragments(dry_run: bool = True, me: Principal = Me, plat: Any = Plat
     return ok(plat.retention.collect(me, dry_run=dry_run))
 
 
+@router.get("/system/extensions", tags=["ops"])
+def extensions(me: Principal = Me, plat: Any = Plat) -> Response:
+    """§25's extension points, what is registered at each, and which notification channels
+    are configured."""
+    return ok(plat.ops.extensions(me))
+
+
 @router.get("/system/restore-drills", tags=["ops"])
 def restore_drills(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok({"status": plat.ops.restore_drill_status(me), "drills": plat.ops.restore_drills(me)})

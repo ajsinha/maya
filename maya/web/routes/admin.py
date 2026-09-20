@@ -488,6 +488,15 @@ async def storage(request: Request) -> Any:
     )
 
 
+@router.get("/admin/extensions")
+@page
+async def extensions(request: Request) -> Any:
+    """What MAYA can be extended at, what is registered, and what was refused (§25)."""
+    async with client(request) as sdk:
+        report = await sdk.admin.extensions()
+    return await render(request, "admin/extensions.html", {"r": report})
+
+
 @router.get("/admin/retention")
 @page
 async def retention(request: Request) -> Any:

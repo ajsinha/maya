@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Extensions{% endblock %}
+{% block content %}
+<h1>Extension points and plugins</h1>
+<p class="lead">Every axis of variation is a registered plugin behind a declared protocol (§25). What is listed here is what exists — built-ins included, so the table is the truth rather than an aspiration.</p>
+<p class="small-muted">{{ r.note }}</p>
+{% call(p) table("points", ["Point", "Protocol", "Registered"], r.points, empty="No extension points.") %}
+<td class="mono">{{ p.point }}</td><td>{{ p.protocol }}</td><td>{{ p.registered|join(', ') or '—' }}</td>
+{% endcall %}
+<h2 class="h4 mt-4">Notification channels</h2>
+{% call(c) table("channels", ["Channel", "Can send", "Detail"], r.channels, empty="No channels.") %}
+<td class="mono">{{ c.channel }}</td><td>{{ pill('ok' if c.configured else 'warn', 'configured' if c.configured else 'not configured') }}</td><td>{{ c.detail }}</td>
+{% endcall %}
+<h2 class="h4 mt-4">Every plugin</h2>
+{% call(p) table("plugins", ["Point", "Name", "Version", "Origin", "Status", "Detail"], r.plugins, empty="Nothing registered.") %}
+<td class="mono">{{ p.point }}</td><td>{{ p.name }}</td><td>{{ p.version }}</td><td>{{ p.origin }}</td>
+<td>{{ pill('ok' if p.status == 'active' else 'bad', p.status) }}</td><td class="small">{{ p.detail }}</td>
+{% endcall %}
+{% endblock %}

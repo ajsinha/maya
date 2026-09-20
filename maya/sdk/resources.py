@@ -410,6 +410,11 @@ class Admin(_Resource):
             "POST", "/system/fragments/collect", params={"dry_run": str(bool(dry_run)).lower()}
         )
 
+    @endpoint("GET", "/system/extensions")
+    def extensions(self) -> Any:
+        """Extension points, their plugins, and the notification channels (§25)."""
+        return self._c("GET", "/system/extensions")
+
     @endpoint("GET", "/system/restore-drills")
     def restore_drills(self) -> Any:
         """The restore-drill register, and whether one is overdue (§20)."""
