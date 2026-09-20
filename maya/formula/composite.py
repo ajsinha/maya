@@ -108,7 +108,33 @@ def union_contract(
                 "role": "feature",
                 "needed_by": ["combine"],
             }
+    for name in sorted(combiner_parameters(combine)):
+        merged.setdefault(
+            name,
+            {
+                "name": name,
+                "type": "float64",
+                "unit": None,
+                "role": "parameter",
+                "needed_by": ["combine"],
+            },
+        )
     return [merged[k] for k in sorted(merged)]
+
+
+def combiner_parameters(combine: Any) -> set[str]:
+    """Parameters the combine expression carries of its own.
+
+    A composite can be more than a product of its members. The weight in a blend, the
+    threshold in a router, the horizon multiple in an impairment model: those are numbers
+    somebody has to decide, they are not any member's parameters, and undeclared they were
+    checked by nothing — the bounds check had nothing to look for and the execution warrant
+    did not know a parameter set was owed. They belong in the contract."""
+    if not combine:
+        return set()
+    from maya.formula.ir import params_of
+
+    return set(params_of(combine))
 
 
 def combiner_features(combine: Any) -> set[str]:

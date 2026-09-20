@@ -78,6 +78,7 @@ same six calls would demonstrate nothing that one study could not.
 | 03 | [Mortgage prepayment](03-mortgage-prepayment/) | Banking, mortgage valuation | Fitted logistic hazard | What happens when somebody proposes changing a feature underneath a live model: a workspace, an impact analysis, and a shadow replay that prices a reasonable-sounding change at 60% of the book. |
 | 04 | [HELOC exposure at default](04-heloc-exposure/) | Banking, retail secured credit | **Composite router** over two fitted members | One warrant over two models with different functional forms, a parameter set per member, and a seal that refuses while half the composite is unfitted. |
 | 05 | [European option pricing](05-option-pricing/) | Finance, equity derivatives | Closed-form, **calibrated** | A parameter nobody can observe. Black–Scholes from LaTeX, a volatility surface as nine parameters, and a conformance test that passes on a narrow domain and fails on the whole chain. |
+| 06 | [IFRS 9 expected credit loss](06-ifrs9-expected-credit-loss/) | Banking, impairment | Composite with its own parameters | Judgements as approved parameter sets, and a portfolio test that finds a 2.67× over-provision the per-account error cannot see. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
 
 ### The catalogue
@@ -95,7 +96,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | 02 | Scheduled mortgage cashflow ✅ | Closed-form, no fit | Whether the code the desk runs *is* the mathematics that was approved |
 | 03 | Mortgage prepayment ✅ | Fitted hazard | A workspace, an impact analysis and a shadow replay of a change proposed under a live model |
 | 04 | HELOC exposure at default ✅ | **Composite router** | Two members with different functional forms; a parameter set each; a seal that waits for both |
-| 06 | IFRS 9 expected credit loss | **Composite pipeline** | PD × LGD × EAD as one model under one warrant, reusing 01, 12 and 04 as members |
+| 06 | IFRS 9 expected credit loss ✅ | **Composite** with its own parameters | PD × LGD × EAD under one warrant, plus two judgements that belong to the combination rather than to any member |
 | 09 | Basel IRB regulatory capital | Closed-form, no fit | Regulatory constants that are approved and never fitted; the Vasicek single-factor formula |
 | 12 | LGD and recovery, two-stage | Fitted, conditional | A target conditional on another model's event: cure rate, then loss given no cure |
 | 13 | Credit card behavioural scoring | Fitted | A model whose own output changes the population it next sees |

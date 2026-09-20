@@ -300,3 +300,70 @@ def test_the_combiners_own_features_are_part_of_the_contract(journey):  # noqa: 
     # a member output is produced, not supplied, so it is not an input
     assert "one.yhat" not in by_name
     assert comp.combiner_features(ir["composite"]["combine"]) == {"gate"}
+
+
+def test_the_combiners_own_parameters_are_declared_and_owed(journey):  # noqa: F811
+    """A composite can be more than a product of its members.
+
+    The weight in a blend, the threshold in a router, the horizon multiple in an impairment
+    model: those are numbers somebody has to decide, they belong to no member, and undeclared
+    they were checked by nothing — the bounds check had nothing to look for and the warrant
+    sealed with the most argued-over figures in the model unapproved. They are part of the
+    composite's contract now, and the seal waits for them.
+    """
+    w = journey
+    one = _member(w, "cp_one", "yhat = a*x", {"a": "parameter"})
+    two = _member(w, "cp_two", "yhat = b*x", {"b": "parameter"})
+    ir = {
+        "outputs": [{"name": "yhat", "type": "float64"}],
+        "inputs": [],
+        "composite": {
+            "kind": "ensemble",
+            "members": [{"alias": "one", "ref": one}, {"alias": "two", "ref": two}],
+            "combine": {
+                "op": "add",
+                "args": [
+                    {"op": "mul", "args": [{"param": "weight"}, {"ref": "one.yhat"}]},
+                    {"ref": "two.yhat"},
+                ],
+            },
+        },
+    }
+    w.p.models.create(w.mona, namespace="quant", name="cp_blend", kind="composite")
+    w.p.models.update_draft(w.mona, "quant/cp_blend", ir=ir, spec_latex=complete_spec("cp_blend"))
+    contract = w.p.models.get(w.mona, "quant/cp_blend")["versions"][0]["input_contract"]
+    by_name = {c["name"]: c for c in contract}
+    assert by_name["weight"]["role"] == "parameter" and by_name["weight"]["needed_by"] == [
+        "combine"
+    ]
+    assert by_name["x"]["role"] == "feature", "the members' inputs are still features"
+    assert comp.combiner_parameters(ir["composite"]["combine"]) == {"weight"}
+
+    w.p.models.transition(w.mona, "quant/cp_blend", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/cp_blend", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="cp_calib",
+        model="quant/cp_blend@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 3},
+    )
+    checksum = w.p.warrants.data(w.devi, tw["id"])["manifest"]["checksum"]
+    for alias, values in (("one", {"a": 2.0}), ("two", {"b": 0.5})):
+        ps = w.p.warrants.upload_parameters(
+            w.devi, tw["id"], values=values, data_checksum=checksum, member_alias=alias
+        )
+        w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
+        w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
+    w.p.warrants.transition(w.devi, tw["id"], "submit")
+    w.p.warrants.transition(w.mgr, tw["id"], "approve")
+    with pytest.raises(NotApproved, match="the combiner's own parameters"):
+        w.p.warrants.seal(w.mgr, tw["id"])
+    own = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"weight": 0.4}, data_checksum=checksum
+    )
+    assert own["member_alias"] is None, "the combiner's set belongs to no member"
+    w.p.warrants.parameter_transition(w.devi, own["id"], "submit")
+    w.p.warrants.parameter_transition(w.mgr, own["id"], "approve")
+    assert w.p.warrants.seal(w.mgr, tw["id"])["sealed_at"] is not None
