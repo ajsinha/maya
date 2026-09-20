@@ -1,37 +1,48 @@
 # Deck generator
 
-Regenerates MAYA's presentation decks from source, so each deck is reproducible
-rather than a binary nobody can edit safely.
+Regenerates MAYA's deck from source, so it is reproducible rather than a binary
+nobody can edit safely.
 
 ```bash
-.venv/bin/python tools/deck/build.py                     # all four decks, into docs/
-.venv/bin/python tools/deck/build.py design              # one: executive, design, capabilities or concepts
-.venv/bin/python tools/deck/audit.py docs/MAYA-System-Design.pptx   # must report no geometry issues
+.venv/bin/python tools/deck/build.py                     # the deck, into docs/
+.venv/bin/python tools/deck/audit.py docs/MAYA-Model-Management-Formalism-and-System-Design.pptx
 .venv/bin/python -m pytest -q tests/test_deck_geometry.py            # the audit, as a test
 ```
 
-## Four decks, four audiences
+## One deck
 
-| Deck | Slides | For | Source |
-|---|---|---|---|
-| `docs/MAYA-Executive-Briefing.pptx` | 18 | Whoever decides whether to adopt MAYA: what it is, what it delivers, what has been measured, and what it does not do | `exec_deck.py` |
-| `docs/MAYA-System-Design.pptx` | 41 | Whoever builds or operates it: every subsystem, with the module and the test behind each claim | `design_deck.py`, `design_deck_2.py` |
-| `docs/MAYA-Capabilities.pptx` | 37 | Whoever wants to know what the product actually does: the platform through its own screens and objects, then one model — the IFRS 9 study — carried end to end, refusals included | `capabilities_deck.py`, `capabilities_deck_2.py` |
-| `docs/MAYA-Concepts-and-Formalism.pptx` | 31 | Whoever wants to know why MAYA is shaped as it is: the definition, the order, the operator and the polynomial, and the two results that bound them | `concepts_deck.py`, `concepts_deck_2.py` |
+| Deck | Slides | Source |
+|---|---|---|
+| `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 88 | `maya_deck.py`, `maya_deck_1b.py`, `maya_deck_2.py`, `maya_deck_3.py` |
 
-**The fourth deck is not a summary of the paper.** *Concepts and Formalism*
-presents the mathematics in its own right — a model as a kernel with a parameter
-object, one order read as *A can stand in for B*, the point-in-time read as an
-operator, provenance as a polynomial, and the two negative results that bound
-them — each glossed in plain terms and carried by a worked example from a bank.
-An earlier deck of that name walked the research paper construction by
-construction and marked each with what the code implements. A deck whose subject
-is a paper, or a register of what is and is not built, is a deck about the
-project rather than about the ideas, so that one was removed. This one therefore
-carries no implementation-status table and no slide whose subject is the paper,
-and cites it once, on the closing slide, as where to read the proofs. Each
-slide's note names the section its mathematics comes from, which is the
-counterpart of the other decks naming a module.
+**Why one, where there were four.** The build previously carried an executive
+briefing, a system design, a capabilities deck and a formalism deck. Four decks
+is four places to keep one story current, and the story is one: what a model is,
+what follows from that, and what MAYA does about it. The same argument retired
+seven decks into three a version earlier; it applies again at four.
+
+**What it does, in order.** It builds the vocabulary from nothing — a model as a
+compute kernel with dials, parameters and the several ways they are set, a
+feature and its two clocks, a feature set, what training means, what a pin
+freezes, what a warrant licenses — and uses no word before it has defined it.
+Then the formalism, with an engineer's lens: the four facts a register normally
+asks somebody to type, and what each one derives from, motivated by the failure
+it prevents rather than stated as theorem and proof. Then the objects MAYA keeps
+and how it runs. Then four models carried the whole way, chosen to be different
+in kind: a retail scorecard as the plainest complete pass, a neural network
+nobody can see inside, a yield curve written in LaTeX whose loading bug only a
+second reading finds, and an impairment composite whose two hardest numbers are
+judgements. It closes on what is measured and what MAYA does not do.
+
+**What it deliberately is not.** It carries no implementation-status register and
+no slide whose subject is the research paper. A deck that spends its slides
+comparing a paper with an implementation is a deck about the project rather than
+about the product. Where the mathematics needs to be seen working, a worked model
+does it. The paper is cited once, as where to read the proofs.
+
+Every figure on the case-study slides was reproduced by running the study against
+a MAYA built from nothing; where a study's README and its live run disagreed, the
+run won and the discrepancy is not quoted.
 
 ## How it is put together
 
@@ -40,8 +51,8 @@ counterpart of the other decks naming a module.
 | `metrics.py` | The text estimator: greedy word-wrap simulation and paragraph heights. Shared by the builder and the audit, so the builder never believes a box fits that the audit then reports |
 | `theme.py` | The Harvard Crimson design system (#A51C30, spec §16.6): palette, typography, chrome, tables, cards, stat bars, and `fitted()`, which shrinks a text block until it fits or raises `DoesNotFit` |
 | `layouts.py` | Slide kinds drawn from plain dictionaries: `title`, `divider`, `bullets`, `table`, `cards`, `stats`, `split`, `flow` |
-| `exec_deck.py`, `design_deck.py`(`_2`), `capabilities_deck.py`(`_2`), `concepts_deck.py`(`_2`) | The decks, as data. A deck is split across two modules only to keep each file small enough to read |
-| `build.py` | Builds the decks and sets the document properties (author, title, subject) explicitly |
+| `maya_deck.py`, `maya_deck_1b.py`, `maya_deck_2.py`, `maya_deck_3.py` | The deck, as data. It is split across four modules only to keep each file under the repository's file-size gate; they are one deck and are meant to be read in order |
+| `build.py` | Builds the deck and sets the document properties (author, title, subject) explicitly |
 | `audit.py` | The geometry audit (below) |
 
 A slide that cannot be made to fit **fails the build** naming the slide; the fix is
@@ -56,8 +67,8 @@ shape off the slide; a table taller than its frame (PowerPoint treats a row heig
 a minimum); an opaque shape drawn over earlier content; anything printed over a
 table; text escaping a filled or outlined container, or the card its textbox sits
 in; content crossing the footer rule; and a free textbox whose overflow lands on
-another shape. `tests/test_deck_geometry.py` runs it on every deck and asserts the
-slide counts above.
+another shape. `tests/test_deck_geometry.py` runs it on the deck and asserts the
+slide count above.
 
 `python-pptx` does not measure text, and PowerPoint does not clip overflow. The
 estimator is deliberately pessimistic (a 6% width margin), so rendered text sits
