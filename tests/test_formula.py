@@ -362,3 +362,53 @@ def test_a_subscripted_greek_command_is_one_symbol() -> None:
     # and the plain spelling still means the same symbol
     plain = parse_model("y = sigma_{atm} * x", roles={"sigma_{atm}": "parameter", "x": "feature"})
     assert [i["name"] for i in plain["inputs"]] == ["sigmaatm", "x"]
+
+
+def test_a_model_can_declare_a_constraint_bounds_cannot_express() -> None:
+    """Bounds are per parameter and some conditions are not (§8.4).
+
+    A GARCH model is stationary only if ``alpha + beta < 1``: each may sit anywhere in [0, 1]
+    and the pair still forecast a variance with no finite long-run mean. A per-parameter check
+    cannot see that, so a set which is individually plausible and jointly impossible was
+    approved. The constraint is a property of the model, so it is declared in the model.
+    """
+    from maya.formula.ir import constraint_errors
+    from maya.services.warrants import WarrantService
+
+    sum_ab = {"op": "add", "args": [{"param": "alpha"}, {"param": "beta"}]}
+    why = "alpha + beta < 1 is stationarity; at or above one the variance diverges"
+    ir = parse_model(
+        "v = omega + alpha*shockSq + beta*prevVar",
+        roles={
+            "omega": "parameter",
+            "alpha": "parameter",
+            "beta": "parameter",
+            "shockSq": "feature",
+            "prevVar": "feature",
+        },
+    )
+    ir["constraints"] = [{"expr": sum_ab, "op": "lt", "rhs": 1.0, "why": why}]
+    for item in ir["inputs"]:
+        if item["name"] in ("alpha", "beta"):
+            item["bounds"] = [0.0, 1.0]
+    assert validate_ir(ir) == []
+
+    inside = {"omega": 3e-6, "alpha": 0.09, "beta": 0.88}
+    assert WarrantService.check_bounds(ir, inside) == []
+    jointly_impossible = {"omega": 3e-6, "alpha": 0.15, "beta": 0.90}
+    problems = WarrantService.check_bounds(ir, jointly_impossible)
+    assert len(problems) == 1, "each is inside its own bounds; only the pair is wrong"
+    assert "gives 1.05" in problems[0] and why in problems[0]
+    # a missing parameter is the bounds check's business, not the constraint's
+    assert WarrantService.check_bounds(ir, {"omega": 3e-6, "alpha": 0.15}) == [
+        "missing parameter 'beta'"
+    ]
+    # and the declaration itself is checked
+    declared = {"alpha", "beta"}
+    assert constraint_errors([{"expr": sum_ab, "op": "nope", "rhs": "x", "why": ""}], declared) == [
+        "constraints[0]: op must be one of ge, gt, le, lt",
+        "constraints[0]: rhs must be a number",
+        "constraints[0]: why must say what the constraint means",
+    ]
+    reads_data = [{"expr": {"ref": "shockSq"}, "op": "lt", "rhs": 1.0, "why": why}]
+    assert "must hold before any data is seen" in constraint_errors(reads_data, declared)[0]

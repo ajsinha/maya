@@ -165,6 +165,13 @@ def validate_ir(ir: dict[str, Any]) -> list[str]:
     if not isinstance(ir, dict):
         return ["IR must be an object"]
     errors = _io_errors(ir)
+    # Constraints are checked whatever the model's shape: a declared black box and a composite
+    # both declare parameters, and a joint condition over them is as much a property of those
+    # as of a formula. A GARCH model is the case that matters — it is a black box, because its
+    # variance is a state carried between rows, and stationarity is the one thing about it a
+    # reviewer can still check arithmetically.
+    declared = {i["name"] for i in ir.get("inputs", []) if i.get("role") == "parameter"}
+    errors.extend(constraint_errors(ir.get("constraints"), declared))
     if "black_box" in ir:
         return errors + _black_box_errors(ir)
     if "composite" in ir:
@@ -192,6 +199,58 @@ def validate_ir(ir: dict[str, Any]) -> list[str]:
         for p in sorted(params_of(node) - declared_params):
             errors.append(f"param '{p}' is used but not declared as a parameter input")
     return sorted(set(errors), key=errors.index)
+
+
+CONSTRAINT_OPS = {"lt": "<", "le": "≤", "gt": ">", "ge": "≥"}
+
+
+def constraint_errors(constraints: Any, declared: set[str]) -> list[str]:
+    """Structural errors in a model's joint parameter constraints.
+
+    Bounds are per parameter and some conditions are not. A GARCH model's stationarity is
+    ``alpha + beta < 1``: each may sit anywhere in [0, 1] and the pair still forecast an
+    infinite variance. A Nelson-Siegel curve's short rate is ``beta0 + beta1``, which has to
+    be non-negative however plausible either looks alone. Those are properties of the model
+    and belong in the model, so they are declared here and checked when a parameter set is
+    uploaded (§8.4).
+    """
+    if constraints is None:
+        return []
+    if not isinstance(constraints, list):
+        return ["constraints must be a list"]
+    errors: list[str] = []
+    for i, c in enumerate(constraints):
+        where = f"constraints[{i}]"
+        if not isinstance(c, dict):
+            errors.append(f"{where} must be an object")
+            continue
+        if c.get("op") not in CONSTRAINT_OPS:
+            errors.append(f"{where}: op must be one of {', '.join(sorted(CONSTRAINT_OPS))}")
+        if not isinstance(c.get("rhs"), (int, float)) or isinstance(c.get("rhs"), bool):
+            errors.append(f"{where}: rhs must be a number")
+        if not str(c.get("why") or "").strip():
+            # A constraint whose reason is missing is a rule nobody can argue with, and the
+            # message a modeller sees when it fires is the only place the reason can live.
+            errors.append(f"{where}: why must say what the constraint means")
+        expr = c.get("expr")
+        node_errors = _node_errors(expr, f"{where}.expr")
+        errors.extend(node_errors)
+        if node_errors:
+            continue
+        if refs_of(expr):
+            errors.append(
+                f"{where}.expr reads {', '.join(sorted(refs_of(expr)))}: a constraint is over "
+                "parameters alone, because it must hold before any data is seen"
+            )
+        for p in sorted(params_of(expr) - declared):
+            errors.append(f"{where}.expr: param '{p}' is not a declared parameter input")
+        if not params_of(expr):
+            errors.append(f"{where}.expr mentions no parameter, so it constrains nothing")
+    return errors
+
+
+def constraints_of(ir: dict[str, Any]) -> list[dict[str, Any]]:
+    return list(ir.get("constraints") or [])
 
 
 def canonical_json(obj: Any) -> str:
