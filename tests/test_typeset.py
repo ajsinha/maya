@@ -1,8 +1,22 @@
-"""The typesetting seam: the draft renderer is labelled, watermarked on every page, and says so."""
+"""The typesetting seam: the draft renderer is labelled, watermarked on every page, and
+says so; and a true build runs under the §17.1 caps, with no network and no inherited
+environment, recording what it was allowed to do."""
 
 from __future__ import annotations
 
-from maya.core.typeset import WATERMARK, detect, parse_blocks, pdf_text, render_pdf
+import subprocess
+
+import pytest
+
+from maya.core.typeset import (
+    WATERMARK,
+    Caps,
+    build_env,
+    detect,
+    parse_blocks,
+    pdf_text,
+    render_pdf,
+)
 from maya.formula.parse import parse_model
 from maya.formula.specdoc import default_document, expand_macros
 
@@ -95,3 +109,126 @@ def test_a_fragment_is_wrapped_in_the_standard_preamble() -> None:
     assert meta["draft_render"] is False and pdf.startswith(b"%PDF-")
     whole = "\\documentclass{article}\\begin{document}x\\end{document}"
     assert as_document(whole) == whole
+
+
+# -- §17.1: capped, no network, and honest about both ----------------------------------
+def test_the_build_environment_carries_nothing_of_mayas_own(monkeypatch) -> None:
+    """A TeX build has no business with MAYA's credentials, and a proxy variable is the one
+    way a cached-only build could still open a socket."""
+    for name, value in {
+        "HTTPS_PROXY": "http://proxy.internal:3128",
+        "http_proxy": "http://proxy.internal:3128",
+        "AWS_SECRET_ACCESS_KEY": "not-for-tex",
+        "MAYA_ADMIN_PASSWORD": "not-for-tex",
+        "TECTONIC_CACHE_DIR": "/var/cache/tectonic",
+    }.items():
+        monkeypatch.setenv(name, value)
+    env = build_env()
+    assert "PATH" in env, "the engine still has to be findable"
+    assert env["TECTONIC_CACHE_DIR"] == "/var/cache/tectonic", "a warmed bundle stays reachable"
+    for leaked in ("HTTPS_PROXY", "http_proxy", "AWS_SECRET_ACCESS_KEY", "MAYA_ADMIN_PASSWORD"):
+        assert leaked not in env, leaked
+
+
+def test_a_build_is_asked_for_only_cached_and_untrusted_under_its_jail(monkeypatch) -> None:
+    """The two flags that keep a build offline and unable to shell out, and the jail the
+    caller hands in — asserted on the argv, because that is where they are or are not."""
+    seen: dict[str, object] = {}
+
+    def fake_run(argv, **kw):
+        seen["argv"] = list(argv)
+        seen["env"] = kw["env"]
+        seen["timeout"] = kw["timeout"]
+        raise RuntimeError("stop here: the argv is what this test is about")
+
+    monkeypatch.setattr("maya.core.typeset.detect", lambda: {"backend": "tectonic", "detail": ""})
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError):
+        render_pdf("\\section{A}\nx", caps=Caps(seconds=7), jail=("/usr/bin/bwrap", "--"))
+    argv = seen["argv"]
+    assert argv[:2] == ["/usr/bin/bwrap", "--"], "the jail wraps the engine"
+    assert "--only-cached" in argv and "--untrusted" in argv
+    assert seen["timeout"] == 7
+    assert "PATH" in seen["env"] and "HTTPS_PROXY" not in seen["env"]
+
+
+def test_a_host_whose_bundle_is_cold_degrades_to_the_draft_renderer(monkeypatch) -> None:
+    """§17.1's own degradation rule. A build may not fetch its bundle, so a host nobody has
+    warmed produces a watermarked draft — refused wherever a PDF is evidence — rather than
+    an error that reads like a broken document."""
+
+    def cold(argv, **kw):
+        return subprocess.CompletedProcess(
+            argv,
+            1,
+            stdout="note: using only cached resource files\n",
+            stderr='error: "latex2e-first" is not cached and only-cached mode is enabled\n',
+        )
+
+    monkeypatch.setattr("maya.core.typeset.detect", lambda: {"backend": "tectonic", "detail": ""})
+    monkeypatch.setattr(subprocess, "run", cold)
+    pdf, meta = render_pdf(_long_doc())
+    assert meta["draft_render"] is True and meta["backend"] == "draft"
+    assert "bundle fetch" in meta["log"], "the operator is told how to warm it"
+    assert WATERMARK in pdf_text(pdf)
+
+
+def test_a_broken_document_is_still_refused_not_quietly_drafted(monkeypatch) -> None:
+    """The other side of the same fork: a document MAYA cannot compile is the author's
+    problem and must be named, not turned into a draft that looks like an outage."""
+    from maya.core.errors import ValidationFailed
+
+    def broken(argv, **kw):
+        return subprocess.CompletedProcess(
+            argv, 1, stdout="", stderr="error: Undefined control sequence \\nope\n"
+        )
+
+    monkeypatch.setattr("maya.core.typeset.detect", lambda: {"backend": "tectonic", "detail": ""})
+    monkeypatch.setattr(subprocess, "run", broken)
+    with pytest.raises(ValidationFailed, match="LaTeX build failed"):
+        render_pdf("\\section{A}\n\\nope")
+
+
+@needs_tectonic
+def test_a_true_build_records_the_caps_it_ran_under() -> None:
+    """A model version says what its build was allowed to do, not what today's
+    configuration says. On POSIX that includes the rlimits that were really set; on
+    Windows the list is empty, which is the honest answer rather than an implied cap."""
+    _, meta = render_pdf("\\section{A}\nThe model prices $x^2$.", caps=Caps(memory_mb=1536))
+    caps = meta["caps"]
+    assert caps["memory_mb"] == 1536 and caps["seconds"] == 120 and caps["output_mb"] == 64
+    assert {"RLIMIT_AS", "RLIMIT_CPU", "RLIMIT_FSIZE"} <= set(caps["rlimits"])
+    assert caps["network"] in ("namespace (no interfaces)", "--only-cached, fixed env")
+
+
+@needs_tectonic
+def test_a_runaway_build_is_stopped_by_its_time_cap() -> None:
+    """The cap is a cap, not a suggestion: an endless macro ends, and the refusal names the
+    limit rather than reporting a mysterious failure."""
+    from maya.core.errors import ValidationFailed
+
+    endless = "\\documentclass{article}\\begin{document}\\def\\spin{\\spin}\\spin\\end{document}"
+    with pytest.raises(ValidationFailed) as info:
+        render_pdf(endless, caps=Caps(seconds=5))
+    assert "cap" in info.value.message
+
+
+def test_a_models_pdf_records_its_caps_on_the_version() -> None:
+    """The caps travel with the evidence: a reviewer reading a sealed version next year
+    sees the limits and the network mode that PDF was built under."""
+    from tests.conftest import World, build_platform
+
+    platform = build_platform(["--typeset.memory_mb=1024", "--typeset.output_mb=16"])
+    try:
+        w = World(platform)
+        platform.access.create_namespace(w.admin, name="tcaps")
+        platform.models.create(
+            w.mona, namespace="tcaps", name="lin", formula="y = a*x", roles={"a": "parameter"}
+        )
+        platform.models.render_spec(w.mona, "tcaps/lin", 1)
+        version = platform.models.get(w.mona, "tcaps/lin")["versions"][0]
+        caps = version["spec_state"]["caps"]
+        assert caps["memory_mb"] == 1024 and caps["output_mb"] == 16
+        assert "network" in caps and "rlimits" in caps
+    finally:
+        platform.shutdown()

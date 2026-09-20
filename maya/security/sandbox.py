@@ -426,3 +426,40 @@ def run_sandboxed(
         "duration": duration,
         "limits_applied": response.get("limits_applied", []),
     }
+
+
+def net_jail() -> list[str]:
+    """A command prefix that runs trusted software with no network, or ``[]``.
+
+    This is not the artifact sandbox: it is for MAYA's *own* helpers — the LaTeX build of
+    §17.1, which must not reach the network — where the code is trusted and only the
+    network needs taking away. So the jail unshares the network and pid namespaces and
+    binds the filesystem through unchanged, rather than assembling a minimal root: a TeX
+    engine needs its cache, its fonts and its output directory, and a read-only root would
+    only mean no PDF. The pid namespace is what bounds the build's processes, which is why
+    a jailed build does not also take an ``RLIMIT_NPROC`` — that limit is per user, and a
+    user already past it could not create the namespace in the first place.
+
+    The probe is the same shape as the command, because a bubblewrap that works with
+    ``--ro-bind`` is not evidence that this one does. An empty list means the host offers
+    no namespace, and the caller falls back to policy (a cached-only build in a fixed
+    environment), which is weaker and says so.
+    """
+    if "net_jail" not in _CACHE:
+        bwrap = shutil.which("bwrap") if platform.system() == "Linux" else None
+        argv = (
+            [
+                bwrap,
+                "--dev-bind",
+                "/",
+                "/",
+                "--unshare-net",
+                "--unshare-pid",
+                "--die-with-parent",
+                "--",
+            ]
+            if bwrap
+            else []
+        )
+        _CACHE["net_jail"] = argv if argv and _works([*argv, "true"]) else []
+    return list(_CACHE["net_jail"])

@@ -531,6 +531,28 @@ SETTINGS: tuple[Setting, ...] = (
         "A model cannot be approved on a draft (non-Tectonic) render.",
         "false",
     ),
+    _s(
+        "typeset.timeout_seconds",
+        "int",
+        "Wall clock and CPU a LaTeX build may spend before it is stopped (§17.1).",
+        "120",
+        minimum=1,
+    ),
+    _s(
+        "typeset.memory_mb",
+        "int",
+        "Address space a LaTeX build may map (§17.1). TeX takes its arenas up front, so "
+        "this is generous by nature; its job is to stop a runaway macro, not to be tight.",
+        "2048",
+        minimum=64,
+    ),
+    _s(
+        "typeset.output_mb",
+        "int",
+        "Largest file a LaTeX build may write (§17.1), which caps the PDF and the log together.",
+        "64",
+        minimum=1,
+    ),
     # -- jobs (§15) -----------------------------------------------------------
     _s("jobs.workers", "int", "Job worker threads in this process.", "2", minimum=0),
     _s("jobs.max_attempts", "int", "Attempts before a job dead-letters.", "3", minimum=1),
