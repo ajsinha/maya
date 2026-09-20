@@ -502,6 +502,7 @@ from a recorded run.
 | 06 | [IFRS 9 expected credit loss](case_studies/06-ifrs9-expected-credit-loss/) | Impairment | Composite with its own parameters | Committee judgements as approved parameter sets, and a portfolio test that finds a 2.67× over-provision the per-account error cannot see |
 | 07 | [Card-fraud neural network](case_studies/07-neural-network/) | Card fraud | Declared black box | What is left to hold to account when the mathematics is unreadable |
 | 10 | [Factor models, CAPM to Fama–French](case_studies/10-factor-models/) | Asset management | Simple then multiple regression | Two versions of one model: MAYA's semantic diff, a contract that grew, and the maturity ladder from candidate to retired |
+| 11 | [Nelson–Siegel yield curve](case_studies/11-nelson-siegel-curve/) | Fixed income, rates | Closed-form, non-linearly calibrated | A planted bug that a recalibration absorbs exactly, so only MAYA's blind score against the specification can see it |
 
 **The rest of the fifty**, each chosen for a distinct thing it makes MAYA do — the numbers are
 final, so a folder is never renumbered. `case_studies/README.md` says what each one adds.
@@ -510,7 +511,7 @@ final, so a folder is never renumbered. `case_studies/README.md` says what each 
 | --- | --- |
 | **Retail and wholesale credit** | 09 Basel IRB capital · 12 LGD and recovery · 13 credit card behavioural scoring · 14 collections roll-rate · 15 low-default portfolio · 16 auto residual value · 17 AML transaction monitoring · 18 AML segmentation · 19 vendor bureau score |
 | **ALM and treasury** | 20 deposit beta · 21 deposit decay · 22 LCR outflow rates · 23 funds transfer pricing · 24 interest-rate risk in the banking book |
-| **Pricing** | 11 Nelson–Siegel curve · 25 volatility surface (SABR) · 26 Hull–White short rate · 27 curve bootstrapping · 28 CDS hazard bootstrapping · 29 bond duration and convexity · 30 American option lattice · 31 Monte Carlo exotics · 32 convertible bond |
+| **Pricing** | 25 volatility surface (SABR) · 26 Hull–White short rate · 27 curve bootstrapping · 28 CDS hazard bootstrapping · 29 bond duration and convexity · 30 American option lattice · 31 Monte Carlo exotics · 32 convertible bond |
 | **Market risk** | 08 ARIMA and GARCH · 33 historical-simulation VaR · 34 expected shortfall / FRTB · 35 EWMA covariance · 36 stress scenarios · 37 CVA exposure · 38 mean-variance optimisation · 39 Black–Litterman |
 | **Economics** | 40 inflation nowcast · 41 GDP nowcast · 42 demand elasticity · 43 Okun's law |
 | **Life sciences** | 44 Cox survival · 45 Gompertz–Makeham mortality · 46 gene-expression classifier · 47 pharmacokinetics · 48 SIR epidemic |

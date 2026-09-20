@@ -227,24 +227,28 @@ def main(maya: Any, n: Narrator) -> None:  # noqa: PLR0915 - one narrated step p
     except ValidationFailed as exc:
         n.refused("registering a negative long rate and a decay of zero", exc)
 
-    n.step("A calibration MAYA accepts, which is the finding")
+    n.step("A calibration every bound accepts, and the constraint does not")
     absurd = {"beta0": 0.0310, "beta1": -0.0980, "beta2": -0.0084, "lambda": lam}
-    taken = warrant.upload_parameters(
-        absurd,
-        name=ABSURD_SET,
-        data_checksum=checksum,
-        metrics={"note": "every bound satisfied; beta0 + beta1 is -6.7%"},
-    )
-    absurd_id = taken["id"]
-    n.fact("accepted", f"{ABSURD_SET}, {taken['state']}, verified_data={taken['verified_data']}")
     short = evaluate_curve(ir, np.array([0.02]), absurd)[0]
-    n.fact("its yield at three weeks", f"{short * 100:.2f}%")
     n.fact("its long rate", f"{absurd['beta0'] * 100:.2f}%")
-    n.say("beta0 is inside [0, 0.25] and beta1 is inside [-0.25, 0.25], so every bound on the")
-    n.say("model holds. Their sum is the instantaneous short rate and it is -6.7%. That")
-    n.say("constraint spans two parameters; MAYA's bounds are per parameter, so nothing in")
-    n.say("the platform refuses this. The only thing between it and production is that a")
-    n.say("person has to approve it — and the blind score below, after the fact.")
+    n.fact("its instantaneous short rate", f"{(absurd['beta0'] + absurd['beta1']) * 100:.2f}%")
+    n.fact("its yield at three weeks", f"{short * 100:.2f}%")
+    n.say("beta0 is inside [0, 0.25] and beta1 is inside [-0.25, 0.25], so every *bound* on")
+    n.say("the model holds. Their sum is the instantaneous short rate, and it is -6.7%.")
+    try:
+        warrant.upload_parameters(
+            absurd,
+            name=ABSURD_SET,
+            data_checksum=checksum,
+            metrics={"note": "every bound satisfied; beta0 + beta1 is -6.7%"},
+        )
+        n.say("NOT REFUSED — a curve with a -6.7% short rate was registered")
+    except ValidationFailed as exc:
+        n.refused("registering a calibration whose short rate is negative", exc)
+    n.say("When this study was written nothing refused it: the condition spans two parameters")
+    n.say("and a bound belongs to one, so the only thing between it and production was that a")
+    n.say("person had to approve it. Writing the study is what put joint constraints into")
+    n.say("MAYA, and the reason the modeller reads is the one the model itself declares.")
 
     n.step("What the desk's buggy implementation would have calibrated to")
     desk_x = desk_design(ir, tau, lam)
@@ -318,7 +322,6 @@ def main(maya: Any, n: Narrator) -> None:  # noqa: PLR0915 - one narrated step p
         (CURVE_SET, curve_id),
         (LEVEL_SET, level_id),
         (DESK_SET, desk_id),
-        (ABSURD_SET, absurd_id),
     ):
         got = warrant.score_holdout(parameter_set_id=ps_id)
         scores[label] = got["metrics"]
@@ -330,7 +333,7 @@ def main(maya: Any, n: Narrator) -> None:  # noqa: PLR0915 - one narrated step p
     ratio = scores[LEVEL_SET]["rmse"] / scores[CURVE_SET]["rmse"]
     n.fact("flat / Nelson-Siegel", f"{ratio:.2f}x worse")
     n.say("Every attempt is counted on the warrant, so scoring the holdout until it flatters")
-    n.say("you is visible. Four parameter sets, four attempts, and the third one is the point:")
+    n.say("you is visible. Three parameter sets, three attempts, and the third is the point:")
     n.say("the desk's own report said its fit was as good as the model's, because it was. The")
     n.say("only number that disagrees is the one MAYA computed from the specification.")
 

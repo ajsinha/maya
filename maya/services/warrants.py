@@ -627,9 +627,17 @@ class WarrantService:
                 continue
             v = values.get(key, values.get(inp["name"]))
             lo, hi = (inp.get("bounds") or [None, None])[:2]
-            if isinstance(v, (int, float)) and (
-                (lo is not None and v < lo) or (hi is not None and v > hi)
-            ):
+            numeric = isinstance(v, (int, float)) and not isinstance(v, bool)
+            if (lo is not None or hi is not None) and not numeric:
+                # A declared scalar bound on a value that is not a scalar means one of the two
+                # is wrong, and saying nothing let {"beta0": [9.0, -9.0]} pass a bound of
+                # [0, 0.25]. A black box's weight matrix is legitimately an array — it simply
+                # declares no bounds, and then nothing here applies to it.
+                problems.append(
+                    f"'{key}' declares bounds [{lo}, {hi}] but its value is "
+                    f"{type(v).__name__}, so no bound could be applied"
+                )
+            elif numeric and ((lo is not None and v < lo) or (hi is not None and v > hi)):
                 problems.append(f"'{key}'={v} outside [{lo}, {hi}]")
         for inp in irmod.constant_inputs(ir):
             key = f"{alias}.{inp['name']}" if alias else inp["name"]

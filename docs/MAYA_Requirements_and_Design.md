@@ -26,7 +26,11 @@
 > one warrant each (§9.2). And two in §8.6, from the versioning study: who moves a version
 > along the maturity ladder and when, and what retirement is — not retroactive, warned for, and
 > refused while something is still serving the version, because taking a model out of service
-> now is revocation and not retirement.
+> now is revocation and not retirement. Three more from the curve and time-series studies:
+> §8.4 gains joint constraints over several parameters and refuses a scalar bound on a value
+> that is not a scalar; §29.7's differential test records the parameter values it ran at,
+> because a signed parameter at zero switches off the term it multiplies; and §29.1 says that
+> the leakage certificate is about time alone and cannot see a feature fitted to the target.
 >
 > **Revision 2.4 — 2026-09-19.** No new decisions: this revision marks, each as
 > *Revision 2.4* where it lands, places where this document contradicted itself or a
@@ -225,6 +229,8 @@ A feature is a named, schema-bearing dataset produced from exactly one source, i
 ### 5.1 Anatomy
 
 A feature version is the tuple: **identity** (name, namespace, owner, tags, description) + **schema** + **index** + **source binding** + **resolution policy** + **transformation** + **quality contract**.
+
+*Revision 2.5:* the leakage certificate is about **time and nothing else**, and it is worth saying so because the certificate is easy to over-read. It cannot see that a feature was *fitted* to the warrant's own target — a bootstrapped curve, a published factor file, a smoothed index — because that is not a question about when a value became knowable. Such a feature can carry a knowledge time that is impeccable and still contain the answer. A feature that is derived from a model should say so and name the version that produced it, and a warrant whose feature set carries one should show it as an exception needing a justification, exactly as a non-causal fill does; that is not built, and until it is, a clean certificate on a model-derived feature means less than it appears to.
 
 **Time axes.** Every feature is **bitemporal**. Each row carries an *event time* — the date the value is about, and part of the index — and a *knowledge time*, the instant MAYA could first have known it, taken from the source watermark, the vendor publication stamp or the upload. Every resolution declares an `as_of_known` instant alongside its event-time range, and a vendor restatement is a new knowledge-time row rather than an overwrite, so "what did we know on 31 March" stays answerable and a backtest cannot silently consume restated values. This is not optional and not a later addition: the two columns, the second index dimension and the hash that covers them exist from the first schema (*Revision 2.4:* there are no migrations, §14.3), because retrofitting them would rewrite every table, every pin and every content hash in the system. Semantics, the leakage certificate and the storage cost are in §29.1.
 
@@ -586,7 +592,7 @@ On upload MAYA runs static validation — syntax, entry point present, signature
 
 ### 8.4 Parameters
 
-Parameters are a first-class versioned object, not a file attachment. A `ParameterSet` has a schema (names, types, shapes, bounds), values, the training warrant that produced it, the metrics reported at training time, the author, and a status. Parameters are validated against the model's declared bounds on upload. Several parameter sets may exist for one model version — per region, per desk, per vintage — each separately approvable.
+Parameters are a first-class versioned object, not a file attachment. A `ParameterSet` has a schema (names, types, shapes, bounds), values, the training warrant that produced it, the metrics reported at training time, the author, and a status. Parameters are validated on upload against the model version's declared parameter inputs — presence, shape and bounds — whether the model is a formula or a declared black box. *Revision 2.5:* three things this sentence did not say. Bounds are **per parameter**, and some conditions are not: a GARCH model is stationary only if $\alpha + \beta < 1$, an AR(2) only inside a triangle in $(\phi_1, \phi_2)$, a Nelson–Siegel curve's instantaneous short rate is $\beta_0 + \beta_1$ and has to be non-negative however plausible either coefficient looks alone. A version may therefore declare **joint constraints** over several of its own parameters: an expression, a comparison, and a reason, which is mandatory because the reason is the only thing a modeller sees when the constraint fires. A constraint reads parameters and never features, because it has to hold before any data is seen. And a declared bound on a value that is not a number is **refused** rather than skipped: a scalar bound on an array means one of the two is wrong, and a model whose parameter genuinely is an array — a black box's weight matrix — declares no bound on it. Several parameter sets may exist for one model version — per region, per desk, per vintage — each separately approvable.
 
 ### 8.5 Specification document
 
@@ -2092,7 +2098,7 @@ Two controls that both follow the graph.
 
 The formula IR (§8.1) is executable. So MAYA generates a reference implementation from the documented mathematics and differentially tests it against the uploaded Python artifact: sampled inputs drawn from a named feature set's own distributions, outputs compared within a declared tolerance, and counter-examples reported as concrete input rows. *Revision 2.5:* the domain and the sample count are part of the result, because an agreement over an invented or narrow domain is worth less than it looks. Where no feature set is named the inputs come from a default domain and the report says so; where one is named, the report says which and how many rows it held. MAYA cannot judge whether that domain was representative, and does not pretend to: the domain appears in the check's own detail, where the reviewer reads it, and sending a version back for a comparison over something wider is a judgement a person makes. What the check establishes is that somebody compared the code with the mathematics over *this* artifact and they agreed everywhere the comparison looked.
 
-The result is a statement no other platform can make: *the code implements the documentation, checked on 2,000 sampled inputs from a named feature set, to a relative tolerance of 1e-9* (*Revision 2.5:* 2,000 is the default the service uses; the caller may ask for more). Where they disagree, the reviewer is shown the exact inputs where the implementation and the specification part company. Where the model is a declared black box the test is skipped and the model version says so, which is itself useful information.
+The result is a statement no other platform can make: *the code implements the documentation, checked on 2,000 sampled inputs from a named feature set, at these parameter values, to a relative tolerance of 1e-9* (*Revision 2.5:* 2,000 is the default the service uses and the caller may ask for more; and the **parameter values** the comparison ran at are part of what it establishes rather than an implementation detail. A signed parameter whose value is zero switches off the term it multiplies, so a comparison run there can agree perfectly with code that computes that term wrongly — which is what happened until the default moved off the midpoint of each bound.) Where they disagree, the reviewer is shown the exact inputs where the implementation and the specification part company. Where the model is a declared black box the test is skipped and the model version says so, which is itself useful information.
 
 **Cost.** An interpreter for the IR, and honesty about coverage — sampled agreement is not proof, and the report says so.
 

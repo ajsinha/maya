@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
     BOUNDS,
+    CONSTRAINTS,
     EXTRA_USERS,
     FORMULA,
     MODEL,
@@ -71,6 +72,7 @@ def main(maya: Any, n: Narrator) -> None:
         {**inp, "bounds": list(BOUNDS[inp["name"]])} if inp["name"] in BOUNDS else inp
         for inp in ir["inputs"]
     ]
+    ir["constraints"] = CONSTRAINTS
     cast.mona.models.update_draft(f"{NS}/{MODEL}", ir=ir, spec_latex=specification())
     version = cast.mona.models.get(f"{NS}/{MODEL}")["versions"][0]
     for inp in version["formula_ir"]["inputs"]:
@@ -78,10 +80,13 @@ def main(maya: Any, n: Narrator) -> None:
             n.fact(inp["name"], f"bounds {inp['bounds']}")
     n.fact("IR hash", f"{version['ir_hash'][:16]}…")
     n.say("beta0 >= 0 says the long rate is not negative, and MAYA will enforce it on every")
-    n.say("upload for the life of the version. The constraint beside it — that beta0 + beta1,")
-    n.say("the instantaneous short rate, is also not negative — cannot be expressed here at")
-    n.say("all: it spans two parameters, and a bound belongs to one. Step 5 uploads a set")
-    n.say("that satisfies all four rows of this table and implies a short rate of -6.7%.")
+    n.say("upload for the life of the version.")
+    for c in version["formula_ir"].get("constraints", []):
+        n.fact("constraint", f"{c['expr']['op']}(beta0, beta1) {c['op']} {c['rhs']}")
+        n.say(f"  because: {c['why']}")
+    n.say("That one spans two parameters, and a bound belongs to one, so it could not be said")
+    n.say("here at all until this study asked for it. Step 5 uploads a set that satisfies all")
+    n.say("four rows of the bounds table and implies a short rate of -6.7%.")
 
     n.step("MAYA's own reference implementation, lifted from the same tree")
     code = cast.mona.models.reference_code(f"{NS}/{MODEL}", 1)["source"]

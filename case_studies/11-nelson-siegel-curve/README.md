@@ -5,7 +5,7 @@ parameter · **What it exercises:** a curve registered from LaTeX with its two f
 named as intermediates, a grid search over λ with ordinary least squares inside it, an
 objective reported as a whole profile rather than as a minimum, an implementation bug that a
 recalibration hides *exactly* and only a differential test can see, four parameter sets scored
-blind in basis points against the same escrowed pillars, a joint constraint MAYA cannot
+blind in basis points against the same escrowed pillars, a joint constraint bounds cannot
 express and accepts the violation of, and the same mathematics built a second time as a
 **feature** so the governance gap can be counted rather than asserted.
 
@@ -186,8 +186,8 @@ BOUNDS = {
 
 MAYA enforces every one of those on every parameter upload for the life of the version. The
 constraint beside them — that $\beta_0 + \beta_1$, the instantaneous short rate, is also not
-negative — **cannot be expressed at all**, because it spans two parameters and a bound belongs
-to one. §7 uploads a set that satisfies all four rows of that table and implies a short rate of
+negative — spans two parameters, so it is declared as a **joint constraint** rather than as a
+bound. §7 uploads a set that satisfies all four rows of that table and implies a short rate of
 minus 6.7%, and MAYA accepts it.
 
 The version is left a draft, and nothing can be drawn on it:
@@ -413,29 +413,42 @@ Both named individually, before the set exists. Then the one that matters:
 
 ```
 values:   beta0 = +0.031,  beta1 = -0.098,  beta2 = -0.0084,  lambda = 1.31648
-accepted: short-rate-negative, state draft, verified_data=True
-its long rate:            3.10%
-its yield at three weeks: -6.63%
+its long rate:                     3.10%
+its instantaneous short rate:      -6.70%
+its yield at three weeks:          -6.63%
+
+refused — registering a calibration whose short rate is negative
+  ValidationFailed: Parameters out of bounds: constraint ≥ 0 is violated:
+  beta0=0.031 + beta1=-0.098 gives -0.067 — beta0 + beta1 is the instantaneous short
+  rate, which cannot be negative in a currency whose policy rate is not: a calibration
+  that implies one has fitted the short end through noise, and every discount factor it
+  produces at the front of the curve is wrong in the same direction
 ```
 
-Every bound holds. $\beta_0 = 3.1\%$ is inside $[0, 0.25]$; $\beta_1 = -9.8\%$ is inside
+Every **bound** holds. $\beta_0 = 3.1\%$ is inside $[0, 0.25]$; $\beta_1 = -9.8\%$ is inside
 $[-0.25, 0.25]$. Their sum is the instantaneous short rate and it is **−6.7%**, which is not a
-curve, not a market and not a mistake anybody would defend — and MAYA has nothing to say about
-it, because the statement spans two parameters and its bounds are per parameter. The only
-things standing between that set and production are a human approval and the number below.
+curve, not a market and not a mistake anybody would defend.
+
+When this study was first written MAYA accepted it, and said so: the condition spans two
+parameters, a bound belongs to one, and the only things standing between that set and production
+were a human approval and a blind score after the fact. **Writing the study is what put joint
+constraints into the platform.** A model version may now declare conditions over several of its
+own parameters — an expression, a comparison, and a reason that has to be written down, because
+the reason is the only thing a modeller sees when it fires. The reason above is the model's own
+words, quoted back at the person who would have shipped the curve.
 
 ### The blind scores
 
-MAYA scores the escrowed 1,653 pillars itself, four times:
+MAYA scores the escrowed 1,653 pillars itself, three times:
 
 | Parameter set | What it is | RMSE | MAE |
 | --- | --- | --- | --- |
 | `ns-window-2606` | the calibrated curve | **18.52 bp** | 15.14 bp |
 | `level-only-2606` | β1 = β2 = 0: a flat curve at the mean | **76.10 bp** | 67.90 bp |
 | `desk-fit-2606` | the buggy implementation's coordinates | **53.96 bp** | 41.63 bp |
-| `short-rate-negative` | every bound satisfied | **487.10 bp** | 420.29 bp |
 
-Four things follow.
+Three things follow. (A fourth set, `short-rate-negative`, is no longer among them: it is
+refused at upload now, so there is nothing to score.)
 
 **The shape is worth 4.11×.** The flat curve is four times worse on pillars neither calibration
 was shown, which is what the *Validation Evidence* section claims and this is the number behind
@@ -449,10 +462,7 @@ parameter set with that number, and the rationale is on the record:
 were produced by code that does not compute the specification."* The set moves to
 `changes_requested`, and §8 shows it refused a licence.
 
-**The fourth row is what a joint constraint would have prevented before the fact** rather than
-measured after it.
-
-**Every attempt is counted** — four parameter sets, four attempts, all on the warrant — so
+**Every attempt is counted** — three parameter sets, three attempts, all on the warrant — so
 scoring the holdout until it flatters you is visible.
 
 ### What that 18.52 bp is, and what it is not
@@ -680,13 +690,14 @@ study shows a reviewer doing the job the design assigns her. If you do want a ch
 smallest honest one is to record *every* comparison rather than only the latest, so a reviewer
 can see that an earlier run on the same artifact disagreed.
 
-**`check_bounds` silently skips a parameter whose value is not a number.**
-`WarrantService.check_bounds` bound-checks a value only when `isinstance(v, (int, float))`, so
-`{"beta0": [9.0, -9.0]}` and `{"beta0": "9.0"}` both pass every bound on a model that declares
-`beta0 ∈ [0, 0.25]`. For a declared black box that is correct — a weight matrix is a list and
-has no scalar bound — which is exactly why I have not touched it: making bounds apply
-element-wise to an array is a design decision about what a bound *means*, and it is adjacent to
-the joint-constraint work that is somebody else's. It is worth a line in §8.4 either way.
+**`check_bounds` silently skipped a parameter whose value was not a number** — now fixed.
+`WarrantService.check_bounds` bound-checked a value only when it was an `int` or a `float`, so
+`{"beta0": [9.0, -9.0]}` and `{"beta0": "9.0"}` both passed every bound on a model declaring
+`beta0 ∈ [0, 0.25]`. The resolution was not to make bounds element-wise but to refuse the
+mismatch: a declared scalar bound on a value that is not a scalar means one of the two is wrong,
+and it is now reported as *"declares bounds [0.0, 0.25] but its value is list, so no bound could
+be applied"*. A model whose parameter genuinely is an array — a black box's weight matrix, as in
+case study 7 — declares no bound on it, and then nothing here applies.
 
 ### What I would change in the specification
 
@@ -736,7 +747,7 @@ each input"*. I would extend it:
 3. **§5's second table** — a bug that a recalibration absorbs to 8×10⁻¹³ of a basis point, and
    the 54 bp blind score that is the only number in the file that noticed.
 4. **§7's bounds refusal beside §7's acceptance** — a negative long rate named and refused; a
-   −6.7% short rate accepted because the constraint spans two parameters.
+   −6.7% short rate, refused by a joint constraint the model declares for itself.
 5. **§8's suspension** — a curve taken out of service for being asked about a maturity nobody
    quoted, with the answer it would have given printed beside it.
 6. **§9's table** — the same mathematics and the same numbers, then thirteen rows: six controls

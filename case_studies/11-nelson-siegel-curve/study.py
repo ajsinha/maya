@@ -75,16 +75,31 @@ ROLES = {
 # sign. beta2 is a curvature and may be large. lambda is where the hump sits: the bounds
 # put it between 0.45 and 10.7 years, which covers every curve anybody quotes.
 #
-# What cannot be said here is the constraint that matters: beta0 + beta1 is the
-# instantaneous short rate, and it should also be non-negative. That is a statement about
-# two parameters at once, and MAYA's bounds are per parameter. Step 5 uploads a set that
-# satisfies every bound in this table and implies a short rate of -6.7%.
+# One thing a table of bounds cannot say is the constraint that matters most here:
+# beta0 + beta1 is the instantaneous short rate, and it should also be non-negative. That is
+# a statement about two parameters at once. Writing this study is what put joint constraints
+# into MAYA, and CONSTRAINTS below is that statement; step 5 uploads a set that satisfies
+# every bound in this table, implies a short rate of -6.7%, and is now refused for it.
 BOUNDS = {
     "beta0": [0.0, 0.25],
     "beta1": [-0.25, 0.25],
     "beta2": [-0.5, 0.5],
     "lambda": [0.25, 6.0],
 }
+
+CONSTRAINTS = [
+    {
+        "expr": {"op": "add", "args": [{"param": "beta0"}, {"param": "beta1"}]},
+        "op": "ge",
+        "rhs": 0.0,
+        "why": (
+            "beta0 + beta1 is the instantaneous short rate, which cannot be negative in a "
+            "currency whose policy rate is not: a calibration that implies one has fitted the "
+            "short end through noise, and every discount factor it produces at the front of "
+            "the curve is wrong in the same direction"
+        ),
+    }
+]
 
 # The desk's implementation, written to MAYA's model interface (§8.3): a class named Model
 # with fit(X, y, ctx) and predict(X, params, ctx). Its own variable names, its own order of
