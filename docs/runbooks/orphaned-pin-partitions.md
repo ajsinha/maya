@@ -61,13 +61,15 @@ Save this as `unsealed.py` and run it with MAYA stopped, or against a copy:
 
 ```python
 import os, sqlite3
+
 c = sqlite3.connect(os.environ["MAYA_HOME"] + "/maya.db")
 for row in c.execute(
     "SELECT p.state, n.name||'/'||f.name||'#'||p.pin_name||'/'||p.as_of_date,"
     " json_array_length(p.fragments), p.failure"
     " FROM feature_pins p JOIN features f ON f.id=p.feature_id"
     " JOIN namespaces n ON n.id=f.namespace_id"
-    " WHERE p.state <> 'sealed' ORDER BY p.state"):
+    " WHERE p.state <> 'sealed' ORDER BY p.state"
+):
     print(*row, sep="  ")
 ```
 
@@ -127,7 +129,9 @@ ls "$MAYA_HOME/lake/pins/<namespace>/<name>/"
 
    Rewrites one pin table keeping only the fragments sealed pins still reference.
    Stop MAYA and back up storage.root first."""
+
    import sys
+
    sys.argv = ["reclaim"] + sys.argv[1:]
    from maya.config import load_settings
    from maya.services.platform import Platform
@@ -141,8 +145,12 @@ ls "$MAYA_HOME/lake/pins/<namespace>/<name>/"
    with p.uow() as uow:
        ns = uow.repo("namespaces").find_one(name=namespace)
        obj = uow.repo(owner_table).find_one(namespace_id=ns["id"], name=name)
-       keep = {h for pin in uow.repo(pin_table).list(state="sealed")
-               if pin[fk] == obj["id"] for h in pin["fragments"]}
+       keep = {
+           h
+           for pin in uow.repo(pin_table).list(state="sealed")
+           if pin[fk] == obj["id"]
+           for h in pin["fragments"]
+       }
    path = p.lake.table_path(kind, namespace, name)
    present = {f["partitionValues"]["_fragment"] for f in p.lake.delta.files(path)}
    print(f"{len(present)} present, {len(keep)} referenced, {len(present - keep)} to drop")

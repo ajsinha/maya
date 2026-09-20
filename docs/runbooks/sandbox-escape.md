@@ -73,9 +73,13 @@ bomb, an infinite loop, and the import allowlist.
 ```python
 import json
 from maya.security import sandbox
+
 out = sandbox.run_sandboxed(
     "import os\ndef run(X, params):\n    import _socket\n    _socket.socket()\n    return 'escaped'",
-    "run", {"X": {}, "params": {}}, preload=())
+    "run",
+    {"X": {}, "params": {}},
+    preload=(),
+)
 print(json.dumps(out, indent=1))
 ```
 

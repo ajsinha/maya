@@ -412,6 +412,7 @@ maya/
 maya_delta/                # Delta Lake: native (delta-rs) and pure-Python backends
 tools/ci/                  # the gates, in Python so they run on every OS
 tools/bench/               # the benchmarks behind docs/BENCHMARKS.md
+case_studies/              # fifty worked models, each a folder of runnable steps (see below)
 tools/docs/                # build_spec.py: the specification's .docx and .pdf from the Markdown
 docs/                      # the specification, the plan, BENCHMARKS.md, CHANGELOG.md
 └── benchmarks/            #   the unedited JSON result of every benchmark run
@@ -465,6 +466,61 @@ against the live population before it is saved. The policy is itself versioned, 
 approved and audited, because a governance system whose own rules can be changed
 silently does not govern anything. YAML remains — as an import/export projection for
 GitOps, not as a second authority. Spec §10.6.
+
+---
+
+## Case studies
+
+`case_studies/` holds worked models, each one a real problem carried through MAYA end to end:
+features defined and approved, data pinned point-in-time, a model registered with its
+specification document, a warrant drawn, parameters approved, an execution warrant sealed, and
+a covenant that takes the model out of service when its inputs stop resembling what it was
+built on.
+
+Each study is a folder of small scripts sharing one throwaway MAYA, so you can run one step,
+open the web UI on what it made, and run the next. Everything goes through `maya.sdk.Client`
+as a named user with that user's roles, which is why the refusals in them are real: when a
+study shows a feature designer being refused permission to approve her own feature, that is
+the capability matrix saying no, not a script pretending. `case_studies/README.md` has the
+full layout, and every study's own README carries its theory, its mathematics and the numbers
+from a recorded run.
+
+```bash
+.venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py            # ~11 seconds
+.venv/bin/python case_studies/01-retail-credit-pd-scorecard/setup_features.py --reset
+```
+
+**Built so far**
+
+| | Study | Domain | Model type | What it is really about |
+| --- | --- | --- | --- | --- |
+| 01 | [Retail credit PD scorecard](case_studies/01-retail-credit-pd-scorecard/) | Retail credit risk | Fitted logistic | Bitemporality. A leakage certificate that refuses every row of a panel, and the written exception that lets the work proceed |
+| 02 | [Scheduled mortgage cashflow](case_studies/02-mortgage-cashflow/) | Mortgage ALM | Closed-form, no fit | Whether the code the desk runs *is* the mathematics that was approved. A valid implementation with the commonest mortgage bug in it, caught |
+| 03 | [Mortgage prepayment](case_studies/03-mortgage-prepayment/) | Mortgage valuation | Fitted hazard | A change proposed underneath a live model, priced before anyone approves it: 60% of the book moves |
+| 04 | [HELOC exposure at default](case_studies/04-heloc-exposure/) | Retail secured credit | Composite router | Two members with different functional forms, a parameter set each, and a seal that refuses while half the composite is unfitted |
+| 05 | [European option pricing](case_studies/05-option-pricing/) | Equity derivatives | Closed-form, calibrated | A parameter nobody can observe, and a conformance test that passes on a narrow domain and fails on the whole chain |
+| 07 | [Card-fraud neural network](case_studies/07-neural-network/) | Card fraud | Declared black box | What is left to hold to account when the mathematics is unreadable |
+
+**The rest of the fifty**, each chosen for a distinct thing it makes MAYA do — the numbers are
+final, so a folder is never renumbered. `case_studies/README.md` says what each one adds.
+
+| Group | Studies |
+| --- | --- |
+| **Retail and wholesale credit** | 06 IFRS 9 expected credit loss · 09 Basel IRB capital · 12 LGD and recovery · 13 credit card behavioural scoring · 14 collections roll-rate · 15 low-default portfolio · 16 auto residual value · 17 AML transaction monitoring · 18 AML segmentation · 19 vendor bureau score |
+| **ALM and treasury** | 20 deposit beta · 21 deposit decay · 22 LCR outflow rates · 23 funds transfer pricing · 24 interest-rate risk in the banking book |
+| **Pricing** | 11 Nelson–Siegel curve · 25 volatility surface (SABR) · 26 Hull–White short rate · 27 curve bootstrapping · 28 CDS hazard bootstrapping · 29 bond duration and convexity · 30 American option lattice · 31 Monte Carlo exotics · 32 convertible bond |
+| **Market risk** | 08 ARIMA and GARCH · 10 CAPM → Fama–French · 33 historical-simulation VaR · 34 expected shortfall / FRTB · 35 EWMA covariance · 36 stress scenarios · 37 CVA exposure · 38 mean-variance optimisation · 39 Black–Litterman |
+| **Economics** | 40 inflation nowcast · 41 GDP nowcast · 42 demand elasticity · 43 Okun's law |
+| **Life sciences** | 44 Cox survival · 45 Gompertz–Makeham mortality · 46 gene-expression classifier · 47 pharmacokinetics · 48 SIR epidemic |
+| **Operations** | 49 LLM complaint triage · 50 spreadsheet-lifted provision overlay |
+
+Every input feed is synthetic, generated by the `make_data.py` beside it from a seeded recipe
+stated in that file's docstring, and committed so a reader can open exactly what MAYA was
+given. No real borrower, loan, patient or counterparty appears anywhere in the folder.
+
+Writing them has been the most productive source of defects in the platform: twelve so far,
+each fixed with a test that would fail without the fix, and each named in the study that
+found it.
 
 ---
 
