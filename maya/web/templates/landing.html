@@ -1,0 +1,95 @@
+{# What a visitor meets before they have an account: what MAYA is for, in its own words,
+   and the three doors out of it — sign in, the help centre, the About page. Nothing here
+   reads the estate, so it renders for somebody who has no right to read anything. #}
+{% extends "base.html" %}
+{% block title %}{{ APP_NAME }} — {{ APP_TAGLINE }}{% endblock %}
+{% block content %}
+<section class="lp-hero">
+  <div class="lp-hero-copy">
+    <p class="lp-eyebrow">{{ APP_TAGLINE|upper }}</p>
+    <h1 class="lp-headline">Every model has to answer <em>one question</em>. MAYA keeps the answer.</h1>
+    <p class="lp-lede">A model said a number. Which data did it see, as the data stood <em>then</em>? Which
+      version of the mathematics, which parameters, whose approval? MAYA is the record that answers that
+      months later, without anybody having to remember — features that keep two clocks, a formula the
+      platform can evaluate itself, and a warrant that has to exist before a model may be fitted or run.</p>
+    <div class="lp-actions">
+      <a class="btn btn-primary btn-lg" href="/login">Sign in <span aria-hidden="true">→</span></a>
+      <a class="btn btn-outline-secondary btn-lg" href="/help">Read the documentation</a>
+    </div>
+    <dl class="lp-stats">
+      <div><dt>Two clocks</dt><dd>event time and knowledge time, on every value</dd></div>
+      <div><dt>One hash</dt><dd>a pin is named by the data it seals</dd></div>
+      <div><dt>No warrant, no run</dt><dd>fitting and scoring are authorised acts</dd></div>
+    </dl>
+  </div>
+
+  {# The chain the platform actually keeps, drawn once. It is the page's illustration and its
+     argument at the same time: every arrow here is an object MAYA stores, not a metaphor. #}
+  <figure class="lp-figure">
+    <svg viewBox="0 0 420 460" role="img" aria-labelledby="lp-fig-title">
+      <title id="lp-fig-title">The chain of evidence: data, feature, pin, model, warrant, execution</title>
+      <defs>
+        <marker id="lp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+        </marker>
+      </defs>
+      <g class="lp-wire" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#lp-arrow)">
+        <path d="M210 66 L210 104"></path>
+        <path d="M210 150 L210 188"></path>
+        <path d="M210 234 L210 272"></path>
+        <path d="M210 318 L210 356"></path>
+      </g>
+      <g class="lp-node">
+        <rect x="120" y="28" width="180" height="38" rx="8"></rect>
+        <rect x="120" y="112" width="180" height="38" rx="8"></rect>
+        <rect x="120" y="196" width="180" height="38" rx="8"></rect>
+        <rect x="120" y="280" width="180" height="38" rx="8"></rect>
+        <rect x="120" y="364" width="180" height="38" rx="8"></rect>
+      </g>
+      <g class="lp-label" text-anchor="middle">
+        <text x="210" y="52">source data</text>
+        <text x="210" y="136">feature · bitemporal</text>
+        <text x="210" y="220">pin · sealed by hash</text>
+        <text x="210" y="304">model · typed formula</text>
+        <text x="210" y="388">warrant · authorised run</text>
+      </g>
+      <g class="lp-aside" text-anchor="start">
+        <text x="312" y="136">as it stood then</text>
+        <text x="312" y="220">re-readable for ever</text>
+        <text x="312" y="304">MAYA can evaluate it</text>
+        <text x="312" y="388">or it does not happen</text>
+      </g>
+    </svg>
+    <figcaption>The chain MAYA keeps. Each step is an object with a version, an owner and an audit trail.</figcaption>
+  </figure>
+</section>
+
+<section class="lp-cards">
+  <article>
+    <h2 class="h6">Features that remember when they were true</h2>
+    <p>A value carries the moment it describes and the moment MAYA learnt it. Ask a feature what it held on
+      a date, and you get what was known then — not what a later correction says now.</p>
+  </article>
+  <article>
+    <h2 class="h6">Mathematics the platform can read</h2>
+    <p>A model is registered as a typed expression, parsed from LaTeX or Python. MAYA generates its own
+      reference implementation from that tree and checks your code against it.</p>
+  </article>
+  <article>
+    <h2 class="h6">Training and execution under warrant</h2>
+    <p>Fitting a model draws on sealed pins under a training warrant; scoring runs under an execution
+      warrant with covenants on its inputs and outputs. Both are records, not conventions.</p>
+  </article>
+  <article>
+    <h2 class="h6">Evidence somebody else can check</h2>
+    <p>Leakage certificates, conformance runs and signed evidence bundles: the point is never MAYA's word
+      for it, but a file a reviewer can open and verify without MAYA installed.</p>
+  </article>
+</section>
+
+<section class="lp-close">
+  <p class="lp-close-slogan">{{ APP_SLOGAN }}</p>
+  <p class="mb-0"><a href="/login">Sign in</a> · <a href="/help">Help centre</a> ·
+    <a href="/about">About {{ APP_NAME }} {{ VERSION }}</a></p>
+</section>
+{% endblock %}

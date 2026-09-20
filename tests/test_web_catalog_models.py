@@ -379,4 +379,7 @@ def test_api_keys_and_two_factor_through_the_account_pages(people):
     r = c.post("/mfa", data={"code": "123456", "csrf_token": tok})
     assert r.status_code == 401
     r = devi.post("/logout")
-    assert "/login" in str(r.url)
+    # Out to the landing page: somebody who has just signed out is a visitor, not a
+    # half-finished arrival, and what they should meet is what MAYA is for.
+    assert str(r.url).endswith("/")
+    assert "MAYA keeps the answer" in r.text

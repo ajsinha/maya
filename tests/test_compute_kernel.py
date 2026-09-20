@@ -179,3 +179,30 @@ def test_every_generated_implementation_is_one_function(site):  # noqa: F811
     exec(compile(source, "<composite>", "exec"), ns)  # noqa: S102  # nosec B102 - the code under test
     got = ns["predict"]({"x": [1.0, 2.0]}, {"base.a": 2.0, "skew.b": 0.5})["p"]
     assert got == pytest.approx([2.6915, 4.8413], abs=5e-4)
+
+
+def test_the_front_door_is_the_landing_page_until_somebody_signs_in(site):  # noqa: F811
+    """A visitor is told what MAYA is; a password box answers a question nobody asked yet."""
+    _, app = site
+    from starlette.testclient import TestClient
+
+    anon = TestClient(app)
+    front = anon.get("/")
+    assert front.status_code == 200
+    assert "MAYA keeps the answer" in front.text
+    assert 'href="/login"' in front.text
+    # Help and About have to be readable by somebody with no account at all, or the
+    # landing page points at two doors that are locked.
+    assert anon.get("/help").status_code == 200
+    assert anon.get("/about").status_code == 200
+
+    signed_in = Browser(app, "devi", PASSWORD)
+    assert "MAYA keeps the answer" not in signed_in.get("/").text  # the dashboard, not the pitch
+
+    out = signed_in.c.post(
+        "/logout",
+        data={"csrf_token": signed_in.csrf("/")},
+        follow_redirects=False,
+    )
+    assert out.status_code == 303
+    assert out.headers["location"] == "/"
