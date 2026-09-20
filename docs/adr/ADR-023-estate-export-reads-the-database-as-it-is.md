@@ -42,7 +42,7 @@ before loading.
 
 - Specification §14.3 (revision 2.3 note).
 - Code: `maya/persistence/estate.py` (`export`, `load`, `_require_carried`),
-  `maya/cli/__main__.py` (`admin_export_estate`).
+  `maya/cli/admin.py` (`admin_export_estate`).
 - Tests: `tests/test_workflow_and_estate.py` —
   `test_a_database_from_another_schema_still_exports_and_loads`,
   `test_a_required_column_the_estate_cannot_fill_is_named`.

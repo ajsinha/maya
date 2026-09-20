@@ -22,9 +22,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "tools" / "deck" / "audit.py"
 
 DECKS = [
-    ("MAYA-Executive-Briefing", 16),
-    ("MAYA-System-Design", 34),
-    ("MAYA-Concepts-and-Formalism", 21),
+    ("MAYA-Executive-Briefing", 18),
+    ("MAYA-System-Design", 41),
+    ("MAYA-Capabilities", 37),
+    ("MAYA-Concepts-and-Formalism", 31),
 ]
 # Anywhere in the file: no tool or assistant credited as a maker of the deck.
 FORBIDDEN = (

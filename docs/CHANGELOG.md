@@ -2,6 +2,100 @@
 
 ## Unreleased
 
+**Models: the translation step on its own (§8.1, §16.2)**
+
+- **The compute-kernel wizard.** Somebody who writes their mathematics in LaTeX had to type
+  it into the model designer and find out what MAYA made of it only once a version existed
+  to hold it. `/models/kernel` (SDK `models.kernel`, `POST /formula/kernel`) is that
+  translation on its own: mathematics in, and back come the LaTeX rendered from the tree
+  MAYA parsed rather than from the text that was typed — so a misreading is visible — the
+  typed IR a version would store with its hash, the inputs with the role each was given, and
+  Python that computes it. It creates nothing and reads nothing, and one button carries the
+  formula and the roles into the designer when the translation is right. A formula MAYA
+  cannot read is refused here, with the reason, which is the point: the alternative is
+  finding out at `models.create`.
+- **One function, wherever MAYA generates code.** The reference implementation on a model's
+  Code tab was a module — `import math`, `import numpy as np`, `_erfc`, `_ncdf`, `_npdf`,
+  then `predict` — six names at module scope, three of which will collide with something in
+  whatever codebase the file is pasted into. `to_python` now emits what
+  `to_python_kernel` emits: one function, its imports and helpers nested inside it. The
+  composite generator does the same, each member becoming a function of `predict` rather
+  than a sibling beside it. The three callers are unchanged, because the one name any of
+  them asks for is still `predict`.
+- **Joint parameter constraints, which bounds cannot express (§8.4).** Bounds are per
+  parameter and some conditions are not: a GARCH model is stationary only if
+  `alpha + beta < 1`, and each coefficient can sit anywhere in [0, 1] while the pair forecast
+  a conditional variance with no finite long-run mean. A model version may now declare
+  constraints over its own parameters — an expression, a comparison, a bound, and a reason
+  that has to be written down, because the reason is the only thing a modeller sees when the
+  constraint fires. They are checked where §8.4 says parameters are checked, on upload, and
+  a constraint that reads a feature is refused: it has to hold before any data is seen. Black
+  boxes and composites may declare them too, which for a GARCH model — a black box precisely
+  because its variance is a state carried between rows — is the one thing about it a reviewer
+  can still check arithmetically.
+
+**The front door, the canvas and the preview (§16.1, §16.3, §17.1)**
+
+- **`/` is the landing page when nobody is signed in** and the dashboard when somebody is,
+  and signing out returns to it rather than to the sign-in form. A visitor handed a password
+  box has been asked "who are you" before being told why they would want an account here, and
+  somebody who has just left is not halfway through arriving. The page draws the chain MAYA
+  keeps — source, bitemporal feature, sealed pin, typed formula, warrant — and every arrow in
+  it is an object MAYA stores, so the illustration and the argument are the same drawing.
+- **A lineage node carries its own name.** The canvas drew 30×22px shapes with the label
+  floating underneath, so `fit()` zoomed near 3× and magnified every 10px label into 30px of
+  overlapping text. Nodes are now boxes sized to their text, the zoom is capped at 1:1, and
+  the kind is carried by colour rather than by a shape too small to hold a word; only an
+  operator keeps its diamond. A node is named by name and version rather than by a whole ref,
+  a pin says that it is a pin, and a parameter set's forty-character hash is cut to the ten
+  that identify it here. A fan of edges that all say `parameterized_by` writes that word
+  once, and the status line says how many repeats went unnamed, because nothing is hidden
+  silently.
+- **A preview that shows a command is a preview with a hole in it.** The specification pane
+  recognised `\section` only at the start of a paragraph, so an ordinary LaTeX document
+  showed the reader `\section{Assumptions}` as text, and so did every other construct the
+  renderer did not know. Headings are now found wherever they stand; lists, display-maths
+  environments, verbatim blocks and the transparent wrappers render; a `tabular` names itself
+  as skipped and says the PDF build carries it; escaped characters are set aside before the
+  maths scanner runs, so `\$5` cannot open an equation; and nothing backslash-shaped reaches
+  the reader at all. The same pass fixed the markdown that had leaked into the case studies'
+  LaTeX specifications — five bolds and eleven italics the PDF build would have printed
+  verbatim.
+- **An asset a browser cached yesterday no longer lays out today's page.** Every stylesheet
+  and script MAYA serves carries a token computed once at import from the newest of them, so
+  a deployment invalidates the cache without a page load having to stat the tree. Vendored
+  libraries keep their plain URLs: they change when their version does, which is already in
+  the path.
+- **The brand block carries three lines** — what MAYA is called, what it is, and what it
+  undertakes to do — and the footer is one centred line with the copyright, read from
+  `maya/core/version.py`, because a year written into a template is a copy that will rot.
+
+**Case studies**
+
+- **Three more worked studies**: 06 IFRS 9 expected credit loss, 10 factor models from CAPM
+  to Fama–French, and 11 the Nelson–Siegel yield curve — nine of the numbered fifty now run
+  end to end. Study 08's data and declarations are written; its steps are not.
+- **A demonstration no longer opens on a change-password form.** An administrator-set
+  password must be changed at first sign-in (§12), which is the right rule and is staying, so
+  the harness walks each seeded account through the step a person would and the password it
+  prints is the one that works.
+
+**Documents**
+
+- **The third deck is a capabilities deck, not a concepts one.**
+  `docs/MAYA-Capabilities.pptx` (37 slides) replaces `MAYA-Concepts-and-Formalism.pptx`: the
+  product told as what a person does with it, then the IFRS 9 study carried all the way
+  through with its findings and refusals, and a closing section on what MAYA does not do. A
+  deck commenting on the paper's theory was a second place to keep the theory current; it now
+  lives in the paper alone. The other two are `MAYA-Executive-Briefing.pptx` (18) and
+  `MAYA-System-Design.pptx` (41).
+- **Every document read against the code**, sentence by sentence, and the places it had
+  fallen behind marked rather than quietly corrected: specification revision 2.6 (the
+  capability matrix, the seam register, the front door, the kernel wizard, the CLI's
+  administrative commands, the package layout that was never built), the gate ladder's real
+  membership in the plan, and the runbooks for quotas and orphaned fragments, both of which
+  still said a control was unbuilt that has been enforced since the audit's batch 1.
+
 **Limits on what one caller can ask (§13.2, §21.1, §24.4)**
 
 - **Uploads are bounded.** A request body past `api.limits.max_body_bytes` (256 MB) is
@@ -64,7 +158,9 @@
   bound.
 - **A worker process outside the web process**: `python run_maya_web.py --worker` binds no
   port and runs the queue only.
-- **Typed configuration**: 114 settings declared with type, default and validator. An unknown
+- **Typed configuration**: 148 settings declared with type, default and validator, two of them
+  families — `seams.<name>` and `auth.sso.group_role_map.<group>` — whose members are matched
+  by prefix because their names are the site's to choose. An unknown
   key in a file refuses startup and names the nearest match; one on the command line is
   reported, because the command line belongs to whatever launched the process.
 - **Six more runbooks** — orphaned partitions, Delta small files, database failover, a
@@ -416,7 +512,7 @@
   planted fault. Also new: `maya.testing` and a synthetic market dataset.
 - **Added:**
   - 28 architecture decision records (`docs/adr/`);
-  - nine runbooks (`docs/runbooks/`);
+  - fifteen runbooks (`docs/runbooks/`), the nine §20 asks for among them;
   - the specification audit of 2026-09-19 (`docs/audit/`), with what has been fixed
     since.
 - **The research paper and its article are restored and rewritten** against 0.3.0.

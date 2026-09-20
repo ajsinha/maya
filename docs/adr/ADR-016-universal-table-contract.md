@@ -23,8 +23,11 @@ page from the server; smaller tables page in the browser.
 - The macro has to be good enough that nobody wants to bypass it. If somebody does, that is
   a defect in the macro, not a reason to weaken the gate.
 - In server mode a table sorts on the columns the server can order by, one key at a time,
-  and searches the server's fields; lists filtered row by row for authorization compute an
-  exact total by scanning. Those limits are stated in the README, not hidden.
+  and searches the server's fields. A list filtered row by row for authorization still
+  reports an exact total, counted in the database one count per (namespace, owned) group
+  rather than by testing every row — which is what made a catalog of 20,000 feature sets
+  page in milliseconds instead of 150 (`docs/BENCHMARKS.md`). Those limits are stated in
+  the README, not hidden.
 - The gate was installed before the first table existed, so it has never had to be
   back-fitted, and it is seen to fail on a planted `<table>`.
 

@@ -2,6 +2,24 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.6 — 2026-09-20.** No new decisions. Like revision 2.4, this one marks places
+> where the document had fallen behind the code, each as *Revision 2.6* where it lands, found
+> by reading every sentence of it against `maya/`. §3's capability matrix still withheld
+> approval from the model owner, which the audit's batch 1 gave them precisely because a
+> production namespace could otherwise approve no execution warrant at all — the matrix is
+> the one place that record was not corrected — and it omits two object types the shipped
+> matrix carries. §13.4.2's register lists twenty seams; the resolver settles nineteen, one of
+> them (`tracing`) unlisted here, and the sandbox and SSO rows describe capabilities settled
+> by their own modules rather than by `maya/core/backends.py`. §16.1 gains the front door —
+> `/` is the landing page until somebody signs in — and says what `⌘K` and the Help menu
+> really are. §16.2 gains the compute-kernel
+> wizard, which is a screen; §16.3 the rule that a node carries its own name, and the count
+> of edge labels a fan leaves unwritten; §17.1 the rule that closes the LaTeX preview. §18.3 named
+> `maya admin user|role|grant|policy`; the shipped
+> commands are narrower and are listed. And §22.3 still draws `domain/` and `ports/`
+> subpackages that were never built (ADR-001). None of these changes what MAYA does; each is
+> a sentence somebody could have acted on.
+>
 > **Revision 2.5 — 2026-09-19.** Three corrections from building §25 and the last of the
 > audit's gaps, each marked *Revision 2.5* where it lands. The break-glass path §13.3
 > promises is now a named account rather than a restart in `mode: hybrid` (§12, §13.3).
@@ -173,14 +191,29 @@ MAYA ships eight roles, stored in the database, assignable many-to-many to a use
 | Feature definition | CRUG | CRU | RA | R | R | R | R | R |
 | Feature pin | P | request | AP | | request | | | R |
 | Feature set | CRUG | CRU | RAP | R | CRU | R | R | R |
-| Model definition | CRUG | | R | CRU | R | RA | RG | R |
+| Model definition | CRUG | R | R | CRU | R | RA | RAG | R |
 | Python artifact | CRU | | R | CRU | RU | RA | R | R |
 | LaTeX spec | CRU | | R | CRU | RU | RA | R | R |
 | Training warrant | CRUG | | R | R | CRU | RAP | RG | R |
 | Parameter set | CRU | | | R | CRU | RA | R | R |
-| Execution warrant | CRUG | | | R | R | CRUAP | RG | R |
+| Execution warrant | CRUG | | | R | R | CRUAP | RAG | R |
 | Users and roles | CRUG | | | | | | | R |
+| Namespaces | CRUG | | | | | | | |
+| Workflow policy | CRUAG | | | | | | | |
 | Jobs and queues | CRU | R own | R own | R own | R own | R own | R own | CRU |
+
+*Revision 2.6:* three cells and two rows, all of them the document catching up with
+`maya/security/roles.py`, which is the matrix the code actually reads. The **model owner
+holds `A` on a model definition and on its execution warrant**: §10.2's example policy and
+the shipped execution-warrant policy both ask the owner to sign off in a production
+namespace, and without approval capability that signature could never be given, so a
+production namespace could approve no execution warrant at all. It is `A` on the model and
+its execution warrant only — training warrants and parameter sets stay the manager's. A
+**feature designer holds `R` on a model definition**, as the code has all along: a designer
+who cannot see what consumes their feature cannot judge a change to it. And the shipped
+matrix governs two further object types, **namespaces** and
+**workflow policies**, both administrator-only; a policy is the one object an administrator
+approves rather than merely edits (§10.6).
 
 Two rules bind the matrix. **Segregation of duties**: the identity that creates or last modified an object cannot be the identity that approves it, unless an administrator has enabled `workflow.allow_self_approval` for a non-production environment. **Ownership follows creation**: the creator of a model becomes its first `model_owner` unless an administrator reassigns it, and every object has exactly one accountable owner at all times.
 
@@ -999,6 +1032,16 @@ substitution.
 | `maya/jobs/queue` (§15.2) | **C** | PostgreSQL `SKIP LOCKED` | SQLite in-process; Redis driver | Configuration, not fallback |
 | `maya/core/calendars` (§25) | **A** | a market-calendar library, if configured | **MAYA's own shipped calendar data** | Nothing. MAYA ships NYSE, LSE, TARGET and ISO business-day calendars as data, on DishtaYantra's precedent. A calendar is governance input; it is not something to discover at runtime from a package that may be a version behind |
 | Event loop | **A**, *declared* | `uvloop` + `httptools` | stdlib `asyncio` | **Neither has a Windows wheel**, so Windows always runs the stdlib loop. This is stated on the health page rather than left as an unexplained performance difference between platforms |
+| `maya/observability/tracing` | **A** | OpenTelemetry SDK | MAYA's own trace and span ids | *Revision 2.6:* a seam this table did not list. Trace ids still propagate into logs, audit entries and jobs, so a request stays followable; what is lost is export to a collector |
+
+*Revision 2.6:* two things about the shape of this table. `maya/core/backends.py` resolves
+**nineteen** seams, not the twenty-one rows above: the `tracing` row was missing and is
+added, and the **sandbox and SSO rows are not resolved there at all**. Both keep Type C's polarity —
+neither ever downgrades quietly — but a sandbox tier is settled by a probe child that tries
+to escape (`maya/security/sandbox.py`) and SAML's availability by a startup refusal naming
+`xmlsec` (`maya/services/sso.py`), because neither question is answered by whether a module
+imports. They are reported on the health page beside the nineteen rather than among them.
+The `search` row has one backend on both databases and no fallback to choose (ADR-019).
 
 #### 13.4.3 Rules that apply to every seam
 
@@ -1225,16 +1268,48 @@ The cost is honest: on the clustered topology every page view becomes an HTTP ca
 
 A fixed top navigation bar with six areas — **Catalog**, **Workbench**, **Models**, **Warrants**, **Workflow**, **Admin** — each opening a mega-menu panel whose entries carry an icon and a one-line description, plus a global command palette (`⌘K`) that searches every object by name, tag, owner and lineage. Every object page has the same five-tab shape: *Overview*, *Definition*, *Data*, *Lineage*, *History & Comments*. Learning one object teaches all of them.
 
+*Revision 2.6:* three things as built. A **seventh menu, Help**, sits beside the six and is
+public, because the argument for governing a model has to be readable by somebody who does
+not yet have an account. **Admin is shown only to `admin` and `techops`**, so the bar a
+reader sees has six menus or seven depending on who they are. `⌘K` (and `Ctrl-K`) focuses the
+navigation's search box rather than opening a palette of its own, and what that search
+reaches is the inverted index of ADR-019 — name, tags, namespace and description, ranked in
+that order and filtered by read permission. It does not search by owner or along lineage;
+the catalog's facets do the first (§16.2) and the canvas the second (§16.3).
+
+**The front door.** `/` is the **landing page** when nobody is signed in and the dashboard
+when somebody is, and signing out returns to it rather than to the sign-in form. A visitor
+handed a password box has been asked "who are you" before being told why they would want an
+account here, and somebody who has just left is not halfway through arriving. The landing
+page states what the platform is for and draws the chain it keeps — source data, a bitemporal
+feature, a pin sealed by its own hash, a typed formula, a warrant without which nothing runs
+— and every arrow in that figure is an object MAYA stores, so the illustration and the
+argument are the same drawing. Help and About are reachable from it, which is what makes the
+two doors it offers real ones.
+
 ### 16.2 Screen inventory
 
 | Area | Screens |
 | --- | --- |
 | Catalog | Search and browse with faceted filters (namespace, type, owner, status, tag, freshness); object pages for feature, feature set, model, warrant; pin browser; comparison view |
 | Workbench | Feature designer (schema, source, resolution, transform pipeline, live sample preview with fill report); feature set builder (drag members, map attributes, choose alignment, preview); upload wizard with schema inference and cast-failure preview; download dialog with format and array-encoding choice |
-| Models | Model editor (formula builder with live LaTeX rendering, input contract, Python editor, parameter sets); spec document editor with PDF export; model diff viewer |
+| Models | Model editor (formula builder with live LaTeX rendering, input contract, Python editor, parameter sets); spec document editor with PDF export; model diff viewer; compute-kernel wizard |
 | Warrants | Warrant creation wizard with contract validation; warrant detail with chain of custody; parameter upload and metric comparison; execution manifest preview |
 | Workflow | My queue, review screen with semantic diff and inline comments, campaign console, delegation settings, SLA aging report |
 | Admin | Users, roles, groups, SSO config, namespaces and quotas, workflow policy editor, storage and connection settings, job console, audit explorer, system health, feature flags |
+
+*Revision 2.6:* the **compute-kernel wizard** (`/models/kernel`, SDK `models.kernel`) is the
+translation step of registering a model, offered on its own. Mathematics goes in; what comes
+back is the LaTeX rendered from the tree MAYA parsed rather than from the text that was
+typed, so a misreading is visible; the typed IR a version would store, with its hash; the
+inputs with the role each was given; and Python that computes it. It creates nothing and
+reads nothing, and one button carries the formula and the roles into the designer when the
+translation is right. The generated code is deliberately **not** the reference module of
+§8.3: `to_python_kernel` emits exactly one function, with its imports and helpers nested
+inside it, because a file pasted into somebody else's notebook must collide with nothing,
+whereas the reference module is a file a validator runs on its own. Two generators over one
+tree that disagreed would be a defect in one of them, so a test runs the kernel against the
+reference implementation.
 
 ### 16.3 Lineage and algebra canvas
 
@@ -1257,6 +1332,20 @@ The algebra of sections 5.8, 6.8 and 8.7 is only as useful as it is visible, so 
 **Working from the canvas.** Selecting two features and choosing an operator opens the definition editor prefilled with that algebra expression, so the graph is an authoring surface, not just a report. Selecting a subtree offers cascade pin. A change in review renders as an overlay on the canvas — added nodes green, changed amber, removed struck through — which is the impact analysis of section 19 in visual form.
 
 **Scale.** Graphs beyond ~300 visible nodes switch to a focus-plus-context layout: the selected neighbourhood is drawn in full and the rest collapses into namespace clusters with counts, expandable on demand. Layout runs client-side with a server-side path query, so a deep lineage trace does not ship the whole graph to the browser.
+
+*Revision 2.6:* **a node carries its own name**, which decides the geometry rather than
+following from it. Nodes are boxes sized to the text inside them and the zoom is capped at
+1:1, because shapes too small to hold a word left the label floating underneath and a
+`fit()` that zoomed to fill the canvas magnified six of them into one line. The kind is
+therefore carried by colour; only an operator keeps its diamond, since its labels are one
+short word. A node is labelled with a name and a version rather than a whole ref —
+`warrant/train/impairment/ecl_fit_2025h1@v1` drawn whole is four times the width of the
+thing it names — a pin says that it is a pin, so that it and the version it seals are not
+the same two lines twice, and a parameter set's content hash is cut to the ten characters
+that identify it here. A fan of edges that all say `parameterized_by` writes that word once,
+and **the status line says how many repeats went unnamed**, because the rule everywhere else
+in MAYA applies to a drawing too: nothing is hidden silently (see the `hidden` count on
+`GET /lineage` for objects the caller may not read).
 
 ### 16.4 Interaction principles
 
@@ -1351,7 +1440,7 @@ with the Python and LaTeX (`stex`) modes, and is what ships.
 
 ### 17.1 LaTeX editor
 
-Split pane: source on the left, rendered preview on the right. Preview uses KaTeX for formulas and a client-side renderer for structure, updating within ~200 ms of a keystroke — fast feedback without a server round-trip. **Export to PDF** compiles the real document with Tectonic in a sandboxed worker, which
+Split pane: source on the left, rendered preview on the right. Preview uses KaTeX for formulas and a client-side renderer for structure, updating within ~200 ms of a keystroke — fast feedback without a server round-trip. *Revision 2.6:* the rule that closes the preview is worth stating, because a preview with a hole in it tells a reader about itself instead of about their document. Headings render wherever they stand rather than only at the start of a paragraph; lists, display-maths environments, verbatim blocks and the transparent wrappers render; an environment the renderer does not typeset — a `tabular` above all — **names itself as skipped** and says the PDF build carries it; and **nothing backslash-shaped reaches the reader**: an unknown `\command{arg}` renders `arg` and a bare `\command` disappears. Escaped characters are set aside before the maths scanner runs, so `\$5` cannot open an equation. **Export to PDF** compiles the real document with Tectonic in a sandboxed worker, which
 guarantees the PDF is a true LaTeX build rather than an approximation of one. Where
 Tectonic is unavailable — an air-gapped site, a platform with no build, an installation
 that declined the download — MAYA does **not** silently produce something that looks like
@@ -1578,7 +1667,9 @@ The SDK depends only on `httpx`, `pydantic` and `pyarrow`; `polars` and `pandas`
 
 ### 18.3 CLI
 
-`maya` wraps the SDK for scripting and CI: `maya feature list|show|upload|pin|download|diff`, `maya featureset build|pin|download`, `maya model push|validate|diff`, `maya warrant create|fetch|upload-params|seal`, `maya job watch|cancel`, `maya admin user|role|grant|policy`, `maya export bundle|verify`. Output is human-readable by default and `--json` for pipelines; every command returns meaningful exit codes so CI can gate on them.
+`maya` wraps the SDK for scripting and CI: `maya feature list|show|quick|upload|pin|download|diff`, `maya featureset build|pin|download`, `maya model push|import-workbook|validate|diff`, `maya warrant create|fetch|upload-params|seal`, `maya job watch|cancel`, `maya export bundle|verify`, `maya key list|create|rotate|revoke|report` and `maya credential list|create`. Output is human-readable by default and `--json` for pipelines; every command returns meaningful exit codes so CI can gate on them.
+
+*Revision 2.6:* the administrative half is spelled out rather than implied. There is no `maya admin user`: each is a verb of its own, because these are scripted one at a time and a group that dispatches on a second positional word reads worse in a shell history. `maya admin user-list|user-create|user-roles`, `role-list|role-create`, `namespace-list|namespace-create`, `grant-list|grant-add`, `policy-list|policy-show|policy-import|policy-activate`, `verify-integrity`, `record-drill|drills`, `cold-pins|archive-pin|restore-pin|collect-fragments`, and the three that run beside the database rather than through a server — `init-db`, `export-estate`, `import-estate` (§14.3).
 
 ### 18.4 Reproducibility bundle
 
@@ -1707,6 +1798,15 @@ Full type annotations, `mypy --strict` on the domain and service layers. Errors 
 knowledge: it is a general Delta Lake implementation, reachable only through the
 `LakeStore` port of §25, independently testable, and swappable for something better
 without touching a line of MAYA.
+
+*Revision 2.6:* **`domain/` and `ports/` were never built** and this drawing is older than
+the code (ADR-001). Domain rules live in `maya/services/`, and the ports are the repository
+and lake interfaces in `maya/persistence/` and `maya/storage/`. The drawing is kept as the
+shape that was intended, because the boundaries it was drawn to protect are the ones the
+gates enforce by module name — `maya.persistence` and `maya.sdk` — and those exist. What
+was lost is the cheap answer to "where does a rule with no I/O live"; in practice it lives
+in a service beside the transaction that uses it, and a service module grows until the file
+size gate notices.
 
 ### 22.4 Conventions
 

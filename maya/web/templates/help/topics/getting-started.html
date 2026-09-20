@@ -38,9 +38,11 @@ start MAYA.</p>
 {% endcall %}
 
 {% call step(2, 'Sign in and change the bootstrap password') %}
-<p>Open <code>http://localhost:8600</code> and sign in as <strong>admin</strong> with
+<p>Open <code>http://localhost:8600</code>. Signed out, that is the landing page, not a password
+box; take <strong>Sign in</strong> from it and sign in as <strong>admin</strong> with
 <code>maya-dev-admin</code>. MAYA makes you choose your own password before anything else, and shows a
-warning on every page until you do.</p>
+warning on every page until you do. Afterwards <code>/</code> is your dashboard, and signing out
+returns you to the landing page.</p>
 {% call warn('The bootstrap password is public') %}
 <p>It is printed in this help and in the README. Outside a laptop, change it before creating any
 data, then create named accounts: <strong>Admin → Users &amp; roles</strong>.</p>

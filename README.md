@@ -80,7 +80,7 @@ That is māyā, and it is model risk, in one figure.
 
 ## Status — read this first
 
-**Version 0.3.0 (2026-09-19), built from specification revision 2.3.**
+**Version 0.3.0 (2026-09-19), built from specification revision 2.6.**
 The whole spine runs through the web UI, the REST API, the SDK and the CLI:
 source → feature → feature set → pin → model → training warrant → parameter set →
 execution warrant → reproducibility bundle. The SDK's own version, `CLIENT_VERSION`, is
@@ -93,11 +93,11 @@ execution warrant → reproducibility bundle. The SDK's own version, `CLIENT_VER
 | **Shipped** | [What's shipped](#whats-shipped), below — every capability with the tests that prove it |
 | **Measured** | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) — SC-4, SC-5, 100k-object search and the four §24.3 capacity targets pass; SC-3 is not met reliably |
 | **Changes** | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) |
-| **Audited** | [`docs/audit/spec-audit-2026-09-19.md`](docs/audit/spec-audit-2026-09-19.md) — the specification read against the code, requirement by requirement: of about 540, some 195 are built and tested, 28 built but untested, 123 partly built and 84 not built. The gaps are ranked; what has been fixed since is marked at the top |
-| **Decisions and operations** | [`docs/adr/`](docs/adr/) — 28 architecture decision records; [`docs/runbooks/`](docs/runbooks/) — nine runbooks, the restore drill among them, performed and recorded |
+| **Audited** | [`docs/audit/spec-audit-2026-09-19.md`](docs/audit/spec-audit-2026-09-19.md) — revision 2.3 read against the code, requirement by requirement: of about 540, some 195 were built and tested, 28 built but untested, 123 partly built and 84 not built. The gaps were ranked; every ranked gap has since been closed but for one clause of gap 14, and the header says which |
+| **Decisions and operations** | [`docs/adr/`](docs/adr/) — 28 architecture decision records; [`docs/runbooks/`](docs/runbooks/) — fifteen runbooks, the nine §20 asks for among them, the restore drill performed and recorded |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 1,684 on Linux: 1,674 pass on SQLite and 10 are skipped (the eight Keycloak tests, `tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`, and the two multi-process server tests, which need PostgreSQL). The suite last ran green on PostgreSQL 16, 17 and 18 at 1,262 tests; the ones added since have run on SQLite only. With every Type A seam pinned to its fallback (`gates.py --fallback`) it passed at 1,150 tests and has not been rerun since. They include real-browser tests in headless Chrome, a multi-process server, a worker process, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. Line coverage was 92.9% at 0.3.0, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green — lint, strict typing of `maya/services`, file size, both import boundaries, import cycles, public names per module, seam imports, SDK public symbols, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 214 endpoints, UI↔SDK parity, the API contract snapshot, protocol literals, bandit, schema drift. `--tests`, `--fallback`, `--security` and `--bench` add the suite with coverage, the fallback matrix, pip-audit with the sandbox tests, and the benchmark regression check |
+| **Tests** | 1,706 on Linux: 1,695 pass on SQLite and 10 are skipped (the eight Keycloak tests, `tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`, and the two multi-process server tests, which need PostgreSQL). One fails and is a stale assertion rather than a defect in the product: `tests/test_web.py::test_logout` still expects the sign-out destination that changed when `/` became the landing page. The suite last ran green on PostgreSQL 16, 17 and 18 at 1,262 tests; the ones added since have run on SQLite only. With every Type A seam pinned to its fallback (`gates.py --fallback`) it passed at 1,150 tests and has not been rerun since. They include real-browser tests in headless Chrome, a multi-process server, a worker process, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. Line coverage was 92.9% at 0.3.0, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green — lint, strict typing of `maya/services`, file size, both import boundaries, import cycles, public names per module, seam imports, SDK public symbols, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 215 endpoints, UI↔SDK parity, the API contract snapshot, protocol literals, bandit, schema drift. `--tests`, `--fallback`, `--security` and `--bench` add the suite with coverage, the fallback matrix, pip-audit with the sandbox tests, and the benchmark regression check |
 
 ### Out of scope by decision
 
@@ -172,11 +172,15 @@ something that should be read plainly:
   PostgreSQL. The per-pod figure and Delta table size (2 TB per
   feature) have not been measured. Several web processes need PostgreSQL; MAYA refuses
   them over SQLite.
-- **The specification is not fully built.** The audit above lists what is partly built
-  or missing, ranked by what it costs a user: among the largest, feature-set operators
-  beyond `extend`, subscriptions, enforced quotas, upload size limits, the SDK's object
-  handles, and the review screen's semantic diff. This README's *What's shipped* lists
-  only what is built and tested.
+- **The specification is not fully built.** The audit above ranked what was partly built
+  or missing by what it costs a user. Every ranked gap has since been closed — the
+  feature-set algebra, subscriptions, enforced quotas, upload and archive limits, the
+  SDK's object handles, the review screen's semantic diff, the fragment collector and
+  the rest — but for one clause of gap 14: a pin download still takes every byte through
+  the API tier rather than through a presigned object-store URL, because there is no
+  object store to presign from. What remains beyond the ranking is the long tail of the
+  audit's own per-requirement tables, which nobody has re-walked since 2026-09-19. This
+  README's *What's shipped* lists only what is built and tested.
 - **Server-side paging is per page, not per threshold.** Features, feature sets, models,
   audit, events and jobs always page from the server; smaller tables stay client-side. In
   server mode a table sorts on the columns the server can order by (name, update time,
@@ -245,6 +249,8 @@ promised and did not deliver is marked in
 | **M5** Every transition, every role; separation of duties per preset; delegation and escalation | `maya/workflow/engine.py` | `tests/test_workflow_matrix.py`, `tests/test_delegation.py` |
 | **M5** Workspaces and shadow replay; approval is the merge | `maya/services/workspaces.py` | `tests/test_workspaces.py` |
 | **M6** The formula IR: parse, render, evaluate, diff, codegen, lift, composites, conformance | `maya/formula/` | `tests/test_formula.py`, `tests/test_language_tables.py` |
+| **M6** The compute-kernel wizard: mathematics in, the typed IR with its hash and one self-contained Python function out, creating nothing | `maya/formula/codegen.py` (`to_python_kernel`), `maya/services/models.py` (`kernel`), `/models/kernel` | `tests/test_compute_kernel.py` (`test_the_kernel_is_one_function_and_nothing_else`, `test_the_kernel_and_the_reference_module_compute_the_same_thing`, `test_the_wizard_page_translates_and_carries_its_work_to_the_designer`) |
+| §8.4 Joint parameter constraints, checked on upload where per-parameter bounds are | `maya/formula/ir.py` (`constraint_errors`), `maya/services/warrants.py` (`check_constraints`) | `tests/test_formula.py` (`test_a_model_can_declare_a_constraint_bounds_cannot_express`) |
 | **M6** Artifact validation, one refusal per rung; the Linux sandbox attacked | `maya/security/sandbox.py`, `maya/security/sandbox_runner.py` | `tests/test_sandbox.py`, `tests/test_sandbox_linux.py` |
 | **M6** Specification documents: true Tectonic builds, labelled drafts without it | `maya/core/typeset.py`, `maya/formula/specdoc.py` | `tests/test_typeset.py`, `tests/test_warrants.py` (`test_model_submission_is_blocked_by_an_incomplete_spec`) |
 | **M6** Spreadsheets as models, checked against the workbook and against LibreOffice Calc | `maya/formula/xlsx.py` | `tests/test_spreadsheet.py`, `tests/test_spreadsheet_libreoffice.py` |
@@ -344,7 +350,7 @@ Four risks have no clean fix and are accepted with mitigation rather than waved 
 | Lakehouse | **`maya_delta`** — native `deltalake` preferred, MAYA's own pure-Python Delta as fallback | ACID and time travel with no JVM and no Spark, and no hard dependency on someone else's build matrix having a wheel for the platform in front of us |
 | UI | Jinja2 + **Bootstrap 5** + **jQuery**, vendored, **no build pipeline**, Harvard Crimson | Renders air-gapped. A developer moves between MAYA and DishtaYantra without relearning the layout grammar |
 | Startup | One entry point: `python run_maya_web.py` | A second way to start a server is a second set of startup invariants to get wrong |
-| Dependency seams | **Twenty** optional or native components sit behind named MAYA seams, resolved once at startup and reported | A capability must not vanish because a wheel does not exist for the interpreter in front of us |
+| Dependency seams | **Nineteen** optional or native components sit behind named MAYA seams, resolved once at startup by `maya/core/backends.py` and reported in the banner and on the health page | A capability must not vanish because a wheel does not exist for the interpreter in front of us |
 | LaTeX | Tectonic in a sandboxed worker | Deterministic PDFs, no system TeX |
 | Observability | OpenTelemetry, Prometheus, structured JSON logs | Vendor-neutral |
 
@@ -370,11 +376,13 @@ The part that matters is not the list but the **polarity** — which side is aut
   byte-compares rather than tests. Get this polarity backwards and two pins of identical
   data hash differently depending on which machine wrote them — SC-1 passes on each
   machine separately while being false across them.
-- **Type C — substitutable, never downgraded.** Signing, the sandbox, SSO, object store,
-  job queue. A hand-rolled fallback signer is how a governance platform ships a
-  vulnerability, so absence here is a **refusal with a named reason**, not a quiet
-  substitution. SAML without `xmlsec` fails at *startup* with the package named, rather
-  than at the first person's login.
+- **Type C — substitutable, never downgraded.** Signing, object store, job queue. A
+  hand-rolled fallback signer is how a governance platform ships a vulnerability, so
+  absence here is a **refusal with a named reason**, not a quiet substitution. The
+  sandbox and SSO follow the same polarity without sitting in the resolver: each is
+  settled by its own module, because a sandbox tier is verified by a probe child rather
+  than by an import. SAML without `xmlsec` fails at *startup* with the package named,
+  rather than at the first person's login.
 
 §13.4.4 lists what is deliberately **not** proxied — Arrow, SQLAlchemy, FastAPI, the
 database engines — and why, because a pattern applied everywhere stops being a decision.
@@ -412,7 +420,8 @@ maya/
 maya_delta/                # Delta Lake: native (delta-rs) and pure-Python backends
 tools/ci/                  # the gates, in Python so they run on every OS
 tools/bench/               # the benchmarks behind docs/BENCHMARKS.md
-case_studies/              # fifty worked models, each a folder of runnable steps (see below)
+case_studies/              # nine worked models, each a folder of runnable steps, out of a
+                           #   numbered catalogue of fifty (see below)
 tools/docs/                # build_spec.py: the specification's .docx and .pdf from the Markdown
 docs/                      # the specification, the plan, BENCHMARKS.md, CHANGELOG.md
 └── benchmarks/            #   the unedited JSON result of every benchmark run
@@ -521,9 +530,10 @@ Every input feed is synthetic, generated by the `make_data.py` beside it from a 
 stated in that file's docstring, and committed so a reader can open exactly what MAYA was
 given. No real borrower, loan, patient or counterparty appears anywhere in the folder.
 
-Writing them has been the most productive source of defects in the platform: twelve so far,
-each fixed with a test that would fail without the fix, and each named in the study that
-found it.
+Writing them has been the most productive source of defects in the platform: around a dozen
+so far, each fixed with a test that would fail without the fix. Several are named in the
+study that found them; the rest are in the commit history rather than in a study's own
+words, which is the weaker arrangement and is why the count is approximate.
 
 ---
 
@@ -531,10 +541,14 @@ found it.
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
-python run_maya_web.py                 # http://127.0.0.1:8600 — log in as admin / maya-dev-admin
+python run_maya_web.py                 # http://127.0.0.1:8600 — the landing page, then
+                                       #   Sign in as admin / maya-dev-admin
 ```
 
-Change the admin password when prompted. To switch the database, set `db.dialect` in
+`/` is the landing page until somebody signs in and the dashboard afterwards, and signing
+out returns to it: a visitor who has not been told what MAYA is should not be handed a
+password box. Change the admin password when prompted — an administrator-set password must
+be changed at first sign-in (§12). To switch the database, set `db.dialect` in
 `config/application.yaml`, set `MAYA_DB_DIALECT`, or pass
 `python run_maya_web.py --db.dialect=postgresql`, then supply `db.postgresql.*`, with the
 password from `MAYA_PG_PASSWORD` or `config/application.local.yaml`. The schema is created

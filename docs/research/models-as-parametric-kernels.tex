@@ -73,25 +73,21 @@
 \newcommand{\pt}{\textbf{In plain terms.}\ }
 \newcommand{\wk}[1]{\textbf{Worked example: #1}\par\smallskip}
 
-% ---- provenance of a claim ------------------------------------------------
-% Every formal claim in this paper is marked with where it is enforced. A claim
-% that is stated and not executed is marked as such, in the place a reader would
-% look for the executable one.
+% ---- where a claim is enforced --------------------------------------------
+% The argument of this paper is that a declared fact decays. A paper is a
+% declaration, so the same standard applies to it: every formal claim below
+% carries a marker saying what carries it in the implementation, and the
+% markers that say "nothing" are the ones that matter. A document implying
+% that every claim is checked, while some are not, commits the error the
+% paper is about.
 \newcommand{\runs}[1]{\par\smallskip\noindent{\footnotesize\raggedright\textsf{Runs:}
   \texttt{#1}\par}\smallskip}
 \newcommand{\stated}[1]{\par\smallskip\noindent{\footnotesize\raggedright\textsf{Not
   executed:} #1\par}\smallskip}
-% For a claim that IS executed but needs a sentence rather than a path — where
-% what the implementation does is not obvious from the name of the file doing it.
 \newcommand{\runsprose}[1]{\par\smallskip\noindent{\footnotesize\raggedright\textsf{Runs:}
   #1\par}\smallskip}
-% For a claim the implementation does not carry at all. This revision is written
-% against MAYA 0.3.0 (specification revision 2.3), a ground-up rebuild; several
-% constructions the previous build carried are not in it, and each is marked here
-% rather than silently dropped from the argument.
 \newcommand{\absent}[1]{\par\smallskip\noindent{\footnotesize\raggedright\textsf{Not in
-  \textsc{Maya} 0.3.0:} #1\par}\smallskip}
-% Partly carried: the marker says which part runs and which does not.
+  \textsc{Maya}:} #1\par}\smallskip}
 \newcommand{\partly}[1]{\par\smallskip\noindent{\footnotesize\raggedright\textsf{In part:}
   #1\par}\smallskip}
 
@@ -128,51 +124,42 @@ foundation-model applications, vendor black boxes, elicited rating schemes, dete
 and must govern them as one population. The systems built to discharge that obligation run on
 \emph{declared} facts: somebody types what kind of artefact this is, somebody asserts that this version
 may replace that one, somebody writes down what a training set could have known, somebody records in
-prose what a conclusion rests on. Declared facts decay silently, and every pathology practitioners
-report is a declaration that has drifted from the thing it describes.
+prose what a conclusion rests on. A declared fact is true at the moment it is typed and at no guaranteed
+moment afterwards, and every pathology practitioners report in these systems is a declaration that has
+drifted from the thing it describes.
 
 We argue that four of these facts need not be declared at all, and give the algebra that derives each.
 A model is a morphism in $\Para(\Stoch)$: a parameter object $P$ and a kernel
 $f \colon P \otimes X \to \mathcal{D}(Y)$. From \emph{how $P$ is inhabited} we derive the trainability
 class, so that ``some governed artefacts are never trained'' becomes a type-level fact rather than a
-special case. From a single partial order on schemas --- $A \sqsubseteq B$, read \emph{$A$ can stand in
-for $B$} --- we derive substitutability, featureset adequacy, and whether two artefacts may be wired
-together; the order is a lattice, its meet is partial and informatively so, and one relation replaces
-four implementations that were free to disagree. From the point-in-time read presented as an operator
-$\AsOf(R,\ell,a)$ we derive reproducibility: the operator is idempotent, commutes with projection,
-monotone in the observation time and --- because the ingest bound is $\min(\ell,a)$ --- \emph{saturating}
-at the label, which is the guarantee that a training row re-assembled a year later is the row that was
-assembled originally. From the free commutative semiring $\Nat[X]$ we derive every question about what a
-claim or a feature rests on, each as a pushforward along a homomorphism; the ingest clock of a derived
-feature is one of them, which upgrades a rule that could be forgotten into a homomorphism that has no
-exceptions.
+special case to be remembered. From a single partial order on schemas --- $A \sqsubseteq B$, read
+\emph{$A$ can stand in for $B$} --- we derive substitutability, feature-set adequacy and whether two
+artefacts may be wired together; the order is a lattice, its meet is partial and informatively so, and
+one relation replaces four implementations that were free to disagree. From the point-in-time read
+presented as an operator $\AsOf(R,\ell,a)$ we derive reproducibility: the operator is idempotent,
+commutes with projection, monotone in the observation time and --- because the ingest bound is
+$\min(\ell,a)$ rather than $a$ --- \emph{saturating} at the label, which is precisely the guarantee that
+a training row re-assembled a year later is the row that was assembled originally. From the free
+commutative semiring $\Nat[X]$ we derive every question about what a claim or a feature rests on, each as
+a pushforward along a homomorphism; the ingest clock of a derived feature is one of them, which upgrades
+a rule that could be forgotten into a homomorphism that has no exceptions.
 
 We are equally explicit about what does not derive. Aggregate risk cannot be compositional, and the
-obstruction is exactly the comonoid copy map. The currency valuation $(\max,\max)$ is not a semiring ---
-its zero does not annihilate, and no choice of constants within its carrier repairs it --- so the
-universal property does not reach it until a fresh zero is adjoined, a repair the previous revision
-missed. And some facts \emph{constitute} the standard they would be checked against: a tiering
-rule, a regime encoding, an approval. That boundary, drawn for governance reasons, turns out to be the
-same boundary that decides where machine generation is admissible, which we regard as the most useful
-consequence of the account.
+obstruction is exactly the comonoid copy map --- structural, rather than a modelling difficulty a better
+correlation assumption removes. A currency valuation over a totally ordered carrier is not a semiring
+valuation at all, because its zero does not annihilate, and it becomes one only when ``no support'' is
+given a value of its own. And some facts \emph{constitute} the standard they would be checked against: a
+tiering rule, a regime encoding, an approval. That boundary, drawn for governance reasons, turns out to
+be the same boundary that decides where machine generation is admissible, which we regard as the most
+useful consequence of the account.
 
-Each claim is marked with where it is enforced, and this revision is written against a system that
-carries fewer of them than the one the previous revision described. \textsc{Maya}, the platform this
-account came out of, was rebuilt from nothing in September 2026 against a new specification (revision
-2.3); at version 0.3.0 it is a register of features, feature sets, models and the \emph{warrants} that
-license a model to be trained or run, with some 170 Python modules and more than 1{,}200 tests. Some of the
-derivations below are in it --- the point-in-time read (as a certified cut rather than the operator of
-\Cref{def:asof}), the partial meet, parameter accumulation, three valuations over the support of a
-derivation --- and several are not: the trainability classification beyond its first row, the lattice as
-a whole, the provenance polynomial, tiering, regimes. Every claim carries a marker saying which, and
-\Cref{sec:laws} gives the register. The previous build's executable law suite did not survive the rebuild,
-and this revision does not pretend otherwise: a law that is stated and not executed prevents nothing, and
-a document implying otherwise is the failure the discipline exists to prevent.
-
-\Cref{sec:implementation} gives the numbers, the map from proposition to module and test, and the places
-where building and measuring the new system changed what the paper says --- including a defect found by
-writing this revision: six of the feature algebra's operators drop the knowledge clock that
-\Cref{prop:clockhom} says every derivation must carry.
+Every formal claim is marked with what carries it in \textsc{Maya}, a platform the author built to the
+account and released as the artefact accompanying this paper
+(\url{https://github.com/ajsinha/maya}). The markers are not uniformly favourable and are not meant to
+be: several constructions are implemented, several run in a weaker form the paper states exactly, and
+several are not implemented at all. \Cref{sec:laws} gives the register, \Cref{sec:implementation}
+gives the system and its measurements, and \Cref{sec:limits} states what the implementation does not
+establish --- which includes the claim that most concerns a practitioner.
 \end{abstract}
 
 \section{Introduction}
@@ -188,31 +175,6 @@ retrieval-augmented language model drafting regulatory narratives; a third-party
 internals are contractually unavailable; a country-risk rating scheme whose weights are set by a
 committee; and several thousand rule sets and spreadsheets.
 
-\begin{remark}[On the supervisory sources, and how much this paper leans on them]\label{rem:sources}
-We cite two supervisory texts throughout: the United Kingdom's SS1/23 \cite{ss123}, in force since 2024,
-and a 2026 United States revision of the model risk management guidance, cited as SR~26-2 / OCC Bulletin
-2026-13 \cite{sr262}. A reader should treat the second differently from the first. It is recent, its
-status and final text may not yet be settled in the reader's jurisdiction or at the reader's date, and an
-earlier draft of this paper narrated it as the settled successor to SR~11-7 \cite{sr117} without saying
-so. That was an overreach and it is corrected here.
-
-It matters less to the argument than it may appear. The four declared-fact pathologies below are readable
-off SR~11-7 and SS1/23 alone: SR~11-7 has carried the aggregate-risk expectation, the
-independent-challenge requirement and the inventory obligation since 2011. And the definitional narrowing
-we use to motivate plural scope is a \emph{recurring} feature of model-risk definitions rather than a
-property of one revision --- SR~11-7's own ``quantitative method \ldots that applies statistical,
-economic, financial, or mathematical theories'' already sits awkwardly against a deterministic rule set
-that a firm nonetheless has to govern, and against a language model that governs nothing and drafts
-everything.
-
-Where a claim here depends specifically on the 2026 revision it is doing \emph{illustrative} and not
-load-bearing work, and where the reader's jurisdiction has a different text the substitution is
-mechanical. That it is mechanical is the point of \Cref{sec:declared}: a regime is an institution, and
-swapping one for another is a change of signature and sentences rather than a change of platform. A
-formalism whose argument collapsed when a supervisor revised a definition would be evidence against
-itself.
-\end{remark}
-
 These artefacts have essentially nothing in common at the level of implementation. Yet they are subject
 to a single normative obligation. Supervisory guidance requires an institution to maintain an inventory
 of them, classify each by materiality, subject each to independent challenge proportionate to that
@@ -224,6 +186,29 @@ applying statistical, economic or financial theory, explicitly excluding determi
 remarkably, generative systems; another defines it broadly enough to include expert-judgment inputs and
 qualitative outputs \cite{ss123,euaiact}. An institution operating in both must satisfy a narrow and a
 broad scope simultaneously over one population.
+
+\begin{remark}[On the supervisory sources, and how much this paper leans on them]\label{rem:sources}
+We cite two supervisory texts throughout: the United Kingdom's SS1/23 \cite{ss123}, in force since 2024,
+and a 2026 United States revision of the model risk management guidance, cited as SR~26-2 / OCC Bulletin
+2026-13 \cite{sr262}. A reader should treat the second differently from the first. It is recent, and its
+status and final text may not be settled in the reader's jurisdiction or at the reader's date.
+
+It matters less to the argument than it may appear. The four declared-fact pathologies below are readable
+off SR~11-7 and SS1/23 alone: SR~11-7 has carried the aggregate-risk expectation, the
+independent-challenge requirement and the inventory obligation since 2011 \cite{sr117}. And the
+definitional narrowing we use to motivate plural scope is a \emph{recurring} feature of model-risk
+definitions rather than a property of one revision --- SR~11-7's own ``quantitative method \ldots that
+applies statistical, economic, financial, or mathematical theories'' already sits awkwardly against a
+deterministic rule set that a firm nonetheless has to govern, and against a language model that governs
+nothing and drafts everything.
+
+Where a claim here depends specifically on the 2026 revision it is doing \emph{illustrative} and not
+load-bearing work, and where the reader's jurisdiction has a different text the substitution is
+mechanical. That it is mechanical is the point of \Cref{sec:declared}: a regime is an institution, and
+swapping one for another is a change of signature and sentences rather than a change of platform. A
+formalism whose argument collapsed when a supervisor revised a definition would be evidence against
+itself.
+\end{remark}
 
 \subsection{Declared facts, and why they rot}
 
@@ -239,7 +224,7 @@ say so accumulates records that mean nothing. The declaration is also the only t
 the taxonomy and reality: nothing checks that an artefact declared ``rule set'' has no fitted
 parameters.
 
-\paragraph{D2: fit is declared.} ``This version may replace that one.'' ``This featureset provides what
+\paragraph{D2: fit is declared.} ``This version may replace that one.'' ``This feature set provides what
 that model reads.'' ``This model's output goes into that model.'' Each is a claim that one thing can
 stand where another stood. In the systems we have examined each is answered by its own code path, and
 four implementations of one relation eventually disagree --- predictably in the direction of permitting
@@ -276,16 +261,16 @@ polynomial.
 \item \Cref{sec:asof} presents the point-in-time read as an operator and proves four properties of it,
       of which the fourth --- saturation at the label --- \emph{is} reproducibility
       (\Cref{prop:asof,cor:repro}). D3 dissolves: the condition is a property of an operator rather
-      than a convention in a query. \Cref{sec:cutcert} then relates the operator to what \textsc{Maya}
-      0.3.0 actually does --- a scalar cut and a signed certificate of the per-row bound --- and proves
-      that a clean certificate certifies the operator (\Cref{prop:certagrees}).
+      than a convention in a query. \Cref{sec:cutcert} then relates the operator to the arrangement
+      \textsc{Maya} implements --- a scalar cut and a signed certificate of the per-row bound --- and
+      proves what that arrangement is worth (\Cref{prop:certagrees,cor:reproorrefused}).
 \item \Cref{sec:poly} annotates evidence and derived features over the free commutative semiring
       $\Nat[X]$ and shows that every other question is a pushforward along a homomorphism
       (\Cref{prop:universal}), including the ingest clock of a derived feature
-      (\Cref{prop:clockhom}). D4 dissolves. We also prove that the currency valuation cannot be one of
-      these homomorphisms over its own carrier (\Cref{prop:freshness}), correct the previous revision on
-      how it can be repaired (\Cref{prop:adjoin}), and show the same defect in three computations of the
-      rebuilt system (\Cref{sec:support}).
+      (\Cref{prop:clockhom}). D4 dissolves. We also prove that a currency valuation cannot be one of
+      these homomorphisms over its own carrier (\Cref{prop:freshness}), give the repair
+      (\Cref{prop:adjoin}), and show the defect the repair addresses arising in three separate
+      computations of the implementation (\Cref{sec:support}).
 \item \Cref{sec:fibration} indexes evidence requirements as the fibres of a fibration, and shows that the
       base of that fibration must itself be derived: a declared base cannot deliver conservative extension
       and totality together (\Cref{prop:derivedbase}). \Cref{sec:rulesets} treats the one class whose
@@ -294,7 +279,7 @@ polynomial.
 \item \Cref{sec:declared} draws the complement honestly: the facts that must be declared because they
       \emph{constitute} the standard against which anything else is checked.
 \item \Cref{sec:laws} states the discipline that keeps the rest from becoming ornament, gives the
-      register of every claim against the rebuilt system --- what runs, what runs in part, what is not
+      register of every claim against the implementation --- what runs, what runs in part, what is not
       there --- and states the properties an executable law delivers that a documented one does not.
 \item \Cref{sec:automation} observes that the derive/declare boundary of
       \Cref{sec:order,sec:asof,sec:poly,sec:declared} is exactly the boundary that decides where
@@ -322,7 +307,7 @@ What we claim is new, in decreasing order of confidence:
 (i) the derivation of the trainability classification from the inhabitation of $P$
 (\Cref{prop:classification}), and the observation that it makes ``never trained'' a type and not an
 exception;
-(ii) the identification of \emph{one} schema order as the common content of substitutability, featureset
+(ii) the identification of \emph{one} schema order as the common content of substitutability, feature-set
 adequacy and composability, together with the informative partiality of its meet
 (\Cref{prop:onerelation,prop:nomeet});
 (iii) the presentation of the point-in-time read as an operator and the saturation law as the
@@ -339,8 +324,8 @@ but the comonoid copy map, that it is therefore structural, and that this yields
 a correct aggregate cannot be;
 (v) the application of semiring provenance to assurance evidence and, one layer across, to derived
 features, so that a data-engineering rule becomes a homomorphism (\Cref{prop:clockhom});
-(vi) \Cref{prop:freshness}, an elementary negative result that we record because the corresponding
-positive claim appears in our own earlier design notes and, we suspect, in others';
+(vi) \Cref{prop:freshness}, an elementary negative result we record because the corresponding positive
+claim is easy to reach for and, as \Cref{sec:support} shows, easy to build three times without noticing;
 (vii) \Cref{prop:derivedbase}, which we believe to be new and which is the paper's own thesis applied to
 its own machinery: an indexed family of governance obligations cannot be both freely extensible and
 provably total unless its index is computed rather than recorded;
@@ -357,19 +342,15 @@ follow the shaded material alone and lose nothing essential.
 Every formal claim carries one of four markers. \textsf{Runs} names the module and the test in the
 \textsc{Maya} repository that carry it, as paths from the repository root. \textsf{In part} says which
 part runs and which does not. \textsf{Not executed} says the claim is implemented and no test asserts
-it. \textsf{Not in \textsc{Maya} 0.3.0} says the system does not carry the construction at all. We
-regard the last two as the more important, for the reason \Cref{sec:laws} gives: a document implying
-that every claim is checked, while some are not, is the exact failure that section exists to prevent.
+it. \textsf{Not in \textsc{Maya}} says the system does not carry the construction at all.
 
-Two episodes belong here, because the alternative --- a silent correction --- is the class of repair this
-paper argues against. An earlier draft gave the number of non-executing laws as five in the abstract,
-five here and six three lines below, while its own table said three. And the previous revision of this
-paper described an implementation that was then deleted: the platform was rebuilt from nothing against a
-new specification, and a paper whose markers pointed at modules that no longer existed would have been
-making, about itself, the error of a register whose records have drifted from the artefacts they
-describe. This revision re-checks every marker against version 0.3.0. Where the rebuild dropped a
-construction, the marker says so and the argument is kept only where it stands as mathematics.
-
+The last two matter more than the first. A paper is a declaration, and this one argues that declarations
+decay; a paper claiming an implementation it does not exhibit, or implying that every claim is checked
+when some are not, would be committing in miniature the failure it is about. So the markers are placed
+where a reader would look for the favourable one, and \Cref{sec:laws} collects them into a register that
+can be read against the repository in an afternoon. The register is not flattering: of its rows, a
+minority run, several run in a weaker form that is stated exactly, and several are mathematics with no
+executable counterpart at all.
 \section{The kernel, and what the parameter object decides}\label{sec:kernel}
 
 \subsection{Ambient setting}
@@ -581,10 +562,10 @@ four facets, there is a kind about which the system has nothing to say, and it w
 omission rather than by refusal. Totality is therefore a checkable property --- no fibre is empty --- and
 it is checked before the system serves rather than when a caller relies on it.
 \end{proposition}
-\absent{there is no fibration. Evidence requirements in the rebuild vary by object type (feature,
-feature set, model, parameter set, warrant) through the workflow policy's named checks, not by model kind,
-and nothing checks that every kind has a complete set of them. The previous build gated start-up on
-totality; that gate is gone with it.}
+\absent{there is no fibration. Evidence requirements vary by object type --- feature, feature set,
+model, parameter set, warrant --- through the workflow policy's named checks, not by model kind, and
+nothing checks that every kind has a complete set of them. Totality is therefore a property of the
+argument here and not of the system.}
 
 \begin{plain}
 \pt Think of a filing cabinet where each drawer holds one kind of artefact and comes with its own forms:
@@ -631,7 +612,7 @@ over all of it, and extension is the supply of a fibre.
 \end{proof}
 
 The trainability classification of \Cref{prop:classification} is such a base; the declared
-\texttt{kind} of \textsc{Maya} 0.3.0 is the closed case of the first horn, which is harmless only because
+\texttt{kind} of \textsc{Maya} is the closed case of the first horn, which is harmless only because
 nothing is indexed by it. That is the reason it is
 worth deriving twice over: once so that a closed-form pricer is a type rather than an exception, and once
 so that the structure indexed by it can be required to be complete. An organisational label --- what desk
@@ -674,7 +655,7 @@ decidable, by testing whether $r_i$'s condition covers $r_j$'s. The decision pro
 rule it reports as shadowed is unreachable. It is \emph{incomplete}: a rule covered only by the
 \emph{union} of two or more earlier rules is not reported.
 \end{proposition}
-\absent{authored rule sets are not a model kind in the rebuild, and no reachability analysis exists.
+\absent{authored rule sets are not a model kind, and no reachability analysis exists.
 The nearest structure is the workflow policy editor, which refuses an unreachable \emph{state} and a
 transition no approver could satisfy at edit time (specification \S10.6;
 \texttt{maya/workflow/policy.py}) --- reachability over a state machine, not over rules.}
@@ -730,11 +711,11 @@ dispatch that defaults to $\textsf{T0}$ exempts the artefact from fitting eviden
 parameters exist but whose provenance nobody recorded is treated like a closed-form pricer. This is the
 same failure direction D2 names, one level in.
 
-\textsc{Maya} 0.3.0 exhibits it, in the one row it derives. Its \textsf{T0} test reads the parameter
+\textsc{Maya} exhibits it, in the one row it derives. Its \textsf{T0} test reads the parameter
 inputs only of a model whose IR has a closed-form body. A model without one --- a declared black box, a
 vendor model, a composite --- passes as ``no parameter set required'' whatever parameters it declares, and
-so does an execution warrant drawn from a training warrant without naming a parameter set: in a probe
-written for this revision, both were created and approved with the \texttt{parameters\_approved} check
+so does an execution warrant drawn from a training warrant without naming a parameter set: probed
+directly, both are created and approved with the \texttt{parameters\_approved} check
 reporting \emph{non-trainable model} for a model that declares a parameter
 (\texttt{maya/services/execution.py}: \texttt{create}, \texttt{check\_params}). The training warrant itself
 is stricter --- it will not seal without an approved parameter set --- so the gap is at the second licence,
@@ -836,16 +817,17 @@ A dependency edge        & does what the source produces arrive where the target
 \end{tabular}
 \end{center}
 
-In the previous build these had four answers: a bespoke variance routine, a hand-written slot loop, a
-contract refinement check, and --- for the fourth --- nothing at all. Four implementations of one relation
-are four opportunities to disagree, and the disagreement is directional: toward permitting more, because a
-check that wrongly permits produces no bug report. The fourth row is the worst of them, because a
-dependency graph whose edges were never checked is followed by a blast radius that trusts them.
+In the registers we have examined each row has its own answer: a variance routine, a slot loop, a
+contract refinement check and --- for the fourth --- frequently nothing at all. Four implementations of
+one relation are four opportunities to disagree, and the disagreement is directional: toward permitting
+more, because a check that wrongly permits produces no bug report. The fourth row is the worst of them,
+because a dependency graph whose edges were never checked is followed by a blast radius that trusts them.
 
-\textsc{Maya} 0.3.0 has no alias move and no operating-contract object, so its questions are
-differently placed, and it answers them with three routines rather than one: a version-change classifier,
-a warrant's contract check, and a composite's union contract. \Cref{prop:onerelation} gives the map, and
-the three do in fact disagree in one small place, recorded there.
+\textsc{Maya} places the questions differently --- it has no alias move and no operating-contract object
+--- and answers them with three routines rather than one: a version-change classifier, a warrant's
+contract check and a composite's union contract. \Cref{prop:onerelation} gives the map, and the three do
+in fact disagree in one small place, recorded there. That is the prediction of this subsection holding in
+miniature, in a system written by somebody who had already made the argument.
 
 \subsection{The order}
 
@@ -900,8 +882,7 @@ $A \sqsubseteq B$ and $B \sqsubseteq A$ then $A$ and $B$ have the same fields as
 presented in name-sorted canonical form --- the form a system comparing them should construct --- it
 is therefore a partial order.
 \end{proposition}
-\stated{no test asserts the order laws. The previous build's law suite asserted them over generated
-schemas and did not survive the rebuild.}
+\stated{no test asserts the order laws over generated schemas.}
 
 \begin{proof}
 Reflexivity is immediate. For transitivity, $\succcurlyeq$ is transitive: datatypes chain by equality;
@@ -958,7 +939,7 @@ $A \sqsubseteq B$ if and only if $A \sqcap B = A$ (up to the equivalence of
 \Cref{prop:preorder}), and $A \sqcap (A \sqcup B) = A$. Meet is idempotent, commutative and associative
 where defined.
 \end{proposition}
-\stated{mathematics only in this revision.}
+\stated{mathematics only.}
 
 The link in \Cref{prop:absorb} is what makes the structure a lattice \emph{order} rather than an order
 with two unrelated binary operations \cite{davey2002}. We do not claim distributivity and do not need it.
@@ -993,9 +974,8 @@ and both datatypes, rather than returning an empty result --- because the caller
 a decision to make, usually \emph{these two models cannot share a featureset}, and an absent value threaded
 through three layers becomes a silent empty schema somewhere downstream.
 
-The rebuild reverses the previous build's position here, and the reversal is worth recording. There, the
-meet was implemented and law-tested and \emph{no production path called it}. In \textsc{Maya} 0.3.0 the meet
-is deployed and not law-tested: a composite model's input contract is computed as the union of its
+In \textsc{Maya} the meet is deployed and not law-tested, which is the opposite of the arrangement one
+would choose and the common one in practice: a composite model's input contract is computed as the union of its
 members' contracts, with aliasing where two members read one attribute under different names, and two
 members wanting one name at different datatypes is refused by name when the composite's contract is
 computed
@@ -1112,19 +1092,20 @@ source does not produce is a wire to nowhere, and the refusal names it.
 
 \emph{The composite's schema is derived, not declared.} A composite whose signature somebody wrote down
 is a composite that can disagree with its parts. This is the same move as \Cref{prop:classification}, one
-level out. \textsc{Maya} 0.3.0 does derive the composite's \emph{input} contract, as the partial meet of
+level out. \textsc{Maya} does derive the composite's \emph{input} contract, as the partial meet of
 \Cref{prop:nomeet}; its output is whatever the combine expression names.
 
-\emph{And a composite may be governed as one unit.} Here the rebuild takes the other of two defensible
-positions from the previous build, and the choice is instructive. The previous build authorised a
-\emph{chain} of separately approved models in one call, returned each node with its own descriptor, and
-deliberately signed nothing for the whole, on the ground that three approvals had been given for three
-models and none for the composition. \textsc{Maya} 0.3.0 makes the composition itself the governed object:
-a composite model --- ensemble, pipeline, router, residual or hierarchical --- is a model version with its
-own specification document, its own approval, one parameter set and one warrant over one feature set
-(specification \S8.7, \S9.5; \texttt{maya/formula/composite.py}). The objection is then met rather than
-avoided: there \emph{is} an approval for the composition, because the composition is what was submitted.
-What it costs is that a composite is a new object to approve even when every member already is.
+\emph{And a composite may be governed as one unit.} There are two defensible positions here and the
+choice between them is instructive. One authorises a \emph{chain} of separately approved models in a
+single call, returns each node with its own descriptor, and deliberately signs nothing for the whole, on
+the ground that three approvals were given for three models and none for the composition. \textsc{Maya}
+takes the other: it makes the composition itself the governed object.
+A composite --- ensemble, pipeline, router, residual or hierarchical --- is a model version with its own
+specification document, its own approval, one parameter set and one warrant over one feature set
+(specification \S8.7, \S9.5; \texttt{maya/formula/composite.py}). The objection to the first position is
+then met rather than avoided: there \emph{is} an approval for the composition, because the composition is
+what was submitted. What it costs is that a composite is a new object to approve even when every member
+already is.
 
 Two details carry the theory into that design. A composite's maturity is capped at its \emph{lowest}
 member's --- the meet on a finite chain of maturities, which composes, and which is precisely what
@@ -1145,13 +1126,14 @@ so there is nothing to type, and treating a challenger as a dependency would inf
 it appears in. The rebuild records neither, which is honest and incomplete.
 
 \begin{remark}[Vocabulary is part of the formalism]\label{rem:naming}
-In the previous build the model-to-model relation was first called \emph{feeds}. In a bank a feed is market
-data, a reference file, a nightly drop, so ``$A$ feeds $B$'' read as though the governance platform
-consumed or produced one. It did neither: the edge was a statement about two entries in a register
-describing a wire that somebody else's engine carries, and it was renamed for what it asserts. We keep the
-episode because a formal account whose terms are read wrongly by its audience has a defect, and the defect
-is in the account. The rebuild's word for its licence to compute --- \emph{warrant} --- was chosen with the
-same care: it is a permission with a holder, a scope and an expiry, not a record of what happened.
+An early name for the model-to-model relation was \emph{feeds}. In a bank a feed is market data, a
+reference file, a nightly drop, so ``$A$ feeds $B$'' reads as though the governance platform consumed or
+produced one. It does neither: the edge is a statement about two entries in a register, describing a wire
+that somebody else's engine carries. The name was wrong for what it asserts and was changed, and we record
+the episode because a formal account whose terms are read wrongly by its audience has a defect, and the
+defect is in the account rather than in the audience. \textsc{Maya}'s word for its licence to compute ---
+\emph{warrant} --- was chosen with the same care: a permission with a holder, a scope and an expiry, not a
+record of what happened.
 \end{remark}
 
 \begin{remark}[A variance choice, recorded as a choice]\label{rem:variance}
@@ -1160,10 +1142,11 @@ an output. Presence and datatype are exactly right for composition. The bound an
 are the input rule applied one level out: they require the producer's declared range to \emph{contain}
 the consumer's, so a producer with a strictly tighter range is refused. The alternative reading, that
 producing less is always safe, is the coarser covariant test of \Cref{prop:onerelation}. A system holding
-both variance rules for outputs must say which applies where; the previous build applied the stricter one
-to composition, on the reading that a consumer fitted over a declared range and then fed a narrower one
-has had its input distribution changed without a change event. That is a decision and not a derivation.
-\textsc{Maya} 0.3.0 compares no bounds, so the question does not yet arise in it.
+both variance rules for outputs must say which applies where. We take the stricter one for composition,
+on the reading that a consumer fitted over a declared range and then fed a narrower one has had its input
+distribution changed without a change event --- but that is a decision and not a derivation, and a reader
+is entitled to the opposite one provided it is made once and written down. \textsc{Maya} compares no
+bounds, so the question does not yet arise in it.
 \end{remark}
 
 \begin{worked}
@@ -1221,11 +1204,11 @@ $\mathrm{frag}(N_1) = 2$, while every generator of $N_2$ reaches exactly one por
 $\mathrm{frag}(N_2) = 1$. If $\rho$ is compositional then
 $\rho(N_1) = a \sqcup b = \rho(N_2)$, contradicting fragility-sensitivity.
 \end{proof}
-\absent{any risk assignment. \textsc{Maya} 0.3.0 has no materiality tier and computes no aggregate. It
-respects the theorem in the only place it composes an assessment at all --- a composite's maturity, the
-meet over its members' on a finite chain, which is compositional and makes no claim to be
-fragility-sensitive. The previous build carried the lax structure of \Cref{cor:lax} as a set of
-\emph{named obstructions} joined over a tier lattice; that went with the build.}
+\absent{any risk assignment. \textsc{Maya} has no materiality tier and computes no aggregate, and so
+neither confirms nor contradicts the theorem. It respects it in the only place it composes an assessment
+at all --- a composite's maturity, the meet over its members' on a finite chain, which is compositional
+and makes no claim to be fragility-sensitive. The interaction premium of \Cref{cor:lax} is computed
+nowhere.}
 
 \begin{plain}
 \pt Two banks each run one curve model and two pricers. Bank A uses a single curve to feed both. Bank B
@@ -1286,7 +1269,7 @@ label time $\ell$ and an observation time $a$ put
 \]
 under the lexicographic order, undefined when $\Adm(R,\ell,a) = \varnothing$.
 \end{definition}
-\absent{the operator as defined. \textsc{Maya} 0.3.0 reads with a scalar knowledge bound and checks the
+\absent{the operator as defined. \textsc{Maya} reads with a scalar knowledge bound and checks the
 per-row bound afterwards; \Cref{sec:cutcert} states exactly what that delivers and where it differs.}
 
 Both bounds are present because they refuse different things. The event bound is what the world had done
@@ -1305,8 +1288,7 @@ assembly and is usually much later than any individual label.
       $\AsOf(R,\ell,a) = \AsOf(R,\ell,\ell)$.
 \end{enumerate}
 \end{proposition}
-\stated{mathematics only in this revision; the previous build's property tests of all four did not
-survive the rebuild.}
+\stated{mathematics only: no property test asserts the four.}
 
 \begin{proof}
 (1) $r$ is admissible, so it lies in the admissible set of the singleton, of which it is the maximum.
@@ -1364,9 +1346,9 @@ Read with two, it gets 1.20 --- and by \Cref{cor:repro} it still gets 1.20 when 
 the restatement was knowable.
 \end{worked}
 
-\subsection{What \textsc{Maya} 0.3.0 does instead: a cut and a certificate}\label{sec:cutcert}
+\subsection{A cut and a certificate, and what the pair is worth}\label{sec:cutcert}
 
-The rebuild does not implement \Cref{def:asof}. It implements two simpler things and relates them by a
+\textsc{Maya} does not implement \Cref{def:asof}. It implements two simpler things and relates them by a
 check, and the relation is worth stating exactly, because it is weaker than the operator in one respect
 and stronger in another.
 
@@ -1429,7 +1411,7 @@ turned from a property of the read into a property of a signed document.
 The difference is real and runs both ways. The operator never admits a late fact; the cut admits it and
 the certificate names it, so a late fact can be \emph{accepted} --- with a justification written on the
 warrant --- which the operator cannot express and a validator sometimes needs. Against that, the
-certificate sees only what carries a clock, and in \textsc{Maya} 0.3.0 two kinds of row do not. A row
+certificate sees only what carries a clock, and in \textsc{Maya} two kinds of row do not. A row
 produced by a fill has a null knowledge time, although its value was learned when the row it was copied
 from was. And six of the feature algebra's operators --- projection, composition, coalescing,
 aggregation, resampling and case selection --- return frames without the knowledge-time column, so a feature derived through any of
@@ -1519,8 +1501,8 @@ byte-identical results by one conformance suite run on each backend and by each 
 other's tables (\texttt{maya\_delta/}; \texttt{tests/test\_maya\_delta.py}: \texttt{test\_conformance},
 \texttt{test\_cross\_backend\_round\_trip}). The general form is the moral of \Cref{sec:order}: the number
 of implementations of a relation is a design variable, and every value above one is a standing decision to
-permit disagreement --- which is why, where a second implementation is wanted for speed, the rebuild names
-one of the two the authority. The column-at-a-time canonical encoder is an accelerator for the reference
+permit disagreement --- which is why, where a second implementation is wanted for speed, one of the two
+is named the authority and the other is held to it. The column-at-a-time canonical encoder is an accelerator for the reference
 one, compared with it on randomised tables of every covered type
 (\texttt{maya/core/canonical\_fast.py}; \texttt{tests/test\_canonical\_fast.py}); the vectorised fill rules
 are compared with the per-group rules on 96 randomised cases
@@ -1575,11 +1557,11 @@ $h_\nu \colon \Nat[X] \to K$ extending $\nu$, and for every derivation $d$,
   \mathrm{eval}_K(d, \nu) \;=\; h_\nu\big(\mathrm{eval}_{\Nat[X]}(d)\big).
 \]
 \end{proposition}
-\absent{any evidence derivation. \textsc{Maya} 0.3.0 records evidence as typed lineage edges, a
-hash-chained audit log, custody events on warrants and signed certificates; it does not annotate them with
-a semiring or evaluate a derivation. The previous build's polynomial engine and its law test --- 200
-generated derivation DAGs against five semirings --- did not survive the rebuild. What does run is three
-valuations over the \emph{support} of a derivation, taken up in \Cref{sec:support}.}
+\absent{any evidence derivation. \textsc{Maya} records evidence as typed lineage edges, a hash-chained
+audit log, custody events on warrants and signed certificates; it does not annotate them with a semiring
+or evaluate a derivation. What does run is three valuations over the \emph{support} of a derivation,
+taken up in \Cref{sec:support} --- and the section is worth reading for what they get wrong, which is the
+subject of \Cref{prop:freshness}.}
 
 \begin{proof}
 $\Nat[X]$ is the free commutative semiring on $X$ \cite{green2007}; the displayed equation is the
@@ -1609,8 +1591,8 @@ $(2^{\mathrm{Regimes}}, \cap, \cup)$ & $\cap$, $\cup$ & For which regimes is the
 \end{center}
 
 \begin{remark}[Which semiring the minimal-support one is]
-The ``why'' semiring the previous build implemented applied absorption --- a set of supports is reduced to its minimal
-members, so $a \oplus ab = a$. With absorption this is the semiring of positive Boolean expressions
+The minimal-support semiring one reaches for in practice applies absorption --- a set of supports is
+reduced to its minimal members, so $a \oplus ab = a$. With absorption this is the semiring of positive Boolean expressions
 $\mathrm{PosBool}(X)$ rather than the $\mathrm{Why}(X)$ of \cite{buneman2001}, which is idempotent but not
 absorptive; the two sit at different levels of the provenance hierarchy \cite{green2007,cheney2009}. The
 distinction matters for what is retained: $\mathrm{PosBool}$ answers ``what is the smallest set I could
@@ -1653,12 +1635,13 @@ through --- union, intersection, difference, rename, transform, lag --- keep eac
 projection, composition, coalescing, aggregation, resampling and case selection drop it (\texttt{maya/resolution/algebra.py};
 \Cref{sec:cutcert}). No test asserts either behaviour.}
 
-\begin{remark}[A correction to the previous revision]
-The previous revision stated \Cref{prop:clockhom} with $\oplus = \otimes = \max$ over times, two
-subsections before proving, in \Cref{prop:freshness}, that $(\max,\max)$ over a totally ordered set is not
-a semiring. A homomorphism out of $\Nat[X]$ needs a semiring to land in, so the statement as written had
-no valuation to be. The repair is \Cref{prop:adjoin}: adjoin an absorbing zero. Its ``equivalently''
-clause was right all along, and is now the content of the proposition rather than its excuse.
+\begin{remark}[Where the valuation lands, and why it cannot be the obvious carrier]
+\Cref{prop:clockhom} is easy to state with $\oplus = \otimes = \max$ over times and nothing else, and the
+statement is then ill-formed: \Cref{prop:freshness}, two subsections below, shows that $(\max,\max)$ over
+a totally ordered set is not a semiring, and a homomorphism out of $\Nat[X]$ needs a semiring to land in.
+The repair is \Cref{prop:adjoin} --- adjoin an absorbing zero --- and it is not a technicality: it is
+exactly what makes a derived feature with a missing clock report that it has none, rather than reporting
+the clock of the inputs that happen to have one.
 \end{remark}
 
 The upgrade is worth stating plainly. ``The ingest time of a derived feature is the maximum over its
@@ -1695,8 +1678,7 @@ choice of constants \emph{within its carrier} repairs it.
 Let $(K, \le)$ be totally ordered and let $\oplus = \otimes = \max$. If $(K, \oplus, \otimes, 0, 1)$ is a
 semiring then $|K| = 1$.
 \end{proposition}
-\stated{mathematics only in this revision; the previous build's test asserting the failure did not
-survive the rebuild.}
+\stated{mathematics only: no test asserts the failure.}
 
 \begin{proof}
 An identity for $\max$ must be a least element, so $0$ is the bottom of $K$; likewise $1$ is the bottom of
@@ -1709,8 +1691,8 @@ annihilate, a claim resting on a \emph{missing} fact reports the currency of the
 rather than reporting that it has none. A structure that answers ``as of when'' for a claim it cannot in
 fact support is exactly the kind of instrument that reads as reassurance.
 
-The previous revision concluded that the repair could not be a different pair of operations. That was
-too strong, and the correction is elementary.
+It is tempting to conclude that no pair of operations repairs this. That is too strong, and the repair is
+elementary.
 
 \begin{proposition}[Adjoining an absorbing zero repairs it]\label{prop:adjoin}
 Let $(K,\le)$ be totally ordered with a least element $\mathbf{1}$, and let $K_\bot = K \cup \{\bot\}$ for a
@@ -1741,9 +1723,10 @@ semimodule structure \cite{amsterdamer2011}.
 plus and times, then the thing that is supposed to represent \emph{no evidence at all} stops behaving like
 zero: combine it with a real timestamp and you get the timestamp back, not nothing.
 
-So a claim resting on a missing document reports a date, and the date looks fine. In the previous build we
-found this by writing the test that asserts the universal property, which the currency arithmetic then
-failed. The rebuild has no such test, and the same shape came back three times (\Cref{sec:support}).
+So a claim resting on a missing document reports a date, and the date looks fine. The way to find this is
+to write the test that asserts the universal property and watch the currency arithmetic fail it.
+\textsc{Maya} has no such test, and the same shape is in it three times over (\Cref{sec:support}) ---
+which is the argument for the test, made by its absence.
 
 The fix is to invent a new ``nothing'' rather than borrow the smallest date: then a missing document makes
 the claim not current at all, which is the true answer.
@@ -1751,7 +1734,7 @@ the claim not current at all, which is the true answer.
 
 \subsection{Three valuations over the support, and what they do with a gap}\label{sec:support}
 
-\textsc{Maya} 0.3.0 carries no polynomial, but it does carry three computations that are valuations of a
+\textsc{Maya} carries no polynomial, but it does carry three computations that are valuations of a
 derivation's \emph{support} --- its set of leaves --- each written directly rather than pushed forward:
 
 \begin{center}
@@ -1831,7 +1814,7 @@ finite chain of tiers.
 If $\tau \colon M \times C \to T$ is monotone then increasing exposure, criticality of purpose or
 complexity never lowers the assigned tier.
 \end{proposition}
-\absent{materiality tiering. \textsc{Maya} 0.3.0 has model \emph{maturity} (experimental, candidate,
+\absent{materiality tiering. \textsc{Maya} has model \emph{maturity} (experimental, candidate,
 approved, restricted, deprecated, retired) and per-namespace separation-of-duties presets, and no tier.}
 
 \begin{proposition}[Control adequacy]\label{prop:galois}
@@ -1971,12 +1954,12 @@ itself.
 
 \subsection{What runs, and what does not}
 
-The previous build stated twenty-one laws in one test file, of which eighteen executed and three were named
-as not executing; a property test kept the file and the paper's table in agreement. That file did not
-survive the rebuild, and nothing in \textsc{Maya} 0.3.0 takes its place as a register. The table below is
-therefore this paper's register of its own claims against the rebuilt system, and it is kept in the paper
-rather than in a test --- which is a weaker arrangement than the one this section argues for, and is
-recorded as such.
+The strongest arrangement available here is a register that is itself executable: one file stating every
+law, each either asserted against generated inputs or named explicitly as not asserted, with a test that
+fails when the file and the paper's table disagree. \textsc{Maya} does not have one, and the table below
+is therefore kept in this paper rather than in the system --- which is weaker than what this section
+argues for, by exactly the gap the section is about, and is recorded as such rather than presented as
+sufficient.
 
 \begin{center}
 \small
@@ -2027,11 +2010,14 @@ Automation admissibility (\Cref{prop:automation}) & runs & the recorded challeng
 \end{center}
 
 Of twenty-five rows, six run, ten run in part, seven are absent, and two are mathematics that constrains
-the system without being executed by it. That is a smaller share than the previous revision reported, and
-it is the honest share: the rebuild was specified for a different purpose --- a register of features, data
-and licences to compute --- and the constructions it carries are the ones that purpose needed.
+the system without being executed by it. A reader is entitled to hold that against the account, and we
+would rather state the ratio than let it be discovered. The explanation is not a defence: \textsc{Maya}
+was specified as a register of features, data and licences to compute, and the constructions it carries
+are the ones that purpose needed, which is a statement about what was built and not about what the
+argument requires.
 
-What the rebuild runs that no earlier revision stated is a set of laws about the evidence path itself,
+What the system does run, and what no part of the argument above predicted, is a set of laws about the
+evidence path itself,
 checked against generated inputs \cite{claessen2000}: the canonical encoding is injective up to its
 documented identifications; a pin's content hash ignores column order and arrival order and notices any
 changed value; content-defined fragment boundaries tile every table within their bounds, and an inserted
@@ -2039,7 +2025,8 @@ row leaves every earlier fragment untouched; a restatement never overwrites
 (\texttt{tests/test\_properties.py}). Two further tests hold an accelerated implementation equal to the
 authoritative one on randomised inputs (\texttt{tests/test\_canonical\_fast.py},
 \texttt{tests/test\_resolution\_grouped.py}). These are the laws that make \emph{``the same bytes''} a
-checkable statement, and they are the part of this section the rebuild honours best.
+checkable statement rather than an aspiration, and they are the part of this section the implementation
+honours best.
 
 \subsection{What an executable law delivers that a documented one does not}
 
@@ -2052,7 +2039,7 @@ Four properties follow, and each is a property of the arrangement rather than of
 
 \begin{enumerate}[leftmargin=*,itemsep=3pt]
 \item \emph{A rule stated once cannot disagree with itself.} \Cref{prop:onerelation} is the instance, and
-      \textsc{Maya} 0.3.0 is the counter-instance: three routines for fragments of one relation, and a
+      \textsc{Maya} is the counter-instance: three routines for fragments of one relation, and a
       numeric widening in one of them that the other two refuse.
 \item \emph{A published contract can be executed rather than quoted.} \Cref{sec:operatorfound} is the
       instance. Where a rule is handed to a system this one does not run, the executable form of the law
@@ -2141,7 +2128,7 @@ sentences is expensive expert work, and that cost is the practical objection to 
 It is also a task language models are unusually well suited to, and the output is checkable: a proposed
 encoding either satisfies \Cref{prop:stability} or it does not. Generation becomes cheap, verification
 mechanical, and the expert's role changes from authoring to adjudicating an encoding that has already passed
-a consistency test. \textsc{Maya} 0.3.0 encodes no regime, so this row is argument only.
+a consistency test. \textsc{Maya} encodes no regime, so this row is argument only.
 
 The rows \textsc{Maya} does carry are fewer, and each is a check on generated output rather than a
 generator. A formula IR is \emph{lifted} --- from LaTeX, from Python by analysis of its syntax tree, from a
@@ -2224,36 +2211,33 @@ strata; acceptance may not.}
 
 \section{The implementation}\label{sec:implementation}
 
-An earlier draft described a ``reference implementation'' and named neither it nor its size, and a reviewer
-read the paper as having none. The previous revision named it. This one has to say that it is gone, and
-describe what replaced it.
+\subsection{What it is}
 
-\subsection{What exists}
+\textsc{Maya} --- Model \& AI Lifecycle Assurance --- is a platform written by the author to the account
+above and released as the artefact accompanying this paper, at \url{https://github.com/ajsinha/maya}. It
+is a system of record for quantitative features, feature sets and models, and for \emph{warrants}: a
+training warrant freezes a model version against a feature-set version and receives the parameters
+training produced; an execution warrant licenses a model, its parameters and its input contract to run,
+and can be suspended or revoked while in use. It does not train models and does not serve predictions.
+The boundary is deliberate and is the subject of \Cref{sec:operatorfound}: a platform that executed the
+artefacts it governs would be checking its own work.
 
-\textsc{Maya} --- Model \& AI Lifecycle Assurance --- is a proprietary platform by the author, at
-\url{https://github.com/ajsinha/maya}. The build the previous revision described was deleted on 17
-September 2026 and the platform rebuilt from nothing against a new specification, whose revision 2.3 is
-the authority for version 0.3.0 (19 September 2026). The rebuild is a system of record for quantitative
-features, feature sets and models, and for \emph{warrants}: a training warrant freezes a model version
-against a feature-set version and receives the parameters training produced; an execution warrant licenses
-a model, its parameters and its input contract to run, and can be suspended or revoked while in use. It does
-not train models and does not serve predictions.
+At the revision this text describes --- version 0.3.0, built to revision 2.3 of its own specification ---
+it is 184 Python modules in \texttt{maya/} and 11 more in \texttt{maya\_delta/}, its own implementation
+of the Delta Lake protocol; one typed metadata from which the SQLite and PostgreSQL schema files are
+generated and checked for drift; 215 HTTP operations under a locked API snapshot, each with an SDK method
+and held one-to-one by a gate that fails the build on a mismatch; and 1{,}706 tests. The suite runs on
+Linux over SQLite and has been run over PostgreSQL 16, 17 and 18. Windows and macOS, which the
+specification names as equal platforms, are not exercised.
 
-At the revision this text describes it is some 170 Python modules --- 158 in \texttt{maya/}, 11 in
-\texttt{maya\_delta/}, its own Delta Lake layer --- over 56 tables in one typed metadata from which the
-SQLite and PostgreSQL schema files are generated and checked for drift; some 180 HTTP operations under a
-locked API snapshot, each with an SDK method and checked one-to-one by a gate; and more than 1{,}200 tests. The suite runs on Linux over SQLite and
-has been run over PostgreSQL 16, 17 and 18; Windows and macOS, which the specification names as equal
-platforms, are not exercised, by the owner's decision.
-
-Four measured results bound what it is. Resolving a feature set of 500 symbols by ten years of business
-days by 50 attributes takes a warm p95 of 0.98\,s, and 6.1\,s with a bounded forward fill on every
-attribute, against a target of 15\,s; catalog search over 100{,}000 objects has a p95 of 0.16\,s; the worst
-metadata page has a p95 of 0.15\,s on SQLite and 0.18\,s on PostgreSQL with eight web processes. The fourth
-target --- 200 concurrent users on one node without p95 degradation --- is \emph{not met reliably}: three runs
-gave a p95 of 0.34\,s, 0.22\,s and 0.43\,s against 0.3\,s, on a shared workstation rather than a benchmark
-host. All four are from the repository's \texttt{docs/BENCHMARKS.md}, with the unedited result files beside
-it.
+Four measured results bound what it is, all from the repository's \texttt{docs/BENCHMARKS.md} with the
+unedited result files beside it. Resolving a feature set of 500 symbols by ten years of business days by
+50 attributes takes a warm p95 of 0.98\,s, and 6.1\,s with a bounded forward fill on every attribute,
+against a target of 15\,s. Catalog search over 100{,}000 objects has a p95 of 0.16\,s. The worst metadata
+page has a p95 of 0.15\,s on SQLite with one process and 0.18\,s on PostgreSQL with eight. The fourth
+target --- 200 concurrent interactive users on one node without p95 degradation --- is \emph{not met
+reliably}: three runs gave 0.34\,s, 0.22\,s and 0.43\,s against a 0.3\,s target, on a shared workstation
+rather than a benchmark host. One run of three passing is not a pass, and the repository says so.
 
 \begin{center}
 \small
@@ -2282,87 +2266,103 @@ blocking or editing anything \\
 
 \subsection{Five things building it changed}
 
-The previous revision reported four places where building the system altered the paper. The rebuild
-supplies five of its own, and in each the alteration is in the text above.
+An implementation earns its place in a paper by changing the paper. Five places where it did, each of
+which is already in the text above rather than confined to this section.
 
-\paragraph{The certificate replaced the operator.} The previous build implemented \Cref{def:asof}, and its
-first version read $a$ where the definition says $\min(\ell,a)$ --- a defect found by the saturation property
-test. The rebuild does not implement the operator at all. It reads with one scalar knowledge bound, as most
-bitemporal systems do, and then \emph{certifies} the per-row bound on the training set, signs the result
-and attaches it to the warrant. \Cref{prop:certagrees,cor:reproorrefused} are what that arrangement is
-worth, and they were proved for this revision rather than designed in: the agreement with the operator
-holds exactly where the certificate is clean, and saturation survives as ``reproducible or refused''. The
-arrangement buys something the operator cannot express --- a late fact accepted with a written reason ---
-and costs the guarantee on every row the certificate cannot see.
+\paragraph{The certificate replaced the operator.} \Cref{def:asof} is the operator; \textsc{Maya} reads
+with one scalar knowledge bound, as most bitemporal systems do, and then \emph{certifies} the per-row
+bound on the training set, signs the result and attaches it to the warrant.
+\Cref{prop:certagrees,cor:reproorrefused} are what that arrangement is worth, and they were proved to
+find out rather than designed in: agreement with the operator holds exactly where the certificate is
+clean, and saturation survives as ``reproducible or refused''. The arrangement buys something the
+operator cannot express --- a late fact accepted with a written reason, which a validator sometimes needs
+--- and costs the guarantee on every row the certificate cannot see. Neither half was visible from the
+mathematics alone.
 
-\paragraph{A contract that was true of everything.} The rebuild's own proofs found that a declared
-black-box model had an empty input contract, so every feature set satisfied it; it now carries the
-contract it declares (\texttt{tests/test\_vendor\_models.py::test\_vendor\_warrants\_behave\_as\_internal\_ones}).
-Writing this revision found the same shape one step later: a model without a closed-form body, or a
-warrant naming no parameter set, passes the parameter check as ``non-trainable''
-(\Cref{sec:stilldeclared}). Both are the permissive fallback of D2 --- a check that reads an absence as
-compliance --- and neither was found by review.
+\paragraph{A contract that was true of everything.} A declared black-box model was found to carry an
+empty input contract, so every feature set satisfied it; it now carries the contract it declares
+(\texttt{tests/test\_vendor\_models.py::test\_vendor\_warrants\_behave\_as\_internal\_ones}). The same
+shape sits one step later and is unrepaired: a model without a closed-form body, or a warrant naming no
+parameter set, passes the parameter check as ``non-trainable'' (\Cref{sec:stilldeclared}). Both are D2's
+permissive fallback --- a check that reads an absence as compliance --- and neither was found by review.
+They were found by asking what the check does when the structure it reads is missing, which is the
+question \Cref{prop:derivedbase} says to ask.
 
-\paragraph{Two implementations, one authority.} The rebuild wanted speed in three places where a second
-implementation was the obvious route: the lake (a native backend and a pure one), the canonical encoding
-behind every content hash (a column-at-a-time encoder, six to eight times faster), and the fill rules
-(vectorised over whole columns, which took the forward-fill benchmark from 156\,s to 6\,s). In none of
-them is the second implementation trusted to agree. For the canonical encoding and the fill rules, the
-original is named the authority and the fast one is held equal to it on randomised inputs --- the
-specification's Type~B polarity, required of anything that feeds a hash, where an accelerator that
-disagrees is by definition the one in error. For the lake, both backends answer to one conformance suite
-and must read each other's tables. That is the moral of \Cref{sec:order} applied to performance rather
-than to semantics, and it is the part of this paper's discipline the rebuild applies most consistently.
+\paragraph{Two implementations, one authority.} Speed was wanted in three places where a second
+implementation was the obvious route: the lake (a native backend and a pure-Python one), the canonical
+encoding behind every content hash (a column-at-a-time encoder, six to eight times faster), and the fill
+rules (vectorised over whole columns, which took the forward-fill benchmark from 156\,s to 6\,s). In none
+of them is the second implementation trusted to agree. For the canonical encoding and the fill rules the
+original is named the authority and the fast one is held equal to it on randomised inputs --- an
+accelerator that disagrees with its reference is by definition the one in error. For the lake, both
+backends answer to one conformance suite and must read each other's tables. That is the moral of
+\Cref{sec:order} applied to performance rather than to semantics, and it is the part of this paper's
+discipline the implementation applies most consistently.
 
-\paragraph{Reproducibility by hash, not by bytes.} The specification lets a namespace choose whether a
-feature-set pin writes its resolved output (\texttt{always}, the default) or is sealed by the hash of that
-output and replayed from its member pins on every read (\texttt{on\_demand}, \texttt{never}). All three
-seal the same hash (\texttt{tests/test\_materialization.py::test\_every\_policy\_seals\_the\_same\_content}).
-The second arrangement makes reproducibility a property of the resolver rather than of storage, which is
-the stronger claim and the more fragile one: a replay that differs by one byte is refused rather than
-served (\texttt{::test\_a\_replay\_that\_does\_not\_reproduce\_the\_seal\_is\_not\_served}) --- safe, and then
-unavailable. The same trade the operator makes in \Cref{cor:repro}, made in bytes.
+\paragraph{Reproducibility by hash, not by bytes.} A namespace chooses whether a feature-set pin writes
+its resolved output (\texttt{always}, the default) or is sealed by the hash of that output and replayed
+from its member pins on every read (\texttt{on\_demand}, \texttt{never}). All three seal the same hash
+(\texttt{tests/test\_materialization.py::test\_every\_policy\_seals\_the\_same\_content}). The second
+arrangement makes reproducibility a property of the resolver rather than of storage, which is the
+stronger claim and the more fragile one: a replay differing by one byte is refused rather than served
+(\texttt{::test\_a\_replay\_that\_does\_not\_reproduce\_the\_seal\_is\_not\_served}) --- safe, and then
+unavailable. It is the trade of \Cref{cor:repro} made in bytes, and a reader who prefers availability
+should prefer the default.
 
-\paragraph{The clock the algebra dropped.} \Cref{prop:clockhom} says a derived feature's knowledge time is
-the latest of its inputs'. Writing \Cref{sec:cutcert} against the code found that the feature-set
-assembly honours it and six of the feature algebra's operators do not: they return frames with no
-knowledge-time column, so the certificate examines none of the rows of a feature derived through them. It
-is recorded, not repaired, because the repair belongs to the platform and this revision is a paper.
+\paragraph{The clock the algebra dropped.} \Cref{prop:clockhom} says a derived feature's knowledge time
+is the latest of its inputs'. Checking the claim against the code found that feature-set assembly honours
+it and six of the fifteen feature-algebra operators do not: projection, composition, coalescing,
+aggregation, resampling and case selection return frames with no knowledge-time column, so the
+certificate of \Cref{def:cert} examines none of the rows of a feature derived through them. It is
+reported and not repaired, and it is the clearest example in this work of what the markers are for: the
+proposition is stated, the implementation contradicts it, and the two are on the same page.
 
-\subsection{The case studies}
+\subsection{Nine models, carried the whole way}
 
-The previous revision reported two case studies taken from the public record --- the model governance
-failure behind the 2012 JPMorgan Chief Investment Office losses \cite{jpmtaskforce2013,psi2013}, and the
-Dutch childcare benefits affair \cite{ap2020nationality,ongekendonrecht2020} --- each run as a script
-against the previous build. Neither script survived the rebuild, and nothing in \textsc{Maya} 0.3.0
-reproduces them. Their findings were findings about a system that no longer exists, and they are not
-reported here.
+The repository carries nine worked case studies, each a model taken through the whole chain by scripts
+that use the platform's own SDK: a retail PD scorecard, a mortgage cashflow model and a prepayment
+model, a home-equity exposure model, a Black--Scholes pricer, an IFRS~9 expected-credit-loss composite, a
+neural network governed as a declared black box, a factor model, and a Nelson--Siegel yield curve fitted
+from LaTeX the quant wrote (\texttt{case\_studies/}). They exist because a formalism that has only been
+exercised by its author's unit tests has not been exercised.
+
+Two of them earn a mention here for what they refused to do. The expected-credit-loss study is a
+composite of three fitted members under one combiner whose two parameters --- a significant-increase
+threshold and a lifetime multiple --- belong to the accounting committee and to no member; it is the
+worked instance of the union contract of \Cref{prop:nomeet} and of parameter accumulation
+(\Cref{prop:accum}). Scored against its own generating process it produces a portfolio allowance 2.67
+times the realised loss, and a sensitivity grid shows the committee's threshold explains part of that gap
+and not the rest of it. The study records the finding as open rather than choosing the threshold that
+would have closed it. The Nelson--Siegel study registers the curve from four lines of LaTeX and then runs
+into the constraint the paper's order cannot express: $\beta_0 + \beta_1 > 0$, a non-negative
+instantaneous short rate, is a statement about two parameters at once, and a table of per-parameter
+bounds has no place to put it. Joint constraints were added to the formula IR because that study asked
+for them (\texttt{maya/formula/ir.py}: \texttt{constraint\_errors}), which is the smallest possible
+instance of an implementation changing an account.
 
 \subsection{What the implementation does not establish}
 
-It shows that parts of the account are computable, that they refuse real inputs, and --- in the certificate
-and the evidence-path properties --- that they can be checked rather than asserted. It does not show that a
-system built this way is easier to construct, extend or operate than one built without it. There is no
-comparative study, no user evaluation, and no deployment at a supervised institution; the specification's
-own usability criterion, a new model designer publishing a first model unaided in under an hour, has not
-been measured with a real person. A large test suite is evidence that a thing is internally consistent,
-not that it is useful.
+It shows that parts of the account are computable, that they refuse real inputs, and --- in the
+certificate and the evidence-path properties --- that they can be checked rather than asserted. It does
+not show that a system built this way is easier to construct, extend or operate than one built without
+it. There is no comparative study, no user evaluation and no deployment at a supervised institution; the
+specification's own usability criterion, a new model designer publishing a first model unaided in under
+an hour, has not been measured with a real person. A large test suite is evidence that a thing is
+internally consistent, not that it is useful.
 
-Two further cautions. The system is written by the author of the paper, so it is a demonstration of
-sufficiency and not an independent replication. And the rebuild carries fewer of the constructions than
-its predecessor did, so this revision is weaker evidence for the account than the previous one appeared to
-be --- which is the correct direction for the evidence to move when the earlier appearance rested on a build
-that could not be re-examined.
+And the system is written by the author of the paper, so it is a demonstration of sufficiency and not an
+independent replication. The most useful thing a reader could do with it is to disagree with it in
+public: it is on GitHub, the register of \Cref{sec:laws} can be read against it in an afternoon, and
+every marker in this paper names a path.
 
 \subsection{For the practitioner}
 
 The mathematical audience and the model-risk audience are close to disjoint, and a paper that serves both
 usually serves neither. \textsc{Maya} carries a second register of some of this content for the second
-audience: help topics on bitemporality, pins, warrants, licences and conformance, and four tutorials and
-thirteen reference guides, written with no notation (\texttt{maya/web/guides/},
+audience: help topics on bitemporality, pins, warrants, licences and conformance, with tutorials and
+reference guides written with no notation at all (\texttt{maya/web/guides/},
 \texttt{maya/web/templates/help/}). They describe the system and not this account, and a reader who wants
 to know what the platform does rather than why should start there.
-
 \section{Related work}\label{sec:related}
 
 \paragraph{Categorical foundations for learning and probability.} The $\Para$ construction and its use in
@@ -2391,7 +2391,7 @@ compose-many discipline that \Cref{prop:edits} makes algebraic. What these syste
 this paper adds, is the operator formulation with the saturation law (\Cref{cor:repro}): the reproducibility
 guarantee is usually described as a property of a correctly written pipeline rather than as a property of the
 read, and the difference shows up precisely in the choice of $\min(\ell,a)$ over $a$ --- the previous
-build's first defect, and the choice \textsc{Maya} 0.3.0 makes deliberately and then checks
+easiest thing to get wrong, and the choice \textsc{Maya} makes deliberately and then checks
 (\Cref{sec:cutcert}). A signed certificate of the check is, as far as we know, not something these systems
 issue. Neither family represents materiality, approved use, independent challenge or
 remediation, which is the other half of the division this paper's introduction describes.
@@ -2403,7 +2403,7 @@ to derived features, where \Cref{prop:clockhom} turns a pipeline convention into
 result (\Cref{prop:freshness}) is the elementary observation that a currency valuation is an aggregate rather
 than an annotation, which is the difficulty \cite{amsterdamer2011} addresses properly; its repair as a
 valuation (\Cref{prop:adjoin}) is the adjoined zero that makes lineage a semiring in that hierarchy
-\cite{greentannen2017}, and we claim nothing for it beyond noticing that the previous revision needed it.
+\cite{greentannen2017}, and we claim nothing for it beyond noticing that \Cref{prop:clockhom} needs it.
 
 \paragraph{Bitemporal data.} Snodgrass \cite{snodgrass2000} is the standard reference; SQL:2011 brought
 system- and application-time periods into the standard \cite{kulkarni2012}. Leakage as a machine-learning
@@ -2430,7 +2430,7 @@ collaborators \cite{benveniste2018,incer2022}; we import the algebra unchanged a
 boundaries and performance envelopes are exactly assumptions and guarantees. Sound abstraction
 \cite{cousot1977} supplies the criterion for when a summary document is trustworthy, and well-behaved lenses
 \cite{foster2007} the discipline for regenerating one; both are stated here and neither is implemented
-in \textsc{Maya} 0.3.0.
+in \textsc{Maya}.
 
 \paragraph{Documentation and metadata practice.} Model cards \cite{mitchell2019} and datasheets
 \cite{gebru2021} specify \emph{what} a summary should contain; sound abstraction contributes a criterion for
@@ -2448,7 +2448,7 @@ of the four. Neither family is deficient at what it does, and the point of \Cref
 that they should merge but that the merged thing needs a definition of ``model'' that neither currently has
 --- one under which a closed-form pricer, an elicited weight scheme and a foundation-model application are
 instances rather than exceptions. We are not aware of a platform in either family that derives the kind of
-an artefact rather than recording it; \textsc{Maya} 0.3.0 does not either, beyond the row that separates
+an artefact rather than recording it; \textsc{Maya} does not either, beyond the row that separates
 a model with parameters from one without.
 
 \paragraph{Dependency-aware risk aggregation.} \Cref{thm:noncomp} should be read against an existing
@@ -2486,26 +2486,26 @@ class, and the point generalises: the order compares declared schemas, the opera
 the polynomial is built over declared derivation edges. The claim is that the declared surface shrinks and
 becomes checkable, not that it vanishes. Where the fallback direction of a derivation is permissive --- as it
 is for an artefact whose fitting procedure was never recorded --- the old failure mode returns in a smaller
-place. \textsc{Maya} 0.3.0 shows it returning in three: the parameter check that reads a missing body as
+place. \textsc{Maya} shows it returning in three: the parameter check that reads a missing body as
 ``non-trainable'' (\Cref{sec:stilldeclared}), the certificate that cannot see a row with no clock
 (\Cref{sec:cutcert}), and the support valuations that read a missing annotation as the identity
 (\Cref{sec:support}).
 
 \paragraph{Three routines for one relation.} \Cref{prop:onerelation} argues for one implementation of
-fit, and \textsc{Maya} 0.3.0 has three, which already disagree on whether an integer may stand in for a
-float. \Cref{rem:variance} records a second divergence the rebuild has not yet reached: composition and
+fit, and \textsc{Maya} has three, which already disagree on whether an integer may stand in for a
+float. \Cref{rem:variance} records a second divergence the implementation has not yet reached: composition and
 version substitution may judge output narrowing differently. Both readings are defensible; holding both
 silently is not.
 
 \paragraph{Most of the account does not execute.} Of the twenty-five rows of \Cref{sec:laws}, six run,
-ten run in part and seven are not in the rebuilt system at all; the register is kept in this paper and not
+ten run in part and seven are not in the system at all; the register is kept in this paper and not
 in a test, so nothing enforces that it stays true. In particular \Cref{cor:lax} --- the interaction premium,
 which we present as one of the paper's more useful consequences --- is not computed anywhere.
 \Cref{thm:noncomp} says what a correct aggregate cannot be, and does not construct one.
 
 \paragraph{The lattice is finite-fragment, and half of it is not built.} \Cref{thm:lattice} gives no bottom
 element, and the meet is partial. Both are honest and both mean the structure is weaker than ``schemas form a
-complete lattice'' would suggest. In the rebuild the meet is in use, on names and datatypes, and the join and
+complete lattice'' would suggest. In \textsc{Maya} the meet is in use, on names and datatypes, and the join and
 the order's bounds and nullability are not built. A reader should take neither the availability of an
 operation nor its absence from one build as evidence about the mathematics.
 
@@ -2555,8 +2555,8 @@ homomorphism that has no exceptions.
 
 We have been equally concerned to say what does not derive. Aggregate risk cannot be compositional, and the
 obstruction is the copy map. Currency over a totally ordered carrier is not a semiring valuation, and is
-one only once ``no support'' is given a value of its own --- a repair three computations in the rebuilt
-system still lack. Most of the account does not execute in that system, and this revision says which
+one only once ``no support'' is given a value of its own --- a repair three computations in the
+implementation still lack. Most of the account does not execute in that system, and this revision says which
 parts. And some facts --- the tiering rule, the regime encoding, the
 approval --- constitute the standard they would be checked against, and are therefore irreducibly
 declarations made by somebody accountable.

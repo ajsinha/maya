@@ -86,18 +86,21 @@ still yours.
 
 ## What these runbooks do not cover
 
-The nine runbooks §20 asks for are all here. What is not covered is narrower, and named here so
-nobody assumes otherwise:
+The nine runbooks §20 asks for are all here, and six more beside them. What is not covered is
+narrower, and named here so nobody assumes otherwise:
 
-- **There is no supported garbage collection of orphaned fragments.** The
-  [orphaned partitions](orphaned-pin-partitions.md) runbook has a manual rewrite procedure and
-  says plainly that it is unsupported; §29.3's provably-safe collector is not built.
+- **Nothing collects orphaned fragments on a schedule.** §29.3's collector is built and is
+  the supported path (`maya admin collect-fragments`), but it runs only when an administrator
+  asks, its removal is a Delta remove rather than a delete, and the disk frees at the next
+  vacuum — see [orphaned partitions](orphaned-pin-partitions.md), which also keeps the
+  unsupported manual rewrite for the case the collector cannot reach.
 - **Pin tables cannot be compacted.** They are partitioned one file per fragment, so the
   [small-files](delta-small-files.md) runbook's lever there is the fragment size, for new pins
   only.
-- **Storage quotas are not enforced.** `quota_bytes` is stored and never read, so
-  [quota exhaustion](quota-exhaustion.md) is about seeing consumption and surviving a full
-  filesystem, not about a limit MAYA applies.
+- **A storage quota is not an export quota.** `quota_bytes` is enforced on the way to a pin,
+  twice ([quota exhaustion](quota-exhaustion.md)), but §21.2's per-namespace export quotas and
+  manifest watermarking are not built, and there is no cold storage tier to move quiet pins
+  into.
 - **MAYA has no database failover of its own**, and every PostgreSQL command in
   [that runbook](database-failover.md) is marked as not exercised: no server was available when
   it was written.

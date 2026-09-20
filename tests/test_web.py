@@ -359,10 +359,16 @@ def test_static_vendor_assets_served(env):
 
 
 def test_logout(env):
+    """Signing out returns to the front door, and the session really is gone.
+
+    The front door is the landing page, so `/` answering 200 afterwards is not evidence of
+    a live session; what is, is that a page needing one still sends the browser to sign in."""
     _, _, client, _ = env
     r = client.post("/logout", data={"csrf_token": _csrf(client)}, follow_redirects=False)
-    assert r.status_code == 303 and r.headers["location"] == "/login"
-    assert client.get("/", follow_redirects=False).status_code == 303
+    assert r.status_code == 303 and r.headers["location"] == "/"
+    assert client.get("/", follow_redirects=False).status_code == 200
+    gated = client.get("/models", follow_redirects=False)
+    assert gated.status_code == 303 and gated.headers["location"].startswith("/login")
 
 
 def test_only_the_macro_emits_tables():

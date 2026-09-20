@@ -322,7 +322,8 @@ Each namespace is an attribute of the client: `my.features`, `my.training`, and 
 | `transition(ref, version_no, transition, **kw)` | `POST /models/{ns}/{name}/versions/{v}/transitions/{t}` — `rationale`, `force`, `successor` |
 | `diff(ref, v1, v2)` | `GET /models/{ns}/{name}/diff` |
 | `reference_code(ref, version_no)` | `GET /models/{ns}/{name}/versions/{v}/reference` |
-| `conformance(ref, version_no, n=500)` | `POST /models/{ns}/{name}/versions/{v}/conformance` |
+| `conformance(ref, version_no, n=500, featureset=None)` | `POST /models/{ns}/{name}/versions/{v}/conformance` — `featureset` draws the test's inputs from that set's own values rather than from the unit interval, and the report says which domain and which parameter values it used |
+| `kernel(text, roles=None, output_type="float64", name="compute")` | `POST /formula/kernel` — the translation step on its own. Creates nothing. Returns `ir` and `ir_hash`, `latex` as MAYA renders the tree back, `inputs` with the role each was given, `lets` in evaluation order, `output`, and two renderings of the code: `python`, one self-contained function, and `module`, the reference file. A formula MAYA cannot read is refused here rather than at `create`. |
 
 ### training
 

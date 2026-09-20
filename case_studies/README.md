@@ -85,8 +85,9 @@ same six calls would demonstrate nothing that one study could not.
 
 ### The catalogue
 
-Fifty in all. Six are built; the rest are listed with their final numbers, so a folder name
-never has to be renumbered. The order within each group is roughly the delivery order, and
+Fifty in all. Nine are built; the rest are listed with their final numbers, so a folder name
+never has to be renumbered. Study 08's data and declarations are written and its steps are
+not, so it has no folder table above and no README of its own; 09 does not exist yet. The order within each group is roughly the delivery order, and
 every entry is there for a **distinct thing it makes MAYA do** — fifty models that all
 exercised the same six calls would demonstrate nothing one study could not.
 
@@ -178,8 +179,8 @@ exercised the same six calls would demonstrate nothing one study could not.
 ## What a case study is not
 
 It is not a benchmark — `docs/BENCHMARKS.md` holds the measured throughput and capacity
-figures. It is not a tutorial — `content/tutorials` walks a newcomer through the platform
-step by step. And it is not a test — the suite under `tests/` is what holds MAYA's
+figures. It is not a tutorial — the four in `maya/web/guides/tutorial-0*.md`, read in the
+product under *Help → Guides*, walk a newcomer through the platform step by step. And it is not a test — the suite under `tests/` is what holds MAYA's
 behaviour in place. A case study is the argument, made on a concrete problem, that the
 governance is worth having.
 

@@ -188,9 +188,11 @@ and production's signing key.
   what you type. It refuses only the one contradiction it can see — passed with drift — and has
   no way to know that the pin count you claim is the count the scratch copy really verified.
   It is a signed statement, not evidence.
-- **There is no web page or API for the register yet.** `admin record-drill` and `admin drills`
-  reach it beside the database, and `maya_restore_drill_age_days` puts the age on `/metrics`.
-  Reading it in the UI is not built.
+- **The register is only as good as the statement in it.** It is readable everywhere —
+  `admin record-drill` and `admin drills` beside the database, `GET /system/restore-drills`
+  (SDK `admin.restore_drills`), the admin **Retention** page, and
+  `maya_restore_drill_age_days` on `/metrics` — but every row is a person's claim, and the
+  page says so on its face.
 - **Recovery time and recovery point have never been measured** at production size.
 - **`verify-integrity` re-hashes sealed pins only** — not blobs, raw ingested data or keys. A
   backup that lost a model's specification PDF passes it.
