@@ -16,4 +16,4 @@
 {% set canvas_author = true %}
 {% include "_lineage_canvas.html" %}
 {% endblock %}
-{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js?v={{ ASSET_V }}"></script>{% endblock %}
