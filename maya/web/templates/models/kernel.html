@@ -1,0 +1,105 @@
+{# The compute-kernel wizard (§8.1, §28.6). Nobody authors the formula IR by hand; this is
+   the same parser and the same generator the registration path uses, offered on its own so
+   that whoever wrote the mathematics can read what MAYA made of it before a version exists. #}
+{% extends "base.html" %}
+{% block title %}Design your compute kernel{% endblock %}
+{% block content %}
+<h1>Design your compute kernel</h1>
+<p class="lead-slate">Write the mathematics the way you write it — LaTeX, or something close to Python — and MAYA
+  translates it into the typed formula IR a model version holds, renders it back so you can check it read you
+  correctly, and generates one self-contained Python function that computes it. Nothing here is saved: this is the
+  translation step on its own.</p>
+
+<div class="kernel-split">
+  <form class="card card-body" id="kernel-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label class="form-label" for="kformula">The mathematics — intermediates first, the output last</label>
+    <textarea class="form-control mono" id="kformula" name="formula" rows="7" spellcheck="false"
+      placeholder="d_1 = (\log(S/K) + (r + \sigma^2/2)T) / (\sigma\sqrt{T})
+d_2 = d_1 - \sigma\sqrt{T}
+price = S\,ncdf(d_1) - K e^{-rT} ncdf(d_2)"></textarea>
+    <p class="small-muted mt-1 mb-2">One assignment per line. The last line names the output. Available functions:
+      <code>exp log sqrt abs ncdf npdf max min where</code> and the comparisons.</p>
+
+    <label class="form-label" for="kroles">Symbol roles — one <code>name: feature|parameter|constant</code> per line</label>
+    <textarea class="form-control mono" id="kroles" name="roles" rows="4" spellcheck="false"
+      placeholder="sigma: parameter
+r: parameter"></textarea>
+    <p class="small-muted mt-1 mb-2">Anything you do not name here is a feature. Declare every multi-letter symbol:
+      an undeclared <code>tau</code> reads the way LaTeX means it, as <em>t·a·u</em>.</p>
+
+    <div class="row g-2 align-items-end">
+      <div class="col-sm-6">
+        <label class="form-label" for="kname">Name the generated function</label>
+        <input class="form-control mono" id="kname" name="name" value="compute" pattern="[A-Za-z_][A-Za-z0-9_]*">
+      </div>
+      <div class="col-sm-6 text-sm-end">
+        <button class="btn btn-primary" type="submit" id="ktranslate">Translate</button>
+      </div>
+    </div>
+
+    <hr class="my-3">
+    <p class="form-label mb-1">Or start from one of these</p>
+    <div class="d-flex flex-wrap gap-2">
+      {% for e in examples %}
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-example="{{ e.key }}"
+        data-formula="{{ e.formula }}" data-roles="{{ e.roles }}" title="{{ e.note }}">{{ e.title }}</button>
+      {% endfor %}
+    </div>
+    <p class="small-muted mt-2 mb-0" id="kexample-note"></p>
+  </form>
+
+  <div>
+    <div class="alert alert-danger d-none" id="kerror" role="alert"></div>
+    <div id="kresult" class="d-none">
+      <div class="card card-body mb-3">
+        <h2 class="h6">What MAYA read</h2>
+        <p class="small-muted">Rendered back from the tree it parsed, not from your text. If this is not your
+          formula, MAYA did not read it the way you wrote it.</p>
+        <div id="kmath" class="kernel-math"></div>
+        <dl class="kv mb-0 mt-2">
+          <dt>Output</dt><dd id="koutput" class="mono"></dd>
+          <dt>Intermediates</dt><dd id="klets" class="mono"></dd>
+          <dt>IR hash</dt><dd id="khash" class="mono"></dd>
+        </dl>
+      </div>
+
+      <div class="card card-body mb-3">
+        <h2 class="h6">The inputs it found, and the role it gave each one</h2>
+        <p class="small-muted mb-1">This is the input contract: what a feature set must supply, and what a
+          parameter set must carry.</p>
+        <dl class="kv mb-0" id="kinputs"></dl>
+      </div>
+
+      <div class="card card-body mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="h6 mb-0">The formula IR</h2>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-copy="kir">Copy JSON</button>
+        </div>
+        <p class="small-muted mb-1">This is what the model version stores. Its hash is what a warrant binds to.</p>
+        <pre class="mono kernel-code" id="kir"></pre>
+      </div>
+
+      <div class="card card-body mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="h6 mb-0">The compute kernel</h2>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-copy="kpy">Copy Python</button>
+        </div>
+        <p class="small-muted mb-1">One function and nothing else: its imports and any helper it needs live inside
+          it, so it can be pasted anywhere without collecting a module around it. It takes <code>X</code> (the
+          features, scalars or arrays) and <code>params</code>, and returns the output by name.</p>
+        <pre class="mono kernel-code" id="kpy"></pre>
+      </div>
+
+      <form action="/models/new" method="get" id="kcarry">
+        <input type="hidden" name="formula" id="kcarry-formula">
+        <input type="hidden" name="roles" id="kcarry-roles">
+        <button class="btn btn-outline-primary" type="submit">Use this in a new model</button>
+        <span class="small-muted ms-2">Carries the mathematics and the roles into the model designer.</span>
+      </form>
+    </div>
+    <p class="small-muted" id="khint">Write a formula, or pick an example, and press Translate.</p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/kernel.js?v={{ ASSET_V }}"></script>{% endblock %}

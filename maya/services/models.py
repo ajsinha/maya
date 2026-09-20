@@ -23,7 +23,7 @@ from maya.core.errors import ConflictError, NotApproved, NotFound, ValidationFai
 from maya.core.typeset import detect as typeset_detect
 from maya.formula import composite as comp
 from maya.formula import ir as irmod
-from maya.formula.codegen import to_python
+from maya.formula.codegen import to_python, to_python_kernel
 from maya.formula.conformance import conformance_test, sample_inputs
 from maya.formula.diff import semantic_diff
 from maya.formula.latex import to_latex
@@ -931,6 +931,39 @@ class ModelService:
             "new_latex": self._latex(b["formula_ir"]),
             "artifact_changed": a["artifact_hash"] != b["artifact_hash"],
             "spec_changed": a["spec_latex"] != b["spec_latex"],
+        }
+
+    def kernel(
+        self,
+        p: Principal,
+        *,
+        text: str,
+        roles: dict[str, str] | None = None,
+        output_type: str = "float64",
+        name: str = "compute",
+    ) -> dict[str, Any]:
+        """Translate written mathematics into the IR, and emit a kernel for it.
+
+        This reads and writes nothing: it is the translation step of registering a model,
+        offered on its own so that whoever wrote the mathematics can see what MAYA made of
+        it — the typed tree, the inputs it found and the role it gave each one, and one
+        self-contained Python function — before any of it is committed to a version. The
+        same parser and the same generator serve the registration path, so what the wizard
+        shows is what a registered version would hold, not a preview of it.
+
+        A formula MAYA cannot read is refused here, with the reason, which is the point:
+        the alternative is finding out at `models.create`."""
+        del p  # authenticated is enough: nothing is read, nothing is written
+        ir = parse_model(text, roles=roles or {}, output_type=output_type)
+        return {
+            "ir": ir,
+            "latex": ir.get("latex", ""),
+            "ir_hash": irmod.ir_hash(ir),
+            "python": to_python_kernel(ir, name),
+            "module": to_python(ir),
+            "inputs": list(ir.get("inputs", [])),
+            "lets": irmod.let_order(ir.get("lets") or {}),
+            "output": ir["outputs"][0],
         }
 
     def reference_code(self, p: Principal, ref: str, version_no: int) -> str:

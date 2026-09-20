@@ -225,6 +225,23 @@ def model_diff(
     return ok(plat.models.diff(me, ref_of("model", namespace, name), v1, v2))
 
 
+@router.post("/formula/kernel", tags=["models"])
+def formula_kernel(body: s.KernelIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Translate written mathematics into the formula IR and a one-function kernel.
+
+    Stateless: it reads no object and writes none, so it needs no permission beyond being
+    signed in. A formula MAYA cannot read is refused here rather than at `models.create`."""
+    return ok(
+        plat.models.kernel(
+            me,
+            text=body.text,
+            roles=body.roles,
+            output_type=body.output_type,
+            name=body.name,
+        )
+    )
+
+
 @router.get("/models/{namespace}/{name}/versions/{version_no}/reference", tags=["models"])
 def reference_code(
     namespace: str, name: str, version_no: int, me: Principal = Me, plat: Any = Plat

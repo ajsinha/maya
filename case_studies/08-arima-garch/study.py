@@ -236,7 +236,7 @@ SECTIONS_MEAN = {
     ),
     "Mathematical Formulation": (
         "An AR(2) on the log return: $\\hat r_t = c + \\phi_1 r_{t-1} + \\phi_2 r_{t-2}$. The "
-        "two lags are *features*, produced by declared lag transforms on the return feed and "
+        "two lags are \\emph{features}, produced by declared lag transforms on the return feed and "
         "grouped by index so no series borrows another's history. Stationarity requires "
         "$\\phi_1 + \\phi_2 < 1$, $\\phi_2 - \\phi_1 < 1$ and $|\\phi_2| < 1$: the third is a "
         "bound on one coefficient, the first two are joint conditions that no per-parameter "
@@ -294,7 +294,7 @@ SECTIONS_VOL = {
     "Mathematical Formulation": (
         "GARCH(1,1) on the residual of the mean model: $\\sigma_t^2 = \\omega + \\alpha "
         "\\varepsilon_{t-1}^2 + \\beta \\sigma_{t-1}^2$, recursed from the sample variance, "
-        "with the forecast being $\\sigma_t$. **This is not a row-wise expression.** The "
+        "with the forecast being $\\sigma_t$. \\textbf{This is not a row-wise expression.} The "
         "variance on the right is yesterday's variance, which is not an observable column but "
         "a state carried from row to row and dependent on the parameters, so no lag transform "
         "can produce it. MAYA's formula language evaluates one row at a time, so the model is "
@@ -325,7 +325,7 @@ SECTIONS_VOL = {
     "Validation Evidence": (
         "Fitted parameters against the generating process, the log-likelihood against a "
         "constant-variance model, and the forecast compared with the realised squared return. "
-        "MAYA **refuses to score a declared black box** and the desk scores it instead, which "
+        "MAYA \\textbf{refuses to score a declared black box} and the desk scores it instead, which "
         "is a weaker claim than a blind one; case study 7 quantifies how much weaker, and the "
         "same reasoning applies here."
     ),

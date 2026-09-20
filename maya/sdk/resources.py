@@ -1174,6 +1174,33 @@ class Models(_Resource):
     def diff(self, ref: str, v1: int, v2: int) -> Any:
         return self._c("GET", f"/models/{_nn(ref, 'model')}/diff", params={"v1": v1, "v2": v2})
 
+    @endpoint("POST", "/formula/kernel")
+    def kernel(
+        self,
+        text: str,
+        *,
+        roles: dict[str, str] | None = None,
+        output_type: str = "float64",
+        name: str = "compute",
+    ) -> Any:
+        """Translate written mathematics into the IR and a single-function Python kernel.
+
+        Nothing is created: this is the translation a `create` would do, on its own, so the
+        author can read what MAYA made of the notation before committing it to a version.
+        Returns the IR, its hash, the LaTeX MAYA renders it back as, the inputs with the
+        role each was given, the intermediates in evaluation order, and two renderings of
+        the code — `python`, one self-contained function, and `module`, the reference file."""
+        return self._c(
+            "POST",
+            "/formula/kernel",
+            json_body={
+                "text": text,
+                "roles": roles or {},
+                "output_type": output_type,
+                "name": name,
+            },
+        )
+
     @endpoint("GET", "/models/{namespace}/{name}/versions/{version_no}/reference")
     def reference_code(self, ref: str, version_no: int) -> Any:
         return self._c("GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/reference")

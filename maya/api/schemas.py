@@ -156,6 +156,17 @@ class ModelIn(BaseModel):
     vendor: dict[str, Any] = Field(default_factory=dict)
 
 
+class KernelIn(BaseModel):
+    """What the compute-kernel wizard sends: written mathematics and the roles of its
+    symbols. Nothing is named and nothing is stored — this is the translation step on
+    its own, before a model exists to attach it to."""
+
+    text: str
+    roles: dict[str, str] = Field(default_factory=dict)
+    output_type: str = "float64"
+    name: str = "compute"
+
+
 class ModelDraftIn(BaseModel):
     formula: str | None = None
     roles: dict[str, str] = Field(default_factory=dict)

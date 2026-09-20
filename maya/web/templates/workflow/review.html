@@ -116,4 +116,4 @@
 {% if memos is not none %}{% include "workflow/_challenge.html" %}{% endif %}
 {% include "_history.html" %}
 {% endblock %}
-{% block scripts %}{% if root %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if root %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js?v={{ ASSET_V }}"></script>{% endif %}{% endblock %}

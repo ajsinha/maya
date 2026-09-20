@@ -173,4 +173,4 @@ class Model:
 </div>
 {% else %}<p>No versions.</p>{% endif %}
 {% endblock %}
-{% block scripts %}{% include "_editor_scripts.html" %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}
+{% block scripts %}{% include "_editor_scripts.html" %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js?v={{ ASSET_V }}"></script>{% endblock %}

@@ -251,7 +251,7 @@ def test_a_security_key_registers_and_then_answers_the_challenge(site, browser):
     page.goto(f"{base}/")
     page.click(".maya-tools .user")
     page.locator("form[action='/logout'] button").click()
-    page.wait_for_url(re.compile(r"/login"))
+    page.wait_for_url(re.compile(r"/$"))  # the landing page, not the sign-in form
     _login(page, base, "mick", "Test-password-1")
     auth = page.locator("[data-webauthn=authenticate]")
     auth.wait_for(state="visible", timeout=5000)

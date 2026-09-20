@@ -307,6 +307,63 @@ def test_the_preview_follows_the_source_within_a_moment(site, browser):
     ctx.close()
 
 
+def test_a_section_command_anywhere_is_a_heading_and_no_command_is_shown_raw(site, browser):
+    """The preview used to recognise \\section only as the first thing in a paragraph, so a
+    source that wrote one straight after a sentence printed the command at the reader. The
+    contract now is that structure is structure wherever it stands, and that no backslash
+    command reaches the page as text — whether or not this renderer has heard of it."""
+    base, _ = site
+    ctx, page = _page(browser)
+    _login(page, base)
+    preview = _spec(page, base)
+    _set(
+        page,
+        "spec",
+        "\\section{Purpose}\nWhy it exists.\n\\section{Assumptions}\nStated in full.\n"
+        "\\subsubsection{A finer point}\nFiner still. \\somethingnew{kept} and "
+        "\\barecommand dropped.\n\\noindent Cost is \\$5, which is 10\\% of the line, "
+        "see \\ref{fig:one}\\vspace{1em}.\n",
+    )
+    expect(preview.locator("h4", has_text="Assumptions")).to_be_visible(timeout=3000)
+    expect(preview.locator("h6", has_text="A finer point")).to_be_visible()
+    text = preview.inner_text()
+    assert "\\" not in text, text
+    assert "section" not in text, text
+    assert "kept" in text and "somethingnew" not in text, text
+    assert "Cost is $5, which is 10% of the line" in text, text
+    assert page.errors == []
+    ctx.close()
+
+
+def test_lists_and_display_maths_are_rendered_and_a_table_is_named_as_skipped(site, browser):
+    base, _ = site
+    ctx, page = _page(browser)
+    _login(page, base)
+    preview = _spec(page, base)
+    _set(
+        page,
+        "spec",
+        "\\section{Purpose}\nThe inputs are:\n"
+        "\\begin{itemize}\n\\item the loan to value,\nwhich runs onto a second line\n"
+        "\\item the \\texttt{fico} score\n\\end{itemize}\n"
+        "The steps:\n\\begin{enumerate}\\item fit\\item score\\end{enumerate}\n"
+        "\\begin{align}\n\\label{eq:one}a &= b \\\\\nc &= d\n\\end{align}\n"
+        "\\begin{tabular}{ll}\na & b \\\\\n\\end{tabular}\n",
+    )
+    expect(preview.locator("ul li")).to_have_count(2, timeout=3000)
+    expect(preview.locator("ul li").first).to_contain_text("runs onto a second line")
+    expect(preview.locator("ul li code")).to_contain_text("fico")
+    expect(preview.locator("ol li")).to_have_count(2)
+    assert preview.locator(".katex-display").count() > 0, "an align environment is display maths"
+    # the table is not typeset here, and the preview says so rather than printing its source
+    expect(preview.locator(".small-muted")).to_contain_text("table — rendered in the PDF build")
+    # the items carry prose, not the environment's own commands
+    items = preview.locator("ul li, ol li").all_inner_texts()
+    assert all("\\" not in t and "item" not in t for t in items), items
+    assert page.errors == []
+    ctx.close()
+
+
 def test_bracket_matching_marks_the_pair_and_flags_a_stray_one(site, browser):
     base, _ = site
     ctx, page = _page(browser)

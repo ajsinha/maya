@@ -315,15 +315,15 @@ SECTIONS_V2 = {
         "additional factors are the published size, value, profitability and investment "
         "return series. The six coefficients are estimated by ordinary least squares on "
         "the pooled panel. The symbol $\\beta$ is carried over from version 1 and its "
-        "interpretation is not: it is now the market exposure *holding the four other "
-        "exposures fixed*, which is a different quantity that happens to have the same "
+        "interpretation is not: it is now the market exposure \\emph{holding the four other "
+        "exposures fixed}, which is a different quantity that happens to have the same "
         "name. Version 1's estimate of it is not an estimate of this."
     ),
     "Validation Evidence": (
         "The same three instruments as version 1 — coefficients with classical and "
         "date-clustered standard errors, $R^2$ on training and validation, and MAYA's "
         "blind score on the escrowed test partition — and one more that matters more than "
-        "any of them: the two versions are scored on the *same* escrowed rows, because "
+        "any of them: the two versions are scored on the \\emph{same} escrowed rows, because "
         "both warrants were drawn on the same pin with the same split and the same seed "
         "and MAYA reports the same holdout content hash for both. The improvement is "
         "therefore measured on rows neither fit saw, and is a difference rather than an "

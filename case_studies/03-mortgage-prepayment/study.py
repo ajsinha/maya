@@ -181,7 +181,7 @@ SECTIONS = {
     ),
     "Scope and Limitations": (
         "Fixed-rate, fully amortising first-lien mortgages in the domestic book, at least "
-        "one month seasoned. It models *voluntary* prepayment: a loan that leaves the pool "
+        "one month seasoned. It models \\emph{voluntary} prepayment: a loan that leaves the pool "
         "through default and liquidation is not the same event and is not in scope. There "
         "is no state-level, servicer-level or credit-score dimension, so it cannot answer "
         "a question about regional dispersion. It is a monthly hazard, not a term structure "

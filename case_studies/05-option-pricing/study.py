@@ -441,7 +441,7 @@ SECTIONS = {
         "function where the market is smooth, so a quote that crosses a band edge as spot "
         "moves changes volatility discontinuously, and the surface's own residual is worst "
         "in the widest and most expensive bucket, one year and $K/S < 0.95$. The model has "
-        "no term structure and no skew *within* a band. It is calibrated to mids and "
+        "no term structure and no skew \\emph{within} a band. It is calibrated to mids and "
         "therefore inherits every stale quote in the chain. Outside the calibrated maturity "
         "and strike region it extrapolates flat, which is why that region is bounded by "
         "covenant. Nothing in the calibration constitutes evidence of predictive power, "

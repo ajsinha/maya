@@ -258,7 +258,7 @@ REPAY_SECTIONS = {
     ),
     "Mathematical Formulation": (
         "Linear in the equity available: with $E = 1 - \\ell$, the fraction is "
-        "$\\rho_0 + \\rho_E E$. It is deliberately **not** a logistic. The quantity is "
+        "$\\rho_0 + \\rho_E E$. It is deliberately \\textbf{not} a logistic. The quantity is "
         "negative, and a logistic cannot produce a negative number — forcing both regimes "
         "through one functional form would be wrong about at least one of them, which is "
         "the argument for routing between two members rather than adding an interaction "
@@ -302,7 +302,7 @@ COMPOSITE_SECTIONS = {
     ),
     "Scope and Limitations": (
         "First-lien and second-lien home equity lines of credit in the domestic book. It "
-        "is a *usage* model, not a regulatory loan-equivalent model: a Basel-compliant LEQ "
+        "is a \\emph{usage} model, not a regulatory loan-equivalent model: a Basel-compliant LEQ "
         "is estimated on accounts that actually defaulted, and this one is estimated on all "
         "accounts, which makes it the right instrument for stress and liquidity work and the "
         "wrong one for regulatory exposure at default without a separate conditional "

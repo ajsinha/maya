@@ -75,4 +75,4 @@
 <div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">{% set object_type = 'training_warrant' %}{% set object_id = w.id %}{% include "_history.html" %}</div>
 </div>
 {% endblock %}
-{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js?v={{ ASSET_V }}"></script>{% endblock %}

@@ -25,16 +25,43 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.templating import Jinja2Templates
 
 from maya.core.errors import MayaError, NotAuthenticated
-from maya.core.version import APP_NAME, APP_SLOGAN, APP_TAGLINE, BUILD_DATE, VERSION
+from maya.core.version import (
+    APP_NAME,
+    APP_SLOGAN,
+    APP_TAGLINE,
+    BUILD_DATE,
+    COPYRIGHT,
+    VERSION,
+)
 from maya.sdk import AsyncClient
+
+STATIC = Path(__file__).resolve().parent.parent / "static"
+
+
+def asset_version() -> str:
+    """A token that changes whenever MAYA's own CSS or JavaScript changes.
+
+    Every stylesheet and script MAYA serves is appended with it. Without one, a browser
+    that cached yesterday's theme.css keeps using it against today's markup, and the page
+    is laid out by two versions of the design at once -- which looks like a bug in the
+    page and is nobody's to reproduce. Computed once at import from the newest file under
+    ``static/``, so a deployment changes it and a page load does not have to stat the tree."""
+    newest = 0.0
+    for path in STATIC.rglob("*"):
+        if path.suffix in (".css", ".js") and "vendor" not in path.parts:
+            newest = max(newest, path.stat().st_mtime)
+    return f"{VERSION}-{int(newest)}"
+
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 TEMPLATES.env.globals.update(
     APP_NAME=APP_NAME,
     APP_TAGLINE=APP_TAGLINE,
     APP_SLOGAN=APP_SLOGAN,
+    COPYRIGHT=COPYRIGHT,
     VERSION=VERSION,
     BUILD_DATE=BUILD_DATE,
+    ASSET_V=asset_version(),
 )
 TEMPLATES.env.filters["tojson_pretty"] = lambda v: json.dumps(
     v, indent=2, default=str, sort_keys=True

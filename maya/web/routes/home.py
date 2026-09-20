@@ -21,6 +21,17 @@ router = APIRouter()
 
 
 @router.get("/")
+async def front(request: Request) -> Any:
+    """The front door. Signed in, it is the dashboard; signed out, it is the landing page.
+
+    A visitor who arrives at MAYA should be told what MAYA is, not handed a password box:
+    a sign-in form answers "who are you" to somebody who has not yet been told why they
+    would want an account here."""
+    if not request.session.get("token"):
+        return await render(request, "landing.html", {"public_nav": True})
+    return await dashboard(request)
+
+
 @page
 async def dashboard(request: Request) -> Any:
     async with client(request) as sdk:

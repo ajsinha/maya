@@ -5976,6 +5976,70 @@
     }
    }
   },
+  "/api/v1/formula/kernel": {
+   "post": {
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/KernelIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/grants": {
    "get": {
     "parameters": [
@@ -15579,6 +15643,31 @@
      "type": "array"
     }
    },
+   "type": "object"
+  },
+  "KernelIn": {
+   "properties": {
+    "name": {
+     "default": "compute",
+     "type": "string"
+    },
+    "output_type": {
+     "default": "float64",
+     "type": "string"
+    },
+    "roles": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "text": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "text"
+   ],
    "type": "object"
   },
   "LogLevelIn": {

@@ -75,7 +75,11 @@
 <nav class="navbar navbar-expand-lg maya-nav fixed-top" aria-label="Main">
   <div class="container-fluid">
     <a class="navbar-brand maya-brand" href="/"><img src="/static/img/maya-mark-white.svg" alt="">
-      <span><span class="name">MAYA</span><small>{{ APP_TAGLINE }}</small></span></a>
+      {# Three lines, in the order a reviewer needs them: the name, what MAYA is, and what
+         it undertakes to do. The claim sits with the brand rather than out in the bar,
+         where it would read as one more control competing for a click. #}
+      <span><span class="name">MAYA</span><small>{{ APP_TAGLINE }}</small>
+        <small class="creed">{{ APP_SLOGAN|trim('.') }}</small></span></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#maya-menu"
             aria-controls="maya-menu" aria-expanded="false" aria-label="Toggle navigation">
       <i class="bi bi-list" aria-hidden="true"></i></button>

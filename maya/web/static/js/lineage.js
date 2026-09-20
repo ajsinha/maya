@@ -42,6 +42,46 @@
 
   function isPin(ref) { return String(ref).indexOf('#') > -1; }
 
+  function nsOf(ref) {
+    if (String(ref).indexOf('maya://') !== 0) { return ''; }
+    var parts = bare(ref).slice(7).split('/');
+    // A warrant ref carries its kind before its namespace: warrant/<kind>/<ns>/<name>.
+    return (parts[0] === 'warrant' ? parts[2] : parts[1]) || '';
+  }
+
+  function pinOf(ref) {
+    var i = String(ref).indexOf('#');
+    return i > -1 ? String(ref).slice(i + 1) : '';
+  }
+
+  // What to write on the face of a node. A ref is a path and a path is not a name: drawn
+  // whole, `warrant/train/impairment/ecl_fit_2025h1@v1` is four times the width of the thing
+  // it names. The last segment is the name; everything before it is said on the second line
+  // or, where it is the same for every node in the graph, not said at all.
+  function nodeTitle(ref, meta) {
+    var name = (meta && meta.name) || bare(ref).replace(/^maya:\/\//, '').split('/').pop();
+    // A parameter set is named by the hash of its own contents. Forty hex characters is not
+    // a name anybody reads; the first ten identify it among the handful on one canvas, and
+    // the detail panel carries the whole of it for anyone who needs to quote it.
+    if (/^[0-9a-f-]{24,}$/.test(name)) { name = name.slice(0, 10) + '…'; }
+    if (isPin(ref)) { return name + ' #' + pinOf(ref); }
+    var v = versionOf(ref);
+    return name + (v ? ' v' + v : '');
+  }
+
+  // The second line: what the node is, and where it lives when that is not where the root
+  // lives. A pin says so, because a pin and the version it seals share a name and would
+  // otherwise be drawn as the same thing twice.
+  function nodeKindLine(ref, meta, rootNs) {
+    var kind = (meta && meta.kind) || kindOf(ref);
+    var line = isPin(ref) ? 'pin of a ' + kind : kind;
+    // Only a namespace the server names, and only when it is not the root's: a ref's second
+    // segment is a namespace for a feature and a content hash for a parameter set, and
+    // repeating that hash under the node says the same nothing twice.
+    var ns = meta && meta.namespace;
+    return ns && ns !== rootNs ? line + ' · ' + ns : line;
+  }
+
   function versionOf(ref) {
     var m = String(ref).match(/@v(\d+)$/);
     return m ? parseInt(m[1], 10) : null;
@@ -192,12 +232,22 @@
   var css = getComputedStyle(document.documentElement);
   function tok(n) { return css.getPropertyValue(n).trim() || '#888'; }
 
+  // A node carries its own name, so the shape has to be one text can sit inside. Diamonds,
+  // hexagons and triangles cannot hold two lines of it, which is why every kind but the
+  // algebra operator is now a rounded box and the kind is carried by colour instead. The
+  // operator keeps its diamond: its labels are one short word.
   function shape(kind) {
-    return {
-      op: 'diamond', feature: 'round-rectangle', featureset: 'rectangle', model: 'ellipse',
-      warrant: 'hexagon', parameters: 'tag', execution: 'triangle', cluster: 'octagon',
-      chain: 'round-diamond', hidden: 'round-octagon'
-    }[kind] || 'round-rectangle';
+    return { op: 'diamond' }[kind] || 'round-rectangle';
+  }
+
+  // One accent per kind, used for the border and for a wash behind the label. These are the
+  // palette's own tokens, so both themes get a colour that was chosen for their ground.
+  function accent(kind) {
+    return tok({
+      feature: '--maya-indigo', featureset: '--maya-heading', model: '--maya-crimson',
+      warrant: '--maya-ok', parameters: '--maya-warn', execution: '--maya-slate',
+      op: '--maya-crimson-strong'
+    }[kind] || '--maya-slate');
   }
 
   function $(id) { return document.getElementById(id); }
@@ -343,18 +393,23 @@
     function place(id) { return clusterOf[id] || folded[id] || id; }
 
     var overlay = val('cy-overlay', 'none');
-    var elements = [], words = {};
+    var elements = [], words = {}, rootNs = nsOf(state.root);
     Object.keys(shown).forEach(function (id) {
       if (folded[id] || clusterOf[id]) { return; }
       var m = models[id], mark = OVERLAYS[overlay] ? OVERLAYS[overlay](m) : null;
-      var name = shortLabel(id);
-      if (m.meta && m.meta.name) { name = m.meta.namespace + '/' + m.meta.name + (versionOf(id) ? '@v' + versionOf(id) : ''); }
-      if (id === HIDDEN_ID) { name = g.hidden + ' object(s) you may not read\n· withheld, counted not named'; }
+      // Two lines: what the node is called, then what it is. The namespace is only worth a
+      // line when it is not the root's own — in a single-namespace graph repeating it on
+      // every node doubles the width of the label and says nothing.
+      var meta = m.meta ? { name: m.meta.name, namespace: m.meta.namespace, kind: m.kind } : { kind: m.kind };
+      var name = nodeTitle(id, meta), under = nodeKindLine(id, meta, rootNs);
+      if (id === HIDDEN_ID) { name = g.hidden + ' object(s) you may not read'; under = 'withheld, counted not named'; }
       var word = mark ? mark.word : '';
       words[id] = word;
-      var label = name + (word ? '\n· ' + word : '');
-      if (m.review === 'removed') { label = strike(name) + '\n· removed'; }
-      else if (m.review) { label = name + '\n· ' + m.review + (word ? ', ' + word : ''); }
+      var notes = [];
+      if (m.review === 'removed') { name = strike(name); notes.push('removed'); }
+      else if (m.review) { notes.push(m.review); }
+      if (word) { notes.push(word); }
+      var label = name + '\n' + [under].concat(notes).filter(Boolean).join(' · ');
       elements.push({
         data: {
           id: id, label: label, kind: id === HIDDEN_ID ? 'hidden' : m.kind,
@@ -367,7 +422,7 @@
       elements.push({
         data: {
           id: c.id, kind: 'chain', root: 0, ov: '', review: '',
-          label: 'inheritance chain\n· ' + c.depth + ' version(s) folded'
+          label: 'inheritance chain\n' + c.depth + ' version(s) folded'
         }
       });
     });
@@ -375,14 +430,13 @@
       elements.push({
         data: {
           id: id, kind: 'cluster', root: 0, ov: '', review: '',
-          label: 'namespace ' + id.slice('cluster:'.length) + '\n· ' + clusters[id] +
-            ' node(s), click to expand'
+          label: 'namespace ' + id.slice('cluster:'.length) + '\n' + clusters[id] + ' node(s), click to expand'
         }
       });
     });
     var drawn = {};
     elements.forEach(function (e) { drawn[e.data.id] = true; });
-    var seen = {};
+    var seen = {}, named = {}, repeats = 0;
     g.edges.forEach(function (e, i) {
       if (!shown[e.source] || !shown[e.target]) { return; }
       var s = place(e.source), t = place(e.target);
@@ -390,8 +444,19 @@
       var key = s + '|' + t + '|' + e.type;
       if (seen[key]) { return; }
       seen[key] = true;
+      // A fan of five edges that all say `parameterized_by` writes that word five times
+      // across the same patch of canvas and none of the five stays readable. The name is
+      // written once per source and relationship; the repeats are drawn, their name is not,
+      // and the status line below the canvas says that is what happened.
+      var fan = s + '|' + e.type;
+      var repeat = !!named[fan];
+      named[fan] = (named[fan] || 0) + 1;
+      if (repeat) { repeats += 1; }
       elements.push({
-        data: { id: 'e' + i, source: s, target: t, type: e.type, raw: e.label || '', label: edgeLabel(e) }
+        data: {
+          id: 'e' + i, source: s, target: t, type: e.type, raw: e.label || '',
+          label: repeat ? '' : edgeLabel(e), name: edgeLabel(e)
+        }
       });
     });
     if (g.hidden && drawn[place(state.root)]) {
@@ -404,34 +469,47 @@
     }
     return {
       elements: elements, removed: removed, words: words, models: models,
-      shownCount: Object.keys(shown).length, clustered: Object.keys(clusters).length > 0
+      shownCount: Object.keys(shown).length, clustered: Object.keys(clusters).length > 0,
+      unnamedEdges: repeats
     };
   }
 
   var STYLE = function () {
     return [
+      // A node is a box with its own name written inside it, sized to the text it holds.
+      // Everything else here follows from that: no floating labels to collide, no zoom
+      // needed to read one, and the graph is as wide as its names actually are.
       { selector: 'node', style: {
         'shape': function (n) { return shape(n.data('kind')); },
-        'background-color': tok('--maya-surface'), 'border-color': tok('--maya-indigo'), 'border-width': 2,
-        'label': 'data(label)', 'font-size': 10, 'color': tok('--maya-ink'), 'text-wrap': 'wrap',
-        'text-max-width': 170, 'text-valign': 'bottom', 'text-margin-y': 4, 'width': 30, 'height': 22 } },
-      { selector: 'node[kind = "op"]', style: { 'background-color': tok('--maya-crimson-tint'), 'border-color': tok('--maya-crimson') } },
-      { selector: 'node[kind = "cluster"], node[kind = "chain"]', style: { 'width': 44, 'height': 34, 'background-color': tok('--maya-canvas'), 'border-style': 'dashed' } },
-      { selector: 'node[ghost = 1]', style: { 'background-color': tok('--maya-canvas'), 'border-style': 'dashed', 'border-color': tok('--maya-slate') } },
-      { selector: 'node[root = 1]', style: { 'border-color': tok('--maya-crimson'), 'border-width': 4 } },
-      { selector: 'node[ov = "ok"]', style: { 'background-color': tok('--maya-ok'), 'border-color': tok('--maya-ok') } },
-      { selector: 'node[ov = "warn"]', style: { 'background-color': tok('--maya-warn'), 'border-color': tok('--maya-warn') } },
-      { selector: 'node[ov = "bad"]', style: { 'background-color': tok('--maya-bad'), 'border-color': tok('--maya-bad') } },
-      { selector: 'node[ov = "info"]', style: { 'background-color': tok('--maya-indigo'), 'border-color': tok('--maya-indigo') } },
-      { selector: 'node[ov = "none"]', style: { 'background-color': tok('--maya-surface'), 'border-color': tok('--maya-slate') } },
-      { selector: 'node[review = "added"]', style: { 'border-color': tok('--maya-ok'), 'border-width': 5 } },
-      { selector: 'node[review = "changed"]', style: { 'border-color': tok('--maya-warn'), 'border-width': 5 } },
-      { selector: 'node[review = "removed"]', style: { 'border-color': tok('--maya-slate'), 'border-style': 'dotted', 'border-width': 4 } },
-      { selector: 'node:selected', style: { 'border-color': tok('--maya-crimson-strong'), 'border-width': 5 } },
+        'background-color': function (n) { return accent(n.data('kind')); },
+        'background-opacity': 0.13,
+        'border-color': function (n) { return accent(n.data('kind')); }, 'border-width': 1.5,
+        'label': 'data(label)', 'font-size': 11, 'color': tok('--maya-ink'),
+        'text-wrap': 'wrap', 'text-max-width': 148,
+        'text-valign': 'center', 'text-halign': 'center', 'line-height': 1.4,
+        'width': 'label', 'height': 'label', 'padding': 11 } },
+      { selector: 'node[kind = "op"]', style: { 'padding': 26, 'font-size': 10 } },
+      { selector: 'node[kind = "cluster"], node[kind = "chain"]', style: { 'border-style': 'dashed', 'background-opacity': 0.07 } },
+      { selector: 'node[ghost = 1]', style: { 'border-style': 'dashed', 'background-opacity': 0.06 } },
+      { selector: 'node[root = 1]', style: { 'border-color': tok('--maya-crimson'), 'border-width': 3 } },
+      // An overlay repaints the wash, not the label's ground: the word inside the node has
+      // to stay readable, so the colour is a tint and the border carries the full value.
+      { selector: 'node[ov = "ok"]', style: { 'background-color': tok('--maya-ok'), 'background-opacity': 0.22, 'border-color': tok('--maya-ok') } },
+      { selector: 'node[ov = "warn"]', style: { 'background-color': tok('--maya-warn'), 'background-opacity': 0.22, 'border-color': tok('--maya-warn') } },
+      { selector: 'node[ov = "bad"]', style: { 'background-color': tok('--maya-bad'), 'background-opacity': 0.22, 'border-color': tok('--maya-bad') } },
+      { selector: 'node[ov = "info"]', style: { 'background-color': tok('--maya-indigo'), 'background-opacity': 0.22, 'border-color': tok('--maya-indigo') } },
+      { selector: 'node[ov = "none"]', style: { 'background-color': tok('--maya-slate'), 'background-opacity': 0.08, 'border-color': tok('--maya-slate') } },
+      { selector: 'node[review = "added"]', style: { 'border-color': tok('--maya-ok'), 'border-width': 3 } },
+      { selector: 'node[review = "changed"]', style: { 'border-color': tok('--maya-warn'), 'border-width': 3 } },
+      { selector: 'node[review = "removed"]', style: { 'border-color': tok('--maya-slate'), 'border-style': 'dotted', 'border-width': 3 } },
+      { selector: 'node:selected', style: { 'border-color': tok('--maya-crimson-strong'), 'border-width': 3.5 } },
       { selector: 'edge', style: {
         'width': 1.5, 'line-color': tok('--maya-slate'), 'target-arrow-color': tok('--maya-slate'),
-        'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'label': 'data(label)', 'font-size': 8,
-        'color': tok('--maya-slate'), 'text-rotation': 'autorotate' } },
+        'target-arrow-shape': 'triangle', 'arrow-scale': 0.8,
+        'curve-style': 'bezier', 'label': 'data(label)', 'font-size': 9,
+        'text-background-color': tok('--maya-surface'), 'text-background-opacity': 0.9,
+        'text-background-padding': 2, 'text-background-shape': 'roundrectangle',
+        'color': tok('--maya-slate') } },
       { selector: 'edge[type = "extends"]', style: { 'target-arrow-shape': 'triangle', 'target-arrow-fill': 'hollow', 'width': 2 } },
       { selector: 'edge[type = "operand_of"]', style: { 'width': 1 } },
       { selector: 'edge[type = "member_of"]', style: { 'line-style': 'dashed' } },
@@ -577,14 +655,42 @@
     }).length + ' edge(s)'];
     if (built.removed) { parts.push(built.removed + ' hidden by your filters'); }
     if (g.hidden) { parts.push(g.hidden + ' left out because you may not read them'); }
+    if (built.unnamedEdges) {
+      parts.push(built.unnamedEdges + ' edge(s) repeat a relationship already named from the same node, so only the first of each carries its name');
+    }
     if (built.clustered) { parts.push('the far graph is clustered by namespace — click a cluster to expand it'); }
     if (g.meta_complete === false) { parts.push('this graph holds more objects than one draw describes, so some nodes carry no detail'); }
     if (status) { status.textContent = parts.join(' · ') + '.'; }
     var legend = $('cy-legend');
     if (legend) {
       var overlay = val('cy-overlay', 'none');
-      legend.textContent = LEGENDS[overlay] || 'No overlay: nodes are drawn by kind, the root outlined in crimson.';
+      legend.textContent = LEGENDS[overlay] || 'No overlay: each node is coloured by kind — features indigo, feature sets rose, models crimson, warrants green, parameter sets amber, executions slate — and the root is outlined in crimson.';
     }
+  }
+
+  // A layered layout that reserves room for the labels rather than for the shapes alone.
+  // Without nodeDimensionsIncludeLabels the ranks are packed at shape width — around 60px —
+  // while the labels beneath them are twice that, so every rank's text collides with its
+  // neighbour's. The spacing is generous for the same reason.
+  function layoutOptions() {
+    return {
+      name: 'breadthfirst', directed: true, spacingFactor: 1.05, padding: 24,
+      nodeDimensionsIncludeLabels: true, avoidOverlap: true, grid: false
+    };
+  }
+
+  // Fit the graph, then hold the zoom somewhere a person can read. `fit` on its own will
+  // magnify three nodes until their labels are the size of headings, which is what made this
+  // canvas unreadable on a small estate.
+  function fitNicely() {
+    if (!state.cy) { return; }
+    state.cy.fit(undefined, 28);
+    if (state.cy.zoom() > 1) { state.cy.zoom({ level: 1, renderedPosition: centreOf() }); }
+  }
+
+  function centreOf() {
+    var box = el.getBoundingClientRect();
+    return { x: box.width / 2, y: box.height / 2 };
   }
 
   function draw() {
@@ -593,8 +699,12 @@
     if (!state.cy) {
       state.cy = window.cytoscape({
         container: el, elements: built.elements, wheelSensitivity: 0.2, selectionType: 'additive',
-        layout: { name: 'breadthfirst', directed: true, spacingFactor: 1.15, padding: 20 },
-        style: STYLE()
+        // A small graph must not be magnified to fill the canvas: cytoscape fits by zooming,
+        // and at 30px nodes that meant a zoom near 3, which drew a 10px label at 30px and
+        // turned six of them into one illegible line. Nodes are now sized to be read at 1:1
+        // and the zoom is capped just above it.
+        minZoom: 0.2, maxZoom: 1.6,
+        layout: layoutOptions(), style: STYLE()
       });
       wire();
     } else {
@@ -602,8 +712,9 @@
         state.cy.elements().remove();
         state.cy.add(built.elements);
       });
-      state.cy.layout({ name: 'breadthfirst', directed: true, spacingFactor: 1.15, padding: 20 }).run();
+      state.cy.layout(layoutOptions()).run();
     }
+    fitNicely();
     state.selection = state.selection.filter(function (id) { return state.cy.getElementById(id).length > 0; });
     state.selection.forEach(function (id) { state.cy.getElementById(id).select(); });
     syncList(built);
@@ -619,7 +730,7 @@
       var text = e.data('type') === 'extends'
         ? extendsDetail({ label: e.data('raw') })
         : 'Edge: ' + e.data('type').replace(/_/g, ' ') + '.';
-      setDetail('<h4 class="h6">' + esc(e.data('label')) + '</h4><p class="mb-0 small">' + esc(text) + '</p>');
+      setDetail('<h4 class="h6">' + esc(e.data('name') || e.data('label')) + '</h4><p class="mb-0 small">' + esc(text) + '</p>');
     });
     cy.on('tap', 'node', function (ev) {
       var id = ev.target.id();

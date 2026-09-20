@@ -8,8 +8,8 @@
   <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/static/vendor/katex/katex.min.css">
-  <link rel="stylesheet" href="/static/css/tokens.css">
-  <link rel="stylesheet" href="/static/css/theme.css">
+  <link rel="stylesheet" href="/static/css/tokens.css?v={{ ASSET_V }}">
+  <link rel="stylesheet" href="/static/css/theme.css?v={{ ASSET_V }}">
   {% block head %}{% endblock %}
 </head>
 <body data-csrf="{{ csrf }}" class="{{ 'maya-app' if (user or public_nav) else 'maya-public' }}">
@@ -40,12 +40,19 @@
     </div>
     {% block content %}{% endblock %}
   </main>
+  {# The slogan closes every page, not only the sign-in and the dashboard: it is what the
+     platform claims about itself, and a claim belongs where the work is, not on the way in. #}
+  <footer class="maya-foot">
+    <p class="mb-0"><span class="maya-foot-slogan">{{ APP_SLOGAN }}</span>
+      {{ APP_NAME }} {{ VERSION }} · <a href="/help">Help</a> · <a href="/about">About</a>
+      · {{ COPYRIGHT }}</p>
+  </footer>
 </div>
 <script src="/static/vendor/jquery/jquery.min.js"></script>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/vendor/katex/katex.min.js"></script>
-<script src="/static/js/table.js"></script>
-<script src="/static/js/app.js"></script>
+<script src="/static/js/table.js?v={{ ASSET_V }}"></script>
+<script src="/static/js/app.js?v={{ ASSET_V }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

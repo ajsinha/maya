@@ -385,7 +385,9 @@ async def logout(request: Request) -> Any:
             except MayaError:
                 pass
     request.session.clear()
-    return RedirectResponse(slo or "/login", status_code=303)
+    # Out to the landing page, not to a sign-in form: somebody who has just left is not
+    # halfway through arriving, and the form implies they should try again.
+    return RedirectResponse(slo or "/", status_code=303)
 
 
 @router.get("/account/password")

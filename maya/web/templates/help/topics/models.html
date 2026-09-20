@@ -21,6 +21,13 @@ yardstick your implementation is tested against.</p>
 last, one per line. Implicit multiplication, <code>\frac</code>, <code>\sqrt</code>, Greek letters,
 <code>N(·)</code> / <code>\Phi</code> for the normal CDF and <code>e^{…}</code> are understood. Anything
 the parser cannot read is refused with the position named, never guessed.</p>
+
+<p class="mt-2">If you would rather see what MAYA makes of the notation before anything is created, open
+{{ screen('/models/kernel', 'Models → Design your compute kernel') }}. It runs the same parser and the same
+generator the registration path runs, and shows three things back: the mathematics rendered from the tree it
+parsed — not from your text, so a misreading is visible — the typed IR a version would store, and one
+self-contained Python function that computes it. It saves nothing; when the translation is right, one button
+carries the formula and the roles into the model designer.</p>
 {% call example('Black–Scholes call', 'latex') %}
 d_1 = \frac{\ln(S/K) + (r + \sigma^2/2) T}{\sigma \sqrt{T}}
 d_2 = d_1 - \sigma \sqrt{T}
