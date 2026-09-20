@@ -48,10 +48,18 @@ async def _sign_in_options(request: Request) -> dict[str, Any]:
 async def login_page(request: Request) -> Any:
     if request.session.get("token") and request.session.get("mfa", "ok") == "ok":
         return RedirectResponse("/", status_code=303)
+    signin = await _sign_in_options(request)
+    if "break-glass" in request.query_params and not signin.get("password_login"):
+        # §13.3: under auth.mode: sso the password form is hidden because it is refused for
+        # everyone but the designated break-glass accounts. /login?break-glass=1 shows it, so
+        # an administrator has a way in through the browser while the IdP is down. Showing
+        # the form grants nothing: the refusal is decided by the server (maya.security.
+        # breakglass), and every use is audited loudly.
+        signin = {**signin, "password_login": True, "break_glass": True}
     return await render(
         request,
         "login.html",
-        {"next": request.query_params.get("next", "/"), "signin": await _sign_in_options(request)},
+        {"next": request.query_params.get("next", "/"), "signin": signin},
     )
 
 
@@ -449,3 +457,143 @@ async def revoke_key(request: Request, key_id: str) -> Any:
         await sdk.auth.revoke_api_key(key_id)
     flash(request, f"Key {key_id} revoked.", "success")
     return RedirectResponse("/account/keys", status_code=303)
+
+
+# -- credentials: rotation, the reminder report, and service accounts (§12) ----------
+@router.get("/account/credentials")
+@page
+async def credentials_page(request: Request) -> Any:
+    """Everything a credential needs after it exists: which keys want rotating or
+    revoking, and — for an administrator — the service accounts' client credentials and
+    the password-reset tokens only an administrator can issue."""
+    admin = "admin" in request.session.get("roles", [])
+    async with client(request) as sdk:
+        keys = await sdk.auth.api_keys()
+        report = await sdk.auth.api_key_report(all=admin)
+        clients = await sdk.auth.client_credentials() if admin else []
+        users = await sdk.admin.users() if admin else []
+    return await render(
+        request,
+        "auth/credentials.html",
+        {
+            "keys": keys,
+            "report": report,
+            "clients": clients,
+            "services": [u for u in users if u.get("is_service")],
+            "is_admin": admin,
+            "issued": request.session.pop("issued_credential", None),
+        },
+    )
+
+
+@router.post("/account/credentials/keys/{key_id}/rotate")
+@action
+async def rotate_key(request: Request, key_id: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        new = await sdk.auth.rotate_api_key(key_id, overlap_days=int(data.get("overlap_days") or 7))
+    request.session["issued_credential"] = {
+        "title": f"Successor to {key_id} — copy it now, it is shown once",
+        "secret": new["api_key"],
+        "note": f"{key_id} keeps working until {new['retires_at']}.",
+    }
+    flash(request, f"Key {key_id} rotated; its successor is {new['key_id']}.", "success")
+    return RedirectResponse("/account/credentials", status_code=303)
+
+
+@router.post("/account/credentials/clients")
+@action
+async def create_client_credential(request: Request) -> Any:
+    data = await request.form()
+    created = None
+    async with client(request) as sdk:
+        created = await sdk.auth.create_client_credential(
+            str(data.get("username") or ""),
+            name=str(data.get("name") or "client credential"),
+            roles=data.getlist("roles"),
+            namespaces=data.getlist("namespaces"),
+            days=int(data.get("days") or 90),
+            rate_per_minute=int(data.get("rate_per_minute") or 0),
+        )
+    request.session["issued_credential"] = {
+        "title": "Client credential — the secret is shown once",
+        "secret": f"client_id={created['client_id']}\nclient_secret={created['client_secret']}",
+        "note": "Exchange it at POST /api/v1/auth/token with "
+        "grant_type=client_credentials for a bearer token.",
+    }
+    flash(request, f"Client credential issued for {created['username']}.", "success")
+    return RedirectResponse("/account/credentials", status_code=303)
+
+
+@router.post("/account/credentials/reset-token")
+@action
+async def issue_reset_token(request: Request) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        issued = await sdk.auth.issue_password_reset(str(data.get("username") or ""))
+    request.session["issued_credential"] = {
+        "title": f"Password-reset link for {issued['username']} — shown once",
+        "secret": f"/login/reset?token={issued['token']}",
+        "note": f"Single use, and it expires at {issued['expires_at']}. Hand it over in "
+        "person, not by email.",
+    }
+    flash(request, "Reset link issued.", "success")
+    return RedirectResponse("/account/credentials", status_code=303)
+
+
+# -- forgotten passwords: no session by definition, so no @page or @action -----------
+@router.get("/login/forgot")
+async def forgot_page(request: Request) -> Any:
+    return await render(request, "auth/forgot.html", {})
+
+
+@router.post("/login/forgot")
+async def forgot(request: Request) -> Any:
+    if not await check_csrf(request):
+        return RedirectResponse("/login/forgot", status_code=303)
+    data = await form(request)
+    anon = AsyncClient(app=request.app, channel="web")
+    try:
+        await anon.auth.request_password_reset(data.get("username", ""))
+    finally:
+        await anon.aclose()
+    # the same answer either way: this page must not say who has an account
+    return await render(
+        request,
+        "auth/forgot.html",
+        {"sent": True, "username": data.get("username", "")},
+    )
+
+
+@router.get("/login/reset")
+async def reset_page(request: Request) -> Any:
+    return await render(
+        request, "auth/reset.html", {"token": request.query_params.get("token", "")}
+    )
+
+
+@router.post("/login/reset")
+async def reset(request: Request) -> Any:
+    if not await check_csrf(request):
+        return RedirectResponse("/login/reset", status_code=303)
+    data = await form(request)
+    token = data.get("token", "")
+    if data.get("new_password") != data.get("confirm_password"):
+        return await render(
+            request,
+            "auth/reset.html",
+            {"token": token, "error": "The two new passwords differ."},
+            status=400,
+        )
+    anon = AsyncClient(app=request.app, channel="web")
+    try:
+        await anon.auth.complete_password_reset(token, data.get("new_password", ""))
+    except MayaError as exc:
+        return await render(
+            request, "auth/reset.html", {"token": token, "error": exc.message}, status=400
+        )
+    finally:
+        await anon.aclose()
+    request.session.clear()
+    flash(request, "Your password is set. Sign in with it.", "success")
+    return RedirectResponse("/login", status_code=303)

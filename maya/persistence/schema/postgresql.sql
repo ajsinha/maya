@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 1dbcfc438095d3901e0ea82efae185b8104e15706ca8c0463eb8f1e9a633a66e
+-- schema-hash: 9051fe63487f43e3367500d7ab02260bf6681510db596a6eea2401684c1c7e63
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -647,14 +647,19 @@ CREATE TABLE api_keys (
 	user_id UUID NOT NULL, 
 	name VARCHAR(128) NOT NULL, 
 	env VARCHAR(8) NOT NULL, 
+	kind VARCHAR(16) NOT NULL, 
 	secret_hash TEXT NOT NULL, 
 	roles JSONB NOT NULL, 
 	namespaces JSONB NOT NULL, 
 	actions JSONB NOT NULL, 
 	cidrs JSONB NOT NULL, 
+	rate_per_minute INTEGER NOT NULL, 
 	expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	last_used_at TIMESTAMP WITH TIME ZONE, 
 	revoked_at TIMESTAMP WITH TIME ZONE, 
+	rotated_at TIMESTAMP WITH TIME ZONE, 
+	rotated_from VARCHAR(32), 
+	successor_key_id VARCHAR(32), 
 	id UUID NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	created_by VARCHAR(128), 
@@ -722,6 +727,7 @@ CREATE TABLE namespaces (
 	production BOOLEAN NOT NULL, 
 	owner_id UUID, 
 	materialize_policy VARCHAR(16) NOT NULL, 
+	api_key_max_days INTEGER, 
 	shadow_materiality FLOAT, 
 	id UUID NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
@@ -735,12 +741,24 @@ CREATE TABLE namespaces (
 	CONSTRAINT fk_namespaces_owner_id_users FOREIGN KEY(owner_id) REFERENCES users (id)
 );
 
+CREATE TABLE password_history (
+	id UUID NOT NULL, 
+	user_id UUID NOT NULL, 
+	password_hash TEXT NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	CONSTRAINT pk_password_history PRIMARY KEY (id), 
+	CONSTRAINT fk_password_history_user_id_users FOREIGN KEY(user_id) REFERENCES users (id)
+);
+
+CREATE INDEX ix_password_history_user_id ON password_history (user_id);
+
 CREATE TABLE sessions (
 	user_id UUID NOT NULL, 
 	token_hash VARCHAR(64) NOT NULL, 
 	channel VARCHAR(16) NOT NULL, 
 	mfa_state VARCHAR(16) NOT NULL, 
-	auth_method VARCHAR(16) NOT NULL, 
+	auth_method VARCHAR(24) NOT NULL, 
+	api_key_id VARCHAR(32), 
 	last_seen_at TIMESTAMP WITH TIME ZONE, 
 	expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	absolute_expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 
@@ -759,6 +777,8 @@ CREATE TABLE sessions (
 	CONSTRAINT fk_sessions_user_id_users FOREIGN KEY(user_id) REFERENCES users (id), 
 	CONSTRAINT uq_sessions_token_hash UNIQUE (token_hash)
 );
+
+CREATE INDEX ix_sessions_api_key_id ON sessions (api_key_id);
 
 CREATE INDEX ix_sessions_sso_name_id ON sessions (sso_name_id);
 

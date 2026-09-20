@@ -34,12 +34,16 @@ PUBLIC = {
     ("GET", "/auth/sso/saml/metadata"),
     ("POST", "/auth/sso/saml/sls"),
     ("POST", "/auth/sso/oidc/backchannel-logout"),
+    # someone who cannot sign in asks for a password reset: no session by definition,
+    # and the same answer whether or not the account exists (§12)
+    ("POST", "/auth/password-reset"),
 }  # server to server; signed token   # the IdP redirect carries no session; signed
 # A never-ending server-sent stream: covered by its own test below, not the sweep.
 STREAMING = {("GET", "/events/stream")}
 # Writes any signed-in person may make on their own behalf, or that change nothing shared.
 SELF_SERVICE = {
     ("POST", "/auth/api-keys"),
+    ("POST", "/auth/password-reset"),  # asks for a reset; issuing the token is admin-only
     ("POST", "/auth/logout"),
     ("POST", "/auth/mfa/webauthn/register/options"),
     ("POST", "/auth/mfa/webauthn/register"),
@@ -54,6 +58,9 @@ SELF_SERVICE = {
 }
 ADMIN_ONLY = {
     ("GET", "/audit"),
+    ("POST", "/auth/password-reset/token"),
+    ("GET", "/auth/client-credentials"),
+    ("POST", "/auth/client-credentials"),
     ("GET", "/auth/sessions"),
     ("DELETE", "/auth/sessions/{session_id}"),
     ("POST", "/custody/anchor"),

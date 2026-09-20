@@ -19,6 +19,7 @@ from maya.api.deps import ok, problem_response
 from maya.api.routers import (
     admin,
     assistant,
+    auth,
     catalog,
     custody,
     events,
@@ -55,6 +56,7 @@ def create_api(platform: Any) -> FastAPI:
         events.router,
         custody.router,
         identity.router,
+        auth.router,
         assistant.router,
     ):
         app.include_router(r, prefix=PREFIX)

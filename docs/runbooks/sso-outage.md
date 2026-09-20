@@ -2,10 +2,15 @@
 
 For the administrator when people cannot sign in because the identity provider is down or
 misbehaving, and for anyone puzzled by what signing out did or did not end. With
-`auth.mode: sso`, MAYA refuses password sign-in outright — the IdP is the only way in, which is
-the point of SSO and also its single point of failure. `auth.mode: hybrid` keeps password
-sign-in for database accounts beside SSO, and a break-glass administrator is a database
-account kept for exactly this day.
+`auth.mode: sso`, MAYA refuses password sign-in for everyone **except the accounts named in
+`auth.break_glass.users`** — the IdP is the only way in, which is the point of SSO and also
+its single point of failure, so §13.3's promise of "a break-glass path for administrators"
+is one designated account with a password, not a restart.
+
+A break-glass account is an ordinary database account holding the `admin` role. What is
+different is that it works in `sso` mode, its session is short, and using it is loud:
+a durable `auth.break_glass_login` audit entry, an inbox notice to every other
+administrator, and a warning in the log.
 
 ## Symptoms
 
@@ -18,8 +23,9 @@ account kept for exactly this day.
 
   (OIDC; for SAML the browser simply fails to reach the IdP's sign-in page — MAYA never hears
   about it.)
-- In `sso` mode the password form is refused: *"This deployment signs people in with SSO only"*,
-  audited as `auth.login_refused`.
+- In `sso` mode the password form is refused for ordinary accounts: *"This deployment signs
+  people in with SSO only"*, audited as `auth.login_refused`. The browser hides the form
+  altogether; `/login?break-glass=1` shows it again.
 - **People already signed in are unaffected.** MAYA's sessions are its own, in its database;
   they last until `auth.session.idle_timeout_minutes` (30) of inactivity or
   `auth.session.absolute_timeout_hours` (12). API keys keep working — they never touch the IdP.
@@ -45,8 +51,8 @@ mapped group under `on_missing_group: deny` — and the fix is on the IdP or in 
 ## Break-glass: before the outage
 
 A break-glass account has to exist before it is needed; in `sso` mode nobody can create one
-by signing in. Create a database account with the administrator role, a long random password
-kept offline, and a second factor (outside `dev`, `admin` requires one at password sign-in):
+by signing in. Create a database account with the administrator role and a long random
+password kept offline, then name it in the configuration:
 
 ```python
 import maya.sdk as maya
@@ -55,30 +61,68 @@ my = maya.connect()  # an administrator's API key
 my.admin.create_user("breakglass-admin", password="<long random secret>", roles=["admin"])
 ```
 
-Sign in with it once, in `hybrid` mode, to enrol its TOTP authenticator or security key. Keep
-the password and the enrolled device apart. Test it at every [restore drill](restore-drill.md).
+```yaml
+# config/application.yaml (or the local overlay), in place before the outage
+auth:
+  mode: sso
+  break_glass:
+    users: [breakglass-admin]
+    session_minutes: 60
+```
+
+Then sign in with it once — `/login?break-glass=1` — to enrol its TOTP authenticator or
+security key; outside `dev`, `admin` requires a second factor at password sign-in. Keep the
+password and the enrolled device apart, and test the whole path at every
+[restore drill](restore-drill.md). Three things make a break-glass account useless on the
+day, and all three are silent until then: it is not named in `auth.break_glass.users`, it
+does not hold the `admin` role (MAYA refuses it and audits `auth.break_glass_refused`), or
+nobody can find its password.
 
 ## Steps during an outage
 
-1. **Switch to `hybrid`** by restarting MAYA with the override (or set `auth.mode: hybrid` in
-   `config/application.local.yaml`):
-
-   ```bash
-   python run_maya_web.py --auth.mode=hybrid
-   ```
-
-   Sessions survive the restart. `GET /api/v1/auth/sso/config` now answers
-   `"mode":"hybrid","password_login":true`.
-2. **Sign in as the break-glass account** with its password and second factor. Only database
-   accounts can: a person provisioned by SSO has no password, so switching to `hybrid` does not
-   let anyone else in.
-3. Do only what cannot wait. Everything the account does is audited under its name.
-4. **When the IdP is back, restart without the override**, then review and close:
+1. **Sign in as the break-glass account.** In the browser, open
+   `https://<maya>/login?break-glass=1` — in `sso` mode the password form is hidden until
+   asked for, because it is refused for everyone else — and sign in with the password and the
+   second factor. From a script, `POST /api/v1/auth/login` needs nothing special:
 
    ```python
-   my.admin.audit(action="auth.login")  # every password sign-in during the window
+   anon = maya.connect(base_url="https://maya.example.com")   # no API key: anonymous
+   out = anon.auth.login("breakglass-admin", "<the password>")  # out["break_glass"] is True
+   ```
+
+   No restart, no configuration change, and nobody else gains a password sign-in.
+2. **Expect the noise.** The sign-in writes `auth.break_glass_login` durably, notifies every
+   other administrator's inbox, and logs a warning. If you did not expect it, treat it as a
+   compromise (see the security guide's compromise table).
+3. Do only what cannot wait. Everything the account does is audited under its name, and the
+   session lasts `auth.break_glass.session_minutes` (60) whatever the ordinary timeouts say —
+   sign in again if you need longer.
+4. **When the IdP is back**, review and close:
+
+   ```python
+   my.admin.audit(action="auth.break_glass_login")   # every use, with its ip
+   my.admin.audit(action="auth.login")               # every password sign-in in the window
    my.admin.update_user("breakglass-admin", status="disabled")  # or rotate its password
    ```
+
+   Rotating the password: issue a reset link with `my.auth.issue_password_reset(
+   "breakglass-admin")` and redeem it at `/login/reset`, or set one with
+   `my.admin.reset_password(...)`. The password history refuses a return to the old one.
+
+### If the account was never set up
+
+`auth.mode: hybrid` is still the fallback of last resort: it restores password sign-in for
+**every** database account, which is wider than break-glass and should be a decision, not a
+reflex.
+
+```bash
+python run_maya_web.py --auth.mode=hybrid    # or auth.mode: hybrid in the local overlay
+```
+
+Sessions survive the restart — they are rows in MAYA's own database — and
+`GET /api/v1/auth/sso/config` then answers `"mode":"hybrid","password_login":true`. Restart
+without the override once the IdP is back, and set up a break-glass account before the next
+outage.
 
 ## How sign-out behaves
 
@@ -119,7 +163,11 @@ processes, an ended session can still be served by another process for up to
 
 ## Verification
 
-- During: the break-glass account signs in and `GET /api/v1/auth/me` names it.
+- Before (at every restore drill): the break-glass account signs in through
+  `/login?break-glass=1` while `auth.mode` is `sso`, and `GET /api/v1/auth/me` names it with
+  the `admin` role.
+- During: the sign-in succeeds, `auth.break_glass_login` is in the audit trail with the
+  operator's address, and the other administrators have the notice in their inbox.
 - After: `GET /api/v1/auth/sso/config` shows the original mode, an SSO sign-in succeeds, and
   the break-glass account is disabled or its password rotated.
 
@@ -127,7 +175,11 @@ processes, an ended session can still be served by another process for up to
 
 - **No outage has been rehearsed against a real IdP.** The refusals above were produced with an
   issuer on a closed port; SSO itself is proven against Keycloak 26.4 only, over http on
-  loopback, and against no commercial IdP.
+  loopback, and against no commercial IdP. Break-glass sign-in itself is tested
+  (`tests/test_break_glass_login.py`), including the refusal of a designated account that is
+  not an administrator's.
+- **The notice to other administrators is an inbox notice.** There is no email or pager: MAYA
+  has no mailer. Watch the log line or the audit trail if nobody is reading the inbox.
 - A person removed from an IdP group loses the MAYA role at their *next* sign-in; a session
   already open keeps it until it ends.
 - Keycloak's "sign out all sessions" of a user was seen to send a back-channel logout token for

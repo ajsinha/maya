@@ -102,6 +102,7 @@ def api_app():  # type: ignore[no-untyped-def]
     from maya.api.routers import (
         admin,
         assistant,
+        auth,
         catalog,
         custody,
         events,
@@ -121,6 +122,7 @@ def api_app():  # type: ignore[no-untyped-def]
         events.router,
         custody.router,
         identity.router,
+        auth.router,
         assistant.router,
     ):
         app.include_router(r, prefix=API_PREFIX)

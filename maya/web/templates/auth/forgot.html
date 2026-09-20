@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Forgotten password{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="card"><div class="card-body">
+      <h1 class="h3 mb-3">Forgotten password</h1>
+      {% if sent %}
+      <div class="alert alert-info" role="alert">If <strong>{{ username }}</strong> is a MAYA account with a password, an administrator has been asked to issue a reset link. MAYA sends no email: they will hand it to you.</div>
+      <a class="btn btn-outline-secondary w-100" href="/login">Back to sign in</a>
+      {% else %}
+      <p class="small-muted">Tell us the account, and MAYA asks its administrators for a single-use reset link. The answer is the same whether or not the account exists.</p>
+      <form method="post" action="/login/forgot">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <div class="mb-3"><label class="form-label" for="username">Username</label>
+          <input class="form-control" id="username" name="username" autocomplete="username" required autofocus></div>
+        <button class="btn btn-primary w-100" type="submit">Ask for a reset</button>
+      </form>
+      <p class="small mt-3 mb-0"><a href="/login">Back to sign in</a></p>
+      {% endif %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}

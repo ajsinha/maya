@@ -17,6 +17,8 @@ import sys
 from _common import ROOT, report
 
 NOT_UI = {
+    "auth.client_credentials_token": "machine to machine: a service account exchanges its "
+    "client credential for a token; a browser holds a session instead",
     "auth.oidc_backchannel_logout": "server to server: the IdP calls it, never a browser",
     "events.stream": "a server-sent event stream for integrations; the UI pages events",
     "jobs.events": "a server-sent progress stream for SDK and CLI; the UI polls the job",
