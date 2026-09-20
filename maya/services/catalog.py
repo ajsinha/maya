@@ -846,7 +846,10 @@ class CatalogService:
         never described. It is keyed by the reference the caller passed in, which they
         already knew; what does not come back is the namespace, the owner or the name of
         anything they cannot see, and there is deliberately no tally by namespace — a
-        count per namespace is a directory of the namespaces you are shut out of.
+        count per namespace is a directory of the namespaces you are shut out of. A
+        reference to nothing at all answers the same way, for the same reason: "there is
+        no such object" and "not for you" must be one answer, or the difference between
+        them is a way to enumerate an estate.
         """
         wanted: list[tuple[str, Any]] = []
         for raw in refs[:NODE_LIMIT]:
@@ -855,6 +858,14 @@ class CatalogService:
                 raise ValidationFailed(
                     f"'{raw}' is not a catalog object: nodes describes "
                     + ", ".join(sorted(BROWSE_TYPES)),
+                    ref=raw,
+                )
+            if not ref.namespace:
+                # Elsewhere an unqualified name is resolved when it is unique. Not here:
+                # this answers about many objects at once, and the failure mode would be a
+                # readable object reported as hidden, which reads as an access problem.
+                raise ValidationFailed(
+                    f"'{raw}' names no namespace; nodes describes qualified references",
                     ref=raw,
                 )
             wanted.append((raw, ref))
@@ -887,9 +898,9 @@ class CatalogService:
             if keep(uow, r)
         }
         found = {
-            raw: rows[(names.get(r.namespace or ""), r.name)]
+            raw: rows[(names[r.namespace], r.name)]
             for raw, r in group
-            if (names.get(r.namespace or ""), r.name) in rows
+            if r.namespace in names and (names[r.namespace], r.name) in rows
         }
         ids = [row["id"] for row in found.values()]
         latest = uow.repo(vtable).latest_per(vkey, ids)

@@ -245,12 +245,21 @@ def test_a_node_carries_the_state_of_the_version_it_names(estate):
     assert rows[ref]["version"] == 2 and rows[ref]["state"] == "draft"
 
 
-def test_nodes_refuses_a_reference_that_is_not_a_catalog_object(estate):
+def test_nodes_refuses_a_reference_it_cannot_answer_about(estate):
+    """Two refusals rather than a wrong answer: a warrant is not a catalog object, and an
+    unqualified name would come back as ``hidden`` when it is only ambiguous — which
+    reads as an access problem and is not one."""
     from maya.core.errors import ValidationFailed
 
     w, _ = estate
     with pytest.raises(ValidationFailed, match="not a catalog object"):
         w.p.catalog.nodes(w.dana, ["maya://warrant/train/whatever"])
+    with pytest.raises(ValidationFailed, match="names no namespace"):
+        w.p.catalog.nodes(w.dana, ["maya://feature/px"])
+    # a reference to nothing at all is withheld, not distinguished from one you may not read
+    assert w.p.catalog.nodes(w.dana, [f"maya://feature/{CANVAS}/nothing_here"]) == {
+        f"maya://feature/{CANVAS}/nothing_here": {"hidden": True}
+    }
 
 
 def test_the_canvas_page_offers_the_interactions_the_spec_lists(devi):
