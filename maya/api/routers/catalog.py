@@ -94,6 +94,16 @@ def facets(type: str = "feature", me: Principal = Me, plat: Any = Plat) -> Respo
     return ok(plat.catalog.facets(me, type=type))
 
 
+@router.get("/catalog/nodes", tags=["catalog"])
+def nodes(refs: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """What is known about each of ``refs`` (comma separated), in one call: type, owner,
+    the state of the version each reference names, the latest version, when the object
+    changed, a feature's data freshness, and what its sealed pins occupy. A reference the
+    caller may not read comes back as ``{"hidden": true}`` and is described no further."""
+    wanted = [r.strip() for r in refs.split(",") if r.strip()]
+    return ok(plat.catalog.nodes(me, wanted))
+
+
 @router.get("/catalog/dependents", tags=["catalog"])
 def dependents(ref: str, depth: int = 4, me: Principal = Me, plat: Any = Plat) -> Response:
     """What would break: every dependent object downstream of ``ref``, and who owns it."""

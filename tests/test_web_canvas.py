@@ -153,7 +153,12 @@ def test_the_canvas_payload_carries_the_detail_the_overlays_need(devi):
     meta = g["meta"][f"maya://feature/{CANVAS}/px"]
     assert meta["owner"] == "dana" and meta["namespace"] == CANVAS
     assert meta["state"] in ("approved", "published") and meta["latest_version"] == 1
-    assert meta["url"] == f"/catalog/features/{CANVAS}/px" and meta["updated"]
+    assert meta["url"] == f"/catalog/features/{CANVAS}/px" and meta["updated_at"]
+    # exact, in the same payload: the freshness overlay reads a feature's data, and the
+    # cost overlay every sealed pin rather than the first page of them
+    assert meta["data_freshness"], "the feature's newest knowledge time"
+    assert meta["pinned_bytes"] > 0, "one sealed pin"
+    assert g["meta"][f"maya://feature/{CANVAS}/px_eur"]["pinned_bytes"] == 0
     assert g["meta_complete"] is True
     assert g["direction"] == "both" and g["depth"] == 3
 
@@ -177,22 +182,75 @@ def test_a_root_the_caller_may_not_read_does_not_exist_for_them(devi):
     assert r.status_code == 404 and SHUT in r.json()["error"]
 
 
-def test_the_cost_overlay_prices_what_is_pinned_and_says_what_it_could_not(devi):
-    refs = ",".join(
+def test_one_draw_describes_nodes_from_every_namespace_it_spans(people):
+    """The canvas asks once. It used to browse the catalog once per (type, namespace) the
+    graph touched, capped at twelve calls, beyond which nodes came back with no detail at
+    all. One call now, and it spans namespaces."""
+    g = people["dana"].get(f"/ui/lineage?root={ROOT}&direction=both&depth=4").json()
+    described = {ref: row for ref, row in g["meta"].items()}
+    assert {row["namespace"] for row in described.values()} >= {CANVAS, SHUT}
+    assert all(row.get("type") and "hidden" not in row for row in described.values())
+
+
+def test_a_nodes_versions_and_pins_are_one_question_about_one_object():
+    """A graph draws v1, v2 and a pin of the same feature as three nodes; they are one
+    object, and one row answers for all three."""
+    from maya.web.routes.lineage import catalog_refs
+
+    refs = catalog_refs(
         [
-            f"maya://feature/{CANVAS}/px@v1",
-            f"maya://feature/{CANVAS}/px_eur@v1",
-            f"maya://model/{CANVAS}/nothing",
-            f"maya://feature/{SHUT}/px_private",
+            {"id": "maya://feature/eq/px@v1"},
+            {"id": "maya://feature/eq/px@v2"},
+            {"id": "maya://feature/eq/px#eom/2026-01-05"},
+            {"id": "maya://op/union/abcd1234"},
+            {"id": "maya://featureset/eq/panel@v1"},
         ]
     )
-    out = devi.get(f"/ui/lineage/cost?refs={refs}").json()
-    priced = out["items"][f"maya://feature/{CANVAS}/px"]
-    assert priced["pins"] == 1 and priced["bytes"] > 0 and priced["partial"] is False
-    assert out["items"][f"maya://feature/{CANVAS}/px_eur"]["bytes"] == 0
-    assert out["items"][f"maya://model/{CANVAS}/nothing"]["bytes"] is None
-    assert f"maya://feature/{SHUT}/px_private" in out["unpriced"]
-    assert out["over_limit"] == 0
+    assert refs == ["maya://feature/eq/px", "maya://featureset/eq/panel"]
+
+
+def test_nodes_describes_only_what_the_caller_may_read_and_names_nothing_else(estate, people):
+    """Read scoping, at the endpoint the canvas now depends on: the owner is described,
+    the outsider gets ``hidden`` and not one field more — no namespace, no owner, no
+    version, and no tally per namespace either, which would name the namespaces they are
+    shut out of."""
+    w, _ = estate
+    private = f"maya://feature/{SHUT}/px_private"
+    refs = [f"maya://feature/{CANVAS}/px", private]
+    outsider = w.p.catalog.nodes(w.devi, refs)
+    assert outsider[private] == {"hidden": True}
+    assert outsider[f"maya://feature/{CANVAS}/px"]["owner"] == "dana"
+    owner = w.p.catalog.nodes(w.dana, refs)
+    assert owner[private]["namespace"] == SHUT and owner[private]["state"] == "draft"
+    assert owner[private]["pinned_bytes"] == 0
+
+
+def test_a_node_carries_the_state_of_the_version_it_names(estate):
+    """The approval overlay was borrowing the object's latest state for a node naming an
+    older version, so a graph drawn on v1 of something since superseded looked approved
+    because v4 was."""
+    w, _ = estate
+    p = w.p
+    p.features.create(w.dana, namespace=CANVAS, name="two_ver", definition=PX_DEF)
+    p.features.ingest(w.dana, f"{CANVAS}/two_ver", price_csv(6), fmt="csv")
+    p.features.transition(w.dana, f"{CANVAS}/two_ver", 1, "submit")
+    p.features.transition(w.mick, f"{CANVAS}/two_ver", 1, "approve")
+    p.features.new_draft(w.dana, f"{CANVAS}/two_ver")
+    ref = f"maya://feature/{CANVAS}/two_ver"
+    rows = p.catalog.nodes(w.dana, [f"{ref}@v1", f"{ref}@v2", ref])
+    assert rows[f"{ref}@v1"]["state"] in ("approved", "published")
+    assert rows[f"{ref}@v2"]["state"] == "draft"
+    assert rows[f"{ref}@v1"]["latest_version"] == 2
+    # a bare reference means the object, so it answers for the latest version
+    assert rows[ref]["version"] == 2 and rows[ref]["state"] == "draft"
+
+
+def test_nodes_refuses_a_reference_that_is_not_a_catalog_object(estate):
+    from maya.core.errors import ValidationFailed
+
+    w, _ = estate
+    with pytest.raises(ValidationFailed, match="not a catalog object"):
+        w.p.catalog.nodes(w.dana, ["maya://warrant/train/whatever"])
 
 
 def test_the_canvas_page_offers_the_interactions_the_spec_lists(devi):

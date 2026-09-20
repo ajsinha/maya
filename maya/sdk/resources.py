@@ -600,6 +600,14 @@ class Catalog(_Resource):
         """What each facet can be set to, for this object type."""
         return self._c("GET", "/catalog/facets", params={"type": type})
 
+    @endpoint("GET", "/catalog/nodes")
+    def nodes(self, refs: list[str]) -> Any:
+        """Everything a graph needs about its nodes in one call: per reference the type,
+        namespace, owner, the state of the version that reference names, the latest
+        version, when it last changed, a feature's data freshness and its sealed pins'
+        bytes. A reference you may not read answers ``{"hidden": true}``."""
+        return self._c("GET", "/catalog/nodes", params={"refs": ",".join(refs)})
+
     @endpoint("GET", "/catalog/dependents")
     def dependents(self, ref: str, depth: int = 4) -> Any:
         """What would break: the dependent objects downstream of ``ref``, with owners."""

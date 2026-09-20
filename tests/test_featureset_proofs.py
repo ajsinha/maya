@@ -176,14 +176,16 @@ def test_a_sets_inheritance_edge_carries_its_override_count(members):
     """The same §16.3 label on the feature-set side: a desk that inherits a firm panel and
     changes three things says three, not "extends"."""
     w = members
+    # attribute names of its own, so this set is not an equivalent of any other here: the
+    # §6.8 near-copy guard would rightly refuse a second set that means the same thing
     parent = {
         "index": ["date", "symbol"],
         "grid": "as_is",
-        "alignment": {"mode": "asof"},
+        "alignment": {"mode": "left"},
         "members": [
-            {"attr": "px", "ref": XY, "source_attr": "close"},
-            {"attr": "vol", "ref": XY, "source_attr": "volume"},
-            {"attr": "alt", "ref": OTHER, "source_attr": "close"},
+            {"attr": "ovc_px", "ref": XY, "source_attr": "close"},
+            {"attr": "ovc_vol", "ref": XY, "source_attr": "volume"},
+            {"attr": "ovc_alt", "ref": OTHER, "source_attr": "close"},
         ],
     }
     _submit(w, "ovc_parent", parent)
@@ -192,8 +194,8 @@ def test_a_sets_inheritance_edge_carries_its_override_count(members):
         "extends": {
             "parent": f"maya://featureset/{NS}/ovc_parent@v1",
             "override": {
-                "drop_attributes": ["alt"],
-                "attribute_rules": {"px": "forward_fill(limit=1)"},
+                "drop_attributes": ["ovc_alt"],
+                "attribute_rules": {"ovc_px": "forward_fill(limit=1)"},
                 "alignment": {"mode": "inner"},
             },
         }

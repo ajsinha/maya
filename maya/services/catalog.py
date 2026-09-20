@@ -21,6 +21,7 @@ from maya.resolution.quality import normalize_contract
 from maya.resolution.rules import parse_rule
 from maya.resolution.types import parse_type
 from maya.services import quota as quota_svc, refs
+from maya.services import refs as refs_mod  # the same module under a name a parameter cannot shadow
 
 SUPPORTED_SOURCES = ("csv", "parquet", "json", "sql", "python", "delta", "derived")
 DECLARED_UNSUPPORTED: dict[str, str] = {}
@@ -600,6 +601,7 @@ BROWSE_SORTS = {
 }
 PREVIEW_SAMPLE = 2000  # rows measured to estimate a pin's footprint
 _ID_CHUNK = 500  # ids per IN clause, well under any backend's bound-parameter limit
+NODE_LIMIT = 500  # references described in one nodes() call; a canvas draw asks for far fewer
 
 
 def _chunked(items: list[str], size: int = _ID_CHUNK) -> Iterator[list[str]]:
@@ -828,6 +830,131 @@ class CatalogService:
             sort=sort,
             total=total,
         )
+
+    # -- bulk node metadata, for a graph (§16.3) -------------------------------------
+    def nodes(self, p: Any, refs: list[str]) -> dict[str, Any]:
+        """What the caller needs to know about each of ``refs``, in one call.
+
+        The lineage canvas used to get this by browsing the catalog once per (type,
+        namespace) its graph touched, which is up to a dozen queries per draw and still
+        the wrong answer twice over: the browse row carries the state of the object's
+        *latest* version, while a graph node names a particular one, and it carries no
+        idea of how fresh a feature's data is. Both overlays were therefore approximate
+        in a way that looked exact.
+
+        A reference the caller may not read comes back as ``{"hidden": True}`` and is
+        never described. It is keyed by the reference the caller passed in, which they
+        already knew; what does not come back is the namespace, the owner or the name of
+        anything they cannot see, and there is deliberately no tally by namespace — a
+        count per namespace is a directory of the namespaces you are shut out of.
+        """
+        wanted: list[tuple[str, Any]] = []
+        for raw in refs[:NODE_LIMIT]:
+            ref = refs_mod.parse(raw)
+            if ref.kind not in BROWSE_TYPES:
+                raise ValidationFailed(
+                    f"'{raw}' is not a catalog object: nodes describes "
+                    + ", ".join(sorted(BROWSE_TYPES)),
+                    ref=raw,
+                )
+            wanted.append((raw, ref))
+        out: dict[str, Any] = {}
+        with self.p.uow() as uow:
+            names = {n["name"]: n["id"] for n in uow.repo("namespaces").list()}
+            users = {u["id"]: u["username"] for u in uow.repo("users").list()}
+            for kind in {r.kind for _, r in wanted}:
+                group = [(raw, r) for raw, r in wanted if r.kind == kind]
+                out.update(self._nodes_of_kind(uow, p, kind, group, names, users))
+        for raw, _ in wanted:
+            out.setdefault(raw, {"hidden": True})
+        return out
+
+    def _nodes_of_kind(
+        self,
+        uow: Any,
+        p: Any,
+        kind: str,
+        group: list[tuple[str, Any]],
+        names: dict[str, Any],
+        users: dict[Any, str],
+    ) -> dict[str, Any]:
+        """One type's worth of node metadata: four queries, whatever the node count."""
+        table, cap_kind, vtable, vkey = self._parts(kind)
+        keep = self.p.access.reader(uow, p, cap_kind)
+        rows = {
+            (r["namespace_id"], r["name"]): r
+            for r in uow.repo(table).list(name__in=[r.name for _, r in group])
+            if keep(uow, r)
+        }
+        found = {
+            raw: rows[(names.get(r.namespace or ""), r.name)]
+            for raw, r in group
+            if (names.get(r.namespace or ""), r.name) in rows
+        }
+        ids = [row["id"] for row in found.values()]
+        latest = uow.repo(vtable).latest_per(vkey, ids)
+        states = {
+            (v[vkey], v["version_no"]): v["state"]
+            for v in uow.repo(vtable).slim([vkey, "version_no", "state"], **{f"{vkey}__in": ids})
+        }
+        pinned = self._pinned_bytes(uow, kind, ids)
+        fresh = self._data_freshness(uow, kind, ids)
+        out: dict[str, Any] = {}
+        for raw, ref in group:
+            row = found.get(raw)
+            if row is None:
+                continue
+            top = latest.get(row["id"]) or {}
+            asked = ref.version if ref.version is not None else top.get("version_no")
+            out[raw] = {
+                "type": kind,
+                "name": row["name"],
+                "namespace": ref.namespace,
+                "owner": users.get(row["owner_id"]),
+                "version": asked,
+                # The state of the version this node names, not of the newest one. A graph
+                # drawn on v1 of something now at v4 must not borrow v4's approval.
+                "state": states.get((row["id"], asked)),
+                "latest_version": top.get("version_no"),
+                "latest_state": top.get("state"),
+                "change_class": top.get("change_class"),
+                "needs_reapproval": top.get("needs_reapproval"),
+                "updated_at": row.get("updated_at"),
+                "data_freshness": fresh.get(row["id"]),
+                "pinned_bytes": pinned.get(row["id"]),
+                "description": row.get("description"),
+                "url": self._url(kind, ref.namespace or "", row["name"]),
+            }
+        return out
+
+    @staticmethod
+    def _pinned_bytes(uow: Any, kind: str, ids: list[str]) -> dict[str, int]:
+        """Bytes of sealed pins per object — exact, and one query per chunk. A model has
+        no pins of its own, so it is priced as nothing rather than as zero."""
+        pins = {
+            "feature": ("feature_pins", "feature_id"),
+            "featureset": ("feature_set_pins", "feature_set_id"),
+        }
+        if kind not in pins:
+            return {}
+        table, fk = pins[kind]
+        totals: dict[str, int] = {}
+        for chunk in _chunked(ids):
+            for row in uow.repo(table).slim(
+                [fk, "bytes_total"], state="sealed", **{f"{fk}__in": chunk}
+            ):
+                totals[row[fk]] = totals.get(row[fk], 0) + int(row["bytes_total"] or 0)
+        return {oid: totals.get(oid, 0) for oid in ids}
+
+    @staticmethod
+    def _data_freshness(uow: Any, kind: str, ids: list[str]) -> dict[str, Any]:
+        """When each feature's data was last known to be true (§5.2). A feature set or a
+        model has no ingest of its own, so it has no data freshness — the canvas falls
+        back to when the object itself last changed, and says which it is showing."""
+        if kind != "feature" or not ids:
+            return {}
+        latest = uow.repo("feature_ingests").latest_per("feature_id", ids, order="knowledge_time")
+        return {fid: row["knowledge_time"] for fid, row in latest.items()}
 
     # -- impact: what a change to this object would break (§16.4, §10.3) ------------
     def dependents(self, p: Any, ref: str, *, depth: int = 4) -> dict[str, Any]:
