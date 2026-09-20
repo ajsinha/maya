@@ -24,6 +24,7 @@ from maya.api.routers import (
     events,
     identity,
     registry,
+    retention,
     workflow,
     workspaces,
 )
@@ -56,6 +57,7 @@ def create_api(platform: Any) -> FastAPI:
         custody.router,
         identity.router,
         assistant.router,
+        retention.router,
     ):
         app.include_router(r, prefix=PREFIX)
     install_handlers(app)

@@ -453,6 +453,26 @@ def admin_restore_pin(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def admin_collect(args: argparse.Namespace) -> int:
+    """Remove fragments no pin references (§29.3). A dry run unless --apply."""
+    out = _client(args).admin.collect_fragments(dry_run=not args.apply)
+    _out(
+        args,
+        out,
+        lambda r: (
+            r.get("refused")
+            or (
+                f"{r['orphans']} orphan(s), {r['bytes'] / 1e6:.2f} MB across "
+                f"{len(r['plan'])} table(s); nothing removed"
+                if r.get("dry_run")
+                else f"collected {r['collected']} fragment(s), {r['files_removed']} file(s), "
+                f"{r['bytes_removed'] / 1e6:.2f} MB\n{r['note']}"
+            )
+        ),
+    )
+    return EXIT_OK
+
+
 def _format_of(path: str) -> str:
     """The parameter format a file name implies (§9.3)."""
     for fmt, suffixes in (
@@ -787,6 +807,7 @@ def _admin_commands(cmd: Callable[..., None], a: Any) -> None:
     )
     cmd(a, "drills", admin_drills)
     cmd(a, "cold-pins", admin_cold, (("--days",), {"type": int, "help": "default: configured"}))
+    cmd(a, "collect-fragments", admin_collect, (("--apply",), {"action": "store_true"}))
     cmd(
         a,
         "archive-pin",

@@ -76,6 +76,7 @@ class _Backend(Protocol):
     def files(
         self, path: Path, partitions: dict[str, list[str]] | None = ...
     ) -> list[dict[str, Any]]: ...
+    def delete_partitions(self, path: Path, partitions: dict[str, list[str]]) -> dict[str, Any]: ...
     def history(self, path: Path) -> list[dict[str, Any]]: ...
     def protocol(self, path: Path) -> dict[str, Any]: ...
     def optimize(self, path: Path, *, target_size: int) -> dict[str, Any]: ...
@@ -181,6 +182,14 @@ class DeltaLake:
         if sort_by:
             out = out.sort_by([(c, "ascending") for c in sort_by])
         return out
+
+    def delete_partitions(
+        self, path: str | Path, partitions: dict[str, list[str]]
+    ) -> dict[str, Any]:
+        """Drop the files of the named partitions in one commit: ``{version, filesRemoved,
+        bytesRemoved}``. A Delta remove, so time travel still answers until a vacuum past
+        the retention window frees the bytes."""
+        return self._b.delete_partitions(Path(path), partitions)
 
     def version(self, path: str | Path) -> int:
         return self._b.version(Path(path))

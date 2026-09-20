@@ -65,6 +65,19 @@
 </form>
 </div></div>
 
+<div class="col-lg-6"><div class="card card-body"><h3>Unreferenced fragments</h3>
+<p>Fragments no pin references at all — left behind by a pin that failed. Collection is a Delta remove, so the bytes go when a vacuum past the retention window takes them, and time travel answers until then. It runs when you ask, never on a schedule.</p>
+<form method="post" action="/admin/retention/collect" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <button class="btn btn-outline-primary" type="submit"><i class="bi bi-list-check" aria-hidden="true"></i> Plan a collection</button>
+</form>
+<form method="post" action="/admin/retention/collect" class="d-inline ms-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="apply" value="1">
+  <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash" aria-hidden="true"></i> Collect now</button>
+</form>
+{% if collected %}<p class="mt-2 mb-0 small">{% if collected.refused %}{{ collected.refused }}{% elif collected.dry_run %}{{ collected.orphans }} orphan(s), {{ collected.bytes }} bytes across {{ collected.plan|length }} table(s); nothing removed.{% else %}{{ collected.collected }} fragment(s), {{ collected.files_removed }} file(s), {{ collected.bytes_removed }} bytes.{% endif %}</p>{% endif %}
+</div></div>
+
 <div class="col-lg-6"><div class="card card-body"><h3>Log level</h3>
 <p>Turn one module up or down without a restart. The change applies to the process that answers this request: with several web processes or a worker fleet, make it on each.</p>
 <form method="post" action="/admin/retention/log-level" class="row g-2">

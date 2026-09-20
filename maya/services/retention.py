@@ -154,6 +154,89 @@ class RetentionService:
                 )
         return {"manifest": payload, "table": rows, "verified": rows is not None}
 
+    # -- the collector (§29.3) ---------------------------------------------------
+    def collect(
+        self, p: Any, *, dry_run: bool = True, keep_hours: float | None = None
+    ) -> dict[str, Any]:
+        """Remove fragments no pin references — provably, and reversibly for a while.
+
+        §29.3 asks for a collector that is *provably safe*. What makes it provable here is
+        the order of the checks, all inside one pass:
+
+        1. a fragment is a candidate only if **no pin row of any state** names it — not
+           sealed, not materializing, not failed, not retired, not archived;
+        2. a candidate is skipped if any pin was created since the pass began, because a pin
+           in flight may be about to claim it (the writer records fragments before it seals);
+        3. what remains is removed with a Delta **remove** commit, so the bytes stay on disk
+           until a vacuum past the retention window takes them, and time travel still
+           answers in between.
+
+        Nothing is removed by a schedule: this runs when an administrator asks. ``dry_run``
+        is the default, because an operator should see the list before it goes.
+        """
+        if not p.is_admin:
+            raise PermissionDenied("Collecting fragments is for administrators")
+        started = utcnow()
+        with self.p.uow() as uow:
+            claimed: set[str] = set()
+            recent = False
+            for table in ("feature_pins", "feature_set_pins"):
+                for pin in uow.repo(table).list():
+                    claimed.update(pin["fragments"] or [])
+                    if pin["created_at"] and pin["created_at"] >= started:
+                        recent = True
+            fragments = uow.repo("fragments").list()
+        orphans = [f for f in fragments if f["hash"] not in claimed]
+        if recent:
+            return {
+                "collected": 0,
+                "orphans": len(orphans),
+                "refused": "a pin was created while this pass was reading; nothing was "
+                "removed. A pin records its fragments before it seals, so a pass that "
+                "overlaps one cannot prove what is unreferenced. Run it again.",
+            }
+        by_table: dict[str, list[str]] = {}
+        for fragment in orphans:
+            by_table.setdefault(fragment["lake_table"], []).append(fragment["hash"])
+        plan = [
+            {
+                "lake_table": table,
+                "fragments": len(digests),
+                "bytes": sum(f["bytes"] for f in orphans if f["lake_table"] == table),
+            }
+            for table, digests in sorted(by_table.items())
+        ]
+        if dry_run:
+            return {
+                "dry_run": True,
+                "orphans": len(orphans),
+                "bytes": sum(f["bytes"] for f in orphans),
+                "plan": plan,
+                "note": "nothing was removed; run with dry_run=False to remove these",
+            }
+        removed, freed = 0, 0
+        for table, digests in sorted(by_table.items()):
+            out = self.p.lake.delete_fragments(table, digests)
+            removed += out["filesRemoved"]
+            freed += out["bytesRemoved"]
+        with self.p.uow(p.username) as uow:
+            for fragment in orphans:
+                uow.repo("fragments").delete_where(
+                    hash=fragment["hash"], lake_table=fragment["lake_table"]
+                )
+            uow.audit(
+                "fragments.collected",
+                detail={"fragments": len(orphans), "files": removed, "bytes": freed},
+            )
+        return {
+            "dry_run": False,
+            "collected": len(orphans),
+            "files_removed": removed,
+            "bytes_removed": freed,
+            "note": "the files are removed from the table's current version; a vacuum past "
+            "the retention window frees the disk, and until then time travel still answers",
+        }
+
     def _bundle(
         self, pin: dict[str, Any], rows: pa.Table | None, namespace: str, name: str, kind: str
     ) -> bytes:

@@ -8867,6 +8867,69 @@
     }
    }
   },
+  "/api/v1/system/fragments/collect": {
+   "post": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "dry_run",
+      "required": false,
+      "schema": {
+       "default": true,
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/system/health": {
    "get": {
     "parameters": [

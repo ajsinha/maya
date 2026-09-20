@@ -107,6 +107,7 @@ def api_app():  # type: ignore[no-untyped-def]
         events,
         identity,
         registry,
+        retention,
         workflow,
         workspaces,
     )
@@ -122,6 +123,7 @@ def api_app():  # type: ignore[no-untyped-def]
         custody.router,
         identity.router,
         assistant.router,
+        retention.router,
     ):
         app.include_router(r, prefix=API_PREFIX)
     return app

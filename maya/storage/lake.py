@@ -220,6 +220,18 @@ class LakeStore:
             pieces.append(body.slice(a, b - a))
         return pa.concat_tables(pieces)
 
+    def delete_fragments(self, lake_table: str, digests: list[str]) -> dict[str, Any]:
+        """Remove these fragments' files from ``lake_table`` in one commit (§29.3).
+
+        The caller proves the fragments are unreferenced; this only does the removal. A
+        Delta remove, not a rewrite: the bytes go when a vacuum past the retention window
+        takes them, so a mistake is recoverable until then.
+        """
+        path = self.root / lake_table
+        if not digests:
+            return {"filesRemoved": 0, "bytesRemoved": 0}
+        return self.delta.delete_partitions(path, {FRAGMENT_COL: sorted(set(digests))})
+
     def verify_pin(
         self,
         kind: str,

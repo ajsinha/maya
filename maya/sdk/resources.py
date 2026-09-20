@@ -347,6 +347,13 @@ class Admin(_Resource):
         """An archive's manifest, and whether its rows still hash to the sealed pin."""
         return self._c("GET", f"/system/pins/{seg(pin_id)}/archive", params={"table": table})
 
+    @endpoint("POST", "/system/fragments/collect")
+    def collect_fragments(self, dry_run: bool = True) -> Any:
+        """Remove fragments no pin references (§29.3); a dry run by default."""
+        return self._c(
+            "POST", "/system/fragments/collect", params={"dry_run": str(bool(dry_run)).lower()}
+        )
+
     @endpoint("GET", "/system/restore-drills")
     def restore_drills(self) -> Any:
         """The restore-drill register, and whether one is overdue (§20)."""

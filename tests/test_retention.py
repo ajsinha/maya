@@ -87,3 +87,66 @@ def test_a_pin_that_was_never_archived_says_so(pinned):
     w, _, pins = pinned
     with pytest.raises(ValidationFailed, match="not been archived"):
         w.p.retention.restore(w.admin, pins[1]["id"])
+
+
+def test_the_collector_removes_only_fragments_no_pin_references(pinned):
+    """§29.3's collector: provably safe, which means the proof is the order of the checks.
+    A fragment is a candidate only if no pin row of *any* state names it — so the orphan
+    here is made the way real ones are, by a pin row going away and its bytes staying."""
+    w, ref, pins = pinned
+    lake_table = w.p.lake.rel(w.p.lake.table_path("pins", "ret", "ret_px"))
+    w.p.features.pin(w.mick, ref, version_no=1, pin_name="doomed", as_of=dt.date(2026, 2, 2))
+    w.drain()
+    with w.p.uow("admin") as uow:
+        doomed = uow.repo("feature_pins").find_one(pin_name="doomed")
+        loose = set(doomed["fragments"])
+        uow.repo("feature_pins").delete(doomed["id"])
+    claimed = set()
+    with w.p.uow() as uow:
+        for row in uow.repo("feature_pins").list():
+            claimed.update(row["fragments"] or [])
+    loose -= claimed  # the fragments this pin alone held
+    plan = w.p.retention.collect(w.admin, dry_run=True)
+    assert plan["dry_run"] and plan["orphans"] >= len(loose) and loose
+    assert "nothing was removed" in plan["note"]
+    with w.p.uow() as uow:
+        before = uow.repo("fragments").count()
+    done = w.p.retention.collect(w.admin, dry_run=False)
+    assert done["collected"] >= len(loose) and done["files_removed"] >= 1
+    with w.p.uow() as uow:
+        assert uow.repo("fragments").count() == before - done["collected"]
+        for digest in loose:
+            assert uow.repo("fragments").find_one(hash=digest, lake_table=lake_table) is None
+    # every surviving pin still reads: nothing it references was touched
+    for pin in pins:
+        with w.p.uow() as uow:
+            row = uow.repo("feature_pins").get(pin["id"])
+        if row and row["state"] == "sealed":
+            table = w.p.lake.read_pin("pins", "ret", "ret_px", row["fragments"])
+            assert table.num_rows == row["row_count"]
+    assert w.p.ops.verify_integrity(w.admin)["drift"] == []
+
+
+def test_the_collector_is_for_administrators_and_refuses_a_racing_pass(pinned):
+    w, _, _ = pinned
+    with pytest.raises(PermissionDenied, match="for administrators"):
+        w.p.retention.collect(w.mick, dry_run=True)
+    import datetime as _dt
+
+    with w.p.uow("admin") as uow:  # a pin created "now" means a pass cannot prove anything
+        feature = uow.repo("features").find_one(name="ret_px")
+        version = uow.repo("feature_versions").find_one(feature_id=feature["id"])
+        uow.repo("feature_pins").add(
+            {
+                "feature_id": feature["id"],
+                "feature_version_id": version["id"],
+                "pin_name": "racing",
+                "as_of_date": _dt.date(2026, 3, 1),
+                "as_of_known": _dt.datetime.now(_dt.UTC) + _dt.timedelta(minutes=5),
+                "state": "materializing",
+                "fragments": [],
+                "created_at": _dt.datetime.now(_dt.UTC) + _dt.timedelta(minutes=5),
+            }
+        )
+    out = w.p.retention.collect(w.admin, dry_run=False)
+    assert out["collected"] == 0 and "cannot prove" in out["refused"]

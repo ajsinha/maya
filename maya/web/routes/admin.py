@@ -505,6 +505,7 @@ async def retention(request: Request) -> Any:
             "archived": request.session.pop("archived", None),
             "checked": request.session.pop("archive_checked", None),
             "levels": request.session.pop("levels", None),
+            "collected": request.session.pop("collected", None),
         },
     )
 
@@ -532,6 +533,25 @@ async def verify_archive(request: Request) -> Any:
         )
     request.session["archive_checked"] = out
     flash(request, "Read the archive back and checked its hash.", "success")
+    return RedirectResponse("/admin/retention", status_code=303)
+
+
+@router.post("/admin/retention/collect")
+@action
+async def collect_fragments(request: Request) -> Any:
+    """Plan or perform the §29.3 collection of unreferenced fragments."""
+    form = await request.form()
+    dry = str(form.get("apply") or "") != "1"
+    async with client(request) as sdk:
+        out = await sdk.admin.collect_fragments(dry_run=dry)
+    request.session["collected"] = out
+    flash(
+        request,
+        "Planned the collection; nothing was removed."
+        if dry
+        else f"Removed {out.get('files_removed', 0)} file(s).",
+        "success" if dry else "warning",
+    )
     return RedirectResponse("/admin/retention", status_code=303)
 
 

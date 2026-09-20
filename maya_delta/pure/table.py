@@ -239,6 +239,53 @@ class PureBackend:
             f"Gave up committing to {path} after {MAX_COMMIT_ATTEMPTS} attempts"
         )
 
+    def delete_partitions(self, path: Path, partitions: dict[str, list[str]]) -> dict[str, Any]:
+        """Remove every file whose partition values match, in one commit.
+
+        This is a Delta *remove*, not a rewrite: the files stay on disk until a vacuum past
+        the retention window takes them, so time travel still answers and a mistake is
+        recoverable until then. Nothing is rewritten, so a partitioned store — MAYA's
+        fragments — can drop what nothing references at the cost of one commit.
+        """
+        if not partitions:
+            raise MayaDeltaError("delete_partitions needs at least one partition constraint")
+        from maya_delta.files import matches
+
+        for attempt in range(MAX_COMMIT_ATTEMPTS):
+            del attempt
+            snap = self.snapshot(path)
+            doomed = {
+                p: a
+                for p, a in snap.files.items()
+                if matches(a.get("partitionValues") or {}, partitions)
+            }
+            if not doomed:
+                return {"version": snap.version, "filesRemoved": 0, "bytesRemoved": 0}
+            now = _now_ms()
+            actions = [
+                {
+                    "remove": {
+                        "path": p,
+                        "deletionTimestamp": now,
+                        "dataChange": True,
+                        "partitionValues": a.get("partitionValues"),
+                        "size": a.get("size"),
+                    }
+                }
+                for p, a in doomed.items()
+            ]
+            version = snap.version + 1
+            if dlog.try_commit(path, version, actions):
+                self._maybe_checkpoint(path, version)
+                return {
+                    "version": version,
+                    "filesRemoved": len(doomed),
+                    "bytesRemoved": sum(int(a.get("size") or 0) for a in doomed.values()),
+                }
+        raise ConcurrentModification(
+            f"Gave up removing partitions from {path} after {MAX_COMMIT_ATTEMPTS} attempts"
+        )
+
     def _try_once(
         self,
         path: Path,

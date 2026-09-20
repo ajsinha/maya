@@ -95,6 +95,24 @@
   `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
   `--data-checksum`, `--notes` and `--member-alias`.
 
+**The fragment collector (§29.3), and a lake that can let go**
+
+- `maya_delta` had no delete, so an unreferenced fragment could only be reclaimed by
+  rewriting a whole table. Both backends now remove a partition's files in **one commit** —
+  a Delta remove, not a rewrite, so time travel still answers and a vacuum past the
+  retention window is what frees the disk.
+- On top of that, the collector §29.3 asks for, and what makes it *provably* safe is the
+  order of its checks: a fragment is a candidate only when **no pin row of any state** names
+  it; the whole pass is refused if any pin was created while it was reading, because a pin
+  records its fragments before it seals; and what remains is removed reversibly.
+- It runs when an administrator asks — never on a schedule — and a dry run is the default,
+  so the list can be read before it goes. `maya admin collect-fragments [--apply]`, or the
+  admin Retention page.
+- The storage report no longer says orphans are never collected, because now they can be.
+- The retention, drill and log-level endpoints moved to their own API router: the admin
+  router had reached the gate's limit on public names, and these are the operator's own
+  surface anyway.
+
 **Feature-set composition (§6.7, §6.3, §6.2)**
 
 - **A feature set may hold another feature set as a member**, one level deep: a desk panel

@@ -125,6 +125,34 @@ class NativeBackend:
             a for a in self._adds(self._table(path)) if matches(a["partitionValues"], partitions)
         ]
 
+    def delete_partitions(self, path: Path, partitions: dict[str, list[str]]) -> dict[str, Any]:
+        """Remove every file whose partition values match, in one commit (see the pure
+        backend's note: a Delta remove, not a rewrite, so a vacuum is what frees the disk)."""
+        if not partitions:
+            from maya_delta.errors import MayaDeltaError
+
+            raise MayaDeltaError("delete_partitions needs at least one partition constraint")
+        table = self._table(path)
+        doomed = [a for a in self._adds(table) if matches(a["partitionValues"], partitions)]
+        if not doomed:
+            return {"version": table.version(), "filesRemoved": 0, "bytesRemoved": 0}
+        predicate = " OR ".join(
+            "("
+            + " AND ".join(
+                f"{col} = '{value}'"
+                for col, value in sorted(add["partitionValues"].items())
+                if value is not None
+            )
+            + ")"
+            for add in doomed
+        )
+        table.delete(predicate)
+        return {
+            "version": table.version(),
+            "filesRemoved": len(doomed),
+            "bytesRemoved": sum(int(a.get("size") or 0) for a in doomed),
+        }
+
     def history(self, path: Path) -> list[dict[str, Any]]:
         rows = self._table(path).history()
         out = []

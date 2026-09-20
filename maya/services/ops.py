@@ -393,8 +393,10 @@ class OpsService:
             "saved_ratio": (1 - shared / logical) if logical else 0.0,
             "orphan_fragments": len(orphans),
             "orphan_bytes": sum(f["bytes"] for f in orphans),
-            "gc_note": "Orphans are fragments no sealed pin references (left by failed "
-            "pins). They are reported, never deleted automatically.",
+            "gc_note": "Orphans are fragments no pin references at all (left by failed "
+            "pins). Nothing collects them on a schedule; an administrator can, from the "
+            "Retention page or `maya admin collect-fragments`, and the collection is a "
+            "Delta remove — a vacuum past the retention window is what frees the disk.",
         }
 
     def read_blob(self, p: Principal, digest: str) -> bytes:
