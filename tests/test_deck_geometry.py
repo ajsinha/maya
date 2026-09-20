@@ -1,8 +1,8 @@
 """
 The decks, checked by the same tool that claims to check them.
 
-``tools/deck/GUIDE.md`` makes the geometry audit the shipping gate for a deck. A
-gate that is wired into no test is a gate somebody forgets, so each deck in
+``tools/deck/GUIDE.md`` makes the geometry audit the shipping gate for the deck. A
+gate that is wired into no test is a gate somebody forgets, so the deck in
 ``docs/`` is audited here, its slide count is asserted (a deck module that
 silently lost slides still builds), and its document properties are checked to
 name the author and nothing else.
@@ -22,10 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "tools" / "deck" / "audit.py"
 
 DECKS = [
-    ("MAYA-Executive-Briefing", 18),
-    ("MAYA-System-Design", 41),
-    ("MAYA-Capabilities", 37),
-    ("MAYA-Concepts-and-Formalism", 31),
+    ("MAYA-Model-Management-Formalism-and-System-Design", 88),
 ]
 # Anywhere in the file: no tool or assistant credited as a maker of the deck.
 FORBIDDEN = (

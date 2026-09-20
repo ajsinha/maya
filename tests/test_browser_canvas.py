@@ -392,3 +392,49 @@ def test_the_review_screen_marks_the_change_on_the_canvas(site, browser):
     assert "changed in this review" in rows
     assert page.errors == []
     ctx.close()
+
+
+def test_the_view_can_be_rearranged_without_leaving_the_page(site, browser):
+    """A lineage graph is a map, and no one arrangement suits every graph.
+
+    The controls are checked for what they do to the drawing rather than for existing: a
+    layout button that runs a layout nobody can tell apart from the last one is not a
+    control. So each arrangement is asserted to move the nodes, and the zoom buttons to
+    change the zoom, with the graph still drawn afterwards."""
+    base, _ = site
+    ctx, page = _page(browser)
+    _login(page, base)
+    _canvas(page, base)
+
+    def positions():
+        return page.evaluate(
+            "() => cy.nodes().map(n => [n.id(), Math.round(n.position('x')),"
+            " Math.round(n.position('y'))])"
+        )
+
+    page.evaluate("() => { window.cy = document.getElementById('cy')._cyreg.cy; }")
+    layered = positions()
+    assert layered, "the graph has nodes to arrange"
+
+    for name in ("layered-lr", "organic", "radial", "grid"):
+        page.select_option("#cy-layout", name)
+        page.wait_for_timeout(1200)
+        moved = positions()
+        assert len(moved) == len(layered)
+        assert moved != layered, f"the {name} arrangement left every node where it was"
+
+    # Back to the default, and the zoom controls answer.
+    page.select_option("#cy-layout", "layered")
+    page.wait_for_timeout(1200)
+    before = page.evaluate("() => cy.zoom()")
+    page.click("#cy-zoom-in")
+    page.wait_for_timeout(300)
+    assert page.evaluate("() => cy.zoom()") > before
+    page.click("#cy-zoom-out")
+    page.click("#cy-zoom-out")
+    page.wait_for_timeout(300)
+    assert page.evaluate("() => cy.zoom()") < before
+    page.click("#cy-fit")
+    page.wait_for_timeout(400)
+    assert page.evaluate("() => cy.nodes().length") == len(layered)
+    assert page.locator("#cy-status").inner_text().find("node(s)") >= 0

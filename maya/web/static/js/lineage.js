@@ -668,15 +668,296 @@
     }
   }
 
-  // A layered layout that reserves room for the labels rather than for the shapes alone.
-  // Without nodeDimensionsIncludeLabels the ranks are packed at shape width — around 60px —
-  // while the labels beneath them are twice that, so every rank's text collides with its
-  // neighbour's. The spacing is generous for the same reason.
+  // ---- the graph, in words ---------------------------------------------------------------
+  // A drawing is not an explanation. Somebody looking at a lineage graph for the first time
+  // can see that thirteen boxes are joined by arrows and still not know what the page is
+  // telling them, and the arrows carry the part that matters: which way a thing was used.
+  // So the canvas also writes out what it drew. Every sentence below is generated from the
+  // same payload the drawing uses, so the two cannot disagree -- a commentary maintained
+  // separately from the picture would drift from it, which is the failure this platform is
+  // about.
+  //
+  // MAYA's edges all run the same way: from the thing that was used to the thing that used
+  // it. Each relation therefore reads differently depending on which end the page's object
+  // sits at, and both readings are spelled out rather than left to the arrowhead.
+  var RELATIONS = {
+    trained_on: {
+      into: function (n) { return 'was trained on ' + n; },
+      outof: function (n) { return 'was used to train ' + n; }
+    },
+    composite_member: {
+      into: function (n) { return 'combines ' + n; },
+      outof: function (n) { return 'is a member of the composite ' + n; }
+    },
+    parameterized_by: {
+      into: function (n) { return 'holds the parameters produced under ' + n; },
+      outof: function (n) { return 'produced ' + n; }
+    },
+    executed_under: {
+      into: function (n) { return 'licenses the model fitted under ' + n; },
+      outof: function (n) { return 'is what ' + n + ' licenses to run'; }
+    },
+    member_of: {
+      into: function (n) { return 'is assembled from ' + n; },
+      outof: function (n) { return 'is a member of ' + n; }
+    },
+    pinned_as: {
+      into: function (n) { return 'seals what ' + n + ' held'; },
+      outof: function (n) { return 'is sealed by ' + n; }
+    },
+    extends: {
+      into: function (n) { return 'inherits from ' + n; },
+      outof: function (n) { return 'is inherited by ' + n; }
+    },
+    derived_from: {
+      into: function (n) { return 'is computed by ' + n; },
+      outof: function (n) { return 'feeds the computation of ' + n; }
+    },
+    operand_of: {
+      into: function (n) { return 'takes ' + n + ' as operands'; },
+      outof: function (n) { return 'is an operand of ' + n; }
+    },
+    withheld: {
+      into: function (n) { return 'has ' + n + ' you may not read'; },
+      outof: function (n) { return 'is used by ' + n + ' you may not read'; }
+    }
+  };
+
+  // What each kind of arrow asserts. Only the kinds actually drawn are explained, because a
+  // legend listing nine relations when the picture shows two is a legend nobody reads.
+  var EDGE_MEANING = {
+    trained_on: 'a warrant was trained on that model or that data',
+    composite_member: 'that model is a member of this composite',
+    parameterized_by: 'a warrant produced that set of parameters',
+    executed_under: 'the fitted model is licensed to run by that execution warrant',
+    member_of: 'that feature is one of the feature set\u2019s members',
+    pinned_as: 'that pin seals what the version held',
+    extends: 'the child inherits the parent\u2019s definition and stores only its overrides',
+    derived_from: 'the feature is computed by that algebra operation',
+    operand_of: 'that feature is an operand of the operation',
+    composite_member_alias: 'that model is a member of this composite',
+    withheld: 'something is there that you may not read'
+  };
+
+  function arrowGlossary(g, built) {
+    var seen = {};
+    g.edges.forEach(function (e) {
+      if (built.models[e.source] || built.models[e.target]) { seen[e.type] = true; }
+    });
+    var kinds = Object.keys(seen).filter(function (t) { return EDGE_MEANING[t]; });
+    if (!kinds.length) { return ''; }
+    return '<p class="mb-0 small-muted mt-1">Every arrow runs from the thing that was used ' +
+      'to the thing that used it. Here: ' +
+      kinds.map(function (t) {
+        return '<code>' + esc(t) + '</code> \u2014 ' + esc(EDGE_MEANING[t]);
+      }).join('; ') + '.</p>';
+  }
+
+  function nameOf(id, models) {
+    var m = models[id] || {};
+    var meta = m.meta ? { name: m.meta.name, namespace: m.meta.namespace, kind: m.kind } : { kind: m.kind };
+    return nodeTitle(id, meta);
+  }
+
+  // "a, b and c", and beyond three a count, because a sentence naming eleven parameter sets
+  // is not a sentence anybody finishes.
+  function listOf(names) {
+    if (names.length === 1) { return names[0]; }
+    if (names.length === 2) { return names[0] + ' and ' + names[1]; }
+    if (names.length <= 4) { return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]; }
+    return names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more';
+  }
+
+  function narrate(built) {
+    var host = $('cy-story');
+    if (!host) { return; }
+    var g = state.graph, models = built.models, root = state.root;
+    if (!g || !models[root]) { host.innerHTML = ''; return; }
+
+    var me = models[root], meta = me.meta || {};
+    var kind = me.kind || kindOf(root);
+    var opening = '<strong>' + esc(nameOf(root, models)) + '</strong> is ' +
+      (/^[aeiou]/.test(kind) ? 'an ' : 'a ') + esc(kind) +
+      (meta.namespace ? ' in <code>' + esc(meta.namespace) + '</code>' : '') +
+      (meta.state ? ', ' + esc(meta.state) : '') +
+      (meta.owner ? ', owned by ' + esc(meta.owner) : '') + '.';
+
+    // Only the root's own edges: the sentences describe its neighbourhood, and the drawing
+    // carries the rest. A commentary that walked the whole graph would be a second drawing.
+    var groups = {};
+    g.edges.forEach(function (e) {
+      var here = e.source === root ? 'outof' : (e.target === root ? 'into' : null);
+      if (!here) { return; }
+      var other = here === 'outof' ? e.target : e.source;
+      if (!models[other] && other !== HIDDEN_ID) { return; }
+      var key = e.type + '|' + here;
+      (groups[key] = groups[key] || []).push(other === HIDDEN_ID ? 'objects' : nameOf(other, models));
+    });
+
+    var clauses = [];
+    Object.keys(groups).forEach(function (key) {
+      var parts = key.split('|'), rel = RELATIONS[parts[0]];
+      var names = groups[key].filter(function (n, i, a) { return a.indexOf(n) === i; });
+      var phrase = rel
+        ? rel[parts[1]](listOf(names))
+        : parts[0].replace(/_/g, ' ') + ' ' + listOf(names);
+      clauses.push(phrase);
+    });
+
+    var body = '';
+    if (clauses.length) {
+      body = ' It ' + clauses.join('; it ') + '.';
+    } else {
+      body = ' Nothing in this view is joined to it: it stands alone at the depth and ' +
+        'direction you are looking at.';
+    }
+
+    // What the reader is looking at, as distinct from what exists. A commentary that did not
+    // say this would be read as a complete account of the object's lineage, which at depth
+    // three it is not.
+    var shown = built.shownCount || 0;
+    var scope = ' You are seeing ' + shown + ' object(s), ' + esc(state.direction) +
+      ' to a depth of ' + esc(String(state.depth)) + '.';
+    if (g.hidden) {
+      scope += ' ' + g.hidden + ' more are withheld because you may not read them; they are ' +
+        'counted and not named.';
+    }
+    host.innerHTML = '<p class="mb-0">' + opening + body + '</p>' +
+      arrowGlossary(g, built) +
+      '<p class="mb-0 small-muted mt-1">' + scope + '</p>';
+  }
+
+  // ---- arrangement ---------------------------------------------------------------------
+  // No arrangement is right for every graph. A chain of eight reads best left to right; a
+  // hub with twenty parameter sets reads best radially; a graph whose edges cross whatever
+  // you do is sometimes untangled by letting it settle under its own forces. So the choice
+  // belongs to whoever is looking at it, and the canvas keeps it rather than asking twice.
+  //
+  // Every layout below reserves room for the labels rather than for the shapes alone:
+  // without nodeDimensionsIncludeLabels the ranks pack at shape width, and each rank's text
+  // collides with its neighbour's.
+  var LAYOUTS = {
+    layered: {
+      label: 'Layered, top down',
+      options: function () {
+        return {
+          name: 'breadthfirst', directed: true, spacingFactor: 1.05, padding: 24,
+          nodeDimensionsIncludeLabels: true, avoidOverlap: true, grid: false
+        };
+      }
+    },
+    'layered-lr': {
+      label: 'Layered, left to right',
+      // Cytoscape's breadthfirst only runs downward, so this is that layout transposed
+      // afterwards. Doing it by swapping the coordinates keeps one implementation of the
+      // ranking and cannot disagree with the downward one about which rank a node is in.
+      options: function () {
+        return {
+          name: 'breadthfirst', directed: true, spacingFactor: 1.5, padding: 24,
+          nodeDimensionsIncludeLabels: true, avoidOverlap: true, grid: false,
+          transpose: true
+        };
+      }
+    },
+    organic: {
+      label: 'Organic',
+      options: function () {
+        return {
+          name: 'cose', padding: 24, nodeDimensionsIncludeLabels: true, animate: false,
+          nodeRepulsion: 12000, idealEdgeLength: 120, nestingFactor: 1.1, gravity: 0.6,
+          numIter: 1200, randomize: false
+        };
+      }
+    },
+    radial: {
+      label: 'Radial',
+      // Rings are hops from the root, so the picture says how far each thing is from the
+      // object the page is about. Keying the rings on anything else -- a node's degree, say
+      // -- produces a drawing that looks radial and means nothing, which is worse than a
+      // layout that is plainly the wrong shape.
+      options: function () {
+        return {
+          name: 'concentric', padding: 24, nodeDimensionsIncludeLabels: true,
+          minNodeSpacing: 55, avoidOverlap: true, spacingFactor: 1.1,
+          concentric: function (n) { return 100 - (n.data('hops') || 0); },
+          levelWidth: function () { return 1; }
+        };
+      }
+    },
+    grid: {
+      label: 'Grid',
+      options: function () {
+        return {
+          name: 'grid', padding: 24, nodeDimensionsIncludeLabels: true, avoidOverlap: true,
+          condense: false
+        };
+      }
+    }
+  };
+
+  function chosenLayout() {
+    var pick = $('cy-layout');
+    var name = (pick && pick.value) || state.layout || 'layered';
+    return LAYOUTS[name] ? name : 'layered';
+  }
+
+  // A per-viewer convenience, so it is browser storage and nothing depends on it: a reader
+  // who prefers the left-to-right arrangement should not have to say so on every page.
+  function rememberLayout(name) {
+    try { window.localStorage.setItem('maya.lineage.layout', name); } catch (e) { /* private window */ }
+  }
+
+  function recalledLayout() {
+    try { return window.localStorage.getItem('maya.lineage.layout') || ''; } catch (e) { return ''; }
+  }
+
   function layoutOptions() {
-    return {
-      name: 'breadthfirst', directed: true, spacingFactor: 1.05, padding: 24,
-      nodeDimensionsIncludeLabels: true, avoidOverlap: true, grid: false
-    };
+    return LAYOUTS[chosenLayout()].options();
+  }
+
+  // Run the chosen arrangement over whatever is drawn, and fit afterwards. `transpose` is
+  // handled here because cytoscape has no left-to-right breadthfirst: the layout is run,
+  // then every node's coordinates are swapped, which turns the ranks through a right angle
+  // without a second ranking implementation to keep in step with the first.
+  // How many hops each node is from the root, following edges in either direction. The
+  // radial layout needs it, and it is cheap enough to compute on every arrangement rather
+  // than cache and risk serving a stale answer after a redraw.
+  function markHops() {
+    var cy = state.cy;
+    var root = cy.getElementById(state.root);
+    cy.nodes().forEach(function (n) { n.data('hops', 99); });
+    if (!root || root.length === 0) { return; }
+    cy.elements().bfs({
+      roots: root,
+      visit: function (v, e, u, i, depth) { v.data('hops', depth); },
+      directed: false
+    });
+  }
+
+  function arrange(fitAfter) {
+    if (!state.cy) { return; }
+    if (chosenLayout() === 'radial') { markHops(); }
+    var opts = layoutOptions();
+    var transpose = opts.transpose;
+    delete opts.transpose;
+    var run = state.cy.layout(opts);
+    run.promiseOn('layoutstop').then(function () {
+      if (transpose) {
+        // Swapping the axes also swaps the two spacings, and they are not interchangeable:
+        // the gap between siblings was sized for a node 180px wide and now separates nodes
+        // 44px tall, while the gap between ranks was sized for the height and now has to
+        // clear the width. Without correcting for that the graph comes out four times
+        // taller than it is wide and fits only by zooming out past legibility.
+        state.cy.batch(function () {
+          state.cy.nodes().forEach(function (n) {
+            var p = n.position();
+            n.position({ x: p.y * 1.3, y: p.x * 0.42 });
+          });
+        });
+      }
+      if (fitAfter !== false) { fitNicely(); }
+    });
+    run.run();
   }
 
   // Fit the graph, then hold the zoom somewhere a person can read. `fit` on its own will
@@ -697,6 +978,7 @@
     var built = build();
     state.built = built;
     if (!state.cy) {
+      primeLayoutChoice();
       state.cy = window.cytoscape({
         container: el, elements: built.elements, wheelSensitivity: 0.2, selectionType: 'additive',
         // A small graph must not be magnified to fill the canvas: cytoscape fits by zooming,
@@ -704,27 +986,114 @@
         // turned six of them into one illegible line. Nodes are now sized to be read at 1:1
         // and the zoom is capped just above it.
         minZoom: 0.2, maxZoom: 1.6,
-        layout: layoutOptions(), style: STYLE()
+        // Laid out by `arrange` below rather than here, so that the chosen arrangement --
+        // including the transposed one, which cytoscape cannot express as options -- runs
+        // through one path on the first draw and on every redraw.
+        layout: { name: 'preset' }, style: STYLE()
       });
       wire();
+      wireControls();
     } else {
       state.cy.batch(function () {
         state.cy.elements().remove();
         state.cy.add(built.elements);
       });
-      state.cy.layout(layoutOptions()).run();
     }
-    fitNicely();
+    arrange(true);
     state.selection = state.selection.filter(function (id) { return state.cy.getElementById(id).length > 0; });
     state.selection.forEach(function (id) { state.cy.getElementById(id).select(); });
     syncList(built);
     syncAuthor(built);
     say(built);
+    narrate(built);
+  }
+
+  // The map controls. Zoom keeps the centre of the canvas fixed rather than the origin,
+  // because a control that zooms towards a corner feels broken however correct it is.
+  // The recalled preference has to be in place before the first arrangement runs, or the
+  // canvas lays out twice and the reader watches it jump.
+  function primeLayoutChoice() {
+    var pick = $('cy-layout');
+    var recalled = recalledLayout();
+    if (pick && recalled && LAYOUTS[recalled]) { pick.value = recalled; }
+    state.layout = pick ? pick.value : (LAYOUTS[recalled] ? recalled : 'layered');
+  }
+
+  function wireControls() {
+    var pick = $('cy-layout');
+    if (pick) {
+      pick.addEventListener('change', function () {
+        state.layout = pick.value;
+        rememberLayout(pick.value);
+        arrange(true);
+      });
+    }
+    var on = function (id, fn) {
+      var el = $(id);
+      if (el) { el.addEventListener('click', function (ev) { ev.preventDefault(); fn(); }); }
+    };
+    on('cy-relayout', function () { arrange(true); });
+    on('cy-fit', function () { fitNicely(); });
+    on('cy-zoom-in', function () { step(1.25); });
+    on('cy-zoom-out', function () { step(0.8); });
+  }
+
+  function step(by) {
+    if (!state.cy) { return; }
+    state.cy.zoom({ level: state.cy.zoom() * by, renderedPosition: centreOf() });
+  }
+
+  // A few facts at the pointer. The detail panel holds everything; this holds the handful
+  // that decide whether the reader wants the rest, and it follows the pointer so that they
+  // never have to look away from the node they are asking about.
+  function tipFor(id) {
+    var m = (state.built.models || {})[id];
+    if (!m) { return id === HIDDEN_ID ? 'Objects you may not read, counted and not named.' : ''; }
+    var meta = m.meta || {}, bits = [];
+    var head = nodeTitle(id, { name: meta.name, namespace: meta.namespace, kind: m.kind });
+    bits.push(nodeKindLine(id, { kind: m.kind, namespace: meta.namespace }, nsOf(state.root)));
+    if (meta.state) { bits.push(meta.state); }
+    if (meta.owner) { bits.push('owned by ' + meta.owner); }
+    if (meta.updated_at) { bits.push('changed ' + String(meta.updated_at).slice(0, 10)); }
+    if (meta.data_freshness) { bits.push('data to ' + String(meta.data_freshness).slice(0, 10)); }
+    if (meta.bytes !== undefined && meta.bytes !== null) { bits.push(bytesText(meta.bytes)); }
+    var foot = id === state.root
+      ? 'The object this page is about.'
+      : 'Double-click to open it.';
+    return '<strong>' + esc(head) + '</strong><br>' + esc(bits.join(' \u00b7 ')) +
+      '<br><span class="cy-tip-foot">' + foot + '</span>';
+  }
+
+  function showTip(ev) {
+    var tip = $('cy-tip');
+    if (!tip) { return; }
+    var html = tipFor(ev.target.id());
+    if (!html) { hideTip(); return; }
+    tip.innerHTML = html;
+    tip.hidden = false;
+    var box = el.getBoundingClientRect(), p = ev.renderedPosition || ev.position;
+    // Kept inside the canvas: a tooltip that leaves the drawing to the right is a tooltip
+    // somebody reads half of.
+    var x = Math.min(p.x + 16, box.width - tip.offsetWidth - 8);
+    var y = Math.min(p.y + 16, box.height - tip.offsetHeight - 8);
+    tip.style.left = Math.max(8, x) + 'px';
+    tip.style.top = Math.max(8, y) + 'px';
+  }
+
+  function hideTip() {
+    var tip = $('cy-tip');
+    if (tip) { tip.hidden = true; }
   }
 
   function wire() {
     var cy = state.cy;
-    cy.on('mouseover', 'node', function (ev) { setDetail(nodeDetail(ev.target.id(), state.built)); });
+    cy.on('mouseover', 'node', function (ev) {
+      setDetail(nodeDetail(ev.target.id(), state.built));
+      showTip(ev);
+    });
+    cy.on('mousemove', 'node', showTip);
+    cy.on('mouseout', 'node', hideTip);
+    cy.on('pan zoom drag', hideTip);
     cy.on('mouseover', 'edge', function (ev) {
       var e = ev.target;
       var text = e.data('type') === 'extends'
@@ -748,9 +1117,17 @@
       setDetail(nodeDetail(id, state.built));
       syncAuthor(state.built);
     });
+    // Double-click opens the object. Re-rooting stays on the detail panel's own button:
+    // between the two, opening is what somebody reading a graph wants far more often, and
+    // a graph whose nodes cannot be followed is a picture of a catalogue rather than a way
+    // into one.
     cy.on('dbltap', 'node', function (ev) {
       var id = ev.target.id();
-      if (id.indexOf('maya://') === 0 && id !== HIDDEN_ID) { reroot(id); }
+      if (id === HIDDEN_ID) { return; }
+      var m = state.built.models[id] || {};
+      var url = m.meta && m.meta.url;
+      if (url) { window.location.href = url; return; }
+      if (id.indexOf('maya://') === 0) { reroot(id); }
     });
     // A canvas inside a hidden tab measures zero: size it when the tab is shown.
     document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (btn) {

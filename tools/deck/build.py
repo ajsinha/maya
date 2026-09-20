@@ -5,7 +5,7 @@ Build the decks.
     python tools/deck/build.py design          # one of: executive, design, capabilities, concepts
     python tools/deck/audit.py docs/<deck>.pptx
 
-Each deck is a list of slide specs in its own module; ``layouts`` draws them
+The deck is a list of slide specs across four modules; ``layouts`` draws them
 with the ``theme``. The document properties are set explicitly: python-pptx's
 default template carries a comment naming the library, and a deck's metadata
 should say who wrote it and nothing else.
@@ -24,19 +24,15 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(1, str(HERE.parents[1]))
 
-import capabilities_deck  # noqa: E402
-import concepts_deck  # noqa: E402
-import design_deck  # noqa: E402
-import exec_deck  # noqa: E402
 import layouts  # noqa: E402
+import maya_deck  # noqa: E402
 import theme  # noqa: E402
 
 DOCS = HERE.parents[1] / "docs"
+# One deck. Four was four places to keep one story current, and the story is one: what a
+# model is, what follows from that, and what MAYA does about it.
 DECKS = {
-    "executive": ("MAYA-Executive-Briefing", exec_deck),
-    "design": ("MAYA-System-Design", design_deck),
-    "capabilities": ("MAYA-Capabilities", capabilities_deck),
-    "concepts": ("MAYA-Concepts-and-Formalism", concepts_deck),
+    "maya": ("MAYA-Model-Management-Formalism-and-System-Design", maya_deck),
 }
 AUTHOR = "Ashutosh Sinha"
 
