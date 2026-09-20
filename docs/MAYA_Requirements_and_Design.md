@@ -10,7 +10,13 @@
 > allowlist and the difference between the two trust levels is stated (§25). And two rows
 > of §25's table listed things MAYA does not ship — object stores other than the local
 > filesystem, and ONNX and PMML runtimes against ADR-007 — which is what an extension
-> point is for, so the rows now say so.
+> point is for, so the rows now say so. Three more from building the last of §18 and §29:
+> §29.2 used "budget" for the materiality threshold and for the compute ceiling, which are
+> different things and now both exist, so each is named; the materiality threshold belongs
+> on the model version, because only the model knows whether its output is a price or a
+> probability; and §18.2.5's "definitions are never cached" became too absolute once
+> conditional requests existed, so it now says what is actually held and under what
+> condition it is served.
 >
 > **Revision 2.4 — 2026-09-19.** No new decisions: this revision marks, each as
 > *Revision 2.4* where it lands, places where this document contradicted itself or a
@@ -1513,7 +1519,7 @@ Resource namespaces mirror the API exactly: `features`, `featuresets`, `models`,
 | Idempotency | Every create-work call sends a client-generated idempotency key, so a retried pin never pins twice |
 | Concurrency | Mutations send `If-Match` with the ETag last read and raise `ConflictError` rather than overwriting |
 | Jobs | `job.wait()`, `job.progress()`, `job.cancel()`, and an SSE-backed event stream; `wait()` takes a timeout and never blocks forever |
-| Caching | Pinned data is cached locally by content hash and verified on read, because a pin is immutable; definitions and live resolutions are never cached |
+| Caching | Pinned data is cached locally by content hash and verified on read, because a pin is immutable. *Revision 2.5:* "definitions and live resolutions are never cached" was too absolute once conditional requests existed — a definition or a listing is held only against the `ETag` MAYA issued for it and re-served only when the server answers 304, so nothing reaches the caller that the server has not just re-affirmed; a live resolution is never held at all |
 | Verification | Every data download checks the server-issued checksum before the bytes are handed to the caller, and records the checksum for later parameter upload (§9.1) |
 | Bitemporality | `as_of` (event time) and `as_of_known` (knowledge time) are explicit arguments on every resolve, download and pin; omitting `as_of_known` means "now" and says so in the manifest |
 | Version skew | The client sends `X-Maya-Client: python/<version>`; the server refuses a client older than the supported window with an upgrade message naming the command |
@@ -2021,11 +2027,11 @@ Point-in-time correctness exists in Feast and Tecton as a join semantic. Nobody 
 
 ### 29.2 Shadow replay: numeric impact analysis
 
-§19 answers *what depends on this*. The question people actually have is *how much does it move*. Before approving a feature change, MAYA re-runs every affected execution warrant on a sampled window — once against the current definition, once against the proposed one — and reports the distribution of output differences per model: median shift, 95th percentile, worst row, and the count of rows crossing a declared materiality threshold.
+§19 answers *what depends on this*. The question people actually have is *how much does it move*. Before approving a feature change, MAYA re-runs every affected execution warrant on a sampled window — once against the current definition, once against the proposed one — and reports the distribution of output differences per model: median shift, 95th percentile, worst row, and the count of rows crossing the materiality threshold the model version declares (failing that, its namespace's; failing that, the configured default). *Revision 2.5:* only the model knows whether its output is a price, a spread in basis points or a probability, so the threshold belongs on the model version and the report says where the figure it used came from.
 
 The review screen then reads "this forward-fill limit change moves 3 of 11 dependent models; the PD model's output shifts by more than 2 bp on 0.4% of rows" instead of a list of names. Approval becomes an informed decision. Jobs run in the workspace of §28.3, so nothing production-facing is touched.
 
-**Cost.** Compute, and a sampling strategy honest about its coverage. Gated by a per-namespace budget, with the sample size stated on the report.
+**Cost.** Compute, and a sampling strategy honest about its coverage. Gated by a per-namespace **compute** budget — counted in row comparisons per day, and a different thing from the materiality threshold above, which this section originally also called a budget (*Revision 2.5*) — with the sample size, and the share of the population it covers, stated on the report. The sample is the most recent rows of each index rather than a random draw, which is a recency bias and is said so rather than left to be discovered.
 
 ### 29.3 Content-addressed materialization
 
