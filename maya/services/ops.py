@@ -399,6 +399,17 @@ class OpsService:
             "Delta remove — a vacuum past the retention window is what frees the disk.",
         }
 
+    def extensions(self, p: Principal) -> dict[str, Any]:
+        """The extension points, what is registered at each, and the notification channels
+        that can actually send (§25). Read-only, and for an administrator: a plugin's
+        configuration schema can name the settings it needs."""
+        self._techops(p, "Listing plugins is for administrators and techops")
+        from maya import notifiers
+
+        report = self.p.plugins.report()
+        report["channels"] = notifiers.status(self.p.settings)
+        return report
+
     def read_blob(self, p: Principal, digest: str) -> bytes:
         """Only an administrator, the uploader, or whoever exported it may read a blob."""
         with self.p.uow(p.username) as uow:

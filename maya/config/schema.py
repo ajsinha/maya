@@ -253,6 +253,48 @@ SETTINGS: tuple[Setting, ...] = (
         "Empty means the lake root alone.",
         "",
     ),
+    # -- extension points and notification channels (§25) -----------------------
+    _s(
+        "plugins.allow",
+        "string",
+        "Names of installed entry-point plugins MAYA may load, comma separated. A plugin "
+        "runs in this process with MAYA's privileges, so it is opt-in by name; anything "
+        "installed and not named here is listed as refused with that reason.",
+        "",
+    ),
+    _s(
+        "notify.email.host",
+        "string",
+        "SMTP host for the email channel. Empty means MAYA sends no email.",
+        "",
+    ),
+    _s("notify.email.port", "int", "SMTP port.", "587", minimum=1),
+    _s("notify.email.from", "string", "Envelope sender for MAYA's email.", ""),
+    _s("notify.email.username", "string", "SMTP username, where the server wants one.", ""),
+    _s(
+        "notify.email.password",
+        "string",
+        "SMTP password. A secret: set it in the environment or the local overlay, never in "
+        "the tracked configuration file.",
+        "",
+        secret=True,
+    ),
+    _s("notify.email.starttls", "bool", "Upgrade the SMTP connection with STARTTLS.", "true"),
+    _s(
+        "notify.slack.webhook_url",
+        "string",
+        "Slack incoming-webhook URL. A secret, and one channel per URL: MAYA posts the "
+        "notice and does not name recipients.",
+        "",
+        secret=True,
+    ),
+    _s(
+        "notify.teams.webhook_url",
+        "string",
+        "Microsoft Teams incoming-webhook URL. A secret; see the Slack note.",
+        "",
+        secret=True,
+    ),
     _s(
         "lake.maintenance.interval_seconds",
         "duration",

@@ -153,6 +153,13 @@ class Platform:
         from maya.services import registry
 
         registry.wire(self)
+        # §25: what is registered at each extension point, and what an installed plugin was
+        # refused for. Built after the services, because the workflow checks are registered
+        # by them, and discovered once so a screen can list it without walking the packages.
+        from maya.plugins import Registry as PluginRegistry, built_ins
+
+        self.plugins = built_ins(PluginRegistry(), self)
+        self.plugins.discover(self.settings)
 
     def service(self, name: str) -> Any:
         return self._services[name]
