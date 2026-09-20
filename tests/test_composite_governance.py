@@ -258,3 +258,45 @@ def test_an_execution_warrant_renders_the_manifest_a_person_reads(journey):  # n
         "desk@x",
     ):
         assert expected in latex, expected
+
+
+def test_the_combiners_own_features_are_part_of_the_contract(journey):  # noqa: F811
+    """A combiner is not limited to member outputs (§8.7).
+
+    ``evaluate_composite`` gives the combine expression the same inputs the members got, so
+    a router like ``drawn + where(inDraw, a.leq, b.leq) * (commitment - drawn)`` reads three
+    features no member mentions. Leaving them out of the composite's declared contract would
+    let a warrant be drawn on a feature set that cannot supply them, and the failure would
+    surface during evaluation rather than at the contract check — which is the one place §8.2
+    promises to catch it."""
+    w = journey
+    one = _member(w, "cc_one", "yhat = a*x", {"a": "parameter"})
+    two = _member(w, "cc_two", "yhat = b*x", {"b": "parameter"})
+    ir = {
+        "outputs": [{"name": "yhat", "type": "float64"}],
+        "inputs": [],
+        "composite": {
+            "kind": "router",
+            "members": [{"alias": "one", "ref": one}, {"alias": "two", "ref": two}],
+            "combine": {
+                "op": "add",
+                "args": [
+                    {"ref": "gate"},
+                    {
+                        "op": "where",
+                        "args": [{"ref": "gate"}, {"ref": "one.yhat"}, {"ref": "two.yhat"}],
+                    },
+                ],
+            },
+        },
+    }
+    w.p.models.create(w.mona, namespace="quant", name="cc_router", kind="composite")
+    w.p.models.update_draft(w.mona, "quant/cc_router", ir=ir, spec_latex=complete_spec("cc_router"))
+    contract = w.p.models.get(w.mona, "quant/cc_router")["versions"][0]["input_contract"]
+    by_name = {c["name"]: c for c in contract}
+    assert set(by_name) == {"x", "gate"}, "the members want x; only the combiner wants gate"
+    assert by_name["gate"]["needed_by"] == ["combine"]
+    assert by_name["x"]["needed_by"] == ["one", "two"]
+    # a member output is produced, not supplied, so it is not an input
+    assert "one.yhat" not in by_name
+    assert comp.combiner_features(ir["composite"]["combine"]) == {"gate"}

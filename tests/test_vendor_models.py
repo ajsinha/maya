@@ -179,3 +179,45 @@ def test_a_vendor_model_over_the_sdk(vendor_world):
     shown = sdk.models.get("bought/acme_sdk")
     assert shown["kind"] == "vendor" and shown["vendor"]["version"] == "8.0.0"
     assert shown["versions"][0]["opaque"] is True
+
+
+def test_a_black_box_still_has_to_supply_the_parameters_it_declares(vendor_world):
+    """§8.4 says parameters are validated against the model version's declaration on upload.
+
+    That was silently untrue for every declared black box: the bounds check returned at once
+    for any IR with no formula body, so the gate that reads it would pass a parameter set with
+    a whole array missing. A black box's *mathematics* is unavailable; its declaration of what
+    parameters it takes is not, and it is the only thing left to check them against."""
+    w = vendor_world
+    ir = {
+        "inputs": [
+            {"name": "x", "type": "float64"},
+            {"name": "w1", "type": "float64", "role": "parameter"},
+            {"name": "w2", "type": "float64", "role": "parameter", "bounds": [0.0, 1.0]},
+        ],
+        "outputs": [{"name": "score"}],
+        "black_box": {"estimates": "a score from x", "architecture": "vendor ensemble"},
+    }
+    w.p.models.create(w.mona, namespace="bought", name="acme_params", kind="vendor", ir=ir)
+    w.p.models.update_draft(w.mona, "bought/acme_params", spec_latex=complete_spec("acme_params"))
+    w.p.models.transition(w.mona, "bought/acme_params", 1, "submit")
+    w.p.models.transition(w.mgr, "bought/acme_params", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="bought",
+        name="acme_params_run",
+        model="bought/acme_params@v1",
+        featureset="maya://featureset/bought/inputs#m1/2026-01-30",
+        spec={"bindings": {"x": "x"}},
+    )
+    # §8.4 says "on upload", and that is where it now happens.
+    with pytest.raises(ValidationFailed, match="missing parameter 'w2'"):
+        w.p.warrants.upload_parameters(w.devi, tw["id"], values={"w1": 0.5})
+    with pytest.raises(ValidationFailed, match=r"'w2'=4.0 outside"):
+        w.p.warrants.upload_parameters(w.devi, tw["id"], values={"w1": 0.5, "w2": 4.0})
+    good = w.p.warrants.upload_parameters(w.devi, tw["id"], values={"w1": 0.5, "w2": 0.25})
+    assert [p["name"] for p in good["param_schema"]] == ["w1", "w2"], (
+        "and the declaration is recorded on the set rather than thrown away"
+    )
+    assert w.p.warrants.check_bounds(ir, {"w1": 0.5}) == ["missing parameter 'w2'"]
+    assert w.p.warrants.check_bounds(ir, {"w1": 0.5, "w2": 0.25}) == []

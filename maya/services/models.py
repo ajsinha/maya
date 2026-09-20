@@ -376,7 +376,7 @@ class ModelService:
         if "composite" not in ir:
             return irmod.input_contract(ir) if "body" in ir or irmod.is_opaque(ir) else []
         members = self._member_irs(uow, ir)
-        return comp.union_contract(members)
+        return comp.union_contract(members, combine=ir["composite"].get("combine"))
 
     def _require_member_reads(self, uow: Any, p: Principal, ir: dict[str, Any]) -> None:
         """A composite exposes its members: whoever writes one must be able to read each.

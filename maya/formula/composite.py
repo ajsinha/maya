@@ -58,13 +58,22 @@ def validate_composite(comp: Any) -> list[str]:
 
 
 def union_contract(
-    member_irs: dict[str, dict[str, Any]], aliases: dict[str, dict[str, str]] | None = None
+    member_irs: dict[str, dict[str, Any]],
+    aliases: dict[str, dict[str, str]] | None = None,
+    combine: Any = None,
 ) -> list[dict[str, Any]]:
-    """The union of member input contracts (§8.7).
+    """The union of member input contracts, and whatever the combiner reads too (§8.7).
 
     ``aliases`` maps ``{member_alias: {member_input: contract_name}}`` so two
     members wanting one attribute under different names share it. Two members
     wanting the same name with different types is a ContractMismatch.
+
+    A combiner is not limited to member outputs: it is evaluated against the same inputs the
+    members were given, so ``drawn + where(inDraw, a.leq, b.leq) * (commitment - drawn)``
+    reads three features no member mentions. Those belong in the contract — a composite whose
+    declared inputs leave one out would let a warrant be drawn on a feature set that cannot
+    supply it, and the failure would arrive during evaluation instead of at the contract
+    check, which is the one place §8.2 promises to catch it.
     """
     from maya.formula.ir import input_contract
 
@@ -88,7 +97,30 @@ def union_contract(
                     "role": "feature",
                     "needed_by": [alias],
                 }
+    for name in sorted(combiner_features(combine)):
+        if name in merged:
+            merged[name]["needed_by"].append("combine")
+        else:
+            merged[name] = {
+                "name": name,
+                "type": "float64",
+                "unit": None,
+                "role": "feature",
+                "needed_by": ["combine"],
+            }
     return [merged[k] for k in sorted(merged)]
+
+
+def combiner_features(combine: Any) -> set[str]:
+    """Feature names the combine expression reads directly.
+
+    A dotted name is a member's output (``draw.leq``) and is produced rather than supplied,
+    so it is not an input. Everything else the combiner references is."""
+    if not combine:
+        return set()
+    from maya.formula.ir import refs_of
+
+    return {name for name in refs_of(combine) if "." not in name}
 
 
 def _mismatch(name: str, prev: dict[str, Any], item: dict[str, Any], alias: str) -> Exception:
