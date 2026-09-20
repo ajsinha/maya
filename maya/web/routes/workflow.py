@@ -10,6 +10,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -53,6 +54,35 @@ async def queue(request: Request) -> Any:
     return await render(request, "workflow/queue.html", {"items": items})
 
 
+REF_IN_TEXT = re.compile(r"maya://[A-Za-z0-9_./@#-]+")
+
+
+def review_overlay(r: dict[str, Any]) -> dict[str, list[str]]:
+    """The change under review, as the canvas draws it (§16.3): added green, changed
+    amber, removed struck through.
+
+    The marks come from the semantic diff the review already shows, so the picture and
+    the table cannot disagree: a reference the diff names on the old side alone is
+    removed, on the new side alone added, on both changed. The object under review is
+    itself changed — or added, when no approved version precedes it.
+    """
+    was: set[str] = set()
+    now: set[str] = set()
+    diff = r.get("diff") or {}
+    for entry in diff.get("entries") or []:
+        was |= set(REF_IN_TEXT.findall(str(entry.get("was") or "")))
+        now |= set(REF_IN_TEXT.findall(str(entry.get("now") or "")))
+    overlay = {
+        "added": sorted(now - was),
+        "removed": sorted(was - now),
+        "changed": sorted(was & now),
+    }
+    ref = str(r.get("ref") or "")
+    if ref.startswith("maya://"):
+        overlay["added" if not diff.get("against") else "changed"].append(ref)
+    return overlay
+
+
 @router.get("/workflow/review/{object_type}/{object_id}")
 @page
 async def review(request: Request, object_type: str, object_id: str) -> Any:
@@ -82,6 +112,10 @@ async def review(request: Request, object_type: str, object_id: str) -> Any:
             "policy": r["policy"],
             "memos": memos,
             "is_admin": is_admin(request),
+            "review_overlay": review_overlay(r),
+            "root": r["ref"] if str(r["ref"]).startswith("maya://") else "",
+            "direction": "downstream",
+            "depth": "3",
         },
     )
 

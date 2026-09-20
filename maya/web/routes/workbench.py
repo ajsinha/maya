@@ -21,7 +21,15 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.core.errors import ValidationFailed
-from maya.web.routes.common import action, client, flash, page, parse_json, render
+from maya.web.routes.common import (
+    action,
+    api_json,
+    client,
+    flash,
+    page,
+    parse_json,
+    render,
+)
 
 router = APIRouter()
 _STASH: dict[str, tuple[float, bytes, str, str]] = {}
@@ -203,12 +211,32 @@ def _definition_body(data: Any) -> dict[str, Any]:
     }
 
 
+def _prefill(qp: Any) -> dict[str, Any]:
+    """A definition the designer opens with. The lineage canvas (§16.3) sends two or
+    more selected features and an operator here, so choosing an algebra on the graph
+    lands in the editor already written down rather than needing retyping."""
+    operator = (qp.get("operator") or "").strip()
+    operands = [o.strip() for o in (qp.get("operands") or "").split(",") if o.strip()]
+    if operator not in OPERATORS or len(operands) < 1:
+        return {}
+    return {
+        "source": {
+            "type": "derived",
+            "derivation": {"operator": operator, "operands": operands, "options": {}},
+        }
+    }
+
+
 @router.get("/workbench/features/new")
 @page
 async def designer_new(request: Request) -> Any:
     async with client(request) as sdk:
         ctx = _ctx(await sdk.namespaces.list(), await _catalog_refs(sdk))
-    return await render(request, "workbench/designer.html", {**ctx, "d": {}, "f": None})
+    return await render(
+        request,
+        "workbench/designer.html",
+        {**ctx, "d": _prefill(request.query_params), "f": None},
+    )
 
 
 @router.post("/workbench/features/new")
@@ -273,6 +301,27 @@ async def designer_save(request: Request, ns: str, name: str) -> Any:
             return RedirectResponse(f"/catalog/features/{ns}/{name}", status_code=303)
     flash(request, "Draft saved.", "success")
     return RedirectResponse(f"/workbench/features/{ns}/{name}/edit", status_code=303)
+
+
+@router.get("/ui/expr-sample")
+@api_json
+async def expr_sample(request: Request) -> Any:
+    """Three rows for the expression editor's live preview (§17.3).
+
+    The editor checks the grammar in the browser, but a preview needs data, and the
+    draft preview is the only honest source of it: the same rows the designer sees.
+    It is fetched when somebody opens the editor, not on every page load, because
+    resolving a draft is real work.
+    """
+    qp = request.query_params
+    ref, kind = qp.get("ref", ""), qp.get("kind", "feature")
+    async with client(request) as sdk:
+        preview = (
+            await sdk.featuresets.draft_preview(ref)
+            if kind == "featureset"
+            else await sdk.features.draft_preview(ref)
+        )
+    return {"columns": preview.get("columns") or [], "rows": (preview.get("rows") or [])[:3]}
 
 
 @router.get("/workbench/features/{ns}/{name}/preview")

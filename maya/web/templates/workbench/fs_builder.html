@@ -53,7 +53,7 @@
     <div class="row g-2"><div class="col"><label class="form-label" for="start">Start</label><input class="form-control" id="start" name="start" type="date" value="{{ fl.get('start', '') }}"></div>
       <div class="col"><label class="form-label" for="end">End</label><input class="form-control" id="end" name="end" type="date" value="{{ fl.get('end', '') }}"></div></div>
     <label class="form-label mt-2" for="universe">Universe (comma-separated keys)</label><input class="form-control" id="universe" name="universe" value="{{ (fl.get('universe') or [])|join(', ') if fl.get('universe') is sequence and fl.get('universe') is not string else '' }}">
-    <label class="form-label mt-2" for="expr">Row filter expression</label><input class="form-control mono" id="expr" name="expr" value="{{ fl.get('expr', '') }}" placeholder="px > 0">
+    <label class="form-label mt-2" for="expr">Row filter expression</label><input class="form-control mono" id="expr" name="expr" value="{{ fl.get('expr', '') }}" placeholder="px > 0" data-expr data-expr-attrs-from="input[name=m_attr]"{% if fs %} data-expr-sample="/ui/expr-sample?kind=featureset&amp;ref={{ fs.namespace }}/{{ fs.name }}"{% endif %}>
     <label class="form-label mt-2" for="gdef">Global default rule</label><input class="form-control mono" id="gdef" name="global_default" value="{{ gp.get('default') or '' }}">
     <label class="form-label mt-2" for="grules">Global rules per attribute (JSON)</label><textarea class="form-control mono" id="grules" name="global_rules" rows="2" data-json>{{ gp.get('rules')|tojson_pretty if gp.get('rules') else '' }}</textarea>
     <label class="form-label mt-2" for="gpol">Member-group policies (JSON list of {attrs, rule})</label><textarea class="form-control mono" id="gpol" name="group_policies" rows="2" data-json>{{ d.get('group_policies')|tojson_pretty if d.get('group_policies') else '' }}</textarea>
@@ -64,3 +64,4 @@
 {% if fs %}<button class="btn btn-outline-primary" type="submit" name="then" value="submit">Save and submit for review</button>{% endif %}</div>
 </form>
 {% endblock %}
+{% block scripts %}{% include "_expr_scripts.html" %}{% endblock %}

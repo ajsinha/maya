@@ -1,6 +1,7 @@
 """
-Home dashboard, search, inbox, lineage canvas, help/about, and the small
-JSON endpoints the pages' own scripts call (job progress, lineage graph).
+Home dashboard, search, inbox, help/about, and the small JSON endpoint the
+pages' own scripts call for job progress. The lineage canvas has its own
+module (``routes/lineage.py``).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -88,33 +89,6 @@ async def mark_read(request: Request) -> Any:
     async with client(request) as sdk:
         await sdk.access.mark_read(None)
     return RedirectResponse("/inbox", status_code=303)
-
-
-@router.get("/lineage")
-@page
-async def lineage(request: Request) -> Any:
-    qp = request.query_params
-    return await render(
-        request,
-        "lineage.html",
-        {
-            "root": qp.get("root", ""),
-            "direction": qp.get("direction", "both"),
-            "depth": qp.get("depth", "3"),
-        },
-    )
-
-
-@router.get("/ui/lineage")
-@api_json
-async def lineage_json(request: Request) -> Any:
-    qp = request.query_params
-    async with client(request) as sdk:
-        return await sdk.access.lineage(
-            qp.get("root", ""),
-            direction=qp.get("direction", "both"),
-            depth=int(qp.get("depth", "3")),
-        )
 
 
 @router.get("/ui/jobs/{job_id}")

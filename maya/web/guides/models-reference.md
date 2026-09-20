@@ -375,6 +375,39 @@ returns the PDF. Outside the `dev` environment, or when
 `typeset.require_true_build` is true, approval requires a true LaTeX build
 (`spec_true_build`).
 
+### Writing it: the editor
+
+The Specification tab is a split pane — source on the left, a preview on the
+right that follows the source within about 200 ms, with KaTeX for the maths.
+Around it:
+
+* **Outline and completeness** lists every section in order with its word count,
+  marks an empty one, and jumps the editor to a section when you click it.
+* **Find and replace** opens with the button or <kbd>Ctrl</kbd>+<kbd>F</kbd>,
+  counts the matches, and replaces one or all of them.
+* **Bracket matching** marks the pair under the cursor and flags an unmatched
+  bracket, in the LaTeX and the Python editors alike.
+* **Spell check** is the browser's own, on the prose editor only; the Python
+  editor is left alone, because underlining every identifier teaches you to
+  ignore the underlines.
+* **Insert a figure** embeds the image in the document as base64 comment lines
+  and writes the `figure` environment for you, so a figure versions, diffs and
+  travels with the text that discusses it. Keep it under 200 kB. The environment
+  is guarded with `\IfFileExists`: where the typesetter writes the embedded image
+  out, the figure appears; where it does not — which is every build today — the
+  PDF prints a labelled box saying the image is in the source, rather than
+  failing the build.
+* **Bibliography (BibTeX)** keeps the entries in a `filecontents` block inside
+  the document and adds `\bibliography{refs}`. `\cite{key}` is numbered in the
+  preview against those entries, and built by BibTeX in the PDF.
+* **Diff** shows the document side by side, line by line, alongside the
+  mathematical diff, with the unchanged stretches counted rather than paged
+  through.
+
+The Code tab's editor reports, before you upload, what rung 4 of the ladder
+below would refuse — the filesystem, a subprocess, a socket, `eval` or `exec` —
+naming the line. The sandbox still has the last word.
+
 ## Code artifacts and the validation ladder
 
 A model may carry a Python implementation: a class `Model` with

@@ -86,6 +86,35 @@
   <div class="d-flex flex-wrap gap-1 mb-2">{% for s in v.completeness %}{{ pill('ok' if s.present and not s.empty else 'bad', s.section ~ (' ✓' if s.present and not s.empty else (' — empty' if s.present else ' — missing'))) }}{% endfor %}</div>
   <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/spec">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    {% if editable %}
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-find-for="spec">
+        <i class="bi bi-search" aria-hidden="true"></i> Find and replace <kbd>Ctrl</kbd>+<kbd>F</kbd></button>
+      <label class="btn btn-sm btn-outline-secondary mb-0" for="spec-figure">
+        <i class="bi bi-image" aria-hidden="true"></i> Insert a figure</label>
+      <input class="visually-hidden" type="file" id="spec-figure" accept="image/*" data-figure-for="spec">
+      <span class="small-muted" data-figure-note="spec" aria-live="polite">A figure is embedded in the
+        document itself, so it versions and diffs with the source — keep it under 200 kB. A build that
+        cannot write the image out prints a labelled box instead of failing.</span>
+    </div>
+    {% endif %}
+    <div class="row g-2 mb-2">
+      <div class="col-lg-6"><details class="card card-body py-2">
+        <summary class="small-muted">Outline and completeness</summary>
+        <div class="mt-2" data-outline-for="spec"></div></details></div>
+      <div class="col-lg-6"><details class="card card-body py-2" data-bib-for="spec">
+        <summary class="small-muted">Bibliography (BibTeX)</summary>
+        <label class="form-label mt-2" for="spec-bib">Entries — <code>\cite{key}</code> is numbered in the
+          preview and built by BibTeX in the PDF</label>
+        <textarea class="form-control mono" id="spec-bib" rows="5" placeholder="@article{black1973, author = {Black, F. and Scholes, M.}, title = {The Pricing of Options}, journal = {JPE}, year = {1973}}"></textarea>
+        <div class="d-flex flex-wrap gap-2 align-items-center mt-1">
+          <input class="form-control form-control-sm" type="file" accept=".bib" style="max-width:240px" aria-label="Choose a .bib file">
+          <button class="btn btn-sm btn-outline-primary" type="button" data-bib-apply>Put into the document</button>
+        </div>
+        <p class="small-muted mb-0 mt-1" data-bib-note aria-live="polite">The entries live in the document
+          in a <code>filecontents</code> block, so the bibliography is versioned with the text it cites.</p>
+      </details></div>
+    </div>
     <div class="split">
       <div><label class="form-label" for="spec">LaTeX source (<code>\mayaformula{body}</code> binds the document to the IR)</label>
         <textarea class="form-control mono" id="spec" name="spec_latex" rows="22" data-editor="stex" data-preview="spec-preview" {% if not editable %}readonly{% endif %}>{{ v.spec_latex or '' }}</textarea></div>
@@ -103,6 +132,12 @@
   {% if editable %}
   <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/artifact" class="card card-body mb-3">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-find-for="src">
+        <i class="bi bi-search" aria-hidden="true"></i> Find and replace</button>
+      <span class="small-muted">Rung 4 of the ladder, before you upload:</span>
+      <span data-checks-for="src" aria-live="polite"></span>
+    </div>
     <label class="form-label" for="src">Python artifact — a class <code>Model</code> with <code>fit(self, X, y, ctx)</code> and <code>predict(self, X, params, ctx)</code></label>
     <textarea class="form-control mono" id="src" name="source" rows="16" data-editor="python">import numpy as np
 

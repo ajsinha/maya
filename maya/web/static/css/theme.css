@@ -169,8 +169,30 @@ table.maya-table mark { background: var(--maya-highlight); color: var(--maya-ink
 .CodeMirror { border: 1px solid var(--maya-border); border-radius: 6px; height: 460px; font-size: 13px; }
 .spec-preview { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; padding: 1rem; height: 460px; overflow: auto; }
 .spec-preview h4 { color: var(--maya-heading); font-size: 1.05rem; margin-top: .8rem; }
+.spec-preview figure { margin: .8rem 0; }
+.spec-preview figure img { max-width: 100%; border: 1px solid var(--maya-border); border-radius: 4px; }
+.spec-preview figcaption { color: var(--maya-slate); font-size: 12px; margin-top: .2rem; }
+.spec-preview .fig-missing { border: 1px dashed var(--maya-border); border-radius: 4px; padding: 1rem; color: var(--maya-slate); font-size: 12px; }
+.spec-preview .bib-list li { font-size: 13px; margin-bottom: .2rem; }
+.outline-list li.lvl2 { padding-left: 1.2rem; }
+.outline-list li { margin-bottom: .15rem; }
+.cm-find { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .4rem; margin-bottom: .3rem;
+  background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; }
+.cm-find input { max-width: 200px; }
+.cm-maya-bracket { background: var(--maya-highlight); color: var(--maya-ink); }
+.cm-maya-bracket-bad { background: var(--maya-bad); color: var(--maya-on-crimson); }
+.expr-panel { margin-top: .25rem; font-size: 12px; }
+.expr-panel .expr-bad { color: var(--maya-bad); }
+.expr-panel .expr-preview { margin-top: .2rem; }
+.expr-hint { vertical-align: baseline; }
 .formula-box { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; padding: .8rem; overflow-x: auto; }
 #cy { height: 620px; background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; }
+.cy-split { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; }
+.cy-detail { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; padding: .8rem; height: 620px; overflow: auto; font-size: 13px; }
+.cy-detail .kv { margin-bottom: 0; }
+.cy-nodes { max-height: 300px; overflow: auto; }
+.cy-nodes li { padding: .1rem 0; }
+@media (max-width: 1100px) { .cy-split { grid-template-columns: 1fr; } .cy-detail { height: auto; max-height: 320px; } }
 .state-diagram svg text { fill: var(--maya-ink); font-size: 12px; }
 .small-muted { color: var(--maya-slate); font-size: 12px; }
 .maya-hero img { height: 54px; }

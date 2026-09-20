@@ -48,6 +48,16 @@
 
 {{ impact_panel(r.impact, 'Impact: every dependent object and who owns it') }}
 
+{% if root %}
+<div class="card card-body mb-3"><h3 class="h6">The change on the canvas</h3>
+  <p class="small-muted">The impact above, drawn: <span class="pill ok"><i class="bi bi-plus-circle" aria-hidden="true"></i>added</span>
+    <span class="pill warn"><i class="bi bi-pencil" aria-hidden="true"></i>changed</span>
+    <span class="pill"><i class="bi bi-dash-circle" aria-hidden="true"></i>removed, struck through</span>
+    — every mark is worded as well as coloured, and the marks come from the same semantic diff.</p>
+  {% include "_lineage_canvas.html" %}
+</div>
+{% endif %}
+
 <div class="card card-body mb-3"><h3 class="h6">Transitions</h3>
   {% for t in r.transitions %}
   <div class="small mb-1"><strong>{{ t.name }}</strong> → {{ t.to }}
@@ -81,3 +91,4 @@
 {% if memos is not none %}{% include "workflow/_challenge.html" %}{% endif %}
 {% include "_history.html" %}
 {% endblock %}
+{% block scripts %}{% if root %}<script src="/static/vendor/cytoscape/cytoscape.min.js"></script><script src="/static/js/lineage.js"></script>{% endif %}{% endblock %}
