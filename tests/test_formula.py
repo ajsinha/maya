@@ -309,7 +309,8 @@ def test_constants_declare_a_value_that_evaluation_and_code_both_use() -> None:
     expected = evaluate(ir, {**X, "r": np.array([0.05])}, {"sigma": 0.2})["price"]
     np.testing.assert_allclose(evaluate(ir, X, {"sigma": 0.2})["price"], expected)
     np.testing.assert_allclose(compile_reference(ir)(X, {"sigma": 0.2})["price"], expected)
-    assert ModelService._default_params({"formula_ir": ir}) == {"sigma": 0.5, "r": 0.05}
+    # a constant's own value; a parameter, a point inside its bounds that is never zero
+    assert ModelService._default_params({"formula_ir": ir}) == {"sigma": 0.618, "r": 0.05}
     bad = dict(ir, inputs=[dict(i, value=1.0) if i["name"] == "S" else i for i in ir["inputs"]])
     assert any("only a constant carries a value" in e for e in validate_ir(bad))
 

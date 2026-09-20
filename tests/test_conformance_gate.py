@@ -169,3 +169,90 @@ def test_a_black_box_has_nothing_to_compare_against(world):
         None, {"row": {"artifact_hash": None, "formula_ir": ir, "artifact_report": {}}}
     )
     assert ok and "nothing to compare" in detail
+
+
+# The case that found the next one: a model whose parameters are signed. A yield curve's
+# slope and curvature factors are either sign, so the middle of their declared bounds is
+# exactly zero.
+CURVE = r"""
+z = \frac{\tau}{\lambda}
+L_{slope} = \frac{1 - e^{-z}}{z}
+y = \beta_{0} + \beta_{1} L_{slope}
+"""
+CURVE_ROLES = {
+    "\\tau": "feature",
+    "\\beta_{0}": "parameter",
+    "\\beta_{1}": "parameter",
+    "\\lambda": "parameter",
+}
+CURVE_BOUNDS = {"beta0": [0.0, 0.25], "beta1": [-0.25, 0.25], "lambda": [0.25, 6.0]}
+CURVE_WRONG = '''
+"""A two-factor Nelson-Siegel curve, with the loading divided by the wrong thing."""
+
+import numpy as np
+
+
+class Model:
+    def fit(self, X, y, ctx):
+        return {}
+
+    def predict(self, X, params, ctx):
+        maturity = np.asarray(X["tau"], dtype=float)
+        scaled = maturity / float(params["lambda"])
+        loading = (1.0 - np.exp(-scaled)) / maturity  # the bug: tau, not tau / lambda
+        return params["beta0"] + params["beta1"] * loading
+'''
+
+
+def test_the_comparison_is_not_run_where_a_signed_parameter_is_zero(world):
+    """The values a differential test uses are part of what it establishes.
+
+    A parameter placed at the middle of its declared bounds is *exactly zero* whenever those
+    bounds straddle zero, and a factor of zero switches off the term it multiplies — so the
+    comparison quietly stops testing that part of the mathematics. Here the shape of a yield
+    curve hangs off a signed factor: at its midpoint an implementation that computes the
+    slope loading wrongly agrees with the specification on every row, because nothing
+    multiplies the loading. The default point is therefore off-centre, and the values used
+    are recorded beside the count so a reviewer can see where the test looked.
+    """
+    import numpy as np
+
+    from maya.formula.conformance import conformance_test, sample_inputs
+    from maya.formula.parse import parse_model
+    from maya.services.models import ModelService
+
+    w = world
+    ir = parse_model(CURVE, roles=CURVE_ROLES)
+    ir["inputs"] = [
+        {**i, "bounds": CURVE_BOUNDS[i["name"]]} if i["name"] in CURVE_BOUNDS else i
+        for i in ir["inputs"]
+    ]
+    defaults = ModelService._default_params({"formula_ir": ir})
+    assert set(defaults) == set(CURVE_BOUNDS)
+    assert all(value != 0.0 for value in defaults.values()), "a zero tests nothing"
+    assert all(lo <= defaults[name] <= hi for name, (lo, hi) in CURVE_BOUNDS.items()), (
+        "and every value is inside the bounds the model declared"
+    )
+
+    def wrong(x: dict, params: dict) -> dict:
+        maturity = np.asarray(x["tau"], dtype=float)
+        scaled = maturity / params["lambda"]
+        loading = (1.0 - np.exp(-scaled)) / maturity
+        return {"y": params["beta0"] + params["beta1"] * loading}
+
+    samples = sample_inputs(ir, {"tau": np.linspace(0.1, 30.0, 64)}, n=200, seed=7)
+    midpoints = {name: (lo + hi) / 2 for name, (lo, hi) in CURVE_BOUNDS.items()}
+    blind = conformance_test(ir, wrong, samples, midpoints)
+    assert blind["agreed"] == blind["total"] == 200, "at the midpoints, nothing looks wrong"
+    assert conformance_test(ir, wrong, samples, defaults)["agreed"] == 0, "off centre, every row"
+
+    w.p.access.create_namespace(w.admin, name="rate", preset="standard")
+    w.p.models.create(w.mona, namespace="rate", name="ns", formula=CURVE, roles=CURVE_ROLES)
+    w.p.models.update_draft(w.mona, "rate/ns", ir=ir, spec_latex=complete_spec("ns"))
+    w.p.models.upload_artifact(w.mona, "rate/ns", CURVE_WRONG, sample={"tau": [0.5, 2.0, 10.0]})
+    w.drain()
+    got = w.p.models.get(w.mona, "rate/ns")["versions"][0]["artifact_report"]["conformance"]
+    assert got["agreed"] == 0, "and the same bug is caught end to end, on upload"
+    assert got["params"] == defaults, "with the values it was run at on the record"
+    with pytest.raises(NotApproved, match="disagrees with the specification"):
+        w.p.models.transition(w.mona, "rate/ns", 1, "submit")
