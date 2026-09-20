@@ -334,6 +334,11 @@ provably total unless its index is computed rather than recorded;
 
 \subsection{How to read this paper, and how to check it}
 
+\Cref{sec:objects} states the objects in engineering terms before any of the mathematics begins, because
+the constructions below are worth little if what they quantify over is only sketched. A reader who
+already builds this kind of system can skim it and should still read the paragraphs on the two clocks
+and on pins.
+
 The mathematics is elementary; the vocabulary is not evenly distributed across the audiences this work
 addresses. Every formal statement is therefore followed by a shaded \emph{plain terms} gloss, and where
 it earns one, a worked example from banking. A reader who wants the argument without the notation can
@@ -351,6 +356,94 @@ where a reader would look for the favourable one, and \Cref{sec:laws} collects t
 can be read against the repository in an afternoon. The register is not flattering: of its rows, a
 minority run, several run in a weaker form that is stated exactly, and several are mathematics with no
 executable counterpart at all.
+\section{The objects, in engineering terms}\label{sec:objects}
+
+The mathematics begins in \Cref{sec:kernel}. This section is what it is about. A reader who has built
+data infrastructure will recognise most of it and should still read the four paragraphs on clocks and
+pins, because the paper's later guarantees are statements about exactly those two constructions and are
+easy to mishear as statements about ordinary versioning. A reader who has built model risk systems will
+recognise the vocabulary of warrants and will find the input side more specific than is usual.
+
+Nothing here is a contribution. It is the setting, written in the words a system that implements it has
+to use, and it is written first because the constructions in the rest of the paper are worth very little
+if the objects they quantify over are only sketched.
+
+\paragraph{A model is a compute kernel with dials.} A thing that takes inputs and produces an output, in
+a way governed by numbers that are not themselves inputs. Black--Scholes takes spot, strike, tenor, rate
+and volatility and returns a price: the formula comes from theory and there are no dials at all. A
+credit scorecard takes eight attributes of an applicant and returns a probability: the same shape, and
+forty-two dials that somebody had to set. The distinction between what goes in and what was set is the
+one this paper leans on hardest, and it is the distinction most registers do not record, because a
+column called \texttt{inputs} that holds both loses it.
+
+\paragraph{The dials are set in one of several ways, and training is one of them.} Theory supplies them
+and they never move. A calibration solves them against this morning's quotes. An estimator fits them to
+a historical sample. A training run learns them from data and may keep learning in production. A
+committee agrees them. An author writes them down as rules. These are not different kinds of model;
+they are different ways of inhabiting the same slot, which is what \Cref{sec:kernel} makes precise. A
+system whose taxonomy is ``model'' versus ``rule set'' versus ``ML model'' has encoded the method of
+setting the dials into the identity of the thing, and then has to maintain that encoding by hand.
+
+\paragraph{A feature is not a column in somebody's table.} It is a named, typed, versioned definition of
+a quantity, together with the data that has ever been recorded for it. The definition says what the
+quantity is, what it is indexed by, where its values come from, and what may be done about gaps. The
+data is an append-only log: a correction is a new record, never an overwrite. That last property is not
+housekeeping. It is the precondition for everything in \Cref{sec:asof}, and a store that overwrites
+cannot support the guarantee however carefully it is queried.
+
+\paragraph{Every value carries two clocks.} The \emph{event time} is the moment the value describes: the
+quarter these accounts cover, the day this price closed. The \emph{knowledge time} is the moment the
+recording system learnt it. They are independent, and the gap between them is where the failure lives.
+A borrower files accounts dated 31 March; they arrive on 20 May; in August the borrower restates them
+downward. Both records are true, both belong in the store, and they differ only in knowledge time. A
+system that keeps one clock cannot tell them apart, and will hand a model building a training row for a
+decision taken in June the restated figure --- a number that exists \emph{because} the default it is
+being asked to predict already happened. The model tests beautifully and fails in production, and the
+post-mortem blames drift.
+
+\paragraph{A feature set is what a model is actually defined over.} Features are defined separately and
+are useful separately; a model reads several of them together, aligned on a shared index. A feature set
+names that bundle: which features fill which slots, how they are aligned, what to do where one has a
+value and another does not. The schema --- the named, typed slots --- is separate from what fills them,
+and the separation earns its keep. Changing which feature fills a slot does not change the space the
+model is defined over; it changes what the model was fitted on, which is a different event deserving a
+different control.
+
+\paragraph{A pin freezes what the data was, and is named by it.} A version of a definition says how a
+thing is assembled. A pin says what it assembled: the resolved rows, sealed, so that the same read a
+year later returns the same bytes. Crucially the pin's identity \emph{is} a hash of its own contents, so
+two pins of the same data are the same pin and changed data cannot hide behind an unchanged name. A
+feature set is pinned as a whole or not at all: a bundle in which three members are frozen and one is
+still moving is not a frozen input, and the arrangement that admits it will be discovered a year later
+by somebody who cannot reproduce a number.
+
+\paragraph{Training, precisely.} Choosing the dials from data. It needs three things, and a system that
+supplies fewer is not governing it: a \emph{frozen input}, so that the run can be repeated --- which is
+what the pin is for; a \emph{target}, the quantity being predicted, which must not also be reachable
+through the inputs; and a \emph{record} of which model version, which input, which target and whose
+authority, which is what the next paragraph is.
+
+\paragraph{A warrant is a licence to compute, not a note about a computation.} A training warrant binds
+one model version to one pinned input and one target, and receives the parameters the run produced. An
+execution warrant licenses a model version, its parameters and its input contract to be run, under
+conditions that can be checked while it runs, and can be suspended. Both are permissions with a holder,
+a scope and an expiry. The distinction from a log entry is the whole point: a log says what happened
+and a warrant says what may happen, so a warrant can be refused before the fact, which is the only
+moment at which a governance system can prevent anything.
+
+\begin{plain}
+\pt Six words carry the rest of this paper. A \emph{feature} is a defined quantity and everything ever
+recorded for it, each value stamped with when it was true and when you found out. A \emph{feature set}
+bundles features into the thing a model reads. A \emph{pin} freezes what a feature or a set held, and is
+named by a hash of that content. \emph{Parameters} are the dials; \emph{training} is one way of setting
+them, from data, against a frozen input. A \emph{warrant} is permission to fit or to run, granted in
+advance and refusable.
+
+The argument of the paper is that four facts a register normally asks somebody to type --- what kind of
+thing this is, whether this can stand in for that, what a training row could have known, and what a
+conclusion rests on --- are consequences of these objects, and can be computed from them.
+\end{plain}
+
 \section{The kernel, and what the parameter object decides}\label{sec:kernel}
 
 \subsection{Ambient setting}
@@ -2354,6 +2447,20 @@ And the system is written by the author of the paper, so it is a demonstration o
 independent replication. The most useful thing a reader could do with it is to disagree with it in
 public: it is on GitHub, the register of \Cref{sec:laws} can be read against it in an afternoon, and
 every marker in this paper names a path.
+
+\subsection{Artefact availability}
+
+The platform described here is at \url{https://github.com/ajsinha/maya}, and it is the artefact this
+paper should be judged against. Every \textsf{Runs} marker above names a module and a test as paths from
+that repository's root, so any claim in this paper can be checked by opening two files. The register of
+\Cref{sec:laws} lists all twenty-five and can be walked in an afternoon.
+
+What a reader will find alongside the code: the specification the system was built to, with its own
+revision history; the measurement results behind every number in this section, unedited, with the
+scripts that produced them; the nine case studies as runnable scripts against a throwaway instance; and
+the decision records for the choices a reader is most likely to disagree with --- among them why a
+declared black box is refused rather than scored, why there are no migrations and two generated schema
+files instead, and why the platform will not execute the artefacts it governs.
 
 \subsection{For the practitioner}
 
