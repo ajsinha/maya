@@ -2576,6 +2576,21 @@
      },
      {
       "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -3239,6 +3254,36 @@
      },
      {
       "in": "header",
+      "name": "range",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-range",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -3514,6 +3559,21 @@
      },
      {
       "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -3774,6 +3834,21 @@
      },
      {
       "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -4006,6 +4081,21 @@
       "required": true,
       "schema": {
        "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
       }
      },
      {
@@ -4823,6 +4913,36 @@
      },
      {
       "in": "header",
+      "name": "range",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-range",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -5053,6 +5173,21 @@
      },
      {
       "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -5181,6 +5316,21 @@
       "required": true,
       "schema": {
        "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
       }
      },
      {
@@ -5337,6 +5487,21 @@
       "required": true,
       "schema": {
        "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
       }
      },
      {
@@ -6966,6 +7131,21 @@
      },
      {
       "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
       "name": "authorization",
       "required": false,
       "schema": {
@@ -7158,6 +7338,21 @@
       "required": true,
       "schema": {
        "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-none-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
       }
      },
      {
@@ -7394,6 +7589,21 @@
       "required": true,
       "schema": {
        "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "if-match",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
       }
      },
      {
@@ -15474,6 +15684,16 @@
       "type": "string"
      },
      "type": "object"
+    },
+    "shadow_materiality": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ]
     },
     "spec_latex": {
      "anyOf": [

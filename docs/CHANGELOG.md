@@ -190,6 +190,59 @@
   can change under you. `~/.maya/cache` by default, bounded, least-recently-used eviction,
   `MAYA_CACHE=0` to turn it off.
 
+**Shadow replay: a declared threshold, honest coverage, a budget, and the approver (§29.2)**
+
+- **The model declares what is material.** A model version carries its own
+  `shadow_materiality`, and the replay measures against that in preference to its namespace's
+  figure and to the configured default — a rate in basis points, a price and a probability are
+  material at three different numbers, and only the model knows which it produces. Every
+  report entry names the threshold *and* where it came from (`model`, `namespace`, `default`),
+  because a report that quietly used the wrong one reads as "nothing moved". A new draft
+  inherits the declaration; zero is refused.
+- **The sampling owns up to its coverage.** Each entry now states how many rows matched on
+  both sides as well as how many were replayed, and the share that covers; the report totals
+  the same across warrants; and the basis says plainly that the sample is the most recent rows
+  of each index, which is a recency bias and not a random draw.
+- **Replaying is gated by a per-namespace budget.** A namespace spends at most
+  `workspaces.shadow.budget_rows` row comparisons in a rolling day, or its own
+  `shadow_budget_rows`, charged against what the audit log says earlier replays spent — the one
+  ledger nothing can quietly adjust. The check is before the work and the charge after it, so
+  the first warrant of a day always runs however small the ceiling. A warrant whose namespace
+  has spent its budget is reported unreplayed with the figures, never counted as unmoved.
+- **The numbers reach the approver.** A version submitted from a workspace carries its shadow
+  replay onto the review screen: the summary, the per-model shift, the threshold used and the
+  rows it was measured on, beside the list of dependents. §29.2 asked the review screen to read
+  "this change moves 3 of 11 dependent models"; it does.
+- The governed-change tutorial said an execution warrant in the impact list comes back
+  `warrant not found`. It has been replayed for some time; the guide now says so.
+
+**Conditional reads and resumable downloads (§18.1, §18.2.3, §18.2.5)**
+
+- **A read MAYA has already answered costs a round trip and not a body.** Catalog listings,
+  the catalog browse and the feature, feature-set and model definition reads carry an
+  `ETag` — the hash of the bytes served, because a read is more than its rows and a version
+  column would let a changed grant or a changed owner slip past a 304 — and answer
+  `If-None-Match` with 304 and nothing else. The SDK holds the last body against that
+  validator and re-serves it only when the server says 304, so a scheduler that polls a
+  listing every minute pays for the question and not the answer. This is not a cached
+  definition in the sense §18.2.1 forbids: nothing is ever handed back that MAYA has not
+  just re-affirmed.
+- **An edit written against a definition that has since moved is refused.** A draft write on
+  a feature, a feature set or a model honours `If-Match`, and the SDK sends the `ETag` of the
+  read the edit was written against without being asked. A mismatch raises the same
+  `ConflictError` two racing edits already raise. Only an open draft is guarded this way: a
+  pin, a sealed warrant, a parameter set and an audit row are appended once and then
+  immutable, so there is no overwrite for a precondition to prevent.
+- **A download of any size survives a dropped connection.** `/feature-data` and
+  `/featureset-data` advertise `Accept-Ranges`, serve a `Range` as 206 with `Content-Range`,
+  answer 416 for a range past the end, and honour `If-Range` so a resume onto bytes that
+  have moved becomes a fresh whole download instead of two halves of two objects. The SDK
+  streams to disk, so an interrupted transfer leaves a part worth keeping, and the sealed-pin
+  cache continues from that part with the validator it was fetched under. A resumed download
+  ends at exactly the checksum a one-shot download ends at, and a part that fails it is
+  dropped rather than cached — a Parquet download that will not read is now a failure and no
+  longer excused as "some other shape".
+
 **Retention (§7.3), which was not built at all**
 
 - **Cold pins are named.** MAYA records when a pin was last read (the first read always,

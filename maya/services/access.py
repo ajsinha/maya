@@ -265,6 +265,7 @@ class AccessService:
             "materialize_policy",
             "shadow_materiality",
             "api_key_max_days",
+            "shadow_budget_rows",
         }
         bad = set(changes) - allowed
         if bad:
@@ -288,6 +289,11 @@ class AccessService:
             )
         if "api_key_max_days" in changes:
             changes["api_key_max_days"] = self._key_ceiling(changes["api_key_max_days"])
+        if changes.get("shadow_budget_rows") is not None and int(changes["shadow_budget_rows"]) < 0:
+            raise ValidationFailed(
+                "shadow_budget_rows is what a replay may cost this namespace in a day, "
+                "counted in row comparisons; it is zero for no ceiling or a positive count"
+            )
         with self.p.uow(p.username) as uow:
             ns = self.namespace(uow, name)
             row = uow.repo("namespaces").update(ns["id"], changes)

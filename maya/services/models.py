@@ -299,6 +299,7 @@ class ModelService:
         python_source: str | None = None,
         spec_latex: str | None = None,
         maturity: str | None = None,
+        shadow_materiality: float | None = None,
         expected_version: int | None = None,
     ) -> dict[str, Any]:
         new_ir = self._build_ir(formula=formula, roles=roles, ir=ir, python_source=python_source)
@@ -349,6 +350,17 @@ class ModelService:
                 changes.update(spec_latex=spec_latex, spec_state=state)
             if maturity is not None:
                 changes["maturity"] = self._check_maturity(uow, draft, maturity, new_ir)
+            if shadow_materiality is not None:
+                # §29.2: the shift in this model's output that its owner calls material. Only
+                # the model knows its units, so it is declared with the version rather than
+                # taken from the namespace; a change to it needs a draft like any other claim
+                # the version makes.
+                if float(shadow_materiality) <= 0:
+                    raise ValidationFailed(
+                        "shadow_materiality is the shift in this model's output that counts "
+                        "as material; it is above zero"
+                    )
+                changes["shadow_materiality"] = float(shadow_materiality)
             row = uow.repo("model_versions").update(
                 draft["id"], changes, expected_version=expected_version
             )
@@ -466,6 +478,7 @@ class ModelService:
                     "spec_state",
                     "opaque",
                     "maturity",
+                    "shadow_materiality",
                 )
             }
             return uow.repo("model_versions").add(

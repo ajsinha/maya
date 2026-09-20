@@ -331,7 +331,8 @@ The recorded challenger writes a memo on every submission into review. It never 
 | Key | Default | Meaning |
 |---|---|---|
 | `workspaces.shadow.sample_rows` | `5000` | Rows replayed per dependent warrant in a shadow replay (the most recent, by index). Stated on the report. |
-| `workspaces.shadow.materiality` | `0.0001` | An absolute output shift above this counts as material. |
+| `workspaces.shadow.materiality` | `0.0001` | An absolute output shift above this counts as material, unless the model version declares its own figure or its namespace sets one. |
+| `workspaces.shadow.budget_rows` | `2000000` | Row comparisons a namespace's replays may spend in a rolling day, charged from the audit log. A namespace may set its own `shadow_budget_rows`; `0` anywhere means no ceiling. |
 
 ## health
 

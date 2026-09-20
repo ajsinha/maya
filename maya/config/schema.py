@@ -762,6 +762,13 @@ SETTINGS: tuple[Setting, ...] = (
         "0.0001",
         minimum=0,
     ),
+    _s(
+        "workspaces.shadow.budget_rows",
+        "int",
+        "Row comparisons a namespace's replays may spend in a rolling day. 0: no ceiling.",
+        "2000000",
+        minimum=0,
+    ),
     # -- dependency seams (§13.4) --------------------------------------------
     _s(
         "seams",

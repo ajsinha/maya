@@ -78,6 +78,20 @@ failures and on 429, 502, 503 and 504. Other writes are not retried, so a pin st
 twice unless you give it a key. <code>my.wait()</code> polls a job to a terminal state and never blocks
 forever.</p>
 {% endcall %}
+{% call tip('Polling is cheap, and a big download is resumable') %}
+<p>Listings and definition reads carry an <code>ETag</code>. The client sends it back on the next
+identical read and MAYA answers <code>304</code>, so a script that polls a catalog every minute pays for
+the round trip and not the payload — and nothing is ever served that the server has not just
+re-affirmed. Editing a draft sends the <code>ETag</code> of the read your edit was written against, so an
+edit over someone else's raises <code>ConflictError</code> instead of winning silently.</p>
+<p>Ask for a download <em>to a file</em> and the bytes stream to disk: if the connection drops, the next
+call continues from the part already there rather than starting again, and the finished file faces the
+same checksum either way.</p>
+{% call example('A download that survives the VPN', 'python') %}
+out = my.features.download("eq/prices#eom/2026-03-31", to="/data/prices.parquet")
+print(out["bytes"], "bytes,", "resumed from", out["resumed_from"])
+{% endcall %}
+{% endcall %}
 {% endcall %}
 
 {% call step(4, 'Handle errors by name') %}

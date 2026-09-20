@@ -244,7 +244,37 @@ class WorkflowService:
                 ),
                 "diff": self._review_diff(uow, object_type, row, owner),
                 "impact": self.p.catalog.dependents_in(uow, p, self._impact_roots(ref)),
+                "shadow": self._shadow(uow, object_type, object_id),
             }
+
+    @staticmethod
+    def _shadow(uow: Any, object_type: str, object_id: str) -> dict[str, Any] | None:
+        """The numeric impact, where there is one (§29.2): *how much does it move*, not just
+        what it touches. A version submitted from a workspace carries the shadow replay run
+        there, so the approver reads "moves 3 of 11 dependent models" beside the list of
+        names.
+
+        Found by looking through the workspaces that have submitted something, rather than by
+        hanging a workspace id on every version row: the link belongs to the workspace, there
+        are few of them, and the great majority of versions never came from one and would
+        carry an empty column for ever.
+        """
+        if object_type not in ("feature_version", "featureset_version"):
+            return None
+        for ws in uow.repo("workspaces").list(state__in=("in_review", "merged")):
+            if not any((v or {}).get("version_id") == object_id for v in ws["submitted_versions"]):
+                continue
+            report = ws["replay"] or {}
+            return {
+                "workspace": ws["id"],
+                "workspace_name": ws["name"],
+                "summary": report.get("summary")
+                or "No shadow replay was run in the workspace before this was submitted.",
+                "generated_at": report.get("generated_at"),
+                "coverage": report.get("coverage") or {},
+                "warrants": report.get("warrants") or [],
+            }
+        return None
 
     @staticmethod
     def _namespace_id(uow: Any, owner: dict[str, Any], row: dict[str, Any]) -> str:

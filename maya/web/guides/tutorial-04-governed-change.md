@@ -127,8 +127,8 @@ for w in report["warrants"]:
 
 ```text
 # Expected output
-moves 1 of 1 replayed dependent model(s); maya://warrant/train/eq/linear_fit@v1: median |Δ| 0, p95 6.01, 48.3% of rows over materiality; 1 could not be replayed (see each entry)
-maya://warrant/exec/eq/linear_live@v1 False warrant not found
+moves 1 of 2 replayed dependent model(s); maya://warrant/train/eq/linear_fit@v1: median |Δ| 0, p95 6.01, 48.3% of rows over materiality (0.0001, default)
+maya://warrant/exec/eq/linear_live@v1 True {'rows_compared': 180, 'median_abs_shift': 0.0, 'p95_abs_shift': 6.009999999999996, 'max_abs_shift': 7.800000000000001, 'worst_row': {'date': '2026-03-01 00:00:00', 'symbol': 'CCC'}, 'rows_over_materiality': 87}
 maya://warrant/train/eq/linear_fit@v1 True {'rows_compared': 180, 'median_abs_shift': 0.0, 'p95_abs_shift': 6.009999999999996, 'max_abs_shift': 7.800000000000001, 'worst_row': {'date': '2026-03-01 00:00:00', 'symbol': 'CCC'}, 'rows_over_materiality': 87}
 ```
 
@@ -138,20 +138,35 @@ Read it the way a reviewer would:
 * **Nearly half move materially**: every row where `x` exceeded 5 now predicts
   `2·5 + 0.5 = 10.5`. The worst is CCC on 1 March, where `x` was 8.9 and the
   prediction falls by 7.8.
-* **The execution warrant was not replayed.** Replay scores training warrants;
-  an execution warrant in the impact list is reported with the reason
-  `warrant not found`. It runs the same model and parameters as the training
-  warrant it was issued under, so that warrant's figures apply to it.
+* **The execution warrant moves with it.** An execution warrant is replayed
+  through the training warrant it was issued from — that warrant's feature set
+  and bindings, scored with the execution warrant's own model version and sealed
+  parameters — so the production number is measured and not inferred.
+* **`(0.0001, default)`** names the threshold and where it came from. A model
+  version that declares its own `shadow_materiality` is judged by that instead,
+  then the namespace's, then this configured default: a rate in basis points and a
+  price are not material at the same number, and a report that used the wrong one
+  would read as "nothing moved".
 
 | Report field | Meaning |
 |---|---|
 | `sample_rows` | rows replayed per warrant, the most recent (`workspaces.shadow.sample_rows`, default 5000) |
-| `materiality` | the absolute shift counted as material (`workspaces.shadow.materiality`, default 0.0001) |
+| `materiality`, `materiality_from` | the absolute shift counted as material, and whether it came from the `model`, the `namespace` or the configured `default` |
 | `rows_added`, `rows_removed` | keys that appear or disappear under the proposal |
 | `median_abs_shift`, `p95_abs_shift`, `max_abs_shift` | the size of the move |
 | `worst_row` | the index key of the largest move |
 | `rows_over_materiality`, `share_over_materiality` | how much of the sample moved materially |
+| `rows_compared`, `rows_available`, `coverage` | how many rows were replayed, how many matched in all, and the share that covers |
+| `coverage` (report) | the same totals across every warrant, with the sampling named |
+| `budget` | what a replay may cost each namespace per day in row comparisons, and what this one spent |
 | `basis` | how the replay was done, ending "Sampled agreement is not proof" |
+
+!!! note "Replaying costs compute, and the bill is per namespace"
+    Each namespace may spend `workspaces.shadow.budget_rows` row comparisons a
+    day, or its own `shadow_budget_rows`, charged against what the audit log says
+    earlier replays spent. A warrant whose namespace has spent its budget is
+    reported unreplayed, with the figures, rather than quietly counted as
+    unmoved. Zero anywhere means no ceiling.
 
 !!! note "A new stage clears the report"
     Staging another change, or restaging this one, empties the replay report: a
