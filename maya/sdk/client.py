@@ -75,6 +75,12 @@ class _Namespaces:
         self.assistant = Assistant(transport)
         self.cache = PinCache()
 
+    @property
+    def reads(self) -> Any:
+        """The ETag-revalidated read cache the transport holds — ``None`` on a cassette,
+        which has no server to revalidate against (§18.1)."""
+        return getattr(self._transport, "reads", None)
+
 
 class Client(_Namespaces):
     """Synchronous client over HTTP (default) or in-process ASGI."""

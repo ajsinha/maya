@@ -194,11 +194,14 @@ def test_a_namespace_can_set_what_counts_as_a_material_shift(branch):
 
     w, tw = branch
     svc = w.p.workspaces
-    with w.p.uow() as uow:
-        warrant = uow.repo("training_warrants").require(tw["id"])
-    assert svc._budget(warrant, "") == svc.materiality, "the global default, unset"
+
+    def namespace():
+        with w.p.uow() as uow:
+            return uow.repo("namespaces").find_one(name="wsn")
+
+    assert svc._materiality({}, namespace()) == (svc.materiality, "default"), "unset"
     w.p.access.update_namespace(w.admin, "wsn", {"shadow_materiality": 100.0})
-    assert svc._budget(warrant, "") == 100.0
+    assert svc._materiality({}, namespace()) == (100.0, "namespace")
     shifts = np.array([0.5, 2.0, 200.0])
     rows = pd.DataFrame({"date": ["d1", "d2", "d3"], "symbol": ["A", "A", "A"]})
     lenient = svc._stats(shifts, rows, ["date", "symbol"], 100.0)
@@ -208,7 +211,7 @@ def test_a_namespace_can_set_what_counts_as_a_material_shift(branch):
     with pytest.raises(ValidationFailed, match="above zero"):
         w.p.access.update_namespace(w.admin, "wsn", {"shadow_materiality": 0})
     w.p.access.update_namespace(w.admin, "wsn", {"shadow_materiality": None})
-    assert svc._budget(warrant, "") == svc.materiality, "unset falls back again"
+    assert svc._materiality({}, namespace()) == (svc.materiality, "default"), "unset again"
 
 
 def test_every_replay_report_states_the_budget_it_used(branch):

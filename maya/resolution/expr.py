@@ -6,7 +6,9 @@ feature set filters, ACL row filters and workflow check conditions. It is a
 strict subset of Python expression syntax, parsed with ``ast`` and then
 walked against a whitelist — anything not on the list (attribute access,
 subscripts, lambdas, comprehensions, unlisted calls) is refused with the
-construct named. Evaluation is vectorized over a pandas frame and has no side
+construct named. Membership is written ``x in [a, b]`` — a list, never a tuple,
+so there is one spelling to learn, to document and to teach the editor.
+Evaluation is vectorized over a pandas frame and has no side
 effects: there is no ``eval`` anywhere in this module.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
@@ -122,8 +124,12 @@ class _Checker(ast.NodeVisitor):
         self.visit(node.left)
         for op, comp in zip(node.ops, node.comparators):
             if isinstance(op, (ast.In, ast.NotIn)):
-                if not isinstance(comp, (ast.List, ast.Tuple)):
-                    _refuse(comp, "'in' needs a literal list")
+                # One spelling, not two. A tuple used to pass here while ``(1)`` — the
+                # same thing to anybody reading it, but a plain constant to the parser —
+                # was refused, so the language accepted a form nothing documented and
+                # refused the form a user would write next. A list is the documented one.
+                if not isinstance(comp, ast.List):
+                    _refuse(comp, "'in' needs a literal list, written [a, b]")
                 for elt in comp.elts:
                     if not isinstance(elt, ast.Constant):
                         _refuse(elt, "'in' list must hold literals")

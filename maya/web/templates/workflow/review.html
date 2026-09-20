@@ -48,6 +48,31 @@
 
 {{ impact_panel(r.impact, 'Impact: every dependent object and who owns it') }}
 
+{% if r.shadow %}
+<div class="card card-body mb-3"><h3 class="h6">Numeric impact: how much does it move?</h3>
+  <div class="alert alert-info mb-2"><strong>{{ r.shadow.summary }}</strong>
+    <div class="small mt-1">Rehearsed in workspace
+      <a href="/workbench/workspaces/{{ r.shadow.workspace }}">{{ r.shadow.workspace_name }}</a>{%
+        if r.shadow.generated_at %}, replayed {{ r.shadow.generated_at }}{% endif %}{%
+        if r.shadow.coverage.share is not none %}, on {{ r.shadow.coverage.rows_compared }} of
+        {{ r.shadow.coverage.rows_available }} matched rows
+        ({{ '%.1f'|format(100 * r.shadow.coverage.share) }}%, {{ r.shadow.coverage.sampling }}){%
+        endif %}.</div></div>
+  {% if r.shadow.warrants %}
+  {% call(s) table("shadow", ["Warrant", "Median |Δ|", "p95 |Δ|", "Max |Δ|", "Over materiality", "Threshold", "Rows", "Note"], r.shadow.warrants, empty="No dependent warrant.") %}
+    <td class="mono">{{ s.warrant }}</td>
+    <td>{{ '%.4g'|format(s.median_abs_shift) if s.median_abs_shift is not none and s.median_abs_shift is defined else '' }}</td>
+    <td>{{ '%.4g'|format(s.p95_abs_shift) if s.p95_abs_shift is defined else '' }}</td>
+    <td>{{ '%.4g'|format(s.max_abs_shift) if s.max_abs_shift is defined else '' }}</td>
+    <td>{% if s.rows_over_materiality is defined %}{{ s.rows_over_materiality }} ({{ '%.1f'|format(100 * s.share_over_materiality) }}%){% endif %}</td>
+    <td>{% if s.materiality is defined %}{{ '%.4g'|format(s.materiality) }} <span class="small-muted">({{ s.materiality_from }})</span>{% endif %}</td>
+    <td>{% if s.rows_compared is defined %}{{ s.rows_compared }}{% if s.rows_available is defined %} of {{ s.rows_available }}{% endif %}{% endif %}</td>
+    <td class="small">{{ s.reason or '' }}</td>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endif %}
+
 {% if root %}
 <div class="card card-body mb-3"><h3 class="h6">The change on the canvas</h3>
   <p class="small-muted">The impact above, drawn: <span class="pill ok"><i class="bi bi-plus-circle" aria-hidden="true"></i>added</span>

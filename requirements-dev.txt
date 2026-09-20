@@ -9,3 +9,4 @@ pytest-cov==7.1.0
 mypy==2.3.1           # gate 2, tools/ci/typecheck.py
 bandit==1.9.4         # gate 25, static analysis (tools/ci/sast.py)
 pip-audit==2.10.1     # gate 25, dependency scan (gates.py --security)
+pypandoc_binary==1.17  # tools/docs/build_spec.py; carries pandoc, so no system package is needed

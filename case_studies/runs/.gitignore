@@ -1,0 +1,4 @@
+# Kept MAYA instances, written by a case study run with --keep.
+# Not part of the repository.
+*
+!.gitignore

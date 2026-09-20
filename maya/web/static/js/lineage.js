@@ -17,7 +17,10 @@
  * filter reports what it removed. And no meaning is carried by colour alone (§16.5):
  * every overlay writes its value into the node's label and into the node table.
  *
- * Data comes from /ui/lineage and /ui/lineage/cost, both thin proxies over the SDK.
+ * Data comes from /ui/lineage, one thin proxy over the SDK: the graph, and a row per
+ * node carrying the state of the version that node names, the object's last change, a
+ * feature's data freshness and what its sealed pins occupy. Every overlay reads that one
+ * payload, so none of them is an estimate and none needs a second round trip.
  * Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
  */
 (function () {
@@ -116,24 +119,38 @@
   // Each overlay answers with a bucket (a colour class) and a word for the label.
   var OVERLAYS = {
     freshness: function (n) {
-      var days = ageDays(n.meta && n.meta.updated, n.now);
+      // A feature's freshness is when its data was last known to be true; anything else
+      // has no ingest of its own, so it is when the object changed. The word says which,
+      // because "7d" means two different things for the two.
+      var meta = n.meta;
+      if (!meta) { return { ov: 'none', word: 'no date' }; }
+      var isData = !!meta.data_freshness;
+      var days = ageDays(isData ? meta.data_freshness : meta.updated_at, n.now);
       if (days === null) { return { ov: 'none', word: 'no date' }; }
-      if (days < 7) { return { ov: 'ok', word: days + 'd' }; }
-      if (days < 30) { return { ov: 'info', word: days + 'd' }; }
-      if (days < 90) { return { ov: 'warn', word: days + 'd' }; }
-      return { ov: 'bad', word: days + 'd' };
+      var word = days + 'd ' + (isData ? 'of data' : 'since a change');
+      if (days < 7) { return { ov: 'ok', word: word }; }
+      if (days < 30) { return { ov: 'info', word: word }; }
+      if (days < 90) { return { ov: 'warn', word: word }; }
+      return { ov: 'bad', word: word };
     },
     approval: function (n) {
+      // The state of the version this node names, which the server sends per node. It is
+      // not the object's latest state: a graph drawn on v1 of something now at v4 must
+      // not borrow v4's approval, and saying "superseded" is not the same as saying
+      // whether v1 itself was ever approved.
       var meta = n.meta;
       if (!meta) { return { ov: 'none', word: 'not an object' }; }
       var v = versionOf(n.id);
-      if (v !== null && meta.latest_version && v < meta.latest_version) {
-        return { ov: 'none', word: 'v' + v + ', superseded by v' + meta.latest_version };
-      }
       var state = meta.state || 'no version';
-      if (state === 'approved' || state === 'published') { return { ov: 'ok', word: state }; }
-      if (state === 'deprecated' || state === 'retired') { return { ov: 'none', word: state }; }
-      return { ov: 'warn', word: state };
+      var suffix = (v !== null && meta.latest_version && v < meta.latest_version)
+        ? ', superseded by v' + meta.latest_version : '';
+      if (state === 'approved' || state === 'published') {
+        return { ov: suffix ? 'info' : 'ok', word: state + suffix };
+      }
+      if (state === 'deprecated' || state === 'retired') {
+        return { ov: 'none', word: state + suffix };
+      }
+      return { ov: 'warn', word: state + suffix };
     },
     access: function (n) {
       if (n.id === HIDDEN_ID) { return { ov: 'bad', word: 'withheld' }; }
@@ -141,21 +158,20 @@
       return { ov: 'info', word: 'internal node' };
     },
     cost: function (n) {
-      var p = n.cost;
-      if (!p || p.bytes === null || p.bytes === undefined) { return { ov: 'none', word: 'not priced' }; }
-      var text = bytesText(p.bytes) + (p.partial ? '+' : '');
-      if (p.bytes === 0) { return { ov: 'none', word: 'nothing pinned' }; }
-      if (p.bytes < 1048576) { return { ov: 'ok', word: text }; }
-      if (p.bytes < 104857600) { return { ov: 'info', word: text }; }
-      return { ov: 'warn', word: text };
+      var bytes = n.meta ? n.meta.pinned_bytes : null;
+      if (bytes === null || bytes === undefined) { return { ov: 'none', word: 'not priced' }; }
+      if (bytes === 0) { return { ov: 'none', word: 'nothing pinned' }; }
+      if (bytes < 1048576) { return { ov: 'ok', word: bytesText(bytes) }; }
+      if (bytes < 104857600) { return { ov: 'info', word: bytesText(bytes) }; }
+      return { ov: 'warn', word: bytesText(bytes) };
     }
   };
 
   var LEGENDS = {
-    freshness: 'Freshness — when the object last changed: under 7 days, under 30, under 90, older. A node with no date is drawn plain.',
-    approval: 'Approval — the state of the object’s latest version. A node naming an older version says so instead of borrowing that state.',
+    freshness: 'Freshness — for a feature, how old the newest data it knows about is; for anything else, how long since the object changed. Each node says which. Under 7 days, under 30, under 90, older; a node with no date is drawn plain.',
+    approval: 'Approval — the state of the version each node names, not of the object’s latest version. A node naming an older version also says what superseded it.',
     access: 'Access — what you can read. Everything drawn, you may read; internal nodes (operators, pins, warrants) carry no read check of their own; the withheld count is what the server left out.',
-    cost: 'Cost — what this object’s sealed pins occupy: nothing, under 1 MB, under 100 MB, more. A "+" means only the first page of pins was summed.'
+    cost: 'Cost — what this object’s sealed pins occupy, summed over all of them: nothing, under 1 MB, under 100 MB, more. A model has no pins of its own and is not priced.'
   };
 
   var MayaLineage = {
@@ -188,7 +204,7 @@
   function val(id, dflt) { var e = $(id); return e ? (e.type === 'checkbox' ? e.checked : e.value) : dflt; }
 
   var state = {
-    graph: null, cy: null, cost: null, now: Date.now(),
+    graph: null, cy: null, now: Date.now(),
     direction: el.getAttribute('data-direction') || 'both',
     depth: el.getAttribute('data-depth') || '3',
     root: root, expandedChains: {}, expandedClusters: {}, selection: []
@@ -212,15 +228,11 @@
     return null;
   }
 
-  // ---- the model the canvas draws: nodes with their meta, cost and review mark ----
+  // ---- the model the canvas draws: nodes with their meta and review mark ----------
   function nodeModel(n) {
     var g = state.graph;
     var meta = g.meta ? g.meta[bare(n.id)] : null;
-    return {
-      id: n.id, kind: n.kind, meta: meta, now: state.now,
-      cost: state.cost && state.cost.items ? state.cost.items[bare(n.id)] : null,
-      review: reviewClass(n.id)
-    };
+    return { id: n.id, kind: n.kind, meta: meta, now: state.now, review: reviewClass(n.id) };
   }
 
   function statusOf(m) { return (m.meta && m.meta.state) || ''; }
@@ -480,8 +492,12 @@
       ['Type', esc(meta.type)],
       ['Namespace', esc(meta.namespace)],
       ['Owner', esc(meta.owner || 'nobody')],
-      ['Latest', meta.latest_version ? 'v' + esc(meta.latest_version) + ' · ' + esc(meta.state) : ''],
-      ['Last change', esc(meta.updated || '').slice(0, 19).replace('T', ' ')],
+      ['This version', meta.version ? 'v' + esc(meta.version) + ' · ' + esc(meta.state) : ''],
+      ['Latest', meta.latest_version ? 'v' + esc(meta.latest_version) + ' · ' + esc(meta.latest_state) : ''],
+      ['Last change', esc(meta.updated_at || '').slice(0, 19).replace('T', ' ')],
+      ['Data known to', esc(meta.data_freshness || '').slice(0, 19).replace('T', ' ')],
+      ['Pinned', meta.pinned_bytes === null || meta.pinned_bytes === undefined
+        ? '' : esc(bytesText(meta.pinned_bytes))],
       ['Change class', esc(meta.change_class)],
       ['Re-approval', esc(meta.needs_reapproval)],
       ['Overlay', esc(word)],
@@ -562,7 +578,7 @@
     if (built.removed) { parts.push(built.removed + ' hidden by your filters'); }
     if (g.hidden) { parts.push(g.hidden + ' left out because you may not read them'); }
     if (built.clustered) { parts.push('the far graph is clustered by namespace — click a cluster to expand it'); }
-    if (g.meta_complete === false) { parts.push('this graph spans more namespaces than one draw reads, so some nodes carry no detail'); }
+    if (g.meta_complete === false) { parts.push('this graph holds more objects than one draw describes, so some nodes carry no detail'); }
     if (status) { status.textContent = parts.join(' · ') + '.'; }
     var legend = $('cy-legend');
     if (legend) {
@@ -662,24 +678,15 @@
       .then(function (g) {
         if (g.error) { if (status) { status.textContent = g.error; } return; }
         state.graph = g;
-        state.cost = null;
         fillFilters(g);
         // §16.3: beyond ~300 nodes the canvas switches itself to focus plus context.
         // Turning it off is remembered, because a person who asked for the whole graph
         // once should not have to ask again on every redraw.
         var cluster = $('cy-cluster');
         if (cluster && g.nodes.length > CLUSTER_AT && !state.clusterOff) { cluster.checked = true; }
-        if (val('cy-overlay', 'none') === 'cost') { return price(); }
         draw();
       })
       .catch(function (e) { if (status) { status.textContent = 'Could not load lineage: ' + e; } });
-  }
-
-  function price() {
-    var refs = state.graph.nodes.map(function (n) { return bare(n.id); });
-    return fetchJson('/ui/lineage/cost?refs=' + encodeURIComponent(refs.join(',')))
-      .then(function (c) { state.cost = c.error ? null : c; draw(); })
-      .catch(function () { state.cost = null; draw(); });
   }
 
   function fillFilters(g) {
@@ -722,9 +729,9 @@
   });
   var overlaySel = $('cy-overlay');
   if (overlaySel) {
-    overlaySel.addEventListener('change', function () {
-      if (overlaySel.value === 'cost' && !state.cost) { price(); } else { draw(); }
-    });
+    // Every overlay reads the payload already in hand, so switching one on is a redraw
+    // rather than a fetch: no spinner, and no overlay that is a round trip behind.
+    overlaySel.addEventListener('change', draw);
   }
   var dirSel = $('cy-direction');
   if (dirSel) {

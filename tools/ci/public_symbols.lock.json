@@ -124,6 +124,7 @@
      "browse_page": "(self, page_size=100, cursor=None, sort=None, total=False, **facets)",
      "dependents": "(self, ref, depth=4)",
      "facets": "(self, type='feature')",
+     "nodes": "(self, refs)",
      "pin_preview": "(self, ref, version_no, as_of, as_of_known=None, pin_name='')",
      "subscribe": "(self, object_ref)",
      "subscriptions": "(self)",
@@ -178,7 +179,7 @@
      "clone": "(self, ref, name, namespace=None, extend=False)",
      "compare": "(self, ref, v1, v2)",
      "create": "(self, namespace, name, definition, **kw)",
-     "download": "(self, ref, format='parquet', csv_encoding=None, as_of_known=None)",
+     "download": "(self, ref, format='parquet', csv_encoding=None, as_of_known=None, to=None, resume=True)",
      "draft_preview": "(self, ref, as_of_known=None)",
      "get": "(self, ref)",
      "infer": "(self, data, fmt='csv', filename='upload')",
@@ -202,7 +203,7 @@
     "methods": {
      "create": "(self, namespace, name, definition, **kw)",
      "diff": "(self, ref, version_a, version_b)",
-     "download": "(self, ref, format='parquet', shape='tabular', csv_encoding=None)",
+     "download": "(self, ref, format='parquet', shape='tabular', csv_encoding=None, to=None, resume=True)",
      "draft_preview": "(self, ref)",
      "fork": "(self, ref, name, **kw)",
      "get": "(self, ref)",
@@ -231,7 +232,7 @@
    "models": {
     "class": "Models",
     "methods": {
-     "conformance": "(self, ref, version_no, n=500)",
+     "conformance": "(self, ref, version_no, n=500, featureset=None)",
      "create": "(self, namespace, name, **kw)",
      "diff": "(self, ref, v1, v2)",
      "get": "(self, ref)",
@@ -468,6 +469,7 @@
      "browse_page": "(self, page_size=100, cursor=None, sort=None, total=False, **facets)",
      "dependents": "(self, ref, depth=4)",
      "facets": "(self, type='feature')",
+     "nodes": "(self, refs)",
      "pin_preview": "(self, ref, version_no, as_of, as_of_known=None, pin_name='')",
      "subscribe": "(self, object_ref)",
      "subscriptions": "(self)",
@@ -522,7 +524,7 @@
      "clone": "(self, ref, name, namespace=None, extend=False)",
      "compare": "(self, ref, v1, v2)",
      "create": "(self, namespace, name, definition, **kw)",
-     "download": "(self, ref, format='parquet', csv_encoding=None, as_of_known=None)",
+     "download": "(self, ref, format='parquet', csv_encoding=None, as_of_known=None, to=None, resume=True)",
      "draft_preview": "(self, ref, as_of_known=None)",
      "get": "(self, ref)",
      "infer": "(self, data, fmt='csv', filename='upload')",
@@ -546,7 +548,7 @@
     "methods": {
      "create": "(self, namespace, name, definition, **kw)",
      "diff": "(self, ref, version_a, version_b)",
-     "download": "(self, ref, format='parquet', shape='tabular', csv_encoding=None)",
+     "download": "(self, ref, format='parquet', shape='tabular', csv_encoding=None, to=None, resume=True)",
      "draft_preview": "(self, ref)",
      "fork": "(self, ref, name, **kw)",
      "get": "(self, ref)",
@@ -575,7 +577,7 @@
    "models": {
     "class": "Models",
     "methods": {
-     "conformance": "(self, ref, version_no, n=500)",
+     "conformance": "(self, ref, version_no, n=500, featureset=None)",
      "create": "(self, namespace, name, **kw)",
      "diff": "(self, ref, v1, v2)",
      "get": "(self, ref)",

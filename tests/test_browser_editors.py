@@ -159,9 +159,13 @@ CASES = [
     "isnull(close)",
     "symbol not in ['AAA']",
     "(close + 1) * 2 > close ** 2",
-    "close in (99.0, 120.25)",  # the server accepts a literal tuple as well as a list
 ]
 REFUSED = [
+    # Membership takes a list, both sides, and both parenthesised forms are refused: the
+    # language used to accept `(a, b)` while refusing `(a)`, which is the same thing to
+    # read and documented nowhere.
+    "close in (99.0, 120.25)",
+    "symbol in ('AAA', 'BBB')",
     "close.mean()",
     "[x for x in close]",
     "lambda x: x",

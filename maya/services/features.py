@@ -687,7 +687,11 @@ class FeatureService:
         me = refs.version_ref("feature", ns["name"], feature["name"], version["version_no"])
         d = version["definition"]
         if d.get("extends"):
-            uow.repo("lineage_edges").link(d["extends"]["parent"], me, "extends")
+            # The label is the override count (§16.3): the canvas draws it on the edge and
+            # words it on hover, and without it an inheritance edge says only "inherits",
+            # which is the one thing the arrow already said.
+            count = catalog.override_count(d["extends"].get("override"))
+            uow.repo("lineage_edges").link(d["extends"]["parent"], me, "extends", str(count))
         src = d.get("source") or {}
         if src.get("type") == "derived":
             op = src["derivation"]["operator"]

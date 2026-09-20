@@ -70,6 +70,21 @@ def test_the_designated_administrator_gets_in_and_the_door_is_loud(sso_only):
     assert (sess["absolute_expires_at"] - utcnow()).total_seconds() <= 15 * 60 + 5
 
 
+def test_the_break_glass_login_is_also_a_webhook_event(sso_only):
+    """A subscriber cannot watch the audit table, so an emergency sign-in that is only an
+    audit entry reaches nobody outside MAYA. It is in the event map, and the event carries
+    the account it was used on."""
+    from maya.observability.events import EVENT_ACTIONS, event_type
+
+    w, _ = sso_only
+    assert "auth.break_glass_login" in EVENT_ACTIONS
+    assert event_type({"action": "auth.break_glass_login"}) == "auth.break_glass_login"
+    w.p.auth.login("admin2", PASSWORD, ip="10.0.0.11")
+    with w.p.uow() as uow:
+        rows = uow.repo("events").list(type="auth.break_glass_login", order_by=["-seq"])
+    assert rows and rows[0]["object_ref"] == "user:admin2"
+
+
 def test_a_designated_account_that_is_not_an_administrator_is_refused(sso_only):
     """`dana` is designated but holds only feature_designer: a break-glass account that
     cannot administer anything is a password with no purpose, and the refusal says so

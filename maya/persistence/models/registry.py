@@ -10,7 +10,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from maya.persistence.models.base import Base, Tracked
@@ -48,6 +48,11 @@ class ModelVersion(Tracked, Base):
     spec_state: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
     definition_hash: Mapped[str | None] = mapped_column(String(64))
     opaque: Mapped[bool] = mapped_column(Boolean, default=False)
+    # The shift in this model's own output that its owner calls material (§29.2). It is
+    # declared here and not on the namespace because units belong to the model: a rate in
+    # basis points, a price and a probability are material at three different numbers, and a
+    # report that used the namespace's figure for all three would read "nothing moved".
+    shadow_materiality: Mapped[float | None] = mapped_column(Float)
     successor_ref: Mapped[str | None] = mapped_column(String(512))
     force_approved: Mapped[bool] = mapped_column(Boolean, default=False)
     submitted_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)

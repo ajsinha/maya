@@ -21,7 +21,6 @@ import numpy as np
 from maya.core import djson
 from maya.core.errors import ConflictError, NotApproved, NotFound, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
-from maya.core.typeset import render_pdf
 from maya.formula import composite as comp
 from maya.formula import ir as irmod
 from maya.formula.codegen import to_python
@@ -33,7 +32,7 @@ from maya.formula.pylift import lift_python
 from maya.formula.specdoc import default_document, expand_macros, section_completeness
 from maya.core.clock import utcnow
 from maya.security.authz import Principal
-from maya.services import catalog, refs
+from maya.services import catalog, refs, typesetting
 from maya.workflow.engine import Subject
 
 EDITABLE = ("draft", "changes_requested")
@@ -300,6 +299,7 @@ class ModelService:
         python_source: str | None = None,
         spec_latex: str | None = None,
         maturity: str | None = None,
+        shadow_materiality: float | None = None,
         expected_version: int | None = None,
     ) -> dict[str, Any]:
         new_ir = self._build_ir(formula=formula, roles=roles, ir=ir, python_source=python_source)
@@ -350,6 +350,17 @@ class ModelService:
                 changes.update(spec_latex=spec_latex, spec_state=state)
             if maturity is not None:
                 changes["maturity"] = self._check_maturity(uow, draft, maturity, new_ir)
+            if shadow_materiality is not None:
+                # §29.2: the shift in this model's output that its owner calls material. Only
+                # the model knows its units, so it is declared with the version rather than
+                # taken from the namespace; a change to it needs a draft like any other claim
+                # the version makes.
+                if float(shadow_materiality) <= 0:
+                    raise ValidationFailed(
+                        "shadow_materiality is the shift in this model's output that counts "
+                        "as material; it is above zero"
+                    )
+                changes["shadow_materiality"] = float(shadow_materiality)
             row = uow.repo("model_versions").update(
                 draft["id"], changes, expected_version=expected_version
             )
@@ -467,6 +478,7 @@ class ModelService:
                     "spec_state",
                     "opaque",
                     "maturity",
+                    "shadow_materiality",
                 )
             }
             return uow.repo("model_versions").add(
@@ -544,6 +556,14 @@ class ModelService:
         return out
 
     def run_validation_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
+        """The ladder, and then the differential test against the documented mathematics.
+
+        The two belong together. The ladder asks whether the artifact parses, imports
+        nothing forbidden and runs; the differential test asks whether it *computes the
+        model*, which is a different question and the one the commonest implementation bugs
+        fail. Leaving the second to be asked by hand made it a button rather than a check,
+        so it runs here, on upload, and its result is recorded against the artifact hash it
+        tested (§29.7)."""
         from maya.formula.artifact import validate_artifact
 
         source = self.p.blobs.get(params["blob"]).decode("utf-8")
@@ -551,6 +571,9 @@ class ModelService:
         report = validate_artifact(source, params["sample"], params["params"])
         with self.p.uow(ctx.actor) as uow:
             v = uow.repo("model_versions").require(params["version_id"])
+            if report["passed"] and not irmod.is_opaque(v["formula_ir"] or {}):
+                ctx.progress(70, "comparing the code with the documented mathematics")
+                report["conformance"] = self._differential(v, source, params["params"], ctx.actor)
             if v["artifact_hash"] == params["blob"]:
                 uow.repo("model_versions").update(v["id"], {"artifact_report": report})
             uow.audit(
@@ -561,6 +584,27 @@ class ModelService:
             )
         return {"passed": report["passed"], "tier": report["tier"]}
 
+    def _differential(
+        self, v: dict[str, Any], source: str, params: dict[str, Any], actor: str
+    ) -> dict[str, Any]:
+        """Compare the artifact with the IR at upload time, over the default domain.
+
+        A failure to run is recorded as a failure to agree, not as silence: if MAYA could
+        not compare the two it must not imply that it did. Re-running it against a real
+        feature set is ``conformance()``, and that result replaces this one."""
+        cols, domain = self._conformance_domain(None, v, None)
+        try:
+            result = self._compare(v, source, params, n=2000, cols=cols, domain=domain)
+        except Exception as exc:  # noqa: BLE001 - an unrunnable comparison is a finding
+            result = {
+                "agreed": 0,
+                "total": 0,
+                "counterexamples": [],
+                "domain": "not compared",
+                "statement": f"the comparison could not be run: {type(exc).__name__}: {exc}",
+            }
+        return self._conformance_record(v, result, actor)
+
     # -- spec document -----------------------------------------------------------------
     def render_spec(self, p: Principal, ref: str, version_no: int) -> dict[str, Any]:
         with self.p.uow() as uow:
@@ -570,7 +614,7 @@ class ModelService:
         latex = expand_macros(
             v["spec_latex"] or "", v["formula_ir"] or {}, resolver=lambda uri: uri
         )
-        pdf, meta = render_pdf(latex)
+        pdf, meta = typesetting.render(self.p.settings, latex)
         digest = self.p.blobs.put(pdf)
         with self.p.uow(p.username) as uow:
             state = {
@@ -578,6 +622,10 @@ class ModelService:
                 "pdf_blob": digest,
                 "draft_render": meta["draft_render"],
                 "backend": meta["backend"],
+                # What the build was allowed to do (§17.1). A reviewer reading a sealed
+                # version a year from now can see the caps and the network mode this PDF
+                # was produced under, rather than today's configuration.
+                "caps": meta.get("caps"),
                 "rendered_at": utcnow().isoformat(),
             }
             uow.repo("model_versions").update(v["id"], {"spec_state": state})
@@ -730,6 +778,42 @@ class ModelService:
             + "; ".join(r["detail"] for r in report.get("rungs", []) if r["passed"] is False),
         )
 
+    def check_conformance(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
+        """The code must agree with the mathematics the document states (§29.7).
+
+        The ladder in ``check_artifact`` asks whether the artifact parses, imports nothing
+        forbidden and runs. That is a different question from whether it computes the model:
+        the commonest implementation bugs are perfectly valid Python. So a closed-form
+        version that carries code cannot be moved on until somebody has run the differential
+        test against *this* artifact and it agreed everywhere it looked."""
+        row = ctx["row"]
+        if not row["artifact_hash"]:
+            return True, "no code artifact attached (nothing to compare)"
+        ir = row["formula_ir"] or {}
+        if irmod.is_opaque(ir):
+            return True, "declared black box: there is no closed form to compare against"
+        got = (row["artifact_report"] or {}).get("conformance") or {}
+        if got.get("artifact_hash") != row["artifact_hash"]:
+            return False, (
+                "the code has not been tested against the specification since it changed: "
+                "run conformance on this version"
+            )
+        if got["agreed"] != got["total"]:
+            examples = got.get("counterexamples") or []
+            where = ""
+            if examples:
+                first = examples[0]
+                where = (
+                    "; e.g. "
+                    + ", ".join(f"{k}={v:g}" for k, v in first.items() if not k.startswith("_"))
+                    + f" → specification {first['_expected']:g}, code {first['_actual']:g}"
+                )
+            return False, (
+                f"the code disagrees with the specification on "
+                f"{got['total'] - got['agreed']} of {got['total']} sampled inputs{where}"
+            )
+        return True, f"agreed with the specification on all {got['total']} sampled inputs"
+
     def check_true_build(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         require = (
             self.p.settings.bool("typeset.require_true_build", False)
@@ -797,8 +881,15 @@ class ModelService:
         *,
         n: int = 2000,
         params: dict[str, Any] | None = None,
+        featureset: str | None = None,
     ) -> dict[str, Any]:
-        """Differential test of the uploaded Python against the documented IR (§29.7)."""
+        """Differential test of the uploaded Python against the documented IR (§29.7).
+
+        With a ``featureset`` the inputs are resampled from that set's own values, which is
+        the domain the model will actually be asked about. Without one they are drawn from
+        the unit interval, and the report says so: a disagreement that only appears on a
+        seasoned mortgage or a deep-out-of-the-money option will not be found by numbers
+        near 1, so an agreement over an invented domain is worth less than it looks."""
         with self.p.uow() as uow:
             model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
             self.p.access.require(uow, p, "read", "model", model)
@@ -807,12 +898,27 @@ class ModelService:
             raise ValidationFailed("No code artifact to test against the specification")
         if irmod.is_opaque(v["formula_ir"] or {}):
             return {"skipped": True, "statement": "declared black box: nothing to compare"}
-        from maya.security.sandbox import run_sandboxed
-
         source = self.p.blobs.get(v["artifact_hash"]).decode("utf-8")
         params = params or self._default_params(v)
-        rng = np.random.default_rng(7)
-        cols = {c["name"]: rng.uniform(0.5, 1.5, 256) for c in v["input_contract"]}
+        cols, domain = self._conformance_domain(p, v, featureset)
+        result = self._compare(v, source, params, n=n, cols=cols, domain=domain)
+        with self.p.uow(p.username) as uow:
+            self._record_conformance(uow, v, result, p.username)
+        return result
+
+    def _compare(
+        self,
+        v: dict[str, Any],
+        source: str,
+        params: dict[str, Any],
+        *,
+        n: int,
+        cols: dict[str, Any],
+        domain: str,
+    ) -> dict[str, Any]:
+        """Run the artifact in the sandbox over ``n`` sampled rows and compare with the IR."""
+        from maya.security.sandbox import run_sandboxed
+
         samples = sample_inputs(v["formula_ir"], cols, n=n, seed=7)
 
         def predict(x: dict[str, Any], prm: dict[str, Any]) -> Any:
@@ -831,4 +937,53 @@ class ModelService:
                 raise ValidationFailed(f"artifact failed in the sandbox: {out['error']}")
             return out["result"]
 
-        return conformance_test(v["formula_ir"], predict, samples, params)
+        return {**conformance_test(v["formula_ir"], predict, samples, params), "domain": domain}
+
+    def _conformance_record(
+        self, v: dict[str, Any], result: dict[str, Any], actor: str
+    ) -> dict[str, Any]:
+        """What is kept on the version: the outcome, and the artifact hash it was about."""
+        return {
+            "artifact_hash": v["artifact_hash"],
+            "agreed": result["agreed"],
+            "total": result["total"],
+            "counterexamples": result["counterexamples"][:3],
+            "domain": result["domain"],
+            "statement": result["statement"],
+            "run_by": actor,
+            "run_at": utcnow().isoformat(),
+        }
+
+    def _record_conformance(
+        self, uow: Any, v: dict[str, Any], result: dict[str, Any], actor: str
+    ) -> None:
+        # Recorded against the artifact hash it tested, so attaching different code
+        # invalidates it rather than inheriting somebody else's clean run.
+        report = dict(uow.repo("model_versions").require(v["id"])["artifact_report"] or {})
+        report["conformance"] = self._conformance_record(v, result, actor)
+        uow.repo("model_versions").update(v["id"], {"artifact_report": report})
+
+    def _conformance_domain(
+        self, p: Principal | None, v: dict[str, Any], featureset: str | None
+    ) -> tuple[dict[str, Any], str]:
+        """The values to draw the differential test's inputs from, and where they came from."""
+        names = [c["name"] for c in v["input_contract"] or []]
+        if featureset and p is not None:
+            res = self.p.featuresets.resolve_ref(p, featureset)
+            missing = [name for name in names if name not in res.df.columns]
+            if missing:
+                raise ValidationFailed(
+                    f"{featureset} does not expose {', '.join(missing)}, which the model's "
+                    "input contract names, so it cannot supply the test's domain",
+                    missing=missing,
+                )
+            return (
+                {name: res.df[name].astype(float).to_numpy() for name in names},
+                f"resampled from {featureset} ({len(res.df):,} rows)",
+            )
+        rng = np.random.default_rng(7)
+        return (
+            {name: rng.uniform(0.5, 1.5, 256) for name in names},
+            "drawn from the unit interval: no feature set was named, so agreement here says "
+            "nothing about the values the model will really be given",
+        )

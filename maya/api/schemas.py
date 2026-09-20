@@ -163,6 +163,7 @@ class ModelDraftIn(BaseModel):
     python_source: str | None = None
     spec_latex: str | None = None
     maturity: str | None = None
+    shadow_materiality: float | None = None
     expected_version: int | None = None
 
 

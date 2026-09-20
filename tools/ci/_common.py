@@ -93,39 +93,17 @@ def report(name: str, failures: list[str]) -> int:
     return 0
 
 
-API_PREFIX = "/api/v1"
-
-
 def api_app():  # type: ignore[no-untyped-def]
-    """Every API router on a bare FastAPI app — its OpenAPI document, with no platform."""
+    """Every API router on a bare FastAPI app — its OpenAPI document, with no platform.
+
+    The routers and the prefix come from ``maya.api.app`` itself, never from a list kept
+    here. A gate that remembered the list would go on passing after somebody mounted a
+    twelfth router, and the endpoint would reach production with no SDK method and no UI.
+    """
     from fastapi import FastAPI
-    from maya.api.routers import (
-        admin,
-        assistant,
-        auth,
-        catalog,
-        custody,
-        events,
-        identity,
-        registry,
-        retention,
-        workflow,
-        workspaces,
-    )
+    from maya.api.app import PREFIX, ROUTERS
 
     app = FastAPI()
-    for r in (
-        admin.router,
-        catalog.router,
-        registry.router,
-        workflow.router,
-        workspaces.router,
-        events.router,
-        custody.router,
-        identity.router,
-        auth.router,
-        assistant.router,
-        retention.router,
-    ):
-        app.include_router(r, prefix=API_PREFIX)
+    for r in ROUTERS:
+        app.include_router(r, prefix=PREFIX)
     return app

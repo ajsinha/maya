@@ -10,7 +10,6 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from maya.core import kdf
 from maya.core.errors import ConflictError, NotFound, PermissionDenied, ValidationFailed
 from maya.core.clock import utcnow
 from maya.security.authz import LEVELS, Principal, can, inert_grant_reason
@@ -265,6 +264,8 @@ class AccessService:
             "preset",
             "materialize_policy",
             "shadow_materiality",
+            "api_key_max_days",
+            "shadow_budget_rows",
         }
         bad = set(changes) - allowed
         if bad:
@@ -286,11 +287,41 @@ class AccessService:
                 "shadow_materiality is the shift this namespace calls material; it is "
                 "above zero, or unset to use the global default"
             )
+        if "api_key_max_days" in changes:
+            changes["api_key_max_days"] = self._key_ceiling(changes["api_key_max_days"])
+        if changes.get("shadow_budget_rows") is not None and int(changes["shadow_budget_rows"]) < 0:
+            raise ValidationFailed(
+                "shadow_budget_rows is what a replay may cost this namespace in a day, "
+                "counted in row comparisons; it is zero for no ceiling or a positive count"
+            )
         with self.p.uow(p.username) as uow:
             ns = self.namespace(uow, name)
             row = uow.repo("namespaces").update(ns["id"], changes)
             uow.audit("namespace.updated", object_type="namespace", object_ref=name, detail=changes)
             return row
+
+    @staticmethod
+    def _key_ceiling(value: Any) -> int | None:
+        """``api_key_max_days``: the §12 ceiling on how far out a key scoped to this
+        namespace may expire. Empty clears it, and the global maximum applies again; a
+        number must be a whole number of days above zero, because a ceiling of zero would
+        mean "no key may ever be issued here" by accident rather than by decision."""
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        try:
+            days = int(value)
+        except (TypeError, ValueError):
+            raise ValidationFailed(
+                "api_key_max_days is a whole number of days, or empty for no namespace ceiling",
+                api_key_max_days=value,
+            ) from None
+        if days < 1:
+            raise ValidationFailed(
+                "api_key_max_days is at least 1 day; leave it empty to let the global "
+                "auth.api_keys.max_days apply instead of forbidding keys outright",
+                api_key_max_days=days,
+            )
+        return days
 
     def ensure_scratch(self, uow: Any, p: Principal) -> dict[str, Any]:
         """Every user's zero-ceremony namespace (§28.1)."""
@@ -486,6 +517,14 @@ class AccessService:
         with self.p.uow(p.username) as uow:
             if uow.repo("users").find_one(username=username):
                 raise ConflictError(f"User '{username}' already exists")
+            # The one password path (§12), even for an account that has no history yet:
+            # it is what starts the clock the maximum age is measured against, and a
+            # password set without it would never age.
+            credential = (
+                self.p.auth.accept_password(uow, None, password, must_change=True)
+                if password
+                else {"password_hash": None, "must_change_password": False}
+            )
             user = uow.repo("users").add(
                 {
                     "username": username,
@@ -494,8 +533,7 @@ class AccessService:
                     "auth_source": "db",
                     "is_service": is_service,
                     "desk": desk,
-                    "password_hash": kdf.hash_password(password) if password else None,
-                    "must_change_password": bool(password),
+                    **credential,
                 }
             )
             self._set_roles(uow, user["id"], roles or [])
@@ -534,6 +572,13 @@ class AccessService:
             return public_user(row)
 
     def reset_password(self, p: Principal, username: str, new_password: str) -> None:
+        """An administrator's reset goes through the same password path as everything else.
+
+        It used to write the hash straight to the row, which skipped the history check and
+        left ``password_changed_at`` unset — so a reset could hand back a password the
+        account had just stopped using, and the result was a credential of unknown age
+        that the §12 maximum never expired.
+        """
         self.require_capability(p, "users", "U")
         self.p.auth.check_policy(new_password)
         with self.p.uow(p.username) as uow:
@@ -543,8 +588,7 @@ class AccessService:
             uow.repo("users").update(
                 user["id"],
                 {
-                    "password_hash": kdf.hash_password(new_password),
-                    "must_change_password": True,
+                    **self.p.auth.accept_password(uow, user, new_password, must_change=True),
                     "failed_attempts": 0,
                     "locked_until": None,
                 },

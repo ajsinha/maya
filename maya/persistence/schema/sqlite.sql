@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: b5bec56ceb34aadb353e0664b8069b4c4b049030252491ceae357d0e4871de5a
+-- schema-hash: a3b544ad8f2edd7085576f6f37cf77db869d62b0745df1ef82b53fdf8f308452
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -729,6 +729,7 @@ CREATE TABLE namespaces (
 	materialize_policy VARCHAR(16) NOT NULL, 
 	api_key_max_days INTEGER, 
 	shadow_materiality FLOAT, 
+	shadow_budget_rows BIGINT, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 
@@ -975,6 +976,7 @@ CREATE TABLE model_versions (
 	spec_state JSON NOT NULL, 
 	definition_hash VARCHAR(64), 
 	opaque BOOLEAN NOT NULL, 
+	shadow_materiality FLOAT, 
 	successor_ref VARCHAR(512), 
 	force_approved BOOLEAN NOT NULL, 
 	submitted_at DATETIME, 
