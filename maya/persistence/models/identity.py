@@ -13,8 +13,8 @@ from typing import Any
 from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from maya.persistence.models.base import Base, Tracked
-from maya.persistence.types import PortableJSON, PortableUUID, UTCDateTime
+from maya.persistence.models.base import Base, Tracked, new_id
+from maya.persistence.types import PortableJSON, PortableUUID, UTCDateTime, utcnow
 
 FK_USER = "users.id"
 
@@ -81,7 +81,10 @@ class Session(Tracked, Base):
     channel: Mapped[str] = mapped_column(String(16), default="web")
     # ok · challenge (password accepted, TOTP outstanding) · enroll (MFA required, not set up)
     mfa_state: Mapped[str] = mapped_column(String(16), default="ok")
-    auth_method: Mapped[str] = mapped_column(String(16), default="password")
+    auth_method: Mapped[str] = mapped_column(String(24), default="password")
+    # The credential this token was issued against, for the OAuth2 client-credentials
+    # grant: the token is no wider than the credential and dies with it.
+    api_key_id: Mapped[str | None] = mapped_column(String(32), index=True)
     last_seen_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     expires_at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
     absolute_expires_at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
@@ -93,20 +96,44 @@ class Session(Tracked, Base):
     sso_session_index: Mapped[str | None] = mapped_column(String(256))
 
 
+class PasswordHistory(Base):
+    """The hashes a password may not go back to (§12 ``password_policy.history``).
+
+    Only hashes, never passwords, and only the last few: the row is written when a
+    password is replaced and the oldest beyond the configured count is deleted, so the
+    table cannot become a long-term store of everything anyone ever chose."""
+
+    __tablename__ = "password_history"
+    id: Mapped[str] = mapped_column(PortableUUID, primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey(FK_USER), index=True)
+    password_hash: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[dt.datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
 class ApiKey(Tracked, Base):
     __tablename__ = "api_keys"
     key_id: Mapped[str] = mapped_column(String(32), unique=True)
     user_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey(FK_USER), index=True)
     name: Mapped[str] = mapped_column(String(128))
     env: Mapped[str] = mapped_column(String(8))
+    # key: a bearer credential used directly · client: an OAuth2 client credential for a
+    # service account, exchanged at the token endpoint and never accepted as a bearer token
+    kind: Mapped[str] = mapped_column(String(16), default="key")
     secret_hash: Mapped[str] = mapped_column(Text)
     roles: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
     namespaces: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
     actions: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
     cidrs: Mapped[list[str]] = mapped_column(PortableJSON, default=list)
+    # This key's own rate-limit budget, requests a minute; 0 leaves it to the process limit
+    rate_per_minute: Mapped[int] = mapped_column(Integer, default=0)
     expires_at: Mapped[dt.datetime] = mapped_column(UTCDateTime)
     last_used_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     revoked_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    # Rotation (§12): the successor is issued while this key still works, and this key's
+    # expiry is pulled in to the end of the overlap window.
+    rotated_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    rotated_from: Mapped[str | None] = mapped_column(String(32))
+    successor_key_id: Mapped[str | None] = mapped_column(String(32))
 
 
 class Namespace(Tracked, Base):
@@ -123,6 +150,10 @@ class Namespace(Tracked, Base):
     production: Mapped[bool] = mapped_column(Boolean, default=False)
     owner_id: Mapped[str | None] = mapped_column(PortableUUID, ForeignKey(FK_USER))
     materialize_policy: Mapped[str] = mapped_column(String(16), default="always")
+    # §12: a key's expiry may go no further out than "the namespace policy permits". Unset
+    # falls back to auth.api_keys.max_days; a key scoped to several namespaces takes the
+    # shortest of them.
+    api_key_max_days: Mapped[int | None] = mapped_column(Integer)
     # What counts as a material shift when a change is replayed here (§29.2). A desk whose
     # numbers are basis points and one whose numbers are prices cannot share one threshold;
     # unset falls back to workspaces.shadow.materiality.

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Set a new password{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="card"><div class="card-body">
+      <h1 class="h3 mb-3">Set a new password</h1>
+      {% if error %}<div class="alert alert-danger py-2" role="alert">{{ error }}</div>{% endif %}
+      <p class="small-muted">A reset link works once. Setting the password here ends every session the account has open.</p>
+      <form method="post" action="/login/reset">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <div class="mb-2"><label class="form-label" for="token">Reset token</label>
+          <input class="form-control mono" id="token" name="token" value="{{ token }}" required></div>
+        <div class="mb-2"><label class="form-label" for="new">New password</label>
+          <input class="form-control" id="new" name="new_password" type="password" autocomplete="new-password" required>
+          <div class="small-muted">At least 12 characters, three of: lower, upper, digit, symbol, and none of your recent passwords.</div></div>
+        <div class="mb-3"><label class="form-label" for="confirm">Repeat new password</label>
+          <input class="form-control" id="confirm" name="confirm_password" type="password" autocomplete="new-password" required></div>
+        <button class="btn btn-primary w-100" type="submit">Set password</button>
+      </form>
+      <p class="small mt-3 mb-0"><a href="/login">Back to sign in</a> · <a href="/login/forgot">Ask for a link</a></p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

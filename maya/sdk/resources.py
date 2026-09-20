@@ -213,6 +213,37 @@ class Auth(_Resource):
             json_body={"old_password": old_password, "new_password": new_password},
         )
 
+    @endpoint("POST", "/auth/password-reset")
+    def request_password_reset(self, username: str) -> Any:
+        """Ask for a reset. The answer says nothing about whether the account exists."""
+        return self._c("POST", "/auth/password-reset", json_body={"username": username})
+
+    @endpoint("POST", "/auth/password-reset/token")
+    def issue_password_reset(self, username: str) -> Any:
+        """Administrators: a single-use token, shown once, to hand over out of band."""
+        return self._c("POST", "/auth/password-reset/token", json_body={"username": username})
+
+    @endpoint("POST", "/auth/password-reset/complete")
+    def complete_password_reset(self, token: str, new_password: str) -> Any:
+        return self._c(
+            "POST",
+            "/auth/password-reset/complete",
+            json_body={"token": token, "new_password": new_password},
+        )
+
+    @endpoint("POST", "/auth/token")
+    def client_credentials_token(self, client_id: str, client_secret: str) -> Any:
+        """The OAuth2 client-credentials grant: a service account's bearer token."""
+        return self._c(
+            "POST",
+            "/auth/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+        )
+
     @endpoint("GET", "/auth/api-keys")
     def api_keys(self, all: bool = False) -> Any:
         return self._c("GET", "/auth/api-keys", params={"all": all})
@@ -221,9 +252,34 @@ class Auth(_Resource):
     def create_api_key(self, name: str, **kw: Any) -> Any:
         return self._c("POST", "/auth/api-keys", json_body={"name": name, **kw})
 
+    @endpoint("GET", "/auth/api-keys/report")
+    def api_key_report(self, all: bool = False) -> Any:
+        """Keys to rotate or revoke, each with its reason."""
+        return self._c("GET", "/auth/api-keys/report", params={"all": all})
+
+    @endpoint("POST", "/auth/api-keys/{key_id}/rotate")
+    def rotate_api_key(
+        self, key_id: str, overlap_days: int | None = None, days: int | None = None
+    ) -> Any:
+        """Issue a successor; both work until the overlap window ends."""
+        return self._c(
+            "POST",
+            f"/auth/api-keys/{seg(key_id)}/rotate",
+            json_body={"overlap_days": overlap_days, "days": days},
+        )
+
     @endpoint("DELETE", "/auth/api-keys/{key_id}")
     def revoke_api_key(self, key_id: str) -> Any:
         return self._c("DELETE", f"/auth/api-keys/{seg(key_id)}")
+
+    @endpoint("GET", "/auth/client-credentials")
+    def client_credentials(self) -> Any:
+        return self._c("GET", "/auth/client-credentials")
+
+    @endpoint("POST", "/auth/client-credentials")
+    def create_client_credential(self, username: str, **kw: Any) -> Any:
+        """A client credential for a service account; the secret is shown once."""
+        return self._c("POST", "/auth/client-credentials", json_body={"username": username, **kw})
 
     @endpoint("GET", "/auth/sessions")
     def sessions(self) -> Any:

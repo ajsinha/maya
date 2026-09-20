@@ -717,6 +717,69 @@
     }
    }
   },
+  "/api/v1/auth/api-keys/report": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "all",
+      "required": false,
+      "schema": {
+       "default": false,
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/auth/api-keys/{key_id}": {
    "delete": {
     "parameters": [
@@ -761,6 +824,194 @@
     ],
     "responses": {
      "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/api-keys/{key_id}/rotate": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "key_id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RotateIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/client-credentials": {
+   "get": {
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ClientCredentialIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
       "content": {
        "application/json": {
         "schema": {}
@@ -1571,6 +1822,134 @@
     }
    }
   },
+  "/api/v1/auth/password-reset": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UsernameIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "202": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/password-reset/complete": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ResetTokenIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/password-reset/token": {
+   "post": {
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UsernameIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/auth/sessions": {
    "get": {
     "parameters": [
@@ -1861,6 +2240,37 @@
       "content": {
        "application/json": {
         "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/token": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/x-www-form-urlencoded": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_client_credentials_token_api_v1_auth_token_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
        }
       }
      }
@@ -14249,6 +14659,23 @@
    ],
    "type": "object"
   },
+  "Body_client_credentials_token_api_v1_auth_token_post": {
+   "properties": {
+    "client_id": {
+     "default": "",
+     "type": "string"
+    },
+    "client_secret": {
+     "default": "",
+     "type": "string"
+    },
+    "grant_type": {
+     "default": "client_credentials",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
   "Body_draft_feature_api_v1_assistant_drafts_feature_post": {
    "properties": {
     "file": {
@@ -14411,6 +14838,47 @@
     "name",
     "transition",
     "items"
+   ],
+   "type": "object"
+  },
+  "ClientCredentialIn": {
+   "properties": {
+    "actions": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "days": {
+     "default": 90,
+     "type": "integer"
+    },
+    "name": {
+     "default": "client credential",
+     "type": "string"
+    },
+    "namespaces": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "rate_per_minute": {
+     "default": 0,
+     "type": "integer"
+    },
+    "roles": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "username": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "username"
    ],
    "type": "object"
   },
@@ -15244,6 +15712,21 @@
    ],
    "type": "object"
   },
+  "ResetTokenIn": {
+   "properties": {
+    "new_password": {
+     "type": "string"
+    },
+    "token": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "token",
+    "new_password"
+   ],
+   "type": "object"
+  },
   "RestoreDrillIn": {
    "properties": {
     "anchors_ok": {
@@ -15375,6 +15858,31 @@
    "required": [
     "roles"
    ],
+   "type": "object"
+  },
+  "RotateIn": {
+   "properties": {
+    "days": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "overlap_days": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
    "type": "object"
   },
   "SamlAcsIn": {
@@ -15609,6 +16117,17 @@
      },
      "type": "array"
     },
+    "username": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "username"
+   ],
+   "type": "object"
+  },
+  "UsernameIn": {
+   "properties": {
     "username": {
      "type": "string"
     }

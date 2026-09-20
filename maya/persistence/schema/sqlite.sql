@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 1ec1a13b226f730ed43a104bf48372b6b2595d851276fecd33d0e10d715ae285
+-- schema-hash: b5bec56ceb34aadb353e0664b8069b4c4b049030252491ceae357d0e4871de5a
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -647,14 +647,19 @@ CREATE TABLE api_keys (
 	user_id CHAR(36) NOT NULL, 
 	name VARCHAR(128) NOT NULL, 
 	env VARCHAR(8) NOT NULL, 
+	kind VARCHAR(16) NOT NULL, 
 	secret_hash TEXT NOT NULL, 
 	roles JSON NOT NULL, 
 	namespaces JSON NOT NULL, 
 	actions JSON NOT NULL, 
 	cidrs JSON NOT NULL, 
+	rate_per_minute INTEGER NOT NULL, 
 	expires_at DATETIME NOT NULL, 
 	last_used_at DATETIME, 
 	revoked_at DATETIME, 
+	rotated_at DATETIME, 
+	rotated_from VARCHAR(32), 
+	successor_key_id VARCHAR(32), 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
 	created_by VARCHAR(128), 
@@ -722,6 +727,7 @@ CREATE TABLE namespaces (
 	production BOOLEAN NOT NULL, 
 	owner_id CHAR(36), 
 	materialize_policy VARCHAR(16) NOT NULL, 
+	api_key_max_days INTEGER, 
 	shadow_materiality FLOAT, 
 	id CHAR(36) NOT NULL, 
 	created_at DATETIME NOT NULL, 
@@ -735,12 +741,24 @@ CREATE TABLE namespaces (
 	CONSTRAINT fk_namespaces_owner_id_users FOREIGN KEY(owner_id) REFERENCES users (id)
 );
 
+CREATE TABLE password_history (
+	id CHAR(36) NOT NULL, 
+	user_id CHAR(36) NOT NULL, 
+	password_hash TEXT NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	CONSTRAINT pk_password_history PRIMARY KEY (id), 
+	CONSTRAINT fk_password_history_user_id_users FOREIGN KEY(user_id) REFERENCES users (id)
+);
+
+CREATE INDEX ix_password_history_user_id ON password_history (user_id);
+
 CREATE TABLE sessions (
 	user_id CHAR(36) NOT NULL, 
 	token_hash VARCHAR(64) NOT NULL, 
 	channel VARCHAR(16) NOT NULL, 
 	mfa_state VARCHAR(16) NOT NULL, 
-	auth_method VARCHAR(16) NOT NULL, 
+	auth_method VARCHAR(24) NOT NULL, 
+	api_key_id VARCHAR(32), 
 	last_seen_at DATETIME, 
 	expires_at DATETIME NOT NULL, 
 	absolute_expires_at DATETIME NOT NULL, 
@@ -759,6 +777,8 @@ CREATE TABLE sessions (
 	CONSTRAINT fk_sessions_user_id_users FOREIGN KEY(user_id) REFERENCES users (id), 
 	CONSTRAINT uq_sessions_token_hash UNIQUE (token_hash)
 );
+
+CREATE INDEX ix_sessions_api_key_id ON sessions (api_key_id);
 
 CREATE INDEX ix_sessions_sso_name_id ON sessions (sso_name_id);
 

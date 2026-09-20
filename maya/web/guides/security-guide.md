@@ -20,8 +20,39 @@ This guide describes how MAYA authenticates people and programs, how it protects
 | Mode | People | Passwords |
 |---|---|---|
 | `db` (default) | MAYA passwords | yes |
-| `sso` | Single sign-on | refused for everyone |
+| `sso` | Single sign-on | refused for everyone but a designated break-glass account |
 | `hybrid` | Single sign-on | kept for break-glass and service accounts |
+
+### Break-glass under `auth.mode: sso`
+
+An identity provider that is down takes every sign-in with it, so §13.3 promises
+administrators a way in. `auth.break_glass.users` names the accounts — one is usually
+enough — that may sign in with a password even in `sso` mode:
+
+```yaml
+auth:
+  mode: sso
+  break_glass:
+    users: [breakglass-admin]
+    session_minutes: 60
+```
+
+Nothing else about those accounts is special, and everything about them is loud:
+
+- the account must be a database account holding the `admin` role, or the sign-in is
+  refused and audited as `auth.break_glass_refused` naming which of the two is wrong —
+  a misconfiguration must not be discovered during the outage;
+- MFA applies exactly as it does to anyone else, so enrol the account before the day
+  you need it;
+- the session lasts `auth.break_glass.session_minutes` (60), not the usual twelve hours;
+- every use writes a durable `auth.break_glass_login` audit entry, an inbox notice to
+  every other administrator, and a warning in the log;
+- in the browser the password form stays hidden in `sso` mode; `/login?break-glass=1`
+  shows it. Showing the form grants nothing — the server decides.
+
+The SSO outage runbook (`docs/runbooks/sso-outage.md`) has the drill. A break-glass account
+with no second factor enrolled, a forgotten password or no `admin` role is not a
+break-glass account, which is why the runbook asks you to test it at every restore drill.
 
 `auth.sso.protocol` chooses `oidc` or `saml2`. Both end in the same step that turns verified claims into a MAYA principal, so group mapping, provisioning and refusals behave identically. A configuration that could only fail at someone's first sign-in — a missing issuer, client id or redirect URI; a missing SAML setting; SAML libraries not installed — refuses to start instead.
 
@@ -29,11 +60,14 @@ This guide describes how MAYA authenticates people and programs, how it protects
 
 | Control | Behaviour |
 |---|---|
-| Policy | At least `auth.password.min_length` (12) characters, using three of: lower case, upper case, digits, symbols. A new password must differ from the old one. |
+| Policy | At least `auth.password.min_length` (12) characters, using `auth.password.require_classes` (3) of: lower case, upper case, digits, symbols. A new password must differ from the old one. |
+| History | A new password may not repeat any of the last `auth.password.history` (5), the current one included. Only hashes are kept, and only that many; the refusal says how many MAYA remembers. `0` turns the history off. |
+| Maximum age | A password older than `auth.password.max_age_days` (90) must be changed: the sign-in is refused, naming the age and by how much it was passed, and the account is flagged `must_change_password`. An account whose last change MAYA never recorded does not expire — otherwise configuring a maximum age would lock everyone out at once. `0` turns the maximum off. |
+| Reset | Single use, time limited (`auth.password.reset_token_minutes`, 60). Anyone may ask at `/login/forgot`, which tells the administrators and says nothing about whether the account exists; an administrator issues the link on `/account/credentials`, and redeeming it ends every session the account has open. MAYA sends no email, so the link is handed over in person. An administrator's direct reset still forces a change at the next sign-in. |
 | Storage | Argon2id (memory 64 MB, time 3, parallelism 4) when `argon2` is installed; otherwise scrypt, then PBKDF2-HMAC-SHA512. The algorithm and parameters are stored with each hash, and a sign-in re-hashes an old hash with the strongest available algorithm. |
 | Lockout | `auth.lockout.attempts` (5) failures within `window_minutes` (15) lock the account for `duration_minutes` (30). A wrong second-factor code counts as a failure. The lockout is audited as `auth.lockout`. |
 | Failures are recorded | A failed or refused sign-in is committed and audited before the refusal is returned, so lockout cannot be dodged by the rollback. |
-| Service accounts | Accounts created with `is_service` cannot sign in with a password; they use API keys. |
+| Service accounts | Accounts created with `is_service` cannot sign in with a password; they use an API key or a client credential an administrator issues for them. |
 
 !!! warning "Change the bootstrap admin password"
     A fresh database has an `admin` account with a known default password, flagged `must_change_password`. The startup banner and the health page warn while it is still in use. Outside dev, MAYA refuses to start until it is changed, unless `app.allow_default_admin_password` is set.
@@ -46,6 +80,7 @@ A sign-in opens a server-side session and returns a session token (`maya_s_…`,
 |---|---|
 | Idle timeout | `auth.session.idle_timeout_minutes` (30); each use extends it, never past the absolute limit |
 | Absolute timeout | `auth.session.absolute_timeout_hours` (12) after sign-in |
+| Concurrent sessions | `auth.session.concurrent_sessions` (3) per person. A further sign-in ends their oldest session rather than refusing the new one, audited as `auth.session_evicted`. `0` lifts the cap. Service accounts are exempt: a fleet sharing one credential holds a token each by design. |
 | Ending | `POST /auth/logout`; an administrator can list and end any session |
 | Second-factor state | `ok`, `challenge` or `enroll`. Until it is `ok`, the session reaches only the MFA endpoints, `/auth/me` and `/auth/logout`. |
 
@@ -193,11 +228,40 @@ A key is `maya_<env>_<key id>_<secret>`. The secret is stored only as a KDF hash
 | Roles | A key can carry fewer roles than its owner, never more. |
 | Namespaces and actions | Allowlists that narrow every authorization decision the key takes part in. |
 | Networks | `cidrs`: the key is refused from any other client address. |
-| Expiry | 1 to `auth.api_keys.max_days` (365) days, 90 by default. |
+| Expiry | 1 to `auth.api_keys.max_days` (365) days, 90 by default — and no further out than the shortest `api_key_max_days` of the namespaces the key is scoped to. |
+| Rate limit | A key may carry its own budget in requests a minute (`rate_per_minute`, default `auth.api_keys.rate_per_minute`, 0 for none). The whole minute may be spent at once; beyond it the key is refused with `quota_exceeded` (429) and how long to wait. This is charged where the key is resolved, so it holds for the API, the SDK and the CLI alike, on top of the per-process request limits. |
+| Rotation | `my.auth.rotate_api_key(key_id)` issues a successor with the same roles, namespaces, actions, networks and budget, and pulls the old key's expiry in to the end of the overlap window (`auth.api_keys.rotation_overlap_days`, 7). Both work during the overlap, so a deployment needs no timing; `overlap_days=0` cuts over at once. A key is rotated once — its successor is rotated next. |
+| Reminders | `my.auth.api_key_report()` (the **Credentials** page) names keys unused for `auth.api_keys.unused_days` (90), keys within `auth.api_keys.remind_days_before_expiry` (14) of expiring, and keys already rotated, each with the reason. |
 | Revocation | By the owner or an administrator; takes effect at once. |
 | Failed use | A key with a wrong secret is refused and audited as `auth.api_key_failed`. |
 
 The Python SDK refuses to send a key or token over plain HTTP to anything but localhost.
+
+## Credentials for service accounts
+
+A service account has no interactive sign-in, so someone has to issue its credential for
+it. An administrator does, and can give it no role the account does not already hold:
+
+```python
+my.admin.create_user("nightly-scorer", password=None, roles=["model_developer"], is_service=True)
+
+# either a bearer API key, issued on the account's behalf …
+key = my.auth.create_api_key("nightly", for_user="nightly-scorer", days=30)
+
+# … or an OAuth2 client credential, exchanged for a short-lived token
+cc = my.auth.create_client_credential("nightly-scorer", days=30, rate_per_minute=600)
+token = my.auth.client_credentials_token(cc["client_id"], cc["client_secret"])
+```
+
+| Property | Behaviour |
+|---|---|
+| The grant | `POST /api/v1/auth/token`, form encoded, `grant_type=client_credentials` with `client_id` and `client_secret` (RFC 6749 §4.4). There is no refresh token: the credential is the long-lived secret and asking again is one request. |
+| The token | A session token that lives `auth.client_credentials.token_minutes` (60), or less when the credential expires sooner. It carries the credential's role subset, namespaces and action allowlist — never more than the account holds. |
+| Revocation | Revoking the credential ends the tokens it issued, in this process at once and in any other within the principal-cache window. A client credential is refused if presented as a bearer key: it must be exchanged. |
+| Expiry | Mandatory, like every API key, and rotation works the same way. |
+
+Both forms are listed, with their last use, on the **Credentials** page and through
+`my.auth.client_credentials()`.
 
 ## Authorization
 
@@ -276,7 +340,11 @@ These audit actions are the ones a security reviewer usually filters for. Those 
 | `auth.lockout` (*event*) | An account locked after repeated failures |
 | `auth.sso_refused` | A single sign-on refused: unmapped groups, a name clash, an unsolicited or replayed SAML Response |
 | `auth.api_key_failed` | An API key presented with a wrong secret |
-| `auth.api_key_created`, `auth.api_key_revoked` | Key lifecycle |
+| `auth.api_key_created`, `auth.api_key_rotated`, `auth.api_key_revoked` | Key lifecycle |
+| `auth.break_glass_login`, `auth.break_glass_refused` | A designated account signed in with a password while MAYA is SSO-only, or was refused because it is not an administrator's database account |
+| `auth.client_credentials_granted`, `auth.client_credentials_refused` | A service account exchanged a client credential for a token, or failed to |
+| `auth.password_reset_requested`, `auth.password_reset_issued`, `auth.password_reset_completed`, `auth.password_reset_refused` | The reset path, end to end |
+| `auth.session_evicted` | A session ended to keep a person within the concurrent-session cap |
 | `auth.mfa_verified`, `auth.mfa_reset` (*event*) | A second factor answered; an administrator reset one |
 | `auth.password_changed`, `auth.session_terminated` | Credential and session changes |
 | `authz.denied` | A denied approval, pin, seal, grant or revocation, or any denial on a namespace |
@@ -299,7 +367,8 @@ for e in my.admin.audit(action="auth.sso_refused", limit=100):
 
 | If you suspect… | Do |
 |---|---|
-| A leaked API key | Revoke it: `my.auth.revoke_api_key(key_id)`. It is refused from the next request. List everyone's keys with `my.auth.api_keys(all=True)`. |
+| A leaked API key | Revoke it: `my.auth.revoke_api_key(key_id)`. It is refused from the next request, and so is any token it issued. List everyone's keys with `my.auth.api_keys(all=True)`, and what wants rotating with `my.auth.api_key_report(all=True)`. |
+| A password you think is known | Issue a reset link (`my.auth.issue_password_reset(username)`) and hand it over: redeeming it sets a new password, which the history refuses to be an old one, and ends every session the account holds. |
 | A hijacked session | End it: `my.auth.end_session(session_id)`; list live sessions with `my.auth.sessions()`. |
 | A compromised account | Set its status to anything but `active` (`my.admin.update_user(name, status="disabled")`): it can no longer sign in, and its API keys stop working. Reset its password and its second factor. |
 | A model running where it should not | Revoke the execution warrant; revoking a training warrant revokes every execution warrant drawn on it. |
@@ -321,4 +390,6 @@ for e in my.admin.audit(action="auth.sso_refused", limit=100):
 | `/metrics` protected | `observability.metrics.token_env` |
 | Anchors off the host | `custody.anchor.file` on WORM storage; a webhook subscriber for `audit.anchored` |
 | `storage.root/keys` backed up and access-controlled | with the database backup |
-| Short-lived, narrow API keys | `days`, `namespaces`, `actions`, `cidrs` |
+| Short-lived, narrow API keys | `days`, `namespaces`, `actions`, `cidrs`, `rate_per_minute`; rotate on a schedule and review `my.auth.api_key_report(all=True)` |
+| Password history and maximum age set | `auth.password.history`, `auth.password.max_age_days` |
+| A break-glass administrator, if `auth.mode: sso` | `auth.break_glass.users`, with a second factor enrolled and tested at every restore drill |
