@@ -343,3 +343,22 @@ def test_an_intermediate_line_can_be_referred_to_by_its_own_name() -> None:
     np.testing.assert_allclose(
         np.asarray(compile_reference(ir)(point, {"fee": 0.0025})["netCash"]).ravel()[0], got
     )
+
+
+def test_a_subscripted_greek_command_is_one_symbol() -> None:
+    r"""``\sigma_{atm}`` is how a quant writes an at-the-money volatility.
+
+    The tokenizer let a command carry no subscript, so the ``_{atm}`` was left stranded and
+    the formula would not parse at all — while the non-command ``sigma_{atm}`` parsed fine.
+    Role keys are normalised the same way, so a model may declare the symbol as it writes it.
+    """
+    roles = {r"\sigma_{atm}": "parameter", r"\sigma_1": "parameter", "x": "feature"}
+    ir = parse_model(r"y = \sigma_{atm} \cdot x + \sigma_1", roles=roles)
+    assert [i["name"] for i in ir["inputs"]] == ["sigma1", "sigmaatm", "x"]
+    assert [i["role"] for i in ir["inputs"]] == ["parameter", "parameter", "feature"]
+    assert [c["name"] for c in input_contract(ir)] == ["x"], "the two vols are parameters"
+    got = evaluate(ir, {"x": np.array([2.0])}, {"sigmaatm": 0.2, "sigma1": 0.05})
+    assert abs(float(np.asarray(next(iter(got.values()))).ravel()[0]) - 0.45) < 1e-12
+    # and the plain spelling still means the same symbol
+    plain = parse_model("y = sigma_{atm} * x", roles={"sigma_{atm}": "parameter", "x": "feature"})
+    assert [i["name"] for i in plain["inputs"]] == ["sigmaatm", "x"]

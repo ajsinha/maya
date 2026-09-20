@@ -511,26 +511,37 @@ a reader to wonder.
 
 ## 9. What this study found that is not about options
 
-Three observations: two from the runs above, one from the code they made me read.
+Three observations: two from the runs above, one from the code they made me read. Two
+of the three have since been fixed, and say so.
 
-**The conformance gate does not care how wide the domain was.** MAYA records the domain
-string and the artifact hash, which is more than most platforms do, but the gate
-(`code_matches_specification`) only asks whether the last comparison agreed. §5 shows a
-version with a maturity bug being accepted because the last comparison was run on a
-one-maturity feature set. The domain is evidence a human has to read. A policy that could
-require the comparison to have been run against a named feature set — or better, against the
-feature set the warrant will be drawn on — would close it without any new concept.
+**The conformance gate cannot tell a narrow domain from a representative one, and now says
+so.** The first instinct was to refuse a comparison drawn from the default domain outright.
+That turned out to be wrong: a model version is approved *before* any warrant binds it to
+data, deliberately — §8.2 checks the contract at warrant time, not at model time — so
+insisting on a feature set at model approval would make a legitimate flow impossible. What
+was done instead is smaller and honest. The domain now appears in the check's own detail,
+where the reviewer reads it, and `check_conformance` states in as many words what it does not
+establish: that somebody compared the code with the mathematics over *this* artifact, yes;
+that they chose the data well, no. The version with the maturity bug in §5 still passes after
+a comparison on the one-maturity pillar, and §5 ends with `request_changes` and a reason
+rather than with a green tick, because that is a judgement a person has to make.
 
-**`conformance()` returns a result without the artifact hash it tested.** The stored report
-carries `artifact_hash`; the SDK response does not, so a caller who wants to tie the result it
-was just handed to a specific artifact has to re-read the model version. `show_estate.py` does
-exactly that.
+**`conformance()` returned a result without the artifact hash it tested** — fixed. The stored
+report carried it; the SDK response did not, so a caller could not tie the answer it was
+handed to the code it was about without re-reading the version. It is in the response now.
 
 **The differential test's domain ignores the warrant's bindings.** `_conformance_domain`
 requires the feature set to expose columns named exactly as the input contract, so a feature
 set that supplies `spot` for `S` — legitimate, and what `spec.bindings` exists for — cannot
 serve as a test domain. This study named its chain's attributes `S, K, r, q, T` to avoid it,
 which is a fair design choice, but it was a choice made to suit the tool.
+
+**And one the study worked around rather than hit:** a subscripted Greek command,
+`\sigma_{atm}`, could not be parsed at all — the tokenizer let a command carry no subscript,
+so the `_{atm}` was left stranded, while the non-command `sigma_{atm}` parsed fine. That is
+how a quant writes an at-the-money volatility. It is fixed, and role keys are normalised the
+same way, so a model may now declare the symbol as it writes it. The study's nine parameters
+are still named `sigma11 … sigma33`, which renders as σ_{ij} and reads better in a grid.
 
 ## 10. What to point at when demonstrating this
 

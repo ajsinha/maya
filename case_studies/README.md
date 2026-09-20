@@ -77,6 +77,7 @@ same six calls would demonstrate nothing that one study could not.
 | 02 | [Scheduled mortgage cashflow](02-mortgage-cashflow/) | Banking, mortgage ALM | Closed-form, **nothing to fit** | Whether the code the desk runs is the same thing as the mathematics that was approved. A valid implementation with the commonest mortgage bug in it, caught. |
 | 03 | [Mortgage prepayment](03-mortgage-prepayment/) | Banking, mortgage valuation | Fitted logistic hazard | What happens when somebody proposes changing a feature underneath a live model: a workspace, an impact analysis, and a shadow replay that prices a reasonable-sounding change at 60% of the book. |
 | 04 | [HELOC exposure at default](04-heloc-exposure/) | Banking, retail secured credit | **Composite router** over two fitted members | One warrant over two models with different functional forms, a parameter set per member, and a seal that refuses while half the composite is unfitted. |
+| 05 | [European option pricing](05-option-pricing/) | Finance, equity derivatives | Closed-form, **calibrated** | A parameter nobody can observe. Black–Scholes from LaTeX, a volatility surface as nine parameters, and a conformance test that passes on a narrow domain and fails on the whole chain. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
 
 ### The catalogue
@@ -113,7 +114,6 @@ study adds a capability rather than another instance of one.
 
 | | Study | What it adds |
 | --- | --- | --- |
-| 21 | Black–Scholes European options | Closed-form mathematics from **LaTeX**, and a *calibrated* rather than fitted parameter |
 | 22 | Implied volatility surface | Calibration per bucket, and a misfit the model cannot hide |
 | 23 | Hull–White / Vasicek short rate | Calibration to a grid of instruments, not to outcomes |
 | 24 | Nelson–Siegel yield curve | **Non-linear in a parameter**: a grid search with least squares inside it |

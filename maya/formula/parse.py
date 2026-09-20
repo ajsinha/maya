@@ -82,7 +82,10 @@ CMP = {
 
 _TOKEN = re.compile(
     r"\s*(?:(?P<num>\d+\.\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|\d+(?:[eE][+-]?\d+)?)"
-    r"|(?P<cmd>\\[A-Za-z]+|\\[,;!])"
+    # A command may carry the same subscript a name may: ``\sigma_{atm}`` is how a quant
+    # writes an at-the-money volatility, and leaving the subscript stranded made it
+    # unparseable while the non-command ``sigma_{atm}`` parsed fine.
+    r"|(?P<cmd>\\[A-Za-z]+(?:_(?:\{[A-Za-z0-9]+\}|[A-Za-z0-9]))?|\\[,;!])"
     r"|(?P<name>[A-Za-z][A-Za-z0-9]*(?:_(?:\{[A-Za-z0-9]+\}|[A-Za-z0-9]))?(?:\.[A-Za-z_][A-Za-z0-9_]*)?)"
     r"|(?P<op>\*\*|<=|>=|==|[-+*/^(){},<>=|]))"
 )
@@ -320,18 +323,24 @@ class _Parser:
             return {"op": name, "args": self.call_args()}
         if name == "Phi":
             return {"op": "ncdf", "args": self.call_args()}
-        if name in GREEK:
-            return self.name(Tok("name", name, tok.pos))
+        base, _, subscript = name.partition("_")
+        if base in GREEK:
+            # ``\sigma_{atm}`` is one symbol, so it is atomic: without that the multi-letter
+            # reading below would take 'sigmaatm' for a product of eight single letters.
+            return self.name(Tok("name", _normalise_name(name), tok.pos, atomic=bool(subscript)))
         raise ValidationFailed(
             f"unsupported LaTeX command '{tok.text}' at position {tok.pos}", position=tok.pos
         )
 
 
 def parse_formula(text: str, *, inputs: list[str] | set[str] | None = None) -> dict[str, Any]:
-    """Parse one expression into an IR node."""
+    r"""Parse one expression into an IR node.
+
+    ``inputs`` are normalised the way names in the text are, so a caller may declare
+    ``sigma_{atm}`` or ``\sigma_{atm}`` and have it recognised as the one symbol it is."""
     if not text or not text.strip():
         raise ValidationFailed("empty formula")
-    return _Parser(text, set(inputs or ())).parse()
+    return _Parser(text, {_normalise_name(str(i).lstrip("\\")) for i in inputs or ()}).parse()
 
 
 def _split_statements(text: str) -> list[tuple[str, str]]:
@@ -355,7 +364,9 @@ def parse_model(
     """Parse ``let = ...`` lines then a final ``output = ...`` line into a full IR."""
     from maya.formula.ir import refs_of, validate_ir
 
-    roles = roles or {}
+    # Role keys are normalised like the names in the text, so a model may declare
+    # {"\\sigma_{atm}": "parameter"} and have the subscripted symbol found.
+    roles = {_normalise_name(str(k).lstrip("\\")): v for k, v in (roles or {}).items()}
     stmts = _split_statements(text)
     if not stmts:
         raise ValidationFailed("a model needs at least one 'output = expression' line")
