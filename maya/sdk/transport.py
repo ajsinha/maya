@@ -131,6 +131,7 @@ class SyncTransport:
                 return self.reads.served(key)  # MAYA has just affirmed what we already hold
             result = decode(r, call)
             self.reads.remember(key, r.headers.get("etag"), result, len(r.content))
+            self.reads.wrote(call)
             return result
         return None
 
@@ -193,6 +194,7 @@ class AsyncTransport:
             return self.reads.served(key)
         result = decode(r, call)
         self.reads.remember(key, r.headers.get("etag"), result, len(r.content))
+        self.reads.wrote(call)
         return result
 
     async def download(self, call: Call, path: str | Path, *, resume: bool = True) -> Any:

@@ -69,11 +69,12 @@ saying no to `dana`, not a script pretending.
 | --- | --- | --- | --- | --- |
 | 01 | [Retail credit PD scorecard](01-retail-credit-pd-scorecard/) | Banking, retail credit risk | Fitted logistic regression | Bitemporality. A leakage certificate that refuses every row of a panel, and the written exception that lets the work proceed. A fit tied to its data by checksum. |
 | 02 | [Scheduled mortgage cashflow](02-mortgage-cashflow/) | Banking, mortgage ALM | Closed-form, **nothing to fit** | Whether the code the desk runs is the same thing as the mathematics that was approved. A valid implementation with the commonest mortgage bug in it, caught. |
+| 03 | [Mortgage prepayment](03-mortgage-prepayment/) | Banking, mortgage valuation and hedging | Fitted logistic hazard | What happens when somebody proposes changing a feature underneath a live model. A workspace, an impact analysis, and a shadow replay that prices a reasonable-sounding change at 43% of the book. |
 
-More are being added: a mortgage prepayment model, a home equity line of credit, option
-pricing under Black–Scholes and its relatives, Basel IRB regulatory capital, an opaque
-machine-learning model for transaction monitoring, an economic nowcast, a survival model
-from biology, and an LLM-based classifier.
+More are being added: a home equity line of credit, option pricing under Black–Scholes and
+its relatives, a neural network, Basel IRB regulatory capital, an opaque tree ensemble for
+transaction monitoring, an economic nowcast, a survival model from biology, and an
+LLM-based classifier.
 
 ## What a case study is not
 
