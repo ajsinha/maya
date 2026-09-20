@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 RULE = "─" * 78
 RUNS = Path(__file__).resolve().parent / "runs"
 PASSWORD = "Maya-testing-pass-1"  # maya.testing's seeded password, printed for the demo
+SETUP_PASSWORD = "Maya-setup-pass-0"  # what the administrator sets; each user then changes it
 PORT = 8600
 
 
@@ -119,10 +120,23 @@ def open_study(
 
 
 def seed(maya: Any, users: dict[str, list[str]]) -> None:
-    """One user per role and the study's namespace — through the SDK, as an admin would."""
+    """One user per role and the study's namespace — through the SDK, as an admin would.
+
+    Each user then changes their own password, because an administrator-set one must be
+    changed at first sign-in (§12) and that is the right rule: without this the first thing a
+    demonstration shows in the browser is a change-password form, which reads as a broken
+    install rather than as a control working. So the study walks each account through the step
+    a person would, and the password in ``browse_hint`` is then the one that actually works.
+    """
+    from maya.sdk import Client
+
     admin = maya.client("admin")
     for username, roles in users.items():
-        admin.admin.create_user(username, password=PASSWORD, roles=list(roles))
+        admin.admin.create_user(username, password=SETUP_PASSWORD, roles=list(roles))
+        with Client(app=maya.app) as anonymous:
+            token = anonymous.auth.login(username, SETUP_PASSWORD)["token"]
+        with Client(app=maya.app, token=token) as fresh:
+            fresh.auth.change_password(SETUP_PASSWORD, PASSWORD)
     admin.namespaces.create(maya.namespace, preset="standard")
 
 
