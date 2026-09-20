@@ -2,11 +2,11 @@
 Slide layouts, each drawn from a plain dictionary.
 
 A deck is data: a list of slide specs, each naming its ``kind``. Keeping the
-content out of the drawing code is what lets the three decks share one set of
-layouts, and what keeps every layout short enough to read — and to fit.
+content out of the drawing code is what lets one deck be assembled from four
+modules that share one set of layouts, and what keeps every layout short enough to read — and to fit.
 
 Kinds: ``title``, ``divider``, ``bullets``, ``table``, ``cards``, ``stats``,
-``split``, ``flow``.
+``split``, ``flow``, ``context``.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
@@ -15,6 +15,8 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 from __future__ import annotations
 
 from typing import Any
+
+from pptx.enum.text import PP_ALIGN
 
 import theme as T
 from metrics import SH, SW, text_h
@@ -114,8 +116,19 @@ def title(s: dict[str, Any]) -> None:
 
     T.fitted(sl, T.ML + 0.3, 1.4, T.CW * 0.9, 1.75, head, 38, 26)
     T.rect(sl, T.ML + 0.3, 3.25, 1.7, 0.035, fill=T.PINK)
-    tf = T.txt(sl, T.ML + 0.3, 3.45, T.CW * 0.85, 0.7)
-    T.para(tf, s["sub"], size=15, color=T.PINK_L, italic=True, first=True, space_after=0)
+    # The slogan, set to be read rather than noticed in passing: the serif face the titles
+    # use, in italic, large enough to be the second thing on the page and not the fifth.
+    tf = T.txt(sl, T.ML + 0.3, 3.42, T.CW * 0.85, 0.8)
+    T.para(
+        tf,
+        s["sub"],
+        size=25,
+        color=T.WHITE,
+        italic=True,
+        font="Georgia",
+        first=True,
+        space_after=0,
+    )
     tf = T.txt(sl, T.ML + 0.3, 4.75, T.CW * 0.5, 1.2)
     T.para(
         tf,
@@ -286,7 +299,80 @@ def flow(s: dict[str, Any]) -> None:
         )
 
 
+def context(s: dict[str, Any]) -> None:
+    """A system context diagram: boxes placed on the content area, joined by arrows.
+
+    Positions are fractions of the content box rather than inches, so a diagram keeps its
+    proportions if the theme's margins move. Anchors are chosen from the relative position
+    of the two boxes -- an arrow leaves the side that faces its target -- because an elbow
+    connector routes itself into the nodes it joins.
+    """
+    sl, y = T.content(s["title"], s.get("kicker"))
+    y = _intro(sl, y, s.get("intro"))
+    bottom = _note(sl, s.get("note"))
+    x0, w0, h0 = T.ML, T.CW, bottom - y
+
+    box: dict[str, tuple[float, float, float, float]] = {}
+    for n in s["nodes"]:
+        bx, by = x0 + n["x"] * w0, y + n["y"] * h0
+        bw, bh = n["w"] * w0, n["h"] * h0
+        box[n["id"]] = (bx, by, bw, bh)
+
+    # Arrows first, so that a box always sits on top of the line that reaches it.
+    for e in s.get("edges", []):
+        ax, ay, aw, ah = box[e[0]]
+        bx, by, bw, bh = box[e[1]]
+        acx, acy, bcx, bcy = ax + aw / 2, ay + ah / 2, bx + bw / 2, by + bh / 2
+        # Which sides the arrow leaves and enters. Comparing centres is the obvious rule and
+        # the wrong one: a wide box can have its centre far to the right of a small box while
+        # its left edge is still to the left of it, and the arrow then doubles back on itself.
+        # Overlap is the rule that holds -- if the two boxes share a column, the arrow is
+        # vertical; if they share a row, it is horizontal -- and a shared column is drawn as
+        # a true vertical, down the middle of the overlap rather than slanting between centres.
+        #
+        # The small gap at each end keeps the connector's bounding box off the card it points
+        # at: without it the geometry audit reports a line hidden behind an opaque shape, which
+        # from the audit's side is indistinguishable from a line drawn underneath one.
+        gap = 0.04
+        xlo, xhi = max(ax, bx), min(ax + aw, bx + bw)
+        ylo, yhi = max(ay, by), min(ay + ah, by + bh)
+        if xhi - xlo > 0.2:
+            mid = (xlo + xhi) / 2
+            down = bcy > acy
+            p1 = (mid, (ay + ah + gap) if down else (ay - gap))
+            p2 = (mid, (by - gap) if down else (by + bh + gap))
+        elif yhi - ylo > 0.2:
+            right = bcx > acx
+            mid = (ylo + yhi) / 2
+            p1 = ((ax + aw + gap) if right else (ax - gap), mid)
+            p2 = ((bx - gap) if right else (bx + bw + gap), mid)
+        else:
+            down = bcy > acy
+            p1 = (acx, (ay + ah + gap) if down else (ay - gap))
+            p2 = (bcx, (by - gap) if down else (by + bh + gap))
+        T.connect(sl, p1[0], p1[1], p2[0], p2[1], T.SLATE, 1.5)
+        # A label only where the arrow has room for one. The gap between two ranks of boxes
+        # can be narrower than a line of text, and a label that spills into the card below is
+        # worse than no label: the arrow's direction already carries most of the meaning.
+        span = abs(p2[1] - p1[1]) if p1[0] == p2[0] else abs(p2[0] - p1[0])
+        if len(e) > 2 and e[2] and span > 0.30:
+            tf = T.txt(
+                sl,
+                (p1[0] + p2[0]) / 2 - 0.85,
+                (p1[1] + p2[1]) / 2 - 0.085,
+                1.7,
+                0.17,
+                align=PP_ALIGN.CENTER,
+            )
+            T.para(tf, e[2], size=7.5, color=T.SLATE, space_after=0, first=True)
+
+    for n in s["nodes"]:
+        bx, by, bw, bh = box[n["id"]]
+        T.card(sl, bx, by, bw, bh, n.get("num", ""), n["head"], n.get("body", ""))
+
+
 KINDS = {
+    "context": context,
     "title": title,
     "divider": divider,
     "bullets": bullets,
