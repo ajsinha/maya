@@ -44,7 +44,7 @@ between any two you can open the web UI and show what the last one created.
 | `curve_as_feature.py` | Builds the *same* curve as a derived **feature** — the four calibrated numbers inlined as literals in an expression — checks the two agree row by row, and reads back what MAYA holds about each object. | **The centre of the study.** The same mathematics and the same numbers on both sides of the fence, and the governance difference as a list. |
 | `show_estate.py` | Creates nothing. Reads back the catalog, the artifact report with the domain *and the parameter values* its conformance was gathered at, four calibrations with their blind scores, the audit chain and the lineage. | That a reader who was not in the room can find out which curve was live, and why one calibration was sent back. |
 | `study.py` | No MAYA calls: names, the three feed definitions, the LaTeX, both implementations, the specification, the calibration mathematics, the cast. | The declarations that would sit under source control on a rates desk. |
-| `run.py` | All eight steps in order against a MAYA built from nothing. About fifteen seconds. | The unattended pass. |
+| `run.py` | All eight steps in order against a MAYA built from nothing. About ten seconds. | The unattended pass. |
 
 ```bash
 .venv/bin/python case_studies/11-nelson-siegel-curve/run.py             # the whole story

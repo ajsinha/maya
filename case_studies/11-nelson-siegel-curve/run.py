@@ -3,8 +3,8 @@ Case study 11 — the Nelson–Siegel yield curve, and whether a curve is a feat
 
     .venv/bin/python case_studies/11-nelson-siegel-curve/run.py
 
-This runs every step in order against a MAYA built from nothing, in about twenty seconds. It
-is the unattended pass.
+This runs every step in order against a MAYA built from nothing, in about ten seconds. It is
+the unattended pass.
 
 **For a demonstration, run the steps one at a time.** They share one MAYA at
 ``case_studies/runs/rates``, and between any two you can open the web UI (``show_estate.py``
