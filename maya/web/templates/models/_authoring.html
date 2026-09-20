@@ -23,10 +23,12 @@ days_per_year: constant"></textarea></div>
   <label class="form-label" for="formula">Formula — lets first, the output last</label>
   <textarea class="form-control mono" id="formula" name="formula" rows="6" placeholder="d1 = (log(S/K) + (r + sigma^2/2)*T) / (sigma*sqrt(T))
 d2 = d1 - sigma*sqrt(T)
-price = S*ncdf(d1) - K*exp(-r*T)*ncdf(d2)"></textarea>
+price = S*ncdf(d1) - K*exp(-r*T)*ncdf(d2)">{{ prefill.formula if prefill else '' }}</textarea>
+  <p class="small-muted mt-1 mb-0">Not sure how MAYA will read it? <a href="/models/kernel">Design your compute
+    kernel</a> first: it shows the typed tree and the Python it generates before anything is created.</p>
   <label class="form-label mt-2" for="roles">Input roles (one "name: feature|parameter|constant" per line; default feature)</label>
   <textarea class="form-control mono" id="roles" name="roles" rows="3" placeholder="sigma: parameter
-r: constant"></textarea>
+r: constant">{{ prefill.roles if prefill else '' }}</textarea>
 </div>
 <div data-show-group="auth" data-show-when="python">
   <label class="form-label" for="pysrc">Python function (assignments + a return of an arithmetic expression)</label>

@@ -3,6 +3,6 @@
 {% from "_rows.html" import model_row %}
 {% block title %}Models{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Models</h1><a class="btn btn-sm btn-primary" href="/models/new">New model</a></div>
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Models</h1><a class="btn btn-sm btn-outline-secondary me-2" href="/models/kernel">Design your compute kernel</a><a class="btn btn-sm btn-primary" href="/models/new">New model</a></div>
 {% call(m) table("models", ["Name", "Namespace", "Kind", "Latest", "State", "Maturity", "Opaque", "Updated"], page['items'], empty="No models yet. A model's mathematics is stored as a formula IR, parsed from what you write.", page=page) %}{{ model_row(m) }}{% endcall %}
 {% endblock %}

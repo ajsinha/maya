@@ -1,0 +1,144 @@
+"""
+The compute-kernel wizard (§8.1, §28.6): written mathematics in, the typed IR and one
+self-contained Python function out.
+
+Two properties are worth a test of their own and are checked here by construction rather
+than by reading the source. The kernel is *one* function — its imports and its helpers are
+nested inside it, so nothing it defines can collide with whatever module it is pasted into.
+And it computes what the IR says: the kernel and the reference module are generated from the
+same tree by the same rules, so a divergence between them is a bug in one of the generators,
+and the only way to know is to run both.
+
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+"""
+
+from __future__ import annotations
+
+import ast
+
+import numpy as np
+import pytest
+
+from maya.core.errors import ValidationFailed
+from maya.formula.codegen import compile_reference, to_python_kernel
+from maya.formula.parse import parse_model
+from tests.conftest import PASSWORD
+from tests.test_web_journeys import Browser, site  # noqa: F401 - the shared estate fixture
+
+BLACK_SCHOLES = r"""
+d_1 = (\log(S/K) + (r + \sigma^2/2)T) / (\sigma\sqrt{T})
+d_2 = d_1 - \sigma\sqrt{T}
+price = S\,ncdf(d_1) - K e^{-rT} ncdf(d_2)
+"""
+BS_ROLES = {"sigma": "parameter", "r": "parameter"}
+
+
+def run(source: str, name: str, X: dict, params: dict) -> dict:
+    ns: dict = {}
+    exec(compile(source, "<kernel>", "exec"), ns)  # noqa: S102  # nosec B102 - the code under test
+    return ns[name](X, params)
+
+
+def test_the_kernel_is_one_function_and_nothing_else():
+    ir = parse_model(BLACK_SCHOLES, roles=BS_ROLES)
+    source = to_python_kernel(ir, "black_scholes_call")
+    module = ast.parse(source)
+    assert [type(n).__name__ for n in module.body] == ["FunctionDef"]
+    assert module.body[0].name == "black_scholes_call"
+    # Everything the function needs is inside it: the imports are statements of its body,
+    # not of the module, which is what lets the kernel be pasted anywhere at all.
+    kinds = {type(n).__name__ for n in module.body[0].body}
+    assert "Import" in kinds
+    assert "FunctionDef" in kinds  # the normal CDF helper this formula needs
+
+
+def test_a_formula_without_the_normal_distribution_does_not_import_math():
+    ir = parse_model("y = a x + b", roles={"a": "parameter", "b": "parameter"})
+    source = to_python_kernel(ir)
+    assert "import math" not in source
+    assert "import numpy as np" in source
+    assert run(source, "compute", {"x": [2.0]}, {"a": 3.0, "b": 1.0})["y"] == pytest.approx([7.0])
+
+
+def test_the_kernel_and_the_reference_module_compute_the_same_thing():
+    ir = parse_model(BLACK_SCHOLES, roles=BS_ROLES)
+    X = {"S": [100.0, 90.0, 120.0], "K": [100.0, 100.0, 100.0], "T": [1.0, 0.5, 2.0]}
+    params = {"sigma": 0.2, "r": 0.03}
+    kernel = run(to_python_kernel(ir), "compute", X, params)["price"]
+    reference = compile_reference(ir)(X, params)["price"]
+    assert np.allclose(kernel, reference)
+    # And the value itself, so that a change agreeing with itself is still caught: an
+    # at-the-money one-year call at 20% vol and 3% is worth a shade over nine.
+    assert kernel[0] == pytest.approx(9.4134, abs=5e-4)
+
+
+def test_a_kernel_is_refused_for_a_model_that_has_no_closed_form():
+    with pytest.raises(ValidationFailed):
+        to_python_kernel({"outputs": [{"name": "pd", "type": "float64"}], "inputs": [], "lets": {}})
+
+
+def test_the_function_name_is_made_safe_rather_than_trusted():
+    ir = parse_model("y = a x", roles={"a": "parameter"})
+    assert ast.parse(to_python_kernel(ir, "2 weird-name")).body[0].name.isidentifier()
+
+
+def test_the_service_translates_without_creating_anything(site):  # noqa: F811
+    """The wizard's own call: nothing named, nothing stored, everything checked."""
+    w, _ = site
+    before = len(w.p.models.list(w.mona))
+    out = w.p.models.kernel(w.mona, text=BLACK_SCHOLES, roles=BS_ROLES, name="bs")
+    assert out["output"] == {"name": "price", "type": "float64"}
+    assert out["lets"] == ["d1", "d2"]
+    assert {i["name"]: i["role"] for i in out["inputs"]} == {
+        "K": "feature",
+        "S": "feature",
+        "T": "feature",
+        "r": "parameter",
+        "sigma": "parameter",
+    }
+    assert out["latex"].startswith(r"\begin{aligned}")
+    assert ast.parse(out["python"]).body[0].name == "bs"
+    assert len(out["ir_hash"]) == 64
+    # The translation is a read of nothing: no model appeared.
+    assert len(w.p.models.list(w.mona)) == before
+
+
+def test_a_formula_maya_cannot_read_is_refused_with_its_reason(site):  # noqa: F811
+    w, _ = site
+    with pytest.raises(ValidationFailed) as exc:
+        w.p.models.kernel(w.mona, text="price = S*(")
+    assert str(exc.value)
+
+
+def test_the_wizard_page_translates_and_carries_its_work_to_the_designer(site):  # noqa: F811
+    _, app = site
+    mona = Browser(app, "mona", PASSWORD)
+    page = mona.get("/models/kernel").text
+    assert "Design your compute kernel" in page
+    assert "Black" in page  # the worked examples are offered
+
+    token = mona.csrf("/models/kernel")
+    r = mona.c.post(
+        "/ui/kernel",
+        data={"formula": BLACK_SCHOLES, "roles": "sigma: parameter\nr: parameter", "name": "bs"},
+        headers={"X-CSRF-Token": token},
+    )
+    assert r.status_code == 200, r.text[:300]
+    out = r.json()
+    assert out["output"]["name"] == "price"
+    assert ast.parse(out["python"]).body[0].name == "bs"
+
+    # The designer accepts the wizard's work through the query string and shows it already
+    # filled in, so the next click is "Create model" and not a retype.
+    designer = mona.get("/models/new?formula=y+%3D+a+x&roles=a%3A+parameter").text
+    assert "y = a x" in designer
+    assert "a: parameter" in designer
+
+    # And a formula MAYA cannot read comes back as a readable refusal, not a stack trace.
+    bad = mona.c.post(
+        "/ui/kernel",
+        data={"formula": "price = S*(", "roles": "", "name": "compute"},
+        headers={"X-CSRF-Token": mona.csrf("/models/kernel")},
+    )
+    assert bad.status_code >= 400
+    assert bad.json()["error"]
