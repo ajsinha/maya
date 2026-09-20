@@ -388,10 +388,9 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 
 /* The page's closing line. The slogan is set in italics wherever it appears (§16.6), and
    the rest of the line is quiet enough that it never competes with the content above it. */
-.maya-foot { display: flex; flex-wrap: wrap; gap: .25rem 1rem; align-items: baseline;
-  justify-content: space-between; max-width: 1560px; margin: 0 auto; padding: .75rem 1.8rem 1.5rem;
+.maya-foot { max-width: 1560px; margin: 0 auto; padding: .85rem 1.8rem 1.6rem; text-align: center;
   border-top: 1px solid var(--maya-border); color: var(--maya-slate); font-size: 12px; }
-.maya-foot-slogan { font-style: italic; color: var(--maya-heading); font-size: 13px; }
+.maya-foot-slogan { font-style: italic; color: var(--maya-heading); font-size: 13px; margin-right: .35rem; }
 .maya-foot a { color: var(--maya-slate); }
 .maya-foot a:hover { color: var(--maya-crimson); }
 
@@ -403,9 +402,8 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .kernel-code { background: var(--maya-canvas); border: 1px solid var(--maya-border); border-radius: 6px;
   padding: .7rem; font-size: 12px; max-height: 340px; overflow: auto; margin-bottom: 0; white-space: pre; }
 
-/* The slogan in the bar. Small, italic and in the nav's own ink at reduced opacity, so it
-   reads as a standing claim rather than as another control competing for a click. */
-.maya-creed { font-style: italic; font-size: 12.5px; letter-spacing: .01em; white-space: nowrap;
-  color: var(--maya-on-nav); opacity: .72; padding-left: 1.1rem; margin-right: 1.4rem;
-  border-left: 1px solid color-mix(in srgb, var(--maya-on-nav) 30%, transparent); }
-@media (max-width: 1399.98px) { .maya-creed { display: none; } }
+/* The slogan, third line of the brand: white, italic and a shade smaller than the tagline
+   above it, so the three lines read as a hierarchy rather than as three equal labels. */
+.maya-brand .creed { font-style: italic; font-size: 9.5px; opacity: 1; letter-spacing: .015em;
+  color: var(--maya-on-nav); line-height: 1.3; }
+.maya-brand small { line-height: 1.25; }

@@ -25,7 +25,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.templating import Jinja2Templates
 
 from maya.core.errors import MayaError, NotAuthenticated
-from maya.core.version import APP_NAME, APP_SLOGAN, APP_TAGLINE, BUILD_DATE, VERSION
+from maya.core.version import (
+    APP_NAME,
+    APP_SLOGAN,
+    APP_TAGLINE,
+    BUILD_DATE,
+    COPYRIGHT,
+    VERSION,
+)
 from maya.sdk import AsyncClient
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -33,6 +40,7 @@ TEMPLATES.env.globals.update(
     APP_NAME=APP_NAME,
     APP_TAGLINE=APP_TAGLINE,
     APP_SLOGAN=APP_SLOGAN,
+    COPYRIGHT=COPYRIGHT,
     VERSION=VERSION,
     BUILD_DATE=BUILD_DATE,
 )

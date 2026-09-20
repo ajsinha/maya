@@ -14,6 +14,9 @@ APP_SLOGAN = "Evidence, not assertion."
 VERSION = "0.3.0"
 BUILD_DATE = "2026-09-19"
 API_VERSION = "v1"
+# Shown in the footer of every page and on the About page. The source files carry the same
+# notice in ASCII; this one is for display, where the sign is the sign.
+COPYRIGHT = "© 2026 Ashutosh Sinha. All rights reserved."
 
 # Per-release highlights, newest first. Rendered on the About page.
 HIGHLIGHTS = {

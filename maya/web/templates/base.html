@@ -43,8 +43,9 @@
   {# The slogan closes every page, not only the sign-in and the dashboard: it is what the
      platform claims about itself, and a claim belongs where the work is, not on the way in. #}
   <footer class="maya-foot">
-    <span class="maya-foot-slogan">{{ APP_SLOGAN }}</span>
-    <span class="maya-foot-rest">{{ APP_NAME }} {{ VERSION }} · <a href="/help">Help</a> · <a href="/about">About</a></span>
+    <p class="mb-0"><span class="maya-foot-slogan">{{ APP_SLOGAN }}</span>
+      {{ APP_NAME }} {{ VERSION }} · <a href="/help">Help</a> · <a href="/about">About</a>
+      · {{ COPYRIGHT }}</p>
   </footer>
 </div>
 <script src="/static/vendor/jquery/jquery.min.js"></script>
