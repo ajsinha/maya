@@ -80,6 +80,7 @@ same six calls would demonstrate nothing that one study could not.
 | 05 | [European option pricing](05-option-pricing/) | Finance, equity derivatives | Closed-form, **calibrated** | A parameter nobody can observe. Black–Scholes from LaTeX, a volatility surface as nine parameters, and a conformance test that passes on a narrow domain and fails on the whole chain. |
 | 06 | [IFRS 9 expected credit loss](06-ifrs9-expected-credit-loss/) | Banking, impairment | Composite with its own parameters | Judgements as approved parameter sets, and a portfolio test that finds a 2.67× over-provision the per-account error cannot see. |
 | 10 | [Factor models, CAPM to Fama–French](10-factor-models/) | Asset management | Simple then multiple regression | Two versions of one model: a semantic diff, a contract that grew, and the maturity ladder from candidate to retired. |
+| 11 | [Nelson–Siegel yield curve](11-nelson-siegel-curve/) | Fixed income, rates | Closed-form, non-linearly calibrated | A λ that is a convention rather than a measurement, and a planted bug a recalibration absorbs exactly — so only MAYA's blind score against the specification can see it. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
 
 ### The catalogue
@@ -124,7 +125,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | | Study | Model type | What it adds |
 | --- | --- | --- | --- |
 | 05 | European option pricing ✅ | Closed-form, **calibrated** | A parameter nobody can observe; a conformance test that passes on a narrow domain |
-| 11 | Nelson–Siegel yield curve | **Non-linear** calibration | Non-linear in one parameter: a search with least squares inside it |
+| 11 | Nelson–Siegel yield curve ✅ | **Non-linear** calibration | Non-linear in one parameter: a search with least squares inside it, and a bug no measure of fit can see |
 | 25 | Implied volatility surface (SABR) | Calibrated | A misfit the model cannot hide |
 | 26 | Hull–White short rate | Calibrated | Calibration to a grid of instruments rather than to outcomes |
 | 27 | Curve bootstrapping (Svensson) | Constructed | The sharpest governance question in the set: is a yield curve a feature or a model? |

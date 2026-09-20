@@ -627,14 +627,69 @@ class WarrantService:
                 continue
             v = values.get(key, values.get(inp["name"]))
             lo, hi = (inp.get("bounds") or [None, None])[:2]
-            if isinstance(v, (int, float)) and (
-                (lo is not None and v < lo) or (hi is not None and v > hi)
-            ):
+            numeric = isinstance(v, (int, float)) and not isinstance(v, bool)
+            if (lo is not None or hi is not None) and not numeric:
+                # A declared scalar bound on a value that is not a scalar means one of the two
+                # is wrong, and saying nothing let {"beta0": [9.0, -9.0]} pass a bound of
+                # [0, 0.25]. A black box's weight matrix is legitimately an array — it simply
+                # declares no bounds, and then nothing here applies to it.
+                problems.append(
+                    f"'{key}' declares bounds [{lo}, {hi}] but its value is "
+                    f"{type(v).__name__}, so no bound could be applied"
+                )
+            elif numeric and ((lo is not None and v < lo) or (hi is not None and v > hi)):
                 problems.append(f"'{key}'={v} outside [{lo}, {hi}]")
         for inp in irmod.constant_inputs(ir):
             key = f"{alias}.{inp['name']}" if alias else inp["name"]
             if "value" not in inp and key not in values and inp["name"] not in values:
                 problems.append(f"missing constant '{key}' (the model declares no value for it)")
+        return problems + WarrantService.check_constraints(ir, values, alias)
+
+    @staticmethod
+    def check_constraints(
+        ir: dict[str, Any], values: dict[str, Any], alias: str | None = None
+    ) -> builtins.list[str]:
+        """The model's joint parameter constraints, evaluated on the values offered (§8.4).
+
+        Bounds are per parameter and some conditions are not: a GARCH model is stationary only
+        if ``alpha + beta < 1``, and each of the two can sit anywhere in [0, 1] while the pair
+        forecast an infinite variance. A per-parameter check cannot see that, so a set which is
+        individually plausible and jointly impossible used to be approved."""
+        from maya.formula.evaluate import eval_node
+
+        constraints = irmod.constraints_of(ir)
+        if not constraints:
+            return []
+        supplied = {
+            (k.split(".", 1)[1] if alias and k.startswith(alias + ".") else k): v
+            for k, v in values.items()
+        }
+        for inp in irmod.parameter_inputs(ir):
+            if inp["name"] not in supplied and "value" in inp:
+                supplied[inp["name"]] = inp["value"]
+        problems = []
+        for c in constraints:
+            wanted = irmod.params_of(c["expr"])
+            if not wanted <= set(supplied):
+                continue  # a missing parameter is already reported by the bounds check
+            try:
+                got = float(np.asarray(eval_node(c["expr"], {}, supplied)).reshape(-1)[0])
+            except Exception as exc:  # noqa: BLE001 - an unevaluable constraint is a finding
+                problems.append(f"constraint could not be evaluated: {type(exc).__name__}: {exc}")
+                continue
+            rhs, op = float(c["rhs"]), c["op"]
+            ok = {
+                "lt": got < rhs,
+                "le": got <= rhs,
+                "gt": got > rhs,
+                "ge": got >= rhs,
+            }[op]
+            if not ok:
+                terms = " + ".join(f"{n}={supplied[n]:g}" for n in sorted(wanted))
+                problems.append(
+                    f"constraint {irmod.CONSTRAINT_OPS[op]} {rhs:g} is violated: "
+                    f"{terms} gives {got:g} — {c['why']}"
+                )
         return problems
 
     def parameter_subject(self, uow: Any, ps: dict[str, Any]) -> Subject:

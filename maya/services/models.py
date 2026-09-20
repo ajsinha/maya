@@ -36,6 +36,13 @@ from maya.services import catalog, refs, typesetting
 from maya.workflow.engine import Subject
 
 EDITABLE = ("draft", "changes_requested")
+# Where inside its declared bounds a parameter is placed when the differential test is run
+# without values of its own. Deliberately not the middle: the middle of a signed range is
+# zero, and a parameter set to zero switches off the term it multiplies, so a comparison
+# taken there cannot see a bug in that term at all. An off-centre point is inside every
+# declared bound, is never zero unless the bounds force it, and is not a round number
+# a plausible implementation error could happen to be exact at.
+DIFFERENTIAL_POINT = 0.618
 KINDS = ("formula", "black_box", "composite", "vendor")
 MATURITIES = ("experimental", "candidate", "approved", "restricted", "deprecated", "retired")
 
@@ -541,7 +548,13 @@ class ModelService:
     @staticmethod
     def _default_params(version: dict[str, Any]) -> dict[str, Any]:
         """Values for everything a parameter set supplies: a constant's declared value, else
-        the midpoint of the declared bounds (conformance only needs both sides to agree)."""
+        a point inside the declared bounds (conformance only needs both sides to agree).
+
+        That point used to be the midpoint, which is wrong for any parameter whose plausible
+        range straddles zero: the midpoint is then exactly zero, the term it multiplies
+        vanishes, and the comparison silently stops testing that part of the mathematics.
+        A model with two signed factors was compared with its own specification at zero for
+        both of them, and agreed everywhere while computing neither."""
         out = {}
         for inp in (
             irmod.supplied_inputs(version["formula_ir"] or {})
@@ -552,7 +565,7 @@ class ModelService:
                 out[inp["name"]] = float(inp["value"])
                 continue
             lo, hi = (inp.get("bounds") or [0.0, 1.0])[:2]
-            out[inp["name"]] = (float(lo) + float(hi)) / 2
+            out[inp["name"]] = float(lo) + (float(hi) - float(lo)) * DIFFERENTIAL_POINT
         return out
 
     def run_validation_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
@@ -994,7 +1007,14 @@ class ModelService:
                 raise ValidationFailed(f"artifact failed in the sandbox: {out['error']}")
             return out["result"]
 
-        return {**conformance_test(v["formula_ir"], predict, samples, params), "domain": domain}
+        return {
+            **conformance_test(v["formula_ir"], predict, samples, params),
+            "domain": domain,
+            # The values matter as much as the domain does: a comparison run at a parameter
+            # value where two implementations happen to coincide agrees perfectly and
+            # establishes nothing, and a reviewer cannot tell that from the count alone.
+            "params": dict(params),
+        }
 
     def _conformance_record(
         self, v: dict[str, Any], result: dict[str, Any], actor: str
@@ -1006,6 +1026,7 @@ class ModelService:
             "total": result["total"],
             "counterexamples": result["counterexamples"][:3],
             "domain": result["domain"],
+            "params": result.get("params") or {},
             "statement": result["statement"],
             "run_by": actor,
             "run_at": utcnow().isoformat(),
