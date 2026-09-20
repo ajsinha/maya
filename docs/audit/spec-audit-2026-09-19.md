@@ -46,7 +46,7 @@
 > gap 15 — the pin preview, disabled-with-reason controls, and access requests, whose
 > decisions an object's owner can now make (`tests/test_access_requests.py`);
 > gap 16 — quotas enforced, a pin estimate, cold pins and archived ones
-> (`tests/test_quotas.py`, `tests/test_retention.py`); fragment collection is still absent;
+> (`tests/test_quotas.py`, `tests/test_retention.py`);
 > gap 18 — the CLI's admin, build, validate and create commands (`tests/test_cli.py`);
 > gap 19 — the bundle's artifact, feature-set definition and member pins;
 > gap 20 — catalog facets (`tests/test_catalog_facets.py`);
@@ -59,11 +59,26 @@
 > gap 33 — the §20 metrics, SLO rules, scheduled integrity verification, a restore-drill
 > register and the six missing runbooks;
 > gap 34 — typed configuration (`tests/test_config_schema.py`).
-> Partly closed: gap 24 (shadow replay now has a per-namespace materiality budget).
-> Still open, and the next work: gaps 14 (the SDK object model), 17 (feature-set
-> composition), 21 (the execution manifest PDF), 23 (assistant drafting), 30 (the lineage
-> canvas), 31 (the §12 auth items), 32 (the editors), 35 (the plugin framework and
-> integrations) and 36.
+>
+> **Every ranked gap is now closed except the two noted below.** Beyond the above:
+> gap 14 — the SDK object model, typed record handles and the sealed-pin cache
+> (`tests/test_sdk_handles.py`);
+> gap 17 — §6.7 nested set members, fork and diff, and §6.2 per-member alignment
+> (`tests/test_set_composition.py`);
+> gap 21 — the execution manifest a person reads (`tests/test_composite_governance.py`);
+> gap 23 — the assistant's feature and specification drafts (`tests/test_assistant.py`);
+> gap 27 — the fragment collector, cold storage and restore (`tests/test_retention.py`);
+> gap 30 — the lineage canvas (`tests/test_browser_canvas.py`);
+> gap 31 — the §12 credential rules and a break-glass door that exists
+> (`tests/test_auth_credentials.py`);
+> gap 32 — the §17 editors (`tests/test_browser_editors.py`);
+> gap 35 — the §25 plugin registry, its allowlist, and the email, Slack and Teams
+> channels (`maya/plugins.py`, `maya/notifiers.py`, `tests/test_plugins.py`);
+> gap 36 — the capacity benchmark, run and recorded ([BENCHMARKS](../BENCHMARKS.md)).
+>
+> Partly closed, and the only work the audit still asks for: gap 24 (shadow replay has a
+> per-namespace materiality budget; the replay extras are not built) and the SDK's ETag
+> and resumable-download half of gap 14.
 >
 > Everything else below stands as written; line numbers are as of b30a428.
 
