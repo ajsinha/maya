@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Specification drafts{% endblock %}
+{% block content %}
+<h1>Draft sections for {{ ref }} v{{ version_no }}</h1>
+<p class="lead">Starting points for the sections nobody has written yet, from what MAYA can see of the model. Each says what it cannot know; a section that only restates the formula is worth refusing.</p>
+<p>{{ pill('warn' if d.missing else 'ok', (d.missing|length ~ ' section(s) to write') if d.missing else 'every required section is written') }} <span class="small-muted">drafted by the {{ d.provider }} provider</span></p>
+{% if d.kept %}<p class="small-muted">Already written, and left alone: {{ d.kept|join(', ') }}.</p>{% endif %}
+{% for section, body in d.drafts.items() %}
+<div class="card card-body mb-3">
+  <h3 class="h5">{{ section }}</h3>
+  <pre class="mb-2" style="white-space:pre-wrap">{{ body }}</pre>
+  <p class="small-muted mb-0">{{ d.latex_hint }}</p>
+</div>
+{% else %}
+<div class="card card-body"><p class="mb-0">Nothing to draft: every required section has been written.</p></div>
+{% endfor %}
+<a class="btn btn-outline-primary" href="/models/{{ ref }}?tab=spec&amp;v={{ version_no }}"><i class="bi bi-pencil" aria-hidden="true"></i> Back to the specification editor</a>
+{% endblock %}

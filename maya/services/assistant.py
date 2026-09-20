@@ -23,8 +23,13 @@ import hashlib
 import json
 from typing import Any
 
-from maya.assistant import rules
-from maya.core.errors import NotFound, PermissionDenied, ValidationFailed
+from maya.assistant import drafts, rules
+from maya.core.errors import (
+    CapabilityRefused,
+    NotFound,
+    PermissionDenied,
+    ValidationFailed,
+)
 from maya.core.clock import utcnow
 from maya.security.authz import Principal
 from maya.services import catalog, refs
@@ -48,6 +53,57 @@ class AssistantService:
         self.model = (s.get("assistant.claude.model") or "claude-opus-5").strip()
         self.effort = (s.get("assistant.claude.effort") or "high").strip()
         self.client: Any = None  # tests inject a Claude client
+
+    # -- drafting (§29.8): a proposal, never a write ----------------------------------------
+    def draft_feature(
+        self, p: Principal, description: str, data: bytes | None = None, fmt: str = "csv"
+    ) -> dict[str, Any]:
+        """A proposed feature definition from a description and a sample file.
+
+        Nothing is created: the draft comes back for a person to read, edit and submit
+        through the ordinary path, so an assistant cannot put anything into the catalog.
+        Only the sample's **structure** is used — column names, types and null counts — and
+        with the Claude provider only that structure is sent, never a row of data.
+        """
+        if not self.enabled:
+            raise CapabilityRefused("The assistant is switched off (assistant.enabled)")
+        self.p.access.require_capability(p, "feature", "C")
+        columns = _columns(data, fmt) if data else []
+        draft = drafts.feature_definition(description, columns, fmt=fmt)
+        errors = catalog.validate_feature_definition(draft["definition"])
+        draft["errors"] = errors
+        draft["valid"] = not errors
+        draft["provider"] = self.provider
+        with self.p.uow(p.username) as uow:
+            uow.audit(
+                "assistant.drafted",
+                detail={"kind": "feature", "columns": len(columns), "valid": draft["valid"]},
+            )
+        return draft
+
+    def draft_spec(self, p: Principal, ref: str, version_no: int) -> dict[str, Any]:
+        """Drafts for the specification sections nobody has written yet."""
+        if not self.enabled:
+            raise CapabilityRefused("The assistant is switched off (assistant.enabled)")
+        from maya.formula import specdoc
+
+        with self.p.uow() as uow:
+            model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
+            self.p.access.require(uow, p, "read", "model", model)
+            version = catalog.version_of(uow, "model_versions", "model_id", model, version_no)
+        latex = version["spec_latex"] or specdoc.TEMPLATE
+        out = drafts.spec_sections(
+            latex, version["formula_ir"] or {}, specdoc.section_completeness(latex)
+        )
+        out["provider"] = self.provider
+        with self.p.uow(p.username) as uow:
+            uow.audit(
+                "assistant.drafted",
+                object_type="model",
+                object_ref=f"{ref}@v{version_no}",
+                detail={"kind": "spec", "sections": out["missing"]},
+            )
+        return out
 
     # -- the dossier: exactly what the challenger may read ---------------------------------
     def _load(
@@ -265,3 +321,49 @@ class AssistantService:
                 detail={"memo": memo_id, "stance": stance, "note": note.strip()},
             )
             return row
+
+
+def _columns(data: bytes, fmt: str) -> list[dict[str, Any]]:
+    """A sample file's structure: names, types and null counts. No rows are kept."""
+    import io
+
+    import pandas as pd
+
+    if fmt == "csv":
+        frame = pd.read_csv(io.BytesIO(data), nrows=5000)
+    elif fmt == "parquet":
+        frame = pd.read_parquet(io.BytesIO(data))
+    elif fmt == "json":
+        frame = pd.read_json(io.BytesIO(data))
+    else:
+        raise ValidationFailed(f"A sample may be csv, parquet or json, not '{fmt}'")
+    out = []
+    for name in frame.columns:
+        column = frame[name]
+        out.append(
+            {
+                "name": str(name),
+                "type": _logical(column),
+                "nulls": int(column.isna().sum()),
+                "distinct": int(column.nunique(dropna=True)),
+            }
+        )
+    return out
+
+
+def _logical(column: Any) -> str:
+    """The MAYA logical type a pandas column reads as."""
+    import pandas as pd
+
+    if pd.api.types.is_bool_dtype(column):
+        return "bool"
+    if pd.api.types.is_integer_dtype(column):
+        return "int64"
+    if pd.api.types.is_float_dtype(column):
+        return "float64"
+    if pd.api.types.is_datetime64_any_dtype(column):
+        return "timestamp"
+    parsed = pd.to_datetime(column.dropna().head(50), errors="coerce", format="ISO8601")
+    if len(parsed) and parsed.notna().all():
+        return "date" if (parsed.dt.normalize() == parsed).all() else "timestamp"
+    return "string"

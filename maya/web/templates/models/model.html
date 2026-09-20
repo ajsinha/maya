@@ -78,6 +78,7 @@
   {% if st.needs_review %}<div class="alert alert-warning py-2">The formula IR changed under this document: {{ st.review_reason }}. Review and save it.</div>{% endif %}
   <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
     <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/render/{{ v.version_no }}"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Render PDF</button></form>
+    <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/spec/{{ v.version_no }}/drafts" title="Starting points for the sections nobody has written yet">Draft the missing sections</a>
     {% if st.pdf_blob %}<a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/spec/{{ v.version_no }}.pdf">Download PDF</a>
       {% if st.draft_render %}<span class="pill bad"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>DRAFT RENDER — not a LaTeX build; refused as evidence</span>{% else %}<span class="pill ok"><i class="bi bi-check2" aria-hidden="true"></i>true LaTeX build</span>{% endif %}{% endif %}
     <span class="small-muted">Typesetting backend: {{ m.typeset.backend }}{% if m.typeset.detail %} — {{ m.typeset.detail }}{% endif %}</span>

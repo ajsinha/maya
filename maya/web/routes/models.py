@@ -255,6 +255,19 @@ async def render_spec(request: Request, ns: str, name: str, version_no: int) -> 
     return RedirectResponse(f"/models/{ns}/{name}?tab=spec&v={version_no}", status_code=303)
 
 
+@router.get("/models/{ns}/{name}/spec/{version_no}/drafts")
+@page
+async def spec_drafts(request: Request, ns: str, name: str, version_no: int) -> Any:
+    """Drafts for the specification sections nobody has written yet (§29.8)."""
+    async with client(request) as sdk:
+        drafts = await sdk.assistant.draft_spec(f"{ns}/{name}", version_no)
+    return await render(
+        request,
+        "models/spec_drafts.html",
+        {"ref": f"{ns}/{name}", "version_no": version_no, "d": drafts},
+    )
+
+
 @router.get("/models/{ns}/{name}/spec/{version_no}.pdf")
 @page
 async def spec_pdf(request: Request, ns: str, name: str, version_no: int) -> Any:

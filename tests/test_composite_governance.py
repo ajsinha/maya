@@ -220,3 +220,41 @@ def test_a_bundle_carries_the_artifact_the_set_definition_and_the_member_pins(jo
     manifest = exported["manifest"]
     for name in ("model/artifact.py", "featureset/definition.json", "featureset/member_pins.json"):
         assert name in manifest["files"], "every added file is hashed in the manifest"
+
+
+def test_an_execution_warrant_renders_the_manifest_a_person_reads(journey):  # noqa: F811
+    """§9.2 asks for the manifest as PDF *and* JSON; only the JSON existed. The PDF is
+    rendered from the sealed manifest, and says when it came from the draft renderer."""
+    w = journey
+    from tests.test_warrants import complete_spec as spec_for
+
+    w.p.models.create(w.mona, namespace="quant", name="mf_model", formula="y = 3*x")
+    w.p.models.update_draft(w.mona, "quant/mf_model", spec_latex=spec_for("mf_model"))
+    w.p.models.transition(w.mona, "quant/mf_model", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/mf_model", 1, "approve")
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="mf_live",
+        model="quant/mf_model@v1",
+        spec={"environments": ["prod"], "limits": {"max_rows_per_day": 1000}, "contact": "desk@x"},
+    )
+    pdf = w.p.execution.manifest_pdf(w.mgr, ew["id"])
+    assert pdf[:4] == b"%PDF", "a real PDF, whichever renderer made it"
+    assert len(pdf) > 1000
+    with w.p.uow() as uow:
+        rendered = uow.repo("audit_events").list(action="warrant.manifest_rendered")
+    assert rendered and "draft_render" in rendered[-1]["detail"]
+    from maya.services.execution import manifest_latex
+
+    latex = manifest_latex(
+        ew, {"name": "quant"}, "maya://warrant/exec/quant/mf_live@v1", "draft", None
+    )
+    for expected in (
+        "Execution manifest",
+        "mf\\_model",
+        "prod",
+        "max\\_rows\\_per\\_day",
+        "desk@x",
+    ):
+        assert expected in latex, expected

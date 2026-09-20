@@ -59,6 +59,8 @@
    "assistant": {
     "class": "Assistant",
     "methods": {
+     "draft_feature": "(self, description, data=None, fmt='csv', filename='sample')",
+     "draft_spec": "(self, ref, version_no)",
      "memos": "(self, object_type, object_id)",
      "request": "(self, object_type, object_id)",
      "respond": "(self, memo_id, stance, note='')"
@@ -149,6 +151,7 @@
      "get": "(self, ew_id)",
      "iter": "(self, q=None, page_size=100, sort=None)",
      "list": "(self)",
+     "manifest_pdf": "(self, ew_id)",
      "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "reinstate": "(self, ew_id, reason)",
      "report": "(self, ew_id, environment, rows, input_stats=None, output_stats=None)",
@@ -388,6 +391,8 @@
    "assistant": {
     "class": "Assistant",
     "methods": {
+     "draft_feature": "(self, description, data=None, fmt='csv', filename='sample')",
+     "draft_spec": "(self, ref, version_no)",
      "memos": "(self, object_type, object_id)",
      "request": "(self, object_type, object_id)",
      "respond": "(self, memo_id, stance, note='')"
@@ -478,6 +483,7 @@
      "get": "(self, ew_id)",
      "iter": "(self, q=None, page_size=100, sort=None)",
      "list": "(self)",
+     "manifest_pdf": "(self, ew_id)",
      "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "reinstate": "(self, ew_id, reason)",
      "report": "(self, ew_id, environment, rows, input_stats=None, output_stats=None)",

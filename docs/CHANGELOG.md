@@ -95,6 +95,24 @@
   `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
   `--data-checksum`, `--notes` and `--member-alias`.
 
+**The assistant drafts, and a manifest a person can read (§29.8, §9.2)**
+
+- **A feature definition drafted from a description and a sample file.** Column names and
+  types give the index, the schema and the knowledge-time column; the description gives the
+  resolution rules where it says how gaps behave; the sample's nulls give the quality
+  checks. The draft is validated exactly as a hand-written definition is, says where each
+  part came from, and names what it had to guess. Nothing is created: it comes back for a
+  person to read, edit and submit. Only structure is read from the sample — never a row —
+  which is what makes the Claude provider's version safe to send.
+- **Drafts for the specification sections nobody has written**, from what MAYA can see of
+  the model: its inputs, outputs, parameters and formula. Each draft names what it cannot
+  know rather than inventing it — no fabricated validation numbers — and a section that has
+  been written is left alone.
+- **The execution manifest as a PDF** (§9.2 asked for "PDF and JSON"; only the JSON
+  existed): what can be run, on what inputs, by whom, until when, with the limits and
+  covenants, rendered from the sealed manifest and marked when it came from the draft
+  renderer rather than a real LaTeX build.
+
 **The SDK's object shape and its cache (§18.2.4, §18.2.5)**
 
 - The SDK spoke only in dictionaries. It now also speaks the shape the specification

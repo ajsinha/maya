@@ -325,6 +325,37 @@ class ExecutionService:
             "escalation_contact": spec["contact"],
         }
 
+    # -- the manifest a person reads (§9.2) ----------------------------------------------
+    def manifest_pdf(self, p: Principal, ew_id: str) -> bytes:
+        """The execution manifest as a PDF: *what can be run, on what inputs, by whom,
+        until when.*
+
+        §9.2 asks for the manifest "as a human-readable execution manifest (PDF and JSON)".
+        The JSON has always been there; this is the page somebody signs off, prints, or
+        attaches to a model-risk file. It is rendered from the sealed manifest, never from
+        anything editable, and it says plainly when it was rendered from a draft renderer
+        rather than a real LaTeX build — the same rule §17.3 applies to specifications,
+        because a manifest is evidence too.
+        """
+        from maya.core.typeset import render_pdf
+
+        with self.p.uow() as uow:
+            ew, ns = self._load(uow, ew_id)
+            self.p.access.require(uow, p, "read", "execution_warrant", ew)
+            model = uow.repo("model_versions").require(ew["model_version_id"])
+            owner = uow.repo("users").get(ew["owner_id"])
+        latex = manifest_latex(ew, ns, self.uri(ew, ns), self.status(ew), owner)
+        pdf, meta = render_pdf(latex)
+        with self.p.uow(p.username) as uow:
+            uow.audit(
+                "warrant.manifest_rendered",
+                object_type="execution_warrant",
+                object_ref=self.uri(ew, ns),
+                detail={"draft_render": meta["draft_render"], "backend": meta["backend"]},
+            )
+        del model
+        return pdf
+
     # -- workflow ------------------------------------------------------------------------
     def subject(self, uow: Any, ew: dict[str, Any], ns: dict[str, Any]) -> Subject:
         owner = uow.repo("users").get(ew["owner_id"])
@@ -810,3 +841,121 @@ def _trainable(mv: dict[str, Any]) -> bool:
     """Whether a model version declares parameters — closed-form or black box alike: a
     declared parameter is a value someone must fit and someone must approve."""
     return bool(irmod.parameter_inputs(mv["formula_ir"] or {}))
+
+
+def manifest_latex(
+    ew: dict[str, Any],
+    ns: dict[str, Any],
+    uri: str,
+    status: str,
+    owner: dict[str, Any] | None,
+) -> str:
+    """The manifest as LaTeX: every field §9.2 lists, in the order it lists them."""
+    m = ew["manifest"] or {}
+    spec = ew["spec"] or {}
+
+    def esc(value: Any) -> str:
+        text = "-" if value in (None, "", [], {}) else str(value)
+        for char, replacement in (
+            ("\\", "\\textbackslash{}"),
+            ("&", "\\&"),
+            ("%", "\\%"),
+            ("$", "\\$"),
+            ("#", "\\#"),
+            ("_", "\\_"),
+            ("{", "\\{"),
+            ("}", "\\}"),
+            ("~", "\\textasciitilde{}"),
+            ("^", "\\textasciicircum{}"),
+        ):
+            text = text.replace(char, replacement)
+        return text
+
+    def rows(pairs: list[tuple[str, Any]]) -> str:
+        return " \\\\\n".join(f"\\textbf{{{esc(k)}}} & {esc(v)}" for k, v in pairs)
+
+    def table(title: str, pairs: list[tuple[str, Any]]) -> str:
+        return (
+            f"\\subsection*{{{esc(title)}}}\n"
+            "\\begin{tabular}{@{}p{0.34\\textwidth}p{0.6\\textwidth}@{}}\n"
+            + rows(pairs)
+            + " \\\\\n\\end{tabular}\n"
+        )
+
+    model = m.get("model") or {}
+    params = m.get("parameters") or {}
+    contract = m.get("input_contract") or []
+    bindings = m.get("bindings") or {}
+    outputs = m.get("outputs") or []
+    body = [
+        "\\documentclass[11pt]{article}",
+        "\\usepackage[margin=2.2cm]{geometry}\n\\usepackage{amsmath,amssymb,longtable}",
+        "\\begin{document}",
+        f"\\section*{{Execution manifest: {esc(ew['name'])} v{ew['version_no']}}}",
+        f"\\noindent\\texttt{{{esc(uri)}}}\n\n",
+        table(
+            "What can be run",
+            [
+                ("Model", f"{model.get('name')} v{model.get('version_no')}"),
+                ("Formula hash", (model.get("ir_hash") or "-")[:32]),
+                ("Code artifact", (model.get("artifact_hash") or "none")[:32]),
+                ("Declared black box", "yes" if model.get("opaque") else "no"),
+                ("Parameter set", params.get("id") or "none (non-trainable)"),
+                ("Parameter hash", (params.get("values_hash") or "-")[:32]),
+                (
+                    "Fitted on data MAYA issued",
+                    "yes" if params.get("verified_data") else "not verified",
+                ),
+            ],
+        ),
+        table(
+            "On what inputs",
+            [
+                (
+                    c.get("name", "?"),
+                    f"{c.get('type', '')} — bound to {bindings.get(c.get('name'), c.get('name'))}",
+                )
+                for c in contract
+            ]
+            or [("Inputs", "declared by the caller at run time")],
+        ),
+        table(
+            "Outputs",
+            [(o.get("name", "?"), o.get("type", "")) for o in outputs] or [("Outputs", "-")],
+        ),
+        table(
+            "By whom, and until when",
+            [
+                ("Namespace", ns.get("name")),
+                ("Owner", (owner or {}).get("username")),
+                ("Status", status),
+                ("Environments", ", ".join(spec.get("environments") or [])),
+                ("Valid from", ew.get("valid_from")),
+                ("Valid to", ew.get("valid_to")),
+                ("Sealed at", ew.get("sealed_at")),
+                ("Escalation contact", m.get("escalation_contact") or spec.get("contact")),
+            ],
+        ),
+        table(
+            "Limits and covenants",
+            [(k, v) for k, v in (spec.get("limits") or {}).items()]
+            + [
+                (
+                    f"covenant: {c.get('kind')}",
+                    f"{c.get('attr', '')} max {c.get('max', '')}".strip(),
+                )
+                for c in (spec.get("covenants") or [])
+            ]
+            or [("Limits", "none declared")],
+        ),
+    ]
+    if m.get("composite"):
+        members = (m["composite"] or {}).get("members") or []
+        body.append(
+            table(
+                "Composite members",
+                [(mem.get("alias", "?"), mem.get("ref", "")) for mem in members],
+            )
+        )
+    body.append("\\end{document}")
+    return "\n".join(body)

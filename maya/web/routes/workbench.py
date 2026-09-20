@@ -363,9 +363,20 @@ async def upload_propose(request: Request) -> Any:
         raise ValidationFailed("Choose a file to upload")
     content = await upload.read()
     fmt = data.get("fmt", "csv")
+    description = str(data.get("description") or "")
     async with client(request) as sdk:
         proposal = await sdk.features.infer(content, fmt=fmt, filename=upload.filename)
         namespaces = await sdk.namespaces.list()
+        # with a sentence about the data, the assistant drafts the rest of the definition
+        # (§29.8): resolution rules, quality checks and a name. It is a proposal on the
+        # screen, never a write — the person submits, as they would a definition they typed.
+        draft = (
+            await sdk.assistant.draft_feature(
+                description, content, fmt=fmt, filename=upload.filename
+            )
+            if description.strip()
+            else None
+        )
     key = _stash(content, fmt, upload.filename)
     stem = upload.filename.rsplit(".", 1)[0].replace("-", "_").replace(" ", "_").lower()
     return await render(
@@ -373,6 +384,7 @@ async def upload_propose(request: Request) -> Any:
         "workbench/upload.html",
         {
             "proposal": proposal,
+            "draft": draft,
             "key": key,
             "fmt": fmt,
             "stem": stem,

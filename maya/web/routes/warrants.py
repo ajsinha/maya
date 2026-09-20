@@ -438,6 +438,15 @@ async def execution_revoke(request: Request, eid: str) -> Any:
     return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
 
 
+@router.get("/warrants/execution/{eid}/manifest.pdf")
+@page
+async def execution_manifest(request: Request, eid: str) -> Any:
+    """The manifest a person reads, prints or files (§9.2)."""
+    async with client(request) as sdk:
+        out = await sdk.execution.manifest_pdf(eid)
+    return download({**out, "content_type": "application/pdf"}, f"execution-{eid[:8]}-manifest.pdf")
+
+
 @router.get("/warrants/execution/{eid}/bundle.json")
 @page
 async def execution_bundle(request: Request, eid: str) -> Any:

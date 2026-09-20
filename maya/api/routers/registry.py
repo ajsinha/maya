@@ -409,6 +409,14 @@ def execution_token(ew_id: str, environment: str, me: Principal = Me, plat: Any 
     return ok(plat.execution.token(me, ew_id, environment))
 
 
+@router.get("/warrants/execution/{ew_id}/manifest.pdf", tags=["warrants"])
+async def execution_manifest_pdf(ew_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """§9.2's human-readable execution manifest: what can be run, on what inputs, by whom,
+    until when. The JSON form is the bundle beside it."""
+    pdf = await asyncio.to_thread(plat.execution.manifest_pdf, me, ew_id)
+    return Response(pdf, media_type="application/pdf")
+
+
 @router.get("/warrants/execution/{ew_id}/bundle", tags=["warrants"])
 def execution_bundle(
     ew_id: str, environment: str, offline: bool = False, me: Principal = Me, plat: Any = Plat

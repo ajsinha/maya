@@ -1213,6 +1213,11 @@ class ExecutionWarrants(_Resource):
             "POST", f"/warrants/execution/{seg(ew_id)}/token", params={"environment": environment}
         )
 
+    @endpoint("GET", "/warrants/execution/{ew_id}/manifest.pdf")
+    def manifest_pdf(self, ew_id: str) -> Any:
+        """The execution manifest as a PDF (§9.2); the bundle is its machine-readable half."""
+        return self._c("GET", f"/warrants/execution/{seg(ew_id)}/manifest.pdf", raw=True)
+
     @endpoint("GET", "/warrants/execution/{ew_id}/bundle")
     def bundle(self, ew_id: str, environment: str, offline: bool = False) -> Any:
         """``offline=True``: a copy to run without MAYA. Nothing it runs is reported, so
@@ -1596,6 +1601,29 @@ class Assistant(_Resource):
             "POST",
             "/assistant/memos",
             json_body={"object_type": object_type, "object_id": object_id},
+        )
+
+    @endpoint("POST", "/assistant/drafts/feature")
+    def draft_feature(
+        self,
+        description: str,
+        data: bytes | None = None,
+        fmt: str = "csv",
+        filename: str = "sample",
+    ) -> Any:
+        """A proposed feature definition from a description and a sample (§29.8)."""
+        return self._c(
+            "POST",
+            "/assistant/drafts/feature",
+            files=_files(data, filename) if data else None,
+            data={"description": description, "fmt": fmt},
+        )
+
+    @endpoint("GET", "/assistant/drafts/spec")
+    def draft_spec(self, ref: str, version_no: int) -> Any:
+        """Drafts for the specification sections nobody has written yet (§29.8)."""
+        return self._c(
+            "GET", "/assistant/drafts/spec", params={"ref": ref, "version_no": int(version_no)}
         )
 
     @endpoint("POST", "/assistant/memos/{memo_id}/stance")
