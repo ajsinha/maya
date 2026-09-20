@@ -300,3 +300,42 @@ def test_the_combiners_own_features_are_part_of_the_contract(journey):  # noqa: 
     # a member output is produced, not supplied, so it is not an input
     assert "one.yhat" not in by_name
     assert comp.combiner_features(ir["composite"]["combine"]) == {"gate"}
+
+
+def test_deprecating_a_version_moves_its_maturity_down_the_ladder(journey):  # noqa: F811
+    """§8.6's maturity ladder ends in `deprecated` and `retired`, and nothing reached them.
+
+    `maturity` is only settable through `update_draft`, which requires an editable draft, so
+    an approved version could never be moved down the ladder at all: the `deprecate` and
+    `retire` transitions moved the workflow *state* and left the maturity at `candidate`. A
+    deprecated version went on advertising itself as a candidate, and — because §8.7's cap
+    reads a member's maturity rather than its state — a composite went on treating a
+    deprecated member as a usable one, which is the opposite of "deprecating a member warns
+    every composite that contains it"."""
+    w = journey
+    stale = _member(w, "cg_stale", "yhat = e*x", {"e": "parameter"})
+    fresh = _member(w, "cg_fresh", "yhat = f*x", {"f": "parameter"})
+    w.p.models.create(w.mona, namespace="quant", name="cg_over_stale", kind="composite")
+    w.p.models.update_draft(
+        w.mona,
+        "quant/cg_over_stale",
+        ir=_composite_ir({"stale": stale, "fresh": fresh}),
+        spec_latex=complete_spec("cg_over_stale"),
+    )
+
+    def maturity(name: str) -> str:
+        return str(w.p.models.get(w.mona, f"quant/{name}")["versions"][0]["maturity"])
+
+    assert maturity("cg_stale") == "candidate", "approval promotes experimental to candidate"
+    w.p.models.transition(
+        w.mgr, "quant/cg_stale", 1, "deprecate", successor="maya://model/quant/cg_stale@v2"
+    )
+    assert maturity("cg_stale") == "deprecated"
+    with w.p.uow("admin") as uow:
+        ir = w.p.models.get(w.mona, "quant/cg_over_stale")["versions"][0]["formula_ir"]
+        cap = comp.capped_maturity(w.p.models._member_maturities(uow, ir))
+    assert cap == "deprecated", "a composite cannot claim more maturity than a deprecated member"
+    with pytest.raises(ValidationFailed, match=r"capped at its lowest member's \('deprecated'\)"):
+        w.p.models.update_draft(w.mona, "quant/cg_over_stale", maturity="candidate")
+    w.p.models.transition(w.admin, "quant/cg_stale", 1, "retire")
+    assert maturity("cg_stale") == "retired"

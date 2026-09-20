@@ -702,6 +702,14 @@ class ModelService:
         uow.repo("models").update(model["id"], {"status": state})
         if state == "approved" and v["maturity"] == "experimental":
             uow.repo("model_versions").update(v["id"], {"maturity": "candidate"})
+        elif state in ("deprecated", "retired") and v["maturity"] != state:
+            # §8.6's ladder ends in these two rungs and nothing else could reach them:
+            # ``maturity`` is only settable through ``update_draft``, which needs an
+            # editable draft, so an approved version could never be moved down it. A
+            # deprecated version therefore went on advertising itself as a 'candidate',
+            # and — because §8.7's cap reads a member's *maturity* and not its state — a
+            # composite went on treating a deprecated member as a usable one.
+            uow.repo("model_versions").update(v["id"], {"maturity": state})
         me = refs.version_ref("model", ns["name"], model["name"], v["version_no"])
         if state == "approved" and v["formula_ir"] and "composite" in v["formula_ir"]:
             for m in v["formula_ir"]["composite"]["members"]:
