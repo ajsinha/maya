@@ -50,7 +50,7 @@ expects <12 hex>). MAYA has no migrations. Rebuild with:
 
 - Specification §14.3, §20; plan §4.2, §4.3.
 - Code: `maya/persistence/schema.py` (`create_all`, `verify_identity`),
-  `maya/persistence/schema/`, `tools/ci/gen_schema.py`, `maya/cli/__main__.py`
+  `maya/persistence/schema/`, `tools/ci/gen_schema.py`, `maya/cli/admin.py`
   (`admin init-db`).
 - Tests: `tests/test_foundation.py::test_shipped_schema_files_match_the_metadata`,
   `::test_hand_edit_is_detected`;

@@ -26,8 +26,8 @@ borrows an approved parameter set.
 ## References
 
 - Specification §8.7, §9.5, §26.3 (D-8); plan §4.1.
-- Code: `maya/formula/composite.py` (`member_seeds`, structure validation,
-  `evaluate_composite`).
+- Code: `maya/formula/composite.py` (`member_seeds`, structure validation);
+  `maya/formula/evaluate.py` (`evaluate_composite`).
 - Tests: `tests/test_formula.py::test_composite_union_maturity_seeds_and_eval`,
   `::test_composite_reference_code_matches_the_evaluator`;
   `tests/test_sdk_modes.py::test_a_composite_model_is_re_executed_by_the_bundle_verifier`.

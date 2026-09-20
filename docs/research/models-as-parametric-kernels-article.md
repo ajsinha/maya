@@ -2,17 +2,17 @@
 
 ### An order, an operator and a polynomial — deriving the facts a model governance system otherwise makes somebody type in
 
-> **About this revision (September 2026).** The earlier version of this article described a build of MAYA
-> that has since been deleted: the platform was rebuilt from nothing against a new specification, and at
-> version 0.3.0 it is a register of features, feature sets, models and the *warrants* that license a model
-> to be trained or run. The argument below is unchanged where it stands as mathematics. What changed is
-> every claim about the system. Where a section describes what a register *should* do, it now says what
-> MAYA 0.3.0 actually does — often less, sometimes differently. [Laws, or it didn't
-> happen](#laws-or-it-didnt-happen) gives the register of what runs, and [The system this came out
-> of](#the-system-this-came-out-of) describes the system. Three defects were found by writing this revision,
-> and all are in it: a check that reads a missing parameter set as "non-trainable", six algebra operators
-> that drop the clock the point-in-time argument depends on, and one source type that is read through
-> rather than copied.
+> **What carries each claim.** The system this argument was built against is **MAYA** 0.3.0, a register of
+> features, feature sets, models and the *warrants* that license a model to be trained or run. Where a
+> section below describes what a register *should* do, it then says what MAYA actually does — often less,
+> sometimes differently, and the differences are marked rather than smoothed over. [Laws, or it didn't
+> happen](#laws-or-it-didnt-happen) collects them into one register: of twenty-five claims, six run, ten run
+> in part and seven are not implemented at all. [The system this came out of](#the-system-this-came-out-of)
+> describes the platform and what has been measured on it. An article that read as a sales document while
+> the paper it accompanies reads as an audit would be worse than either alone, so three defects the
+> accompanying paper reports are in here too: a check that reads a missing parameter set as
+> "non-trainable", six algebra operators that drop the clock the point-in-time argument depends on, and one
+> source type that is read through rather than copied.
 
 ---
 
@@ -34,10 +34,10 @@ Typed-in facts are true at the moment they are typed and never again checked. An
 the most consequential ones don't have to be typed in at all — they fall out of structure you already have,
 if you write the structure down.
 
-> **One caveat before we start, because a reviewer caught me on it.** I cite two supervisory texts: the UK's
-> SS1/23, in force since 2024, and a 2026 US revision of the model risk guidance. Treat the second more
-> carefully than I originally did — it's recent, its status may not be settled wherever and whenever you're
-> reading, and an earlier draft narrated it as the settled successor to SR 11-7 without saying so.
+> **One caveat before we start.** I cite two supervisory texts: the UK's SS1/23, in force since 2024, and a
+> 2026 US revision of the model risk guidance. Treat the second more carefully than the first — it's recent,
+> its status and final text may not be settled wherever and whenever you're reading, and nothing below
+> should be read as asserting that it has displaced SR 11-7.
 >
 > It matters less than it looks. Everything below is readable off SR 11-7 and SS1/23 alone: SR 11-7 has
 > carried the aggregate-risk expectation, the independent-challenge requirement and the inventory obligation
@@ -179,6 +179,15 @@ model whose formula declares no parameter input can be licensed to run without a
 that declares any cannot. T6 survives as the declared kind `vendor`, whose bundle says plainly that it
 cannot be re-executed. The rest of the classification is argument, not software.
 
+What it does carry is the separation itself, in the one place where it has to be right. Every input of a model
+version declares a role — a feature, a parameter, or a constant — and the model's input contract and its
+parameter list are *computed* from those roles rather than typed twice. So `P` and `X` are distinguishable
+objects in the register, which is the minimum the rest of this article needs, and a modeller can see which side
+of the line each symbol landed on before committing to anything:
+[mathematics in, a typed tree back](#mathematics-in-a-typed-tree-back). What MAYA has no representation of is
+the stochastic part — its kernels are deterministic expression trees, a declared black-box node, or a vendor
+endpoint.
+
 ### The honest bit
 
 The class derives from three things: is `P` empty, is `P` reachable, and what procedure filled it. The first
@@ -199,9 +208,11 @@ declaration can still be missing, and the safe default is the strict one rather 
 MAYA 0.3.0 has exactly this defect, in the one row it derives. Its "no parameters, no training warrant"
 check reads the parameters only of a model whose formula has a closed-form body. A black box, a vendor
 model or a composite passes as "non-trainable" whatever parameters it declares — and so does an execution
-warrant drawn from a training warrant without naming a parameter set. I found it writing this revision,
-with a probe that created and approved both. The training warrant is stricter (it won't seal without an
-approved parameter set), so the gap is at the second licence, not the first. It is reported, not yet fixed.
+warrant drawn from a training warrant without naming a parameter set. A probe that creates and approves
+both finds the check reporting *non-trainable model* for a model that declares a parameter. The training
+warrant is stricter (it won't seal without an approved parameter set), so the gap is at the second licence,
+not the first. It is reported, not yet fixed — and it was found not by review but by asking what the check
+does when the structure it reads is absent, which is the question this section says to ask.
 
 ---
 
@@ -215,7 +226,7 @@ lifecycle it follows. What can usefully be monitored on it. What documents come 
 cabinet where each drawer holds one kind of artefact and comes with its own set of forms.
 
 The bad design writes the list of drawers into the cabinet's frame — "kind" as a column with fixed values —
-so adding a drawer means rebuilding the cabinet. The good design makes drawers independent, so adding one is
+so adding a drawer means remaking the cabinet. The good design makes drawers independent, so adding one is
 just adding one. That's a **fibration**, and it comes with a small theorem: adding a drawer cannot disturb
 what's in any existing drawer. Which is what lets you promise to support kinds of artefact nobody has
 invented yet.
@@ -252,7 +263,8 @@ I find this satisfying because it's the article's own thesis turned on the artic
 requirement on the thing that organises them.
 
 (MAYA 0.3.0 has no such cabinet. Its evidence requirements vary by *object type* — feature, feature set,
-model, warrant — through the workflow policy's named checks, and nothing is indexed by model kind. Its
+model, parameter set, warrant — through the workflow policy's named checks, and nothing checks that every kind
+has a complete set of them, because nothing is indexed by model kind at all. Its
 declared four-valued kind is the "closed vocabulary" horn above, harmless only because no drawer hangs off
 it.)
 
@@ -374,14 +386,14 @@ carrying the conflicting field and both types, rather than returning nothing —
 has a decision to make, and a `None` threaded through three layers becomes a silent empty schema somewhere
 downstream.
 
-One thing to be precise about, since this article is about claims that go unchecked — and here the rebuild
-reversed the old build. The old build had the meet implemented and law-tested and **no production path
-called it**. MAYA 0.3.0 has the meet deployed and *not* law-tested: a composite model's input contract is the
-union of its members' contracts, and two members wanting one attribute at two different types is refused
-with the attribute, both types and both members named. That is "can one featureset serve both?" in daily
-use, on names and types.
+One thing to be precise about, since this article is about claims that go unchecked. In MAYA the meet is
+**deployed and not law-tested**, which is the opposite of the arrangement one would choose and the common
+one in practice: a composite model's input contract is computed as the union of its members' contracts, and
+two members wanting one attribute at two different types is refused with the attribute, both types and both
+members named. That is "can one featureset serve both?" in daily use, on names and types — and no test
+states the lattice laws it is an instance of.
 
-What 0.3.0 does not have is the order as one function. Three routines answer fragments of it — a version
+What MAYA does not have is the order as one function. Three routines answer fragments of it — a version
 classifier (*breaking*, *behavioral*, *additive*), a warrant's contract check, and that composite union —
 and, exactly as this section predicts, they already disagree in one small place: the warrant check lets any
 numeric attribute stand in for a `float64` input, while the other two demand the identical type. Defensible
@@ -400,6 +412,38 @@ Different mistakes, different fixes. A refusal that says "incompatible" is a mes
 *"does not provide `turnover`; accepts less than before at `dscr`"* is an instruction.
 
 That's a small thing that changes what a control feels like to be on the receiving end of.
+
+### The condition a table of bounds cannot hold
+
+The order compares fields one at a time: this name, that type, this range. Which is exactly right for
+deciding whether one thing can stand where another stood, and exactly wrong for a whole class of conditions
+a modeller needs to state.
+
+A GARCH model is stationary only if its two coefficients sum to less than one. Each may sit anywhere in the
+unit interval and the pair still forecast a conditional variance with no finite long-run mean. A Nelson–Siegel
+yield curve's instantaneous short rate is the sum of its first two factor loadings, which has to be
+non-negative however plausible either looks on its own. Neither is a property of a parameter. Both are
+properties of the *model*, over two parameters at once, and a table of per-parameter bounds has no row to
+write them in.
+
+So MAYA lets a model version declare them: an expression over its own declared parameters, a comparison, a
+bound, and — required, not optional — a reason in words. Three refusals fall out of that and each is worth a
+sentence. A constraint that mentions no parameter constrains nothing. A constraint that reads a *feature* is
+refused outright, because a condition on the parameters has to hold before any data is seen, and one that
+reads data is a check on an execution masquerading as a property of a model. And a constraint with no
+written reason is refused, because when the constraint fires the reason is the only thing the modeller sees:
+"alpha + beta gives 1.05" is an arithmetic complaint, while "alpha + beta < 1 is stationarity; at or above
+one the variance diverges" is the finding.
+
+The constraints are checked where the per-parameter bounds are checked — when a parameter set is uploaded
+against a training warrant — so a set that is individually plausible and jointly impossible is refused at the
+point it would otherwise have been approved. Black boxes and composites may declare them too, which for a
+GARCH model, a black box precisely because its variance is a state carried between rows, is the one thing
+about it a reviewer can still check arithmetically.
+
+They exist because a worked case study asked for them, which is the shortest route there is from a real model
+to a change in the platform: the [Nelson–Siegel study](#nine-models-carried-the-whole-way) is where that
+happened, and what it would have shipped without them is below.
 
 ---
 
@@ -433,11 +477,12 @@ all — it doesn't record one model feeding another outside a composite. Instead
 model version with its own specification document, its own approval, **one** parameter set namespaced by
 member (`base.sigma`, `skew.beta`) and **one** warrant over one feature set.
 
-The old build took the other defensible position: it authorised a *chain* of separately approved models in
-one call, signed nothing for the whole, and argued that three people had approved three models and nobody had
-approved the composition. The rebuild meets that objection rather than avoiding it — there *is* an approval
-for the composition, because the composition is what was submitted. The cost is that a composite is a new
-thing to approve even when every member already is.
+There are two defensible positions here and the choice between them is instructive. One authorises a *chain*
+of separately approved models in a single call, returns each node with its own descriptor, and deliberately
+signs nothing for the whole, on the ground that three approvals were given for three models and none for the
+composition. MAYA takes the other, and so meets that objection rather than avoiding it: there *is* an
+approval for the composition, because the composition is what was submitted. The cost is that a composite is
+a new thing to approve even when every member already is.
 
 Two details carry the theory across. **A composite's maturity is capped at its lowest member's** — a meet on
 a finite chain, which composes, and which is exactly what the impossibility result below permits and no
@@ -460,12 +505,12 @@ the one that discovers the third model.
 
 ### On the name
 
-In the old build the model-to-model relation was first called `feeds`, and that is wrong in a bank
-specifically. A *feed* there means market data, a reference file, a nightly drop. So "A feeds B" read as
-though the platform consumed or produced one, and it did neither: the edge was a statement about two entries
-in a register, describing a wire that somebody else's engine carries. It was renamed `input_to`. The rebuild
-chose its central word — **warrant** — with the same care: a permission with a holder, a scope and an expiry,
-not a record of what happened.
+An early name for the model-to-model relation was `feeds`, and that is wrong in a bank specifically. A *feed*
+there means market data, a reference file, a nightly drop. So "A feeds B" read as though the platform
+consumed or produced one, and it did neither: the edge is a statement about two entries in a register,
+describing a wire that somebody else's engine carries. The name was wrong for what it asserts and was
+changed. MAYA's word for its licence to compute — **warrant** — was chosen with the same care: a permission
+with a holder, a scope and an expiry, not a record of what happened.
 
 Worth a paragraph because naming is part of the formalism, not decoration around it. A formal account whose
 terms are read wrongly by its audience has a defect, and the defect is in the account.
@@ -591,8 +636,8 @@ the two is what makes the read stable.
 
 ### What MAYA actually does: a cut, and a certificate
 
-MAYA 0.3.0 does **not** implement that operator — and working out exactly what it does instead turned out to
-be one of the more useful parts of this revision.
+MAYA 0.3.0 does **not** implement that operator, and what it does instead is worth stating exactly, because
+it is weaker than the operator in one respect and stronger in another.
 
 It does two simpler things. Every feature row carries an event time and a knowledge time, and a restatement is
 a new row, never an overwrite. A resolution names **one** `as_of_known` instant for the whole read and, for
@@ -608,8 +653,8 @@ claim:
 - **A clean certificate certifies the operator.** Where the certificate finds no violation, the row the cut
   chose is exactly the row `AsOf` would have chosen. (The cut took the latest row known by `a`; the
   certificate says it was also known by `ℓ`; so it's the latest row known by `min(ℓ, a)`.)
-- **Reproducible or refused.** Rebuild that training set later, after more restatements have landed, and for
-  every row whose decision date had already passed you get either the *same* row or a *violation* on the
+- **Reproducible or refused.** Re-assemble that training set later, after more restatements have landed, and
+  for every row whose decision date had already passed you get either the *same* row or a *violation* on the
   certificate. Never a silently different number.
 
 That's saturation turned from a property of the read into a property of a signed document. It buys something
@@ -618,8 +663,8 @@ genuinely needs. And it costs something: the certificate can only see rows that 
 kinds don't. A row produced by a fill has no knowledge time of its own, although its value was learned when
 the row it was copied from was. And six of the feature algebra's operators — projection, composition,
 coalescing, aggregation, resampling and case selection — return frames with no knowledge-time column at all,
-so a feature derived through any of them is invisible to the certificate. I found both writing this, and
-they're reported rather than fixed.
+so a feature derived through any of them is invisible to the certificate. Both are reported rather than
+fixed, and both were found by checking the claim against the code rather than by reading either.
 
 Where MAYA gets its reproducibility guarantee, then, is not the operator but the **pin**: a pin records its
 `as_of_known`, and is sealed by a hash of a canonical encoding of its rows, so the same data pinned twice
@@ -786,10 +831,10 @@ Nobody has to write seven features. You write one traversal and seven valuations
 
 And this is a **theorem**, not a coincidence: where evaluating directly in an arithmetic and pushing the
 polynomial forward disagree, one of the two routes is not a homomorphism — which is a fact about the
-structure, not about the traversal. The old build checked it over 200 randomly generated derivation DAGs
-against five arithmetics. **MAYA 0.3.0 has no evidence derivation at all** — its evidence is typed lineage
-edges, a hash-chained audit log, custody events and signed certificates — so none of this section runs in it,
-except three computations I come back to below.
+structure, not about the traversal — and it is therefore a thing a generated derivation and a handful of
+arithmetics can be made to check on every build. **MAYA 0.3.0 has no evidence derivation at all** — its
+evidence is typed lineage edges, a hash-chained audit log, custody events and signed certificates — so none
+of this section runs in it, except three computations I come back to below.
 
 The polynomial is worth keeping rather than just evaluating in each arithmetic separately, because it retains
 what the others throw away. Coefficients count *distinct derivations*; exponents count *how many times one
@@ -815,7 +860,7 @@ In MAYA 0.3.0 that holds for feature sets — a row's knowledge time is the late
 for the feature algebra, where six operators drop the clock entirely. A homomorphism has no exceptions to
 forget; an implementation of one can still have six.
 
-Two other things fell out that I hadn't separated properly before:
+Two questions fall out of the same polynomial, and they are easy to run together and worth keeping apart:
 
 - **`lineage`** is every ancestor including derived ones — the right answer to *what breaks if this changes*.
 - **`rests_on`** is the free variables of the polynomial: base features and nothing else — the right answer to
@@ -840,8 +885,8 @@ the freshness of the facts that are present, rather than reporting that it has n
 you "as of when" for a claim it cannot in fact support is exactly the sort of instrument that reads as
 reassurance.
 
-**And I got the repair wrong last time.** I wrote that no different pair of operations could fix it. One
-can, and it's elementary: add a brand-new element `⊥` meaning *no derivation at all* — not the smallest date,
+**It is tempting to conclude that no pair of operations repairs this, and that is too strong.** One pair
+does, and it's elementary: add a brand-new element `⊥` meaning *no derivation at all* — not the smallest date,
 a new thing — make it the identity for "or" and absorbing for "and", and keep `max` everywhere else. That
 *is* a semiring (it's the same move that makes lineage a semiring in the provenance literature), and a claim
 resting on a missing fact now evaluates to `⊥`: *not current at all*, which is the true answer. It also
@@ -924,11 +969,11 @@ against *generated* inputs, with failure treated as a build failure.
 One discipline matters more than the rest. Each law is tested **as it is stated**, not as the implementation
 happens to behave. A test written from the code proves only that the code agrees with itself.
 
-The old build had twenty-one of these laws in one test file — eighteen ran, three were listed with their
-reasons, and a test kept the file and the paper's table in agreement. **That file didn't survive the
-rebuild**, and nothing in MAYA 0.3.0 takes its place as a register. So the register of what runs now lives in
-the paper, not in a test — a weaker arrangement than the one I'm arguing for, and I'd rather say so than
-imply otherwise. The short version, over twenty-five claims:
+The strongest arrangement available is a register that is itself executable: one file stating every law, each
+either asserted against generated inputs or named explicitly as *not* asserted, with a test that fails when
+the file and the paper's table disagree. **MAYA 0.3.0 does not have one.** So the register of what runs lives
+in the paper, not in a test — which is weaker than what this section argues for by exactly the gap the
+section is about, and I'd rather say so than imply otherwise. The short version, over twenty-five claims:
 
 | State in MAYA 0.3.0 | How many | Which |
 |---|---|---|
@@ -937,7 +982,7 @@ imply otherwise. The short version, over twenty-five claims:
 | not there | 7 | the fibration; rule-set reachability; the order and the lattice as such; edge type-checking; the `AsOf` operator itself; the provenance polynomial and citation checking; tiering and regimes |
 | mathematics only | 2 | the aggregate-risk theorem; the `(max, max)` result and its repair |
 
-What the rebuild *does* run, that no earlier version of this argument stated, is a set of laws about the
+What the system *does* run, and what no part of the argument above predicted, is a set of laws about the
 evidence path itself, checked against generated inputs: the canonical encoding is injective up to its
 documented identifications; a pin's hash ignores column order and arrival order and notices any changed value;
 content-defined fragments tile every table, and an inserted row leaves every earlier fragment untouched; a
@@ -963,6 +1008,48 @@ Four things follow, and each is a property of the arrangement rather than of the
 
 The fourth decides whether the other three are real. It's also why the claims that don't run are listed rather
 than described: what they're missing isn't documentation.
+
+### Two checks that aren't laws: conformance, and the second implementation
+
+A law compares an implementation against a statement somebody wrote. Two other comparisons earn their place
+beside it, and both are worth a practitioner's attention because they are the ones that catch the defects
+reading the code doesn't.
+
+**Conformance: the specification against the code.** A model in MAYA has a typed formula tree and, usually, an
+uploaded implementation somebody's engine will actually run. Those are two accounts of one computation, so they
+can be evaluated side by side on thousands of sampled rows — drawn from a feature set's own values when one is
+named — and the report says how often they agreed, within what tolerance, and, where they didn't, a row in
+the units of the problem. That last part is what makes it usable: *"`age=209, balance=427,614, rate=0.05119,
+term=240` → specification −3,061.73, code −14,967.00"* is a bug report, where "conformance failed" is a mood.
+A model whose code disagrees with its specification cannot be submitted.
+
+And the honest clause, which MAYA's own report leads with rather than buries: **sampled agreement is not
+proof.** A comparison can *refute* an implementation and cannot certify one, so by the definition this article
+uses later it is not an oracle at all. Two things follow that the case studies made concrete. A comparison is
+only as good as the domain it drew from — the unit interval is a useless domain for a mortgage balance — so the
+domain is recorded on the result. And a comparison is only as good as the *parameter values* it ran at, which
+is subtler and was the sharper finding: a loading bug that cancels at a decay constant of one agrees on 2,000
+of 2,000 rows when the developer ships their own smoke-test value, and on none when the platform picks from the
+declared bounds. MAYA once evaluated its default comparison at the midpoint of each parameter's bounds, which
+for a signed parameter is exactly zero — so the comparison switched off the very terms it was testing. The
+default point is now well off both the midpoint and any round number. Both the domain and the parameter values
+are on the result, because the gate cannot judge whether a domain is representative and a person can.
+
+**Differential testing: one implementation against another.** Wherever MAYA holds two things that must compute
+the same answer, one of them is named the authority and the other is tested against it on randomised inputs —
+never both trusted, because two trusted implementations are a standing decision to permit disagreement. The
+canonical encoding behind every content hash has a column-at-a-time accelerator six to eight times faster than
+the reference, and an accelerator that disagrees with its reference is by definition the one in error. The fill
+rules have a vectorised form, checked against the per-group original on 96 randomised cases. The two Delta Lake
+backends answer to one conformance suite and must read each other's tables. A spreadsheet lifted into a formula
+tree is checked against the workbook's own cached results *and* against LibreOffice Calc recalculating the same
+file, and a workbook that disagrees is reported cell by cell and can't be submitted. And the self-contained
+kernel and the reference module come off one tree, so running both is the only way to know the two generators
+agree.
+
+None of these is a property-based law, and none of them proves anything. What they do is make a class of defect
+findable that no amount of careful reading reaches, because every one of them is a disagreement between two
+things that were each individually plausible.
 
 ---
 
@@ -1039,8 +1126,9 @@ spreadsheet's lifted formula is evaluated against the workbook's own cached resu
 LibreOffice Calc recalculating the same file, and a workbook that disagrees is reported cell by cell and can't
 be submitted. A feature set bound to a model gets the contract check; a training set gets the certificate; a
 result handed to a regulator gets a bundle whose verifier re-executes it. The instructive exception is
-spec-to-code conformance: sampled agreement can *refute* an implementation and can't certify one, so it isn't
-an oracle — and MAYA's report begins with the words "Sampled agreement is not proof".
+spec-to-code conformance, [above](#two-checks-that-arent-laws-conformance-and-the-second-implementation):
+sampled agreement can *refute* an implementation and can't certify one, so it isn't an oracle at all, which is
+why the reviewer it reports to is doing real work rather than rubber-stamping a green tick.
 
 ### Citation checking is arithmetic, not vibes
 
@@ -1132,25 +1220,33 @@ It's called **MAYA** — Model & AI Lifecycle Assurance — and it's at
 **[github.com/ajsinha/maya](https://github.com/ajsinha/maya)**. It's proprietary; this article and the paper
 are the parts published under an open licence.
 
-The earlier version of this section described a build of 318 modules and 5,394 tests, in which each of the
-four derivations was a module and twenty-one laws were a test file. **That build was deleted in September
-2026**, and MAYA was rebuilt from nothing against a new specification. It would have been easy to leave the old
-numbers standing — they were true when written — and that is exactly the failure this whole article is about:
-a record that has drifted from the thing it describes, still reading as fact.
+Version 0.3.0 is a system of record for quantitative **features**, **feature sets**, **models** and
+**warrants**. A training warrant freezes a model version against a pinned feature set and receives the
+parameters training produced; an execution warrant licenses a model, its parameters and its input contract to
+run — and can be *suspended* by a covenant breach or revoked on a Friday afternoon. It doesn't train models
+and doesn't serve predictions, and that boundary is deliberate: a platform that executed the artefacts it
+governs would be checking its own work.
 
-So, what exists now. Version 0.3.0 (19 September 2026) is a system of record for quantitative **features**,
-**feature sets**, **models** and **warrants**. A training warrant freezes a model version against a pinned
-feature set and receives the parameters training produced; an execution warrant licenses a model, its
-parameters and its input contract to run — and can be *suspended* by a covenant breach or revoked on a Friday
-afternoon. It doesn't train models and doesn't serve predictions. It's some 170 Python modules, 54 tables in
-one typed schema that generates both SQLite and PostgreSQL DDL, an API with a one-to-one SDK, and more than
-1,200 tests. It runs on Linux; Windows and macOS are specified and, by decision, not exercised.
+The shape of it, because numbers are the cheapest thing to check in a document like this. It's 184 Python
+modules in `maya/` and 11 more in `maya_delta/`, its own implementation of the Delta Lake protocol. 57 tables
+come from one typed metadata that generates the SQLite and the PostgreSQL schema file, each checked against
+the metadata for drift on every build — one schema per database, generated, with no migrations. 215 HTTP
+operations each have an SDK method, held one-to-one by a gate that fails the build on a mismatch, which is why
+the web interface is an SDK client with no private path into the services. And 1,706 tests. It runs on Linux
+over SQLite and has been run over PostgreSQL 16, 17 and 18; Windows and macOS are specified as equal
+platforms and, by decision, not exercised.
 
-It's also been measured, on one shared workstation: resolving a 50-attribute, ten-year daily panel of 500
-symbols takes a warm p95 of 0.98 s (6.1 s with a bounded forward fill on every attribute), against a 15 s
-target; catalog search over 100,000 objects, 0.16 s; the worst metadata page, 0.15–0.18 s. The fourth target —
-200 concurrent users on one node without degradation — is **not met reliably**: three runs gave p95s of 0.34 s,
-0.22 s and 0.43 s against 0.3 s.
+It's also been measured, and the measurements are on a developer workstation with an IDE running rather than a
+benchmark host, which is the first thing to know about them. Resolving a feature set of 500 symbols by ten
+years of business days by 50 attributes takes a warm p95 of 0.98 s — 6.1 s with a bounded forward fill on
+every attribute — against a 15 s target. Catalog search over 100,000 objects has a p95 of 0.16 s against 500
+ms. The worst of eleven metadata screens has a p95 of 0.15 s on SQLite with one process and 0.18 s on
+PostgreSQL with eight, against 300 ms. The fourth target — 200 concurrent interactive users on one node with
+no degradation of the single-user p95 — is **not met reliably**: three runs of an identical configuration gave
+p95s of 0.34 s, 0.22 s and 0.43 s against 0.3 s. One run of three passing is not a pass. The spread is most
+likely the machine rather than the code, but that is an inference, and only a quiet dedicated host would turn
+it into a measurement; a dedicated host is out of scope by decision, so the figure stands as it is rather
+than being rounded into a verdict.
 
 What of *this* article is in it is the register in the laws section above: six claims run, ten run in part,
 seven aren't there. The ones that run are the ones a register of *data and licences to compute* needed — the
@@ -1159,16 +1255,19 @@ the ones that aren't are the ones a register of *kinds of model* would need.
 
 ### Five things building it changed
 
-**The certificate replaced the operator.** The old build implemented `AsOf`, and its first version read `a`
-where the definition says `min(ℓ, a)` — the saturation property test caught it. The rebuild doesn't implement
-the operator. It reads with one scalar bound and *certifies* the per-row bound afterwards, and the two results
-in the operator section above are what that is worth: a clean certificate means the operator's answer, and a
-later rebuild is reproducible or refused. I proved those for this revision; I didn't design them in.
+**The certificate replaced the operator.** MAYA reads with one scalar knowledge bound, as most bitemporal
+systems do, and then *certifies* the per-row bound on the training set, signs the result and attaches it to the
+warrant. The two results in the operator section above are what that arrangement is worth — a clean certificate
+means the operator's answer, and a later re-assembly is reproducible or refused — and they were proved to find
+out rather than designed in. The arrangement buys something the operator cannot express, a late fact accepted
+with a written reason, and costs the guarantee on every row the certificate cannot see. Neither half was
+visible from the mathematics alone.
 
-**A contract that was true of everything.** The rebuild's own proofs found that a declared black-box model had
-an *empty* input contract, so every feature set satisfied it. Fixed. Writing this revision found the same
-shape one step later — the parameter check that reads a missing formula body as "non-trainable". Both are a
-check reading an absence as compliance. Neither was found by review.
+**A contract that was true of everything.** A declared black-box model was found to carry an *empty* input
+contract, so every feature set satisfied it. It now carries the contract it declares. The same shape sits one
+step later and is unrepaired — the parameter check that reads a missing formula body as "non-trainable". Both
+are a check reading an absence as compliance, neither was found by review, and both were found by asking what
+a check does when the structure it reads is missing.
 
 **Two implementations, one authority.** Speed wanted a second implementation in three places: the lake (native
 and pure-Python backends), the canonical encoding behind every hash (a column-at-a-time encoder, six to eight
@@ -1182,23 +1281,172 @@ output *without writing the output*, replaying it from the member pins on every 
 the same hash. A replay that differs by one byte is refused rather than served — safe, and then unavailable.
 It's the operator's trade made in bytes.
 
-**The clock the algebra dropped.** The feature-set assembly carries the knowledge clock; six feature-algebra
-operators don't. Found writing this revision, reported rather than fixed, because the repair belongs to the
-platform and this is an article.
+**The clock the algebra dropped.** The claim is that a derived feature's knowledge time is the latest of its
+inputs'. Checking it against the code found that feature-set assembly honours it and six of the fifteen
+feature-algebra operators do not. It is reported and not repaired, and it is the clearest example here of what
+the honesty is for: the claim is stated, the implementation contradicts it, and the two are on the same page.
 
-### The case studies
+### Mathematics in, a typed tree back
 
-The earlier version of this article walked two public cases — the 2012 JPMorgan CIO losses and the Dutch
-childcare benefits affair — through the old build, and reported what it caught and what it couldn't. Those
-scripts didn't survive the rebuild and nothing in 0.3.0 reproduces them. Their findings were findings about a
-system that no longer exists, so I've taken them out rather than let them stand as claims about this one.
+One small piece of the system is worth describing on its own, because it is where the separation this whole
+article rests on — the dials apart from the machinery — stops being an argument and becomes something a quant
+can click.
+
+A model's mathematics is written in LaTeX, and MAYA parses it into a typed tree rather than storing the string.
+The trouble with that arrangement is the moment of discovery: without a step of its own, the person who wrote
+the mathematics learns what MAYA made of it only once a version exists to hold it, which is a poor moment to
+learn that a multi-letter symbol was read as a product of single letters. So the translation is offered on its
+own. You paste the formula, name which symbols are parameters and which are features, and back come four
+things: the LaTeX *re-rendered from the tree MAYA parsed* rather than from the text you typed, so a misreading
+is visible rather than latent; the typed tree a version would store, with the hash that would identify it;
+every input it found, with the role each was given and therefore which side of the parameter/input divide it
+landed on; and one self-contained Python function that computes it.
+
+Three details are the whole value. It creates nothing and reads nothing, so there is no draft to clean up and
+nothing to approve. A formula MAYA cannot read is refused *here*, with the reason — the alternative being to
+find out at registration. And the same parser and the same generator serve the registration path, so what you
+are shown is what a registered version would hold, not an approximation of it.
+
+The generated function is one function. Its imports and its helpers are nested inside it, so nothing it
+defines can collide with whatever module somebody pastes it into — which sounds like a tidiness point and is
+not: a generated file that declares `_ncdf` at module scope is a file that will one day silently shadow
+somebody else's. And the function and the reference implementation MAYA shows on a version's code tab come off
+the same tree by the same rules, so a divergence between them is a bug in one of the two generators, and the
+only way to know is to run both — which is the
+[differential testing](#two-checks-that-arent-laws-conformance-and-the-second-implementation) discipline
+above, applied to the platform's own code generation.
+
+### Nine models, carried the whole way
+
+The repository carries nine worked case studies, each a real model taken through the whole chain — feature,
+feature set, pin, model version, specification document, training warrant, parameters, blind score, execution
+warrant, covenant breach, suspension — by scripts that use nothing but the platform's own SDK, signed in as
+named users with those users' roles, so every refusal in them is the real capability matrix saying no. Each
+builds a MAYA from nothing in about two seconds and runs in ten to twenty seconds. They exist because a
+formalism exercised only by its author's unit tests has not been exercised, and each was chosen for one thing
+it makes the platform do: a library of fifty models that all made the same six calls would demonstrate
+nothing a single one could not. (Fifty are catalogued; nine are built.)
+
+The nine are a retail PD scorecard, a scheduled mortgage cashflow model, a mortgage prepayment model, a
+home-equity exposure model, a Black–Scholes pricer, an IFRS 9 expected-credit-loss composite, a card-fraud
+neural network governed as a declared black box, a factor model from CAPM to Fama–French, and a Nelson–Siegel
+yield curve registered from four lines of LaTeX. Between them they have caused platform fixes rather than
+merely demonstrated features, which is the part worth reporting: a composite's union contract that omitted an
+input the composite required and then failed at evaluation for something the contract check had passed; an
+output covenant declared without an attribute, which was compared against nothing and could never breach — a
+control that watches nothing being worse than an absent one; a black box whose declared parameter arrays were
+neither recorded nor checked, because both the schema and the bounds check read the formula *body*; a
+deprecation that moved a version's state and left its maturity where it was, which matters exactly because a
+composite's maturity is capped at its members'; and a version that could be retired while its execution
+warrant was still live and serving.
+
+Two of the nine earn a longer description, for what they refused to do.
+
+**The expected-credit-loss study, and a parameter belonging to nobody's model.** IFRS 9 asks for an allowance
+for expected losses, and the number lands in the financial statements — so the auditor's question is not "is
+the model good" but "which numbers produced this, who approved each of them, and what did they know when they
+did". Structurally the allowance is a probability of default times a loss given default times an exposure,
+multiplied by a lifetime factor when the account's default probability has risen by more than a threshold
+since origination. Three of those are models. Two — the threshold and the lifetime factor — are not: they are
+decisions, and they are precisely the ones an impairment committee argues about.
+
+That is where the study found something. MAYA's union contract for a composite took only the *members'*
+declarations, and a composite can be more than a product of its members: the weight in a blend, the threshold
+in a router, the horizon multiple here. So the two numbers the committee argues hardest about were declared
+nowhere, the bounds check had nothing to look for, and the warrant would have sealed without them. They are
+part of the composite's own contract now, and the seal waits for them by name.
+
+Then the committee's numbers arrive, and they were a minuted decision rather than something fitted to the rows
+MAYA handed over. So they are uploaded with no data checksum, MAYA flags them as unverified and refuses
+approval until somebody justifies it in writing — and the study's remark on that is the one to carry away:
+quoting the training data's checksum to make the flag go away would have been a small lie, because it would
+claim the judgement came from that data. It is approved with the justification instead, and the justification
+is still there for anybody who reads the estate afterwards.
+
+The result is a finding the study declines to close. Against its own generating process the allowance is 2.67
+times the realised loss, with 83% of accounts in the stage that carries the lifetime multiple and 99.5% of the
+allowance coming from that stage. A sensitivity grid over the threshold shows what a modeller is tempted to do
+and why it doesn't work: coverage falls from 2.69 to 1.31 as the threshold rises from 1.5 to 40, so the
+threshold explains part of the gap — and at a threshold nobody would defend, the allowance is still 31% above
+the loss realised on the same accounts, so it does not explain the rest. The study records the residual as open
+and names the two candidates already written into the members' own documents, rather than picking the threshold
+that flatters the total. A threshold that can be tuned until the allowance matches last year's losses has
+stopped being a threshold.
+
+One more thing in it is worth a sentence, because it is the kind of honesty a platform makes possible and
+cannot supply. The blind score on escrowed rows is a per-account error of about £9,600 — and a second blind
+attempt on the same rows with the default probability driven to zero, which is to say holding no allowance at
+all, scores *better*, about £6,900. Both attempts are on the warrant, so the comparison is on the record rather
+than in a README. An expectation of £900 against an outcome of either nothing or £40,000 produces a large error
+whether or not the expectation is right, and a per-account error cannot tell a well-levelled allowance from a
+badly levelled one. Quoting the first number as accuracy would have been misleading, so the study quotes both.
+
+**The Nelson–Siegel study, and the bug a recalibration absorbs.** A sterling rates desk is quoted at 21
+benchmark tenors and needs rates where nothing is quoted. The curve is four numbers: a long rate, a slope, a
+hump and a decay constant that decides where the hump sits. Three of the four are chosen by least squares. The
+fourth cannot be, and everything interesting follows from that.
+
+The model is registered from four lines of LaTeX, with both factor loadings written as *named intermediates* —
+the difference between a specification a reviewer can read and one he has to parse — and that turns out to
+matter operationally, because the calibrator then asks the model for its own loadings instead of writing them
+out a second time. The design matrix is obtained by evaluating the approved tree with one factor at one and
+the others at zero, so the study contains no second implementation of the curve to be wrong in a different way.
+
+The planted defect is the commonest error there is in this model: a loading divided by the maturity where it
+should be divided by the maturity over the decay. It has two properties. First, it is *exactly right* when the
+decay constant is one — and one is what the desk ships with its code, because it is the value you can check by
+hand. So the platform's own comparison of the specification against the code agrees on 2,000 of 2,000 sampled
+rows, twice, on two different domains. Run the same comparison at the parameter values MAYA picks from the
+declared bounds and it agrees on none of them. On the passing evidence MAYA lets the version through; it is the
+*reviewer* who sends it back, and what she now reads beside the agreement count is the parameter values it was
+run at, which is what makes her objection sayable.
+
+Second, and this is the property that justifies the whole apparatus: the wrong loadings span the same
+three-dimensional space as the right ones. So least squares against the buggy code lands on exactly the same
+curve — same long rate, same hump, same in-sample error to two decimal places, the two fitted curves differing
+by less than a millionth of a basis point. Every statistical check passes identically. What is wrong is the
+number the desk then reports as its slope factor, and what happens when anybody other than the desk's own code
+evaluates those coordinates: MAYA's blind score on them is 54 basis points, against the 18 the desk truthfully
+reported in sample on its own code, because MAYA evaluates the *specification*. A bug that a recalibration
+absorbs cannot be found by measuring how well the model fits. It can only be found by comparing the code
+against the mathematics.
+
+The study also found that the decay constant is barely identified. Over a threefold range the fit changes by
+less than half a basis point, and each day's own best value wanders between 0.85 and 3.37 while the number
+that generated every day's data was constant. So the study reports the whole objective profile rather than its
+minimum, and says in the specification, in those words, that it is flat: a parameter like that is a convention
+to be approved once and revisited annually, not a measurement to be compared across desks or tracked week to
+week.
+
+And it is the study that put joint parameter constraints into the platform. The condition it needed — that the
+long rate plus the slope, being the instantaneous short rate, is not negative — spans two parameters, and a
+table of per-parameter bounds has nowhere to put it. Before they existed, MAYA accepted a parameter set inside
+every declared bound whose implied short rate was −6.7%, and the only things between that set and production
+were a human approval and a blind score after the fact. Now the model declares the condition itself and the
+upload is refused, in the model's own words, quoted back at the person who would have shipped the curve. An
+output covenant would have noticed the consequence eventually — but only after the parameters were live, which
+is the whole difference between a bound and a covenant.
+
+What the study is *for*, though, is a question it cannot answer and states carefully: a fitted curve is a
+feature, its shape is a model, MAYA supports both halves and cannot yet join them. A parameter set is one
+vector of numbers; a curve is a vector of numbers per day, which over two years is 522 parameter sets nobody
+will ever submit and approve. Licence the curve as a model and you licence an average nobody trades on, which
+is exactly the gap between the 18-and-a-half basis points MAYA can blind-score for one licensed curve and the
+3.6 the desk actually achieves by refitting every day. Register it as a feature and you get the knowledge time,
+the quality contract and the lineage, and you lose the specification, the bounds, the conformance test and the
+approvable parameters. The study's proposal is that a model version's parameters should be bindable to a
+governed feed the way its inputs already are — the shape approved once, the factors re-derived every evening by
+machine — and its closing ask is the one this article's polynomial section would make too: that the leakage
+certificate be able to say *this feature was fitted to this warrant's target*, a circularity no bitemporal
+rule can see.
 
 ### And the part that's for practitioners
 
 The mathematical audience and the model-risk audience barely overlap, and a paper that serves both usually
-serves neither. MAYA carries help written with no notation in it — topics on bitemporality, pins, warrants,
-licences and conformance, four tutorials and thirteen reference guides. They describe the system rather than
-this argument; if you want to know what the platform does rather than why, start there.
+serves neither. MAYA carries help written with no notation in it — twenty-six topics, including ones on
+bitemporality, pins, warrants, licences and conformance, plus four tutorials and thirteen reference guides.
+They describe the system rather than this argument; if you want to know what the platform does rather than
+why, start there.
 
 ---
 
@@ -1209,7 +1457,10 @@ above — which is more than a conceptual paper usually has and much less than e
 thing is internally consistent, not that it is useful. I have not shown that a system built this way is
 easier to build, extend or operate than one built without it, there's no comparative study and no
 deployment at a supervised institution, and I wrote both the paper and the system, so it demonstrates
-sufficiency rather than independent replication.
+sufficiency rather than independent replication. The nine case studies are the nearest thing to evidence here
+and they are not it either: they show that real models go through, and that going through them found defects,
+and they were written by the same person. Even the system's own usability criterion — a new model designer
+publishing a first model unaided in under an hour — has not been measured with a real person.
 
 **The derivations still read declarations.** The class reads a declared fit procedure. The order compares
 declared schemas. The operator reads declared clocks. The polynomial is built over declared derivation edges.
@@ -1219,9 +1470,10 @@ coming back in three: the parameter check, the certificate's blind spot for rows
 valuations that read a missing annotation as "no restriction".
 
 **Three routines for one relation.** The argument says write fit once; MAYA 0.3.0 has three routines, and
-they already disagree about whether an integer may stand in for a float. The old build had a subtler version
-of the same problem — two variance rules for outputs, one for composition and one for substitution — which the
-rebuild hasn't reached only because it compares no bounds yet.
+they already disagree about whether an integer may stand in for a float. A second divergence of the same kind
+is waiting: composition and version substitution may reasonably judge a *narrowed output* differently, one
+refusing it and one permitting it. MAYA hasn't reached that one only because it compares no bounds yet. Both
+readings are defensible; holding both silently is not.
 
 **Most of the argument doesn't run in the system.** Six of twenty-five claims run, ten in part, seven not at
 all — and that register lives in the paper, not in a test, so nothing keeps it true. The interaction premium
@@ -1229,7 +1481,7 @@ in particular is computed nowhere: the theorem says what a correct aggregate can
 
 **The lattice is finite-fragment, and half of it isn't built.** No bottom element, and the meet is partial —
 both honest, and both meaning the structure is weaker than "schemas form a complete lattice" would lead you to
-believe. In the rebuild the meet is in daily use and the join doesn't exist.
+believe. In MAYA the meet is in daily use, on names and types, and the join doesn't exist at all.
 
 **Formalising regulation is lossy and contestable.** An institution encoding is a claim *about* a regulation.
 Two competent people may encode the same text differently and both be defensible. What the formalism gives

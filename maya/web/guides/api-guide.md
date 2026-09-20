@@ -303,6 +303,7 @@ curl -N https://maya.example.com/api/v1/jobs/$JOB/events -H "Authorization: Bear
 | `GET /models/{ns}/{name}/diff?v1=&v2=` | What changed. |
 | `GET /models/{ns}/{name}/versions/{v}/reference` | Generated reference code. |
 | `POST /models/{ns}/{name}/versions/{v}/conformance` | Conformance test of the artifact against the formula. |
+| `POST /formula/kernel` | Translate written mathematics into the typed IR, its hash, the LaTeX MAYA renders it back as, the inputs with their roles, and Python — one self-contained function and the reference module. Creates nothing and reads nothing, so any signed-in caller may use it. |
 
 ### Warrants and bundles
 

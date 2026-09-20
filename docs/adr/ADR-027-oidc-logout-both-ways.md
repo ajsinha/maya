@@ -26,7 +26,7 @@ logout (ADR-024); OIDC had to match it.
 ## Consequences
 
 - The MAYA session always ends first. If the IdP cannot be reached at sign-out, the web tier
-  still clears the session and returns to the login page; only the IdP session survives.
+  still clears the session and returns to the landing page; only the IdP session survives.
 - A back-channel logout reaches other web processes within the principal-cache window
   (ADR-026).
 - Keycloak's "sign out all sessions" of a user was seen to send a logout token for one of that

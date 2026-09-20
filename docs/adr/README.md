@@ -84,6 +84,8 @@ do), then ADR-014 (what is not exercised). The rest can be read when their subje
 - **Decisions below the level of the register** — the ten innovations of §29, the seam
   polarity rule of §13.4.1, the sandbox tiers — are argued in the specification itself and
   are not repeated here.
-- **The code does not yet point back at these records.** Plan §10 asks for every
-  architectural decision to be referenced from the code it governs; a handful of modules
-  cite the D-numbers, none cites an ADR number.
+- **The code barely points back at these records.** Plan §10 asks for every architectural
+  decision to be referenced from the code it governs. Three modules do —
+  `maya/config/schema.py`, `maya/plugins.py` and `maya/observability/caches.py`, citing
+  ADR-007, 013, 019, 022, 024, 026 and 027 — and everything else cites a D-number or
+  nothing. Twenty-one of the twenty-eight records are named nowhere in the code they govern.

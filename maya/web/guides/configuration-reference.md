@@ -178,11 +178,33 @@ MAYA connects to PostgreSQL through the `psycopg` driver (`postgresql+psycopg://
 | `auth.session.idle_timeout_minutes` | `30` | A session unused this long ends. |
 | `auth.session.absolute_timeout_hours` | `12` | A session ends this long after sign-in, however active. |
 | `auth.session.principal_cache_seconds` | `2` | How long a signed-in session's principal is reused, since one page makes several internal calls. `0` turns it off. A sign-out, revocation or access change made in another web process reaches the session at most this many seconds late; in the same process it applies at once. Sessions still owing a second factor are never reused. |
-| `auth.password.min_length` | `12` | The minimum password length. A password must also use three of: lower case, upper case, digits, symbols. |
+| `auth.session.concurrent_sessions` | `3` | Live sessions one person may hold; a further sign-in ends their oldest. `0`: no cap. |
+| `auth.password.min_length` | `12` | The minimum password length. |
+| `auth.password.require_classes` | `3` | How many of lower case, upper case, digits and symbols a password must use (1–4). |
+| `auth.password.history` | `5` | How many previous passwords may not be chosen again. `0`: no history. |
+| `auth.password.max_age_days` | `90` | A password older than this must be changed before its owner can sign in. `0`: never. |
+| `auth.password.reset_token_minutes` | `60` | How long a reset token is valid. It is single use whatever its age. |
 | `auth.lockout.attempts` | `5` | Failed attempts inside the window that lock an account. |
 | `auth.lockout.window_minutes` | `15` | The window in which failures count. |
 | `auth.lockout.duration_minutes` | `30` | How long a locked account stays locked. |
 | `auth.api_keys.max_days` | `365` | The longest life an API key may be given. Keys default to 90 days. |
+| `auth.api_keys.rate_per_minute` | `0` | A key's own request budget a minute when it declares none. `0`: the process limit of `api.limits` only. |
+| `auth.api_keys.rotation_overlap_days` | `7` | How long a rotated key keeps working beside its successor. |
+| `auth.api_keys.unused_days` | `90` | A key unused this long is reported for revocation. |
+| `auth.api_keys.remind_days_before_expiry` | `14` | How long before expiry a key is reported for rotation. |
+| `auth.client_credentials.token_minutes` | `60` | How long an access token from the client-credentials grant lives. |
+
+**Break-glass.** §13.3 requires a way in when the identity provider is down. It is a named
+account, not a configuration change made at the worst possible moment: these accounts may
+sign in with a password even under `auth.mode: sso`, they are ordinary database accounts
+holding the administrator role, a second factor applies to them as to anyone, and every such
+sign-in is audited at warning level and notified to every administrator. The SSO outage
+runbook (`docs/runbooks/sso-outage.md`) is the procedure.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `auth.break_glass.users` | empty | The accounts allowed that door, comma separated. Empty: nobody, and an IdP outage locks everyone out. |
+| `auth.break_glass.session_minutes` | `60` | How long a break-glass session lasts, whatever the ordinary session timeouts say. |
 
 ### Single sign-on (OIDC)
 
@@ -257,6 +279,31 @@ The group mapping, JIT provisioning and `on_missing_group` keys above apply to S
 | `auth.mfa.required_for_roles` | `[admin, model_owner]` | — | The roles that require a second factor. |
 | `auth.mfa.issuer_name` | `MAYA` | — | The issuer shown in authenticator apps. |
 
+## api.limits
+
+What one caller may ask for. Every one of these is counted **per web process**, so
+`server.workers: 8` multiplies each of them by eight — a limit meant to protect one process's
+memory and event loop, not the estate's.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `api.limits.max_body_bytes` | `268435456` (256 MB) | Largest request body accepted, refused by its `Content-Length` or as it streams in. `0` turns it off. |
+| `api.limits.requests_per_minute` | `6000` | Requests a caller may make in a minute before MAYA answers `429` with `Retry-After`. The caller is the API key id, else the session, else the peer. `0` turns it off. |
+| `api.limits.burst` | `1200` | Requests a caller may make back to back before the per-minute rate applies. |
+| `api.limits.max_concurrent` | `128` | Requests in flight in one web process before it answers `503` rather than queueing. Shedding is honest; a queue that never drains is not. `0` turns it off. |
+| `api.limits.timeout_seconds` | `120` | How long a request may run before it is answered `504`. Work already committed is not undone. `0` turns it off. |
+
+**Archives from outside.** A reproducibility bundle, an estate and an `.xlsx` are all zip
+files, and a zip file is a promise about its own size that an attacker writes. Each is checked
+before it is read, and a member is read no further than its entry table declares. The verifier
+a bundle carries checks the same before extracting.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `api.limits.archive.max_entries` | `5000` | Entries an uploaded zip may declare. |
+| `api.limits.archive.max_expanded_bytes` | `2147483648` (2 GB) | How far it may expand in total. |
+| `api.limits.archive.max_expansion_ratio` | `200` | Expanded bytes per compressed byte over the archive as a whole: past this it is a decompression bomb. |
+
 ## sandbox
 
 | Key | Default | Meaning |
@@ -275,12 +322,28 @@ The group mapping, JIT provisioning and `on_missing_group` keys above apply to S
 |---|---|---|---|
 | `typeset.require_true_build` | `false` | `MAYA_REQUIRE_TECTONIC` | When `true`, the `spec_true_build` check refuses to approve a model whose specification PDF is a watermarked draft render. Outside dev the check requires a true build regardless of this key. |
 
+A LaTeX build runs user-supplied source, so it is capped like any other user code (§17.1), and
+the caps are recorded on the model version so a reviewer knows what the build was allowed to do.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `typeset.timeout_seconds` | `120` | Wall clock and CPU a build may spend before it is stopped. |
+| `typeset.memory_mb` | `2048` | Address space a build may map. TeX takes its arenas up front, so this is generous by nature: its job is to stop a runaway macro, not to be tight. |
+| `typeset.output_mb` | `64` | Largest file a build may write, which caps the PDF and the log together. |
+
 ## jobs
 
 | Key | Default | Meaning |
 |---|---|---|
 | `jobs.workers` | `2` | Worker threads claiming jobs from the database queue. |
 | `jobs.max_attempts` | `3` | Attempts before a failing job is dead-lettered, with the failure kept. |
+| `jobs.fair` | `true` | Claim jobs by weighted fair queueing across owners rather than in strict arrival order, so one person's campaign cannot starve everybody else (§15.2). |
+| `jobs.claim_candidates` | `200` | Queued rows a worker ranks when claiming fairly. Larger is fairer and slower. |
+| `jobs.per_user.max_concurrent` | `4` | Jobs one owner may have running at once across the fleet. `0`: no cap. |
+| `jobs.per_user.max_queued` | `200` | Jobs one owner may have waiting. A further submission is refused with an estimated wait. `0`: no cap. |
+| `jobs.queue.max_depth` | `2000` | Queued jobs across everyone before MAYA sheds load and refuses new submissions (§15.4). `0`: no cap. |
+| `jobs.queue.seconds_per_job` | `10` | Assumed service time per job, used only for the wait estimate in a backpressure refusal — which is there so the refusal is honest rather than merely a refusal. |
+| `featuresets.cascade_wait_seconds` | `120` | How long a cascade pin waits for its member pins before giving up and rolling the whole cascade back. |
 
 ## observability
 
@@ -291,6 +354,40 @@ The group mapping, JIT provisioning and `on_missing_group` keys above apply to S
 | `observability.webhooks.max_attempts` | `8` | — | Delivery attempts before a webhook delivery is dead. |
 | `observability.webhooks.timeout_seconds` | `5` | — | The timeout of one delivery attempt. |
 | `observability.webhooks.allow_private` | `false` | — | Allows webhooks to plain-HTTP localhost and to private addresses. Honoured only in dev. |
+| `observability.metrics.namespace_gauges` | `true` | — | Collect pins and bytes stored per namespace at scrape time. It counts pin rows on every scrape, so a very large estate may want it off. |
+| `observability.metrics.cache_seconds` | `60` | — | How long the costly scrape-time gauges — lake file counts, pins per namespace — are held before being recomputed. |
+| `observability.slow_query_ms` | `500` | — | A database statement slower than this counts as a slow query in `/metrics`. |
+
+## integrity
+
+| Key | Default | Meaning |
+|---|---|---|
+| `integrity.verify.interval_seconds` | `86400` | How often the maintenance scheduler submits an integrity verification job, which re-reads every sealed pin and recomputes its hash (§20, §21.3). Runs are deduplicated per window, so several web processes do not each start one. `0`: on demand only, from `maya admin verify-integrity` or the API. |
+
+## notify
+
+The channels beside the in-app inbox and the signed webhooks. **Each is off until configured**,
+because a platform that mails people by default mails the wrong people the first time it starts,
+and a channel that cannot send says so rather than dropping the notice — the inbox copy is
+always written first. Every URL and password here is a secret, so it belongs in the environment
+or `application.local.yaml`, which the no-secrets gate enforces.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `notify.email.host` | empty | SMTP host. Empty: MAYA sends no email. |
+| `notify.email.port` | `587` | SMTP port. |
+| `notify.email.from` | empty | Envelope sender. |
+| `notify.email.username` | empty | SMTP username, where the server wants one. |
+| `notify.email.password` | empty | SMTP password. **A secret.** |
+| `notify.email.starttls` | `true` | Upgrade the connection with STARTTLS. |
+| `notify.slack.webhook_url` | empty | Slack incoming-webhook URL. **A secret**, and one channel per URL: MAYA posts the notice and does not name recipients. |
+| `notify.teams.webhook_url` | empty | Microsoft Teams incoming-webhook URL. **A secret**; see the Slack note. |
+
+## plugins
+
+| Key | Default | Meaning |
+|---|---|---|
+| `plugins.allow` | empty | Names of installed `maya.<point>` entry-point plugins MAYA may load, comma separated. An entry-point plugin runs in MAYA's own process with MAYA's privileges — it can read the database and the signing key — so §25's "untrusted plugins run under the sandbox rules" cannot be true of it, and the safety rule is this allowlist instead. Anything installed and not named here is listed on the admin **Extensions** page as refused, with that reason, rather than being absent for no visible cause. A plugin that fails to import is reported too, and does not stop MAYA. |
 
 ## sources
 
@@ -302,6 +399,13 @@ Limits for `python` sources: a producer function run in the sandbox on each pull
 | `sources.python.memory_mb` | `1024` | Memory allowed. |
 | `sources.python.wall_seconds` | `60` | Wall-clock time before the child is killed. |
 | `sources.python.max_output_mb` | `20` | The largest result accepted. |
+
+A `delta` source reads a Delta table already on the server, which is a file path a definition
+supplies — so it is confined, or it is a peephole into the filesystem.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `sources.delta.roots` | empty | Directories a `delta` source may read, separated by the platform's path separator. Empty means the lake root alone. A path outside them is refused. |
 
 ## assistant
 

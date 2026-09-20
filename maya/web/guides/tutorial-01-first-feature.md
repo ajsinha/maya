@@ -28,8 +28,9 @@ pins. An administrator sets them up.
 python run_maya_web.py
 ```
 
-Open `http://127.0.0.1:8600` and sign in as `admin` with the development
-password `maya-dev-admin`. MAYA asks you to change it in the browser.
+Open `http://127.0.0.1:8600`. Signed out, that is the landing page; take
+**Sign in** from it and sign in as `admin` with the development password
+`maya-dev-admin`. MAYA asks you to change it in the browser.
 
 ## Step 2: Create the people and the namespace
 
