@@ -18,7 +18,7 @@ open the web UI and show what the last one actually created. That is the demonst
 | `setup_features.py` | Reads the three CSVs, declares a feature definition for each, ingests the rows into MAYA's Delta lake, submits them as **dana** and approves them as **mick**. | Definitions as governed objects; knowledge time declared per feed; **dana refused when she tries to approve her own feature**. |
 | `setup_featureset.py` | Composes the three features into `pd_panel` on `(date, account)` with as-of alignment, approves it, and pins it point-in-time (cascading to the members). | As-of alignment instead of resampling; an immutable, content-hashed pin; the gap the alignment leaves rather than fills. |
 | `setup_model.py` | Registers the scorecard as a formula, tries to submit it with an empty document, then fills the nine required sections and gets it approved. | The input contract MAYA derives from the formula; **submission refused while the specification is incomplete**; the mathematics MAYA renders. |
-| `get_training_warrant.py` | Draws a warrant naively, then draws it again with the forward-looking target explained. | The contract report; **the leakage certificate refusing all 36,000 rows**, and the written exception that lets the work proceed. |
+| `get_training_warrant.py` | Draws a warrant naively, then draws it again with the forward-looking target explained. | The contract report; **the leakage certificate refusing all 9,600 rows**, and the written exception that lets the work proceed. |
 | `fit_parameters.py` | Opens the warrant's data, fits by IRLS on the training partition, uploads the fit twice — once with the wrong data checksum, once with the right one — then has MAYA score the escrowed holdout. | The developer never sees the test partition; **parameters that cannot prove their data are refused approval**; blind scoring, counted. |
 | `get_execution_warrant.py` | Draws an execution warrant with two covenants, gets it approved by a *second* model manager, takes it live, then reports a batch with 31% of bureau scores missing. | The two-person rule; a PSI baseline fixed from the training data; **the warrant suspending itself and naming who to call**; reinstatement with a reason. |
 | `show_estate.py` | Creates nothing. Reads back the catalog, the audit chain, the warrant's custody and the full lineage graph, and prints how to browse it all in the UI. | That everything above is discoverable afterwards by someone who was not in the room. |
@@ -65,12 +65,12 @@ a model quietly goes wrong.
 
 | File | Rows | Grain | Arrives | Why it matters |
 | --- | --- | --- | --- | --- |
-| `servicing_monthly.csv` | 36,000 | account × month end | month end **+ 5 days** | The values are *known* after the dates they are about. A backtest that assembles a portfolio on the last day of the month is using figures nobody had. |
-| `bureau_file.csv` | 12,000 | account × quarter end | quarter end **+ 15 days** | A different frequency and a longer lag. At most observation months the best available bureau score is up to four months stale. |
-| `default_outcome.csv` | 36,000 | account × month end | month end **+ 366 days** | The target. Whether the account defaulted over the *following* twelve months cannot be known until those twelve months have passed. |
+| `servicing_monthly.csv` | 9,600 | account × month end | month end **+ 5 days** | The values are *known* after the dates they are about. A backtest that assembles a portfolio on the last day of the month is using figures nobody had. |
+| `bureau_file.csv` | 3,200 | account × quarter end | quarter end **+ 15 days** | A different frequency and a longer lag. At most observation months the best available bureau score is up to four months stale. |
+| `default_outcome.csv` | 9,600 | account × month end | month end **+ 366 days** | The target. Whether the account defaulted over the *following* twelve months cannot be known until those twelve months have passed. |
 
-1,200 accounts over thirty months, 2023-01 to 2025-06. The book's realised twelve-month
-default rate is **26.6%** — high for a real card book, and chosen so that the holdout
+400 accounts over twenty-four months, 2023-01 to 2024-12. The book's realised twelve-month
+default rate is **26.7%** — high for a real card book, and chosen so that the holdout
 partition has enough events for the metrics to mean something at this size.
 
 Underneath, each borrower has a latent quality that the model never sees. Utilisation,
@@ -131,7 +131,7 @@ carry it at all.
 This has a visible consequence that the study prints rather than hides: the earliest
 observation months of the panel have **no** bureau score, because no file had been
 delivered yet. MAYA leaves the gap as a gap. The fit therefore uses complete cases and
-says what that cost — **2,055 of 30,705 rows**. A platform that had forward-filled from
+says what that cost — **683 of 8,151 rows**. A platform that had forward-filled from
 nothing, or imputed the mean, would have produced a fit with no warning attached and a
 coefficient contaminated by an invention. The model's *Known Weaknesses* section now says
 so in writing, where a reviewer will read it.
@@ -202,7 +202,7 @@ than its event date (plus a declared lag)*. Drawn naively, the certificate comes
 
 ```
 status:          refused
-violating rows:  36,000
+violating rows:  9,600
 ```
 
 All of them. This is correct, and it is the most instructive moment in the study. The
@@ -213,7 +213,7 @@ at its event date. Submitting the warrant is refused outright:
 
 ```
 NotApproved: Blocked by check(s): leakage_certified —
-  leakage certificate: refused; 36000 violating row(s)
+  leakage certificate: refused; 9600 violating row(s)
 ```
 
 The wrong response is to widen the rule. The right response — and the one MAYA forces — is
@@ -233,7 +233,7 @@ claim somebody signed.
 
 ## 7. Fitting, and tying the fit to its data
 
-`warrant.data()` hands over the training and validation partitions — **30,705 rows** — and
+`warrant.data()` hands over the training and validation partitions — **8,151 rows** — and
 nothing else. The test partition is escrowed by MAYA; `ds.X` excludes the target, and the
 study asserts as much (`target among the inputs: False`).
 
@@ -243,12 +243,12 @@ the fit, not the optimiser. On the run recorded here:
 
 | | intercept | wUtil | wDti | wDelinq | wBureau |
 | --- | --- | --- | --- | --- | --- |
-| fitted | −3.917 | +3.704 | +2.602 | +0.547 | −0.095 |
+| fitted | −4.374 | +4.919 | +2.400 | +0.613 | +0.132 |
 
 Every sign is the right way round: higher utilisation, higher debt-to-income and more
 delinquencies raise the probability of default; a better bureau score lowers it. AUC is
-**0.758** on training and **0.760** on validation — close together, which is what an
-unpenalised four-driver linear scorecard on 30,000 rows should look like, and a useful
+**0.754** on training and **0.763** on validation — close together, which is what an
+unpenalised four-driver linear scorecard on this much data should look like, and a useful
 sanity check that nothing has leaked into the fit.
 
 Uploading the parameters is where MAYA closes the loop. The script uploads the same
@@ -265,13 +265,13 @@ over, and a set that cannot prove its provenance is marked as such forever.
 
 ## 8. Blind scoring, and what the holdout can and cannot tell you
 
-The escrowed test partition — **5,295 rows** — is scored by MAYA, not by the developer.
+The escrowed test partition — **1,449 rows** — is scored by MAYA, not by the developer.
 MAYA evaluates the expression tree against rows the developer has never seen and returns
 metrics only, never rows. Every attempt is counted on the warrant, so scoring the holdout
 repeatedly until it flatters you is visible.
 
-The figure here is **RMSE 0.3989**. Read it correctly: on a zero-one target the mean
-squared error *is* the Brier score, so 0.3989 is the root Brier score — a statement about
+The figure here is **RMSE 0.4064**. Read it correctly: on a zero-one target the mean
+squared error *is* the Brier score, so 0.4064 is the root Brier score — a statement about
 **calibration** on unseen rows, not about discrimination. The AUC figures above are
 discrimination, and they were computed on data the developer could see. Keeping those two
 claims apart is the sort of thing a model risk function exists to insist on, and the
@@ -321,7 +321,7 @@ confirmed restored"* — and it is live again. The reason is part of the record.
 | | |
 | --- | --- |
 | Features / feature sets / models | 3 / 1 / 1, all approved |
-| Audit chain | 68 entries, hash-chained, verified unbroken |
+| Audit chain | 69 entries, hash-chained, verified unbroken |
 | Custody events on the training warrant | 8 |
 | Lineage around the pinned panel | 14 nodes, 17 edges |
 
@@ -333,7 +333,7 @@ pins, to the warrant, to the parameter set, to the execution warrant.
 ## 11. What to point at when demonstrating this
 
 1. **The refusal in §3** — four-eyes is in the capability matrix, not in a process document.
-2. **The 2,055 excluded rows in §4** — MAYA showed the gap instead of filling it, and the
+2. **The 683 excluded rows in §4** — MAYA showed the gap instead of filling it, and the
    decision is in the open with a number attached.
 3. **The leakage certificate in §6** — the platform found the awkward question and would
    not proceed until it had a written answer. Then read the answer.
@@ -350,9 +350,9 @@ the warrant with its certificate and exception, the lineage canvas, and the audi
 
 | File | Rows | Size | What it is |
 | --- | --- | --- | --- |
-| `data/servicing_monthly.csv` | 36,000 | 2.1 MB | The monthly servicing extract, cut five days after month end. |
-| `data/bureau_file.csv` | 12,000 | 0.5 MB | A quarterly credit bureau file, delivered a fortnight after the quarter. |
-| `data/default_outcome.csv` | 36,000 | 1.5 MB | The twelve-month default flag, knowable a year and a day later. |
+| `data/servicing_monthly.csv` | 9,600 | 0.6 MB | The monthly servicing extract, cut five days after month end. |
+| `data/bureau_file.csv` | 3,200 | 0.1 MB | A quarterly credit bureau file, delivered a fortnight after the quarter. |
+| `data/default_outcome.csv` | 9,600 | 0.4 MB | The twelve-month default flag, knowable a year and a day later. |
 
-All three are committed, so the study runs with no generation step and a reader can open
+All three are committed (about 1.1 MB in total), so the study runs with no generation step and a reader can open
 them and see exactly what MAYA was given. `make_data.py` holds the recipe.

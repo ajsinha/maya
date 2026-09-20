@@ -43,7 +43,7 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
-LOANS = 1_600
+LOANS = 600
 FIRST = (2023, 7)
 MONTHS = 30  # 2023-07 .. 2025-12
 SEED = 20260921

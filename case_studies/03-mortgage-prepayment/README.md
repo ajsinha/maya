@@ -15,13 +15,13 @@ which the first builds and the rest reopen, so **each runs on its own, in its ow
 | Script | What it does | Shows |
 | --- | --- | --- |
 | `make_data.py` | Writes four feeds to `data/` (already committed; run it only to regenerate). No MAYA. | The recipe: a logistic hazard in rate incentive, seasoning, equity and the moving season, over a rate path that falls for a year and rises through the next. |
-| `setup_features.py` | Declares and ingests four features: two on `(date, loan)`, two on **`date` alone**. | The market rate is one number a month and is stored as 30 rows, not copied into 37,873 of them. |
+| `setup_features.py` | Declares and ingests four features: two on `(date, loan)`, two on **`date` alone**. | The market rate is one number a month and is stored as 30 rows, not copied into 14,258 of them. |
 | `setup_featureset.py` | Composes `prepay_panel` from all four and pins it point-in-time. | MAYA broadcasting the date-indexed members across the loans of each month, and the proof: one distinct market rate per month in the pinned panel. |
 | `setup_model.py` | Registers the hazard, refuses to submit it with an empty document, fills the nine sections, **declares what this model calls a material shift**, then gets it approved. | The two scalings declared *in the model*; the per-model materiality threshold that step 7 then uses. |
-| `get_training_warrant.py` | Draws a warrant naively, then again with the forward-looking target explained. | The leakage certificate refusing all 37,873 rows, and the written exception. |
+| `get_training_warrant.py` | Draws a warrant naively, then again with the forward-looking target explained. | The leakage certificate refusing all 14,258 rows, and the written exception. |
 | `fit_parameters.py` | Fits by IRLS on the training partition, prints the coefficients **beside the ones that generated the book**, uploads twice (wrong checksum, then right), and has MAYA score the holdout blind. | What a fit on a 1.8%-a-month event can recover; a calibration number quoted against a base-rate model instead of alone. |
 | `get_execution_warrant.py` | Takes it live with two PSI covenants and an output range, then reports a month whose rates sit outside the fitted distribution. | The covenant that matters for this model is about the *rate environment*, not the coefficients. PSI 12.5, suspended, reinstated with a reason. |
-| `propose_change.py` | Opens a workspace, stages a smoothing change to the market-rate feature, lists what is downstream, and replays every affected warrant twice. | **The point of the study.** A defensible change, priced: 43.3% of rows move more than the model's own materiality threshold. |
+| `propose_change.py` | Opens a workspace, stages a smoothing change to the market-rate feature, lists what is downstream, and replays every affected warrant twice. | **The point of the study.** A defensible change, priced: 60.1% of rows move more than the model's own materiality threshold. |
 | `show_estate.py` | Creates nothing. Reads the catalog, the approved coefficients against the generating ones, the lineage from the 30-row rate feature, the open proposal and the audit chain. | That one small feature reaches every forecast, and that the proposal is discoverable with its numbers attached. |
 | `study.py` | No MAYA calls: names, definitions, the formula, the document, the proposed change, the fitting mathematics, the cast. | The declarations that would live under source control. |
 | `run.py` | All eight steps against a MAYA built from nothing. About twenty seconds. | The unattended pass. |
@@ -58,21 +58,21 @@ ends up with two things to approve and one thing to trust.
 
 | File | Rows | Index | Arrives | What it is |
 | --- | --- | --- | --- | --- |
-| `data/loan_month.csv` | 37,873 | `(date, loan)` | month end **+ 2 days** | Coupon, age, loan-to-value, balance. |
+| `data/loan_month.csv` | 14,258 | `(date, loan)` | month end **+ 2 days** | Coupon, age, loan-to-value, balance. |
 | `data/mortgage_rate.csv` | **30** | `(date)` | month end **+ 1 day** | The prevailing thirty-year survey rate. |
 | `data/seasonality.csv` | **30** | `(date)` | a year ahead | Whether the month is in the moving season. |
-| `data/prepaid.csv` | 37,873 | `(date, loan)` | month end **+ 31 days** | Whether the loan paid off in full. |
+| `data/prepaid.csv` | 14,258 | `(date, loan)` | month end **+ 31 days** | Whether the loan paid off in full. |
 
-1,600 loans over thirty months, 2023-07 to 2025-12. The market rate runs from **6.87% down
+600 loans over thirty months, 2023-07 to 2025-12. The market rate runs from **6.87% down
 to 4.54% and back up**, which matters more than it looks: a prepayment model fitted on a
 flat rate path has an unidentified coefficient on incentive, and a fit will report one
-anyway. The realised prepayment rate is **1.782% a month — a 19.4% CPR**.
+anyway. The realised prepayment rate is **1.760% a month — a 19.2% CPR**.
 
 ### Why two of the four features have no loan dimension
 
 The mortgage rate is not a property of any loan. It is one number a month for the whole
 market. A platform that made you write it into every row would be asking you to store
-37,873 copies of 30 numbers, and a copy can be wrong in one row and right in the next.
+14,258 copies of 30 numbers, and a copy can be wrong in one row and right in the next.
 
 So those two features are indexed on `date` alone, and MAYA joins them onto the loan panel
 on the index the two share. The step prints the proof:
@@ -83,7 +83,7 @@ distinct market rates within one month: 1
 
 "The incentive" is therefore a well-defined quantity rather than a per-row value that can
 drift. This also sets up step 7: because the rate lives in one place, a change to it is one
-change — with 37,873 rows of consequences.
+change — with 14,258 rows of consequences.
 
 ## 3. The model
 
@@ -126,9 +126,11 @@ a document.
 
 This is the thing only the model knows. Its output is a probability, and one basis point of
 monthly hazard is noise; for a pricing model one basis point is not. Left to the platform
-default, step 7's replay reports **98.3%** of rows as material and teaches the reviewer to
-ignore the report. With the model's own figure it reports **43.3%**, and the report says
-which threshold it used and where the number came from.
+default of 0.0001 — one basis point of monthly hazard, which is below the noise in any
+month's estimate — step 7's replay would call very nearly every row material, and a report
+like that teaches its reader to stop reading it. With the model's own figure it reports
+**60.1%**, and it says which threshold it used and where the number came from:
+`(0.001, model)`.
 
 ## 4. The fit, and what it recovers
 
@@ -138,21 +140,29 @@ data can do:
 
 | | fitted | generated |
 | --- | --- | --- |
-| `a0` (intercept) | −5.891 | −6.100 |
-| `aInc` (per point of incentive) | **+0.608** | +0.620 |
-| `aAge` (per year on book) | +0.278 | +0.340 |
-| `aEq` (per unit of equity) | +1.526 | +1.450 |
-| `aSum` (moving season) | +0.404 | +0.380 |
+| `a0` (intercept) | −6.443 | −6.100 |
+| `aInc` (per point of incentive) | **+0.557** | +0.620 |
+| `aAge` (per year on book) | +0.415 | +0.340 |
+| `aEq` (per unit of equity) | **+2.145** | +1.450 |
+| `aSum` (moving season) | +0.347 | +0.380 |
 
-AUC **0.710** on training, **0.733** on validation — validation slightly above training,
-which is what you get on a rare event where the split happens to put a few more easy cases
-on one side. The incentive coefficient is recovered to within two per cent; the seasoning
-ramp is the worst of the five, which is honest, because thirty months of data and a
-thirty-six-month cap leave the ramp only partly observed.
+AUC **0.701** on training, **0.745** on validation — validation above training, which
+happens on a rare event when the split puts a few more easy cases on one side.
 
-**488 prepayment events in 26,450 training rows.** That is what "rare event" means here,
-and it is why the *Calibration Methodology* section says the intercept carries most of the
-base rate and the standard errors on the slopes are what a reviewer should ask about.
+**184 prepayment events in 9,973 training rows**, and that is the most instructive number
+in the study. Look at what 184 events buys: the incentive coefficient lands within ten per
+cent, the moving season within nine, but **the equity coefficient comes back at +2.145
+against a true +1.450 — forty-eight per cent high.** The fit has not failed; it has been
+imprecise in exactly the way a rare-event fit on a small book is imprecise, and it has been
+imprecise in the coefficient with the least variation behind it.
+
+This is why the *Calibration Methodology* section says the intercept carries most of the
+base rate and **the standard errors on the slopes are what a reviewer should ask about**,
+and it is why the study prints the generated coefficients rather than only the fitted ones.
+A platform that showed the fit alone would show five numbers with no way to tell which of
+them to believe. With larger books the same script recovers all five closely; the deliberate
+choice here is to keep the committed data small enough to read, and to be straightforward
+about what that costs.
 
 ### The holdout figure, with something to compare it against
 
@@ -161,10 +171,10 @@ number like that alone is meaningless, so the study computes the obvious benchma
 
 | | root Brier |
 | --- | --- |
-| This model, on 5,697 escrowed rows | **0.1214** |
+| This model, on 2,151 escrowed rows | **0.1047** |
 | Predicting the base rate for everybody | 0.1346 |
 
-which is an **18.7% reduction in Brier score**. That is a modest, believable improvement,
+which is a **39.5% reduction in Brier score**. That is a real improvement,
 and it is the right shape of claim: a calibration statement about rows the developer never
 saw, kept separate from the AUC figures above, which are discrimination and were computed
 on data the developer could see.
@@ -191,7 +201,7 @@ what the coefficients were fitted on, rather than away from last month.
 Report a month whose rates sit entirely in the lowest baseline bin and:
 
 ```
-WarrantSuspended: Warrant suspended: population stability index of 'mktRate' 12.526 > 0.25:
+WarrantSuspended: Warrant suspended: population stability index of 'mktRate' 12.517 > 0.25:
   the inputs this warrant sees are no longer the population it was fitted on.
   Contact mortgage.analytics@example.com.
 ```
@@ -238,15 +248,15 @@ against the workspace's — and scored with its own model and parameters:
 | --- | --- |
 | Warrants replayed | 3 (one more could not be: *no parameter set to score with yet*) |
 | Warrants whose output moved | 2 of 2 replayable |
-| Median absolute shift in monthly hazard | **0.00087** |
-| 95th percentile | 0.00314 |
-| Worst row | **0.01116** — 2023-08-31, loan P01127 |
-| Rows over the model's threshold | **2,163 of 5,000 (43.3%)**, against 0.001, *the model threshold* |
-| Coverage | 10,000 of 75,746 matched rows (**13.2%**) |
+| Median absolute shift in monthly hazard | **0.00119** |
+| 95th percentile | 0.00373 |
+| Worst row | **0.01067** — 2025-01-31, loan P00412 |
+| Rows over the model's threshold | **3,006 of 5,000 (60.1%)**, against 0.001, *the model threshold* |
+| Coverage | 10,000 of 28,516 matched rows (**35.1%**) |
 | Compute budget | 2,000,000 row comparisons a day; this replay spent 10,000 |
 
-Read the worst row: **1.1 points of monthly hazard**, which is over ten points of
-annualised CPR on that loan. Smoothing the rate is defensible. Moving 43% of the book by
+Read the worst row: **1.07 points of monthly hazard**, which is over ten points of
+annualised CPR on that loan. Smoothing the rate is defensible. Moving 60% of the book by
 more than the desk's own materiality threshold, and one loan by ten points of CPR, is a
 *decision* — and it is now a decision somebody makes with the number in front of them
 rather than a sentence about noise reduction.
@@ -256,7 +266,7 @@ Three things about that report are worth pointing at:
 * **It says what threshold it used and where the figure came from.** `(0.001, model)` — the
   model's own declaration, not the platform default. A report measured against the wrong one
   of the three reads as "nothing moved".
-* **It states its coverage.** 13.2% of the matched rows, and the basis says the sample is
+* **It states its coverage.** 35.1% of the matched rows, and the basis says the sample is
   the most recent rows of each index — *a recency bias, not a random draw*. It ends
   "sampled agreement is not proof". A platform that printed a percentage without that
   sentence would be inviting a conclusion the sample cannot support.

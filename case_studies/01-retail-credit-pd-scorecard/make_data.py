@@ -36,9 +36,9 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
-ACCOUNTS = 1_200
+ACCOUNTS = 400
 FIRST = (2023, 1)
-MONTHS = 30  # 2023-01 .. 2025-06
+MONTHS = 24  # 2023-01 .. 2024-12
 SEED = 20260919
 
 

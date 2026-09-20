@@ -56,11 +56,11 @@ stated mathematics and comparing them — which is what MAYA does here.
 
 | File | Rows | Size | Grain | Arrives | What it is |
 | --- | --- | --- | --- | --- | --- |
-| `data/loan_tape.csv` | 29,400 | 2.2 MB | loan × month end | month end **+ 2 days** | Balance, coupon, original term, age, original balance. What the model reads. |
-| `data/servicer_report.csv` | 29,400 | 1.4 MB | loan × month end | month end **+ 15 days** | What the servicer actually collected and remitted, net of its fee. What the model is *measured against*. |
+| `data/loan_tape.csv` | 8,820 | 0.7 MB | loan × month end | month end **+ 2 days** | Balance, coupon, original term, age, original balance. What the model reads. |
+| `data/servicer_report.csv` | 8,820 | 0.4 MB | loan × month end | month end **+ 15 days** | What the servicer actually collected and remitted, net of its fee. What the model is *measured against*. |
 
-1,400 loans of 15 to 30 years at coupons between roughly 2% and 9.5%, over 21 months
-(2024-01 to 2025-09), £358m outstanding at the end of the window.
+420 loans of 15 to 30 years at coupons between roughly 2% and 9.5%, over 21 months
+(2024-01 to 2025-09), £104m outstanding at the end of the window.
 
 The tape is exact level-payment amortisation, disturbed the way a real book is: about one
 loan in fifty makes a partial prepayment in a month, so the balance falls faster than the
@@ -180,7 +180,7 @@ naming the pinned tape, and the inputs are resampled from its own values:
 
 ```
 domain: resampled from maya://featureset/mortgage_alm/loan_month#recon2509/2025-09-30
-        (29,400 rows)
+        (8,820 rows)
 ```
 
 | Code | Agreement |
@@ -191,8 +191,8 @@ domain: resampled from maya://featureset/mortgage_alm/loan_month#recon2509/2025-
 with counterexamples in the units of the problem:
 
 ```
-at age=180, balance=399,670, rate=0.05735, term=360:
-    specification -13,337.22, code -14,324.35
+at age=209, balance=427,614, rate=0.05119, term=240:
+    specification -3,061.73, code -14,967.00
 ```
 
 and the version cannot be submitted:
@@ -200,8 +200,8 @@ and the version cannot be submitted:
 ```
 NotApproved: Blocked by check(s): code_matches_specification —
   the code disagrees with the specification on 2000 of 2000 sampled inputs;
-  e.g. age=180, balance=399670, rate=0.05735, term=360 →
-  specification -13337.2, code -14324.3
+  e.g. age=209, balance=427614, rate=0.05119, term=240 →
+  specification -3061.73, code -14967
 ```
 
 Two details worth pointing at:
@@ -238,13 +238,13 @@ remittance:
 
 | | |
 | --- | --- |
-| Loan-months scored | 4,406 |
-| RMSE per loan-month | £90.83 |
-| MAE per loan-month | £8.11 |
+| Loan-months scored | 1,312 |
+| RMSE per loan-month | £66.43 |
+| MAE per loan-month | £5.92 |
 
 Read the gap between those two figures, because it is the interesting result. The median
-loan reconciles to pennies — the mean absolute error is about eight pounds on payments
-averaging two thousand. The RMSE is thirteen times larger, because it is dominated by the
+loan reconciles to pennies — the mean absolute error is about six pounds on payments
+averaging two thousand. The RMSE is eleven times larger, because it is dominated by the
 small share of loan-months with a partial prepayment or a late payment. Neither is
 something this model claims to predict; the *Scope and Limitations* section says so, and
 the *Known Weaknesses* section says that for a book with meaningful arrears the residual
