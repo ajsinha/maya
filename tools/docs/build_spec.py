@@ -6,8 +6,8 @@ whenever the Markdown changes so they never fall behind. Mermaid diagrams are dr
 locally in headless Chrome (only the mermaid library is fetched, from its CDN; the
 specification itself never leaves the machine) and embedded as PNG images.
 
-Needs: pandoc 3 (``--pandoc``, or on PATH), Tectonic for the PDF, and Playwright
-with an installed Chrome.
+Needs: pandoc 3 — on PATH, from the ``pypandoc_binary`` wheel, or named with
+``--pandoc`` — plus Tectonic for the PDF and Playwright with an installed Chrome.
 
     python tools/docs/build_spec.py [--pandoc /path/to/pandoc] [--only docx|pdf]
 
@@ -28,6 +28,23 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "docs" / "MAYA_Requirements_and_Design.md"
 MERMAID = re.compile(r"```mermaid\n(.*?)```", re.S)
 MERMAID_JS = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
+
+
+def _pandoc() -> str | None:
+    """pandoc on PATH, or the binary the ``pypandoc_binary`` wheel installs.
+
+    The wheel is how this machine gets pandoc — it is a Python dependency rather than a
+    system package, so it lands beside the other site-packages and not on PATH, and
+    looking only at PATH sent an earlier run off to hunt for a binary it already had."""
+    found = shutil.which("pandoc")
+    if found:
+        return found
+    try:
+        import pypandoc  # noqa: PLC0415 - optional, and only needed when PATH has none
+    except ImportError:
+        return None
+    candidate = Path(pypandoc.__file__).parent / "files" / "pandoc"
+    return str(candidate) if candidate.exists() else None
 
 
 def render_diagrams(sources: list[str], out: Path) -> list[Path]:
@@ -61,7 +78,7 @@ def with_images(text: str, images: list[Path]) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pandoc", default=shutil.which("pandoc"))
+    ap.add_argument("--pandoc", default=_pandoc())
     ap.add_argument("--only", choices=("docx", "pdf"))
     a = ap.parse_args()
     if not a.pandoc:

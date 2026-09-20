@@ -2,6 +2,16 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.5 — 2026-09-19.** Three corrections from building §25 and the last of the
+> audit's gaps, each marked *Revision 2.5* where it lands. The break-glass path §13.3
+> promises is now a named account rather than a restart in `mode: hybrid` (§12, §13.3).
+> §25's claim that "untrusted plugins run under the same sandbox rules as user Python"
+> cannot hold for code imported into the server process, so the safety rule is an
+> allowlist and the difference between the two trust levels is stated (§25). And two rows
+> of §25's table listed things MAYA does not ship — object stores other than the local
+> filesystem, and ONNX and PMML runtimes against ADR-007 — which is what an extension
+> point is for, so the rows now say so.
+>
 > **Revision 2.4 — 2026-09-19.** No new decisions: this revision marks, each as
 > *Revision 2.4* where it lands, places where this document contradicted itself or a
 > decision already taken, found by reading it against the code
@@ -834,7 +844,7 @@ SP-initiated only (an unsolicited Response cannot be tied to a request). AuthnRe
 logout messages may be signed with MAYA's own key pair. Single logout runs in both
 directions over HTTP-Redirect: signing out of MAYA ends the session and asks the IdP to
 end its own, and the IdP's LogoutRequest ends every MAYA session of the person it names
-(only the named IdP session, when it names one), but only when the IdP signed it. *Revision 2.4:* OIDC logout also runs both ways: with `auth.sso.post_logout_redirect_uri` set, signing out of MAYA sends the browser to the issuer's end-session endpoint, and the IdP ends MAYA sessions server to server with a back-channel logout token, checked like an ID token and single-use by `jti`. SAML back-channel (SOAP) logout is not supported. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`.
+(only the named IdP session, when it names one), but only when the IdP signed it. *Revision 2.4:* OIDC logout also runs both ways: with `auth.sso.post_logout_redirect_uri` set, signing out of MAYA sends the browser to the issuer's end-session endpoint, and the IdP ends MAYA sessions server to server with a back-channel logout token, checked like an ID token and single-use by `jti`. SAML back-channel (SOAP) logout is not supported. Group-to-role mapping is configurable and re-evaluated at every login, so removing someone from an IdP group removes their MAYA capability at their next session without a manual step. JIT provisioning creates the user on first login with mapped roles and no object grants. SSO failures fall back to an error page, never to DB login, unless `mode: hybrid`. *Revision 2.5:* with one exception, which §13.3 needs and which is now built — the accounts named in `auth.break_glass.users` may sign in with a password under `mode: sso` too. They are ordinary database accounts holding the administrator role, MFA applies to them as it does to anyone, their session is short (`auth.break_glass.session_minutes`), and every such sign-in is audited, logged at warning level and notified to every administrator.
 
 **Service principals.** API keys and OAuth2 client credentials, scoped to roles and namespaces, with mandatory expiry, last-used tracking, one-click revocation and a rotation reminder. Keys are shown once at creation and stored only as hashes.
 
@@ -893,7 +903,7 @@ Three paths matter and they are deliberately different. **Metadata reads** (brow
 
 ### 13.3 Failure posture
 
-Every external dependency has a declared behaviour when absent: object store down → uploads and pins fail fast with a clear message, browsing still works; Delta unavailable → resolution fails, metadata and workflow still work; IdP unreachable → existing sessions continue, new logins fail with a break-glass path for administrators (*Revision 2.4:* `mode: sso` refuses every password sign-in, so the path is restarting in `mode: hybrid` with a database account made beforehand — the SSO outage runbook); a worker dies mid-pin → the pin is left in `Materializing`, the orphan partition is garbage-collected by a reaper, and the job is retried idempotently. MAYA degrades in named ways rather than in surprising ones.
+Every external dependency has a declared behaviour when absent: object store down → uploads and pins fail fast with a clear message, browsing still works; Delta unavailable → resolution fails, metadata and workflow still work; IdP unreachable → existing sessions continue, new logins fail with a break-glass path for administrators (*Revision 2.5:* that path is now a door rather than a restart. Revision 2.4 said `mode: sso` refuses every password sign-in, so the only way in was to restart every process in `mode: hybrid` — a configuration change at the worst possible moment, which then opened password sign-in to every database account rather than to the one kept for this. `auth.break_glass.users` names that account instead; see §12 and the SSO outage runbook); a worker dies mid-pin → the pin is left in `Materializing`, the orphan partition is garbage-collected by a reaper, and the job is retried idempotently. MAYA degrades in named ways rather than in surprising ones.
 
 ### 13.4 Proxied dependencies
 
@@ -1789,16 +1799,16 @@ Every axis of variation is a registered plugin implementing a declared protocol,
 | --- | --- | --- |
 | Source driver | `SourceDriver.schema() / read(plan)` | sql, csv, parquet, json, delta, derived, python |
 | Resolution rule | `ResolutionRule.apply(col, grid, ctx)` | ffill, bfill, linear, spline, constant, zero, window mean, as-of |
-| Storage backend | `LakeStore` / `BlobStore` | Delta on local FS, S3, Azure Blob, GCS |
+| Storage backend | `LakeStore` / `BlobStore` | Delta on the local filesystem (*Revision 2.5:* S3, Azure Blob and GCS are the point's reason for existing, not something MAYA ships; a deployment that needs one registers a `LakeStore` at this point) |
 | Export format | `Exporter.write(table, opts)` | Arrow, Parquet, CSV, JSON, NDJSON, Excel |
 | Auth provider | `AuthProvider.authenticate()` | OIDC, SAML2, DB |
 | Workflow check | `Check.evaluate(object, ctx)` | Completeness, validation, quality, comment checks |
 | Notification channel | `Notifier.send(event, recipients)` | In-app inbox, email, webhook, Slack, Teams |
-| Model runtime | `ModelRuntime.predict(...)` | Python; ONNX and PMML as v2.2 candidates |
+| Model runtime | `ModelRuntime.predict(...)` | The formula IR evaluator (*Revision 2.5:* blind scoring only, per ADR-007. MAYA executes no model code, so ONNX and PMML are candidates for a plugin at this point, not for the core) |
 | Calendar | `Calendar.business_days(range)` | NYSE, LSE, TARGET, ISO business days, natural days |
-| Search index | `SearchIndex` | PostgreSQL FTS, SQLite FTS5 (*Revision 2.4:* MAYA's own inverted index ships on both, ADR-019) |
+| Search index | `SearchIndex` | MAYA's own inverted index, on both databases (Revision 2.4, ADR-019) |
 
-A plugin declares its name, version, configuration schema and required capabilities, and is listed on an admin page with its status. Untrusted plugins run under the same sandbox rules as user Python.
+A plugin declares its name, version, configuration schema and required capabilities, and is listed on an admin page with its status. *Revision 2.5:* the second half of that promise cannot be kept as it was written. An entry-point plugin is imported into MAYA's own process and runs with MAYA's privileges — it can reach the database and the signing key — so the sandbox rules for user Python, which exist because that code runs in a container with no network and no credentials, do not apply to it and no amount of care makes them apply. What MAYA does instead is make loading one an explicit decision: a third-party plugin loads only when `plugins.allow` names it, a plugin that is installed and not allowed is shown as refused with that reason rather than silently absent, and one that fails to import is shown as failed with the error instead of stopping MAYA. The sandbox rules continue to govern user Python in a model artifact, which is a different thing at a different trust level.
 
 **Integrations worth building early**, each thin because the event stream and API already exist: Git sync (export definitions as YAML to a repo and diff them there, so definitions live under source control too); Airflow/Prefect operators that resolve and pin on a schedule; Jupyter/JupyterLab extension for browsing the catalog and pulling a pin into a notebook in one cell; BI connectors reading pinned data directly from Delta; and an OpenLineage emitter so MAYA's lineage joins a firm-wide graph rather than staying an island.
 
