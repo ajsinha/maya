@@ -2,7 +2,7 @@
 Build the decks.
 
     python tools/deck/build.py                 # all three, into docs/
-    python tools/deck/build.py design          # one of: executive, design, concepts
+    python tools/deck/build.py design          # one of: executive, design, capabilities
     python tools/deck/audit.py docs/<deck>.pptx
 
 Each deck is a list of slide specs in its own module; ``layouts`` draws them
@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(1, str(HERE.parents[1]))
 
-import concepts_deck  # noqa: E402
+import capabilities_deck  # noqa: E402
 import design_deck  # noqa: E402
 import exec_deck  # noqa: E402
 import layouts  # noqa: E402
@@ -34,7 +34,7 @@ DOCS = HERE.parents[1] / "docs"
 DECKS = {
     "executive": ("MAYA-Executive-Briefing", exec_deck),
     "design": ("MAYA-System-Design", design_deck),
-    "concepts": ("MAYA-Concepts-and-Formalism", concepts_deck),
+    "capabilities": ("MAYA-Capabilities", capabilities_deck),
 }
 AUTHOR = "Ashutosh Sinha"
 
