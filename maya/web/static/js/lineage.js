@@ -311,7 +311,7 @@
         var inner = path.slice(1, path.length - 1).filter(function (x) { return shown[x]; });
         if (inner.length < 2) { return; }
         inner.forEach(function (x) { folded[x] = id; });
-        foldNodes.push({ id: id, depth: inner.length, head: path[path.length - 1] });
+        foldNodes.push({ id: id, depth: inner.length });
       });
     }
 
