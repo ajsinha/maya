@@ -195,7 +195,7 @@ SECTIONS = {
     ),
     "Scope and Limitations": (
         "Fixed-rate, fully amortising, level-payment loans with at least two payments "
-        "remaining. It is a *scheduled* cashflow model: it says what the contract requires "
+        "remaining. It is a \\emph{scheduled} cashflow model: it says what the contract requires "
         "this month. It does not forecast prepayment, default, delinquency or recovery, and "
         "must not be used as a valuation model on its own — a price needs a prepayment "
         "model and a discount curve, which are separate models with their own warrants. "
@@ -244,7 +244,7 @@ SECTIONS = {
         "The model is exactly as right as the tape. A stale age column, a capitalised "
         "arrears balance or a loan that has silently converted to interest-only all produce "
         "a confident and wrong number, and the model cannot tell. It says nothing about "
-        "*whether* the cash will arrive, only what the contract requires: for a book with "
+        "\\emph{whether} the cash will arrive, only what the contract requires: for a book with "
         "meaningful arrears the reconciliation residual will be dominated by collection, "
         "not by arithmetic."
     ),

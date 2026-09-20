@@ -298,7 +298,7 @@ SECTIONS = {
         "against the checksum of the exact rows MAYA issued. A logistic regression on the "
         "same six drivers, fitted on the same rows, is reported beside it as the challenger; "
         "accepting an unreadable model is only defensible while that gap is real, and the "
-        "gap is the justification of record. What is *not* available is MAYA's blind "
+        "gap is the justification of record. What is \\emph{not} available is MAYA's blind "
         "scoring of the escrowed holdout: MAYA evaluates a model's formula and this model "
         "has none, so it refuses, and the holdout cannot be scored by the desk either "
         "because the desk never sees those rows. Every figure here is therefore asserted by "

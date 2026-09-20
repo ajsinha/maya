@@ -5,9 +5,12 @@
  * only as ES modules that need a bundler and MAYA has no build pipeline (§16).
  *   textarea[data-editor=python|stex]   upgraded to CodeMirror
  *   textarea[data-preview=<id>]         live LaTeX preview into #id within ~200 ms:
- *                                       \section → headings, $…$ and \[…\] via KaTeX,
+ *                                       \section → headings wherever they stand, lists,
+ *                                       display maths, $…$ and \[…\] via KaTeX,
  *                                       \mayaformula{…} as the model's rendered IR,
- *                                       figures as images and \cite{…} numbered
+ *                                       figures as images and \cite{…} numbered; a table
+ *                                       or an unknown environment is named as skipped,
+ *                                       and no command is ever shown as literal text
  *   [data-outline-for=<id>]             a section outline with a completeness mark
  *   [data-bib-for=<id>]                 the BibTeX pane
  *   [data-checks-for=<id>]              what the validation ladder would say, early
@@ -135,6 +138,212 @@
   }
 
   // ---- the preview --------------------------------------------------------------
+  // The preview's promise to the reader: it never shows a backslash command as text.
+  // A specification is read by a validator and an auditor, and a stray \section in the
+  // pane reads as a broken document rather than as an unsupported construct, so what
+  // cannot be typeset here is either reduced to its words or named as skipped.
+
+  // An escaped character is set aside before anything else looks at the text: without
+  // this, \$ opens inline maths and the rest of the paragraph is swallowed as a formula.
+  var ESCAPABLE = '%&_#${}';
+  var MARK = '\u0001';
+
+  function setAside(text) {
+    return text.replace(/\\([%&_#$\{\}])/g, function (_, c) {
+      return MARK + ESCAPABLE.indexOf(c) + MARK;
+    });
+  }
+
+  function restore(text, asLatex) {
+    return text.replace(/\u0001(\d)\u0001/g, function (_, d) {
+      var c = ESCAPABLE.charAt(parseInt(d, 10));
+      return asLatex ? '\\' + c : (c === '&' ? '&amp;' : c);
+    });
+  }
+
+  // A command's argument is brace-counted rather than taken as [^}]*, because a section
+  // title or an emphasis may itself contain braces.
+  function braceArg(s, at) {
+    var depth = 0, i = at;
+    while (i < s.length) {
+      var c = s.charAt(i);
+      if (c === '\\') { i += 2; continue; }
+      if (c === '{') { depth += 1; }
+      else if (c === '}') {
+        depth -= 1;
+        if (depth === 0) { return { text: s.slice(at + 1, i), end: i + 1 }; }
+      }
+      i += 1;
+    }
+    return { text: s.slice(at + 1), end: s.length };   // unbalanced: take what there is
+  }
+
+  // Commands whose argument is typesetting machinery rather than something to read. The
+  // preamble ones matter because a fragment without \begin{document} is a legal source
+  // for this pane, and \usepackage{amsmath} must not appear as the word "amsmath".
+  var DROPPED = {
+    label: 1, index: 1, vspace: 1, hspace: 1, begin: 1, end: 1, documentclass: 1,
+    usepackage: 1, geometry: 1, title: 1, author: 1, date: 1, newcommand: 1,
+    renewcommand: 1, providecommand: 1, setlength: 1, addtolength: 1, pagestyle: 1,
+    thispagestyle: 1, hypersetup: 1, bibliographystyle: 1, bibliography: 1,
+    input: 1, include: 1, nocite: 1
+  };
+  var ARITY = {
+    setlength: 2, addtolength: 2, newcommand: 2, renewcommand: 2, providecommand: 2,
+    href: 2, textcolor: 2
+  };
+  var CODEISH = { texttt: 1, url: 1, path: 1, lstinline: 1 };
+
+  // Plain text between commands. Braces that survive here are grouping ({\bf x}), a tie
+  // is the space it stands for, and a lone backslash is dropped so none reaches the page.
+  function plain(text) {
+    return escapeHtml(text.replace(/~/g, '\u00a0').replace(/[{}]/g, '').replace(/\\/g, ''));
+  }
+
+  // Every command left in a run of prose. A known one renders, an unknown one is reduced
+  // to its argument, and one with no argument disappears. That last pair of rules is the
+  // point of the exercise: whatever the source invents, the reader sees words.
+  function prose(text) {
+    var out = '', at = 0, re = /\\(?:([a-zA-Z]+)\*?|(.))/g, m;
+    while ((m = re.exec(text))) {
+      out += plain(text.slice(at, m.index));
+      at = re.lastIndex;
+      if (m[2] !== undefined) {
+        // \\, \, and \; are spacing, with nothing in them to read; \\[6pt] carries a skip
+        if (m[2] === '\\' && text.charAt(at) === '[') {
+          var close = text.indexOf(']', at);
+          if (close > -1) { at = close + 1; }
+        }
+        re.lastIndex = at;
+        continue;
+      }
+      var name = m[1], arity = ARITY[name] || 1, args = [], i = at;
+      while (args.length < arity) {
+        var j = i;
+        if (text.charAt(j) === '[') {
+          var end = text.indexOf(']', j);
+          if (end < 0) { break; }
+          j = end + 1;                              // an optional argument, as in \newcommand
+        }
+        if (text.charAt(j) !== '{') { break; }
+        var arg = braceArg(text, j);
+        args.push(arg.text);
+        i = arg.end;
+      }
+      at = i;
+      re.lastIndex = at;
+      if (/^(eq)?ref$/.test(name) || name === 'pageref') { out += '[' + plain(args[0] || '') + ']'; }
+      else if (DROPPED[name]) { continue; }
+      else if (CODEISH[name]) { out += '<code>' + prose(args[0] || '') + '</code>'; }
+      else if (name === 'href') { out += prose(args[1] === undefined ? args[0] || '' : args[1]); }
+      else { out += prose(args[0] === undefined ? '' : args[0]); }
+    }
+    return out + plain(text.slice(at));
+  }
+
+  var MATHS = /\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)|\$([^$]+)\$/;
+
+  function inlineHtml(text, citation) {
+    var src = setAside(String(text).replace(/\\cite[tp]?(?:\[[^\]]*\])?\{([^}]*)\}/g,
+      function (_, keys) { return citation(keys); }));
+    var out = '', rest = src, m;
+    while ((m = MATHS.exec(rest))) {
+      out += prose(rest.slice(0, m.index));
+      var tex = m[1] !== undefined ? m[1] : m[2] !== undefined ? m[2]
+        : m[3] !== undefined ? m[3] : m[4];
+      out += math(restore(tex, true), m[4] === undefined);
+      rest = rest.slice(m.index + m[0].length);
+    }
+    return restore(out + prose(rest), false);
+  }
+
+  // KaTeX with errors thrown rather than drawn, so a caller can fall back to something
+  // simpler instead of showing the reader a red error where the maths should be.
+  function strictMath(tex) {
+    if (!window.katex) { return null; }
+    try { return window.katex.renderToString(tex, { displayMode: true, throwOnError: true }); }
+    catch (e) { return null; }
+  }
+
+  // ---- environments -------------------------------------------------------------
+  var LIST = { itemize: 'ul', enumerate: 'ol', description: 'ul' };
+  var MATHS_ENV = {
+    equation: 1, align: 1, gather: 1, multline: 1, alignat: 1, eqnarray: 1,
+    displaymath: 1, split: 1, aligned: 1, gathered: 1
+  };
+  // Environments that only arrange what is inside them: the contents are prose and go
+  // back into the paragraph stream rather than becoming a block of their own.
+  var TRANSPARENT = { center: 1, flushleft: 1, flushright: 1, quote: 1, quotation: 1, abstract: 1, sloppypar: 1 };
+  var VERBATIM = { verbatim: 1, lstlisting: 1, minted: 1, alltt: 1 };
+  var ENV = /\\begin\{([A-Za-z]+\*?)\}(?:\[[^\]]*\])?((?:(?!\\begin\{)[\s\S])*?)\\end\{\1\}/;
+  var ENV_LIMIT = 500;
+
+  function listHtml(name, inner, inline) {
+    var tag = LIST[name];
+    // \item is the separator, so whatever precedes the first one is the environment's
+    // own preamble and has nothing to do with the items.
+    var items = inner.split(/\\item\b/).slice(1);
+    return '<' + tag + '>' + items.map(function (item) {
+      var term = '';
+      var body = item.replace(/^\s*\[([^\]]*)\]/, function (_, t) { term = t; return ''; });
+      return '<li>' + (term ? '<strong>' + inline(term) + '</strong> ' : '') +
+        inline(body.trim()) + '</li>';
+    }).join('') + '</' + tag + '>';
+  }
+
+  // KaTeX knows align and gather itself, so it is handed the whole environment first:
+  // the alignment is information the reader wants. Where it refuses — an environment it
+  // does not implement — the stripped body is still displayed maths.
+  function mathsEnvHtml(inner, whole) {
+    var labels = /\\label\{[^}]*\}/g;
+    return strictMath(whole.replace(labels, '')) || math(inner.replace(labels, ''), true);
+  }
+
+  // A table, a float, or an environment nobody here implements: the reader is told what
+  // was left out and where it does appear, rather than shown the source of it.
+  function skippedHtml(name) {
+    var what = /^(tabular|tabularx|longtable|table|tabbing)/.test(name) ? 'table' : name.replace(/\*$/, '');
+    return '<p class="small-muted">' + escapeHtml(what) + ' — rendered in the PDF build</p>';
+  }
+
+  // Innermost first, so a table inside a float or a list inside a list is taken apart
+  // from the inside out; each pass removes one begin/end pair, so the loop terminates.
+  function takeEnvironments(body, slot, inline) {
+    var passes = 0, m;
+    while (passes < ENV_LIMIT && (m = ENV.exec(body))) {
+      var name = m[1], inner = m[2], replacement;
+      if (LIST[name]) { replacement = slot(listHtml(name, inner, inline)); }
+      else if (MATHS_ENV[name.replace(/\*$/, '')]) { replacement = slot(mathsEnvHtml(inner, m[0])); }
+      else if (VERBATIM[name]) { replacement = slot('<pre><code>' + escapeHtml(inner.replace(/^\n/, '')) + '</code></pre>'); }
+      else if (TRANSPARENT[name]) { replacement = '\n\n' + inner + '\n\n'; }
+      else { replacement = slot(skippedHtml(name)); }
+      body = body.slice(0, m.index) + replacement + body.slice(m.index + m[0].length);
+      passes += 1;
+    }
+    return body;
+  }
+
+  // ---- headings -----------------------------------------------------------------
+  var LEVELS = { chapter: 4, section: 4, subsection: 5, subsubsection: 6, paragraph: 6, subparagraph: 6 };
+  var HEADING = /\\(chapter|subsubsection|subsection|section|subparagraph|paragraph)\*?/;
+
+  // A section command counts wherever it stands, not only at the head of a paragraph and
+  // not only once in it: a source that writes one straight after a sentence, with no
+  // blank line between, used to print the command itself into the reader's face.
+  function headings(p) {
+    var parts = [], at = 0, re = new RegExp(HEADING.source, 'g'), m;
+    while ((m = re.exec(p))) {
+      if (p.charAt(re.lastIndex) !== '{') { continue; }   // \paragraph with no title is prose
+      var arg = braceArg(p, re.lastIndex);
+      parts.push({ text: p.slice(at, m.index) });
+      parts.push({ level: LEVELS[m[1]], title: arg.text });
+      at = arg.end;
+      re.lastIndex = arg.end;
+    }
+    parts.push({ text: p.slice(at) });
+    return parts;
+  }
+
   function renderLatexDoc(src, formula) {
     var figs = figures(src);
     var bib = parseBib(bibOf(src));
@@ -147,6 +356,12 @@
     });
     var html = [];
 
+    // A block that is not prose is rendered once, kept aside, and stood for in the source
+    // by a marker with blank lines around it, so it becomes a paragraph of its own.
+    function slot(rendered) {
+      return '\n\n@@BLOCK' + (html.push(rendered) - 1) + '@@\n\n';
+    }
+
     function citation(keys) {
       return '[' + keys.split(',').map(function (k) {
         var key = k.trim(), at = -1;
@@ -157,43 +372,46 @@
       }).join(', ') + ']';
     }
 
-    var FIGURE = /\\begin\{figure\}[\s\S]*?\\end\{figure\}/g;
+    // A marker can end up inside a run of prose — a table inside a list item, say — so it
+    // is resolved here rather than only where paragraphs are split.
+    function inline(text) {
+      return inlineHtml(text, citation).replace(/@@BLOCK(\d+)@@/g, function (_, n) {
+        return html[parseInt(n, 10)] || '';
+      });
+    }
+
+    var FIGURE = /\\begin\{figure\*?\}(?:\[[^\]]*\])?[\s\S]*?\\end\{figure\*?\}/g;
     body = body.replace(FIGURE, function (block) {
       var name = (block.match(/\\includegraphics(?:\[[^\]]*\])?\{([^}]*)\}/) || [])[1] || '';
       var cap = (block.match(/\\caption\{([^}]*)\}/) || [])[1] || name;
       var src2 = figs[name];
-      return '\n\n@@FIG' + (html.push('<figure>' + (src2
+      return slot('<figure>' + (src2
         ? '<img src="' + src2 + '" alt="' + escapeHtml(cap) + '">'
         : '<div class="fig-missing">' + escapeHtml(name) + ' — not embedded in this document</div>') +
-        '<figcaption>' + escapeHtml(cap) + '</figcaption></figure>') - 1) + '@@\n\n';
+        '<figcaption>' + escapeHtml(cap) + '</figcaption></figure>');
     });
+    body = takeEnvironments(body, slot, inline);
 
     var pieces = [];
     body.split(/\n\s*\n/).forEach(function (para) {
       var p = para.trim();
       if (!p) { return; }
-      var fig = p.match(/^@@FIG(\d+)@@$/);
-      if (fig) { pieces.push(html[parseInt(fig[1], 10)]); return; }
       p = p.replace(/\\maketitle|\\tableofcontents|\\bibliographystyle\{[^}]*\}|\\bibliography\{[^}]*\}/g, '');
       if (!p.trim()) { return; }
-      var sec = p.match(/^\\(sub)?section\*?\{([^}]*)\}([\s\S]*)$/);
-      if (sec) {
-        pieces.push((sec[1] ? '<h5>' : '<h4>') + escapeHtml(sec[2]) + (sec[1] ? '</h5>' : '</h4>'));
-        p = sec[3].trim();
-        if (!p) { return; }
-      }
-      p = p.replace(/\\cite\{([^}]*)\}/g, function (_, keys) { return citation(keys); });
-      var out = '', rest = p, re = /\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\$([^$]+)\$/, mm;
-      function inline(text) {
-        return escapeHtml(text.replace(/\\(textbf|emph|textit)\{([^}]*)\}/g, '$2'));
-      }
-      while ((mm = re.exec(rest))) {
-        out += inline(rest.slice(0, mm.index));
-        out += mm[1] !== undefined ? math(mm[1], true) : mm[2] !== undefined ? math(mm[2], true) : math(mm[3], false);
-        rest = rest.slice(mm.index + mm[0].length);
-      }
-      out += inline(rest);
-      pieces.push('<p>' + out + '</p>');
+      headings(p).forEach(function (part) {
+        if (part.title !== undefined) {
+          var tag = 'h' + part.level;
+          pieces.push('<' + tag + '>' + inline(part.title) + '</' + tag + '>');
+          return;
+        }
+        var text = part.text.trim();
+        if (!text) { return; }
+        var only = text.match(/^@@BLOCK(\d+)@@$/);
+        if (only) { pieces.push(html[parseInt(only[1], 10)]); return; }
+        // A paragraph of nothing but preamble or spacing commands has no reader in it.
+        var rendered = inline(text);
+        if (rendered.trim()) { pieces.push('<p>' + rendered + '</p>'); }
+      });
     });
     if (bib.length) {
       pieces.push('<h4>References</h4><ol class="bib-list">' + bib.map(function (e) {
@@ -206,9 +424,9 @@
   // ---- outline (§17.1 "a section outline with completeness indicators") ----------
   function outline(src) {
     var body = String(src).replace(/^%.*$/gm, '');
-    var re = /\\(sub)?section\*?\{([^}]*)\}/g, found = [], m;
+    var re = /\\(subsubsection|subsection|section|paragraph)\*?\{([^}]*)\}/g, found = [], m;
     while ((m = re.exec(body))) {
-      found.push({ level: m[1] ? 2 : 1, title: m[2], at: m.index, end: re.lastIndex });
+      found.push({ level: LEVELS[m[1]] - 3, title: m[2], at: m.index, end: re.lastIndex });
     }
     return found.map(function (s, i) {
       var next = i + 1 < found.length ? found[i + 1].at : body.length;

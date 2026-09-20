@@ -298,7 +298,7 @@ LGD_SECTIONS = {
         "unlikely."
     ),
     "Assumptions": (
-        "That coverage measured on the *current* balance is a fair proxy for coverage at the "
+        "That coverage measured on the \\emph{current} balance is a fair proxy for coverage at the "
         "moment of default. It is not, and the weakness section says what that costs."
     ),
     "Data and Features Used": (
@@ -317,7 +317,7 @@ LGD_SECTIONS = {
     "Known Weaknesses": (
         "Coverage is measured on the balance drawn today, while the loss is realised on the "
         "exposure at default — which the third member says is larger. So this member "
-        "*overstates* coverage, and therefore understates loss, by most on exactly the "
+        "\\emph{overstates} coverage, and therefore understates loss, by most on exactly the "
         "accounts with the largest undrawn limits. The honest fix is a coverage input computed "
         "from the exposure-at-default member's output, which would make this a pipeline rather "
         "than a product; it is not done here, and the bias is documented instead of hidden."
@@ -390,8 +390,8 @@ COMPOSITE_SECTIONS = {
         "$s = \\mathrm{PD}_{12} / \\mathrm{PD}_0$. Then "
         "$\\mathrm{ECL} = h \\cdot \\mathrm{PD}_{12} \\cdot \\mathrm{LGD} \\cdot "
         "\\mathrm{EAD}$ where $h = \\phi$ if $s > \\theta$ and $h = 1$ otherwise. The "
-        "threshold $\\theta$ and the lifetime multiple $\\phi$ are parameters **of the "
-        "combination**, not of any member: they are the standard's judgement calls and belong "
+        "threshold $\\theta$ and the lifetime multiple $\\phi$ are parameters \\textbf{of the "
+        "combination}, not of any member: they are the standard's judgement calls and belong "
         "to the impairment committee rather than to a modeller."
     ),
     "Assumptions": (
@@ -417,7 +417,7 @@ COMPOSITE_SECTIONS = {
     ),
     "Validation Evidence": (
         "MAYA scores the composite blind against realised loss on the escrowed partition, in "
-        "currency. **Read that figure carefully.** Realised loss is zero on more than nine "
+        "currency. \\textbf{Read that figure carefully.} Realised loss is zero on more than nine "
         "rows in ten and large on the rest, so a per-account error statistic is dominated by "
         "the variance of a Bernoulli outcome and not by the quality of the expectation. The "
         "meaningful test of an expected-loss model is at portfolio level — does the sum of the "
