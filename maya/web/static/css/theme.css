@@ -175,6 +175,7 @@ table.maya-table mark { background: var(--maya-highlight); color: var(--maya-ink
 .spec-preview .fig-missing { border: 1px dashed var(--maya-border); border-radius: 4px; padding: 1rem; color: var(--maya-slate); font-size: 12px; }
 .spec-preview .bib-list li { font-size: 13px; margin-bottom: .2rem; }
 .outline-list li.lvl2 { padding-left: 1.2rem; }
+.outline-list li.lvl3 { padding-left: 2.4rem; }
 .outline-list li { margin-bottom: .15rem; }
 .cm-find { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .4rem; margin-bottom: .3rem;
   background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px; }
@@ -401,3 +402,10 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .kernel-math { overflow-x: auto; padding: .35rem 0; }
 .kernel-code { background: var(--maya-canvas); border: 1px solid var(--maya-border); border-radius: 6px;
   padding: .7rem; font-size: 12px; max-height: 340px; overflow: auto; margin-bottom: 0; white-space: pre; }
+
+/* The slogan in the bar. Small, italic and in the nav's own ink at reduced opacity, so it
+   reads as a standing claim rather than as another control competing for a click. */
+.maya-creed { font-style: italic; font-size: 12.5px; letter-spacing: .01em; white-space: nowrap;
+  color: var(--maya-on-nav); opacity: .72; padding-left: 1.1rem; margin-right: 1.4rem;
+  border-left: 1px solid color-mix(in srgb, var(--maya-on-nav) 30%, transparent); }
+@media (max-width: 1399.98px) { .maya-creed { display: none; } }
