@@ -452,3 +452,27 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 /* A reader who has asked their system for less motion gets the diagram standing still; it
    makes the same argument, and the animation was never carrying anything the drawing does not. */
 @media (prefers-reduced-motion: reduce) { .lp-motion { display: none; } }
+
+/* The lineage canvas's own controls, over the drawing rather than beside it: a graph is a
+   map, and the controls for moving around a map belong on it. They sit clear of the top-left
+   corner, which is where a layered graph puts its root. */
+.cy-stage { position: relative; }
+.cy-controls { position: absolute; top: .55rem; right: .55rem; z-index: 4;
+  display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
+.cy-layout-pick { width: auto; font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.14); }
+.cy-controls .cy-zoom { box-shadow: 0 1px 4px rgba(0,0,0,.14); border-radius: 6px; }
+.cy-controls .cy-zoom .btn { --bs-btn-padding-y: .2rem; --bs-btn-padding-x: .45rem;
+  background: var(--maya-surface); color: var(--maya-ink); border-color: var(--maya-border); }
+.cy-controls .cy-zoom .btn:hover { background: var(--maya-canvas); color: var(--maya-crimson); }
+/* The lineage commentary: the graph said in sentences, above the drawing it describes. */
+.cy-story { background: var(--maya-surface); border: 1px solid var(--maya-border);
+  border-left: 3px solid var(--maya-crimson); border-radius: 6px; padding: .6rem .85rem;
+  margin-bottom: .75rem; font-size: 13.5px; line-height: 1.55; }
+.cy-story:empty { display: none; }
+.cy-story code { font-size: 12.5px; }
+/* The node tooltip: a few facts at the pointer, inside the canvas it belongs to. */
+.cy-tip { position: absolute; z-index: 5; max-width: 260px; pointer-events: none;
+  background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.16); padding: .4rem .55rem; font-size: 12px;
+  line-height: 1.45; color: var(--maya-ink); }
+.cy-tip-foot { color: var(--maya-slate); font-style: italic; }

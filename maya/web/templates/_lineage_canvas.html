@@ -30,12 +30,45 @@
         <label class="form-check-label small" for="cy-cluster">Cluster the far graph</label></div>
     </div>
   </div>
+  {# The drawing, in words. Somebody meeting a lineage graph for the first time can see the
+     boxes and still not know what the page is telling them, and the direction of an arrow is
+     the part that carries the meaning. #}
+  <div class="cy-story" id="cy-story" aria-live="polite"></div>
   <div class="cy-split">
-    <div id="cy" role="img" aria-label="Lineage graph for {{ root }}" data-root="{{ root }}"
-         data-direction="{{ direction or 'both' }}" data-depth="{{ depth or 3 }}"></div>
+    {# The canvas and the controls that sit over it. A lineage graph is a map: the reader
+       wants to move around it and to try another arrangement when the default tangles, and
+       neither is worth a page reload. #}
+    <div class="cy-stage">
+      <div id="cy" role="img" aria-label="Lineage graph for {{ root }}" data-root="{{ root }}"
+           data-direction="{{ direction or 'both' }}" data-depth="{{ depth or 3 }}"></div>
+      <div class="cy-tip" id="cy-tip" role="tooltip" hidden></div>
+      <div class="cy-controls">
+        <label class="visually-hidden" for="cy-layout">Arrangement</label>
+        <select class="form-select form-select-sm cy-layout-pick" id="cy-layout"
+                title="How the graph is arranged">
+          <option value="layered">Layered, top down</option>
+          <option value="layered-lr">Layered, left to right</option>
+          <option value="organic">Organic</option>
+          <option value="radial">Radial</option>
+          <option value="grid">Grid</option>
+        </select>
+        <div class="btn-group-vertical btn-group-sm cy-zoom" role="group" aria-label="View">
+          <button type="button" class="btn btn-light" id="cy-relayout"
+                  title="Arrange again, discarding anything dragged">
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">Arrange again</span></button>
+          <button type="button" class="btn btn-light" id="cy-fit"
+                  title="Fit the whole graph in view">
+            <i class="bi bi-aspect-ratio" aria-hidden="true"></i><span class="visually-hidden">Fit to view</span></button>
+          <button type="button" class="btn btn-light" id="cy-zoom-in" title="Zoom in">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Zoom in</span></button>
+          <button type="button" class="btn btn-light" id="cy-zoom-out" title="Zoom out">
+            <i class="bi bi-dash-lg" aria-hidden="true"></i><span class="visually-hidden">Zoom out</span></button>
+        </div>
+      </div>
+    </div>
     <aside class="cy-detail" id="cy-detail" aria-live="polite">
       <p class="small-muted mb-0">Hover or select a node for its detail. Click to select — hold shift
-        to select several — and double-click to re-root the view.</p>
+        to select several — and double-click to open it. The button below re-roots the view here.</p>
     </aside>
   </div>
   <p class="small-muted mt-1 mb-1" id="cy-status" aria-live="polite">{% if not root %}Enter a reference to draw its lineage.{% endif %}</p>
