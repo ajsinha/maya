@@ -3,9 +3,10 @@ The command line (``python -m maya.cli``), end to end: every command against a
 real platform through the SDK, human and ``--json`` output, and exit codes —
 0 on success, 1 when MAYA refuses, 2 for usage errors.
 
-The CLI's ``_client`` is pointed at an in-process platform (with job workers
-running, so pins and waits complete); one test drives the genuine ``--local``
-branch as well.
+``maya.cli.common.client`` is pointed at an in-process platform (with job workers
+running, so pins and waits complete); every command group opens its client through
+that one function, so one patch covers all of them. One test drives the genuine
+``--local`` branch as well.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -19,6 +20,7 @@ import zipfile
 import pytest
 
 from maya.cli import __main__ as cli
+from maya.cli import common as cli_common
 from tests.conftest import World, approved_feature, build_platform, price_csv
 from tests.test_warrants import XY_DEF, complete_spec, xy_csv
 
@@ -81,7 +83,7 @@ def run(estate, monkeypatch, capsys):
     """``run("feature", "list", json_out=True, who="mick")`` -> (exit, stdout, stderr)."""
     _, clients = estate
     who = {"user": "admin"}
-    monkeypatch.setattr(cli, "_client", lambda args: clients[who["user"]])
+    monkeypatch.setattr(cli_common, "client", lambda args: clients[who["user"]])
 
     def invoke(*argv: str, json_out: bool = False, as_user: str = "admin") -> tuple[int, str, str]:
         who["user"] = as_user
@@ -112,16 +114,16 @@ def test_feature_show_and_an_unknown_ref_exits_1_naming_the_error(run):
     code, out, _ = run("feature", "show", "eq/px")
     assert code == 0 and json.loads(out)["name"] == "px"
     code, out, err = run("feature", "show", "eq/nosuch")
-    assert code == cli.EXIT_REFUSED and out == "" and err.startswith("maya: NotFound:")
+    assert code == cli_common.EXIT_REFUSED and out == "" and err.startswith("maya: NotFound:")
 
 
 def test_usage_errors_exit_2(run):
     with pytest.raises(SystemExit) as exc:
         run("feature", "pin", "eq/px")  # --version, --name, --as-of missing
-    assert exc.value.code == cli.EXIT_USAGE
+    assert exc.value.code == cli_common.EXIT_USAGE
     with pytest.raises(SystemExit) as exc:
         run("nosuchgroup")
-    assert exc.value.code == cli.EXIT_USAGE
+    assert exc.value.code == cli_common.EXIT_USAGE
 
 
 def test_setting_overrides_pass_and_other_unknown_flags_are_refused(run):
@@ -132,7 +134,7 @@ def test_setting_overrides_pass_and_other_unknown_flags_are_refused(run):
     for bad in ("--nonsense=1", "--dialect=sqlite", "--db.dialect"):
         with pytest.raises(SystemExit) as exc:
             run("feature", "list", bad)
-        assert exc.value.code == cli.EXIT_USAGE
+        assert exc.value.code == cli_common.EXIT_USAGE
 
 
 def test_quick_upload_and_restatement(run, tmp_path):
@@ -189,7 +191,7 @@ def test_featureset_pin_cascade_and_download_shapes(run, tmp_path):
         "2026-02-28",
         "--cascade",
     )
-    assert code == cli.EXIT_REFUSED and "role ceiling" in err  # admin is not a data role
+    assert code == cli_common.EXIT_REFUSED and "role ceiling" in err  # admin is not a data role
     code, out, err = run(
         "featureset",
         "pin",
@@ -225,7 +227,7 @@ def test_featureset_pin_cascade_and_download_shapes(run, tmp_path):
         "--shape",
         "tensor",
     )
-    assert code == cli.EXIT_REFUSED and "tabular or wide" in err
+    assert code == cli_common.EXIT_REFUSED and "tabular or wide" in err
 
 
 def test_model_push_and_diff(run, estate, tmp_path):
@@ -277,14 +279,14 @@ def test_warrant_fetch_params_seal_bundle_and_offline_verify(run, estate, tmp_pa
     code, out, _ = run("warrant", "upload-params", tw["id"], str(params))
     assert code == 0 and "UNVERIFIED DATA" in out
     code, _, err = run("warrant", "seal", tw["id"], as_user="mgr")
-    assert code == cli.EXIT_REFUSED and err.startswith("maya: NotApproved"), err
+    assert code == cli_common.EXIT_REFUSED and err.startswith("maya: NotApproved"), err
     ps = next(x for x in p.warrants.get(w.devi, tw["id"])["parameter_sets"] if x["verified_data"])
     p.warrants.parameter_transition(w.devi, ps["id"], "submit")
     p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
     p.warrants.transition(w.devi, tw["id"], "submit")
     p.warrants.transition(w.mgr, tw["id"], "approve")
     code, _, err = run("warrant", "seal", tw["id"])
-    assert code == cli.EXIT_REFUSED and "role ceiling" in err  # admin is not a model role
+    assert code == cli_common.EXIT_REFUSED and "role ceiling" in err  # admin is not a model role
     code, out, _ = run("warrant", "seal", tw["id"], as_user="mgr")
     assert code == 0 and json.loads(out)["sealed_at"]
     bundle = tmp_path / "bundle.zip"
@@ -302,7 +304,7 @@ def test_warrant_fetch_params_seal_bundle_and_offline_verify(run, estate, tmp_pa
                 data = data.replace(b"2.0", b"3.0")
             dst.writestr(item, data)
     code, out, _ = run("export", "verify", str(tampered))
-    assert code == cli.EXIT_REFUSED and "verified: False" in out and "[FAIL]" in out
+    assert code == cli_common.EXIT_REFUSED and "verified: False" in out and "[FAIL]" in out
 
 
 def test_jobs_watch_and_cancel(run, estate):
@@ -315,7 +317,7 @@ def test_jobs_watch_and_cancel(run, estate):
     code, text, err = run("job", "cancel", out["job"]["id"])
     assert code == 0 and json.loads(text)["state"] == "succeeded"  # a finished job stays so
     code, _, err = run("job", "cancel", "0" * 32)
-    assert code == cli.EXIT_REFUSED and "NotFound" in err
+    assert code == cli_common.EXIT_REFUSED and "NotFound" in err
 
 
 def test_verify_integrity(run):
@@ -345,18 +347,18 @@ def test_the_real_local_branch_needs_credentials(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(Platform, "build", build)
     with pytest.raises(MayaError, match="MAYA_USER and MAYA_PASSWORD"):
-        cli._client(args)
+        cli_common.client(args)
     monkeypatch.setattr(Platform, "build", build)
     monkeypatch.setenv("MAYA_PASSWORD", "maya-dev-admin")
-    client = cli._client(args)
+    client = cli_common.client(args)
     assert client.auth.me()["username"] == "admin"
     for platform in built:
         platform.shutdown()
 
 
 def test_rows_formatting():
-    assert cli._rows([], ["a"]) == "(none)"
-    text = cli._rows([{"a": "x", "bb": 12}, {"a": "longer"}], ["a", "bb"])
+    assert cli_common.rows_table([], ["a"]) == "(none)"
+    text = cli_common.rows_table([{"a": "x", "bb": 12}, {"a": "longer"}], ["a", "bb"])
     lines = text.splitlines()
     assert lines[0].startswith("A       BB") and lines[2].startswith("longer")
 
@@ -428,3 +430,94 @@ def test_featureset_build_model_validate_and_warrant_create(run, tmp_path):
         as_user="devi",
     )
     assert code == 0 and "leakage certificate" in out, err
+
+
+# -- key management (§12: "creating, rotating, scoping and revoking … is scriptable") ----
+def test_keys_are_created_scoped_listed_and_revoked_from_the_command_line(run):
+    code, out, err = run(
+        "key",
+        "create",
+        "nightly pins",
+        "--role",
+        "admin",
+        "--namespace",
+        "eq",
+        "--days",
+        "30",
+        json_out=True,
+    )
+    assert code == 0, err
+    made = json.loads(out)
+    assert made["api_key"].startswith("maya_") and made["namespaces"] == ["eq"]
+    # a key is scoped down, never up: it may carry only roles its holder already holds
+    assert made["roles"] == ["admin"] and "secret_hash" not in made
+    code, human, _ = run("key", "create", "second key", "--days", "30")
+    assert code == 0 and "only time the secret is shown" in human
+    code, out, _ = run("key", "list")
+    assert code == 0 and "nightly pins" in out and "KEY_ID" in out
+    code, out, _ = run("key", "revoke", made["key_id"])
+    assert code == 0 and f"revoked {made['key_id']}" in out
+    code, out, _ = run("key", "list", json_out=True)
+    assert all(k["key_id"] != made["key_id"] or k["revoked_at"] for k in json.loads(out))
+
+
+def test_a_key_is_rotated_with_an_overlap_so_nothing_has_to_be_timed(run):
+    """The command that made the CLI unusable for key management by its absence: a key is
+    rotated on a schedule, and the overlap is what lets the switch-over happen later."""
+    code, out, err = run("key", "create", "rotatable", "--days", "30", json_out=True)
+    assert code == 0, err
+    original = json.loads(out)
+    code, out, err = run("key", "rotate", original["key_id"], "--overlap-days", "2")
+    assert code == 0, err
+    assert f"{original['key_id']} is replaced by" in out and "works until" in out
+    assert "maya_" in out, "the successor's secret, shown once"
+    code, out, _ = run("key", "rotate", original["key_id"], json_out=True)
+    assert code == cli_common.EXIT_REFUSED, "a key is rotated once, and says so"
+
+
+def test_the_key_report_names_what_wants_attention_and_exits_non_zero(run, estate):
+    """A report a scheduled run can act on: exit 1 when there is something to do."""
+    w, _ = estate
+    code, out, err = run("key", "create", "reportable", "--days", "30", json_out=True)
+    assert code == 0, err
+    key_id = json.loads(out)["key_id"]
+    code, out, _ = run("key", "report", json_out=True)
+    assert code in (0, cli_common.EXIT_REFUSED)
+    # bring it inside the reminder window: the report must then name it, with the reason
+    with w.p.uow() as uow:
+        row = uow.repo("api_keys").find_one(key_id=key_id)
+        uow.repo("api_keys").update(row["id"], {"expires_at": dt.datetime.now(dt.UTC)})
+    code, out, _ = run("key", "report", json_out=True)
+    named = [r for r in json.loads(out) if r["key_id"] == key_id]
+    assert code == cli_common.EXIT_REFUSED and named
+    assert any("expire" in reason for reason in named[0]["reasons"])
+    code, human, _ = run("key", "report")
+    assert "REASONS" in human and key_id in human
+
+
+def test_a_service_account_gets_a_client_credential_from_the_command_line(run, estate):
+    """§11.5: a service account is a principal with credentials, and it cannot create its
+    own — it never signs in. Until now nothing on the command line could do it for it."""
+    w, _ = estate
+    w.p.access.create_user(
+        w.admin, username="clirobot", password=None, roles=["feature_designer"], is_service=True
+    )
+    code, out, err = run(
+        "credential",
+        "create",
+        "clirobot",
+        "--role",
+        "feature_designer",
+        "--namespace",
+        "eq",
+        "--days",
+        "30",
+        json_out=True,
+    )
+    assert code == 0, err
+    made = json.loads(out)
+    assert made["client_id"] and made["client_secret"] and "secret_hash" not in made
+    code, human, _ = run("credential", "create", "clirobot", "--days", "30")
+    assert "exchange them at POST /auth/token" in human
+    code, out, _ = run("credential", "list", json_out=True)
+    assert code == 0 and any(c["username"] == "clirobot" for c in json.loads(out))

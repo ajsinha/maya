@@ -1,8 +1,35 @@
 """
 The typesetting seam (§13.4.2, §13.4.3, §17.1) — Type A, *labelled*.
 
-Preferred: Tectonic, a self-contained TeX engine, run in a temporary
-directory with a timeout and ``--untrusted`` (no shell escape).
+Preferred: Tectonic, a self-contained TeX engine, run in a temporary directory
+under the caps §17.1 asks for — "capped (time, memory, output size), runs with
+no network":
+
+* ``--untrusted``, so there is no TeX shell escape;
+* ``--only-cached``, so the build never reaches the network. Tectonic otherwise
+  downloads its support bundle on first use, which would make a model's evidence
+  depend on a web server being up and on what it served that day. A deployment
+  warms the bundle once (``tectonic -X bundle fetch``, or one build outside
+  MAYA); until it is warm a build degrades to the watermarked draft renderer,
+  which is §17.1's own degradation rule rather than an error;
+* a fixed environment, not the parent's. Proxies, tokens and credentials in
+  MAYA's environment are none of a TeX build's business, and a proxy variable is
+  the one way a cached build could still open a socket;
+* ``RLIMIT_AS``, ``RLIMIT_FSIZE``, ``RLIMIT_CPU`` and ``RLIMIT_NPROC`` on POSIX,
+  so a runaway macro dies on its own rather than taking the host with it. Windows
+  has no rlimits: there the wall clock is the only cap, and the render metadata
+  says so instead of implying a limit that is not there.
+
+True network *isolation* — a namespace with no interfaces at all — needs
+bubblewrap, and whether bubblewrap works on this host is something
+``maya.security.sandbox`` already probes. ``maya.core`` must not import
+``maya.security`` (that inverts the layering), so ``render_pdf`` takes the jail
+command from its caller, and ``maya.services.typesetting`` is the one place that
+asks the probe and passes it.
+
+Every cap that was actually applied comes back in the render metadata, so a model
+version records what its build was allowed to do rather than what this file's
+defaults happened to be on the day.
 
 Fallback: MAYA's own structural renderer, written here in pure Python. It
 produces a valid PDF that is faithful to the document's *structure* — title,
@@ -17,16 +44,88 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 WATERMARK = "DRAFT RENDER \u2014 NOT EVIDENCE"
 PAGE_W, PAGE_H, MARGIN = 612, 792, 72
 _BODY, _HEAD, _TITLE, _MONO = 10.5, 14, 18, 9.5
+
+# What a build may see of MAYA's environment. ``TECTONIC_*``/``TEXMF*`` let an operator
+# point at a warmed bundle or a local TeX tree, and ``HOME`` is where Tectonic keeps its
+# cache by default — dropping it would make every build a cold one, so every build a draft.
+_ENV_KEEP = ("PATH", "HOME", "LANG", "LC_ALL", "SOURCE_DATE_EPOCH")
+_ENV_PREFIXES = ("TECTONIC_", "TEXMF", "XDG_CACHE_HOME")
+
+
+@dataclass(frozen=True)
+class Caps:
+    """What one LaTeX build may spend (§17.1).
+
+    ``memory_mb`` is address space rather than resident size: TeX takes its arenas up
+    front, so the useful figure is generous but finite.
+
+    ``processes`` is ``RLIMIT_NPROC``, which Linux counts per *user*, not per process
+    tree. It therefore applies only to an unjailed build: a jail has to create
+    namespaces, and a user already over the limit cannot create anything. A jailed build
+    gets a pid namespace instead, which bounds it more tightly than a count would. The
+    render metadata lists the limits that were really set, so neither case has to be
+    inferred from the defaults.
+    """
+
+    seconds: int = 120
+    memory_mb: int = 2048
+    output_mb: int = 64
+    processes: int = 64
+
+    def as_dict(self) -> dict[str, int]:
+        return {
+            "seconds": self.seconds,
+            "memory_mb": self.memory_mb,
+            "output_mb": self.output_mb,
+            "processes": self.processes,
+        }
+
+
+def build_env() -> dict[str, str]:
+    """The environment a build runs in: an allowlist of MAYA's own, and nothing else."""
+    keep = {k: v for k, v in os.environ.items() if k in _ENV_KEEP}
+    keep.update({k: v for k, v in os.environ.items() if k.startswith(_ENV_PREFIXES)})
+    keep.setdefault("PATH", os.defpath)
+    return keep
+
+
+def _rlimiter(caps: Caps, *, nproc: bool = True) -> tuple[Callable[[], None] | None, list[str]]:
+    """``(the pre-exec hook, the limits it will set)``; ``(None, [])`` without rlimits."""
+    try:
+        import resource
+    except ImportError:  # Windows: no rlimits, and the metadata will say none were set
+        return None, []
+    wanted = [
+        ("RLIMIT_AS", (caps.memory_mb * 1024 * 1024,) * 2),
+        ("RLIMIT_FSIZE", (caps.output_mb * 1024 * 1024,) * 2),
+        ("RLIMIT_CPU", (caps.seconds, caps.seconds + 1)),
+    ]
+    if nproc:
+        wanted.append(("RLIMIT_NPROC", (caps.processes,) * 2))
+    available = [name for name, _ in wanted if hasattr(resource, name)]
+
+    def apply() -> None:
+        for name, value in wanted:
+            if hasattr(resource, name):
+                try:
+                    resource.setrlimit(getattr(resource, name), value)
+                except (ValueError, OSError):
+                    pass
+
+    return apply, available
 
 
 def detect() -> dict[str, str]:
@@ -42,16 +141,39 @@ def detect() -> dict[str, str]:
 
 
 def render_pdf(
-    latex: str, *, timeout: int = 120, force_draft: bool = False
+    latex: str,
+    *,
+    caps: Caps | None = None,
+    jail: Sequence[str] = (),
+    force_draft: bool = False,
 ) -> tuple[bytes, dict[str, Any]]:
-    """Render LaTeX to PDF: ``(pdf_bytes, {"draft_render", "backend", "log"})``."""
+    """Render LaTeX to PDF: ``(pdf_bytes, {"draft_render", "backend", "log", "caps"})``.
+
+    ``jail`` is a command prefix that puts the build in a network namespace of its own;
+    the caller supplies it because only the caller may ask the sandbox probe whether one
+    is available here. Without it the build still cannot reach the network — that is what
+    ``--only-cached`` and the fixed environment are for — but it is a policy rather than
+    a kernel guarantee, and ``caps["network"]`` says which of the two this PDF got.
+    """
+    caps = caps or Caps()
+    note = "Tectonic not available"
     if not force_draft and detect()["backend"] == "tectonic":
-        return _tectonic(latex, timeout)
-    pdf = DraftRenderer().render(latex)
-    return pdf, {
+        built = _tectonic(latex, caps, tuple(jail))
+        if not isinstance(built, str):
+            return built
+        # TeX never ran, so the document is not what failed. Overwhelmingly this is a
+        # support bundle nobody has warmed on this host, and a build may not fetch one —
+        # but the engine's own words go in the log either way rather than a guess.
+        note = (
+            "the engine compiled nothing, most likely a support bundle this host has never "
+            "warmed (run: tectonic -X bundle fetch), which a build may not fetch itself. "
+            "The engine said: " + " ".join(built.split())[-600:]
+        )
+    return DraftRenderer().render(latex), {
         "draft_render": True,
         "backend": "draft",
-        "log": "structural draft renderer (Tectonic unavailable)",
+        "log": f"structural draft renderer ({note})",
+        "caps": {**caps.as_dict(), "rlimits": [], "network": "in-process only"},
     }
 
 
@@ -77,23 +199,64 @@ def _first_error(log: str) -> str:
     return ""
 
 
-def _tectonic(latex: str, timeout: int) -> tuple[bytes, dict[str, Any]]:
+def _tex_never_ran(tex_log: Path) -> bool:
+    """Did the build fail *before* TeX ran, rather than because the document is broken?
+
+    The distinction decides what happens next: a document MAYA cannot compile is the
+    author's problem and is refused with its first error, while a host that cannot build
+    anything is the operator's, and §17.1 says to degrade to the watermarked draft rather
+    than refuse. The test is the TeX log, not the wording of a message: ``--keep-logs``
+    means TeX leaves one whenever it has run at all, including when it has run and failed.
+    Matching on Tectonic's phrasing instead would put MAYA's behaviour at the mercy of
+    somebody else's release notes, and the commonest cause — a support bundle nobody has
+    warmed — is exactly the case where TeX never starts.
+    """
+    return not tex_log.exists()
+
+
+def _tectonic(latex: str, caps: Caps, jail: tuple[str, ...]) -> tuple[bytes, dict[str, Any]] | str:
+    """The built PDF and its metadata, or the engine's own output when TeX never ran —
+    which is the caller's cue to degrade to the draft renderer and say why."""
     latex = as_document(latex)
     exe = shutil.which("tectonic") or "tectonic"
+    limiter, limits = _rlimiter(caps, nproc=not jail)
     with tempfile.TemporaryDirectory(prefix="maya-tex-") as tmp:
         src = Path(tmp) / "doc.tex"
         src.write_text(latex, encoding="utf-8")
-        proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
-            [exe, "--untrusted", "--keep-logs", "--outdir", tmp, str(src)],
-            cwd=tmp,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-        )
+        env = build_env()
+        env["TMPDIR"] = tmp
+        try:
+            proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
+                [
+                    *jail,
+                    exe,
+                    "--untrusted",
+                    "--only-cached",
+                    "--keep-logs",
+                    "--outdir",
+                    tmp,
+                    str(src),
+                ],
+                cwd=tmp,
+                capture_output=True,
+                text=True,
+                timeout=caps.seconds,
+                check=False,
+                env=env,
+                preexec_fn=limiter,  # noqa: PLW1509 - the caps are the point; see _rlimiter
+            )
+        except subprocess.TimeoutExpired as exc:
+            from maya.core.errors import ValidationFailed
+
+            raise ValidationFailed(
+                f"LaTeX build exceeded its {caps.seconds}-second cap and was stopped",
+                log=str(exc.stdout or "")[-4000:],
+            ) from exc
         log = (proc.stdout or "") + (proc.stderr or "")
         pdf_path = Path(tmp) / "doc.pdf"
         if proc.returncode != 0 or not pdf_path.exists():
+            if _tex_never_ran(Path(tmp) / "doc.log"):
+                return log[-4000:]
             from maya.core.errors import ValidationFailed
 
             first = _first_error(log)
@@ -104,6 +267,11 @@ def _tectonic(latex: str, timeout: int) -> tuple[bytes, dict[str, Any]]:
             "draft_render": False,
             "backend": "tectonic",
             "log": log[-4000:],
+            "caps": {
+                **caps.as_dict(),
+                "rlimits": limits,
+                "network": "namespace (no interfaces)" if jail else "--only-cached, fixed env",
+            },
         }
 
 

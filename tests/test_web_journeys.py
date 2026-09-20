@@ -331,6 +331,19 @@ def test_administration_forms(site):
         expect="success",
     )
     admin.post("/admin/namespaces/credit", {"sod": "two_person"}, expect="success")
+    # §12's per-namespace ceiling on key life, settable here rather than only in the database
+    admin.post(
+        "/admin/namespaces/credit",
+        {"sod": "two_person", "api_key_max_days": "14"},
+        expect="success",
+    )
+    assert "14 day(s)" in admin.get("/admin/namespaces").text
+    admin.post(
+        "/admin/namespaces/credit",
+        {"sod": "two_person", "api_key_max_days": ""},
+        expect="success",
+    )
+    assert "global maximum" in admin.get("/admin/namespaces").text
     admin.post(
         "/admin/grants",
         {

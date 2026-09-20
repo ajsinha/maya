@@ -35,6 +35,10 @@ EVENT_ACTIONS = {
     "access.revoked",
     "auth.lockout",
     "auth.mfa_reset",
+    # The emergency door (§13.3). A subscriber that watches nothing else should watch
+    # this: a break-glass sign-in is either an outage being handled or a stolen password,
+    # and the difference is worth a page rather than a line in an audit table.
+    "auth.break_glass_login",
     "workspace.submitted",
     "workspace.merged",
     "integrity.verified",

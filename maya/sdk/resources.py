@@ -478,6 +478,11 @@ class Namespaces(_Resource):
 
     @endpoint("PATCH", "/namespaces/{name}")
     def update(self, name: str, **changes: Any) -> Any:
+        """Change ``description``, ``sod``, ``default_visibility``, ``classification``,
+        ``production``, ``preset``, ``quota_bytes``, ``materialize_policy``,
+        ``shadow_materiality`` or ``api_key_max_days`` (§12's per-namespace ceiling on how
+        far out an API key scoped here may expire; null lets the global maximum apply).
+        Anything else is refused by name."""
         return self._c("PATCH", f"/namespaces/{seg(name)}", json_body=changes)
 
 
@@ -599,6 +604,14 @@ class Catalog(_Resource):
     def facets(self, type: str = "feature") -> Any:
         """What each facet can be set to, for this object type."""
         return self._c("GET", "/catalog/facets", params={"type": type})
+
+    @endpoint("GET", "/catalog/nodes")
+    def nodes(self, refs: list[str]) -> Any:
+        """Everything a graph needs about its nodes in one call: per reference the type,
+        namespace, owner, the state of the version that reference names, the latest
+        version, when it last changed, a feature's data freshness and its sealed pins'
+        bytes. A reference you may not read answers ``{"hidden": true}``."""
+        return self._c("GET", "/catalog/nodes", params={"refs": ",".join(refs)})
 
     @endpoint("GET", "/catalog/dependents")
     def dependents(self, ref: str, depth: int = 4) -> Any:

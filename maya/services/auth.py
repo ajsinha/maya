@@ -554,18 +554,35 @@ class AuthService:
     # -- passwords -------------------------------------------------------------
     def check_policy(self, password: str) -> None:
         """Shape alone: what a password must look like for anyone. History belongs to an
-        account, so a caller who knows whose password this is uses ``_accept_password``."""
+        account, so a caller who knows whose password this is uses ``accept_password``."""
         self.rules.check(password)
 
-    def _accept_password(self, uow: Any, user: dict[str, Any], new: str) -> dict[str, Any]:
+    def accept_password(
+        self,
+        uow: Any,
+        user: dict[str, Any] | None,
+        new: str,
+        *,
+        must_change: bool = False,
+    ) -> dict[str, Any]:
         """Check the new password against the whole policy and return the changes that set
-        it, remembering the one it replaces."""
+        it, remembering the one it replaces.
+
+        Every path that writes a password hash comes through here — the person changing
+        their own, the administrator resetting someone else's, a reset token redeemed, and
+        an account being created — so none of them can skip the history or forget to start
+        the clock. ``user`` is None for an account that does not exist yet: there is no
+        history to check and nothing to remember, but ``password_changed_at`` is still set,
+        because a password with no recorded age never expires (§12's maximum age reads that
+        column, and a missing value means "MAYA does not know", not "brand new").
+        """
         self.rules.check(new)
-        self.rules.check_history(uow, user, new)
-        self.rules.remember(uow, user)
+        if user is not None:
+            self.rules.check_history(uow, user, new)
+            self.rules.remember(uow, user)
         return {
             "password_hash": kdf.hash_password(new),
-            "must_change_password": False,
+            "must_change_password": must_change,
             "password_changed_at": utcnow(),
         }
 
@@ -576,7 +593,7 @@ class AuthService:
                 raise NotAuthenticated("Current password is incorrect")
             if new == old:
                 raise ValidationFailed("The new password must differ from the old one")
-            uow.repo("users").update(p.user_id, self._accept_password(uow, user, new))
+            uow.repo("users").update(p.user_id, self.accept_password(uow, user, new))
             uow.audit("auth.password_changed", object_ref=f"user:{p.username}")
 
     # -- password reset (§12: single-use, time-limited tokens) --------------------
@@ -682,7 +699,7 @@ class AuthService:
             else:
                 user = uow.repo("users").require(row["user_id"])
                 username = user["username"]
-                changes = self._accept_password(uow, user, new_password)
+                changes = self.accept_password(uow, user, new_password)
                 uow.repo("users").update(
                     user["id"],
                     {

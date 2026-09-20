@@ -337,7 +337,7 @@ class ExecutionService:
         rather than a real LaTeX build — the same rule §17.3 applies to specifications,
         because a manifest is evidence too.
         """
-        from maya.core.typeset import render_pdf
+        from maya.services import typesetting
 
         with self.p.uow() as uow:
             ew, ns = self._load(uow, ew_id)
@@ -345,13 +345,17 @@ class ExecutionService:
             model = uow.repo("model_versions").require(ew["model_version_id"])
             owner = uow.repo("users").get(ew["owner_id"])
         latex = manifest_latex(ew, ns, self.uri(ew, ns), self.status(ew), owner)
-        pdf, meta = render_pdf(latex)
+        pdf, meta = typesetting.render(self.p.settings, latex)
         with self.p.uow(p.username) as uow:
             uow.audit(
                 "warrant.manifest_rendered",
                 object_type="execution_warrant",
                 object_ref=self.uri(ew, ns),
-                detail={"draft_render": meta["draft_render"], "backend": meta["backend"]},
+                detail={
+                    "draft_render": meta["draft_render"],
+                    "backend": meta["backend"],
+                    "caps": meta.get("caps"),
+                },
             )
         del model
         return pdf

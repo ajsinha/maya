@@ -80,6 +80,29 @@
 > per-namespace materiality budget; the replay extras are not built) and the SDK's ETag
 > and resumable-download half of gap 14.
 >
+> **Found by other people while working nearby, and fixed since**, each with a test:
+> the §17.1 Tectonic caps — a build is time-, memory- and output-capped, runs with
+> `--only-cached` and a fixed environment, takes a network namespace where the host gives
+> one, and records the caps on the model version (`tests/test_typeset.py`,
+> `tests/test_sandbox_linux.py`), which closes the "no resource cap or network isolation"
+> half of gap 32;
+> U13, the `extends` edge's override count, on features and feature sets
+> (`tests/test_features.py`, `tests/test_featureset_proofs.py`);
+> `GET /catalog/nodes`, which describes a graph's nodes in one call, so the canvas's
+> approval, freshness and cost overlays are exact instead of approximate
+> (`tests/test_web_canvas.py`, `tests/test_browser_canvas.py`) — part of gap 30;
+> K1, the administrator's reset and a new account's first password now go through the
+> password path, so neither skips the history nor leaves the age unrecorded
+> (`tests/test_auth_credentials.py`);
+> K11, `api_key_max_days` is settable through the service, the SDK and the admin form;
+> K10, key rotation, the key report and client credentials are on the command line, which
+> §12 calls scriptable (`tests/test_cli.py`) — the rest of gap 31's credential items;
+> `auth.break_glass_login` is a webhook event, and a durable audit entry on the committing
+> path now announces itself at all (`tests/test_break_glass_login.py`);
+> and the SDK-parity and snapshot gates read `maya.api.app`'s own router list rather than a
+> copy, so a new router cannot pass every gate while being unreachable
+> (`tests/test_api_and_gates.py`).
+>
 > Everything else below stands as written; line numbers are as of b30a428.
 
 This audit was read-only; no repository file was edited. Every section §1–§30 was checked against maya/, maya_delta/, tools/ and tests/. §1–§9 and §26–§30 were audited directly, §10–§16 and §17–§25 by two parallel sub-audits. Their detailed tables are appended below, and the top findings of each were re-verified by reading code.

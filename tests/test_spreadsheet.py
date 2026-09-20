@@ -455,9 +455,11 @@ def test_a_model_not_lifted_from_a_workbook_has_none_to_download(sheets):
 
 def test_the_cli_previews_and_imports(sheets, tmp_path, monkeypatch, capsys):
     import maya.cli.__main__ as cli
+    from maya.cli import common as cli_common
 
     w, mona = sheets
-    monkeypatch.setattr(cli, "_client", lambda args: mona)
+    # every command group opens its client through this one function
+    monkeypatch.setattr(cli_common, "client", lambda args: mona)
     path = tmp_path / "loan.xlsx"
     path.write_bytes(cached(book(LOAN, {"Fees": FEES}, LOAN_NAMES), loan_values()))
     assert cli.main(["model", "import-workbook", "xl/unused", str(path), "--preview"]) == 0

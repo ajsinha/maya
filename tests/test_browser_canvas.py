@@ -184,11 +184,28 @@ def test_the_canvas_helpers_say_what_the_spec_asks_them_to_say(site, browser):
     assert "unify" in op["typing"]
     assert page.evaluate("MayaLineage.operatorInfo('maya://feature/eq/px@v1')") is None
     assert "̶" in page.evaluate("MayaLineage.strike('gone')")
+    # the overlay reads the state of the version the node names, and says separately that
+    # something newer exists: "superseded" is not an answer to "was this ever approved?"
     superseded = page.evaluate(
         "MayaLineage.overlays.approval({id: 'maya://feature/eq/px@v1',"
         " meta: {state: 'approved', latest_version: 3}})"
     )
-    assert superseded["ov"] == "none" and "superseded by v3" in superseded["word"]
+    assert superseded["word"] == "approved, superseded by v3"
+    stale_draft = page.evaluate(
+        "MayaLineage.overlays.approval({id: 'maya://feature/eq/px@v1',"
+        " meta: {state: 'draft', latest_version: 3}})"
+    )
+    assert stale_draft["ov"] == "warn" and stale_draft["word"].startswith("draft")
+    data_age = page.evaluate(
+        "MayaLineage.overlays.freshness({meta: {data_freshness: '2026-09-12T00:00:00'},"
+        " now: Date.parse('2026-09-19T00:00:00')})"
+    )
+    assert data_age["word"] == "7d of data"
+    changed = page.evaluate(
+        "MayaLineage.overlays.freshness({meta: {updated_at: '2026-09-12T00:00:00'},"
+        " now: Date.parse('2026-09-19T00:00:00')})"
+    )
+    assert changed["word"] == "7d since a change"
     assert page.evaluate("MayaLineage.bytesText(2097152)") == "2.0 MB"
     assert page.evaluate("MayaLineage.bytesText(null)") == "not priced"
     assert page.errors == []

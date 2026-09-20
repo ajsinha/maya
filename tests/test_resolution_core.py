@@ -54,6 +54,17 @@ def test_expr_refuses_unsafe_constructs(text: str) -> None:
         compile_expr(text)
 
 
+def test_membership_takes_a_list_and_says_so_for_every_other_spelling() -> None:
+    """`in` used to accept a literal tuple, which nothing documented, while refusing
+    `(1)` — the same thing to read. One spelling now, and one message."""
+    df = pd.DataFrame({"px": [1.0, 2.0], "sym": ["A", "B"]})
+    assert compile_expr("px in [1, 3]").evaluate(df).tolist() == [True, False]
+    assert compile_expr("px not in [1, 3]").evaluate(df).tolist() == [False, True]
+    for bad in ("px in (1, 3)", "px in (1)", "sym in ('A', 'B')", "px not in (1, 3)"):
+        with pytest.raises(ValidationFailed, match="needs a literal list, written"):
+            compile_expr(bad)
+
+
 def test_expr_evaluates_vectorized() -> None:
     df = pd.DataFrame({"px": [1.0, 4.0, 9.0], "sym": ["A", "B", "C"]})
     assert compile_expr("sqrt(px) * 2").evaluate(df).tolist() == [2.0, 4.0, 6.0]

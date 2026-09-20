@@ -347,7 +347,13 @@ async def create_namespace(request: Request) -> Any:
 @action
 async def update_namespace(request: Request, name: str) -> Any:
     data = await form(request)
-    changes = {k: data[k] for k in ("sod", "default_visibility", "classification") if data.get(k)}
+    changes: dict[str, Any] = {
+        k: data[k] for k in ("sod", "default_visibility", "classification") if data.get(k)
+    }
+    if "api_key_max_days" in data:
+        # An empty box means "no ceiling here", which is a change, not an absence — so
+        # this one is sent whenever the field was on the form, blank included.
+        changes["api_key_max_days"] = (data["api_key_max_days"] or "").strip() or None
     async with client(request) as sdk:
         await sdk.namespaces.update(name, **changes)
     flash(request, f"Namespace {name} updated.", "success")

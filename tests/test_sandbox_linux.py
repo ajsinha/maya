@@ -84,6 +84,33 @@ def test_a_legitimate_numpy_artifact_still_runs():
     assert out["ok"] and out["result"] == 3.0 and "seccomp" in out["limits_applied"]
 
 
+def test_the_typesetting_jail_really_has_no_network():
+    """§17.1 asks a LaTeX build to run "with no network". The jail is not the artifact
+    sandbox — the engine is trusted code and needs its fonts and its cache — so the one
+    thing it must prove is that a process inside it cannot reach the network at all."""
+    import subprocess
+    import sys
+
+    jail = sandbox.net_jail()
+    if not jail:
+        pytest.skip("this host offers no network namespace (bubblewrap unavailable)")
+    probe = (
+        "import socket, sys\n"
+        "s = socket.socket()\n"
+        "try:\n"
+        "    s.connect(('1.1.1.1', 53)); print('reached')\n"
+        "except OSError as e:\n"
+        "    print('refused', e.errno)\n"
+    )
+    inside = subprocess.run(
+        [*jail, sys.executable, "-c", probe], capture_output=True, text=True, timeout=60
+    )
+    assert inside.stdout.startswith("refused"), inside.stdout + inside.stderr
+    # and the same probe outside the jail is a fair control: it fails differently, or not
+    # at all, but never with the jail's "network is unreachable"
+    assert "reached" not in inside.stdout
+
+
 def test_the_tier_falls_when_a_primitive_is_missing(monkeypatch):
     real = sandbox.capabilities()
     try:

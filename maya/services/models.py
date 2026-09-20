@@ -21,7 +21,6 @@ import numpy as np
 from maya.core import djson
 from maya.core.errors import ConflictError, NotApproved, NotFound, ValidationFailed
 from maya.core.typeset import detect as typeset_detect
-from maya.core.typeset import render_pdf
 from maya.formula import composite as comp
 from maya.formula import ir as irmod
 from maya.formula.codegen import to_python
@@ -33,7 +32,7 @@ from maya.formula.pylift import lift_python
 from maya.formula.specdoc import default_document, expand_macros, section_completeness
 from maya.core.clock import utcnow
 from maya.security.authz import Principal
-from maya.services import catalog, refs
+from maya.services import catalog, refs, typesetting
 from maya.workflow.engine import Subject
 
 EDITABLE = ("draft", "changes_requested")
@@ -602,7 +601,7 @@ class ModelService:
         latex = expand_macros(
             v["spec_latex"] or "", v["formula_ir"] or {}, resolver=lambda uri: uri
         )
-        pdf, meta = render_pdf(latex)
+        pdf, meta = typesetting.render(self.p.settings, latex)
         digest = self.p.blobs.put(pdf)
         with self.p.uow(p.username) as uow:
             state = {
@@ -610,6 +609,10 @@ class ModelService:
                 "pdf_blob": digest,
                 "draft_render": meta["draft_render"],
                 "backend": meta["backend"],
+                # What the build was allowed to do (§17.1). A reviewer reading a sealed
+                # version a year from now can see the caps and the network mode this PDF
+                # was produced under, rather than today's configuration.
+                "caps": meta.get("caps"),
                 "rendered_at": utcnow().isoformat(),
             }
             uow.repo("model_versions").update(v["id"], {"spec_state": state})

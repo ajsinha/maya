@@ -247,6 +247,55 @@ def test_derived_union_and_inheritance(world):
     assert any(e["type"] == "operand_of" for e in lineage["edges"])
 
 
+def test_the_inheritance_edge_carries_its_override_count(world):
+    """§16.3 draws the override count on an `extends` edge. The canvas already words the
+    label when it is there; nothing was putting it there, so every inheritance edge said
+    only "extends" — which the arrow had already said."""
+    from maya.services.catalog import override_count
+
+    # §6.8's own example reads as six changes: "overrides two resolution rules, drops an
+    # attribute it cannot see, and adds three of its own"
+    assert (
+        override_count(
+            {
+                "resolution": {"rules": {"close": "forward_fill(limit=2)", "open": "zero"}},
+                "drop_attributes": ["alt"],
+                "add_attributes": [{"name": "a"}, {"name": "b"}, {"name": "c"}],
+            }
+        )
+        == 6
+    )
+    parent = approved_feature(world, "panel_firm", price_csv(5))
+    override = {
+        "resolution": {"rules": {"close": "forward_fill(limit=2)"}, "grid": "as_is"},
+        "filter": "close > 101",
+        "quality": [{"check": "not_null", "attr": "close"}],
+    }
+    assert override_count(override) == 4
+    child = approved_feature(
+        world,
+        "panel_desk",
+        definition={
+            "extends": {
+                "parent": f"maya://feature/{parent}@v1",
+                "binding": "pinned",
+                "override": override,
+            }
+        },
+    )
+    graph = world.p.ops.lineage(f"maya://feature/{child}@v1", direction="upstream")
+    edge = next(e for e in graph["edges"] if e["type"] == "extends")
+    assert edge["label"] == "4"
+    # and a child that overrides nothing says so, rather than leaving the reader guessing
+    bare = approved_feature(
+        world,
+        "panel_asis",
+        definition={"extends": {"parent": f"maya://feature/{parent}@v1", "binding": "pinned"}},
+    )
+    graph = world.p.ops.lineage(f"maya://feature/{bare}@v1", direction="upstream")
+    assert next(e for e in graph["edges"] if e["type"] == "extends")["label"] == "0"
+
+
 def test_tracking_binding_is_blocked_in_production(world):
     world.p.access.create_namespace(world.admin, name="prodns", production=True)
     child = {

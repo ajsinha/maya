@@ -177,6 +177,14 @@ typeset:
   # When true, a model cannot be approved on a draft (non-Tectonic) render.
   # The spec's rule; relaxed in dev only if you set it to false explicitly.
   require_true_build: "${MAYA_REQUIRE_TECTONIC:false}"
+  # What one build may spend (§17.1). A build also runs with no network: `--only-cached`
+  # and a fixed environment always, plus a network namespace where bubblewrap is
+  # available. Tectonic's support bundle must therefore be warmed once per host
+  # (`tectonic -X bundle fetch`); until it is, builds degrade to the watermarked draft
+  # renderer, which is refused wherever a PDF is evidence.
+  timeout_seconds: 120
+  memory_mb: 2048
+  output_mb: 64
 
 jobs:
   # Worker threads inside this process. A separate worker-only process — no port bound,
