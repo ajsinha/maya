@@ -142,3 +142,40 @@ def test_the_wizard_page_translates_and_carries_its_work_to_the_designer(site): 
     )
     assert bad.status_code >= 400
     assert bad.json()["error"]
+
+
+def test_every_generated_implementation_is_one_function(site):  # noqa: F811
+    """The rule is not the wizard's: it is the platform's.
+
+    Whatever MAYA generates from an IR — the wizard's kernel, the reference implementation
+    on a model's Code tab, the file in a release bundle — is one portable object. A module
+    that defines `_ncdf` and `_erfc` beside `predict` cannot be pasted into a codebase that
+    has its own; a function that carries them inside it can go anywhere."""
+    from maya.formula.codegen import to_python, to_python_composite
+
+    closed = parse_model(BLACK_SCHOLES, roles=BS_ROLES)
+    module = ast.parse(to_python(closed))
+    assert [type(n).__name__ for n in module.body] == ["FunctionDef"]
+    assert module.body[0].name == "predict"
+
+    base = parse_model("y = a x", roles={"a": "parameter"})
+    skew = parse_model("y = ncdf(b x)", roles={"b": "parameter"})
+    composite = {
+        "outputs": [{"name": "p", "type": "float64"}],
+        "inputs": [],
+        "composite": {
+            "kind": "ensemble",
+            "members": [{"alias": "base", "ref": "m1"}, {"alias": "skew", "ref": "m2"}],
+            "combine": {"op": "add", "args": [{"ref": "base.y"}, {"ref": "skew.y"}]},
+        },
+    }
+    source = to_python_composite(composite, {"base": base, "skew": skew})
+    tree = ast.parse(source)
+    assert [type(n).__name__ for n in tree.body] == ["FunctionDef"]
+    # The members are functions of `predict`, not of the module beside it.
+    inner = {n.name for n in tree.body[0].body if isinstance(n, ast.FunctionDef)}
+    assert {"_member_base", "_member_skew", "_member_params", "_ncdf"} <= inner
+    ns: dict = {}
+    exec(compile(source, "<composite>", "exec"), ns)  # noqa: S102  # nosec B102 - the code under test
+    got = ns["predict"]({"x": [1.0, 2.0]}, {"base.a": 2.0, "skew.b": 0.5})["p"]
+    assert got == pytest.approx([2.6915, 4.8413], abs=5e-4)
