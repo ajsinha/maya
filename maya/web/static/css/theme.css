@@ -446,3 +446,9 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 
 .lp-close { text-align: center; padding: 1.5rem 0 .5rem; border-top: 1px solid var(--maya-border); }
 .lp-close-slogan { font-style: italic; font-size: 1.15rem; color: var(--maya-heading); margin-bottom: .35rem; }
+.lp-lit rect { stroke: var(--maya-crimson); }
+.lp-pulse circle { fill: var(--maya-crimson); }
+.lp-stamp text { fill: var(--maya-heading); font-size: 12px; font-style: italic; letter-spacing: .04em; }
+/* A reader who has asked their system for less motion gets the diagram standing still; it
+   makes the same argument, and the animation was never carrying anything the drawing does not. */
+@media (prefers-reduced-motion: reduce) { .lp-motion { display: none; } }

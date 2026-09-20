@@ -26,7 +26,7 @@
   {# The chain the platform actually keeps, drawn once. It is the page's illustration and its
      argument at the same time: every arrow here is an object MAYA stores, not a metaphor. #}
   <figure class="lp-figure">
-    <svg viewBox="0 0 420 460" role="img" aria-labelledby="lp-fig-title">
+    <svg viewBox="0 0 420 448" role="img" aria-labelledby="lp-fig-title">
       <title id="lp-fig-title">The chain of evidence: data, feature, pin, model, warrant, execution</title>
       <defs>
         <marker id="lp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -34,10 +34,10 @@
         </marker>
       </defs>
       <g class="lp-wire" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#lp-arrow)">
-        <path d="M210 66 L210 104"></path>
-        <path d="M210 150 L210 188"></path>
-        <path d="M210 234 L210 272"></path>
-        <path d="M210 318 L210 356"></path>
+        <path id="lp-w1" d="M210 66 L210 104"></path>
+        <path id="lp-w2" d="M210 150 L210 188"></path>
+        <path id="lp-w3" d="M210 234 L210 272"></path>
+        <path id="lp-w4" d="M210 318 L210 356"></path>
       </g>
       <g class="lp-node">
         <rect x="120" y="28" width="180" height="38" rx="8"></rect>
@@ -45,6 +45,62 @@
         <rect x="120" y="196" width="180" height="38" rx="8"></rect>
         <rect x="120" y="280" width="180" height="38" rx="8"></rect>
         <rect x="120" y="364" width="180" height="38" rx="8"></rect>
+      </g>
+      {# One value making the whole journey, once every six seconds: it leaves the source,
+         is read as of a moment, is sealed, meets the mathematics, and is only then allowed
+         to run. Each step lights as the value reaches it, so the animation is the argument
+         rather than decoration -- and it is the same six seconds over and over, which is
+         the point: the chain is not a one-off ceremony. Every timing below is a fraction of
+         one 6.2s cycle, so the steps cannot drift apart however long the page is left open.
+         The whole group is hidden outright for a reader who has asked for less motion; the
+         diagram underneath says the same thing standing still. #}
+      <g class="lp-motion" aria-hidden="true">
+        <g class="lp-lit" fill="none" stroke-width="2.5">
+          <rect x="120" y="28" width="180" height="38" rx="8" opacity="0">
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="1;1;0;0" keyTimes="0;0.02;0.12;1"></animate></rect>
+          <rect x="120" y="112" width="180" height="38" rx="8" opacity="0">
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;0;0" keyTimes="0;0.16;0.19;0.30;1"></animate></rect>
+          <rect x="120" y="196" width="180" height="38" rx="8" opacity="0">
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;0;0" keyTimes="0;0.36;0.39;0.50;1"></animate></rect>
+          <rect x="120" y="280" width="180" height="38" rx="8" opacity="0">
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;0;0" keyTimes="0;0.56;0.59;0.70;1"></animate></rect>
+          <rect x="120" y="364" width="180" height="38" rx="8" opacity="0">
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;1;0" keyTimes="0;0.76;0.79;0.94;1"></animate></rect>
+        </g>
+        <g class="lp-pulse">
+          <circle r="4" opacity="0">
+            <animateMotion dur="6.2s" repeatCount="indefinite" calcMode="linear"
+              keyPoints="0;0;1;1" keyTimes="0;0.02;0.16;1"><mpath href="#lp-w1"></mpath></animateMotion>
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;1;0;0" keyTimes="0;0.02;0.04;0.15;0.17;1"></animate></circle>
+          <circle r="4" opacity="0">
+            <animateMotion dur="6.2s" repeatCount="indefinite" calcMode="linear"
+              keyPoints="0;0;1;1" keyTimes="0;0.22;0.36;1"><mpath href="#lp-w2"></mpath></animateMotion>
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;1;0;0" keyTimes="0;0.22;0.24;0.35;0.37;1"></animate></circle>
+          <circle r="4" opacity="0">
+            <animateMotion dur="6.2s" repeatCount="indefinite" calcMode="linear"
+              keyPoints="0;0;1;1" keyTimes="0;0.42;0.56;1"><mpath href="#lp-w3"></mpath></animateMotion>
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;1;0;0" keyTimes="0;0.42;0.44;0.55;0.57;1"></animate></circle>
+          <circle r="4" opacity="0">
+            <animateMotion dur="6.2s" repeatCount="indefinite" calcMode="linear"
+              keyPoints="0;0;1;1" keyTimes="0;0.62;0.76;1"><mpath href="#lp-w4"></mpath></animateMotion>
+            <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+              values="0;0;1;1;0;0" keyTimes="0;0.62;0.64;0.75;0.77;1"></animate></circle>
+        </g>
+        {# What the journey was for. It appears only once the value has passed the warrant,
+           because that is the only point at which MAYA will claim it. #}
+        <g class="lp-stamp" text-anchor="middle" opacity="0">
+          <animate attributeName="opacity" dur="6.2s" repeatCount="indefinite"
+            values="0;0;1;1;0;0" keyTimes="0;0.78;0.82;0.92;0.96;1"></animate>
+          <text x="210" y="430">evidence, not assertion</text>
+        </g>
       </g>
       <g class="lp-label" text-anchor="middle">
         <text x="210" y="52">source data</text>
