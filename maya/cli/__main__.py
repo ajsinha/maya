@@ -1,6 +1,10 @@
 """
 ``python -m maya.cli <group> <command> …`` — see ``maya.cli`` for the rules.
 
+This file builds the parser and holds the catalog, model, warrant, job and export
+commands. The administrative group lives in ``maya.cli.admin`` and the credential group
+in ``maya.cli.keys``; the plumbing all three share is in ``maya.cli.common``.
+
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 
@@ -9,222 +13,47 @@ from __future__ import annotations
 import argparse
 import re
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from maya.cli.admin import admin_commands
+from maya.cli import common
+from maya.cli.common import (
+    EXIT_NETWORK,
+    EXIT_OK,
+    EXIT_REFUSED,
+    definition_file,
+    emit,
+    rows_table,
+)
+from maya.cli.keys import key_commands
 from maya.core import parameters
 from maya.core.errors import MayaError
-
-EXIT_OK, EXIT_REFUSED, EXIT_USAGE, EXIT_NETWORK = 0, 1, 2, 3
-
-
-# -- plumbing -------------------------------------------------------------------------
-def _client(args: argparse.Namespace) -> Any:
-    from maya.sdk import Client, connect
-
-    if args.local:
-        from maya.config import load_settings
-        from maya.server import build_app
-        from maya.services.platform import Platform
-
-        # job workers only: a CLI run must not deliver webhooks or run the scheduler —
-        # on a restored copy of production that would reach production's receivers
-        platform = Platform.build(load_settings(args.config), start_workers="jobs")
-        anon = Client(app=build_app(platform), channel="cli")
-        user = os.environ.get("MAYA_USER", "admin")
-        pw = os.environ.get("MAYA_PASSWORD")
-        if not pw:
-            raise MayaError("--local needs MAYA_USER and MAYA_PASSWORD in the environment")
-        token = anon.auth.login(user, pw)["token"]
-        return Client(app=anon._http.app, token=token, channel="cli")
-    return connect(args.profile) if args.profile else connect()
-
-
-def _out(args: argparse.Namespace, data: Any, human: Callable[[Any], str] | None = None) -> None:
-    if args.json or human is None:
-        print(json.dumps(data, indent=2, default=str))
-    else:
-        print(human(data))
-
-
-def _rows(rows: list[dict[str, Any]], cols: list[str]) -> str:
-    if not rows:
-        return "(none)"
-    widths = [max(len(c), *(len(str(r.get(c, ""))) for r in rows)) for c in cols]
-    lines = ["  ".join(c.upper().ljust(w) for c, w in zip(cols, widths))]
-    lines += ["  ".join(str(r.get(c, "")).ljust(w) for c, w in zip(cols, widths)) for r in rows]
-    return "\n".join(lines)
-
-
-# -- admin: the database lifecycle, beside the server (§14.3) ---------------------------
-def admin_init_db(args: argparse.Namespace) -> int:
-    from maya.config import load_settings
-    from maya.persistence.engine import database_from_settings
-
-    db = database_from_settings(load_settings(args.config))
-    if db.is_initialized() and not args.force:
-        print("The database already has a MAYA schema; pass --force to drop and recreate it.")
-        return EXIT_REFUSED
-    digest = db.init_schema(force=args.force)
-    print(
-        f"Created the {db.dialect} schema from maya/persistence/schema/{db.dialect}.sql "
-        f"(schema-hash {digest[:16]}…)"
-    )
-    return EXIT_OK
-
-
-def admin_export_estate(args: argparse.Namespace) -> int:
-    """Straight from the database, with no platform: this is the way out of a database
-    whose schema the running code no longer accepts, so it must not need that check."""
-    from maya.config import load_settings
-    from maya.core.version import VERSION
-    from maya.persistence import estate
-    from maya.persistence.engine import database_from_settings
-
-    db = database_from_settings(load_settings(args.config))
-    Path(args.out).write_bytes(estate.export(db, VERSION))
-    print(f"Estate written to {args.out}")
-    return EXIT_OK
-
-
-def admin_import_estate(args: argparse.Namespace) -> int:
-    from maya.config import load_settings
-    from maya.persistence.engine import database_from_settings
-
-    settings = load_settings(args.config)
-    db = database_from_settings(settings)
-    if not db.is_initialized():
-        db.init_schema()
-    platform = _local_platform(args, seed=False)
-    result = platform.ops.import_estate(Path(args.input).read_bytes(), allow_drop=args.allow_drop)
-    print(json.dumps(result, indent=2, default=str))
-    return EXIT_OK
-
-
-def admin_verify_integrity(args: argparse.Namespace) -> int:
-    c = _client(args)
-    result = c.admin.verify_integrity()
-    _out(
-        args,
-        result,
-        lambda r: (
-            f"{r['checked']} pin(s) checked; drift: {len(r['drift'])}; "
-            f"audit chain ok: {r['audit_chain']['ok']}"
-        ),
-    )
-    return EXIT_OK if not result["drift"] and result["audit_chain"]["ok"] else EXIT_REFUSED
-
-
-def admin_record_drill(args: argparse.Namespace) -> int:
-    """Write the result of a restore drill onto the production instance (§20).
-
-    Beside the database, like the other estate commands: the drill is performed on a
-    scratch copy which is then deleted, and the record belongs to the instance that was
-    backed up, not to the copy. ``MAYA_USER`` names the person recording it.
-    """
-    platform, principal = _local_ops(args)
-    row = platform.ops.record_restore_drill(
-        principal,
-        dialect=args.dialect,
-        outcome="failed" if args.failed else "passed",
-        pins_checked=args.pins,
-        drift=args.drift,
-        audit_chain_ok=not args.chain_broken,
-        anchors_ok=not args.anchors_broken,
-        duration_seconds=args.duration,
-        notes=args.notes,
-    )
-    _out(
-        args,
-        row,
-        lambda r: (
-            f"recorded restore drill {r['id']}: {r['outcome']}, "
-            f"{r['pins_checked']} pin(s), drift {r['drift']}, {r['duration_seconds']:g}s"
-        ),
-    )
-    return EXIT_OK
-
-
-def admin_drills(args: argparse.Namespace) -> int:
-    platform, principal = _local_ops(args)
-    status = platform.ops.restore_drill_status(principal)
-    rows = platform.ops.restore_drills(principal)
-    _out(
-        args,
-        {"status": status, "drills": rows},
-        lambda r: (
-            _rows(
-                [
-                    {
-                        "performed": str(d["performed_at"])[:19],
-                        "dialect": d["dialect"],
-                        "outcome": d["outcome"],
-                        "pins": d["pins_checked"],
-                        "drift": d["drift"],
-                        "by": d["verified_by"],
-                    }
-                    for d in r["drills"]
-                ],
-                ["performed", "dialect", "outcome", "pins", "drift", "by"],
-            )
-            + f"\n\n{r['status']['detail']}"
-            + ("  (overdue: §20 asks for one a quarter)" if r["status"]["overdue"] else "")
-        ),
-    )
-    return EXIT_REFUSED if status["overdue"] else EXIT_OK
-
-
-def _local_ops(args: argparse.Namespace) -> tuple[Any, Any]:
-    """A platform opened beside the database, and the principal naming who is acting."""
-    from maya.config import load_settings
-    from maya.services.platform import Platform
-
-    platform = Platform.build(load_settings(args.config), start_workers=False)
-    username = os.environ.get("MAYA_USER", "admin")
-    with platform.uow() as uow:
-        user = uow.repo("users").find_one(username=username)
-        if user is None:
-            raise MayaError(f"No such user '{username}'; set MAYA_USER")
-        return platform, platform.auth.build_principal(uow, user["id"], channel="cli")
-
-
-def _local_platform(args: argparse.Namespace, seed: bool = True) -> Any:
-    from maya.config import load_settings
-    from maya.services.platform import Platform
-    from maya.services import registry
-
-    settings = load_settings(args.config)
-    if seed:
-        return Platform.build(settings, start_workers=False)
-    from maya.persistence.engine import database_from_settings
-
-    db = database_from_settings(settings)
-    db.verify_schema()
-    platform = Platform(settings, db)
-    registry.wire(platform)
-    return platform
 
 
 # -- catalog --------------------------------------------------------------------------------
 def feature_list(args: argparse.Namespace) -> int:
-    rows = _client(args).features.list(namespace=args.namespace, q=args.q)
-    _out(args, rows, lambda r: _rows(r, ["ref", "latest_version", "latest_state", "pins", "owner"]))
+    rows = common.client(args).features.list(namespace=args.namespace, q=args.q)
+    emit(
+        args,
+        rows,
+        lambda r: rows_table(r, ["ref", "latest_version", "latest_state", "pins", "owner"]),
+    )
     return EXIT_OK
 
 
 def feature_show(args: argparse.Namespace) -> int:
-    _out(args, _client(args).features.get(args.ref))
+    emit(args, common.client(args).features.get(args.ref))
     return EXIT_OK
 
 
 def feature_quick(args: argparse.Namespace) -> int:
     path = Path(args.file)
-    result = _client(args).features.quick(
+    result = common.client(args).features.quick(
         path.read_bytes(), name=args.name or path.stem, fmt=path.suffix.lstrip(".") or "csv"
     )
-    _out(
+    emit(
         args,
         result,
         lambda r: (
@@ -237,14 +66,14 @@ def feature_quick(args: argparse.Namespace) -> int:
 
 def feature_upload(args: argparse.Namespace) -> int:
     path = Path(args.file)
-    result = _client(args).features.ingest(
+    result = common.client(args).features.ingest(
         args.ref,
         path.read_bytes(),
         fmt=path.suffix.lstrip("."),
         filename=path.name,
         knowledge_time=args.knowledge_time,
     )
-    _out(
+    emit(
         args,
         result,
         lambda r: f"ingested {r['rows']} rows" + (" (a restatement)" if r["restatement"] else ""),
@@ -253,7 +82,7 @@ def feature_upload(args: argparse.Namespace) -> int:
 
 
 def feature_pin(args: argparse.Namespace) -> int:
-    c = _client(args)
+    c = common.client(args)
     result = c.features.pin(
         args.ref,
         version_no=args.version,
@@ -265,7 +94,7 @@ def feature_pin(args: argparse.Namespace) -> int:
         job = c.wait(
             result["job"], progress=lambda j: print(f"  {j['progress']:3d}% {j['message']}")
         )
-        _out(
+        emit(
             args,
             job["result"],
             lambda r: f"sealed {r['content_hash']} ({r['rows']} rows, {r['bytes_new']} new bytes)",
@@ -276,7 +105,7 @@ def feature_pin(args: argparse.Namespace) -> int:
 
 
 def feature_download(args: argparse.Namespace) -> int:
-    result = _client(args).features.download(
+    result = common.client(args).features.download(
         args.ref, format=args.format, csv_encoding=args.csv_encoding
     )
     Path(args.out).write_bytes(result["data"])
@@ -288,12 +117,12 @@ def feature_download(args: argparse.Namespace) -> int:
 
 
 def feature_diff(args: argparse.Namespace) -> int:
-    _out(args, _client(args).features.compare(args.ref, args.v1, args.v2))
+    emit(args, common.client(args).features.compare(args.ref, args.v1, args.v2))
     return EXIT_OK
 
 
 def featureset_pin(args: argparse.Namespace) -> int:
-    c = _client(args)
+    c = common.client(args)
     result = c.featuresets.pin(
         args.ref,
         version_no=args.version,
@@ -302,12 +131,12 @@ def featureset_pin(args: argparse.Namespace) -> int:
         cascade=args.cascade,
     )
     job = c.wait(result["job"], progress=lambda j: print(f"  {j['progress']:3d}% {j['message']}"))
-    _out(args, job["result"])
+    emit(args, job["result"])
     return EXIT_OK
 
 
 def featureset_download(args: argparse.Namespace) -> int:
-    result = _client(args).featuresets.download(
+    result = common.client(args).featuresets.download(
         args.ref, format=args.format, shape=args.shape, csv_encoding=args.csv_encoding
     )
     Path(args.out).write_bytes(result["data"])
@@ -316,9 +145,9 @@ def featureset_download(args: argparse.Namespace) -> int:
 
 
 def model_push(args: argparse.Namespace) -> int:
-    c = _client(args)
+    c = common.client(args)
     source = Path(args.file).read_text(encoding="utf-8")
-    _out(args, c.models.upload_artifact(args.ref, source))
+    emit(args, c.models.upload_artifact(args.ref, source))
     return EXIT_OK
 
 
@@ -329,7 +158,7 @@ def model_import_workbook(args: argparse.Namespace) -> int:
         name, _, role = pair.partition("=")
         roles[name.strip()] = role.strip() or "feature"
     data = Path(args.file).read_bytes()
-    c = _client(args)
+    c = common.client(args)
     if args.preview:
         result = c.models.lift_workbook(
             data, output=args.output, roles=roles, filename=Path(args.file).name
@@ -349,18 +178,18 @@ def model_import_workbook(args: argparse.Namespace) -> int:
         lines += [f"warning: {w}" for w in report["warnings"]]
         return "\n".join(lines)
 
-    _out(args, result, human)
+    emit(args, result, human)
     return EXIT_OK if report["check"]["status"] != "disagreed" else EXIT_REFUSED
 
 
 def model_diff(args: argparse.Namespace) -> int:
-    result = _client(args).models.diff(args.ref, args.v1, args.v2)
-    _out(args, result, lambda r: "\n".join(f"- {s}" for s in r["statements"]) or "no change")
+    result = common.client(args).models.diff(args.ref, args.v1, args.v2)
+    emit(args, result, lambda r: "\n".join(f"- {s}" for s in r["statements"]) or "no change")
     return EXIT_OK
 
 
 def warrant_fetch(args: argparse.Namespace) -> int:
-    c = _client(args)
+    c = common.client(args)
     table, manifest = c.training_data(args.id)
     import pyarrow.parquet as pq
 
@@ -386,7 +215,7 @@ def warrant_upload_params(args: argparse.Namespace) -> int:
     else:
         values = parameters.read(raw, fmt)
         metrics, checksum, notes = {}, args.data_checksum, args.notes or ""
-    result = _client(args).training.upload_parameters(
+    result = common.client(args).training.upload_parameters(
         args.id,
         values,
         metrics=metrics,
@@ -394,7 +223,7 @@ def warrant_upload_params(args: argparse.Namespace) -> int:
         notes=notes,
         **({"member_alias": args.member_alias} if args.member_alias else {}),
     )
-    _out(
+    emit(
         args,
         result,
         lambda r: (
@@ -406,70 +235,7 @@ def warrant_upload_params(args: argparse.Namespace) -> int:
 
 
 def warrant_seal(args: argparse.Namespace) -> int:
-    _out(args, _client(args).training.seal(args.id))
-    return EXIT_OK
-
-
-def admin_cold(args: argparse.Namespace) -> int:
-    """Which pins have gone unread long enough to be called cold (§7.3)."""
-    report = _client(args).admin.cold_pins(days=args.days)
-    _out(
-        args,
-        report,
-        lambda r: (
-            f"{r['cold_pins']} cold pin(s) holding {r['cold_bytes'] / 1e6:.1f} MB, "
-            f"unread for {r['cold_after_days']} day(s); {r['warm_pins']} warm "
-            f"({r['warm_bytes'] / 1e6:.1f} MB)\n{r['note']}"
-        ),
-    )
-    return EXIT_OK
-
-
-def admin_archive_pin(args: argparse.Namespace) -> int:
-    out = _client(args).admin.archive_pin(args.pin_id, table=args.table)
-    _out(
-        args,
-        out,
-        lambda r: (
-            f"archived {r['rows']} row(s) as blob {r['blob'][:16]}… "
-            f"({r['bytes'] / 1e6:.2f} MB)\n{r.get('note', '')}"
-        ),
-    )
-    return EXIT_OK
-
-
-def admin_restore_pin(args: argparse.Namespace) -> int:
-    out = _client(args).admin.restore_pin(args.pin_id, table=args.table)
-    _out(
-        args,
-        out,
-        lambda r: (
-            f"{r['manifest']['pin_name']}/{r['manifest']['as_of_date']}: "
-            f"{r['manifest']['row_count']} row(s), content hash "
-            f"{r['manifest']['content_hash'][:16]}… "
-            + ("verified against the archive" if r["verified"] else "manifest only")
-        ),
-    )
-    return EXIT_OK
-
-
-def admin_collect(args: argparse.Namespace) -> int:
-    """Remove fragments no pin references (§29.3). A dry run unless --apply."""
-    out = _client(args).admin.collect_fragments(dry_run=not args.apply)
-    _out(
-        args,
-        out,
-        lambda r: (
-            r.get("refused")
-            or (
-                f"{r['orphans']} orphan(s), {r['bytes'] / 1e6:.2f} MB across "
-                f"{len(r['plan'])} table(s); nothing removed"
-                if r.get("dry_run")
-                else f"collected {r['collected']} fragment(s), {r['files_removed']} file(s), "
-                f"{r['bytes_removed'] / 1e6:.2f} MB\n{r['note']}"
-            )
-        ),
-    )
+    emit(args, common.client(args).training.seal(args.id))
     return EXIT_OK
 
 
@@ -490,19 +256,19 @@ def _format_of(path: str) -> str:
 
 
 def job_watch(args: argparse.Namespace) -> int:
-    c = _client(args)
+    c = common.client(args)
     job = c.wait(args.id, progress=lambda j: print(f"  {j['progress']:3d}% {j['message']}"))
-    _out(args, job)
+    emit(args, job)
     return EXIT_OK
 
 
 def job_cancel(args: argparse.Namespace) -> int:
-    _out(args, _client(args).jobs.cancel(args.id))
+    emit(args, common.client(args).jobs.cancel(args.id))
     return EXIT_OK
 
 
 def export_bundle(args: argparse.Namespace) -> int:
-    c = _client(args)
+    c = common.client(args)
     result = c.training.export_bundle(args.id)
     Path(args.out).write_bytes(c.admin.blob(result["blob"])["data"])
     print(f"{args.out}: signed bundle, {result['size']} bytes")
@@ -514,7 +280,7 @@ def export_verify(args: argparse.Namespace) -> int:
     from maya.services.bundle import BundleService
 
     report = BundleService.verify_offline(Path(args.file).read_bytes())
-    _out(
+    emit(
         args,
         report,
         lambda r: (
@@ -528,147 +294,24 @@ def export_verify(args: argparse.Namespace) -> int:
     return EXIT_OK if report.get("verified") else EXIT_REFUSED
 
 
-# -- argument parsing -------------------------------------------------------------------------
-
-# -- admin, featureset build, model validate, warrant create (§18.3) ---------------------
-
-
-def _definition(path: str) -> dict[str, Any]:
-    """A definition read from JSON or YAML, whichever the file is."""
-    text = Path(path).read_text(encoding="utf-8")
-    if path.endswith((".yaml", ".yml")):
-        import yaml
-
-        return dict(yaml.safe_load(text))
-    return dict(json.loads(text))
-
-
-def admin_user_list(args: argparse.Namespace) -> int:
-    rows = _client(args).admin.users()
-    _out(args, rows, lambda r: _rows(r, ["username", "status", "roles", "last_login_at"]))
-    return EXIT_OK
-
-
-def admin_user_create(args: argparse.Namespace) -> int:
-    password = args.password or os.environ.get("MAYA_NEW_PASSWORD")
-    if not password:
-        raise MayaError("Give --password, or put it in MAYA_NEW_PASSWORD")
-    extra = {"email": args.email} if args.email else {}
-    out = _client(args).admin.create_user(
-        args.username, password=password, roles=args.role or [], **extra
-    )
-    roles = ", ".join(args.role or []) or "no roles"
-    _out(args, out, lambda r: f"created {r['username']} with {roles}")
-    return EXIT_OK
-
-
-def admin_user_roles(args: argparse.Namespace) -> int:
-    out = _client(args).admin.set_roles(args.username, args.role or [])
-    held = ", ".join(out.get("roles") or args.role or []) or "no roles"
-    _out(args, out, lambda r: f"{args.username} now holds {held}")
-    return EXIT_OK
-
-
-def admin_role_list(args: argparse.Namespace) -> int:
-    rows = _client(args).admin.roles()
-    _out(args, rows, lambda r: _rows(r, ["name", "description", "builtin"]))
-    return EXIT_OK
-
-
-def admin_role_create(args: argparse.Namespace) -> int:
-    capabilities = {}
-    for pair in args.capability or []:
-        kind, _, letters = pair.partition("=")
-        capabilities[kind.strip()] = letters.strip()
-    out = _client(args).admin.create_role(args.name, capabilities, args.description or "")
-    _out(args, out, lambda r: f"created role {r['name']}")
-    return EXIT_OK
-
-
-def admin_namespace_list(args: argparse.Namespace) -> int:
-    rows = _client(args).namespaces.list()
-    _out(
-        args,
-        rows,
-        lambda r: _rows(r, ["name", "preset", "default_visibility", "production", "quota_bytes"]),
-    )
-    return EXIT_OK
-
-
-def admin_namespace_create(args: argparse.Namespace) -> int:
-    extra = {"quota_bytes": args.quota_bytes} if args.quota_bytes else {}
-    out = _client(args).namespaces.create(
-        args.name,
-        preset=args.preset,
-        production=args.production,
-        default_visibility=args.visibility,
-        **extra,
-    )
-    _out(args, out, lambda r: f"created namespace {r['name']} ({r['preset']})")
-    return EXIT_OK
-
-
-def admin_grant_list(args: argparse.Namespace) -> int:
-    rows = _client(args).access.grants(args.kind, args.ref)
-    _out(args, rows, lambda r: _rows(r, ["principal_type", "principal_id", "level", "expires_at"]))
-    return EXIT_OK
-
-
-def admin_grant_add(args: argparse.Namespace) -> int:
-    out = _client(args).access.grant(
-        args.kind,
-        args.ref,
-        args.principal_type,
-        args.principal,
-        args.level,
-        days=args.days,
-        deny=args.deny,
-    )
-    _out(args, out, lambda r: f"granted {r['level']} on {args.ref} to {args.principal}")
-    return EXIT_OK
-
-
-def admin_policy_list(args: argparse.Namespace) -> int:
-    rows = _client(args).workflow.policies()
-    _out(args, rows, lambda r: _rows(r, ["object_type", "scope", "version_no", "state"]))
-    return EXIT_OK
-
-
-def admin_policy_show(args: argparse.Namespace) -> int:
-    print(_client(args).workflow.policy_yaml(args.id))
-    return EXIT_OK
-
-
-def admin_policy_import(args: argparse.Namespace) -> int:
-    body = Path(args.file).read_text(encoding="utf-8")
-    out = _client(args).workflow.import_policy(args.object_type, body, scope=args.scope)
-    _out(args, out, lambda r: f"drafted policy {r['id']} for {r['object_type']} ({r['scope']})")
-    return EXIT_OK
-
-
-def admin_policy_activate(args: argparse.Namespace) -> int:
-    out = _client(args).workflow.activate_policy(args.id)
-    _out(args, out, lambda r: f"policy {r['id']} is {r['state']}")
-    return EXIT_OK
-
-
+# -- featureset build, model validate, warrant create (§18.3) ----------------------------
 def featureset_build(args: argparse.Namespace) -> int:
     """Create a feature set from a definition file, and optionally submit it for review."""
     namespace, _, name = args.ref.partition("/")
     if not name:
         raise MayaError("Name the set as namespace/name")
-    c = _client(args)
-    out = c.featuresets.create(namespace, name, _definition(args.file))
+    c = common.client(args)
+    out = c.featuresets.create(namespace, name, definition_file(args.file))
     if args.submit:
         out = c.featuresets.transition(args.ref, out.get("version_no", 1), "submit")
-    _out(args, out, lambda r: f"{args.ref} is {r.get('state', 'draft')}")
+    emit(args, out, lambda r: f"{args.ref} is {r.get('state', 'draft')}")
     return EXIT_OK
 
 
 def model_validate(args: argparse.Namespace) -> int:
     """What the server can say about a draft before it is submitted: how its formula
     conforms, and what the workflow would still ask for."""
-    c = _client(args)
+    c = common.client(args)
     model = c.models.get(args.ref)
     version = args.version or model.get("latest_version") or 1
     try:
@@ -687,7 +330,7 @@ def model_validate(args: argparse.Namespace) -> int:
         "conformance": conformance,
         "transitions": model.get("transitions"),
     }
-    _out(
+    emit(
         args,
         report,
         lambda r: "\n".join(
@@ -702,11 +345,11 @@ def warrant_create(args: argparse.Namespace) -> int:
     namespace, _, name = args.ref.partition("/")
     if not name:
         raise MayaError("Name the warrant as namespace/name")
-    spec = _definition(args.spec) if args.spec else {"target": args.target}
-    out = _client(args).training.create(
+    spec = definition_file(args.spec) if args.spec else {"target": args.target}
+    out = common.client(args).training.create(
         namespace, name, model=args.model, featureset=args.featureset, spec=spec
     )
-    _out(
+    emit(
         args,
         out,
         lambda r: (
@@ -715,119 +358,6 @@ def warrant_create(args: argparse.Namespace) -> int:
         ),
     )
     return EXIT_OK
-
-
-def _admin_commands(cmd: Callable[..., None], a: Any) -> None:
-    """The `maya admin ...` group: the database lifecycle, then users, roles, namespaces,
-    grants and workflow policies (§18.3)."""
-    cmd(a, "init-db", admin_init_db, (("--force",), {"action": "store_true"}))
-    cmd(a, "export-estate", admin_export_estate, (("--out",), {"required": True}))
-    cmd(
-        a,
-        "import-estate",
-        admin_import_estate,
-        (("--in",), {"dest": "input", "required": True}),
-        (
-            ("--allow-drop",),
-            {
-                "action": "store_true",
-                "help": "load even though data this version does not know "
-                "would be dropped (named in the output)",
-            },
-        ),
-    )
-    cmd(a, "verify-integrity", admin_verify_integrity)
-    cmd(a, "user-list", admin_user_list)
-    cmd(
-        a,
-        "user-create",
-        admin_user_create,
-        (("username",), {}),
-        (("--password",), {"help": "or MAYA_NEW_PASSWORD"}),
-        (("--role",), {"action": "append"}),
-        (("--email",), {}),
-    )
-    cmd(a, "user-roles", admin_user_roles, (("username",), {}), (("--role",), {"action": "append"}))
-    cmd(a, "role-list", admin_role_list)
-    cmd(
-        a,
-        "role-create",
-        admin_role_create,
-        (("name",), {}),
-        (("--capability",), {"action": "append", "help": "kind=LETTERS, e.g. feature=CRU"}),
-        (("--description",), {}),
-    )
-    cmd(a, "namespace-list", admin_namespace_list)
-    cmd(
-        a,
-        "namespace-create",
-        admin_namespace_create,
-        (("name",), {}),
-        (("--preset",), {"default": "standard"}),
-        (("--production",), {"action": "store_true"}),
-        (("--quota-bytes",), {"dest": "quota_bytes", "type": int}),
-        (("--visibility",), {"dest": "visibility", "default": "namespace_read"}),
-    )
-    cmd(a, "grant-list", admin_grant_list, (("kind",), {}), (("ref",), {}))
-    cmd(
-        a,
-        "grant-add",
-        admin_grant_add,
-        (("kind",), {}),
-        (("ref",), {}),
-        (("level",), {}),
-        (("--principal-type",), {"dest": "principal_type", "default": "user"}),
-        (("--principal",), {"required": True}),
-        (("--days",), {"type": int, "default": 90}),
-        (("--deny",), {"action": "store_true"}),
-    )
-    cmd(a, "policy-list", admin_policy_list)
-    cmd(a, "policy-show", admin_policy_show, (("id",), {}))
-    cmd(
-        a,
-        "policy-import",
-        admin_policy_import,
-        (("object_type",), {}),
-        (("file",), {}),
-        (("--scope",), {"default": "*"}),
-    )
-    cmd(a, "policy-activate", admin_policy_activate, (("id",), {}))
-    cmd(
-        a,
-        "record-drill",
-        admin_record_drill,
-        (("--dialect",), {"default": None, "help": "the dialect the drill restored"}),
-        (("--pins",), {"type": int, "default": 0, "help": "sealed pins verified"}),
-        (("--drift",), {"type": int, "default": 0, "help": "pins that failed to verify"}),
-        (("--duration",), {"type": float, "default": 0.0, "help": "seconds, restore to green"}),
-        (("--failed",), {"action": "store_true", "help": "the drill did not pass"}),
-        (("--chain-broken",), {"action": "store_true", "dest": "chain_broken"}),
-        (("--anchors-broken",), {"action": "store_true", "dest": "anchors_broken"}),
-        (("--notes",), {"default": None, "help": "what was restored, and anything unusual"}),
-    )
-    cmd(a, "drills", admin_drills)
-    cmd(a, "cold-pins", admin_cold, (("--days",), {"type": int, "help": "default: configured"}))
-    cmd(a, "collect-fragments", admin_collect, (("--apply",), {"action": "store_true"}))
-    cmd(
-        a,
-        "archive-pin",
-        admin_archive_pin,
-        (("pin_id",), {}),
-        (
-            ("--table",),
-            {"choices": ["feature_pins", "feature_set_pins"], "default": "feature_pins"},
-        ),
-    )
-    cmd(
-        a,
-        "restore-pin",
-        admin_restore_pin,
-        (("pin_id",), {}),
-        (
-            ("--table",),
-            {"choices": ["feature_pins", "feature_set_pins"], "default": "feature_pins"},
-        ),
-    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -845,7 +375,8 @@ def _parser() -> argparse.ArgumentParser:
         sp.set_defaults(fn=fn)
 
     a = groups.add_parser("admin").add_subparsers(dest="cmd", required=True)
-    _admin_commands(cmd, a)
+    admin_commands(cmd, a)
+    key_commands(cmd, groups)
 
     f = groups.add_parser("feature").add_subparsers(dest="cmd", required=True)
     cmd(f, "list", feature_list, (("--namespace",), {}), (("-q",), {"dest": "q"}))
