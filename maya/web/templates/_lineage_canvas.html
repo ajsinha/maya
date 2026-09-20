@@ -1,3 +1,60 @@
-<div id="cy" role="img" aria-label="Lineage graph for {{ root }}" data-root="{{ root }}" data-direction="{{ direction or 'both' }}" data-depth="{{ depth or 3 }}"></div>
-<p class="small-muted mt-1" id="cy-status" aria-live="polite">{% if not root %}Enter a reference to draw its lineage.{% endif %}</p>
-<p class="small-muted">Edges: <strong>extends</strong> solid with hollow arrow · <strong>derived_from</strong> solid · <strong>operand_of</strong> thin, numbered · <strong>member_of</strong> dashed · <strong>composite_member</strong> double · <strong>pinned_as</strong> dotted · <strong>trained_on / executed_under</strong> bold.</p>
+{# The lineage and algebra canvas (§16.3).
+   Needs: root. Optional: direction, depth; canvas_author to offer the authoring
+   panel; review_overlay = {added, changed, removed} lists of references. #}
+{% set canvas_ops = ['union','intersect','difference','compose','coalesce','transform','project','rename','aggregate','lag','resample','case'] %}
+<div class="cy-panel">
+  <div class="row g-2 align-items-end mb-2">
+    <div class="col-auto"><label class="form-label" for="cy-direction">Direction</label>
+      <select class="form-select form-select-sm" id="cy-direction">
+        {% for d in ['both','upstream','downstream'] %}<option value="{{ d }}" {% if d == (direction or 'both') %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><label class="form-label" for="cy-depth">Depth</label>
+      <select class="form-select form-select-sm" id="cy-depth">
+        {% for d in ['1','2','3','4','6','8'] %}<option value="{{ d }}" {% if d == (depth or '3')|string %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><label class="form-label" for="cy-overlay">Overlay</label>
+      <select class="form-select form-select-sm" id="cy-overlay">
+        <option value="none">none</option><option value="freshness">freshness</option>
+        <option value="approval">approval status</option><option value="access">access</option>
+        <option value="cost">cost</option></select></div>
+    <div class="col-auto"><label class="form-label" for="cy-f-type">Type</label>
+      <select class="form-select form-select-sm" id="cy-f-type"><option value="">any type</option></select></div>
+    <div class="col-auto"><label class="form-label" for="cy-f-namespace">Namespace</label>
+      <select class="form-select form-select-sm" id="cy-f-namespace"><option value="">any namespace</option></select></div>
+    <div class="col-auto"><label class="form-label" for="cy-f-status">Status</label>
+      <select class="form-select form-select-sm" id="cy-f-status"><option value="">any status</option></select></div>
+    <div class="col-auto pb-1">
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="cy-f-pinned">
+        <label class="form-check-label small" for="cy-f-pinned">Pinned only</label></div>
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="cy-collapse">
+        <label class="form-check-label small" for="cy-collapse">Collapse inheritance chains</label></div>
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="cy-cluster">
+        <label class="form-check-label small" for="cy-cluster">Cluster the far graph</label></div>
+    </div>
+  </div>
+  <div class="cy-split">
+    <div id="cy" role="img" aria-label="Lineage graph for {{ root }}" data-root="{{ root }}"
+         data-direction="{{ direction or 'both' }}" data-depth="{{ depth or 3 }}"></div>
+    <aside class="cy-detail" id="cy-detail" aria-live="polite">
+      <p class="small-muted mb-0">Hover or select a node for its detail. Click to select — hold shift
+        to select several — and double-click to re-root the view.</p>
+    </aside>
+  </div>
+  <p class="small-muted mt-1 mb-1" id="cy-status" aria-live="polite">{% if not root %}Enter a reference to draw its lineage.{% endif %}</p>
+  <p class="small-muted mb-1" id="cy-legend"></p>
+  {% if canvas_author %}
+  <div class="card card-body py-2 mb-2" id="cy-author">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <label class="form-label mb-0" for="cy-operator">Build from the selection</label>
+      <select class="form-select form-select-sm" id="cy-operator" style="width:auto">
+        {% for o in canvas_ops %}<option>{{ o }}</option>{% endfor %}</select>
+      <a class="btn btn-sm btn-outline-primary" id="cy-author-open" href="#" hidden>Open the designer prefilled</a>
+      <a class="btn btn-sm btn-outline-secondary" id="cy-author-pin" href="#" hidden>Pin this</a>
+      <span class="small-muted" id="cy-author-note"></span>
+    </div>
+  </div>
+  {% endif %}
+  <details class="mb-2"><summary class="small-muted">The same graph in words</summary>
+    <ul class="cy-nodes list-unstyled small mb-0" id="cy-nodes"></ul>
+  </details>
+  <p class="small-muted">Edges: <strong>extends</strong> solid with hollow arrow · <strong>derived_from</strong> solid · <strong>operand_of</strong> thin, numbered · <strong>member_of</strong> dashed · <strong>composite_member</strong> double · <strong>pinned_as</strong> dotted · <strong>trained_on / executed_under</strong> bold.</p>
+  {% if review_overlay %}<script type="application/json" id="cy-review">{{ review_overlay|tojson }}</script>{% endif %}
+</div>

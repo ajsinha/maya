@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
 {% block title %}Diff {{ m.name }}{% endblock %}
 {% block content %}
 <h1>Model diff — {{ m.name }}</h1>
@@ -13,5 +14,14 @@
 <p>Code artifact changed: <strong>{{ 'yes' if result.artifact_changed else 'no' }}</strong> · specification document changed: <strong>{{ 'yes' if result.spec_changed else 'no' }}</strong></p>
 <div class="split"><div><h3>v{{ v1 }}</h3><div class="formula-box" data-latex="{{ result.old_latex }}">{{ result.old_latex }}</div></div>
 <div><h3>v{{ v2 }}</h3><div class="formula-box" data-latex="{{ result.new_latex }}">{{ result.new_latex }}</div></div></div>
+<h2>The specification document, side by side</h2>
+{% if document and document.changed %}
+<p class="small-muted">{{ document.changed }} line(s) differ{% if document.skipped %}; {{ document.skipped }} identical line(s) either side are not shown{% endif %}. A change is marked and worded, never coloured alone.</p>
+{% call(d) table("specdiff", ["Change", "!v" ~ v1 ~ " line", "v" ~ v1, "!v" ~ v2 ~ " line", "v" ~ v2], document.rows, empty="The document is identical.") %}
+  <td>{% if d.kind == 'same' %}<span class="small-muted">unchanged</span>{% else %}{{ pill({'added': 'approved', 'removed': 'retired', 'changed': 'in_review'}[d.kind], d.kind) }}{% endif %}</td>
+  <td class="small-muted">{{ d.left_no or '' }}</td><td class="mono small">{{ d.left if d.left is not none else '' }}</td>
+  <td class="small-muted">{{ d.right_no or '' }}</td><td class="mono small">{{ d.right if d.right is not none else '' }}</td>
+{% endcall %}
+{% else %}<p class="small-muted">{{ 'The document is identical between these versions.' if document else 'Choose two versions to compare their documents.' }}</p>{% endif %}
 {% endif %}
 {% endblock %}

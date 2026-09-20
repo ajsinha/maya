@@ -24,7 +24,7 @@
   <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Grant</button></div></div>
   <details class="mt-2"><summary>Conditions (§11.4) — narrow what this grant gives</summary>
   <div class="row g-2 mt-1">
-    <div class="col-md-6"><label class="form-label" for="grf">Row filter (expression; may use @user.username, @user.desk)</label><input class="form-control mono" id="grf" name="row_filter" placeholder="symbol in ['AAA', 'BBB']"></div>
+    <div class="col-md-6"><label class="form-label" for="grf">Row filter (expression; may use @user.username, @user.desk)</label><input class="form-control mono" id="grf" name="row_filter" placeholder="symbol in ['AAA', 'BBB']" data-expr></div>
     <div class="col-md-2"><label class="form-label" for="gun">No data after</label><input class="form-control" id="gun" name="until" type="date"></div>
     <div class="col-md-4"><label class="form-label" for="gms">Column masks (attr:null or attr:hash, comma-separated)</label><input class="form-control mono" id="gms" name="masks" placeholder="close:null, account:hash"></div>
   </div>
@@ -36,3 +36,4 @@
   <td><form method="post" action="/admin/grants/{{ g.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form></td>
 {% endcall %}
 {% endblock %}
+{% block scripts %}{% include "_expr_scripts.html" %}{% endblock %}

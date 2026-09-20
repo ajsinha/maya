@@ -352,6 +352,35 @@ Before the typecheck, the licences of every operand are combined; a vendor
 whose terms say `derived_works: forbidden` stops the submit, naming the vendor
 and the clause.
 
+## The canvas
+
+`/lineage?root=maya://feature/ns/name@v1` draws that graph. Object versions and
+pins are nodes, operators are diamonds, and edges are styled by type. It is also
+on the Lineage tab of every object page.
+
+| Control | What it does |
+|---|---|
+| Direction | upstream (what built this), downstream (what breaks if I change this), or both — re-fetched in place |
+| Depth | how far to walk |
+| Overlay | recolours by **freshness**, **approval status**, **access** or **cost**, and writes the value into the label as well |
+| Type, Namespace, Status | narrows what is drawn, stating how many nodes the filter removed |
+| Pinned only | keeps the pins |
+| Collapse inheritance chains | folds a chain of `extends` into one node with the count folded into it; click it to expand |
+| Cluster the far graph | beyond ~300 nodes MAYA does this itself: the root's neighbourhood is drawn in full and the rest counted per namespace |
+
+Click a node for its detail — owner, state, when it last changed, and for an
+operator its notation, typing rule and collision policy. Double-click to re-root.
+Select two or more features (shift-click, or the list under *The same graph in
+words*, which is keyboard-reachable) and the canvas offers an operator: it opens
+the feature designer prefilled with that algebra. One feature set selected offers
+its cascade pin.
+
+**What the canvas will not do is draw a smaller graph quietly.** `GET /lineage`
+leaves out every object you may not read and counts them; the canvas draws that
+count as a node of its own and says it in words under the graph. On a review
+screen the canvas carries the change as an overlay: added nodes green, changed
+amber, removed struck through, taken from the same semantic diff as the table.
+
 ## Worked example: SDK
 
 ```python

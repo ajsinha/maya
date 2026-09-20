@@ -9,6 +9,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import difflib
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -336,6 +337,62 @@ async def conformance(request: Request, ns: str, name: str, version_no: int) -> 
     )
 
 
+SPEC_CONTEXT = 2  # lines of unchanged document shown either side of a change
+
+
+def spec_diff(old: str, new: str, context: int = SPEC_CONTEXT) -> dict[str, Any]:
+    """The specification document, side by side (§17.1).
+
+    The model diff the API returns says *whether* the document changed; a reviewer
+    needs to see what. The comparison is a line alignment done here, in the web tier,
+    over text the SDK already returned with each version — no new endpoint, and no
+    second opinion about what the document says. Unchanged stretches are dropped and
+    counted rather than paged through.
+    """
+    a, b = (old or "").splitlines(), (new or "").splitlines()
+    aligned: list[dict[str, Any]] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b).get_opcodes():
+        if tag == "equal":
+            for k in range(i2 - i1):
+                aligned.append(_row("same", i1 + k, a[i1 + k], j1 + k, b[j1 + k]))
+        elif tag == "replace":
+            for k in range(max(i2 - i1, j2 - j1)):
+                left = a[i1 + k] if i1 + k < i2 else None
+                right = b[j1 + k] if j1 + k < j2 else None
+                aligned.append(
+                    _row(
+                        "changed",
+                        i1 + k if left is not None else None,
+                        left,
+                        j1 + k if right is not None else None,
+                        right,
+                    )
+                )
+        elif tag == "delete":
+            aligned += [_row("removed", k, a[k], None, None) for k in range(i1, i2)]
+        else:
+            aligned += [_row("added", None, None, k, b[k]) for k in range(j1, j2)]
+    near: set[int] = set()
+    for i, row in enumerate(aligned):
+        if row["kind"] != "same":
+            near.update(range(max(0, i - context), min(len(aligned), i + context + 1)))
+    rows = [row for i, row in enumerate(aligned) if i in near]
+    changed = sum(1 for row in aligned if row["kind"] != "same")
+    return {"rows": rows, "skipped": len(aligned) - len(rows), "changed": changed}
+
+
+def _row(
+    kind: str, left_no: int | None, left: str | None, right_no: int | None, right: str | None
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "left_no": None if left_no is None else left_no + 1,
+        "left": left,
+        "right_no": None if right_no is None else right_no + 1,
+        "right": right,
+    }
+
+
 @router.get("/models/{ns}/{name}/diff")
 @page
 async def diff(request: Request, ns: str, name: str) -> Any:
@@ -345,8 +402,19 @@ async def diff(request: Request, ns: str, name: str) -> Any:
         result = None
         if qp.get("v1") and qp.get("v2"):
             result = await sdk.models.diff(f"{ns}/{name}", int(qp["v1"]), int(qp["v2"]))
+    document = None
+    if result:
+        by_no = {str(v["version_no"]): v for v in m["versions"]}
+        old, new = by_no.get(qp["v1"], {}), by_no.get(qp["v2"], {})
+        document = spec_diff(old.get("spec_latex") or "", new.get("spec_latex") or "")
     return await render(
         request,
         "models/diff.html",
-        {"m": m, "result": result, "v1": qp.get("v1", ""), "v2": qp.get("v2", "")},
+        {
+            "m": m,
+            "result": result,
+            "document": document,
+            "v1": qp.get("v1", ""),
+            "v2": qp.get("v2", ""),
+        },
     )

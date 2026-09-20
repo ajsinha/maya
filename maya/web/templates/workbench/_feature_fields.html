@@ -78,7 +78,12 @@ def produce(params):
     <div class="col-md-4 small-muted pt-4">backward_fill, linear_interp and spline_interp are <strong>non-causal</strong>: they consume the future and need a justified override inside a training warrant.</div>
   </div>
   <div class="row g-2 mt-1">
-    <div class="col-md-6"><label class="form-label" for="transform">Transform pipeline (JSON list)</label><textarea class="form-control mono" id="transform" name="transform" rows="4" data-json placeholder='[{"op": "filter", "expr": "close > 0"}]'>{{ d.get('transform')|tojson_pretty if d.get('transform') else '' }}</textarea></div>
+    <div class="col-md-6">
+      <label class="form-label" for="filter-expr">Row filter — checked as you type, previewed over three sample rows</label>
+      <input class="form-control mono" id="filter-expr" placeholder="close > 0 and notnull(close)"
+             data-expr data-expr-attrs-from="input[name=attr_name]" data-expr-insert-into="#transform"
+             {% if f %}data-expr-sample="/ui/expr-sample?kind=feature&amp;ref={{ f.namespace }}/{{ f.name }}"{% endif %}>
+      <label class="form-label mt-2" for="transform">Transform pipeline (JSON list)</label><textarea class="form-control mono" id="transform" name="transform" rows="4" data-json placeholder='[{"op": "filter", "expr": "close > 0"}]'>{{ d.get('transform')|tojson_pretty if d.get('transform') else '' }}</textarea></div>
     <div class="col-md-6"><label class="form-label" for="quality">Quality contract (JSON list) — a failing check blocks the pin</label><textarea class="form-control mono" id="quality" name="quality" rows="4" data-json placeholder='[{"check": "not_null", "attr": "close"}]'>{{ d.get('quality')|tojson_pretty if d.get('quality') else '' }}</textarea></div>
   </div>
 </div></div>
