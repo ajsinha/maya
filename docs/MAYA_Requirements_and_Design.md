@@ -23,7 +23,10 @@
 > domain it sampled, in the detail the reviewer reads, and does not pretend to judge whether
 > that domain was representative; and an
 > execution warrant runs exactly one parameter set, so a model with several calibrations has
-> one warrant each (§9.2).
+> one warrant each (§9.2). And two in §8.6, from the versioning study: who moves a version
+> along the maturity ladder and when, and what retirement is — not retroactive, warned for, and
+> refused while something is still serving the version, because taking a model out of service
+> now is revocation and not retirement.
 >
 > **Revision 2.4 — 2026-09-19.** No new decisions: this revision marks, each as
 > *Revision 2.4* where it lands, places where this document contradicted itself or a
@@ -592,6 +595,10 @@ Every model version carries a LaTeX specification document edited inside MAYA (s
 ### 8.6 Versioning
 
 A new model version is minted when the formula IR hash, the code artifact hash, or the input contract changes. Parameters and the spec document version independently but are *bound* to a model version. A model version carries a **maturity**: `experimental`, `candidate`, `approved`, `restricted`, `deprecated`, `retired`. Deprecation requires a successor reference or an explicit statement that none exists, and MAYA warns every owner of a warrant that depends on it.
+
+*Revision 2.5:* two things this section did not say, both found by building a study that used it. **Who moves a version along the ladder, and when.** The maturity is set by whoever may approve the version, at any point in its life, and does not require a new draft: a version already in service can be marked `restricted` without becoming a different version, because restriction is a statement about the version that exists and not a reason to mint another. The `deprecate` and `retire` transitions move the maturity with the state, so the two never disagree — they used to, and a deprecated version went on advertising itself as a `candidate`, which mattered because §8.7's cap reads a member's maturity rather than its state.
+
+**And what retirement is.** Retirement is the end of the ladder and it is not retroactive: warrants already sealed on a retired version remain valid and remain reproducible, because withdrawing them would destroy the reproducibility the seal exists to guarantee. MAYA warns every owner of a dependent warrant, on retirement exactly as on deprecation. But a version still **serving** production cannot be retired at all: an execution warrant that is live or suspended refuses the transition and names itself, because retiring underneath it would leave production running a retired model with nothing saying so. Taking a model out of service *now* is revocation (§9.4), and the two are deliberately different acts performed in that order.
 
 ### 8.7 Composite models
 

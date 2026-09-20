@@ -37,6 +37,7 @@ CHECKS = [
     "spec_document_complete",
     "code_artifact_validated",
     "code_matches_specification",
+    "no_live_execution_warrant",
     "spec_true_build",
     "composite_members_mature",
     "contract_valid",

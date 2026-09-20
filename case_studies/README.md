@@ -79,6 +79,7 @@ same six calls would demonstrate nothing that one study could not.
 | 04 | [HELOC exposure at default](04-heloc-exposure/) | Banking, retail secured credit | **Composite router** over two fitted members | One warrant over two models with different functional forms, a parameter set per member, and a seal that refuses while half the composite is unfitted. |
 | 05 | [European option pricing](05-option-pricing/) | Finance, equity derivatives | Closed-form, **calibrated** | A parameter nobody can observe. Black–Scholes from LaTeX, a volatility surface as nine parameters, and a conformance test that passes on a narrow domain and fails on the whole chain. |
 | 06 | [IFRS 9 expected credit loss](06-ifrs9-expected-credit-loss/) | Banking, impairment | Composite with its own parameters | Judgements as approved parameter sets, and a portfolio test that finds a 2.67× over-provision the per-account error cannot see. |
+| 10 | [Factor models, CAPM to Fama–French](10-factor-models/) | Asset management | Simple then multiple regression | Two versions of one model: a semantic diff, a contract that grew, and the maturity ladder from candidate to retired. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
 
 ### The catalogue
@@ -145,7 +146,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | 37 | CVA / counterparty exposure | Monte Carlo | A black box plus market-data **licence algebra** |
 | 38 | Mean-variance optimisation | Optimisation | An output that is a **vector of weights**, not a scalar |
 | 39 | Black–Litterman | Bayesian | Prior and views as separately approved parameter sets |
-| 10 | CAPM beta → Fama–French | Simple then multiple regression | **Two versions of one model**, MAYA's semantic diff, and the deprecation path |
+| 10 | CAPM beta → Fama–French ✅ | Simple then multiple regression | **Two versions of one model**, MAYA's semantic diff, and the whole maturity ladder to retirement |
 
 **Economics**
 
