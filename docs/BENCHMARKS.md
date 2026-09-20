@@ -18,6 +18,19 @@ printed by a tool in `tools/bench/`.
 | §24.3 cold start to serving | under 30 s | **1.26 s** to the first `200` from `/readyz` | **pass** |
 | **SC-3**: 200 concurrent interactive users on one node without p95 degradation | p95 under 300 ms with 200 users | PostgreSQL, 8 web processes, with the principal cache, three runs: p95 **0.34 s**, **0.22 s**, **0.43 s** (median 0.34 s); 93–97 requests/s, no errors | **not met reliably**: one run of three passes; a dedicated host to settle it is out of scope by decision |
 
+Which file holds which number:
+
+| Result file | What it measured |
+|---|---|
+| [`sc5-sqlite-no-rules.json`](benchmarks/sc5-sqlite-no-rules.json) | SC-5 resolution, no resolution rules |
+| [`sc5-sqlite-forward-fill.json`](benchmarks/sc5-sqlite-forward-fill.json) | SC-5 with `forward_fill(limit=3)` on every attribute |
+| [`search-100k-sqlite.json`](benchmarks/search-100k-sqlite.json) | Catalog search over 100k objects |
+| [`web-sqlite-1-process.json`](benchmarks/web-sqlite-1-process.json) | SC-4 page latency, SQLite, one process |
+| [`web-postgresql-8-processes.json`](benchmarks/web-postgresql-8-processes.json) | SC-4 and SC-3, PostgreSQL, 8 web processes, before the principal cache |
+| [`web-postgresql-8-processes-cache-run1.json`](benchmarks/web-postgresql-8-processes-cache-run1.json) … `-run2`, `-run3` | SC-3's three runs with the principal cache |
+| [`capacity-sqlite.json`](benchmarks/capacity-sqlite.json) | The four §24.3 capacity targets |
+| [`regression-baseline.json`](benchmarks/regression-baseline.json) | The baseline `tools/bench/regress.py` compares against (gate 26) |
+
 ## The machine
 
 | | |

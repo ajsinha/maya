@@ -514,6 +514,12 @@ Everything else in §28 and §29 is additive and sits behind a feature flag.
 > milestone's criterion for the procedure; a deployment's own first drill remains its
 > operator's. Still not delivered: the external security review, and SC-9.
 > A dedicated benchmark host is out of scope by decision.
+>
+> **Since the specification audit** ([docs/audit](audit/spec-audit-2026-09-19.md)), which read
+> the specification against the code requirement by requirement, 27 of its 36 ranked gaps are
+> closed with tests and 3 are partly closed. The plan's milestones are not the whole
+> specification, and the audit is the list of what the specification asks for beyond them;
+> read it rather than this section for what is left.
 
 **Deliverables**
 

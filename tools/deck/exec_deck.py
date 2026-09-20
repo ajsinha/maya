@@ -428,7 +428,7 @@ SLIDES = [
         "items": [
             "One place that answers what the firm runs, who approved it, what it was fitted on — and lets that answer be checked rather than asserted.",
             "A warrant is a live licence: it expires, it is revoked, and it suspends itself when a covenant is breached.",
-            "Version 0.3.0 runs the whole spine end to end, with more than 1,200 tests on Linux over SQLite and PostgreSQL.",
+            "Version 0.3.0 runs the whole spine end to end, with more than 1,500 tests on Linux over SQLite and PostgreSQL.",
             "Three performance targets pass on one workstation; SC-3 does not pass reliably, and the deck says so.",
             "What is out of scope, and what is not yet done, is written down before anyone has to discover it.",
         ],
