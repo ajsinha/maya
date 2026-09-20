@@ -231,7 +231,7 @@
    "models": {
     "class": "Models",
     "methods": {
-     "conformance": "(self, ref, version_no, n=500)",
+     "conformance": "(self, ref, version_no, n=500, featureset=None)",
      "create": "(self, namespace, name, **kw)",
      "diff": "(self, ref, v1, v2)",
      "get": "(self, ref)",
@@ -575,7 +575,7 @@
    "models": {
     "class": "Models",
     "methods": {
-     "conformance": "(self, ref, version_no, n=500)",
+     "conformance": "(self, ref, version_no, n=500, featureset=None)",
      "create": "(self, namespace, name, **kw)",
      "diff": "(self, ref, v1, v2)",
      "get": "(self, ref)",

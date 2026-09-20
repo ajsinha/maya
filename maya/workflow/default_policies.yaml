@@ -46,7 +46,8 @@ model_version:
       from: [draft, changes_requested]
       to: in_review
       capability: U
-      checks: [formula_typechecks, spec_document_complete, code_artifact_validated]
+      checks: [formula_typechecks, spec_document_complete, code_artifact_validated,
+               code_matches_specification]
     request_changes: {from: [in_review], to: changes_requested, capability: A}
     approve:
       from: [in_review]
@@ -54,7 +55,8 @@ model_version:
       capability: A
       approvals: [{role: model_manager, count: 1}]
       checks: [formula_typechecks, spec_document_complete, code_artifact_validated,
-               spec_true_build, composite_members_mature, no_open_blocking_comments]
+               code_matches_specification, spec_true_build, composite_members_mature,
+               no_open_blocking_comments]
     withdraw: {from: [in_review], to: withdrawn, capability: U}
     publish: {from: [approved], to: published, capability: A}
     deprecate: {from: [approved, published], to: deprecated, capability: A}

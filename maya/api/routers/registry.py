@@ -220,11 +220,22 @@ def reference_code(
 
 @router.post("/models/{namespace}/{name}/versions/{version_no}/conformance", tags=["models"])
 async def conformance(
-    namespace: str, name: str, version_no: int, n: int = 500, me: Principal = Me, plat: Any = Plat
+    namespace: str,
+    name: str,
+    version_no: int,
+    n: int = 500,
+    featureset: str | None = None,
+    me: Principal = Me,
+    plat: Any = Plat,
 ) -> Response:
     return ok(
         await asyncio.to_thread(
-            plat.models.conformance, me, ref_of("model", namespace, name), version_no, n=n
+            plat.models.conformance,
+            me,
+            ref_of("model", namespace, name),
+            version_no,
+            n=n,
+            featureset=featureset,
         )
     )
 

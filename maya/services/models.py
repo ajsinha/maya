@@ -730,6 +730,42 @@ class ModelService:
             + "; ".join(r["detail"] for r in report.get("rungs", []) if r["passed"] is False),
         )
 
+    def check_conformance(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
+        """The code must agree with the mathematics the document states (§29.7).
+
+        The ladder in ``check_artifact`` asks whether the artifact parses, imports nothing
+        forbidden and runs. That is a different question from whether it computes the model:
+        the commonest implementation bugs are perfectly valid Python. So a closed-form
+        version that carries code cannot be moved on until somebody has run the differential
+        test against *this* artifact and it agreed everywhere it looked."""
+        row = ctx["row"]
+        if not row["artifact_hash"]:
+            return True, "no code artifact attached (nothing to compare)"
+        ir = row["formula_ir"] or {}
+        if irmod.is_opaque(ir):
+            return True, "declared black box: there is no closed form to compare against"
+        got = (row["artifact_report"] or {}).get("conformance") or {}
+        if got.get("artifact_hash") != row["artifact_hash"]:
+            return False, (
+                "the code has not been tested against the specification since it changed: "
+                "run conformance on this version"
+            )
+        if got["agreed"] != got["total"]:
+            examples = got.get("counterexamples") or []
+            where = ""
+            if examples:
+                first = examples[0]
+                where = (
+                    "; e.g. "
+                    + ", ".join(f"{k}={v:g}" for k, v in first.items() if not k.startswith("_"))
+                    + f" → specification {first['_expected']:g}, code {first['_actual']:g}"
+                )
+            return False, (
+                f"the code disagrees with the specification on "
+                f"{got['total'] - got['agreed']} of {got['total']} sampled inputs{where}"
+            )
+        return True, f"agreed with the specification on all {got['total']} sampled inputs"
+
     def check_true_build(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         require = (
             self.p.settings.bool("typeset.require_true_build", False)
@@ -797,8 +833,15 @@ class ModelService:
         *,
         n: int = 2000,
         params: dict[str, Any] | None = None,
+        featureset: str | None = None,
     ) -> dict[str, Any]:
-        """Differential test of the uploaded Python against the documented IR (§29.7)."""
+        """Differential test of the uploaded Python against the documented IR (§29.7).
+
+        With a ``featureset`` the inputs are resampled from that set's own values, which is
+        the domain the model will actually be asked about. Without one they are drawn from
+        the unit interval, and the report says so: a disagreement that only appears on a
+        seasoned mortgage or a deep-out-of-the-money option will not be found by numbers
+        near 1, so an agreement over an invented domain is worth less than it looks."""
         with self.p.uow() as uow:
             model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
             self.p.access.require(uow, p, "read", "model", model)
@@ -811,8 +854,7 @@ class ModelService:
 
         source = self.p.blobs.get(v["artifact_hash"]).decode("utf-8")
         params = params or self._default_params(v)
-        rng = np.random.default_rng(7)
-        cols = {c["name"]: rng.uniform(0.5, 1.5, 256) for c in v["input_contract"]}
+        cols, domain = self._conformance_domain(p, v, featureset)
         samples = sample_inputs(v["formula_ir"], cols, n=n, seed=7)
 
         def predict(x: dict[str, Any], prm: dict[str, Any]) -> Any:
@@ -831,4 +873,45 @@ class ModelService:
                 raise ValidationFailed(f"artifact failed in the sandbox: {out['error']}")
             return out["result"]
 
-        return conformance_test(v["formula_ir"], predict, samples, params)
+        result = {**conformance_test(v["formula_ir"], predict, samples, params), "domain": domain}
+        with self.p.uow(p.username) as uow:
+            # Recorded against the artifact hash it tested, so attaching different code
+            # invalidates it rather than inheriting somebody else's clean run.
+            report = dict(uow.repo("model_versions").require(v["id"])["artifact_report"] or {})
+            report["conformance"] = {
+                "artifact_hash": v["artifact_hash"],
+                "agreed": result["agreed"],
+                "total": result["total"],
+                "counterexamples": result["counterexamples"][:3],
+                "domain": domain,
+                "statement": result["statement"],
+                "run_by": p.username,
+                "run_at": utcnow().isoformat(),
+            }
+            uow.repo("model_versions").update(v["id"], {"artifact_report": report})
+        return result
+
+    def _conformance_domain(
+        self, p: Principal, v: dict[str, Any], featureset: str | None
+    ) -> tuple[dict[str, Any], str]:
+        """The values to draw the differential test's inputs from, and where they came from."""
+        names = [c["name"] for c in v["input_contract"] or []]
+        if featureset:
+            res = self.p.featuresets.resolve_ref(p, featureset)
+            missing = [name for name in names if name not in res.df.columns]
+            if missing:
+                raise ValidationFailed(
+                    f"{featureset} does not expose {', '.join(missing)}, which the model's "
+                    "input contract names, so it cannot supply the test's domain",
+                    missing=missing,
+                )
+            return (
+                {name: res.df[name].astype(float).to_numpy() for name in names},
+                f"resampled from {featureset} ({len(res.df):,} rows)",
+            )
+        rng = np.random.default_rng(7)
+        return (
+            {name: rng.uniform(0.5, 1.5, 256) for name in names},
+            "drawn from the unit interval: no feature set was named, so agreement here says "
+            "nothing about the values the model will really be given",
+        )

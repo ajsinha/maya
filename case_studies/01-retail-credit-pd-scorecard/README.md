@@ -5,10 +5,38 @@ regression) · **What it exercises:** bitemporal features, as-of alignment acros
 frequencies, point-in-time pinning, a leakage certificate that refuses, a fit tied to its
 data by checksum, blind holdout scoring, and an execution warrant that suspends itself.
 
+## The scripts, and what each one does
+
+The study is seven scripts, run in this order. They share one MAYA at
+`case_studies/runs/retail_credit/`, which the first script builds and the rest reopen, so
+**each can be run on its own, in its own process** — and between any two of them you can
+open the web UI and show what the last one actually created. That is the demonstration.
+
+| Script | What it does | Shows |
+| --- | --- | --- |
+| `make_data.py` | Writes the three input feeds to `data/` (already committed; run it only to regenerate). Nothing to do with MAYA. | The recipe behind the synthetic book: the lags, the latent borrower quality, the logistic hazard. |
+| `setup_features.py` | Reads the three CSVs, declares a feature definition for each, ingests the rows into MAYA's Delta lake, submits them as **dana** and approves them as **mick**. | Definitions as governed objects; knowledge time declared per feed; **dana refused when she tries to approve her own feature**. |
+| `setup_featureset.py` | Composes the three features into `pd_panel` on `(date, account)` with as-of alignment, approves it, and pins it point-in-time (cascading to the members). | As-of alignment instead of resampling; an immutable, content-hashed pin; the gap the alignment leaves rather than fills. |
+| `setup_model.py` | Registers the scorecard as a formula, tries to submit it with an empty document, then fills the nine required sections and gets it approved. | The input contract MAYA derives from the formula; **submission refused while the specification is incomplete**; the mathematics MAYA renders. |
+| `get_training_warrant.py` | Draws a warrant naively, then draws it again with the forward-looking target explained. | The contract report; **the leakage certificate refusing all 36,000 rows**, and the written exception that lets the work proceed. |
+| `fit_parameters.py` | Opens the warrant's data, fits by IRLS on the training partition, uploads the fit twice — once with the wrong data checksum, once with the right one — then has MAYA score the escrowed holdout. | The developer never sees the test partition; **parameters that cannot prove their data are refused approval**; blind scoring, counted. |
+| `get_execution_warrant.py` | Draws an execution warrant with two covenants, gets it approved by a *second* model manager, takes it live, then reports a batch with 31% of bureau scores missing. | The two-person rule; a PSI baseline fixed from the training data; **the warrant suspending itself and naming who to call**; reinstatement with a reason. |
+| `show_estate.py` | Creates nothing. Reads back the catalog, the audit chain, the warrant's custody and the full lineage graph, and prints how to browse it all in the UI. | That everything above is discoverable afterwards by someone who was not in the room. |
+| `study.py` | No MAYA calls at all: the names, the feature definitions, the formula, the specification document, the fitting mathematics and the cast. Imported by every step. | The declarations that would live under source control at a bank. |
+| `run.py` | Runs all seven steps in order against a MAYA built from nothing. About eleven seconds. | The unattended pass — for checking the study still works, or reading the whole story at once. |
+
+```bash
+# the whole story at once
+.venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py
+
+# or one step at a time, which is how to demonstrate it
+.venv/bin/python case_studies/01-retail-credit-pd-scorecard/setup_features.py --reset
+.venv/bin/python case_studies/01-retail-credit-pd-scorecard/setup_featureset.py
+...
 ```
-.venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py            # ~13 seconds
-.venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py --keep      # and keep it to browse
-```
+
+`--reset` deletes this study's MAYA and starts again from nothing; `--quiet` prints the
+results without the narration.
 
 ---
 
@@ -318,10 +346,13 @@ Run it with `--keep` and the script prints how to start the web UI on exactly th
 just built, so the same story can be walked through on screen: the catalog, the pin preview,
 the warrant with its certificate and exception, the lineage canvas, and the audit log.
 
-## Files
+## The input data
 
-| | |
-| --- | --- |
-| `run.py` | The study. Every MAYA interaction goes through `maya.sdk.Client` as a named user. |
-| `make_data.py` | Writes the three CSVs in `data/`, with the recipe in its docstring. |
-| `data/*.csv` | The three feeds, committed, ~4 MB in total. |
+| File | Rows | Size | What it is |
+| --- | --- | --- | --- |
+| `data/servicing_monthly.csv` | 36,000 | 2.1 MB | The monthly servicing extract, cut five days after month end. |
+| `data/bureau_file.csv` | 12,000 | 0.5 MB | A quarterly credit bureau file, delivered a fortnight after the quarter. |
+| `data/default_outcome.csv` | 36,000 | 1.5 MB | The twelve-month default flag, knowable a year and a day later. |
+
+All three are committed, so the study runs with no generation step and a reader can open
+them and see exactly what MAYA was given. `make_data.py` holds the recipe.

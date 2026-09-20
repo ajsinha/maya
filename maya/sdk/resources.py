@@ -1134,11 +1134,15 @@ class Models(_Resource):
         return self._c("GET", f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/reference")
 
     @endpoint("POST", "/models/{namespace}/{name}/versions/{version_no}/conformance")
-    def conformance(self, ref: str, version_no: int, n: int = 500) -> Any:
+    def conformance(
+        self, ref: str, version_no: int, n: int = 500, featureset: str | None = None
+    ) -> Any:
+        """``featureset``: draw the test's inputs from that set's own values, not from the
+        unit interval. The report says which domain was used."""
         return self._c(
             "POST",
             f"/models/{_nn(ref, 'model')}/versions/{int(version_no)}/conformance",
-            params={"n": n},
+            params={"n": n, "featureset": featureset},
         )
 
 
