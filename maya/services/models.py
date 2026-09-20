@@ -544,6 +544,14 @@ class ModelService:
         return out
 
     def run_validation_job(self, ctx: Any, params: dict[str, Any]) -> dict[str, Any]:
+        """The ladder, and then the differential test against the documented mathematics.
+
+        The two belong together. The ladder asks whether the artifact parses, imports
+        nothing forbidden and runs; the differential test asks whether it *computes the
+        model*, which is a different question and the one the commonest implementation bugs
+        fail. Leaving the second to be asked by hand made it a button rather than a check,
+        so it runs here, on upload, and its result is recorded against the artifact hash it
+        tested (§29.7)."""
         from maya.formula.artifact import validate_artifact
 
         source = self.p.blobs.get(params["blob"]).decode("utf-8")
@@ -551,6 +559,9 @@ class ModelService:
         report = validate_artifact(source, params["sample"], params["params"])
         with self.p.uow(ctx.actor) as uow:
             v = uow.repo("model_versions").require(params["version_id"])
+            if report["passed"] and not irmod.is_opaque(v["formula_ir"] or {}):
+                ctx.progress(70, "comparing the code with the documented mathematics")
+                report["conformance"] = self._differential(v, source, params["params"], ctx.actor)
             if v["artifact_hash"] == params["blob"]:
                 uow.repo("model_versions").update(v["id"], {"artifact_report": report})
             uow.audit(
@@ -560,6 +571,27 @@ class ModelService:
                 detail={"passed": report["passed"], "tier": report["tier"]},
             )
         return {"passed": report["passed"], "tier": report["tier"]}
+
+    def _differential(
+        self, v: dict[str, Any], source: str, params: dict[str, Any], actor: str
+    ) -> dict[str, Any]:
+        """Compare the artifact with the IR at upload time, over the default domain.
+
+        A failure to run is recorded as a failure to agree, not as silence: if MAYA could
+        not compare the two it must not imply that it did. Re-running it against a real
+        feature set is ``conformance()``, and that result replaces this one."""
+        cols, domain = self._conformance_domain(None, v, None)
+        try:
+            result = self._compare(v, source, params, n=2000, cols=cols, domain=domain)
+        except Exception as exc:  # noqa: BLE001 - an unrunnable comparison is a finding
+            result = {
+                "agreed": 0,
+                "total": 0,
+                "counterexamples": [],
+                "domain": "not compared",
+                "statement": f"the comparison could not be run: {type(exc).__name__}: {exc}",
+            }
+        return self._conformance_record(v, result, actor)
 
     # -- spec document -----------------------------------------------------------------
     def render_spec(self, p: Principal, ref: str, version_no: int) -> dict[str, Any]:
@@ -850,11 +882,27 @@ class ModelService:
             raise ValidationFailed("No code artifact to test against the specification")
         if irmod.is_opaque(v["formula_ir"] or {}):
             return {"skipped": True, "statement": "declared black box: nothing to compare"}
-        from maya.security.sandbox import run_sandboxed
-
         source = self.p.blobs.get(v["artifact_hash"]).decode("utf-8")
         params = params or self._default_params(v)
         cols, domain = self._conformance_domain(p, v, featureset)
+        result = self._compare(v, source, params, n=n, cols=cols, domain=domain)
+        with self.p.uow(p.username) as uow:
+            self._record_conformance(uow, v, result, p.username)
+        return result
+
+    def _compare(
+        self,
+        v: dict[str, Any],
+        source: str,
+        params: dict[str, Any],
+        *,
+        n: int,
+        cols: dict[str, Any],
+        domain: str,
+    ) -> dict[str, Any]:
+        """Run the artifact in the sandbox over ``n`` sampled rows and compare with the IR."""
+        from maya.security.sandbox import run_sandboxed
+
         samples = sample_inputs(v["formula_ir"], cols, n=n, seed=7)
 
         def predict(x: dict[str, Any], prm: dict[str, Any]) -> Any:
@@ -873,30 +921,38 @@ class ModelService:
                 raise ValidationFailed(f"artifact failed in the sandbox: {out['error']}")
             return out["result"]
 
-        result = {**conformance_test(v["formula_ir"], predict, samples, params), "domain": domain}
-        with self.p.uow(p.username) as uow:
-            # Recorded against the artifact hash it tested, so attaching different code
-            # invalidates it rather than inheriting somebody else's clean run.
-            report = dict(uow.repo("model_versions").require(v["id"])["artifact_report"] or {})
-            report["conformance"] = {
-                "artifact_hash": v["artifact_hash"],
-                "agreed": result["agreed"],
-                "total": result["total"],
-                "counterexamples": result["counterexamples"][:3],
-                "domain": domain,
-                "statement": result["statement"],
-                "run_by": p.username,
-                "run_at": utcnow().isoformat(),
-            }
-            uow.repo("model_versions").update(v["id"], {"artifact_report": report})
-        return result
+        return {**conformance_test(v["formula_ir"], predict, samples, params), "domain": domain}
+
+    def _conformance_record(
+        self, v: dict[str, Any], result: dict[str, Any], actor: str
+    ) -> dict[str, Any]:
+        """What is kept on the version: the outcome, and the artifact hash it was about."""
+        return {
+            "artifact_hash": v["artifact_hash"],
+            "agreed": result["agreed"],
+            "total": result["total"],
+            "counterexamples": result["counterexamples"][:3],
+            "domain": result["domain"],
+            "statement": result["statement"],
+            "run_by": actor,
+            "run_at": utcnow().isoformat(),
+        }
+
+    def _record_conformance(
+        self, uow: Any, v: dict[str, Any], result: dict[str, Any], actor: str
+    ) -> None:
+        # Recorded against the artifact hash it tested, so attaching different code
+        # invalidates it rather than inheriting somebody else's clean run.
+        report = dict(uow.repo("model_versions").require(v["id"])["artifact_report"] or {})
+        report["conformance"] = self._conformance_record(v, result, actor)
+        uow.repo("model_versions").update(v["id"], {"artifact_report": report})
 
     def _conformance_domain(
-        self, p: Principal, v: dict[str, Any], featureset: str | None
+        self, p: Principal | None, v: dict[str, Any], featureset: str | None
     ) -> tuple[dict[str, Any], str]:
         """The values to draw the differential test's inputs from, and where they came from."""
         names = [c["name"] for c in v["input_contract"] or []]
-        if featureset:
+        if featureset and p is not None:
             res = self.p.featuresets.resolve_ref(p, featureset)
             missing = [name for name in names if name not in res.df.columns]
             if missing:

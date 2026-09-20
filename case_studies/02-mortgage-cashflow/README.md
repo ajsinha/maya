@@ -20,7 +20,7 @@ and show what the last one created.
 | `setup_features.py` | Declares and ingests the two feeds as features, submits them as **dana**, approves them as **mick**. | Two feeds on two different lags — two business days and a fortnight — each declaring its own knowledge time. |
 | `setup_featureset.py` | Composes `loan_month` on `(date, loan)` from the four tape columns *and* the servicer's remittance, approves it, pins it. | Keeping the benchmark inside the pinned set is what makes the later reconciliation reproducible. |
 | `setup_model.py` | Registers the model from the **LaTeX** the analyst wrote, fills the specification, and prints the **reference Python MAYA lifts from the expression tree**. | That MAYA reads LaTeX and Python into the same tree; that `remitted` is not an input; a runnable statement of the specification nobody typed twice. |
-| `check_conformance.py` | Uploads the desk's implementation and runs the six-rung ladder; then the differential test three times — correct code, buggy code, correct code again. | **The heart of the study.** A valid-but-wrong implementation agrees with the specification *nowhere* and cannot be submitted; replacing the code invalidates the clean result. |
+| `check_conformance.py` | Uploads the desk's implementation; the six-rung ladder **and** the differential test run together. Re-runs the test on the pinned tape's own values, then does the same for a buggy implementation, then puts the correct one back. | **The heart of the study.** A valid-but-wrong implementation passes every rung, agrees with the specification *nowhere*, and cannot be submitted. The domain the test used is stated, because agreement over an invented domain is worth less than it looks. |
 | `get_training_warrant.py` | Draws a warrant that fits nothing, registers the servicing fee as an approved parameter set, and has MAYA score the model blind against what the servicer actually remitted. | A model with no fit still owes a signed constant; an accuracy statement measured against an independent record. |
 | `get_execution_warrant.py` | Draws an execution warrant with a staleness covenant and an output range, gets a second model manager's approval, takes it live, then reports a batch on a 75-day-old tape. | A cashflow model is exactly as right as its tape, so the covenant that matters is about whether the tape arrived. |
 | `show_estate.py` | Creates nothing. Reads back the catalog, the artifact report *including the conformance result and the artifact hash it was run against*, the reconciliation attempts, the audit chain and the lineage. | That the evidence is discoverable afterwards, and tied to the exact code it was gathered about. |
@@ -165,14 +165,23 @@ silently omitted — a report never implies a check it did not perform.
 The ladder asks whether the artifact parses, imports nothing forbidden and runs. **That is
 a different question from whether it computes the model.**
 
-### The differential test (on demand, and now a gate)
+### The differential test (with the ladder, and a gate)
 
-MAYA draws 2,000 input rows **from the pinned tape's own values** and compares the desk's
-code against its own evaluation of the documented mathematics, to a relative tolerance of
-$10^{-9}$.
+The differential test runs **as part of the upload**, not when somebody remembers to ask
+for it. MAYA draws 2,000 input rows, runs the artifact in the sandbox over them, and
+compares the result against its own evaluation of the documented mathematics to a relative
+tolerance of $10^{-9}$.
 
-The domain matters as much as the count, and the report says which domain was used. A
-disagreement that only appears on a seasoned mortgage will not be found by numbers near 1.
+The domain matters as much as the count, and the report says which domain was used. By
+default the inputs are drawn from the unit interval — fine for catching a gross
+disagreement, useless for a mortgage, because a 1.2-month term at a 100% coupon is not a
+loan and a bug that only shows on a seasoned one hides there. So the study re-runs the test
+naming the pinned tape, and the inputs are resampled from its own values:
+
+```
+domain: resampled from maya://featureset/mortgage_alm/loan_month#recon2509/2025-09-30
+        (29,400 rows)
+```
 
 | Code | Agreement |
 | --- | --- |
@@ -203,10 +212,12 @@ Two details worth pointing at:
   deliberate for a differential test: two implementations of the same stated mathematics
   must agree *everywhere*, including where the inputs are absurd. It is not a claim about
   the portfolio.
-* **Replacing the code invalidates the result.** The conformance outcome is recorded
-  against the artifact hash it tested. Put the correct code back and submission is still
-  refused — *"the code has not been tested against the specification since it changed"* —
-  until the test is re-run. A clean result belonged to different code.
+* **A result belongs to the code it tested.** The outcome is recorded against the artifact
+  hash, so a clean run is never inherited by whatever is uploaded next: attach different
+  code and the check refuses with *"the code has not been tested against the specification
+  since it changed"* until a comparison has been made against the artifact that is actually
+  there. Uploading runs one, which is why the study's last upload can be submitted
+  straight away.
 
 ## 6. A warrant that fits nothing, and a constant that still needs a signature
 
@@ -270,8 +281,9 @@ The execution warrant is submitted by one model manager and approved by another,
 2. **§5, the buggy implementation** — valid Python, passes every rung of the ladder,
    disagrees with its own specification on every row, and cannot be submitted. This is the
    thing a model risk function actually worries about, and it is checked automatically.
-3. **§5, the invalidation** — changing the code throws away the clean result. Evidence is
-   tied to the artifact it was gathered about.
+3. **§5, the domain and the hash** — the test says which values it explored, and its
+   result is tied to the artifact it was gathered about. Both are the difference between
+   evidence and a green tick.
 4. **§6, the RMSE against the MAE** — a model that is right about what it claims and
    visibly silent about what it does not.
 5. **§7** — the covenant guards the input, because that is where this model fails.
