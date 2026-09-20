@@ -95,6 +95,25 @@
   `maya warrant upload-params` takes `--format`, or reads it from the file name, plus
   `--data-checksum`, `--notes` and `--member-alias`.
 
+**Feature-set composition (§6.7, §6.3, §6.2)**
+
+- **A feature set may hold another feature set as a member**, one level deep: a desk panel
+  can be built on the firm panel without copying its definition. The nested set's own read
+  rule, conditions and approval state govern it, exactly as if it had been opened directly.
+- **Fork**: a new set that starts from this one's definition and lets go — as against
+  `extends`, which follows the parent's corrections. A fork records where it came from, in
+  its definition and in the lineage, which is also what stops the near-copy guard refusing
+  it.
+- **Version diff**, member by member and policy by policy, on a page with the two versions
+  selectable.
+- **A boolean filter over the set's own attributes** (`filters.where`), refused at
+  resolution if it names something the set does not carry.
+- **A point-in-time universe from another feature**: membership is taken on *each row's own
+  date*, so a backtest sees the index as it was, not as it is. The universe feature is
+  resolved bitemporally like everything else, so "as of 2019" means what was known then.
+- **Per-member alignment**: the set declares a mode once and a member may override it — a
+  member that arrives late can join as-of while the rest join exactly.
+
 **The assistant drafts, and a manifest a person can read (§29.8, §9.2)**
 
 - **A feature definition drafted from a description and a sample file.** Column names and

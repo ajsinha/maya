@@ -90,6 +90,13 @@ class LogLevelIn(BaseModel):
     level: str
 
 
+class ForkIn(BaseModel):
+    name: str
+    namespace: str | None = None
+    version_no: int | None = None
+    description: str = ""
+
+
 class GrantIn(BaseModel):
     kind: str
     object_ref: str

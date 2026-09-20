@@ -4762,6 +4762,92 @@
     }
    }
   },
+  "/api/v1/featuresets/{namespace}/{name}/diff": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "namespace",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "version_a",
+      "required": true,
+      "schema": {
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "version_b",
+      "required": true,
+      "schema": {
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/featuresets/{namespace}/{name}/draft": {
    "put": {
     "parameters": [
@@ -4962,6 +5048,86 @@
       }
      }
     ],
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/featuresets/{namespace}/{name}/fork": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "namespace",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ForkIn"
+       }
+      }
+     },
+     "required": true
+    },
     "responses": {
      "201": {
       "content": {
@@ -14395,6 +14561,37 @@
    },
    "required": [
     "namespace",
+    "name"
+   ],
+   "type": "object"
+  },
+  "ForkIn": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "namespace": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "version_no": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
     "name"
    ],
    "type": "object"

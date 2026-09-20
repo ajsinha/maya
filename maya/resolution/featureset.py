@@ -170,8 +170,16 @@ def _join(
 
 
 def _filters(
-    df: pd.DataFrame, index: list[str], filters: dict[str, Any], plan: list[str]
+    df: pd.DataFrame,
+    index: list[str],
+    filters: dict[str, Any],
+    plan: list[str],
+    universe_rows: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
+    """§6.3's filters: a date range, a universe, and a boolean expression over the set's
+    own attributes. A universe may be a list, or the rows of another feature *as of each
+    row's own date* — "in the index on the day", not "in the index today", which is the
+    difference between a backtest and a story."""
     dcol = index[0]
     if filters.get("start"):
         df = df[df[dcol] >= pd.Timestamp(filters["start"])]
@@ -187,9 +195,65 @@ def _filters(
         values = uni.get("values", []) if isinstance(uni, dict) else list(uni)
         if col is None:
             raise ValidationFailed("a universe filter needs a non-date index column")
-        df = df[df[col].isin(values)]
-        plan.append(f"universe filter on {col}: {len(values)} value(s)")
+        if isinstance(uni, dict) and uni.get("feature"):
+            if universe_rows is None:
+                raise ValidationFailed(
+                    "a point-in-time universe names a feature whose rows were not resolved",
+                    feature=uni["feature"],
+                )
+            df = _point_in_time_universe(df, index, uni, universe_rows, plan)
+        else:
+            df = df[df[col].isin(values)]
+            plan.append(f"universe filter on {col}: {len(values)} value(s)")
+    expression = filters.get("where")
+    if expression:
+        from maya.resolution.expr import compile_expr
+
+        compiled = compile_expr(expression)
+        unknown = sorted(compiled.refs - set(df.columns))
+        if unknown:
+            raise ValidationFailed(
+                f"the filter refers to name(s) this feature set does not carry: {unknown}",
+                unknown=unknown,
+                available=sorted(df.columns),
+            )
+        before = len(df)
+        df = df[compiled.evaluate(df).fillna(False).astype(bool)]
+        plan.append(f"filter where {expression}: {before} -> {len(df)} row(s)")
     return df.reset_index(drop=True)
+
+
+def _point_in_time_universe(
+    df: pd.DataFrame,
+    index: list[str],
+    uni: dict[str, Any],
+    rows: pd.DataFrame,
+    plan: list[str],
+) -> pd.DataFrame:
+    """Keep the rows whose (date, entity) is in the universe feature on that date.
+
+    The universe feature's own attribute says whether the entity was in it — by default a
+    truthy column, so `in_sp500` on the row's date is the membership test. Because the
+    universe is resolved bitemporally like everything else, "as of 2019" means what was
+    known then, not what is known now.
+    """
+    attr = uni.get("attr") or next(
+        (c for c in rows.columns if c not in index and not c.startswith("_")), None
+    )
+    entity = uni.get("on") or (index[1] if len(index) > 1 else None)
+    if attr is None or entity is None:
+        raise ValidationFailed(
+            "a point-in-time universe needs an attribute and a non-date index column",
+            feature=uni.get("feature"),
+        )
+    members = rows[rows[attr].astype("boolean").fillna(False)][[index[0], entity]]
+    before = len(df)
+    out = df.merge(members.drop_duplicates(), on=[index[0], entity], how="inner")
+    plan.append(
+        f"point-in-time universe {uni['feature']}.{attr}: {before} -> {len(out)} row(s), "
+        "membership taken on each row's own date"
+    )
+    return out
 
 
 def choose_rule(
@@ -230,6 +294,7 @@ def resolve_featureset(
     group_policies: list[dict[str, Any]] | None = None,
     inherited_policies: list[dict[str, Any]] | None = None,
     filters: dict[str, Any] | None = None,
+    universe_rows: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Assemble, align, filter and fill a feature set. Returns (frame, manifest)."""
     with span("resolve feature set", attributes={"maya.members": len(members)}):
@@ -243,6 +308,7 @@ def resolve_featureset(
             group_policies=group_policies,
             inherited_policies=inherited_policies,
             filters=filters,
+            universe_rows=universe_rows,
         )
 
 
@@ -257,6 +323,7 @@ def _resolve_featureset(
     group_policies: list[dict[str, Any]] | None = None,
     inherited_policies: list[dict[str, Any]] | None = None,
     filters: dict[str, Any] | None = None,
+    universe_rows: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     started = time.perf_counter()
     alignment, filters, plan = dict(alignment or {"mode": "inner"}), dict(filters or {}), []
@@ -269,8 +336,11 @@ def _resolve_featureset(
     base = _apply_grid(keys, index, grid, start, end, plan)
     plan.insert(0, f"alignment: {alignment.get('mode', 'inner')}")
     for alias, (frame, keep) in frames.items():
-        base = _join(base, alias, frame, keep, index, alignment, plan)
-    base = _filters(base, index, filters, plan)
+        # §6.2: the set declares an alignment once, and a member may override it — a member
+        # that arrives late is joined as-of while the rest join exactly
+        member_alignment = {**alignment, **(by_member[alias][0].get("alignment") or {})}
+        base = _join(base, alias, frame, keep, index, member_alignment, plan)
+    base = _filters(base, index, filters, plan, universe_rows)
     attrs = [m["attr"] for m in mapping]
     chosen = {
         m["attr"]: choose_rule(

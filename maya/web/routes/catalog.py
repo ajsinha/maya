@@ -433,6 +433,39 @@ async def featureset_pin(request: Request, ns: str, name: str) -> Any:
     )
 
 
+@router.post("/catalog/featuresets/{ns}/{name}/fork")
+@action
+async def featureset_fork(request: Request, ns: str, name: str) -> Any:
+    """Start a new set from this one's definition (§6.7) — not an `extends`: a fork lets go."""
+    form = await request.form()
+    async with client(request) as sdk:
+        out = await sdk.featuresets.fork(
+            _ref("featureset", ns, name),
+            str(form["name"]),
+            namespace=str(form.get("namespace") or "") or None,
+        )
+    target = str(form.get("namespace") or ns)
+    flash(request, f"Forked to {target}/{form['name']}.", "success")
+    del out
+    return RedirectResponse(f"/catalog/featuresets/{target}/{form['name']}", status_code=303)
+
+
+@router.get("/catalog/featuresets/{ns}/{name}/diff")
+@page
+async def featureset_diff(request: Request, ns: str, name: str) -> Any:
+    """Two versions, member by member (§6.7)."""
+    qp = request.query_params
+    async with client(request) as sdk:
+        fs = await sdk.featuresets.get(_ref("featureset", ns, name))
+        versions = [v["version_no"] for v in fs.get("versions") or []]
+        a = int(qp.get("a") or (min(versions) if versions else 1))
+        b = int(qp.get("b") or (max(versions) if versions else 1))
+        out = await sdk.featuresets.diff(_ref("featureset", ns, name), a, b)
+    return await render(
+        request, "catalog/featureset_diff.html", {"d": out, "fs": fs, "versions": versions}
+    )
+
+
 @router.post("/catalog/featuresets/{ns}/{name}/new-draft")
 @action
 async def featureset_new_draft(request: Request, ns: str, name: str) -> Any:

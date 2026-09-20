@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Feature set diff{% endblock %}
+{% block content %}
+<h1>{{ d.ref }}: v{{ d.from }} → v{{ d.to }}</h1>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto"><label class="form-label" for="a">From</label>
+    <select class="form-select" id="a" name="a">{% for v in versions %}<option value="{{ v }}" {% if v == d.from %}selected{% endif %}>v{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><label class="form-label" for="b">To</label>
+    <select class="form-select" id="b" name="b">{% for v in versions %}<option value="{{ v }}" {% if v == d.to %}selected{% endif %}>v{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-auto align-self-end"><button class="btn btn-outline-primary" type="submit">Compare</button></div>
+</form>
+{% call(c) table("setdiff", ["What", "Change"], d.changes, empty="These two versions mean the same thing.") %}<td>{{ c.what }}</td><td class="mono">{{ c.change }}</td>{% endcall %}
+<a class="btn btn-outline-secondary mt-3" href="/catalog/featuresets/{{ d.ref }}">Back to the feature set</a>
+{% endblock %}

@@ -365,6 +365,84 @@ class FeatureSetService:
                 }
             )
 
+    def fork(
+        self,
+        p: Principal,
+        ref: str,
+        *,
+        name: str,
+        namespace: str | None = None,
+        version_no: int | None = None,
+        description: str = "",
+    ) -> dict[str, Any]:
+        """A new feature set that starts as a copy of this one's definition (§6.7).
+
+        A fork is not an `extend`: it takes the definition and lets go. Use `extends` when
+        the child should follow the parent's corrections, and a fork when a desk is taking
+        the panel somewhere the firm's copy should not follow. The lineage records where it
+        came from, so "where did this come from" stays answerable either way.
+        """
+        with self.p.uow(p.username) as uow:
+            source, source_ns = catalog.find_object(
+                uow, "feature_sets", "feature set", refs.parse(ref, "featureset")
+            )
+            self.p.access.require(uow, p, "read", "featureset", source)
+            version = catalog.version_of(
+                uow, "feature_set_versions", "feature_set_id", source, version_no
+            )
+        target_ns = namespace or source_ns["name"]
+        # A fork declares where it came from. Without that it is byte-identical to its
+        # source, and the near-copy guard (§6.8) refuses it — rightly, because an accidental
+        # copy and a deliberate one look the same until one of them says so.
+        forked = copy.deepcopy(version["definition"])
+        forked["forked_from"] = refs.version_ref(
+            "featureset", source_ns["name"], source["name"], version["version_no"]
+        )
+        out = self.create(
+            p,
+            namespace=target_ns,
+            name=name,
+            definition=forked,
+            description=description
+            or f"forked from {source_ns['name']}/{source['name']} v{version['version_no']}",
+        )
+        with self.p.uow(p.username) as uow:
+            uow.repo("lineage_edges").link(
+                refs.version_ref(
+                    "featureset", source_ns["name"], source["name"], version["version_no"]
+                ),
+                f"maya://featureset/{target_ns}/{name}@v1",
+                "forked_from",
+            )
+            uow.audit(
+                "featureset.forked",
+                object_type="featureset",
+                object_ref=f"{target_ns}/{name}",
+                detail={"from": f"{source_ns['name']}/{source['name']}@v{version['version_no']}"},
+            )
+        return {
+            **out,
+            "forked_from": f"{source_ns['name']}/{source['name']}@v{version['version_no']}",
+        }
+
+    def diff(self, p: Principal, ref: str, version_a: int, version_b: int) -> dict[str, Any]:
+        """Two versions of a feature set, attribute by attribute (§6.7)."""
+        with self.p.uow() as uow:
+            fs, ns = catalog.find_object(
+                uow, "feature_sets", "feature set", refs.parse(ref, "featureset")
+            )
+            self.p.access.require(uow, p, "read", "featureset", fs)
+            a = catalog.version_of(uow, "feature_set_versions", "feature_set_id", fs, version_a)
+            b = catalog.version_of(uow, "feature_set_versions", "feature_set_id", fs, version_b)
+            eff_a, _ = self.effective(uow, a["definition"])
+            eff_b, _ = self.effective(uow, b["definition"])
+        return {
+            "ref": f"{ns['name']}/{fs['name']}",
+            "from": version_a,
+            "to": version_b,
+            "changes": diff_set_definitions(eff_a, eff_b),
+        }
+
     # -- workflow -------------------------------------------------------------------
     def subject(
         self, uow: Any, fs: dict[str, Any], ns: dict[str, Any], v: dict[str, Any]
@@ -452,6 +530,20 @@ class FeatureSetService:
         bad = []
         for m in eff.get("members", []):
             r = refs.parse(m["ref"], "feature")
+            if r.kind == "featureset":
+                # §6.7: a member may be another feature set. The same rule applies to it —
+                # approved, or pinned — read from its own table.
+                try:
+                    nested, _ = catalog.find_object(uow, "feature_sets", "feature set", r)
+                    if r.version is not None:
+                        version = catalog.version_of(
+                            uow, "feature_set_versions", "feature_set_id", nested, r.version
+                        )
+                        if version["state"] not in catalog.APPROVED_STATES:
+                            bad.append(f"{m['ref']} is {version['state']}")
+                except Exception as exc:  # noqa: BLE001 - reported as the check detail
+                    bad.append(f"{m['ref']}: {exc}")
+                continue
             try:
                 feature, _ = catalog.find_object(uow, "features", "feature", r)
                 if not r.is_pin:
@@ -485,7 +577,9 @@ class FeatureSetService:
             )
         member_override = member_override or {}
         members: dict[str, Any] = {}
-        inputs, plan, withheld = [], [], []
+        inputs: builtins.list[str] = []
+        plan: builtins.list[str] = []
+        withheld: builtins.list[str] = []
         readable = self._readable_members(p, eff) if p is not None else None
         mapping = []
         for m in eff.get("members", []):
@@ -494,8 +588,15 @@ class FeatureSetService:
                 withheld.append(m["attr"])
                 continue
             if ref not in members:
-                res = self.p.feature_data.resolve_ref(
-                    ref, as_of_known=as_of_known, start=start, end=end
+                # §6.7: a member may be another feature set, one level deep. Its rows are
+                # resolved the same way and joined like any other member, so a desk panel
+                # can be built from the firm panel without copying its definition.
+                res = (
+                    self.resolve_ref(p, ref, as_of_known=as_of_known)
+                    if refs.parse(ref, "feature").kind == "featureset"
+                    else self.p.feature_data.resolve_ref(
+                        ref, as_of_known=as_of_known, start=start, end=end
+                    )
                 )
                 members[ref] = (res.df, res.meta)
                 inputs.append(ref)
@@ -505,6 +606,7 @@ class FeatureSetService:
             raise ValidationFailed(
                 "You cannot read any member of this feature set", withheld=withheld
             )
+        universe_rows = self._universe_rows(p, eff, as_of_known, start, end, plan)
         df, manifest = resolve_featureset(
             members,
             mapping,
@@ -515,6 +617,7 @@ class FeatureSetService:
             group_policies=eff.get("group_policies"),
             inherited_policies=inherited,
             filters=eff.get("filters"),
+            universe_rows=universe_rows,
         )
         for attr in withheld:
             df[attr] = None
@@ -632,14 +735,44 @@ class FeatureSetService:
         }
         return out
 
+    def _universe_rows(
+        self,
+        p: Principal | None,
+        eff: dict[str, Any],
+        as_of_known: Any,
+        start: dt.date | None,
+        end: dt.date | None,
+        plan: builtins.list[str],
+    ) -> Any:
+        """The rows of a point-in-time universe feature, where the filters name one (§6.3).
+
+        Resolved bitemporally like everything else, so "as of 2019" means the membership
+        known then — which is the whole difference between a backtest and a story about
+        one."""
+        universe = ((eff.get("filters") or {}).get("universe")) or {}
+        ref = universe.get("feature") if isinstance(universe, dict) else None
+        if not ref:
+            return None
+        res = self.p.feature_data.resolve_ref(ref, as_of_known=as_of_known, start=start, end=end)
+        if p is not None:
+            plan.append(f"universe feature {ref}: {len(res.df)} row(s)")
+        return res.df
+
     def _readable_members(self, p: Principal, eff: dict[str, Any]) -> set[str]:
+        """The members ``p`` may read. A member is a feature or — §6.7 — another feature
+        set, and each is checked against its own kind: a nested set's own read rule governs
+        it, exactly as if it had been opened directly."""
         ok = set()
         with self.p.uow() as uow:
             for m in eff.get("members", []):
-                feature, _ = catalog.find_object(
-                    uow, "features", "feature", refs.parse(m["ref"], "feature")
+                r = refs.parse(m["ref"], "feature")
+                table, kind = (
+                    ("feature_sets", "featureset")
+                    if r.kind == "featureset"
+                    else ("features", "feature")
                 )
-                if self.p.access.allowed(uow, p, "read", "feature", feature):
+                obj, _ = catalog.find_object(uow, table, kind, r)
+                if self.p.access.allowed(uow, p, "read", kind, obj):
                     ok.add(m["ref"])
         return ok
 
@@ -832,10 +965,16 @@ class FeatureSetService:
             for m in eff.get("members", []):
                 by_member.setdefault(m["ref"], []).append((m["source_attr"], m["attr"]))
             for ref, pairs in sorted(by_member.items()):
-                feature, _ = catalog.find_object(
-                    uow, "features", "feature", refs.parse(ref, "feature")
+                r = refs.parse(ref, "feature")
+                # a member is a feature or (§6.7) another feature set; each carries its own
+                # conditions, and a nested set's masks must reach through to this read
+                table, kind = (
+                    ("feature_sets", "featureset")
+                    if r.kind == "featureset"
+                    else ("features", "feature")
                 )
-                cond = self.p.access.read_conditions(uow, p, "feature", feature)
+                member, _ = catalog.find_object(uow, table, kind, r)
+                cond = self.p.access.read_conditions(uow, p, kind, member)
                 if cond:
                     res.df, report = apply_mapped(res.df, cond, pairs, index=index, user=user)
                     applied.append({"member": ref, **report})
@@ -1279,6 +1418,8 @@ def equivalence_body(eff: dict[str, Any], inherited: list[dict[str, Any]]) -> di
         "group_policies": eff.get("group_policies") or {},
     }
     body["members"] = sorted(eff.get("members", []), key=lambda m: m["attr"])
+    if eff.get("forked_from"):
+        body["forked_from"] = eff["forked_from"]
     if eff.get("derivation"):
         # a derived set means its operator over its operands, so two derived sets are
         # near-copies only when both of those match (without this, every derived set
@@ -1302,3 +1443,42 @@ def shapes_infer(df: pd.DataFrame) -> list[dict[str, Any]]:
 
 def _jsonsafe(obj: Any) -> Any:
     return djson.loads(djson.dumps(obj))
+
+
+def diff_set_definitions(a: dict[str, Any], b: dict[str, Any]) -> builtins.list[dict[str, Any]]:
+    """Two effective feature-set definitions, member by member and policy by policy."""
+    out: builtins.list[dict[str, Any]] = []
+    left = {m["attr"]: m for m in a.get("members", [])}
+    right = {m["attr"]: m for m in b.get("members", [])}
+    for attr in sorted(set(left) | set(right)):
+        if attr not in right:
+            out.append({"what": f"member {attr}", "change": "removed"})
+        elif attr not in left:
+            out.append({"what": f"member {attr}", "change": f"added from {right[attr]['ref']}"})
+        elif left[attr] != right[attr]:
+            changed = sorted(
+                k
+                for k in set(left[attr]) | set(right[attr])
+                if left[attr].get(k) != right[attr].get(k)
+            )
+            out.append(
+                {
+                    "what": f"member {attr}",
+                    "change": "; ".join(
+                        f"{k}: {left[attr].get(k)} → {right[attr].get(k)}" for k in changed
+                    ),
+                }
+            )
+    for key in (
+        "index",
+        "grid",
+        "alignment",
+        "filters",
+        "global_policy",
+        "group_policies",
+        "derivation",
+        "extends",
+    ):
+        if a.get(key) != b.get(key):
+            out.append({"what": key, "change": f"{a.get(key)} → {b.get(key)}"})
+    return out

@@ -862,6 +862,22 @@ class FeatureSets(_Resource):
             json_body={"definition": definition, **kw},
         )
 
+    @endpoint("POST", "/featuresets/{namespace}/{name}/fork")
+    def fork(self, ref: str, name: str, **kw: Any) -> Any:
+        """A new feature set starting from this one's definition (§6.7)."""
+        return self._c(
+            "POST", f"/featuresets/{_nn(ref, 'featureset')}/fork", json_body={"name": name, **kw}
+        )
+
+    @endpoint("GET", "/featuresets/{namespace}/{name}/diff")
+    def diff(self, ref: str, version_a: int, version_b: int) -> Any:
+        """Two versions of a feature set, member by member (§6.7)."""
+        return self._c(
+            "GET",
+            f"/featuresets/{_nn(ref, 'featureset')}/diff",
+            params={"version_a": int(version_a), "version_b": int(version_b)},
+        )
+
     @endpoint("POST", "/featuresets/{namespace}/{name}/drafts")
     def new_draft(self, ref: str) -> Any:
         return self._c("POST", f"/featuresets/{_nn(ref, 'featureset')}/drafts")

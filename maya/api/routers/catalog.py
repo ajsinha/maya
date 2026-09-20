@@ -508,6 +508,40 @@ def update_featureset_draft(
     )
 
 
+@router.post("/featuresets/{namespace}/{name}/fork", tags=["featuresets"], status_code=201)
+def fork_featureset(
+    namespace: str, name: str, body: s.ForkIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """A new feature set starting from this one's definition (§6.7). Not an `extends`: a
+    fork takes the definition and lets go."""
+    return ok(
+        plat.featuresets.fork(
+            me,
+            ref_of("featureset", namespace, name),
+            name=body.name,
+            namespace=body.namespace,
+            version_no=body.version_no,
+            description=body.description,
+        ),
+        201,
+    )
+
+
+@router.get("/featuresets/{namespace}/{name}/diff", tags=["featuresets"])
+def diff_featureset(
+    namespace: str,
+    name: str,
+    version_a: int,
+    version_b: int,
+    me: Principal = Me,
+    plat: Any = Plat,
+) -> Response:
+    """Two versions of a feature set, member by member and policy by policy (§6.7)."""
+    return ok(
+        plat.featuresets.diff(me, ref_of("featureset", namespace, name), version_a, version_b)
+    )
+
+
 @router.post("/featuresets/{namespace}/{name}/drafts", tags=["featuresets"], status_code=201)
 def new_featureset_draft(
     namespace: str, name: str, me: Principal = Me, plat: Any = Plat
