@@ -298,3 +298,73 @@ def test_a_psi_baseline_is_taken_from_the_data_the_warrant_was_drawn_on(journey)
             training_warrant_id=tw["id"],
             spec={"covenants": [{"kind": "input_psi"}]},
         )
+
+
+def test_a_covenant_that_names_no_attribute_is_filled_in_or_refused(journey):  # noqa: F811
+    """A covenant is compared against the statistics reported for the attribute it names, so
+    one that names nothing is compared against nothing and can never breach — which is worse
+    than no covenant, because it appears on the warrant and in the manifest and controls
+    nothing. A model with one output has one candidate and MAYA fills it in; an input
+    covenant has no such default and is refused."""
+    w = journey
+    w.p.models.create(
+        w.mona,
+        namespace="quant",
+        name="cov_model",
+        formula="yhat = a*x + b",
+        roles={"a": "parameter", "b": "parameter"},
+    )
+    w.p.models.update_draft(w.mona, "quant/cov_model", spec_latex=complete_spec("cov_model"))
+    w.p.models.transition(w.mona, "quant/cov_model", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/cov_model", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="cov_named",
+        model="quant/cov_model@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 5},
+    )
+    data = w.p.warrants.data(w.devi, tw["id"])
+    good = w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"a": 2.0, "b": 0.5}, data_checksum=data["manifest"]["checksum"]
+    )
+    w.p.warrants.parameter_transition(w.devi, good["id"], "submit")
+    w.p.warrants.parameter_transition(w.mgr, good["id"], "approve")
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="cov_live",
+        training_warrant_id=tw["id"],
+        parameter_set_id=good["id"],
+        spec={
+            "environments": ["dev"],
+            "contact": "risk@example.com",
+            "covenants": [{"kind": "output_range", "min": 0.0}],
+        },
+    )
+    covenant = ew["spec"]["covenants"][0]
+    assert covenant["attr"] == "yhat", "the model declares one output, so MAYA named it"
+    w.p.execution.transition(w.mgr, ew["id"], "submit")
+    w.p.execution.transition(w.principal("mgr2"), ew["id"], "approve")
+    w.p.execution.seal(w.mgr, ew["id"])
+    breached = w.p.execution.report(
+        w.devi,
+        ew["id"],
+        environment="dev",
+        rows=10,
+        input_stats={},
+        output_stats={"yhat": {"min": -3.0}},
+    )
+    assert breached["status"] == "suspended", "and having been named, it can actually breach"
+
+    for kind in ("input_range", "input_null_rate"):
+        with pytest.raises(ValidationFailed, match="names the attribute it watches"):
+            w.p.execution.create(
+                w.mgr,
+                namespace="quant",
+                name=f"cov_{kind}",
+                training_warrant_id=tw["id"],
+                parameter_set_id=good["id"],
+                spec={"environments": ["dev"], "covenants": [{"kind": kind, "max": 1}]},
+            )

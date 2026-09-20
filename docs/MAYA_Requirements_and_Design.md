@@ -16,7 +16,14 @@
 > on the model version, because only the model knows whether its output is a price or a
 > probability; and §18.2.5's "definitions are never cached" became too absolute once
 > conditional requests existed, so it now says what is actually held and under what
-> condition it is served.
+> condition it is served. Four more from writing the case studies: §8.1's example gave a
+> volatility a lower bound of zero, which divides by zero in the very formula it illustrates;
+> `outputs` is a list of exactly one, and a model whose Greeks must be governed with it is a
+> composite rather than a second version (§8.1, §8.7); §29.7's differential test states the
+> domain it sampled, in the detail the reviewer reads, and does not pretend to judge whether
+> that domain was representative; and an
+> execution warrant runs exactly one parameter set, so a model with several calibrations has
+> one warrant each (§9.2).
 >
 > **Revision 2.4 — 2026-09-19.** No new decisions: this revision marks, each as
 > *Revision 2.4* where it lands, places where this document contradicted itself or a
@@ -536,7 +543,7 @@ The notes ask whether JSON is the right container. The answer is: JSON is the ri
   "inputs": [
     {"name": "S", "type": "float64", "role": "feature", "desc": "spot"},
     {"name": "K", "type": "float64", "role": "feature"},
-    {"name": "sigma", "type": "float64", "role": "parameter", "bounds": [0, 5]}
+    {"name": "sigma", "type": "float64", "role": "parameter", "bounds": [0.01, 5]}
   ],
   "body": {"op": "mul", "args": [
       {"ref": "S"},
@@ -550,6 +557,13 @@ The notes ask whether JSON is the right container. The answer is: JSON is the ri
 This buys four things a LaTeX string alone cannot: MAYA type-checks inputs against the feature set bound to a warrant; it renders LaTeX for the spec document automatically; it can emit reference Python for validation; and it can **diff two model versions mathematically**, telling a reviewer "the discount factor changed from continuous to simple compounding" instead of showing a text diff.
 
 Three authoring paths write the same IR: a LaTeX-like expression box with live rendering, a visual node editor for non-programmers, and direct upload of the JSON via API. For models whose mathematics genuinely cannot be expressed as a closed form — a gradient-boosted tree, a neural network — the IR degrades gracefully to a **declared black-box node** carrying the architecture description, hyperparameters and a mandatory prose statement of what the model estimates. MAYA records that the model is opaque rather than pretending otherwise, and model risk reporting uses that flag.
+
+*Revision 2.5:* `outputs` is a list of exactly one. A version has one output; the list is
+reserved. A model whose derivatives or components have to be governed alongside it — the
+Greeks of a pricer, the parts of a decomposition — is a composite (§8.7), not a second
+version: a second version would need its own warrant and therefore its own copy of the same
+calibrated parameters, and two objects holding the same numbers with nothing tying the copy to
+the original is worse than leaving them out.
 
 ### 8.2 Input contract
 
@@ -654,7 +668,7 @@ On download, MAYA records who downloaded, when, and the checksum issued. On para
 
 Drawn from either a training warrant (taking its model version and an approved parameter set) or directly from a model version for non-trainable models. It answers: *what can be run, on what inputs, by whom, until when.*
 
-Contents: model version, parameter set reference, input contract restated as a runtime schema, feature or feature set bindings for each input, resolution policy for live inputs, output schema, validity window, permitted environments (`dev`, `uat`, `prod`), rate or volume limits, and an escalation contact. MAYA renders it as a human-readable **execution manifest** (PDF and JSON) and as a machine-readable bundle the SDK can consume in one call.
+Contents: model version, parameter set reference — exactly one (*Revision 2.5:* a model live with several calibrations, per underlying or per desk or per region, has one execution warrant each; the singular here is enforced) — input contract restated as a runtime schema, feature or feature set bindings for each input, resolution policy for live inputs, output schema, validity window, permitted environments (`dev`, `uat`, `prod`), rate or volume limits, and an escalation contact. MAYA renders it as a human-readable **execution manifest** (PDF and JSON) and as a machine-readable bundle the SDK can consume in one call.
 
 ### 9.3 Sealing, custody and reuse
 
@@ -2069,9 +2083,9 @@ Two controls that both follow the graph.
 
 ### 29.7 Spec-code conformance testing
 
-The formula IR (§8.1) is executable. So MAYA generates a reference implementation from the documented mathematics and differentially tests it against the uploaded Python artifact: sampled inputs drawn from the bound feature set's own distributions, outputs compared within a declared tolerance, and counter-examples reported as concrete input rows.
+The formula IR (§8.1) is executable. So MAYA generates a reference implementation from the documented mathematics and differentially tests it against the uploaded Python artifact: sampled inputs drawn from a named feature set's own distributions, outputs compared within a declared tolerance, and counter-examples reported as concrete input rows. *Revision 2.5:* the domain and the sample count are part of the result, because an agreement over an invented or narrow domain is worth less than it looks. Where no feature set is named the inputs come from a default domain and the report says so; where one is named, the report says which and how many rows it held. MAYA cannot judge whether that domain was representative, and does not pretend to: the domain appears in the check's own detail, where the reviewer reads it, and sending a version back for a comparison over something wider is a judgement a person makes. What the check establishes is that somebody compared the code with the mathematics over *this* artifact and they agreed everywhere the comparison looked.
 
-The result is a statement no other platform can make: *the code implements the documentation, checked on 10,000 sampled inputs, to a relative tolerance of 1e-9*. Where they disagree, the reviewer is shown the exact inputs where the implementation and the specification part company. Where the model is a declared black box the test is skipped and the model version says so, which is itself useful information.
+The result is a statement no other platform can make: *the code implements the documentation, checked on 2,000 sampled inputs from a named feature set, to a relative tolerance of 1e-9* (*Revision 2.5:* 2,000 is the default the service uses; the caller may ask for more). Where they disagree, the reviewer is shown the exact inputs where the implementation and the specification part company. Where the model is a declared black box the test is skipped and the model version says so, which is itself useful information.
 
 **Cost.** An interpreter for the IR, and honesty about coverage — sampled agreement is not proof, and the report says so.
 

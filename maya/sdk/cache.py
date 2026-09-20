@@ -281,6 +281,18 @@ class ReadCache:
         while len(self._entries) > self.held:
             self._entries.popitem(last=False)
 
+    def wrote(self, call: Any) -> None:
+        """Forget the validator a successful guarded write just consumed.
+
+        After the write lands, the caller holds a read of the state *before* it, and that
+        validator no longer describes anything. Keeping it would make the next write send a
+        precondition that is certain to fail — two edits in a row would be impossible without
+        a read in between, which is a trap rather than a safeguard. Dropping it means the
+        next write sends no ``If-Match`` unless the caller reads again, which is the honest
+        position: there is no version it could claim to have seen."""
+        if call.guard:
+            self._entries.pop(self.key("GET", call.guard, {}), None)
+
     def clear(self) -> None:
         self._entries.clear()
 

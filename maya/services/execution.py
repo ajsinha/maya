@@ -187,6 +187,7 @@ class ExecutionService:
                 )
             ps = uow.repo("parameter_sets").require(parameter_set_id) if parameter_set_id else None
             spec = self._psi_baselines(spec, tw)
+            self._name_the_output(spec["covenants"], mv)
             if _trainable(mv) and ps is None:
                 raise ValidationFailed(
                     "The model declares parameters: name the approved "
@@ -288,7 +289,31 @@ class ExecutionService:
                 c.setdefault("max", PSI_DEFAULT_MAX)
                 if not 0 < float(c["max"]) <= 10:
                     raise ValidationFailed("an input_psi threshold is between 0 and 10")
+            if c["kind"] in ("input_range", "input_null_rate") and not c.get("attr"):
+                raise ValidationFailed(f"an {c['kind']} covenant names the attribute it watches")
         return out
+
+    @staticmethod
+    def _name_the_output(covenants: Any, mv: dict[str, Any]) -> None:
+        """Fill in which output an ``output_range`` covenant watches, or refuse to guess.
+
+        A covenant is compared against the statistics reported for the attribute it names, so
+        one that names nothing is compared against nothing and can never breach. That is worse
+        than no covenant: it appears on the warrant, it appears in the manifest, and it is a
+        control that does not control anything. A model with one output has only one candidate,
+        so MAYA fills it in; a model with several is asked which."""
+        outputs = [o["name"] for o in (mv.get("formula_ir") or {}).get("outputs") or []]
+        for c in covenants:
+            if c["kind"] != "output_range" or c.get("attr"):
+                continue
+            if len(outputs) == 1:
+                c["attr"] = outputs[0]
+            else:
+                raise ValidationFailed(
+                    "an output_range covenant names the output it watches; this model "
+                    f"declares {', '.join(outputs) or 'none'}",
+                    outputs=outputs,
+                )
 
     def _manifest(
         self,

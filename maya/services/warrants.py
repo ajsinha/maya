@@ -499,9 +499,10 @@ class WarrantService:
                     "state": "draft",
                     "values": values,
                     "values_hash": djson.canonical_hash(values),
-                    "param_schema": irmod.parameter_inputs(mv["formula_ir"])
-                    if (mv["formula_ir"] or {}).get("body")
-                    else [],
+                    # The declaration, not the shape of the model: a declared black box
+                    # names its parameters too, and a schema of [] made every later check
+                    # on them vacuous.
+                    "param_schema": irmod.parameter_inputs(mv["formula_ir"] or {}),
                     "metrics": metrics or {},
                     "data_checksum": data_checksum,
                     "verified_data": verified,
@@ -577,7 +578,13 @@ class WarrantService:
     def check_bounds(
         ir: dict[str, Any], values: dict[str, Any], alias: str | None = None
     ) -> builtins.list[str]:
-        if not ir.get("body"):
+        """Every parameter the model version declares is present and within its bounds (§8.4).
+
+        This used to return immediately for any IR with no ``body``, which is every declared
+        black box — so the gate that reads it passed a parameter set with a whole weight
+        matrix missing. A black box's *mathematics* is unavailable; its declaration of what
+        parameters it takes is not, and it is the only thing left to check them against."""
+        if not (ir.get("body") or "composite" in ir or irmod.is_opaque(ir)):
             return []
         problems = []
         for inp in irmod.parameter_inputs(ir):
@@ -712,11 +719,17 @@ class WarrantService:
         if "composite" in ir:
             with self.p.uow() as uow:
                 members = self.p.models._member_irs(uow, ir)
+            # The composite's own contract, not the union of its members': a combiner reads
+            # features no member mentions (§8.7), and the version's contract already says so.
+            # Building the inputs from the members alone left the combiner without them and
+            # failed at evaluation for something the contract check had already passed.
+            wanted = [c["name"] for c in mv["input_contract"] or []] or [
+                c["name"] for m in members.values() for c in irmod.input_contract(m)
+            ]
             inputs = {
-                c["name"]: df[bindings.get(c["name"], c["name"])].astype(float).to_numpy()
-                for m in members.values()
-                for c in irmod.input_contract(m)
-                if bindings.get(c["name"], c["name"]) in df.columns
+                name: df[bindings.get(name, name)].astype(float).to_numpy()
+                for name in dict.fromkeys(wanted)
+                if bindings.get(name, name) in df.columns
             }
             out = evaluate_composite(ir, members, inputs, values)
         else:

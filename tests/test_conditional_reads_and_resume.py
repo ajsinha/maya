@@ -182,6 +182,24 @@ def test_a_write_by_a_client_that_never_read_the_object_carries_nothing_to_match
     assert row["state"] == "draft", "with no read behind it there is no version to claim"
 
 
+def test_two_edits_in_a_row_are_possible(world):
+    """A client that sends the precondition for you has to maintain it for you.
+
+    The validator a guarded write consumes describes the state *before* that write, so
+    holding on to it would make the next write send a precondition certain to fail: two
+    edits in a row would be impossible without an intervening read, which is a trap and not
+    a safeguard. It is dropped instead, so the second write carries nothing to match — the
+    honest position, since the client holds no read of the new state — while a genuine
+    conflict with somebody else's change is still caught, as the test above shows."""
+    ref = approved_feature(world["w"], "cond_twice", price_csv(4), ns="cond")
+    client = Client(app=world["app"], token=world["tokens"]["dana"], channel="sdk")
+    client.features.new_draft(ref)
+    client.features.get(ref)  # now the client holds a validator
+    client.features.update_draft(ref, _px_def(), description="first edit")
+    client.features.update_draft(ref, _px_def(), description="second edit")
+    assert client.features.get(ref)["description"] == "second edit"
+
+
 def test_only_an_open_draft_takes_if_match(world):
     """Pins, warrants, parameter sets and audit rows are appended once and then immutable:
     there is no overwrite for an If-Match to prevent, so none of them offers one."""

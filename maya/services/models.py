@@ -376,7 +376,7 @@ class ModelService:
         if "composite" not in ir:
             return irmod.input_contract(ir) if "body" in ir or irmod.is_opaque(ir) else []
         members = self._member_irs(uow, ir)
-        return comp.union_contract(members)
+        return comp.union_contract(members, combine=ir["composite"].get("combine"))
 
     def _require_member_reads(self, uow: Any, p: Principal, ir: dict[str, Any]) -> None:
         """A composite exposes its members: whoever writes one must be able to read each.
@@ -785,7 +785,17 @@ class ModelService:
         forbidden and runs. That is a different question from whether it computes the model:
         the commonest implementation bugs are perfectly valid Python. So a closed-form
         version that carries code cannot be moved on until somebody has run the differential
-        test against *this* artifact and it agreed everywhere it looked."""
+        test against *this* artifact and it agreed everywhere it looked.
+
+        What the check does **not** establish, stated because a gate whose reach is misread is
+        worse than none: whether the domain the comparison explored was worth exploring. MAYA
+        cannot know whether a named feature set is representative, and it cannot insist on one
+        at all — a model version is approved before any warrant binds it to data, which is
+        deliberate (§8.2 checks the contract at warrant time, not at model time). So the
+        domain is reported here, in the detail a reviewer reads, and sending a version back
+        for a comparison over something wider is a judgement a person makes. Agreement over
+        numbers near 1 is not evidence about a mortgage or an option, and the report says which
+        domain it used precisely so that nobody has to take it for more than it is."""
         row = ctx["row"]
         if not row["artifact_hash"]:
             return True, "no code artifact attached (nothing to compare)"
@@ -812,7 +822,10 @@ class ModelService:
                 f"the code disagrees with the specification on "
                 f"{got['total'] - got['agreed']} of {got['total']} sampled inputs{where}"
             )
-        return True, f"agreed with the specification on all {got['total']} sampled inputs"
+        return True, (
+            f"agreed with the specification on all {got['total']} sampled inputs, "
+            f"{got.get('domain', 'domain not recorded')}"
+        )
 
     def check_true_build(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         require = (
@@ -904,7 +917,10 @@ class ModelService:
         result = self._compare(v, source, params, n=n, cols=cols, domain=domain)
         with self.p.uow(p.username) as uow:
             self._record_conformance(uow, v, result, p.username)
-        return result
+        # The caller needs to be able to tie the answer to the code it was about without
+        # reading the version back: an agreement with no artifact hash beside it is a claim
+        # about nothing in particular.
+        return {**result, "artifact_hash": v["artifact_hash"]}
 
     def _compare(
         self,
