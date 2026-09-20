@@ -5,6 +5,7 @@ environment, recording what it was allowed to do."""
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -152,41 +153,48 @@ def test_a_build_is_asked_for_only_cached_and_untrusted_under_its_jail(monkeypat
     assert "PATH" in seen["env"] and "HTTPS_PROXY" not in seen["env"]
 
 
-def test_a_host_whose_bundle_is_cold_degrades_to_the_draft_renderer(monkeypatch) -> None:
-    """§17.1's own degradation rule. A build may not fetch its bundle, so a host nobody has
-    warmed produces a watermarked draft — refused wherever a PDF is evidence — rather than
-    an error that reads like a broken document."""
+def test_a_host_that_can_compile_nothing_degrades_to_the_draft_renderer(monkeypatch) -> None:
+    """§17.1's own degradation rule. A build may not fetch its support bundle, so a host
+    nobody has warmed produces a watermarked draft — refused wherever a PDF is evidence —
+    rather than an error that reads like a broken document.
 
-    def cold(argv, **kw):
+    The fork is decided by whether TeX left a log, not by matching the engine's wording:
+    here it leaves none, because it never got as far as running."""
+
+    def never_ran(argv, **kw):
         return subprocess.CompletedProcess(
             argv,
             1,
             stdout="note: using only cached resource files\n",
-            stderr='error: "latex2e-first" is not cached and only-cached mode is enabled\n',
+            stderr="error: cannot open the bundle\n",
         )
 
     monkeypatch.setattr("maya.core.typeset.detect", lambda: {"backend": "tectonic", "detail": ""})
-    monkeypatch.setattr(subprocess, "run", cold)
+    monkeypatch.setattr(subprocess, "run", never_ran)
     pdf, meta = render_pdf(_long_doc())
     assert meta["draft_render"] is True and meta["backend"] == "draft"
     assert "bundle fetch" in meta["log"], "the operator is told how to warm it"
+    assert "cannot open the bundle" in meta["log"], "and what the engine actually said"
     assert WATERMARK in pdf_text(pdf)
 
 
 def test_a_broken_document_is_still_refused_not_quietly_drafted(monkeypatch) -> None:
-    """The other side of the same fork: a document MAYA cannot compile is the author's
-    problem and must be named, not turned into a draft that looks like an outage."""
+    """The other side of the same fork: TeX ran and left its log, so the document is what
+    failed. That is the author's problem and is named, not turned into a draft that looks
+    like an outage."""
     from maya.core.errors import ValidationFailed
 
-    def broken(argv, **kw):
+    def compiled_and_failed(argv, **kw):
+        (Path(kw["cwd"]) / "doc.log").write_text("! Undefined control sequence.\n")
         return subprocess.CompletedProcess(
             argv, 1, stdout="", stderr="error: Undefined control sequence \\nope\n"
         )
 
     monkeypatch.setattr("maya.core.typeset.detect", lambda: {"backend": "tectonic", "detail": ""})
-    monkeypatch.setattr(subprocess, "run", broken)
-    with pytest.raises(ValidationFailed, match="LaTeX build failed"):
+    monkeypatch.setattr(subprocess, "run", compiled_and_failed)
+    with pytest.raises(ValidationFailed, match="LaTeX build failed") as info:
         render_pdf("\\section{A}\n\\nope")
+    assert "Undefined control sequence" in info.value.message
 
 
 @needs_tectonic

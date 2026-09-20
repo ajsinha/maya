@@ -63,8 +63,6 @@ _BODY, _HEAD, _TITLE, _MONO = 10.5, 14, 18, 9.5
 # cache by default — dropping it would make every build a cold one, so every build a draft.
 _ENV_KEEP = ("PATH", "HOME", "LANG", "LC_ALL", "SOURCE_DATE_EPOCH")
 _ENV_PREFIXES = ("TECTONIC_", "TEXMF", "XDG_CACHE_HOME")
-# Tectonic's own words when ``--only-cached`` stops it fetching what it does not have.
-_COLD_BUNDLE = ("only-cached", "not cached", "cannot be fetched", "connection", "network")
 
 
 @dataclass(frozen=True)
@@ -158,16 +156,19 @@ def render_pdf(
     a kernel guarantee, and ``caps["network"]`` says which of the two this PDF got.
     """
     caps = caps or Caps()
+    note = "Tectonic not available"
     if not force_draft and detect()["backend"] == "tectonic":
         built = _tectonic(latex, caps, tuple(jail))
-        if built is not None:
+        if not isinstance(built, str):
             return built
+        # TeX never ran, so the document is not what failed. Overwhelmingly this is a
+        # support bundle nobody has warmed on this host, and a build may not fetch one —
+        # but the engine's own words go in the log either way rather than a guess.
         note = (
-            "Tectonic's support bundle is not cached, and a build may not fetch it: "
-            "warm it once on this host (tectonic -X bundle fetch) and re-render"
+            "the engine compiled nothing, most likely a support bundle this host has never "
+            "warmed (run: tectonic -X bundle fetch), which a build may not fetch itself. "
+            "The engine said: " + " ".join(built.split())[-600:]
         )
-    else:
-        note = "Tectonic not available"
     return DraftRenderer().render(latex), {
         "draft_render": True,
         "backend": "draft",
@@ -198,19 +199,24 @@ def _first_error(log: str) -> str:
     return ""
 
 
-def _cold_bundle(log: str) -> bool:
-    """Did the build fail for want of a cached bundle rather than for want of valid TeX?
+def _tex_never_ran(tex_log: Path) -> bool:
+    """Did the build fail *before* TeX ran, rather than because the document is broken?
 
     The distinction decides what happens next: a document MAYA cannot compile is the
-    author's problem and is refused with the first error, while a host whose bundle has
-    never been warmed is the operator's, and §17.1 says to degrade rather than refuse.
+    author's problem and is refused with its first error, while a host that cannot build
+    anything is the operator's, and §17.1 says to degrade to the watermarked draft rather
+    than refuse. The test is the TeX log, not the wording of a message: ``--keep-logs``
+    means TeX leaves one whenever it has run at all, including when it has run and failed.
+    Matching on Tectonic's phrasing instead would put MAYA's behaviour at the mercy of
+    somebody else's release notes, and the commonest cause — a support bundle nobody has
+    warmed — is exactly the case where TeX never starts.
     """
-    low = log.lower()
-    return "error" in low and any(marker in low for marker in _COLD_BUNDLE)
+    return not tex_log.exists()
 
 
-def _tectonic(latex: str, caps: Caps, jail: tuple[str, ...]) -> tuple[bytes, dict[str, Any]] | None:
-    """The true build, or None when this host's support bundle is not warm yet."""
+def _tectonic(latex: str, caps: Caps, jail: tuple[str, ...]) -> tuple[bytes, dict[str, Any]] | str:
+    """The built PDF and its metadata, or the engine's own output when TeX never ran —
+    which is the caller's cue to degrade to the draft renderer and say why."""
     latex = as_document(latex)
     exe = shutil.which("tectonic") or "tectonic"
     limiter, limits = _rlimiter(caps, nproc=not jail)
@@ -249,8 +255,8 @@ def _tectonic(latex: str, caps: Caps, jail: tuple[str, ...]) -> tuple[bytes, dic
         log = (proc.stdout or "") + (proc.stderr or "")
         pdf_path = Path(tmp) / "doc.pdf"
         if proc.returncode != 0 or not pdf_path.exists():
-            if _cold_bundle(log):
-                return None
+            if _tex_never_ran(Path(tmp) / "doc.log"):
+                return log[-4000:]
             from maya.core.errors import ValidationFailed
 
             first = _first_error(log)
