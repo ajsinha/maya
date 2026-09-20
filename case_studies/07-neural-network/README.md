@@ -393,18 +393,22 @@ NotApproved: Blocked by check(s): data_verified_or_justified — unverified_data
 
 Uploaded with the right one, `verified_data=True`, and approved by mgr.
 
-The gap is what MAYA does *not* check. The IR names eight parameters; the parameter set's
-recorded schema is `[]`, and a set with the second layer's weight matrix simply missing is
-accepted:
+And the declaration is checked, which is what writing this study changed. The IR names eight
+parameters, MAYA records that list on the parameter set, and a set with the second layer's
+weight matrix simply missing is refused at upload:
 
 ```
-parameter schema MAYA recorded:    []
-MAYA accepted it:                  7 of 8 arrays, state draft
+parameter schema MAYA recorded:    W1, b1, W2, b2, W3, b3, x_mean, x_scale
+refused — uploading weights with a whole layer missing
+  ValidationFailed: Parameters out of bounds: missing parameter 'W2'
 ```
 
-Both come from the same mistake in two places — guarding on the formula *body* rather than
-on the declared parameter inputs (§13). The incomplete set is left as a draft on purpose;
-nothing would have stopped it being submitted.
+Seven of eight arrays is a network that runs and computes nonsense. When this study was first
+written MAYA accepted it: both the recorded schema and the bounds check guarded on the
+formula *body*, which every declared black box lacks, so neither ran. The mathematics is
+unavailable; the declaration of what parameters it takes is not, and that declaration is the
+only thing left to check the weights against. §8.4 says parameters are validated on upload,
+and for a black box that is now true.
 
 ## 10. The refusal the study is built around
 
@@ -524,17 +528,15 @@ than left as a tick to be misread. `output_hash` is `None` rather than absent.
 Three things this study found in MAYA, recorded here because a case study that only
 demonstrated the good parts would not be evidence of anything.
 
-**1. A black box's declared parameters are neither schema'd nor checked.** The IR declares
-eight parameter inputs; `parameter_sets.param_schema` is stored as `[]` and no bounds or
-completeness check runs, so a parameter set missing an entire layer is accepted. Both follow
-from guarding on the formula *body* instead of on the declared parameter inputs —
-`maya/services/warrants.py:502` (`"param_schema": … if (mv["formula_ir"] or {}).get("body") else []`)
-and `maya/services/warrants.py:580` (`check_bounds`, which returns `[]` when `not
-ir.get("body")`), which makes the workflow gate that calls it — `check_bounds_ok`,
-`maya/services/warrants.py:887` — vacuous for every black box. Note that the execution
-warrant *does* read the same declaration correctly and refuses to run without an approved
-set (`_trainable`, `maya/services/execution.py:844`), so the declaration is trusted in one
-place and ignored in the other.
+**1. A black box's declared parameters were neither recorded nor checked — now fixed.** The
+IR declares eight parameter inputs, but `parameter_sets.param_schema` was stored as `[]` and
+no completeness or bounds check ran, so a parameter set missing an entire layer was accepted.
+Both followed from guarding on the formula *body* instead of on the declared parameter
+inputs, which made the workflow gate that reads them vacuous for every black box. The
+asymmetry is what gave it away: the execution warrant reads the *same* declaration correctly
+and refuses to run without an approved set, so the declaration was trusted in one place and
+ignored in the other. Both now test the declaration, the check happens at upload as §8.4
+says, and §9 above shows the refusal. `tests/test_vendor_models.py` holds it.
 
 **2. The skipped differential test is invisible on the model version.** The specification
 says (§29.7, line 2074) "where the model is a declared black box the test is skipped and the

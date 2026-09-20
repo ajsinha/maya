@@ -77,6 +77,7 @@ same six calls would demonstrate nothing that one study could not.
 | 02 | [Scheduled mortgage cashflow](02-mortgage-cashflow/) | Banking, mortgage ALM | Closed-form, **nothing to fit** | Whether the code the desk runs is the same thing as the mathematics that was approved. A valid implementation with the commonest mortgage bug in it, caught. |
 | 03 | [Mortgage prepayment](03-mortgage-prepayment/) | Banking, mortgage valuation | Fitted logistic hazard | What happens when somebody proposes changing a feature underneath a live model: a workspace, an impact analysis, and a shadow replay that prices a reasonable-sounding change at 60% of the book. |
 | 04 | [HELOC exposure at default](04-heloc-exposure/) | Banking, retail secured credit | **Composite router** over two fitted members | One warrant over two models with different functional forms, a parameter set per member, and a seal that refuses while half the composite is unfitted. |
+| 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
 
 ### The catalogue
 
@@ -94,7 +95,6 @@ study adds a capability rather than another instance of one.
 | 09 | Collections roll-rate | A Markov transition matrix as a parameter set: a matrix, not a vector |
 | 10 | SME / low-default-portfolio rating | A model with almost no events, and what a warrant can honestly claim about one |
 | 11 | Auto residual value | A depreciation curve, and a feature that is a published index |
-| 12 | Application fraud, neural network | A **declared black box**: what can be held to account when the mathematics is unreadable |
 | 13 | AML transaction monitoring | A gradient-boosted ensemble, and weights carried as a parameter file |
 | 14 | AML segmentation | **No target at all** — a warrant for an unsupervised model |
 | 15 | Vendor bureau score | A bought black box, with what MAYA cannot verify *marked* unverifiable |

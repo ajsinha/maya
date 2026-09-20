@@ -242,10 +242,18 @@ def main(maya: Any, n: Narrator) -> None:
     )
 
     n.step("A parameter set with a whole layer missing")
-    partial = warrant.upload_parameters({k: v for k, v in read.items() if k != "W2"})
-    n.fact("MAYA accepted it", f"{len(partial['values'])} of 8 arrays, state {partial['state']}")
-    n.say("It is left as a draft on purpose. Nothing checked it: for a black box MAYA cannot")
-    n.say("know what shape the parameters should be, so the bounds check does not run.")
+    n.say("Seven of the eight arrays. The network would run and would compute nonsense.")
+    try:
+        warrant.upload_parameters({k: v for k, v in read.items() if k != "W2"})
+        n.say("NOT REFUSED — an incomplete set of weights was accepted")
+    except ValidationFailed as exc:
+        n.refused("uploading weights with a whole layer missing", exc)
+    n.say(
+        "The mathematics is unavailable; the declaration of what parameters it takes is not, "
+        "and that declaration is the only thing left to check the weights against. Writing "
+        "this study is what found that: MAYA used to skip the check for anything without a "
+        "formula body, which is every black box, so this upload was accepted."
+    )
 
     n.step("Asking MAYA to score the escrowed holdout")
     try:
