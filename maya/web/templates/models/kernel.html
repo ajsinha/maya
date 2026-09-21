@@ -39,14 +39,31 @@ r: parameter"></textarea>
     </div>
 
     <hr class="my-3">
-    <p class="form-label mb-1">Or start from one of these</p>
-    <div class="d-flex flex-wrap gap-2">
-      {% for e in examples %}
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-example="{{ e.key }}"
-        data-formula="{{ e.formula }}" data-roles="{{ e.roles }}" title="{{ e.note }}">{{ e.title }}</button>
+    {# The library. Sixty worked formulae is too many for a row of buttons, so it is a list
+       you search: type "swap", "greek", "prepayment" or "basel" and the list narrows. Each
+       one parses and generates a kernel, and a test asserts that, so nothing in here can
+       quietly stop working. #}
+    <label class="form-label mb-1" for="ktsearch">Or start from one of these
+      <span class="small-muted">({{ templates|length }} formulae)</span></label>
+    <input class="form-control form-control-sm mb-2" id="ktsearch" type="search" autocomplete="off"
+      placeholder="Search: black-scholes, swap, prepayment, basel, var, logit…"
+      aria-controls="ktlist" aria-describedby="ktcount">
+    <div class="kt-list" id="ktlist" role="listbox" aria-label="Formula templates">
+      {% for g in groups %}
+      <div class="kt-group" data-group="{{ g }}">
+        <p class="kt-group-name">{{ g }}</p>
+        {% for e in templates if e.group == g %}
+        <button type="button" class="kt-item" role="option" aria-selected="false"
+          data-example="{{ e.key }}" data-formula="{{ e.formula }}" data-roles="{{ e.roles_text }}"
+          data-note="{{ e.note }}"
+          data-hay="{{ (e.title ~ ' ' ~ e.group ~ ' ' ~ e.keywords ~ ' ' ~ e.key)|lower }}">
+          <span class="kt-title">{{ e.title }}</span></button>
+        {% endfor %}
+      </div>
       {% endfor %}
     </div>
-    <p class="small-muted mt-2 mb-0" id="kexample-note"></p>
+    <p class="small-muted mt-1 mb-0" id="ktcount" aria-live="polite"></p>
+    <p class="small-muted mt-1 mb-0" id="kexample-note"></p>
   </form>
 
   <div>

@@ -87,14 +87,63 @@
 
   form.addEventListener('submit', translate);
 
-  Array.prototype.forEach.call(form.querySelectorAll('[data-example]'), function (b) {
+  // ---- the template library ---------------------------------------------------------
+  var items = Array.prototype.slice.call(form.querySelectorAll('.kt-item'));
+  var groups = Array.prototype.slice.call(form.querySelectorAll('.kt-group'));
+
+  items.forEach(function (b) {
     b.addEventListener('click', function () {
+      items.forEach(function (o) { o.setAttribute('aria-selected', 'false'); });
+      b.setAttribute('aria-selected', 'true');
       $('kformula').value = b.getAttribute('data-formula');
       $('kroles').value = b.getAttribute('data-roles');
-      $('kexample-note').textContent = b.getAttribute('title') || '';
+      $('kexample-note').textContent = b.getAttribute('data-note') || '';
       translate();
     });
   });
+
+  // Search over the title, the group, the key and a list of the words practitioners use
+  // that are not in the title -- somebody looking for a swaption should find Black-76, and
+  // somebody typing "cva" should not be told there is nothing here rather than being shown
+  // the hazard rate. Every term has to match, so two words narrow rather than widen.
+  function filterTemplates() {
+    var q = ($('ktsearch').value || '').toLowerCase().trim();
+    var terms = q ? q.split(/\s+/) : [];
+    var shown = 0;
+    items.forEach(function (b) {
+      var hay = b.getAttribute('data-hay') || '';
+      var hit = terms.every(function (t) { return hay.indexOf(t) > -1; });
+      b.hidden = !hit;
+      if (hit) { shown += 1; }
+    });
+    groups.forEach(function (g) {
+      var any = Array.prototype.some.call(g.querySelectorAll('.kt-item'), function (b) {
+        return !b.hidden;
+      });
+      g.hidden = !any;
+    });
+    var count = $('ktcount');
+    if (count) {
+      count.textContent = !terms.length
+        ? ''
+        : (shown === 0
+          ? 'Nothing matches ' + q + '. The library is a starting point, not a limit \u2014 write the mathematics straight into the box above.'
+          : shown + ' of ' + items.length + ' shown.');
+    }
+  }
+
+  var search = $('ktsearch');
+  if (search) {
+    search.addEventListener('input', filterTemplates);
+    // Enter on a single remaining match loads it, which is what somebody who has just
+    // typed four letters to find one formula expects to happen next.
+    search.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') { return; }
+      ev.preventDefault();
+      var visible = items.filter(function (b) { return !b.hidden; });
+      if (visible.length === 1) { visible[0].click(); }
+    });
+  }
 
   Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) {
     b.addEventListener('click', function () {
