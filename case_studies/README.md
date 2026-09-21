@@ -11,6 +11,17 @@ script prints what it did and what MAYA refused to let it do. Nothing is staged:
 refusals are the platform's real behaviour, and a study that could not make its point
 honestly says so instead.
 
+
+### If your IDE says `maya_demo` cannot be imported
+
+It can. Each `run.py` and step script adds this folder to `sys.path` before importing, at
+runtime, and PyCharm's inspector does not execute that — so it reports an unresolved import
+for code that runs. In PyCharm, right-click `case_studies` and choose **Mark Directory as →
+Sources Root**; the warning goes and you get completion on the helper. Nothing about the
+scripts needs to change, and running them from the project root has always worked:
+
+    .venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py
+
 ## How a study is laid out
 
 ```
@@ -41,18 +52,91 @@ Every study's README carries a table of **what each script does and what it show
 `--reset` deletes that study's MAYA and starts again from nothing. `--quiet` prints the
 results without the narration.
 
+**Every study writes into one lake**, at `data/maya-deltalake/`, which is the lake the web
+application and the rest of MAYA use — configured once as `lake.root` and shared, because a
+demonstration that invented its own storage arrangement would be demonstrating the wrong
+thing. A lake table is `<kind>/<namespace>/<name>`, and each study owns a namespace, so
+they sit side by side without colliding and `--reset` removes only the resetting study's
+namespace from each kind. The metadata of each study — its database, its keys, its logs —
+stays separate, at `case_studies/runs/<namespace>/`, so a study can be reset or served on
+its own.
+
 **Between any two steps you can open the web UI on exactly what has been built so far** —
 `show_estate.py` prints the command — and walk through the catalog, the pin preview, the
 warrant with its leakage certificate, the lineage canvas and the audit log on screen. That
 is the demonstration; the console output is the script of it.
 
-## Nothing to install, nothing to configure
+### Running a demonstration
 
-A study needs no server, no database, no API key and no namespace prepared by hand. The
-first script builds a complete MAYA at `case_studies/runs/<namespace>/` in about two
-seconds — real database, real Delta lake, real permissions, real workflow, real signer, one
-user per built-in role — and every later script opens the same one. This is
-`maya.testing`, a supported part of the platform, not a test fixture smuggled into a demo.
+Take the steps one at a time and show the UI between them. The console says what MAYA was
+asked and what it answered; the screen shows what now exists because of it.
+
+```bash
+S=case_studies/01-retail-credit-pd-scorecard
+
+.venv/bin/python $S/setup_features.py --reset   # three feeds become governed features
+.venv/bin/python $S/show_estate.py              # prints how to serve this instance
+```
+
+`show_estate.py` ends by printing the exact command to run, which is of this shape:
+
+```bash
+.venv/bin/python run_maya_web.py \
+  --storage.root=case_studies/runs/retail_credit \
+  --db.sqlite.path=case_studies/runs/retail_credit/maya.db
+```
+
+Leave that running in its own terminal and open <http://127.0.0.1:8600>. Sign in as any
+user in the table above with `Maya-testing-pass-1`. Then carry on with the next step in the
+first terminal and refresh the browser — the web tier reads the same database, so the
+screen is never a rehearsal of the console.
+
+What is worth showing, in the order the steps create it:
+
+| After | Show in the UI |
+|---|---|
+| `setup_features.py` | Catalog → the three features, their definitions, their ingested data and the two clocks on it |
+| `setup_featureset.py` | The feature set, then its pin: the rows it sealed, the hash that names it, and the members it pinned with it |
+| `setup_model.py` | Models → the mathematics rendered from the tree MAYA parsed, the input contract, and the specification document with its required sections |
+| `get_training_warrant.py` | Warrants → the leakage certificate. This is the one to dwell on: it refuses, and the refusal is arithmetic rather than opinion |
+| `fit_parameters.py` | The parameter set, its bounds, the checksum tying it to the data it was fitted on, and the blind score on rows the developer never saw |
+| `get_execution_warrant.py` | The covenant that suspends the warrant, and the custody trail of who did what |
+| `show_estate.py` | Lineage → the whole chain as a graph, and Admin → the audit chain verified unbroken |
+
+Sign in as different people to show the same screen refusing different things: `dana` cannot
+approve her own feature, `mgr` cannot see the admin estate, `tess` can.
+
+## Nothing to run first, and who you sign in as
+
+**There is no preparation script.** Do not create users, namespaces or a database by hand:
+the first script of a study does it, and doing it yourself would leave the study seeding a
+namespace that already exists. A study needs no server, no API key and nothing configured.
+
+The first script builds a complete MAYA at `case_studies/runs/<namespace>/` in about two
+seconds — real database, real Delta lake, real permissions, real workflow, real signer —
+and every later script opens the same one. Building it creates the study's namespace and
+one user per built-in role, through the SDK, exactly as an administrator would:
+
+| User | Role | What they may do in a study |
+|---|---|---|
+| `dana` | feature designer | Define features, ingest data, submit for approval — and be refused when she tries to approve her own |
+| `mick` | feature manager | Approve features and feature sets, pin them point-in-time |
+| `mona` | model designer | Register a model's mathematics and write its specification |
+| `devi` | model developer | Draw a training warrant, upload parameters, iterate |
+| `mgr` | model manager | Approve models, parameter sets and warrants |
+| `owen` | model owner | Accountable for the model's use |
+| `tess` | techops | Audit, custody, storage, extensions |
+| `lara` | second model manager | Only where a policy needs two: an execution warrant submitted by one manager is approved by another |
+| `admin` | administrator | The bootstrap user the platform creates itself |
+
+**Every one of them signs in with `Maya-testing-pass-1`.** The one exception is `admin`,
+whose password is the platform's dev default and which you should not need.
+
+These are the passwords of a throwaway demonstration instance and are printed here on
+purpose. Nothing in `case_studies/` should ever be pointed at an estate that matters.
+
+This is `maya.testing`, a supported part of the platform, not a test fixture smuggled into
+a demo.
 
 Everything the studies do then goes through **`maya.sdk.Client`, as a named user with that
 user's roles**. That is deliberate and it is the point: a demonstration that reached past
