@@ -113,10 +113,10 @@ def open_study(
     # because that is where the rest of MAYA keeps it and a demonstration should not have
     # its data somewhere the application would not look. One directory per study, so a
     # study can still be reset on its own.
-    lake = project_root() / "data" / "maya-deltalake" / namespace
+    lake = project_root() / "data" / "maya-deltalake"
     if reset:
         shutil.rmtree(home, ignore_errors=True)
-        shutil.rmtree(lake, ignore_errors=True)
+        _forget(lake, namespace)
     building = not (home / "maya.db").exists()
     home.mkdir(parents=True, exist_ok=True)
     platform = Platform.build(
@@ -128,6 +128,21 @@ def open_study(
     if building:
         seed(maya, users)
     return maya
+
+
+def _forget(lake: Path, namespace: str) -> None:
+    """Remove one study's tables from the shared lake, and nothing else.
+
+    Every study writes into the same lake, because that is how MAYA is deployed and a
+    demonstration that invented its own arrangement would be demonstrating the wrong thing.
+    A lake table is ``<kind>/<namespace>/<name>``, so a study's data is exactly the
+    namespace directory under each kind -- which is what ``--reset`` may delete, and the
+    whole lake is what it may not."""
+    if not lake.exists():
+        return
+    for kind in lake.iterdir():
+        if kind.is_dir():
+            shutil.rmtree(kind / namespace, ignore_errors=True)
 
 
 def seed(maya: Any, users: dict[str, list[str]]) -> None:
