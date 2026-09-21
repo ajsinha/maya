@@ -476,3 +476,16 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
   box-shadow: 0 2px 10px rgba(0,0,0,.16); padding: .4rem .55rem; font-size: 12px;
   line-height: 1.45; color: var(--maya-ink); }
 .cy-tip-foot { color: var(--maya-slate); font-style: italic; }
+
+/* The kernel wizard's template library: a searchable list rather than a row of buttons,
+   because sixty formulae is a catalogue and a catalogue is something you look things up in. */
+.kt-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--maya-border);
+  border-radius: 6px; background: var(--maya-surface); padding: .25rem; }
+.kt-group-name { margin: .35rem 0 .15rem .4rem; font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--maya-slate); }
+.kt-group[hidden] { display: none; }
+.kt-item { display: block; width: 100%; text-align: left; border: 0; background: none;
+  padding: .22rem .45rem; border-radius: 4px; font-size: 13px; color: var(--maya-ink); }
+.kt-item:hover, .kt-item:focus { background: var(--maya-canvas); color: var(--maya-crimson); }
+.kt-item[aria-selected="true"] { background: var(--maya-crimson-tint); color: var(--maya-crimson); font-weight: 600; }
+.kt-item[hidden] { display: none; }

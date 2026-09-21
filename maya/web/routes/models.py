@@ -32,59 +32,6 @@ from maya.web.routes.common import (
 
 router = APIRouter()
 KINDS = ["formula", "black_box", "composite", "vendor"]
-# Worked examples for the kernel wizard. Each is mathematics somebody in this domain has
-# actually written down, chosen to show one thing the translation does: a closed form with
-# named intermediates, a link function, a multi-letter symbol that must be declared before
-# LaTeX will read it as one symbol, and a formula whose only subtlety is operator order.
-KERNEL_EXAMPLES = [
-    {
-        "key": "black_scholes",
-        "title": "Black\u2013Scholes, a European call",
-        "note": "Two intermediates, the normal CDF, and nothing MAYA cannot evaluate itself.",
-        "formula": (
-            "d_1 = (\\log(S/K) + (r + \\sigma^2/2)T) / (\\sigma\\sqrt{T})\n"
-            "d_2 = d_1 - \\sigma\\sqrt{T}\n"
-            "price = S\\,ncdf(d_1) - K e^{-rT} ncdf(d_2)"
-        ),
-        "roles": "sigma: parameter\nr: parameter",
-    },
-    {
-        "key": "logistic_pd",
-        "title": "A logistic probability of default",
-        "note": "The link function every scorecard ends in, written once and read back typed.",
-        "formula": (
-            "z = \\beta_0 + \\beta_1 utilisation + \\beta_2 arrears\npd = 1 / (1 + \\exp(-z))"
-        ),
-        "roles": (
-            "beta_0: parameter\nbeta_1: parameter\nbeta_2: parameter\n"
-            "utilisation: feature\narrears: feature"
-        ),
-    },
-    {
-        "key": "nelson_siegel",
-        "title": "Nelson\u2013Siegel, a yield curve",
-        "note": (
-            "Note \u03c4 in the roles: LaTeX reads an undeclared 'tau' as t\u00b7a\u00b7u, "
-            "so a multi-letter symbol has to be declared to be one symbol."
-        ),
-        "formula": (
-            "x = m / \\tau\n"
-            "L_{slope} = (1 - \\exp(-x)) / x\n"
-            "L_{curve} = L_{slope} - \\exp(-x)\n"
-            "y = \\beta_0 + \\beta_1 L_{slope} + \\beta_2 L_{curve}"
-        ),
-        "roles": (
-            "tau: parameter\nbeta_0: parameter\nbeta_1: parameter\nbeta_2: parameter\nm: feature"
-        ),
-    },
-    {
-        "key": "annuity",
-        "title": "A level mortgage payment",
-        "note": "One line, and the whole of it is the order of operations.",
-        "formula": "payment = balance r / (1 - (1 + r)^{-n})",
-        "roles": "r: parameter\nbalance: feature\nn: feature",
-    },
-]
 MATURITIES = ["experimental", "candidate", "approved", "restricted", "deprecated", "retired"]
 
 
@@ -142,7 +89,9 @@ async def new_model(request: Request) -> Any:
 @page
 async def kernel_wizard(request: Request) -> Any:
     """Design your compute kernel: mathematics in, typed IR and one Python function out."""
-    return await render(request, "models/kernel.html", {"examples": KERNEL_EXAMPLES})
+    from maya.web.kernel_templates import GROUPS, for_ui
+
+    return await render(request, "models/kernel.html", {"templates": for_ui(), "groups": GROUPS})
 
 
 @router.post("/ui/kernel")
