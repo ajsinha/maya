@@ -11,6 +11,17 @@ script prints what it did and what MAYA refused to let it do. Nothing is staged:
 refusals are the platform's real behaviour, and a study that could not make its point
 honestly says so instead.
 
+
+### If your IDE says `maya_demo` cannot be imported
+
+It can. Each `run.py` and step script adds this folder to `sys.path` before importing, at
+runtime, and PyCharm's inspector does not execute that — so it reports an unresolved import
+for code that runs. In PyCharm, right-click `case_studies` and choose **Mark Directory as →
+Sources Root**; the warning goes and you get completion on the helper. Nothing about the
+scripts needs to change, and running them from the project root has always worked:
+
+    .venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py
+
 ## How a study is laid out
 
 ```
