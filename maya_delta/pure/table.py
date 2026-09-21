@@ -162,7 +162,13 @@ class PureBackend:
         adds = []
         for pvals, data in groups:
             rel_dirs = [f"{c}={escape_partition_value(pvals[c])}" for c in partition_by]
-            name = f"part-00000-{uuid.uuid4()}-c000.snappy.parquet"
+            # Short on purpose. A Delta reader finds its files through the log rather than
+            # by their names, so the conventional `part-00000-<uuid>-c000.snappy.parquet`
+            # spends 67 characters saying almost nothing -- and Windows still refuses a
+            # path over 260 characters unless long paths have been turned on. Twenty-two
+            # characters of random hex is unique enough for files within one partition and
+            # leaves 45 characters of headroom on every path in the lake.
+            name = f"p-{uuid.uuid4().hex[:16]}.parquet"
             target = root.joinpath(*rel_dirs, name)
             target.parent.mkdir(parents=True, exist_ok=True)
             pq.write_table(data, target, compression="snappy")

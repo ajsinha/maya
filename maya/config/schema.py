@@ -179,6 +179,16 @@ SETTINGS: tuple[Setting, ...] = (
         required=True,
     ),
     _s(
+        "lake.root",
+        "path",
+        "Where the Delta lake lives. Empty means <storage.root>/lake, which is what a "
+        "throwaway instance wants. A relative path is resolved against the project root "
+        "-- the checkout this package was imported from -- rather than the working "
+        "directory, so that the same configuration means the same lake whatever directory "
+        "a script is launched from.",
+        "",
+    ),
+    _s(
         "lake.backend",
         "choice",
         "The maya_delta backend (§7.4).",

@@ -82,6 +82,11 @@ def build_platform(
     home = tempfile.mkdtemp(prefix="maya-test-")
     atexit.register(shutil.rmtree, home, True)  # gone when the run ends
     os.environ["MAYA_HOME"] = home
+    # The lake goes inside this platform's own home. The shipped configuration points it at
+    # one lake for the whole project, which is what a demonstration wants and what a test
+    # suite must not have: these run in parallel, and two workers sharing a lake are each
+    # other's missing pins.
+    sys.argv.append(f"--lake.root={home}/lake")
     pg = os.environ.get("MAYA_TEST_PG_URL")
     if pg:
         sys.argv.append("--db.dialect=postgresql")
