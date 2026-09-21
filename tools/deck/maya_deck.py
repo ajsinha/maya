@@ -32,9 +32,9 @@ SUBJECT = "What a model is, what follows from that, and what MAYA does about it"
 OPENING = [
     {
         "kind": "title",
-        "kicker": "MODEL MANAGEMENT  ·  THE FORMALISM, AND THE SYSTEM BUILT FROM IT",
-        "title": ["What a model is,", "and what follows from that"],
-        "sub": "MAYA — Model & AI Lifecycle Assurance.  Evidence, not assertion.",
+        "kicker": "",
+        "title": ["MAYA : Model Management", "& System Design"],
+        "sub": "Evidence, not assertion.",
         "version": "MAYA 0.3.0 · specification revision 2.6",
         "agenda": [
             "What a model actually is",
@@ -157,6 +157,49 @@ VOCABULARY = [
         "note": "Paper §2.2, the definition of a model as a kernel with a parameter object. The "
         "separation is not a modelling convenience: the nine-class table in Part 2 and the "
         "warrant in Part 3 both follow from it.",
+    },
+    {
+        "kind": "split",
+        "kicker": "The definition, formally",
+        "title": "A parameter object P, and a kernel f : P ⊗ X → D(Y)",
+        "intro": "The same statement, written so that it can be reasoned about rather than "
+        "agreed with. A model is a pair (P, f): a parameter object P, an input object X, and a "
+        "kernel taking the two together to a distribution over outputs Y. Deterministic "
+        "behaviour is the case where that distribution is a point.",
+        "left": {
+            "head": "What the notation is carrying",
+            "items": [
+                "P ⊗ X — the dials and the inputs, supplied together and kept apart. A "
+                "register with one column called 'inputs' has lost exactly this distinction",
+                "D(Y) — a distribution over outputs, so a language model that samples is an "
+                "instance of the definition and not an exception to it",
+                "φ : D → P — a fitting morphism from evidence D. Estimation, calibration, "
+                "training, elicitation and authorship are different φ into one kind of object, "
+                "which is why they are not different kinds of model",
+                "The ambient setting is a Markov category, where copying is an explicit map "
+                "rather than something the notation does for free — which Part 2 needs, because "
+                "the copy map is what makes aggregate risk non-compositional",
+            ],
+        },
+        "right": {
+            "head": "What follows immediately",
+            "items": [
+                "Composition: (P, f) then (Q, g) is (Q ⊗ P, g ∘ (id ⊗ f)). Plug two models "
+                "together and the combined dials are both sets of dials — nothing is absorbed, "
+                "which is why a composite owes an approval of its own",
+                "P ≅ I, the terminal object: there are no dials. Asking a closed-form pricer "
+                "for its training sample is not an unanswered question, it is an ill-typed one",
+                "P exists but is unreachable: the vendor's case. The only accessible datum is "
+                "the composite f(p, –), which is why behavioural evidence is the only evidence "
+                "there is — not a commercial compromise but what the mathematics permits",
+                "What MAYA carries of this: every input of a model version declares a role, and "
+                "the input contract and the parameter list are computed from those roles rather "
+                "than recorded beside them",
+            ],
+        },
+        "note": "Paper §3, Definition 3.1 and 3.2. MAYA holds no general kernel: its models are "
+        "deterministic expression trees, a declared black box, or a vendor endpoint, and "
+        "stochastic output is not represented.",
     },
     {
         "kind": "table",

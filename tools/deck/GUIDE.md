@@ -13,7 +13,7 @@ nobody can edit safely.
 
 | Deck | Slides | Source |
 |---|---|---|
-| `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 88 | `maya_deck.py`, `maya_deck_1b.py`, `maya_deck_2.py`, `maya_deck_3.py` |
+| `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 90 | `maya_deck.py`, `maya_deck_1b.py`, `maya_deck_2.py`, `maya_deck_3.py` |
 
 **Why one, where there were four.** The build previously carried an executive
 briefing, a system design, a capabilities deck and a formalism deck. Four decks
@@ -50,7 +50,7 @@ run won and the discrepancy is not quoted.
 |---|---|
 | `metrics.py` | The text estimator: greedy word-wrap simulation and paragraph heights. Shared by the builder and the audit, so the builder never believes a box fits that the audit then reports |
 | `theme.py` | The Harvard Crimson design system (#A51C30, spec §16.6): palette, typography, chrome, tables, cards, stat bars, and `fitted()`, which shrinks a text block until it fits or raises `DoesNotFit` |
-| `layouts.py` | Slide kinds drawn from plain dictionaries: `title`, `divider`, `bullets`, `table`, `cards`, `stats`, `split`, `flow` |
+| `layouts.py` | Slide kinds drawn from plain dictionaries: `title`, `divider`, `bullets`, `table`, `cards`, `stats`, `split`, `flow`, `context` (boxes placed on the content area and joined by arrows, for a system context diagram) |
 | `maya_deck.py`, `maya_deck_1b.py`, `maya_deck_2.py`, `maya_deck_3.py` | The deck, as data. It is split across four modules only to keep each file under the repository's file-size gate; they are one deck and are meant to be read in order |
 | `build.py` | Builds the deck and sets the document properties (author, title, subject) explicitly |
 | `audit.py` | The geometry audit (below) |
