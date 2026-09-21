@@ -23,6 +23,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -86,7 +87,22 @@ class _Backend(Protocol):
 
 
 def _native_problem() -> str | None:
-    """None if the native backend is usable here, else why not."""
+    """None if the native backend is usable here, else why not.
+
+    On Windows the answer is always a reason, and it is not a defect in the library. The
+    native writer names its data files in the Delta convention --
+    ``part-00000-<uuid>-c000.snappy.parquet``, 67 characters -- and MAYA's pin tables sit
+    under a partition directory naming a 64-character content hash. Add a project path and
+    a namespace and the total passes the 260 characters Windows enforces unless long paths
+    have been turned on, at which point a write fails with an error about the file name
+    rather than about the length. The pure backend names the same file in 22 characters, so
+    `auto` chooses it there. `native` may still be pinned by configuration -- it works, and
+    on a machine with long paths enabled it is the faster of the two."""
+    if os.name == "nt":
+        return (
+            "on Windows the native writer's file names put MAYA's pin paths over the 260"
+            " character limit; set lake.backend=native to pin it anyway (see the runbook)"
+        )
     try:
         from maya_delta import native
 

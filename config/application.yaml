@@ -70,6 +70,11 @@ storage:
   root: "${MAYA_HOME:data}"
 
 lake:
+  # Where the lake lives. Empty means <storage.root>/lake. A relative path is resolved
+  # against the project root rather than the working directory, so the same configuration
+  # means the same lake whichever directory a script is launched from -- which is what lets
+  # the case studies and the web application share one.
+  root: "${MAYA_LAKE:data/maya-deltalake}"
   # auto | native | pure  (maya_delta, spec §7.4)
   backend: auto
   # Compaction and vacuum of every lake table, daily by the scheduler or on demand.

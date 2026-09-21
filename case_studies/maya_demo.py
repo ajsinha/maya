@@ -106,12 +106,23 @@ def open_study(
     from maya.services.platform import Platform
     from maya.testing import DEFAULT_USERS, Maya, load_test_settings
 
+    from maya.config import project_root
+
     home = RUNS / namespace
-    if reset and home.exists():
+    # The study's data goes in the project's own lake rather than under the study folder,
+    # because that is where the rest of MAYA keeps it and a demonstration should not have
+    # its data somewhere the application would not look. One directory per study, so a
+    # study can still be reset on its own.
+    lake = project_root() / "data" / "maya-deltalake" / namespace
+    if reset:
         shutil.rmtree(home, ignore_errors=True)
+        shutil.rmtree(lake, ignore_errors=True)
     building = not (home / "maya.db").exists()
     home.mkdir(parents=True, exist_ok=True)
-    platform = Platform.build(load_test_settings(home, settings), start_workers=False)
+    platform = Platform.build(
+        load_test_settings(home, {"lake.root": str(lake), **(settings or {})}),
+        start_workers=False,
+    )
     users = {**DEFAULT_USERS, **(extra_users or {})}
     maya = Maya(platform, home, namespace, users, keep=True)
     if building:

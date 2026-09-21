@@ -40,6 +40,18 @@ AUTH_MODES = ("db", "sso", "hybrid")
 DEFAULT_CONFIG = Path("config/application.yaml")
 
 
+def project_root() -> Path:
+    """The checkout this package was imported from, or the working directory.
+
+    A package installed into site-packages has no project root, so the working directory
+    is the honest fallback: there is nowhere else a relative path could sensibly mean."""
+    here = Path(__file__).resolve()
+    for candidate in here.parents:
+        if (candidate / "config" / "application.yaml").exists():
+            return candidate
+    return Path.cwd()
+
+
 class Settings:
     """Validated, typed view over the configurator."""
 
@@ -51,6 +63,7 @@ class Settings:
         self.dialect = self._choice("db.dialect", DIALECTS)
         self.auth_mode = self._choice("auth.mode", AUTH_MODES)
         self.storage_root = Path(props.require("storage.root")).expanduser()
+        self.lake_root = self._lake_root()
         if self.environment == "prod" and self.dialect == "sqlite":
             raise ConfigurationError(
                 "app.environment is prod but db.dialect is sqlite. SQLite is a "
@@ -58,6 +71,19 @@ class Settings:
                 "db.dialect=postgresql for production.",
                 key="db.dialect",
             )
+
+    def _lake_root(self) -> Path:
+        """Where the lake lives: the configured path, or under the storage root.
+
+        A relative path is resolved against the project root rather than the working
+        directory. The alternative reads well in a config file and behaves differently
+        depending on where somebody happened to run the script from, which for a store of
+        record is the wrong kind of surprise."""
+        configured = (self.props.get("lake.root", "") or "").strip()
+        if not configured:
+            return self.storage_root / "lake"
+        path = Path(configured).expanduser()
+        return path if path.is_absolute() else (project_root() / path)
 
     def _check_schema(self) -> None:
         """Refuse an undeclared key from a file, report one from the command line, and

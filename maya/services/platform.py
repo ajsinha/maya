@@ -40,7 +40,7 @@ class Platform:
         self.root: Path = root
         self.blobs = LocalBlobStore(root)
         self.lake = LakeStore(
-            root,
+            settings.lake_root,
             backend=settings.get("lake.backend", "auto") or "auto",
             chunk=ChunkParams(
                 settings.int("lake.fragment.target_rows", 512),

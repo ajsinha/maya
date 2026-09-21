@@ -72,6 +72,7 @@ def load_test_settings(
         "app.environment": "dev",
         "db.dialect": "sqlite",
         "storage.root": str(home),
+        "lake.root": str(home / "lake"),
         "db.sqlite.path": str(home / "maya.db"),
         "logging.file": str(home / "maya.log"),
         **{k: str(v) for k, v in (overrides or {}).items()},

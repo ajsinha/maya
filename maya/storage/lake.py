@@ -52,7 +52,10 @@ class LakeStore:
     def __init__(self, root: Path, backend: str = "auto", chunk: ChunkParams | None = None) -> None:
         from maya_delta import DeltaLake
 
-        self.root = root / "lake"
+        # The lake's own directory, given rather than derived: it is configurable
+        # (``lake.root``) so that one lake can serve every instance on a machine, which is
+        # what a demonstration wants, while a throwaway instance keeps its own.
+        self.root = root
         self.root.mkdir(parents=True, exist_ok=True)
         self.delta = DeltaLake(backend)
         self.chunk = chunk or ChunkParams()
