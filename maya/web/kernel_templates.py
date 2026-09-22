@@ -855,6 +855,580 @@ y = where(x < knot, a x, a\,knot + b (x - knot))
         {"a": _P, "b": _P, "knot": _P},
         "spline hinge segmented broken stick kink",
     ),
+    # ---- options, continued ---------------------------------------------------------------
+    _t(
+        "put_call_parity",
+        "Options and derivatives",
+        "A put from a call by parity",
+        "Not a model of anything: an arbitrage identity. Worth governing because a desk that "
+        "prices the two separately can violate it and not notice.",
+        r"""
+put = call - S + K e^{-rT}
+""",
+        {"r": _P, "call": "feature"},
+        "arbitrage identity consistency check european",
+    ),
+    _t(
+        "bs_rho",
+        "Options and derivatives",
+        "Rho of a European call",
+        "Sensitivity to the discount rate, and the greek that matters most when rates move "
+        "and least when they do not.",
+        r"""
+d_1 = (\log(S/K) + (r + \sigma^2/2)T) / (\sigma\sqrt{T})
+d_2 = d_1 - \sigma\sqrt{T}
+rho = K T e^{-rT} ncdf(d_2)
+""",
+        {"sigma": _P, "r": _P},
+        "greek interest rate sensitivity discounting",
+    ),
+    _t(
+        "bs_dual_delta",
+        "Options and derivatives",
+        "Dual delta: sensitivity to the strike",
+        "The risk-neutral probability of finishing in the money, up to a discount factor -- "
+        "which is what makes it the number a structurer reaches for.",
+        r"""
+d_2 = (\log(S/K) + (r - \sigma^2/2)T) / (\sigma\sqrt{T})
+dual = -e^{-rT} ncdf(d_2)
+""",
+        {"sigma": _P, "r": _P},
+        "strike sensitivity exercise probability digital",
+    ),
+    _t(
+        "implied_vol_atm",
+        "Options and derivatives",
+        "Brenner–Subrahmanyam at-the-money implied volatility",
+        "A closed form that inverts Black--Scholes at the money to within a fraction of a "
+        "volatility point, and needs no solver. Useful as a starting guess and as a check "
+        "that a solver has not wandered.",
+        r"""
+\sigma = \sqrt{2\pi / T} \cdot price / S
+""",
+        {"pi": _C, "price": "feature"},
+        "inversion approximation atm newton starting guess",
+    ),
+    # ---- rates, continued -----------------------------------------------------------------
+    _t(
+        "fra_rate",
+        "Rates and curves",
+        "A forward rate agreement rate",
+        "Simple compounding rather than continuous, because that is what the contract says. "
+        "The difference is small and it is the sort of small that ends up in a dispute.",
+        r"""
+f = ((1 + r_2 t_2) / (1 + r_1 t_1) - 1) / (t_2 - t_1)
+""",
+        {"r_1": "feature", "r_2": "feature", "t_1": "feature", "t_2": "feature"},
+        "fra money market simple compounding libor",
+    ),
+    _t(
+        "compounding_convert",
+        "Rates and curves",
+        "A discrete rate as a continuous one",
+        "Two conventions for the same rate. Systems that disagree about which one they hold "
+        "produce discount factors that differ in the fourth decimal and reconcile nowhere.",
+        r"""
+r_c = m \log(1 + r_d/m)
+""",
+        {"m": _C, "r_d": "feature"},
+        "convention annual semiannual continuous nominal effective",
+    ),
+    _t(
+        "dv01",
+        "Rates and curves",
+        "DV01 from modified duration",
+        "The money a basis point moves. A trader thinks in this and a risk system usually "
+        "stores the duration, so the conversion is written down often and wrongly.",
+        r"""
+dv = d_{mod} \cdot P / 10000
+""",
+        {"d_mod": "feature", "P": "feature"},
+        "pv01 basis point value hedge notional",
+    ),
+    _t(
+        "accrued_interest",
+        "Rates and curves",
+        "Accrued interest on a day count",
+        "The day-count basis is a parameter because it is a contractual choice, not a fact "
+        "about the instrument, and the choices disagree by a few days a year.",
+        r"""
+accrued = coupon \cdot days / basis
+""",
+        {"basis": _P, "coupon": "feature", "days": "feature"},
+        "act360 act365 30360 clean dirty price convention",
+    ),
+    _t(
+        "breakeven_inflation",
+        "Rates and curves",
+        "Break-even inflation",
+        "The difference two markets imply, and not a forecast: it carries an inflation risk "
+        "premium nobody can separate out from the number itself.",
+        r"""
+be = nominal - real
+""",
+        {"nominal": "feature", "real": "feature"},
+        "tips linker index linked real yield premium",
+    ),
+    _t(
+        "fisher_real",
+        "Rates and curves",
+        "A real rate by the Fisher relation",
+        "Exact rather than the subtraction everybody uses. The two differ by the product term, "
+        "which matters once inflation is not small.",
+        r"""
+real = (1 + nominal) / (1 + inflation) - 1
+""",
+        {"nominal": "feature", "inflation": "feature"},
+        "fisher equation deflating real terms",
+    ),
+    # ---- counterparty and regulatory ------------------------------------------------------
+    _t(
+        "saccr_ead",
+        "Credit risk",
+        "Exposure at default under SA-CCR",
+        "Replacement cost plus potential future exposure, times a supervisory alpha of 1.4. "
+        "Prescribed, so the model has no dials and the evidence is a test against the text.",
+        r"""
+ead = 1.4 (rc + pfe)
+""",
+        {"rc": "feature", "pfe": "feature"},
+        "counterparty derivatives regulatory replacement cost alpha",
+    ),
+    _t(
+        "cva_single",
+        "Credit risk",
+        "Credit valuation adjustment for one period",
+        "The price of the counterparty's default over one interval. Summing the intervals is "
+        "an aggregation and belongs upstream; this is the term being summed.",
+        r"""
+cva = lgd \cdot ee \cdot pd_{marginal} \cdot df
+""",
+        {"lgd": _P, "ee": "feature", "pd_marginal": "feature", "df": "feature"},
+        "xva counterparty derivative adjustment expected exposure",
+    ),
+    _t(
+        "pfe_point",
+        "Credit risk",
+        "Potential future exposure at a quantile",
+        "The expected exposure plus a multiple of its volatility. The multiple is a parameter "
+        "because it encodes the confidence somebody chose.",
+        r"""
+pfe = \max(ee + q \sigma_e, 0)
+""",
+        {"q": _P, "ee": "feature", "sigma_e": "feature"},
+        "counterparty limit exposure profile quantile",
+    ),
+    _t(
+        "roll_rate",
+        "Credit risk",
+        "A roll-rate transition",
+        "Balance moving from one delinquency bucket to the next. A chain of these is a "
+        "transition matrix, which is an aggregation; this is one cell of it.",
+        r"""
+next = balance \cdot rate
+""",
+        {"balance": "feature", "rate": "feature"},
+        "delinquency bucket flow rate migration collections",
+    ),
+    _t(
+        "vintage_hump",
+        "Credit risk",
+        "A seasoning curve with a peak",
+        "Defaults are rare when a loan is new, peak after a year or two, then decay. The peak "
+        "and the width are parameters because a committee argues about them.",
+        r"""
+d = (age - peak) / width
+hazard = height \exp(-d^2)
+""",
+        {"peak": _P, "width": _P, "height": _P, "age": "feature"},
+        "seasoning vintage lifecycle maturation default timing",
+    ),
+    _t(
+        "provision_coverage",
+        "Credit risk",
+        "Provision coverage ratio",
+        "Allowance over non-performing balance. Quoted in every results presentation and "
+        "defined slightly differently in each.",
+        r"""
+coverage = allowance / npl
+""",
+        {"allowance": "feature", "npl": "feature"},
+        "npl ratio impairment stock disclosure",
+    ),
+    # ---- capital and treasury -------------------------------------------------------------
+    _t(
+        "cet1_ratio",
+        "Capital and treasury",
+        "Common equity tier 1 ratio",
+        "The ratio the whole capital regime turns on. Both halves are the output of long "
+        "calculations, which is why they are inputs here.",
+        r"""
+cet_1 = capital / rwa
+""",
+        {"capital": "feature", "rwa": "feature"},
+        "basel capital adequacy regulatory ratio buffer",
+    ),
+    _t(
+        "leverage_ratio",
+        "Capital and treasury",
+        "Leverage ratio",
+        "Deliberately not risk-weighted: a backstop to the risk-based ratio, and the one that "
+        "binds when the risk weights are flattering.",
+        r"""
+leverage = tier_1 / exposure
+""",
+        {"tier_1": "feature", "exposure": "feature"},
+        "backstop non risk weighted basel iii supplementary",
+    ),
+    _t(
+        "rwa_density",
+        "Capital and treasury",
+        "RWA density",
+        "Risk-weighted assets over total assets. The number a supervisor compares across banks "
+        "when they suspect the models rather than the book.",
+        r"""
+density = rwa / assets
+""",
+        {"rwa": "feature", "assets": "feature"},
+        "risk weight comparison model risk benchmarking",
+    ),
+    _t(
+        "rorwa",
+        "Capital and treasury",
+        "Return on risk-weighted assets",
+        "Profitability per unit of regulatory capital consumed, which is what a portfolio "
+        "decision actually turns on.",
+        r"""
+rorwa = profit / rwa
+""",
+        {"profit": "feature", "rwa": "feature"},
+        "return capital allocation performance hurdle",
+    ),
+    _t(
+        "lcr",
+        "Capital and treasury",
+        "Liquidity coverage ratio",
+        "High-quality liquid assets against thirty days of stressed outflow. The stress is "
+        "prescribed, so the judgement is in the classification rather than the arithmetic.",
+        r"""
+lcr = hqla / outflows
+""",
+        {"hqla": "feature", "outflows": "feature"},
+        "liquidity basel stress thirty day survival",
+    ),
+    _t(
+        "nsfr",
+        "Capital and treasury",
+        "Net stable funding ratio",
+        "The one-year companion to the LCR: stable funding available against stable funding "
+        "required.",
+        r"""
+nsfr = available / required
+""",
+        {"available": "feature", "required": "feature"},
+        "funding liquidity structural one year basel",
+    ),
+    _t(
+        "deposit_beta",
+        "Capital and treasury",
+        "Deposit repricing with a beta",
+        "How much of a market move a bank passes to depositors. The beta is the single most "
+        "argued-over number in a net interest income forecast.",
+        r"""
+rate = base + \beta (market - base)
+""",
+        {"beta": _P, "base": "feature", "market": "feature"},
+        "nii repricing pass through sensitivity alm",
+    ),
+    _t(
+        "eve_sensitivity",
+        "Capital and treasury",
+        "Change in economic value of equity",
+        "Duration times value times the shock. First order, and the reason a large shock needs "
+        "the convexity term the template above it carries.",
+        r"""
+d_{eve} = -d_{gap} \cdot V \cdot shock
+""",
+        {"d_gap": "feature", "V": "feature", "shock": _P},
+        "irrbb alm interest rate risk banking book",
+    ),
+    # ---- insurance, continued -------------------------------------------------------------
+    _t(
+        "chain_ladder",
+        "Insurance",
+        "Ultimate loss from a development factor",
+        "The workhorse of reserving. The factor comes from a triangle, which is an aggregation, "
+        "so it arrives here as an input.",
+        r"""
+ultimate = paid \cdot ldf
+""",
+        {"paid": "feature", "ldf": "feature"},
+        "reserving triangle development claims ibnr actuarial",
+    ),
+    _t(
+        "bornhuetter_ferguson",
+        "Insurance",
+        "Bornhuetter–Ferguson reserve",
+        "Credibility between the experience and the plan: the unreported share of an a-priori "
+        "loss. Steadier than chain ladder on immature years, which is exactly when it is used.",
+        r"""
+ibnr = premium \cdot lr \cdot (1 - 1/ldf)
+""",
+        {"lr": _P, "premium": "feature", "ldf": "feature"},
+        "reserving a priori expected loss ratio immature",
+    ),
+    _t(
+        "reinsurance_layer",
+        "Insurance",
+        "Recovery from an excess-of-loss layer",
+        "Attachment and limit, written as arithmetic. The whole contract is in the two "
+        "constants, which is why they belong in the governed object.",
+        r"""
+recovery = \min(\max(loss - attachment, 0), limit)
+""",
+        {"attachment": _P, "limit": _P, "loss": "feature"},
+        "excess of loss xol treaty cession attachment",
+    ),
+    _t(
+        "scr_two_risks",
+        "Insurance",
+        "Aggregating two risk modules with a correlation",
+        "Solvency II's square-root formula for two modules. The correlation is set by the "
+        "standard, so it is a constant a firm may not choose.",
+        r"""
+scr = \sqrt{a^2 + b^2 + 2\rho a b}
+""",
+        {"rho": _C, "a": "feature", "b": "feature"},
+        "solvency ii standard formula correlation matrix diversification",
+    ),
+    _t(
+        "expense_ratio",
+        "Insurance",
+        "Expense ratio",
+        "Expenses over earned premium; with the loss ratio it makes the combined ratio, and "
+        "over a hundred means the underwriting lost money.",
+        r"""
+er = expenses / earned
+""",
+        {"expenses": "feature", "earned": "feature"},
+        "combined ratio underwriting result acquisition cost",
+    ),
+    # ---- valuation, continued -------------------------------------------------------------
+    _t(
+        "fcff",
+        "Valuation",
+        "Free cash flow to the firm",
+        "Four line items and a tax rate. The definition varies between houses, which is the "
+        "argument for writing it down once where everybody can see it.",
+        r"""
+fcff = ebit (1 - t) + da - capex - dwc
+""",
+        {"t": _P, "ebit": "feature", "da": "feature", "capex": "feature", "dwc": "feature"},
+        "dcf cash flow unlevered enterprise value",
+    ),
+    _t(
+        "residual_income",
+        "Valuation",
+        "Residual income",
+        "Earnings after a charge for the equity used. It is the accounting form of economic "
+        "profit, and the charge is where the cost of capital enters.",
+        r"""
+ri = earnings - charge \cdot equity
+""",
+        {"charge": _P, "earnings": "feature", "equity": "feature"},
+        "economic profit eva abnormal earnings",
+    ),
+    _t(
+        "implied_growth",
+        "Valuation",
+        "Growth implied by a price",
+        "Gordon growth inverted. Worth computing before an argument about growth assumptions: "
+        "it says what the market is already assuming.",
+        r"""
+g = r - d_1 / price
+""",
+        {"r": _P, "d_1": "feature", "price": "feature"},
+        "reverse dcf market implied expectation dividend",
+    ),
+    _t(
+        "ev_ebitda",
+        "Valuation",
+        "Enterprise value to EBITDA",
+        "The multiple quoted most often and defined least consistently -- what goes into "
+        "enterprise value is the argument.",
+        r"""
+multiple = ev / ebitda
+""",
+        {"ev": "feature", "ebitda": "feature"},
+        "comparable multiple trading comps relative valuation",
+    ),
+    # ---- climate and conduct --------------------------------------------------------------
+    _t(
+        "carbon_intensity",
+        "Climate and conduct",
+        "Carbon intensity of revenue",
+        "Emissions per unit of revenue, which is how a portfolio target is usually written -- "
+        "and why a target can be met by the denominator moving.",
+        r"""
+intensity = emissions / revenue
+""",
+        {"emissions": "feature", "revenue": "feature"},
+        "esg scope climate target physical transition",
+    ),
+    _t(
+        "financed_emissions",
+        "Climate and conduct",
+        "Financed emissions by attribution",
+        "The PCAF construction: a lender owns the share of a company's emissions that its "
+        "lending is of the company's capital.",
+        r"""
+attribution = outstanding / (equity + debt)
+share = attribution \cdot emissions
+""",
+        {"outstanding": "feature", "equity": "feature", "debt": "feature", "emissions": "feature"},
+        "pcaf scope 3 attribution factor portfolio climate",
+    ),
+    _t(
+        "benford_first_digit",
+        "Climate and conduct",
+        "Benford's expected frequency for a leading digit",
+        "What the leading digits of an unmanipulated set should look like. A deviation is a "
+        "question rather than an answer, and treating it as evidence is the usual error.",
+        r"""
+p = \log(1 + 1/d) / \log(10)
+""",
+        {"d": "feature"},
+        "fraud forensic accounting anomaly first digit law",
+    ),
+    _t(
+        "velocity_ratio",
+        "Climate and conduct",
+        "Transaction velocity against a baseline",
+        "Today's count against the customer's own normal. A ratio rather than a count, because "
+        "a threshold on the count catches the busy and misses the compromised.",
+        r"""
+velocity = count / \max(baseline, 1)
+""",
+        {"count": "feature", "baseline": "feature"},
+        "fraud aml monitoring anomaly card transaction",
+    ),
+    # ---- statistics, continued ------------------------------------------------------------
+    _t(
+        "log_loss",
+        "Transforms and statistics",
+        "Log loss for one row",
+        "The loss a logistic regression minimises. Per row, because the mean over rows is an "
+        "aggregation -- but the row is the thing worth governing.",
+        r"""
+loss = -(y \log(p) + (1 - y) \log(1 - p))
+""",
+        {"y": "feature", "p": "feature"},
+        "cross entropy deviance binary classification scoring rule",
+    ),
+    _t(
+        "brier_row",
+        "Transforms and statistics",
+        "Brier score contribution",
+        "Squared error on a probability, which makes it a calibration statement rather than a "
+        "discrimination one -- the distinction case study 01 insists on.",
+        r"""
+brier = (p - y)^2
+""",
+        {"y": "feature", "p": "feature"},
+        "calibration scoring rule probability accuracy",
+    ),
+    _t(
+        "gini_from_auc",
+        "Transforms and statistics",
+        "Gini from AUC",
+        "The conversion every credit paper assumes you know. Both measure the same ordering; "
+        "only the scale differs.",
+        r"""
+gini = 2 auc - 1
+""",
+        {"auc": "feature"},
+        "discrimination power somers d accuracy ratio",
+    ),
+    _t(
+        "platt_scaling",
+        "Transforms and statistics",
+        "Platt scaling of a score to a probability",
+        "A logistic fitted on top of a model's score, which is how an uncalibrated ranker "
+        "becomes a probability -- and why the ranking can be good while the level is wrong.",
+        r"""
+p = 1 / (1 + \exp(a \cdot score + b))
+""",
+        {"a": _P, "b": _P, "score": "feature"},
+        "calibration sigmoid post processing probability mapping",
+    ),
+    _t(
+        "softmax_two",
+        "Transforms and statistics",
+        "Softmax over two scores",
+        "The two-class case, which is a logistic in disguise -- worth seeing written out, "
+        "because it makes the multi-class generalisation obvious.",
+        r"""
+p = \exp(a) / (\exp(a) + \exp(b))
+""",
+        {"a": "feature", "b": "feature"},
+        "multinomial normalisation logit neural network output",
+    ),
+    _t(
+        "relu",
+        "Transforms and statistics",
+        "A rectified linear unit",
+        "One line, and the whole of modern deep learning leans on it. Written with max rather "
+        "than a condition, which is the same thing and differentiates better.",
+        r"""
+y = \max(x, 0)
+""",
+        None,
+        "activation neural network hinge piecewise",
+    ),
+    _t(
+        "tanh_activation",
+        "Transforms and statistics",
+        "A hyperbolic tangent, from exponentials",
+        "MAYA's IR has no tanh, and it does not need one: this is the definition, and writing "
+        "it out is what makes the model evaluable by the platform rather than by a library.",
+        r"""
+e = \exp(2 x)
+y = (e - 1) / (e + 1)
+""",
+        None,
+        "activation neural network sigmoid squashing",
+    ),
+    _t(
+        "box_cox",
+        "Transforms and statistics",
+        "A Box–Cox transform",
+        "Two cases in one expression, with the logarithm as the limit at zero. The condition "
+        "is in the governed object rather than in a preprocessing script.",
+        r"""
+y = where(\lambda == 0, \log(x), (x^{\lambda} - 1)/\lambda)
+""",
+        {"lambda": _P},
+        "power transform normality variance stabilising skew",
+    ),
+    _t(
+        "interaction_term",
+        "Transforms and statistics",
+        "A linear model with an interaction",
+        "The term that says two drivers matter more together than apart -- which is what "
+        "case study 07's network discovers and a logistic has to be told.",
+        r"""
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_{12} x_1 x_2
+""",
+        {
+            "beta_0": _P,
+            "beta_1": _P,
+            "beta_2": _P,
+            "beta_12": _P,
+            "x_1": "feature",
+            "x_2": "feature",
+        },
+        "crossed feature engineering conjunction moderation",
+    ),
 ]
 
 GROUPS = [
@@ -865,6 +1439,8 @@ GROUPS = [
     "Market risk",
     "Valuation",
     "Insurance",
+    "Capital and treasury",
+    "Climate and conduct",
     "Transforms and statistics",
 ]
 
