@@ -62,7 +62,13 @@ class Settings:
         self.environment = self._choice("app.environment", ENVIRONMENTS)
         self.dialect = self._choice("db.dialect", DIALECTS)
         self.auth_mode = self._choice("auth.mode", AUTH_MODES)
-        self.storage_root = Path(props.require("storage.root")).expanduser()
+        # Relative to the project root, not the working directory. A relative storage root
+        # means a different estate for every directory somebody happens to launch from --
+        # a study run from an IDE with the script's folder as the working directory would
+        # quietly build its own, and the application serving the project's would show an
+        # empty catalog. The lake resolves the same way, and for the same reason.
+        root = Path(props.require("storage.root")).expanduser()
+        self.storage_root = root if root.is_absolute() else (project_root() / root)
         self.lake_root = self._lake_root()
         if self.environment == "prod" and self.dialect == "sqlite":
             raise ConfigurationError(
