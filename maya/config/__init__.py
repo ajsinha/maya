@@ -69,6 +69,7 @@ class Settings:
         # empty catalog. The lake resolves the same way, and for the same reason.
         root = Path(props.require("storage.root")).expanduser()
         self.storage_root = root if root.is_absolute() else (project_root() / root)
+        self._anchor_paths()
         self.lake_root = self._lake_root()
         if self.environment == "prod" and self.dialect == "sqlite":
             raise ConfigurationError(
@@ -77,6 +78,26 @@ class Settings:
                 "db.dialect=postgresql for production.",
                 key="db.dialect",
             )
+
+    def _anchor_paths(self) -> None:
+        """Every configured path, made absolute against the project root.
+
+        One rule for all of them, rather than one fix per key. ``storage.root`` is a
+        relative path in the shipped configuration and the keys derived from it --
+        ``db.sqlite.path``, ``logging.file`` -- interpolate that relative value, so without
+        this a database resolves against the working directory while the lake resolves
+        against the project. Two halves of one instance in two places is the failure this
+        exists to prevent, and it is invisible until somebody serves the estate a study did
+        not write to."""
+        anchor = project_root()
+        with self.props._properties_lock:  # noqa: SLF001 - the configurator has no setter
+            for setting in schema.SETTINGS:
+                if setting.kind != "path":
+                    continue
+                value = (self.props._properties.get(setting.key) or "").strip()  # noqa: SLF001
+                if not value or Path(value).is_absolute():
+                    continue
+                self.props._properties[setting.key] = str(anchor / value)  # noqa: SLF001
 
     def _lake_root(self) -> Path:
         """Where the lake lives: the configured path, or under the storage root.
