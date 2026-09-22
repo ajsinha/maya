@@ -79,70 +79,118 @@ class Narrator:
 
 
 def arguments(description: str) -> argparse.Namespace:
+    """This script's own flags, and any MAYA setting the caller wants to override.
+
+    A study reads ``config/application.yaml`` -- the same file the web application reads,
+    with nothing overridden -- so that what a study builds is what the application serves.
+    Anything else here is a `--key=value` setting, passed through to the configuration
+    loader exactly as it would be on the application's own command line:
+
+        run.py --lake.root=/tmp/demo-lake     one study somewhere else
+        run.py --storage.root=/tmp/demo       a whole estate somewhere else
+
+    which is why unknown arguments are kept rather than refused.
+    """
     ap = argparse.ArgumentParser(description=description)
     ap.add_argument(
         "--reset",
         action="store_true",
-        help="delete this study's MAYA and build it again from nothing",
+        help="delete the shared demonstration estate and build it again from nothing",
     )
     ap.add_argument("--quiet", action="store_true", help="results only, no narration")
-    return ap.parse_args()
+    args, rest = ap.parse_known_args()
+    # `load_settings` reads sys.argv itself, so leaving the settings there is how they
+    # reach it -- the same path the application's own flags take.
+    sys.argv = [sys.argv[0]] + rest
+    return args
 
 
 def open_study(
     namespace: str,
     *,
     reset: bool = False,
+    fresh: bool = False,
     extra_users: dict[str, list[str]] | None = None,
     settings: dict[str, str] | None = None,
 ) -> Any:
-    """This study's MAYA at ``runs/<namespace>``, built on first use and reopened after.
+    """The project's MAYA, as ``config/application.yaml`` configures it.
+
+    Every study shares one instance: one database, one lake, one set of users, and one web
+    application that serves all of them. That is not a convenience -- it is the arrangement
+    MAYA is deployed in, and a demonstration whose objects lived somewhere the application
+    would not look would be demonstrating something nobody runs. Studies stay apart by
+    namespace, which is what namespaces are for.
 
     ``extra_users`` adds people beyond the seeded seven, which a study needs whenever a
     policy asks for two holders of one role: an execution warrant submitted by a model
     manager wants a *second* model manager to approve it, and one person cannot be both,
     which is the point of the rule.
     """
+    from maya.config import load_settings
     from maya.services.platform import Platform
-    from maya.testing import DEFAULT_USERS, Maya, load_test_settings
+    from maya.testing import DEFAULT_USERS, Maya
+    from maya.testing.kit import default_config
 
-    from maya.config import project_root
-
-    home = RUNS / namespace
-    # The study's data goes in the project's own lake rather than under the study folder,
-    # because that is where the rest of MAYA keeps it and a demonstration should not have
-    # its data somewhere the application would not look. One directory per study, so a
-    # study can still be reset on its own.
-    lake = project_root() / "data" / "maya-deltalake"
     if reset:
-        shutil.rmtree(home, ignore_errors=True)
-        _forget(lake, namespace)
-    building = not (home / "maya.db").exists()
+        _reset_everything()
+    config = load_settings(default_config(), fresh=True)
+    if settings:  # a study that needs a setting of its own re-reads with it applied
+        config = _with(default_config(), settings)
+    home = config.storage_root
     home.mkdir(parents=True, exist_ok=True)
-    platform = Platform.build(
-        load_test_settings(home, {"lake.root": str(lake), **(settings or {})}),
-        start_workers=False,
-    )
+    platform = Platform.build(config, start_workers=False)
     users = {**DEFAULT_USERS, **(extra_users or {})}
     maya = Maya(platform, home, namespace, users, keep=True)
-    if building:
-        seed(maya, users)
+    seed(maya, users)
+    if fresh and _already_run(maya, namespace):
+        maya.close()
+        raise SystemExit(
+            f"    The '{namespace}' namespace is already in this estate, so a full pass would\n"
+            "    try to create objects that exist. MAYA does not delete governed objects, so\n"
+            "    there is no resetting one study out of a shared estate. Either:\n"
+            "      --reset   rebuild the whole demonstration estate, every study in it\n"
+            "      or run the step scripts, which continue the study that is already there."
+        )
     return maya
 
 
-def _forget(lake: Path, namespace: str) -> None:
-    """Remove one study's tables from the shared lake, and nothing else.
+def _already_run(maya: Any, namespace: str) -> bool:
+    """Has a study already put objects in this namespace?"""
+    admin = maya.client("admin")
+    return bool(admin.features.list(namespace=namespace) or admin.models.list(namespace=namespace))
 
-    Every study writes into the same lake, because that is how MAYA is deployed and a
-    demonstration that invented its own arrangement would be demonstrating the wrong thing.
-    A lake table is ``<kind>/<namespace>/<name>``, so a study's data is exactly the
-    namespace directory under each kind -- which is what ``--reset`` may delete, and the
-    whole lake is what it may not."""
-    if not lake.exists():
-        return
-    for kind in lake.iterdir():
-        if kind.is_dir():
-            shutil.rmtree(kind / namespace, ignore_errors=True)
+
+def _with(config_path: Path, overrides: dict[str, str]) -> Any:
+    """The same configuration with a few keys overridden, as the command line would."""
+    import sys
+
+    from maya.config import load_settings
+
+    saved = sys.argv
+    sys.argv = ["case-study"] + [f"--{k}={v}" for k, v in overrides.items()]
+    try:
+        return load_settings(config_path, fresh=True)
+    finally:
+        sys.argv = saved
+
+
+def _reset_everything() -> None:
+    """Delete the shared demonstration instance and build it again from nothing.
+
+    There is one instance, so there is no resetting one study out of it: MAYA does not
+    delete governed objects, and a reset that removed a namespace's rows from underneath an
+    audit chain would be teaching the wrong lesson about what a register is. So ``--reset``
+    is honest about its scope -- it removes the whole demonstration estate, every study in
+    it -- and says so before it does."""
+    from maya.config import load_settings
+    from maya.testing.kit import default_config
+
+    config = load_settings(default_config(), fresh=True)
+    root, lake = config.storage_root, config.lake_root
+    print(f"    --reset: deleting the shared demonstration estate at {root}")
+    print(f"             and its lake at {lake}. Every study goes with it.")
+    shutil.rmtree(root, ignore_errors=True)
+    shutil.rmtree(lake, ignore_errors=True)
 
 
 def seed(maya: Any, users: dict[str, list[str]]) -> None:
@@ -156,26 +204,32 @@ def seed(maya: Any, users: dict[str, list[str]]) -> None:
     """
     from maya.sdk import Client
 
+    from maya.core.errors import ConflictError
+
     admin = maya.client("admin")
+    have = {u["username"] for u in admin.admin.users()}
     for username, roles in users.items():
+        if username in have:
+            continue  # an earlier study in this estate already created them
         admin.admin.create_user(username, password=SETUP_PASSWORD, roles=list(roles))
         with Client(app=maya.app) as anonymous:
             token = anonymous.auth.login(username, SETUP_PASSWORD)["token"]
         with Client(app=maya.app, token=token) as fresh:
             fresh.auth.change_password(SETUP_PASSWORD, PASSWORD)
-    admin.namespaces.create(maya.namespace, preset="standard")
+    try:
+        admin.namespaces.create(maya.namespace, preset="standard")
+    except ConflictError:
+        pass  # this study has been run before in this estate
 
 
 def browse_hint(maya: Any) -> None:
-    """How to open the web UI on what the study has built so far."""
+    """How to open the web UI on what the studies have built so far."""
     print(
-        f"\n    This study's MAYA is at {maya.home}\n"
-        f"    Browse it:  .venv/bin/python run_maya_web.py \\\n"
-        f"                  --storage.root={maya.home} \\\n"
-        f"                  --db.sqlite.path={maya.home}/maya.db\n"
+        f"\n    This is the project's MAYA at {maya.home}, shared by every study.\n"
+        f"    Browse it:  .venv/bin/python run_maya_web.py\n"
         f"    Then open http://127.0.0.1:{PORT} and sign in as any of "
         f"{', '.join(sorted(maya.users))}\n"
-        f"    with the password '{PASSWORD}'."
+        f"    with the password '{PASSWORD}'. This study is the '{maya.namespace}' namespace."
     )
 
 

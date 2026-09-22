@@ -93,7 +93,7 @@ def main() -> int:
     args = arguments(__doc__ or "")
     n = Narrator(TITLE, args.quiet)
     # A full pass starts from nothing, so that running it twice means the same thing twice.
-    maya = open_study(NS, reset=True, extra_users=EXTRA_USERS)
+    maya = open_study(NS, reset=args.reset, fresh=True, extra_users=EXTRA_USERS)
     try:
         for step in STEPS:
             print(f"\n{'─' * 78}\n{step.TITLE}\n{'─' * 78}")

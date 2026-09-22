@@ -52,6 +52,24 @@ Every study's README carries a table of **what each script does and what it show
 `--reset` deletes that study's MAYA and starts again from nothing. `--quiet` prints the
 results without the narration.
 
+**Every study runs in one estate, configured by one file.** A study reads
+`config/application.yaml` — the same file `run_maya_web.py` reads, with nothing overridden
+— so one database, one lake, one set of users, and one web application that serves all of
+them. Serving it needs no arguments at all:
+
+    .venv/bin/python run_maya_web.py
+
+Studies stay apart by **namespace**, which is what namespaces are for: `retail_credit`,
+`rates`, `impairment` and so on sit side by side in the catalog. To put a study somewhere
+else, pass the setting exactly as you would to the application — `--lake.root=/tmp/demo-lake`,
+`--storage.root=/tmp/demo` — and the study passes it straight to the configuration loader.
+
+`--reset` deletes the **whole** demonstration estate and builds it again, every study in it.
+There is no resetting one study out of a shared estate: MAYA does not delete governed
+objects, and a reset that removed a namespace's rows from underneath an audit chain would
+teach the wrong lesson about what a register is. A full pass over a study already in the
+estate stops and says so.
+
 **Every study writes into one lake**, at `data/maya-deltalake/`, which is the lake the web
 application and the rest of MAYA use — configured once as `lake.root` and shared, because a
 demonstration that invented its own storage arrangement would be demonstrating the wrong
