@@ -514,3 +514,29 @@ def test_champion_challenger_pages_score_and_decide(people):
     )
     page = mgr.get(f"/warrants/training/{wid}?tab=evidence").text
     assert "What drives it" in page and "By symbol" in page
+
+
+def test_the_connectors_page_imports_a_sagemaker_package(people):
+    import json as _json
+
+    from tests.test_integrations import PACKAGE
+
+    w, app, b = people
+    mona, admin = b["mona"], b["admin"]
+    assert "MLflow" in mona.get("/integrations").text
+    assert "Download events" not in mona.get("/integrations").text  # the export is for admins
+    mona.post(
+        "/integrations/sagemaker",
+        {
+            "namespace": "quant",
+            "name": "pd_web",
+            "package": _json.dumps(PACKAGE),
+            "estimates": "retail PD",
+            "inputs": "",
+            "outputs": "",
+        },
+        expect="success",
+    )
+    assert w.p.models.get(w.mona, "quant/pd_web")["kind"] == "black_box"
+    events = admin.get("/integrations/openlineage.json")
+    assert events.headers["content-type"].startswith("application/json")

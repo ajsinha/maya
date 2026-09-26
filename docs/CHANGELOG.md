@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+**Connectors: MLflow, SageMaker, OpenLineage, Snowflake, Databricks**
+
+- **MLflow import** (`/integrations`, SDK `integrations.import_mlflow` / `fetch_mlflow`). The
+  model's `MLmodel` file — uploaded, or fetched for a registered version from the server in
+  `integrations.mlflow.tracking_uri` and nowhere else — becomes a black-box draft whose input
+  contract is the signature, with flavours, run and model id sealed into the IR as
+  provenance. A model logged without a signature, or with a tensor signature, is refused
+  rather than guessed at.
+- **SageMaker import** from a `DescribeModelPackage` document: image, model data, framework
+  and approval status as provenance. SageMaker records no inputs, so they are named by the
+  caller or in a `maya:inputs` customer metadata property.
+- **OpenLineage export**: every lineage edge, grouped by what it produces, as a `RunEvent`
+  (one job per produced object, its sources as inputs) — downloaded, or posted to
+  `integrations.openlineage.url` with a bearer token from the environment. Administrators.
+- **Snowflake and Databricks SQL sources** through their SQLAlchemy dialects, installed
+  where used. Neither has a driver-level read-only session, so a Snowflake URL must name a
+  role (which should be read-only), statements time out after five minutes on Snowflake,
+  and the SELECT-only check applies as for every source.
+- Honest scope: these are tested against the documents each system publishes and a recorded
+  HTTP exchange, not yet against a live MLflow server, AWS account or warehouse.
+
 **Fairness and explainability evidence**
 
 - A training warrant's *Fairness & drivers* tab (SDK `evidence`,

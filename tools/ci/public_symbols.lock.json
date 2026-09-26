@@ -248,6 +248,16 @@
      "sweep": "(self)"
     }
    },
+   "integrations": {
+    "class": "Integrations",
+    "methods": {
+     "emit_openlineage": "(self)",
+     "fetch_mlflow": "(self, namespace, name, model_name, version, estimates, description='')",
+     "import_mlflow": "(self, namespace, name, mlmodel, estimates, description='')",
+     "import_sagemaker": "(self, namespace, name, package, estimates, inputs=None, outputs=None)",
+     "openlineage_events": "(self)"
+    }
+   },
    "jobs": {
     "class": "Jobs",
     "methods": {
@@ -630,6 +640,16 @@
      "record_review": "(self, model, outcome, note)",
      "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None)",
      "sweep": "(self)"
+    }
+   },
+   "integrations": {
+    "class": "Integrations",
+    "methods": {
+     "emit_openlineage": "(self)",
+     "fetch_mlflow": "(self, namespace, name, model_name, version, estimates, description='')",
+     "import_mlflow": "(self, namespace, name, mlmodel, estimates, description='')",
+     "import_sagemaker": "(self, namespace, name, package, estimates, inputs=None, outputs=None)",
+     "openlineage_events": "(self)"
     }
    },
    "jobs": {

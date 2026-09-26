@@ -42,6 +42,7 @@ from maya.sdk.resources import (
     Features,
     FeatureSets,
     Governance,
+    Integrations,
     Jobs,
     Models,
     Monitoring,
@@ -81,6 +82,7 @@ class _Namespaces:
         self.monitoring = Monitoring(transport)
         self.challenges = Challenges(transport)
         self.evidence = Evidence(transport)
+        self.integrations = Integrations(transport)
         self.cache = PinCache()
 
     @property
