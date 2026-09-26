@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 import sys
 
-from _common import ROOT, report
+from _common import ROOT, report, visible
 
 TEMPLATES = ROOT / "maya" / "web" / "templates"
 MACRO = TEMPLATES / "_macros" / "table.html"
@@ -36,7 +36,7 @@ def server_mode_failures() -> list[str]:
                 f"server table '{name}' renders rows with '{table.row}', which "
                 "templates/_rows.html does not define"
             )
-    for path in sorted(ROUTES.glob("*.py")):
+    for path in sorted(p for p in ROUTES.glob("*.py") if visible(p)):
         for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for name in re.findall(r"first_page\([^)]*?\"(\w+)\"", line):
                 if name not in TABLES:
@@ -49,7 +49,9 @@ def server_mode_failures() -> list[str]:
 
 def main() -> int:
     failures = []
-    for path in sorted(TEMPLATES.rglob("*.html")) if TEMPLATES.exists() else []:
+    for path in (
+        sorted(p for p in TEMPLATES.rglob("*.html") if visible(p)) if TEMPLATES.exists() else []
+    ):
         if path == MACRO:
             continue
         for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

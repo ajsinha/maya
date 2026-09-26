@@ -11,7 +11,7 @@ from __future__ import annotations
 import ast
 import sys
 
-from _common import ROOT, report
+from _common import ROOT, report, visible
 
 LIMIT = 60
 
@@ -31,7 +31,7 @@ def public_names(tree: ast.Module) -> set[str]:
 def main() -> int:
     problems = []
     for pkg in ("maya", "maya_delta"):
-        for path in sorted((ROOT / pkg).rglob("*.py")):
+        for path in sorted(p for p in (ROOT / pkg).rglob("*.py") if visible(p)):
             if "__pycache__" in path.parts:
                 continue
             count = len(public_names(ast.parse(path.read_text(encoding="utf-8"))))

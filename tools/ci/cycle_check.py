@@ -13,7 +13,7 @@ import ast
 import sys
 from pathlib import Path
 
-from _common import ROOT, report
+from _common import ROOT, report, visible
 
 PACKAGES = ("maya", "maya_delta")
 
@@ -22,7 +22,7 @@ def modules() -> dict[str, Path]:
     out = {}
     for pkg in PACKAGES:
         for p in (ROOT / pkg).rglob("*.py"):
-            if "__pycache__" in p.parts:
+            if "__pycache__" in p.parts or not visible(p):
                 continue
             name = ".".join(p.relative_to(ROOT).with_suffix("").parts)
             out[name.removesuffix(".__init__")] = p
