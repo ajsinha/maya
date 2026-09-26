@@ -337,9 +337,15 @@ With no closed form, the IR declares what it can:
 ```
 
 Both `estimates` and `architecture` are mandatory. A black box has no reference
-code, cannot be scored by MAYA on a warrant's holdout, and its conformance
-report says "Skipped" rather than implying a check. Opacity propagates into any
-composite that contains it.
+code, and its conformance report says "Skipped" rather than implying a check.
+It **can** be scored blind on a warrant's holdout if it has a code artifact that
+passed the validation ladder: MAYA runs that code in the sandbox on the holdout's
+input columns only — never the target — and computes the metrics itself, recording
+the artifact's hash and the sandbox tier on the score. Without a validated artifact
+the score is refused by name. The same path gives a black box fairness evidence and
+permutation importance (the warrant's *Fairness & drivers* tab). Opacity propagates
+into any composite that contains it, and a black box is one tier more material than
+its reach.
 
 ## Composites
 
