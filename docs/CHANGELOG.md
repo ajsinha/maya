@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Fairness and explainability evidence**
+
+- A training warrant's *Fairness & drivers* tab (SDK `evidence`,
+  `/api/v1/warrants/training/{id}/evidence`) computes, on the escrowed holdout:
+  - **segment metrics** by a column you name — RMSE, MAE, bias and mean prediction per
+    segment, the worst-to-best MAE ratio, the widest bias gap, and a flag on any segment
+    whose MAE is more than a quarter above the overall figure. Segments below a minimum
+    size (20 rows by default) are reported as suppressed, with no figures, since a mean
+    over a handful of holdout rows discloses those rows;
+  - **permutation importance** — the rise in RMSE when each input is shuffled, seeded and
+    repeated. It needs only predictions, so a black box is measured through the sandbox.
+- A run reads the holdout, so it counts as one holdout attempt; the result is stored on the
+  warrant with the parameters used, and only aggregates are kept.
+
 **Champion and challenger**
 
 - `/governance/challenges` (SDK `challenges`, `/api/v1/challenges`). Two training warrants

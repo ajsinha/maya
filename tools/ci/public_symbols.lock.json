@@ -163,6 +163,13 @@
      "webhooks": "(self)"
     }
    },
+   "evidence": {
+    "class": "Evidence",
+    "methods": {
+     "compute": "(self, warrant_id, *, parameter_set_id=None, segment=None, importance=True, repeats=5, min_segment=20)",
+     "list": "(self, warrant_id)"
+    }
+   },
    "execution": {
     "class": "ExecutionWarrants",
     "methods": {
@@ -538,6 +545,13 @@
      "ping": "(self, webhook_id)",
      "stream": "(self, after=0)",
      "webhooks": "(self)"
+    }
+   },
+   "evidence": {
+    "class": "Evidence",
+    "methods": {
+     "compute": "(self, warrant_id, *, parameter_set_id=None, segment=None, importance=True, repeats=5, min_segment=20)",
+     "list": "(self, warrant_id)"
     }
    },
    "execution": {

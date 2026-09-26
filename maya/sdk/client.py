@@ -37,6 +37,7 @@ from maya.sdk.resources import (
     Challenges,
     Custody,
     Events,
+    Evidence,
     ExecutionWarrants,
     Features,
     FeatureSets,
@@ -79,6 +80,7 @@ class _Namespaces:
         self.governance = Governance(transport)
         self.monitoring = Monitoring(transport)
         self.challenges = Challenges(transport)
+        self.evidence = Evidence(transport)
         self.cache = PinCache()
 
     @property

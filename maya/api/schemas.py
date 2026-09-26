@@ -400,3 +400,11 @@ class ChallengeIn(BaseModel):
 class DecisionIn(BaseModel):
     decision: str
     rationale: str
+
+
+class EvidenceIn(BaseModel):
+    parameter_set_id: str | None = None
+    segment: str | None = None
+    importance: bool = True
+    repeats: int = 5
+    min_segment: int = 20

@@ -30,6 +30,7 @@ def wire(platform: Any) -> None:
     from maya.services.monitoring import MonitoringService
     from maya.services.inventory import InventoryService
     from maya.services.challenges import ChallengeService
+    from maya.services.evidence import EvidenceService
     from maya.services.features import FeatureService
     from maya.services.featuresets import FeatureSetService
     from maya.services.models import ModelService
@@ -74,6 +75,7 @@ def wire(platform: Any) -> None:
         ("monitoring", MonitoringService),
         ("inventory", InventoryService),
         ("challenges", ChallengeService),
+        ("evidence", EvidenceService),
     ):
         platform.register_service(name, cls(platform))
     _jobs(platform)

@@ -8,7 +8,7 @@
 <form method="post" action="/warrants/training/{{ w.id }}/bundle"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Export bundle</button></form></div>
 {% if bundle %}<div class="alert alert-success">Bundle ready ({{ bundle.size }} bytes): <a href="/warrants/bundles/{{ bundle.blob }}">download maya-bundle-{{ bundle.blob[:12] }}.zip</a>. {% if bundle.reexecutable %}Its verify.py re-executes the model and compares outputs.{% else %}Re-execution is not possible: {{ bundle.reason }}{% endif %}</div>{% endif %}
 {% if w.revoked_at %}<div class="alert alert-danger">Revoked: {{ w.revoke_reason }}</div>{% endif %}
-{{ tabs([('overview','Overview'),('definition','Definition'),('params','Parameters'),('holdout','Holdout'),('lineage','Lineage'),('history','History & Comments')], tab) }}
+{{ tabs([('overview','Overview'),('definition','Definition'),('params','Parameters'),('holdout','Holdout'),('evidence','Fairness & drivers'),('lineage','Lineage'),('history','History & Comments')], tab) }}
 <div class="tab-content">
 <div class="tab-pane {% if tab == 'overview' %}show active{% endif %}" id="tab-overview" role="tabpanel">
 <div class="row g-3"><div class="col-lg-6">
@@ -70,6 +70,37 @@
     <div class="row g-2"><div class="col-md-6"><label class="form-label" for="sps">Parameter set</label><select class="form-select" id="sps" name="parameter_set_id"><option value="">— use values below —</option>{% for p in w.parameter_sets %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
     <div class="col-md-6"><label class="form-label" for="svals">Or values (JSON)</label><input class="form-control mono" id="svals" name="values"></div></div>
     <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Score (metrics only; rows never leave)</button></div>
+  </form>
+</div>
+<div class="tab-pane {% if tab == 'evidence' %}show active{% endif %}" id="tab-evidence" role="tabpanel">
+  <p class="small-muted">Computed on the escrowed holdout, so each run counts as one holdout attempt. Only aggregates are kept: a segment smaller than its minimum is reported as suppressed, with no figures. Permutation importance shuffles one input at a time (seeded) and measures the rise in RMSE; it needs only predictions, so it works for a black box through the sandbox.</p>
+  {% for e in evidence %}{% set r = e.result %}
+  <div class="card card-body mb-3">
+    <div class="d-flex flex-wrap gap-2 align-items-baseline"><h3 class="me-auto mb-1">{{ e.created_at|dt }} · {{ e.created_by }}</h3><span class="small-muted">{{ r.rows }} rows · RMSE {{ '%.4g'|format(r.rmse) }} · MAE {{ '%.4g'|format(r.mae) }}{% if r.scored_in == 'sandbox' %} · sandbox ({{ r.sandbox_tier }}){% endif %}</span></div>
+    {% if r.segments %}{% set sg = r.segments %}
+    <h4 class="mt-2">By {{ sg.column }}</h4>
+    <p class="small-muted mb-1">{{ sg.compared }} segment(s) compared, {{ sg.suppressed }} suppressed below {{ sg.min_segment }} rows.{% if sg.mae_ratio %} Worst-to-best MAE ratio {{ '%.2f'|format(sg.mae_ratio) }}.{% endif %}{% if sg.bias_gap is not none %} Widest bias gap {{ '%.4g'|format(sg.bias_gap) }}.{% endif %}{% if sg.flagged %} <strong>Flagged</strong> (MAE more than 25% above overall): {{ sg.flagged|join(', ') }}.{% endif %}</p>
+    {% call(g) table("seg-" ~ e.id[:8], ["Segment", "Rows", "RMSE", "MAE", "Bias", "Mean prediction", "Flag"], sg.segments) %}
+      <td>{{ g.segment }}</td><td>{{ g.rows }}</td>
+      {% if g.suppressed %}<td class="small-muted">suppressed</td><td>—</td><td>—</td><td>—</td><td class="small-muted">fewer than {{ sg.min_segment }} rows</td>
+      {% else %}<td>{{ '%.4g'|format(g.rmse) }}</td><td>{{ '%.4g'|format(g.mae) }}</td><td>{{ '%+.4g'|format(g.bias) }}</td><td>{{ '%.4g'|format(g.mean_prediction) }}</td><td>{% if g.flagged %}{{ pill('watch', 'flagged') }}{% else %}—{% endif %}</td>{% endif %}
+    {% endcall %}{% endif %}
+    {% if r.importance %}
+    <h4 class="mt-2">What drives it</h4>
+    {% call(i) table("imp-" ~ e.id[:8], ["Input", "RMSE increase when shuffled", "Spread", "Share"], r.importance) %}
+      <td>{{ i.input }}{% if i.column != i.input %} <span class="small-muted">({{ i.column }})</span>{% endif %}</td><td data-sort="{{ i.rmse_increase }}">{{ '%.4g'|format(i.rmse_increase) }}</td><td>{{ '%.2g'|format(i.spread) }}</td><td data-sort="{{ i.share }}">{{ '%.0f%%'|format(100 * i.share) }}</td>
+    {% endcall %}{% endif %}
+  </div>
+  {% else %}<p class="small-muted">No evidence computed yet.</p>{% endfor %}
+  <form method="post" action="/warrants/training/{{ w.id }}/evidence" class="card card-body">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Compute evidence</h3>
+    <div class="row g-2">
+      <div class="col-md-4"><label class="form-label" for="eps">Parameter set</label><select class="form-select" id="eps" name="parameter_set_id"><option value="">none (no parameters)</option>{% for p in w.parameter_sets %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label" for="eseg">Segment column (optional)</label><input class="form-control mono" id="eseg" name="segment" placeholder="e.g. symbol"></div>
+      <div class="col-md-2"><label class="form-label" for="erep">Shuffles per input</label><input class="form-control" id="erep" name="repeats" type="number" min="1" max="20" value="5"></div>
+      <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="eimp" name="importance" value="1" checked><label class="form-check-label" for="eimp">Permutation importance</label></div></div>
+    </div>
+    <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Compute (counts as one holdout attempt)</button></div>
   </form>
 </div>
 <div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{% include "_lineage_canvas.html" %}</div>
