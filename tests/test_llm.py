@@ -184,3 +184,10 @@ def test_llm_applications_appear_in_the_inventory(llm):
     assert row["kind"] == "llm application" and row["status"] == "approved"
     assert row["implementation_tested"].startswith("evaluated: ")
     assert row["tier"] is None and row["model_ref"] == "maya://llm/eq/complaints"
+
+
+def test_a_validator_may_add_to_the_evaluation_set_but_a_developer_may_not(llm):
+    w = llm
+    w.p.llm.save_eval_set(w.mgr, APP, name="validator", cases=CASES[:1])
+    with pytest.raises(PermissionDenied):
+        w.p.llm.save_eval_set(w.devi, APP, name="developer", cases=CASES[:1])

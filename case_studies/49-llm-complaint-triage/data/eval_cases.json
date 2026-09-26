@@ -1,0 +1,554 @@
+[
+  {
+    "id": "c01",
+    "vars": {
+      "complaint": "I was charged the annual card fee twice this month."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"billing\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c02",
+    "vars": {
+      "complaint": "An overdraft charge appeared even though I was never overdrawn."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"billing\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c03",
+    "vars": {
+      "complaint": "My statement shows interest on a balance I cleared in full."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"billing\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c04",
+    "vars": {
+      "complaint": "You took my direct debit two days early and it bounced my rent."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"billing\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c05",
+    "vars": {
+      "complaint": "The foreign transaction fee was higher than your price list says."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"billing\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c06",
+    "vars": {
+      "complaint": "There are three payments to a shop in Lisbon I have never visited."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"fraud\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c07",
+    "vars": {
+      "complaint": "Someone called pretending to be your bank and I gave them a code."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"fraud\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c08",
+    "vars": {
+      "complaint": "My card 4111 1111 1111 1111 was used online after I reported it stolen."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"fraud\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c09",
+    "vars": {
+      "complaint": "I received a text asking me to confirm a payee I never added."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"fraud\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c10",
+    "vars": {
+      "complaint": "A new device was added to my online banking last night, not by me."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"fraud\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c11",
+    "vars": {
+      "complaint": "My mortgage payment went up and nobody told me why."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"mortgage\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c12",
+    "vars": {
+      "complaint": "I asked for a payment holiday three weeks ago and heard nothing."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"mortgage\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c13",
+    "vars": {
+      "complaint": "The redemption figure you sent does not match my own calculation."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"mortgage\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c14",
+    "vars": {
+      "complaint": "You have not applied my overpayment to the capital."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"mortgage\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c15",
+    "vars": {
+      "complaint": "My fixed rate ended and I was moved to the standard rate without notice."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"mortgage\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c16",
+    "vars": {
+      "complaint": "I have been locked out of the app for four days."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"access\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c17",
+    "vars": {
+      "complaint": "The branch refused to let my carer help me at the counter."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"access\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c18",
+    "vars": {
+      "complaint": "Your phone line kept me on hold for ninety minutes."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"access\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c19",
+    "vars": {
+      "complaint": "I cannot read your letters; I asked for large print twice."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"access\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c20",
+    "vars": {
+      "complaint": "The website rejects my password reset every time."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"access\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c21",
+    "vars": {
+      "complaint": "Your adviser was rude to me on the phone."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"other\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c22",
+    "vars": {
+      "complaint": "I want to close my account and nobody will tell me how."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"other\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c23",
+    "vars": {
+      "complaint": "The cash machine outside your branch has been broken for a month."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"other\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  },
+  {
+    "id": "c24",
+    "vars": {
+      "complaint": "I was promised a call back that never came."
+    },
+    "checks": [
+      {
+        "kind": "json",
+        "value": [
+          "category",
+          "reply"
+        ]
+      },
+      {
+        "kind": "regex",
+        "value": "\"category\"\\s*:\\s*\"other\""
+      },
+      {
+        "kind": "max_chars",
+        "value": 600
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "id": "c25",
+  "vars": {
+    "complaint": "Codwyd ffi flynyddol y cerdyn ddwywaith y mis hwn."
+  },
+  "checks": [
+    {
+      "kind": "json",
+      "value": [
+        "category",
+        "reply"
+      ]
+    },
+    {
+      "kind": "regex",
+      "value": "\"category\"\\s*:\\s*\"billing\""
+    },
+    {
+      "kind": "max_chars",
+      "value": 600
+    }
+  ]
+}
