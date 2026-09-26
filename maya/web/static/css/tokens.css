@@ -32,7 +32,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     --maya-crimson: #DE6B81;
     --maya-crimson-strong: #D4526A;
     --maya-crimson-deep: #E07A8E;  /* spec §16.6 says #A51C30: 2.20:1 on the dark surface, fails the gate */
@@ -81,4 +81,67 @@
   --maya-on-nav: #FFFFFF;
   --maya-glow: #4A2530;
   color-scheme: dark;
+}
+
+/*
+ * Two further themes. Each redefines the same tokens and nothing else, so the gradients,
+ * the glow, the type and every layout stay exactly as the crimson theme has them: only the
+ * colour changes. The token names still say "crimson" because they name a role -- the
+ * accent -- rather than a hue; renaming them would touch every stylesheet for no gain.
+ *
+ * Blue is taken from the SAJHA server's palette: #0079C1 as the accent, #003168 as the deep
+ * navy it hovers to, #00A3E0 in the glow. Green follows Rolex: #006039 as the accent, a
+ * warm cream ground, and the house gold carried in the highlight and the glow. The semantic
+ * colours keep their meaning in both -- "bad" stays a red in a blue theme and "ok" is a
+ * yellower green than the accent in the green one, so a status is never mistaken for
+ * decoration.
+ */
+:root[data-theme="blue"] {
+  --maya-crimson: #0079C1;
+  --maya-crimson-strong: #00609A;
+  --maya-crimson-deep: #003168;
+  --maya-crimson-tint: #E6F2FA;
+  --maya-ink: #1E293B;
+  --maya-slate: #536578;
+  --maya-surface: #FFFFFF;
+  --maya-canvas: #F0F5FA;
+  --maya-indigo: #003168;
+  --maya-on-crimson: #FFFFFF;
+  --maya-border: #DCE4EE;
+  --maya-ok: #1E6B3A;
+  --maya-warn: #7A5200;
+  --maya-bad: #B42318;
+  --maya-highlight: #CDE8F7;
+  --maya-heading: #003168;
+  --maya-nav-from: #002654;
+  --maya-nav-via: #0079C1;
+  --maya-nav-to: #003168;
+  --maya-on-nav: #FFFFFF;
+  --maya-glow: #CBE6F7;
+  color-scheme: light;
+}
+
+:root[data-theme="green"] {
+  --maya-crimson: #006039;
+  --maya-crimson-strong: #004D2E;
+  --maya-crimson-deep: #00331F;
+  --maya-crimson-tint: #E8F3EC;
+  --maya-ink: #1A1A1A;
+  --maya-slate: #5E6A64;
+  --maya-surface: #FFFFFF;
+  --maya-canvas: #F7F5EF;
+  --maya-indigo: #1C3A2E;
+  --maya-on-crimson: #FFFFFF;
+  --maya-border: #E3DECF;
+  --maya-ok: #3A6B1E;
+  --maya-warn: #7A5200;
+  --maya-bad: #A4161A;
+  --maya-highlight: #EBDDB2;
+  --maya-heading: #004D2E;
+  --maya-nav-from: #00261A;
+  --maya-nav-via: #006039;
+  --maya-nav-to: #1C3A2E;
+  --maya-on-nav: #FFFFFF;
+  --maya-glow: #E6D7A8;
+  color-scheme: light;
 }
