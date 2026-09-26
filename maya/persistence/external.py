@@ -24,6 +24,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import NoSuchModuleError
 
 from maya.core.errors import ValidationFailed
 
@@ -54,6 +55,16 @@ def _strip_strings(sql: str) -> str:
     return re.sub(r"'(?:[^']|'')*'", "''", sql)
 
 
+# Snowflake and Databricks come through their own SQLAlchemy dialects (snowflake-sqlalchemy,
+# databricks-sqlalchemy), installed only where they are used. Neither has a driver-level
+# read-only session, so for them the guards are the SELECT-only text check, a statement
+# timeout where the driver takes one, and the credentials: a Snowflake URL must name a role,
+# which should be read-only, and a Databricks token should belong to a principal that can
+# only read. Neither has been exercised against a live account from this code base's tests.
+BACKENDS = ("sqlite", "postgresql", "snowflake", "databricks")
+DRIVERS = {"snowflake": "snowflake-sqlalchemy", "databricks": "databricks-sqlalchemy"}
+
+
 def check_url(url: str) -> str:
     """A connection URL may name a user but never carry a password."""
     try:
@@ -65,8 +76,14 @@ def check_url(url: str) -> str:
             "Put the password in an environment variable and name it in "
             "password_env; MAYA never stores database passwords"
         )
-    if parsed.get_backend_name() not in ("sqlite", "postgresql"):
-        raise ValidationFailed("Supported source databases: sqlite, postgresql")
+    backend = parsed.get_backend_name()
+    if backend not in BACKENDS:
+        raise ValidationFailed(f"Supported source databases: {', '.join(BACKENDS)}")
+    if backend == "snowflake" and not parsed.query.get("role"):
+        raise ValidationFailed(
+            "A Snowflake source names a read-only role in the URL (?role=...): Snowflake has "
+            "no driver-level read-only session, so the role is what stops a write"
+        )
     return url
 
 
@@ -80,9 +97,22 @@ def _read_only_engine(url: str, password_env: str | None) -> Any:
                 "connection's password is not set on this server"
             )
         parsed = parsed.set(password=secret)
-    if parsed.get_backend_name() == "sqlite":
+    backend = parsed.get_backend_name()
+    if backend == "sqlite":
         path = parsed.database or ""
         return create_engine(f"sqlite:///file:{path}?mode=ro&uri=true")
+    if backend in DRIVERS:
+        try:
+            if backend == "snowflake":
+                return create_engine(
+                    parsed,
+                    connect_args={"session_parameters": {"STATEMENT_TIMEOUT_IN_SECONDS": 300}},
+                )
+            return create_engine(parsed)
+        except NoSuchModuleError as exc:
+            raise ValidationFailed(
+                f"A {backend} source needs the '{DRIVERS[backend]}' package on this server"
+            ) from exc
     return create_engine(
         parsed,
         connect_args={"options": "-c default_transaction_read_only=on -c statement_timeout=300000"},

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Connectors{% endblock %}
+{% block content %}
+<h1>Connectors</h1>
+<p class="small-muted">Models trained elsewhere come in as black-box drafts, with where they came from sealed into the version; they then go through review, warrants and blind scoring like any other model. MAYA's lineage goes out as OpenLineage events. SQL sources, including Snowflake and Databricks, are under <a href="/admin/sources">Admin → Sources</a>. These connectors are tested against the documents each system publishes, not yet against a live account.</p>
+{% macro target(prefix) -%}
+<div class="col-md-4"><label class="form-label" for="{{ prefix }}ns">Namespace</label><select class="form-select" id="{{ prefix }}ns" name="namespace" required>{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+<div class="col-md-4"><label class="form-label" for="{{ prefix }}name">Name in MAYA</label><input class="form-control" id="{{ prefix }}name" name="name" required></div>
+<div class="col-md-12"><label class="form-label" for="{{ prefix }}est">What it estimates, in a sentence</label><input class="form-control" id="{{ prefix }}est" name="estimates" required></div>
+{%- endmacro %}
+<div class="row g-3">
+<div class="col-lg-6">
+<form method="post" action="/integrations/mlflow" enctype="multipart/form-data" class="card card-body h-100">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h2>MLflow</h2>
+  <p class="small-muted mb-2">From the model's <code>MLmodel</code> file: its signature becomes the input contract. A model logged without a signature is refused, because MAYA would have to guess its inputs.</p>
+  <div class="row g-2">{{ target('m') }}
+    <div class="col-12"><label class="form-label" for="mfile">MLmodel file</label><input class="form-control" id="mfile" name="mlmodel_file" type="file"></div>
+    <div class="col-12"><label class="form-label" for="mtext">…or paste it</label><textarea class="form-control mono" id="mtext" name="mlmodel" rows="4"></textarea></div>
+    <div class="col-md-8"><label class="form-label" for="mreg">…or a registered model on the configured tracking server</label><input class="form-control" id="mreg" name="model_name" placeholder="registered model name"></div>
+    <div class="col-md-4"><label class="form-label" for="mver">Version</label><input class="form-control" id="mver" name="version"></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Import</button></div>
+</form>
+</div>
+<div class="col-lg-6">
+<form method="post" action="/integrations/sagemaker" class="card card-body h-100">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h2>Amazon SageMaker</h2>
+  <p class="small-muted mb-2">From the output of <code>aws sagemaker describe-model-package</code>. SageMaker does not record a model's inputs, so name them here or in a <code>maya:inputs</code> customer metadata property.</p>
+  <div class="row g-2">{{ target('s') }}
+    <div class="col-12"><label class="form-label" for="spkg">Model package description (JSON)</label><textarea class="form-control mono" id="spkg" name="package" rows="5" required data-json></textarea></div>
+    <div class="col-md-8"><label class="form-label" for="sin">Inputs, comma-separated</label><input class="form-control mono" id="sin" name="inputs"></div>
+    <div class="col-md-4"><label class="form-label" for="sout">Outputs</label><input class="form-control mono" id="sout" name="outputs" placeholder="prediction"></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Import</button></div>
+</form>
+</div>
+</div>
+{% if admin %}
+<div class="card card-body mt-3">
+  <h2>OpenLineage</h2>
+  <p class="small-muted mb-2">Every lineage edge, grouped by what it produces, as an OpenLineage <code>RunEvent</code>: one job per produced object, its sources as inputs. Download them, or send them to the endpoint in <code>integrations.openlineage.url</code>.</p>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="/integrations/openlineage.json"><i class="bi bi-download" aria-hidden="true"></i> Download events</a>
+    <form method="post" action="/integrations/openlineage"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-outline-secondary" type="submit">Send to the configured endpoint</button></form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

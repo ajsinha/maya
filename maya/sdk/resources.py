@@ -18,6 +18,7 @@ from typing import Any
 from maya.core.errors import MayaError
 from maya.sdk.base import ENDPOINTS, PAGE_SIZE, _nn, _Resource, endpoint
 from maya.sdk.governance import Challenges, Evidence, Governance, Monitoring
+from maya.sdk.integrations import Integrations
 from maya.sdk.transport import Call, seg
 
 
@@ -1784,6 +1785,7 @@ __all__ = [
     "Challenges",
     "Evidence",
     "Governance",
+    "Integrations",
     "Monitoring",
     "endpoint",
 ]

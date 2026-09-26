@@ -12,7 +12,7 @@ from typing import Any
 from fastapi import APIRouter
 from fastapi.responses import Response
 
-from maya.api import schemas as s
+from maya.api import schemas_governance as s
 from maya.api.deps import Me, Plat, ok
 from maya.security.authz import Principal
 

@@ -698,6 +698,37 @@ SETTINGS: tuple[Setting, ...] = (
         "5",
         minimum=0.1,
     ),
+    # -- connectors -----------------------------------------------------------------
+    _s(
+        "integrations.mlflow.tracking_uri",
+        "string",
+        "The MLflow tracking server models may be fetched from; blank means upload only.",
+        "",
+    ),
+    _s(
+        "integrations.mlflow.token_env",
+        "string",
+        "Environment variable holding a bearer token for the MLflow server, if it needs one.",
+        "",
+    ),
+    _s(
+        "integrations.openlineage.url",
+        "string",
+        "An OpenLineage endpoint (e.g. Marquez) lineage is posted to; blank means download only.",
+        "",
+    ),
+    _s(
+        "integrations.openlineage.api_key_env",
+        "string",
+        "Environment variable holding the OpenLineage endpoint's bearer token, if any.",
+        "",
+    ),
+    _s(
+        "integrations.openlineage.namespace",
+        "string",
+        "The OpenLineage namespace MAYA's jobs and datasets are reported under.",
+        "maya",
+    ),
     _s(
         "observability.webhooks.allow_private",
         "bool",

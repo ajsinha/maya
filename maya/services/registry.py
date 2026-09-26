@@ -15,6 +15,28 @@ from maya.core.errors import ValidationFailed
 from maya.security.authz import Principal
 
 
+def _governance(platform: Any) -> None:
+    """Model governance: findings and reviews, monitoring, the inventory, champion and
+    challenger, holdout evidence, and the connectors. Registered after the services they
+    read (execution, warrants, models)."""
+    from maya.services.challenges import ChallengeService
+    from maya.services.evidence import EvidenceService
+    from maya.services.governance import GovernanceService
+    from maya.services.integrations import IntegrationService
+    from maya.services.inventory import InventoryService
+    from maya.services.monitoring import MonitoringService
+
+    for name, cls in (
+        ("governance", GovernanceService),
+        ("monitoring", MonitoringService),
+        ("inventory", InventoryService),
+        ("challenges", ChallengeService),
+        ("evidence", EvidenceService),
+        ("integrations", IntegrationService),
+    ):
+        platform.register_service(name, cls(platform))
+
+
 def wire(platform: Any) -> None:
     from maya.services.access import AccessService
     from maya.services.access_requests import AccessRequestService
@@ -26,11 +48,6 @@ def wire(platform: Any) -> None:
     from maya.services.bundle import BundleService
     from maya.services.execution import ExecutionService
     from maya.services.feature_data import FeatureData
-    from maya.services.governance import GovernanceService
-    from maya.services.monitoring import MonitoringService
-    from maya.services.inventory import InventoryService
-    from maya.services.challenges import ChallengeService
-    from maya.services.evidence import EvidenceService
     from maya.services.features import FeatureService
     from maya.services.featuresets import FeatureSetService
     from maya.services.models import ModelService
@@ -71,13 +88,9 @@ def wire(platform: Any) -> None:
         ("access_requests", AccessRequestService),
         ("retention", RetentionService),
         ("tracking", TrackingService),
-        ("governance", GovernanceService),
-        ("monitoring", MonitoringService),
-        ("inventory", InventoryService),
-        ("challenges", ChallengeService),
-        ("evidence", EvidenceService),
     ):
         platform.register_service(name, cls(platform))
+    _governance(platform)
     _jobs(platform)
     _checks(platform)
     _collectors(platform)
