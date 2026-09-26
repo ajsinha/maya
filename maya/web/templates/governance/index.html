@@ -5,6 +5,12 @@
 {% block content %}
 <div class="d-flex align-items-center mb-2"><h1 class="me-auto">Findings &amp; reviews</h1>
 {% if admin %}<form method="post" action="/governance/sweep" data-confirm="Suspend the live execution warrants of every model whose periodic review is overdue?"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit" title="Runs hourly on its own; this runs it now">Run the review sweep</button></form>{% endif %}</div>
+<form method="get" action="/governance/inventory" class="d-flex flex-wrap gap-1 align-items-center mb-2">
+  <span class="small-muted me-1">Export the model inventory</span>
+  <label class="visually-hidden" for="invfw">Layout</label><select class="form-select form-select-sm" id="invfw" name="framework" style="width:auto"><option value="sr11-7">SR 11-7 layout</option><option value="ss1-23">SS1/23 layout</option><option value="maya">MAYA's own keys</option></select>
+  <label class="visually-hidden" for="invfmt">Format</label><select class="form-select form-select-sm" id="invfmt" name="format" style="width:auto"><option value="xlsx">Excel</option><option value="csv">CSV</option><option value="json">JSON</option></select>
+  <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-download" aria-hidden="true"></i> Export</button>
+</form>
 <p class="small-muted">Every model you can read: how material it is, when it is next due for review, and what is still open against it. A review that falls overdue suspends the model's live execution warrants until an independent reviewer records one.</p>
 <div class="d-flex flex-wrap gap-3 mb-3">
   <div class="card card-body py-2"><div class="small-muted">Open findings</div><div class="fs-4">{{ overview.open_findings }}</div></div>

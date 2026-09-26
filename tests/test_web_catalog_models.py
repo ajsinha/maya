@@ -416,6 +416,10 @@ def test_governance_pages_raise_move_declare_and_review(people):
         expect="success",
     )
     admin.post("/governance/sweep", expect="info")
+    xl = mona.get("/governance/inventory?framework=ss1-23&format=xlsx")
+    assert xl.content[:2] == b"PK" and "ss1-23" in xl.headers["content-disposition"]
+    csv_text = mona.get("/governance/inventory?framework=sr11-7&format=csv").text
+    assert "Risk rating" in csv_text and "maya://model/quant/linear" in csv_text
     assert "Governance" in mona.get("/models/quant/linear").text
 
 

@@ -23,6 +23,16 @@ class Governance(_Resource):
     def overview(self) -> Any:
         return self._c("GET", "/governance")
 
+    @endpoint("GET", "/governance/inventory")
+    def inventory(self, format: str = "csv", framework: str = "sr11-7") -> Any:
+        """The model inventory as a file: ``{data, content_type, ...}``."""
+        return self._c(
+            "GET",
+            "/governance/inventory",
+            params={"format": format, "framework": framework},
+            raw=True,
+        )
+
     @endpoint("GET", "/governance/findings")
     def findings(self, model: str | None = None, state: str | None = None) -> Any:
         return self._c("GET", "/governance/findings", params={"model": model, "state": state})

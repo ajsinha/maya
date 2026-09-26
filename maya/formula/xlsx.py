@@ -707,3 +707,38 @@ def lift_workbook(
 
     ir["latex"] = to_latex(ir)
     return ir
+
+
+def write_workbook(sheets: list[dict[str, Any]]) -> bytes:
+    """Write a workbook: each sheet is ``{title, rows, header?, freeze?, widths?}``.
+
+    The one place MAYA *writes* a spreadsheet, so openpyxl stays behind this module like
+    every other proxied package (§13.4.3). ``header`` bolds and wraps the first row and puts
+    an autofilter on it; ``widths`` maps column letters to widths. Datetimes are written
+    without a time zone, because Excel has none -- the caller says in the sheet which one."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+
+    wb = Workbook()
+    wb.remove(wb.active)
+    for spec in sheets:
+        ws = wb.create_sheet(spec["title"])
+        for row in spec["rows"]:
+            ws.append(
+                [
+                    v.replace(tzinfo=None) if getattr(v, "tzinfo", None) is not None else v
+                    for v in row
+                ]
+            )
+        if spec.get("header") and ws.max_row:
+            for cell in ws[1]:
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+            ws.auto_filter.ref = ws.dimensions
+        if spec.get("freeze"):
+            ws.freeze_panes = spec["freeze"]
+        for letter, width in (spec.get("widths") or {}).items():
+            ws.column_dimensions[letter].width = width
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

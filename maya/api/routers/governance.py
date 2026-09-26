@@ -25,6 +25,21 @@ def overview(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.governance.overview(me))
 
 
+@router.get("/governance/inventory")
+def inventory(
+    format: str = "csv", framework: str = "sr11-7", me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """The model inventory as a file, in an SR 11-7 or SS1/23 aligned layout (or MAYA's own
+    keys with ``framework=maya``). Only models the caller may read; the file says how many
+    were left out."""
+    out = plat.inventory.export(me, format, framework)
+    return Response(
+        out["data"],
+        media_type=out["content_type"],
+        headers={"Content-Disposition": f'attachment; filename="{out["filename"]}"'},
+    )
+
+
 @router.get("/governance/findings")
 def findings(
     model: str | None = None, state: str | None = None, me: Principal = Me, plat: Any = Plat

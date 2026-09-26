@@ -7,13 +7,23 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from maya.web.charts import line_chart
-from maya.web.routes.common import action, client, flash, form, is_admin, page, render
+from maya.web.routes.common import (
+    action,
+    client,
+    download,
+    flash,
+    form,
+    is_admin,
+    page,
+    render,
+)
 
 router = APIRouter()
 
@@ -62,6 +72,17 @@ async def governance_page(request: Request) -> Any:
             "admin": is_admin(request),
         },
     )
+
+
+@router.get("/governance/inventory")
+@page
+async def governance_inventory(request: Request) -> Any:
+    fmt = request.query_params.get("format", "xlsx")
+    framework = request.query_params.get("framework", "sr11-7")
+    async with client(request) as sdk:
+        result = await sdk.governance.inventory(format=fmt, framework=framework)
+    today = dt.date.today().strftime("%Y%m%d")
+    return download(result, f"maya-inventory-{framework}-{today}.{fmt}")
 
 
 @router.get("/governance/models/{namespace}/{name}")

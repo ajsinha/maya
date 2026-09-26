@@ -222,6 +222,7 @@
     "methods": {
      "finding": "(self, finding_id)",
      "findings": "(self, model=None, state=None)",
+     "inventory": "(self, format='csv', framework='sr11-7')",
      "move_finding": "(self, finding_id, action, note=None)",
      "overview": "(self)",
      "profile": "(self, model)",
@@ -589,6 +590,7 @@
     "methods": {
      "finding": "(self, finding_id)",
      "findings": "(self, model=None, state=None)",
+     "inventory": "(self, format='csv', framework='sr11-7')",
      "move_finding": "(self, finding_id, action, note=None)",
      "overview": "(self)",
      "profile": "(self, model)",
