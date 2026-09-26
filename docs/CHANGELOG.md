@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**Black boxes are scored blind, in the sandbox**
+
+- A declared black box (a vendor model, or any opaque one) used to be refused at holdout
+  scoring: MAYA cannot evaluate a model it cannot read. It can run one it has validated,
+  though, so a black box whose code artifact passed the validation ladder is now scored by
+  running that artifact in the sandbox on the escrowed holdout's input columns — never the
+  target, with no network and no view of storage. MAYA computes the metrics from the
+  predictions; the caller sees the metrics and never a row.
+- The score records what was run: `scored_in: sandbox`, the sandbox tier and the
+  artifact's hash, on the attempt and in the warrant's custody chain. A black box with no
+  validated artifact is refused by name, and one that reads the target as an input is
+  refused rather than handed the answer.
+
 **Ongoing monitoring dashboards**
 
 - **`/monitoring`** (SDK `monitoring`, `GET /monitoring`, `GET /monitoring/warrants/{id}`)

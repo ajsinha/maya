@@ -4,8 +4,8 @@ model of kind ``vendor`` with a declared input contract, the vendor's name, prod
 version and documentation recorded; it passes the same review; its warrants behave
 exactly as an internal model's — contract validation naming every missing input, the
 leakage certificate, the download checksum, sealing — and what MAYA cannot verify is
-*marked* unverifiable (the bundle says it cannot re-execute, scoring refuses by name)
-rather than silently omitted.
+*marked* unverifiable (the bundle says it cannot re-execute) rather than silently omitted.
+A black box with a validated code artifact is scored blind, in the sandbox.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -144,7 +144,7 @@ def test_vendor_warrants_behave_as_internal_ones(vendor_world):
     assert tw["contract_report"]["ok"] and tw["leakage_certificate"]["status"] == "certified"
     data = w.p.warrants.data(w.devi, tw["id"])
     assert data["manifest"]["rows"] > 0 and len(data["manifest"]["checksum"]) == 64
-    with pytest.raises(ValidationFailed, match="black box cannot be scored"):
+    with pytest.raises(ValidationFailed, match="no artifact that passed"):
         w.p.warrants.score_holdout(w.devi, tw["id"])
     w.p.warrants.transition(w.devi, tw["id"], "submit")
     w.p.warrants.transition(w.mgr, tw["id"], "approve")
@@ -221,3 +221,44 @@ def test_a_black_box_still_has_to_supply_the_parameters_it_declares(vendor_world
     )
     assert w.p.warrants.check_bounds(ir, {"w1": 0.5}) == ["missing parameter 'w2'"]
     assert w.p.warrants.check_bounds(ir, {"w1": 0.5, "w2": 0.25}) == []
+
+
+ARTIFACT = """
+class Model:
+    def fit(self, X, y, ctx):
+        return {}
+
+    def predict(self, X, params, ctx):
+        return {"score": (2.0 * X["x"] + 0.5).tolist()}
+"""
+
+
+def test_a_black_box_with_a_validated_artifact_is_scored_blind_in_the_sandbox(vendor_world):
+    w = vendor_world
+    pin = "maya://featureset/bought/inputs#m1/2026-01-30"
+    w.p.models.create(
+        w.mona, namespace="bought", name="acme_x", kind="vendor", ir=_black_box("x"), vendor=VENDOR
+    )
+    w.p.models.update_draft(w.mona, "bought/acme_x", spec_latex=complete_spec("acme_x"))
+    w.p.models.upload_artifact(w.mona, "bought/acme_x", ARTIFACT)
+    w.drain()
+    v = w.p.models.get(w.mona, "bought/acme_x")["versions"][0]
+    assert v["artifact_report"]["passed"], v["artifact_report"]
+    w.p.models.transition(w.mona, "bought/acme_x", 1, "submit")
+    w.p.models.transition(w.mgr, "bought/acme_x", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="bought",
+        name="acme_x_run",
+        model="bought/acme_x@v1",
+        featureset=pin,
+        spec={"seed": 3, "target": "y"},
+    )
+    out = w.p.warrants.score_holdout(w.devi, tw["id"])
+    m = out["metrics"]
+    assert m["scored_in"] == "sandbox" and m["artifact_hash"] == v["artifact_hash"]
+    assert m["rmse"] < 1e-3 and m["rows"] > 0 and m["sandbox_tier"]
+    assert "score" not in out and "predictions" not in out  # metrics out, rows never
+    custody = w.p.warrants.get(w.devi, tw["id"])["custody"]
+    scored = [c for c in custody if c["event"] == "holdout_scored"][-1]
+    assert scored["detail"]["scored_in"] == "sandbox"
