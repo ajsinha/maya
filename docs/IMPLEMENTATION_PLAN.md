@@ -16,6 +16,11 @@ Version 1.1 · 2026-09-17 · Ashutosh Sinha
 > settled by their own modules, and a `tracing` seam was added — specification §13.4.2,
 > revision 2.6.)*
 >
+> **Version 1.0.0 (2026-09-26)** adds the model governance layer — findings, materiality,
+> periodic review, monitoring, champion and challenger, fairness and explainability evidence,
+> inventory exports, LLM applications and connectors; the README's *What's shipped* lists each
+> with its tests. The milestone notes below are as they stood at 0.3.0.
+>
 > **Status at version 0.3.0 (2026-09-19).** Each milestone below now carries a *Status*
 > note: what it delivered, with the tests, and what it promised and did not deliver.
 > Nothing promised has been deleted — the record of what was promised is part of the

@@ -11,8 +11,8 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 APP_NAME = "MAYA"
 APP_TAGLINE = "Model & AI Lifecycle Assurance"
 APP_SLOGAN = "Evidence, not assertion."
-VERSION = "0.3.0"
-BUILD_DATE = "2026-09-19"
+VERSION = "1.0.0"
+BUILD_DATE = "2026-09-26"
 API_VERSION = "v1"
 # Shown in the footer of every page and on the About page. The source files carry the same
 # notice in ASCII; this one is for display, where the sign is the sign.
@@ -20,6 +20,19 @@ COPYRIGHT = "© 2026 Ashutosh Sinha. All rights reserved."
 
 # Per-release highlights, newest first. Rendered on the About page.
 HIGHLIGHTS = {
+    "1.0.0": [
+        "Findings and remediation register; nobody closes their own fix",
+        "Materiality tiers from measured drivers and the firm's own questionnaire",
+        "Periodic review that suspends a model's live warrants when it falls overdue",
+        "Monitoring dashboards: live warrants graded ok, watch or breach from their reports",
+        "Black boxes scored blind by running their validated artifact in the sandbox",
+        "Champion and challenger on the same sealed holdout, with a paired bootstrap interval",
+        "Fairness by segment and permutation importance, black boxes included",
+        "The model inventory exported in SR 11-7 and SS1/23 layouts",
+        "LLM applications governed like models: sealed versions, evaluations, guardrails",
+        "Connectors: MLflow and SageMaker import, OpenLineage export, Snowflake and Databricks",
+        "The normal quantile in the formula IR; derived features keep their knowledge clock",
+    ],
     "0.3.0": [
         "Single sign-on tested against a real identity provider, Keycloak 26.4: OIDC and "
         "SAML sign-in, single logout in both directions",

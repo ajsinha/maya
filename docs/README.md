@@ -1,6 +1,6 @@
 # docs
 
-The specification is the source of truth for MAYA. Version 0.3.0 implements its spine; the README states exactly what is shipped, with the test that proves each capability ([*What's shipped*](../README.md#whats-shipped)), what is out of scope by decision, and what is not yet done ([*Status*](../README.md#status--read-this-first)).
+The specification is the source of truth for MAYA. Version 1.0.0 implements its spine and the model governance built on it; the README states exactly what is shipped, with the test that proves each capability ([*What's shipped*](../README.md#whats-shipped)), what is out of scope by decision, and what is not yet done ([*Status*](../README.md#status--read-this-first)).
 Read in this order.
 
 | Document | What it is |

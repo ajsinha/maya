@@ -31,7 +31,7 @@ It exists because four things are true in almost every quantitative shop, and ea
 The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes a model version against a feature set version and receives the parameters that training produced. An *execution warrant* packages a model, its parameters and its input contract into a licence that can be handed to a downstream system or a regulator — and, because it is a live instrument rather than a document, withdrawn on a Friday afternoon when the model is found to be wrong. Warrants make *who was allowed to run what, on which data, with whose approval* a query rather than an archaeology project.
 
 [![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/MAYA_Requirements_and_Design.md)
-[![Implementation](https://img.shields.io/badge/implementation-v0.3.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
+[![Implementation](https://img.shields.io/badge/implementation-v1.0.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
@@ -80,11 +80,15 @@ That is māyā, and it is model risk, in one figure.
 
 ## Status — read this first
 
-**Version 0.3.0 (2026-09-19), built from specification revision 2.6.**
+**Version 1.0.0 (2026-09-26), built from specification revision 2.6.**
 The whole spine runs through the web UI, the REST API, the SDK and the CLI:
 source → feature → feature set → pin → model → training warrant → parameter set →
-execution warrant → reproducibility bundle. The SDK's own version, `CLIENT_VERSION`, is
-0.2.0: nothing in it changed in 0.3.0.
+execution warrant → reproducibility bundle. On top of it, 1.0.0 adds the model governance
+a model risk function works in: findings and remediation, materiality tiers, periodic
+review that suspends overdue models, monitoring, champion and challenger, fairness and
+explainability evidence, SR 11-7 and SS1/23 inventory exports, LLM application governance,
+and connectors to MLflow, SageMaker, OpenLineage, Snowflake and Databricks. The SDK's own
+version, `CLIENT_VERSION`, is 1.0.0 as well: it gained a method for each of those.
 
 | | |
 |---|---|
@@ -96,8 +100,8 @@ execution warrant → reproducibility bundle. The SDK's own version, `CLIENT_VER
 | **Audited** | [`docs/audit/spec-audit-2026-09-19.md`](docs/audit/spec-audit-2026-09-19.md) — revision 2.3 read against the code, requirement by requirement: of about 540, some 195 were built and tested, 28 built but untested, 123 partly built and 84 not built. The gaps were ranked; every ranked gap has since been closed but for one clause of gap 14, and the header says which |
 | **Decisions and operations** | [`docs/adr/`](docs/adr/) — 28 architecture decision records; [`docs/runbooks/`](docs/runbooks/) — fifteen runbooks, the nine §20 asks for among them, the restore drill performed and recorded |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
-| **Tests** | 1,706 on Linux: 1,695 pass on SQLite and 10 are skipped (the eight Keycloak tests, `tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`, and the two multi-process server tests, which need PostgreSQL). One fails and is a stale assertion rather than a defect in the product: `tests/test_web.py::test_logout` still expects the sign-out destination that changed when `/` became the landing page. The suite last ran green on PostgreSQL 16, 17 and 18 at 1,262 tests; the ones added since have run on SQLite only. With every Type A seam pinned to its fallback (`gates.py --fallback`) it passed at 1,150 tests and has not been rerun since. They include real-browser tests in headless Chrome, a multi-process server, a worker process, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. Line coverage was 92.9% at 0.3.0, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
-| **Gates** | `python tools/ci/gates.py`: all green — lint, strict typing of `maya/services`, file size, both import boundaries, import cycles, public names per module, seam imports, SDK public symbols, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 215 endpoints, UI↔SDK parity, the API contract snapshot, protocol literals, bandit, schema drift. `--tests`, `--fallback`, `--security` and `--bench` add the suite with coverage, the fallback matrix, pip-audit with the sandbox tests, and the benchmark regression check |
+| **Tests** | 2,068 on Linux: 2,058 pass on SQLite and 10 are skipped (the eight Keycloak tests, `tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`, and the two multi-process server tests, which need PostgreSQL). The suite last ran green on PostgreSQL 16, 17 and 18 at 1,262 tests; the ones added since have run on SQLite only. With every Type A seam pinned to its fallback (`gates.py --fallback`) it passed at 1,150 tests and has not been rerun since. They include real-browser tests in headless Chrome, a multi-process server, a worker process, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. Line coverage was 92.9% at 0.3.0, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
+| **Gates** | `python tools/ci/gates.py`: all green — lint, strict typing of `maya/services`, file size, both import boundaries, import cycles, public names per module, seam imports, SDK public symbols, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 246 endpoints, UI↔SDK parity, the API contract snapshot, protocol literals, bandit, schema drift. `--tests`, `--fallback`, `--security` and `--bench` add the suite with coverage, the fallback matrix, pip-audit with the sandbox tests, and the benchmark regression check |
 
 ### Out of scope by decision
 
@@ -109,7 +113,9 @@ something that should be read plainly:
   `assistant.provider: claude` the request — Claude Opus 5, structured JSON output,
   server-side refusal fallbacks — is verified against a stub of the Anthropic client,
   and only against that. Whether the live service answers the way the stub does is
-  unproven. The deterministic `rules` provider, the default, is unaffected.
+  unproven. The deterministic `rules` provider, the default, is unaffected. The same holds
+  for a *live* evaluation run of an LLM application: it goes through the same client, and
+  is tested against a stub; recorded runs are unaffected.
 - **Windows and macOS are not exercised.** Only Linux is. The specification's SC-14 —
   the full suite green on all three — is therefore not met, and the code paths that
   exist only for the other two (`sandbox-exec` at `moderate` on macOS, the wall-clock
@@ -124,6 +130,13 @@ something that should be read plainly:
   no errors. Without a quiet host that verdict will not be settled either way.
 
 ### Not yet — stated so nobody has to discover it
+
+- **The connectors have not met a live service.** MLflow and SageMaker import, the
+  OpenLineage export and the Snowflake and Databricks sources are tested against the
+  documents those systems publish and a recorded HTTP exchange — not against a running
+  MLflow server, an AWS account, an OpenLineage consumer or a warehouse.
+- **The 1.0.0 additions have run on SQLite only.** The suite last ran green on PostgreSQL
+  before them; run it with `MAYA_TEST_PG_URL` before relying on PostgreSQL.
 
 - **PostgreSQL 14 and 15 have not been run.** The whole suite passes on PostgreSQL
   16.15, 17.11 and 18.6, as well as SQLite; 14 is the documented floor. Run it with
@@ -268,6 +281,17 @@ promised and did not deliver is marked in
 | `maya.testing`: a throwaway platform for users' own tests, and a synthetic market dataset | `maya/testing/` | `tests/test_testing_kit.py`, `tests/test_market_dataset.py` |
 | The restore drill, on SQLite and PostgreSQL 17 | `docs/runbooks/restore-drill.md` | Performed and recorded in the runbook, §5 |
 | Measured against §3 and §24.3 | `tools/bench/` | Not tests: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), from the result files in `docs/benchmarks/` |
+| **1.0.0** Findings register: severity, owner, due date, history; nobody closes their own fix | `maya/services/governance.py`, `/governance` | `tests/test_governance.py` (`test_a_finding_is_raised_remediated_and_closed_by_someone_independent`, `test_the_owner_does_not_accept_the_risk_in_their_own_model`) |
+| **1.0.0** Materiality tiers from measured drivers and the firm's questionnaire (`config/tiering.yaml`) | `maya/services/governance.py` | `tests/test_governance.py` (`test_the_tier_is_derived_and_an_override_that_lowers_it_is_flagged`, `test_the_questionnaire_drives_the_tier_and_refuses_answers_it_does_not_offer`, `test_the_points_rule_sums_answers_and_places_them_by_threshold`) |
+| **1.0.0** Periodic review: an overdue review suspends live warrants; a review lifts only those | `maya/services/governance.py` | `tests/test_governance.py` (`test_an_overdue_review_suspends_live_warrants_and_a_review_lifts_only_those`) |
+| **1.0.0** Monitoring dashboards: warrants graded ok, watch or breach; server-drawn charts | `maya/services/monitoring.py`, `maya/web/charts.py`, `/monitoring` | `tests/test_governance.py` (`test_monitoring_reads_reports_as_series_and_grades_the_warrant`, `test_chart_geometry_keeps_bounds_on_the_scale`), `tests/test_web_catalog_models.py` (`test_monitoring_pages_draw_the_series`) |
+| **1.0.0** Black boxes scored blind in the sandbox from their validated artifact | `maya/services/warrants.py` | `tests/test_vendor_models.py` (`test_a_black_box_with_a_validated_artifact_is_scored_blind_in_the_sandbox`) |
+| **1.0.0** Champion and challenger on the same sealed holdout, paired bootstrap interval | `maya/services/challenges.py`, `/governance/challenges` | `tests/test_challenges.py` (`test_the_verdict_needs_the_whole_interval_on_one_side`, `test_a_challenger_is_scored_on_the_champions_rows_and_decided_independently`, `test_warrants_on_different_holdouts_are_not_compared`) |
+| **1.0.0** Fairness by segment (small segments suppressed) and permutation importance | `maya/services/evidence.py` | `tests/test_challenges.py` (`test_segments_suppress_small_groups_and_flag_the_worst`, `test_evidence_on_the_holdout_names_the_driver_and_counts_an_attempt`) |
+| **1.0.0** Regulatory inventory export, SR 11-7 and SS1/23 layouts, XLSX/CSV/JSON | `maya/services/inventory.py` | `tests/test_governance.py` (`test_the_inventory_exports_in_each_layout_and_counts_what_it_leaves_out`), `tests/test_llm.py` (`test_llm_applications_appear_in_the_inventory`) |
+| **1.0.0** LLM applications: sealed versions, evaluation sets, guardrails, approval on evidence | `maya/services/llm.py`, `/llm` | `tests/test_llm.py`, `tests/test_web_catalog_models.py` (`test_an_llm_application_from_registration_to_approval_through_forms`) |
+| **1.0.0** Connectors: MLflow and SageMaker import, OpenLineage export, Snowflake and Databricks sources | `maya/services/integrations.py`, `maya/persistence/external.py`, `/integrations` | `tests/test_integrations.py` |
+| **1.0.0** The normal quantile `ncdfinv` in the formula IR; derived features keep `_knowledge_time` | `maya/formula/`, `maya/resolution/algebra.py` | `tests/test_formula.py` (`test_the_normal_quantile_is_an_operator_not_a_reciprocal`), `tests/test_resolution_algebra.py` (`test_every_operator_carries_the_knowledge_clock`) |
 
 **Promised by the plan and not delivered.** SC-9 — a new designer publishing a first
 model in under an hour, timed with a real person — has not been measured, and no
