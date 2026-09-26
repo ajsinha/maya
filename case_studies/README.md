@@ -22,6 +22,9 @@ scripts needs to change, and running them from the project root has always worke
 
     .venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py
 
+New to MAYA? The [quick start](../docs/QUICKSTART.md) installs it and runs study 01 with you,
+step by step.
+
 ## How a study is laid out
 
 ```

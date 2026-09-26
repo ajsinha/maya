@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+**The quick start, followed literally**
+
+- [`docs/QUICKSTART.md`](QUICKSTART.md): from nothing to MAYA running, signed in, with a case
+  study's data to look at and a feature of your own, in nine steps. Each says what to type,
+  what you should see and what to do if you don't; a troubleshooting table covers the
+  failures a newcomer actually meets (the wrong Python, a busy port, a locked account, a
+  lost administrator password). Every step was carried out on a fresh clone, and a sample
+  file to upload ships at `docs/quickstart/prices.csv`.
+- **Case studies keep working after the administrator's password is changed.** The quick
+  start tells a new user to change the published password at first sign-in; every case
+  study signed in as `admin` with it, and so failed with *Invalid username or password*.
+  `maya.testing`, which runs in the platform's own process, now opens an operator session
+  when the bootstrap password no longer works, records `auth.operator_session` in the audit
+  chain, and never learns or resets the new password.
+
 **A fresh install's sandbox, and the case studies checked**
 
 - **The strong sandbox starts from any virtual environment.** Following the quick start on a
