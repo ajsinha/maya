@@ -153,6 +153,15 @@ tiering rule, a regime encoding, an approval. That boundary, drawn for governanc
 be the same boundary that decides where machine generation is admissible, which we regard as the most
 useful consequence of the account.
 
+Finally, we extend the account to the judgements a model-risk function makes day to day --- materiality,
+periodic review, monitoring, the replacement of one model by another, fairness, and the governance of black
+boxes and of applications built on large language models --- and show that each is a declared rule applied
+to derived facts. The properties that make them trustworthy are small and exact: the derived tier is monotone;
+a paired comparison between two models is licensed precisely by equal hashes of their escrowed holdouts; a
+fairness criterion over error sizes alone is blind to the direction of the error; and evidence for an
+application whose parameter object is authored rather than fitted is bound, by hash, to its definition and to
+the evaluation it was gathered on.
+
 Every formal claim is marked with what carries it in \textsc{Maya}, a platform the author built to the
 account and released as the artefact accompanying this paper
 (\url{https://github.com/ajsinha/maya}). The markers are not uniformly favourable and are not meant to
@@ -278,6 +287,9 @@ polynomial.
       decidable there and what does not (\Cref{prop:reachability}).
 \item \Cref{sec:declared} draws the complement honestly: the facts that must be declared because they
       \emph{constitute} the standard against which anything else is checked.
+\item \Cref{sec:judgements} applies that frame to the governance layer itself --- materiality, review,
+      monitoring, champion and challenger, fairness, black boxes and language-model applications --- and
+      proves the properties each needs (\Cref{prop:tiermono,prop:pairing,prop:blind,prop:evidencebinding}).
 \item \Cref{sec:laws} states the discipline that keeps the rest from becoming ornament, gives the
       register of every claim against the implementation --- what runs, what runs in part, what is not
       there --- and states the properties an executable law delivers that a documented one does not.
@@ -330,7 +342,11 @@ claim is easy to reach for and, as \Cref{sec:support} shows, easy to build three
 its own machinery: an indexed family of governance obligations cannot be both freely extensible and
 provably total unless its index is computed rather than recorded;
 (viii) the observation that the derive/declare boundary and the oracle boundary coincide
-(\Cref{sec:automation}).
+(\Cref{sec:automation});
+(ix) in \Cref{sec:judgements}, two elementary results we record because practice routinely violates them:
+that a fairness criterion over error sizes alone cannot see direction (\Cref{prop:blind}), and that evidence
+for an authored parameter object must be bound to its definition and its evaluation by hash
+(\Cref{prop:evidencebinding}).
 
 \subsection{How to read this paper, and how to check it}
 
@@ -1297,8 +1313,9 @@ $\mathrm{frag}(N_1) = 2$, while every generator of $N_2$ reaches exactly one por
 $\mathrm{frag}(N_2) = 1$. If $\rho$ is compositional then
 $\rho(N_1) = a \sqcup b = \rho(N_2)$, contradicting fragility-sensitivity.
 \end{proof}
-\absent{any risk assignment. \textsc{Maya} has no materiality tier and computes no aggregate, and so
-neither confirms nor contradicts the theorem. It respects it in the only place it composes an assessment
+\absent{any aggregate risk assignment. \textsc{Maya} tiers each model on its own
+(\Cref{sec:judgements}) and computes no aggregate over models, and so neither confirms nor contradicts
+the theorem. It respects it in the only place it composes an assessment
 at all --- a composite's maturity, the meet over its members' on a finite chain, which is compositional
 and makes no claim to be fragility-sensitive. The interaction premium of \Cref{cor:lax} is computed
 nowhere.}
@@ -1907,8 +1924,10 @@ finite chain of tiers.
 If $\tau \colon M \times C \to T$ is monotone then increasing exposure, criticality of purpose or
 complexity never lowers the assigned tier.
 \end{proposition}
-\absent{materiality tiering. \textsc{Maya} has model \emph{maturity} (experimental, candidate,
-approved, restricted, deprecated, retired) and per-namespace separation-of-duties presets, and no tier.}
+\partly{materiality tiering, since version~1.0.0: a tier from measured and declared drivers and a
+firm's own questionnaire, monotone by construction (\Cref{prop:tiermono}). The complexity lattice $C$ is
+not a separate axis: transparency (formula or black box) and the questionnaire's complexity question stand
+in for it.}
 
 \begin{proposition}[Control adequacy]\label{prop:galois}
 Let $\mathrm{Ctrl}$ be a lattice of control sets ordered by strictness and let
@@ -1984,7 +2003,9 @@ then fails closed, naming whom to contact, until an audited reinstatement
 (\texttt{maya/services/execution.py}; \texttt{tests/test\_security\_regressions.py::test\_each\_covenant};
 \texttt{tests/test\_warrants.py::test\_the\_checksum\_cycle\_seal\_score\_execute\_and\_bundle}). That is ``when
 $A$ fails, $G$ is void'' made operational. Refinement between two contracts is not computed, and a copy
-used offline is labelled \emph{unattested} because nothing can be checked on it.}
+used offline is labelled \emph{unattested} because nothing can be checked on it. Since version~1.0.0 the
+assumption half also covers the population a model was fitted on, as a stability covenant, and the reports
+are read as series and graded (\Cref{sec:judgements}).}
 
 \paragraph{Probe-relative identity, and artefacts that remember.} Behavioural equivalence is only as strong
 as the probe set that witnesses it. Writing $\Pi$ for a finite probe set and $\equiv_\Pi$ for agreement on
@@ -2033,6 +2054,257 @@ are not. Netting-set exposure moves materially, in the direction of understateme
 Eleven thousand probes could not detect it, and no number of probes of that shape could have. The defect is
 not that the suite was too small; it is that every element of it had length one.
 \end{worked}
+
+\section{Judgements over derived facts}\label{sec:judgements}
+
+\Cref{sec:declared} located the judgement in a governance quantity in two places: supplying its inputs,
+and choosing the rule that combines them (\Cref{obs:constitutive}). This section applies that frame to the
+layer a model-risk function spends its working day in --- findings and their remediation, materiality,
+periodic review, monitoring, the replacement of one model by another, fairness, and the governance of
+artefacts whose kernel cannot be read at all. \textsc{Maya}~1.0.0 implements each of them, and the claim of
+this section is narrow and checkable: every one is a declared rule applied to facts the earlier sections
+derive, and none needs a fact to be typed that the platform already holds.
+
+Each judgement also carries a condition on \emph{who} may reach it. We state those conditions beside the
+mathematics because they are part of what makes the output trustworthy, and because they are the part a
+register built on declared facts most often leaves to convention.
+
+\subsection{Materiality as a monotone map over derived drivers}
+
+\begin{definition}[Drivers and tier]\label{def:tier}
+A \defn{driver} is a map $s_i$ from the state of a model to the chain $\{1 < 2 < 3\}$. Let $b \in \{0,1\}$
+be $1$ exactly when the model is a declared black box. The \defn{derived tier} is
+\[
+  \tau(m) \;=\; 4 - \min\!\bigl(3,\; \max_i s_i(m) + b(m)\bigr) \;\in\; \{1,2,3\},
+\]
+with tier $1$ the most material.
+\end{definition}
+
+\begin{proposition}[The derived tier is monotone]\label{prop:tiermono}
+If every driver is monotone in the facts it reads, then a change that raises any driver, or that makes a
+model a black box, never makes the derived tier less material.
+\end{proposition}
+
+\begin{proof}
+$\max$ and $+$ are monotone, $\min(3,\cdot)$ is monotone, and $x \mapsto 4-x$ reverses the order, which
+is the convention that tier $1$ is the most material. The composite is therefore order-preserving from
+driver scores to materiality.
+\end{proof}
+
+This is \Cref{prop:monotone} with its inputs named, and the naming is where the derivation earns its
+keep. Two drivers are measured rather than declared: \emph{reach}, from the model's live execution warrants
+and their execution counts, and \emph{transparency}, from the classification of \Cref{sec:kernel} --- an
+opaque kernel is one tier more material than its reach. Two are declared by the owner, use and exposure,
+and a firm's own questionnaire contributes the rest, either as the highest-scoring answer or as a sum
+placed by thresholds. The questionnaire is the declared $f$ of \Cref{obs:constitutive}; everything it is
+applied to that the platform can know, it knows. An override is permitted and recorded with its reason,
+and an override that makes a model \emph{less} material than $\tau$ is flagged, because it is the one
+direction in which monotonicity is a promise the override breaks.
+\runs{maya/services/governance.py; tests/test\_governance.py::test\_the\_tier\_is\_derived\_and\_an\_override\_that\_lowers\_it\_is\_flagged,
+::test\_the\_questionnaire\_drives\_the\_tier\_and\_refuses\_answers\_it\_does\_not\_offer,
+::test\_the\_points\_rule\_sums\_answers\_and\_places\_them\_by\_threshold}
+
+\subsection{Review as a condition of the licence}
+
+\begin{definition}[Live]\label{def:live}
+For an execution warrant $w$ at time $t$, let $S(w)$ be its set of suspension reasons. Then
+$\mathrm{live}(w,t)$ holds when $w$ is sealed, not revoked, $t$ precedes its validity end, and
+$S(w) = \varnothing$.
+\end{definition}
+
+A periodic review becomes part of the licence rather than a reminder: when a model's review falls due, a
+sweep adds the reason $r_{\mathrm{rev}}$ to $S(w)$ for each of its live warrants, and recording a review
+removes $r_{\mathrm{rev}}$ and nothing else.
+
+\begin{proposition}[Suspensions are independent]\label{prop:suspend}
+Removing one reason from $S(w)$ never makes live a warrant that another reason keeps suspended, and the
+order in which reasons are added and removed does not affect $\mathrm{live}$.
+\end{proposition}
+
+\begin{proof}
+$\mathrm{live}$ depends on $S(w)$ only through emptiness, and set insertion and deletion of distinct
+elements commute.
+\end{proof}
+
+\begin{plain}
+\pt a warrant suspended because a covenant broke stays suspended when a review is recorded. Lifting one
+kind of suspension never lifts another.
+\end{plain}
+\partly{\textsc{Maya} keeps one reason on a warrant, not a set, and lifts a suspension only when its
+recorded reason is the review's. The two agree because a warrant that is already suspended accepts no
+further execution reports, so a covenant breach cannot be recorded over a review suspension or the reverse
+(\texttt{maya/services/governance.py}; \texttt{tests/test\_governance.py::test\_an\_overdue\_review\_suspends\_live\_warrants\_and\_a\_review\_lifts\_only\_those}).
+Recording a review is refused to the model's owner.}
+
+\subsection{Monitoring as covenants read as series}
+
+The contracts of \Cref{sec:declared} are evaluated on every reported run. One more assumption is worth
+naming because it is the one that drifts: the population a model was fitted on. For an input $x$ with
+baseline proportions $b_k$ over bins fixed from the warrant's own data, and observed proportions $a_k$ over
+the same bins, the population stability index is
+\[
+  \mathrm{PSI} \;=\; \sum_k \,(a_k - b_k)\,\ln\frac{a_k}{b_k},
+\]
+with each proportion floored at a small $\varepsilon$ so that one empty bin does not make the index
+infinite. It is non-negative, and zero exactly when the two distributions agree on the bins. A covenant on
+it suspends the warrant; the dashboards read the same reports and grade each warrant on the chain
+$\mathit{ok} < \mathit{watch} < \mathit{breach}$ as the join of its signals, so a new signal can only raise
+a grade.
+\runs{maya/services/monitoring.py, maya/services/execution.py; tests/test\_governance.py::test\_monitoring\_reads\_reports\_as\_series\_and\_grades\_the\_warrant;
+case\_studies/19-vendor-bureau-score}
+
+\begin{worked}
+\wk{a bought score that drifted}
+A vendor's application score is licensed with a PSI covenant on revolving utilisation, the input its own
+validation found it leaned on most. Over three months the index is 0.009, 0.109 and 0.438: the dashboard
+grades the warrant \emph{ok}, then \emph{watch}, then \emph{breach}, and the third report suspends it. The
+scoring service is refused the next morning, a year before a rising default rate would have said the same.
+\end{worked}
+
+\subsection{Replacing a model: a comparison needs a shared escrow}
+
+Two models are compared on a holdout. Their two error figures differ, and the question is whether the
+difference is larger than the noise of which rows happened to be held out. A paired comparison answers it,
+and pairing is only defined when both errors are indexed by the same rows.
+
+\begin{proposition}[Equal escrow hashes license pairing]\label{prop:pairing}
+Let two training warrants escrow holdouts $H_1, H_2$, and let $h$ be the canonical content hash, which is
+sensitive to row order and to every value and insensitive to column order. If $h(H_1) = h(H_2)$ then,
+up to the collision resistance of $h$, the $i$-th error of one model and the $i$-th error of the other
+refer to the same row for every $i$.
+\end{proposition}
+
+\begin{proof}
+The hash is computed over the canonical encoding of each row in order, so two tables with equal hashes
+hold equal rows in equal order unless the hash collides. The errors are computed over the escrowed rows
+in their stored order.
+\end{proof}
+
+Given pairing, \textsc{Maya} reports the difference in the metric, a percentile interval from a paired
+bootstrap --- rows resampled with replacement, each row keeping its two errors together, with a fixed seed
+so that the interval is a function of the data --- and the share of rows on which the challenger's error is
+the smaller. The verdict \emph{challenger better} requires the whole interval below zero. Warrants whose
+escrow hashes differ are refused rather than compared, and whoever owns the challenger may not record the
+decision, which is recorded and not enacted: the champion's licences are unchanged until somebody changes
+them.
+\runs{maya/services/challenges.py; tests/test\_challenges.py::test\_the\_verdict\_needs\_the\_whole\_interval\_on\_one\_side,
+::test\_a\_challenger\_is\_scored\_on\_the\_champions\_rows\_and\_decided\_independently,
+::test\_warrants\_on\_different\_holdouts\_are\_not\_compared}
+
+\subsection{Fairness: a summary of error sizes is blind to direction}
+
+For a segment $s$ of the holdout with errors $e_j = \hat y_j - y_j$, write $\mathrm{MAE}_s$ for the mean of
+$|e_j|$ and $\beta_s$ for the mean of $e_j$, the bias.
+
+\begin{proposition}[Direction blindness]\label{prop:blind}
+$|\beta_s| \le \mathrm{MAE}_s$ for every segment. And for every $m > 0$ there are two segments with
+$\mathrm{MAE}_1 = \mathrm{MAE}_2 = m$ and $\beta_1 = m$, $\beta_2 = -m$. Consequently no criterion that
+depends on the segments' error sizes alone can distinguish a model that is equally inaccurate for two groups
+from one that is wrong for each of them entirely, and in opposite directions.
+\end{proposition}
+
+\begin{proof}
+The first claim is the triangle inequality for the mean. For the second, let every error of the first
+segment be $m$ and every error of the second be $-m$. Both segments have mean absolute error $m$; their
+biases are $m$ and $-m$.
+\end{proof}
+
+\begin{plain}
+\pt a fairness check that compares error sizes across groups --- the most common one --- can report a model
+that treats two groups identically when it overstates one and understates the other by the whole of its
+error. \textsc{Maya} reports bias beside MAE for every segment and marks a segment \emph{systematic} when
+$|\beta_s| > \tfrac12\,\mathrm{MAE}_s$: when more than half of its error is one-directional. A segment
+smaller than a threshold (twenty rows by default) is reported without figures, because a mean over a
+handful of escrowed rows discloses those rows.
+\end{plain}
+\runs{maya/services/evidence.py; tests/test\_challenges.py::test\_segments\_suppress\_small\_groups\_and\_flag\_the\_worst;
+case\_studies/45-gompertz-makeham-mortality}
+
+The proposition is elementary and was found the practical way. The first version of the fairness evidence
+flagged segments on MAE alone, was run on a unisex mortality table --- unisex because the law forbids pricing
+by sex --- and reported nothing: the MAE ratio between the sexes was 1.08, while the biases were
+$+0.0259$ for women and $-0.0240$ for men. The correction is the systematic flag. The finding itself is
+\emph{accepted} rather than fixed, by a manager who is not the model's owner, with the ruling cited: an
+instance of the irreducibly declared act of accepting residual risk (\Cref{sec:declared}), recorded where an
+auditor will find it.
+
+Permutation importance --- the rise in error when one input is shuffled, seeded and repeated --- needs
+nothing but the model's outputs, which is what lets it apply unchanged to the next case.
+
+\subsection{Oracles, not terms: black boxes and applications}
+
+A declared black box has no term in the formula language, so nothing in \Cref{sec:order,sec:poly} can read
+its kernel. It can still be \emph{run}. If its code artefact has passed validation --- parsed, its imports
+allowlisted, searched for filesystem, network, process and dynamic-code use, and executed twice in a sandbox
+to check determinism --- then the kernel is available as an oracle $O_f$, and blind scoring computes
+$\mathrm{metric}(O_f(X_H), y_H)$ with the oracle executed in the sandbox on the holdout's input columns.
+
+\begin{proposition}[The target does not reach the oracle]\label{prop:targetexcl}
+If the target is not among the columns the model's input contract names, the sandboxed oracle receives no
+function of $y_H$.
+\end{proposition}
+
+\begin{proof}
+The sandbox is handed exactly the contract's columns of the escrowed rows, and it has no network and no view
+of storage; the target is compared with the oracle's output outside it. A contract that names the target is
+refused before anything runs.
+\end{proof}
+\runs{maya/services/warrants.py; tests/test\_vendor\_models.py::test\_a\_black\_box\_with\_a\_validated\_artifact\_is\_scored\_blind\_in\_the\_sandbox}
+
+An application built on a large language model is the limiting case. Its weights are unavailable; what can
+be pinned down is the provider, the model name, the system prompt, the prompt template, the sampling
+parameters and the guardrails. That tuple is the parameter object, inhabited by authorship rather than by
+fitting, and its identity is a hash of its content.
+
+\begin{proposition}[Evidence is bound to a definition and an evaluation]\label{prop:evidencebinding}
+Let an evaluation run $e$ record the definition hash $d(e)$ of the version it scored and the content hash
+$c(e)$ of the evaluation set it used. If approval of version $v$ against set $E$ admits only runs with
+$d(e) = h(v)$ and $c(e) = h(E)$, then any change to $v$ or to $E$ after the run --- to a prompt, a parameter,
+a guardrail or a single case --- leaves $v$ without admissible evidence until it is evaluated again.
+\end{proposition}
+
+\begin{proof}
+A change to $v$ changes $h(v)$, and a change to $E$ changes $h(E)$, up to collisions; neither changes the
+hashes already recorded on $e$.
+\end{proof}
+
+Every check is deterministic --- containment, a regular expression, a length, a parse --- and so is every
+guardrail: blocked terms, a length cap, and a personal-data scan for e-mail addresses, card numbers that pass
+the Luhn check, and telephone numbers. No model grades another model, because a judgement the platform cannot
+reproduce is not evidence it can seal. A version is approved by a model manager who neither owns the
+application nor submitted the version, and a validator may extend the evaluation set without the owner's
+leave, which is the owner losing the power to choose what the application is tested on.
+\runs{maya/services/llm.py; tests/test\_llm.py::test\_any\_change\_is\_a\_new\_version\_and\_an\_edited\_eval\_set\_voids\_old\_evidence,
+::test\_a\_validator\_may\_add\_to\_the\_evaluation\_set\_but\_a\_developer\_may\_not;
+case\_studies/49-llm-complaint-triage}
+
+\begin{worked}
+\wk{right about everything asked, and not fit to use}
+A complaint-triage application routes twenty-four complaints to the right team, every one of them, and fails
+three: it promises a refund in one answer and repeats a customer's card and telephone numbers in two. Accuracy
+on the task --- the number a team would naturally report --- is perfect; the guardrails make the failures a
+property checked on every case rather than an impression from a sample. The corrected draft passes; a
+validator then adds a complaint in Welsh, and the clean run stops counting until the new set is run.
+\end{worked}
+
+\subsection{Findings, and the separation that makes them evidence}
+
+A finding is a defect with an owner, a severity and a due date. It is raised by anyone who may read the
+model, remediated by its owner, and \emph{closed} only by somebody who did not remediate it; the risk may
+instead be accepted, with a written reason, by somebody other than the model's owner. Each move is kept on the
+finding and in the audit chain. The rule has no mathematics in it and is included for that reason: it is the
+same separation that the approval workflow enforces for versions and warrants, applied to the repair, and a
+register that records findings without it records assertions about fixes.
+\runs{maya/services/governance.py; tests/test\_governance.py::test\_a\_finding\_is\_raised\_remediated\_and\_closed\_by\_someone\_independent,
+::test\_the\_owner\_does\_not\_accept\_the\_risk\_in\_their\_own\_model}
+
+The supervisory inventory is the last judgement and the least interesting mathematically: one row per model
+and per application, read from the objects above in an SR~11-7 or SS1/23 layout, with a count of the models
+the exporting user may not see. It is included because it is where the whole argument of this paper is
+visible to a supervisor. Every column that a typed register would ask somebody to maintain --- tier, review
+dates, open findings, live deployments, monitoring status, restrictions on use --- is computed, and the
+inventory cannot drift from the system because it is the system, read.
+\runs{maya/services/inventory.py; tests/test\_governance.py::test\_the\_inventory\_exports\_in\_each\_layout\_and\_counts\_what\_it\_leaves\_out}
 
 \section{Laws as the criterion of seriousness}\label{sec:laws}
 
@@ -2091,19 +2363,37 @@ proved here & the cut and the certificate are tested; the agreement is proved, n
 Copy, do not connect (\Cref{sec:pull}) & runs & \texttt{sql} and \texttt{python} sources are pulled \\
 Provenance universality, citation soundness (\Cref{prop:universal,prop:citation}) & absent & no
 derivation structure \\
-The ingest clock (\Cref{prop:clockhom}) & in part & feature sets only; six operators drop the clock \\
+The ingest clock (\Cref{prop:clockhom}) & runs & feature sets and every algebra operator;
+\texttt{test\_every\_operator\_carries\_the\_knowledge\_clock} \\
 $(\max,\max)$ is not a semiring; the repair (\Cref{prop:freshness,prop:adjoin}) & mathematics & three
 support valuations take the identity on a gap (\Cref{sec:support}) \\
-Tiering, control adequacy, regimes (\Cref{prop:monotone,prop:galois,prop:stability}) & absent & \\
-Operating contracts (\Cref{sec:declared}) & in part & covenants suspend a warrant \\
+Monotone tiering (\Cref{prop:monotone,prop:tiermono}) & in part & derived drivers and a declared
+questionnaire; no separate complexity lattice \\
+Control adequacy, regimes (\Cref{prop:galois,prop:stability}) & absent & \\
+Operating contracts (\Cref{sec:declared}) & in part & covenants, population stability among them,
+suspend a warrant; refinement not computed \\
+Independent suspensions (\Cref{prop:suspend}) & in part & one reason slot, made safe by refusing reports
+to a suspended warrant \\
+Monitoring grades (\Cref{sec:judgements}) & runs & \texttt{test\_monitoring\_reads\_reports\_as\_series\_and\_grades\_the\_warrant} \\
+Pairing by escrow hash (\Cref{prop:pairing}) & runs & \texttt{test\_warrants\_on\_different\_holdouts\_are\_not\_compared} \\
+Direction blindness (\Cref{prop:blind}) & runs & the systematic flag;
+\texttt{test\_segments\_suppress\_small\_groups\_and\_flag\_the\_worst} \\
+Target exclusion (\Cref{prop:targetexcl}) & runs &
+\texttt{test\_a\_black\_box\_with\_a\_validated\_artifact\_is\_scored\_blind\_in\_the\_sandbox} \\
+Evidence binding (\Cref{prop:evidencebinding}) & runs &
+\texttt{test\_any\_change\_is\_a\_new\_version\_and\_an\_edited\_eval\_set\_voids\_old\_evidence} \\
+Independent closure of findings (\Cref{sec:judgements}) & runs &
+\texttt{test\_a\_finding\_is\_raised\_remediated\_and\_closed\_by\_someone\_independent} \\
 Probe-relative identity (\Cref{prop:stateprobe}) & in part & sampled conformance, length-one probes \\
 Automation admissibility (\Cref{prop:automation}) & runs & the recorded challenger's no-write boundary \\
 \bottomrule
 \end{longtable}
 \end{center}
 
-Of twenty-five rows, six run, ten run in part, seven are absent, and two are mathematics that constrains
-the system without being executed by it. A reader is entitled to hold that against the account, and we
+Of thirty-four rows, fourteen run, eleven run in part, seven are absent, and two are mathematics that
+constrains the system without being executed by it. The previous revision had twenty-five rows and six that
+ran; the difference is the governance layer of \Cref{sec:judgements}, whose properties were written as tests
+when the layer was written, and the repair of the ingest clock. A reader is entitled to hold that against the account, and we
 would rather state the ratio than let it be discovered. The explanation is not a defence: \textsc{Maya}
 was specified as a register of features, data and licences to compute, and the constructions it carries
 are the ones that purpose needed, which is a statement about what was built and not about what the
@@ -2315,13 +2605,13 @@ and can be suspended or revoked while in use. It does not train models and does 
 The boundary is deliberate and is the subject of \Cref{sec:operatorfound}: a platform that executed the
 artefacts it governs would be checking its own work.
 
-At the revision this text describes --- version 0.3.0, built to revision 2.3 of its own specification ---
-it is 184 Python modules in \texttt{maya/} and 11 more in \texttt{maya\_delta/}, its own implementation
+At the revision this text describes --- version 1.0.0, built to revision 2.6 of its own specification ---
+it is 211 Python modules in \texttt{maya/} and 11 more in \texttt{maya\_delta/}, its own implementation
 of the Delta Lake protocol; one typed metadata from which the SQLite and PostgreSQL schema files are
-generated and checked for drift; 215 HTTP operations under a locked API snapshot, each with an SDK method
-and held one-to-one by a gate that fails the build on a mismatch; and 1{,}706 tests. The suite runs on
-Linux over SQLite and has been run over PostgreSQL 16, 17 and 18. Windows and macOS, which the
-specification names as equal platforms, are not exercised.
+generated and checked for drift; 246 HTTP operations under a locked API snapshot, each with an SDK method
+and held one-to-one by a gate that fails the build on a mismatch; and 2{,}089 tests. The suite runs on
+Linux over SQLite; it last ran over PostgreSQL 16, 17 and 18 before the governance layer of
+\Cref{sec:judgements} was added, which has run on SQLite only. Windows and macOS are not exercised.
 
 Four measured results bound what it is, all from the repository's \texttt{docs/BENCHMARKS.md} with the
 unedited result files beside it. Resolving a feature set of 500 symbols by ten years of business days by
@@ -2353,13 +2643,21 @@ Support valuations (\Cref{sec:support}) & \texttt{maya/security/licence.py},
 derivation that breaches a source's terms, naming the source and the clause \\
 The no-write boundary (\Cref{sec:automation}) & \texttt{maya/assistant/} & the assistant approving,
 blocking or editing anything \\
+Materiality, review, findings (\Cref{sec:judgements}) & \texttt{maya/services/governance.py} & an owner
+reviewing their own model, closing their own fix, or accepting the risk in it \\
+Pairing (\Cref{prop:pairing}) & \texttt{maya/services/challenges.py} & a comparison of warrants with
+different escrows, and the challenger's author deciding \\
+Oracle scoring (\Cref{prop:targetexcl}) & \texttt{maya/services/warrants.py} & a black box without a
+validated artefact, and a contract that names the target \\
+Evidence binding (\Cref{prop:evidencebinding}) & \texttt{maya/services/llm.py} & an application submitted
+without a clean run on its exact definition and evaluation set \\
 \bottomrule
 \end{longtable}
 \end{center}
 
-\subsection{Five things building it changed}
+\subsection{What building it changed}
 
-An implementation earns its place in a paper by changing the paper. Five places where it did, each of
+An implementation earns its place in a paper by changing the paper. Seven places where it did, each of
 which is already in the text above rather than confined to this section.
 
 \paragraph{The certificate replaced the operator.} \Cref{def:asof} is the operator; \textsc{Maya} reads
@@ -2405,19 +2703,39 @@ should prefer the default.
 \paragraph{The clock the algebra dropped.} \Cref{prop:clockhom} says a derived feature's knowledge time
 is the latest of its inputs'. Checking the claim against the code found that feature-set assembly honours
 it and six of the fifteen feature-algebra operators do not: projection, composition, coalescing,
-aggregation, resampling and case selection return frames with no knowledge-time column, so the
-certificate of \Cref{def:cert} examines none of the rows of a feature derived through them. It is
-reported and not repaired, and it is the clearest example in this work of what the markers are for: the
-proposition is stated, the implementation contradicts it, and the two are on the same page.
+aggregation, resampling and case selection returned frames with no knowledge-time column, so the
+certificate of \Cref{def:cert} examined none of the rows of a feature derived through them. The previous
+revision of this paper reported that and did not repair it. It is repaired: each operator now carries the
+latest knowledge time of the input rows it was built from, and a test asserts it for all six
+(\texttt{tests/test\_resolution\_algebra.py::test\_every\_operator\_carries\_the\_knowledge\_clock}). It remains
+the clearest example in this work of what the markers are for: the proposition was stated, the
+implementation contradicted it, the two sat on the same page, and the page is what got it fixed.
 
-\subsection{Nine models, carried the whole way}
+\paragraph{A black box refused, then run.} The previous revision recorded as a design decision that a
+declared black box is refused at blind scoring, because the platform evaluates formulas and a black box has
+none. That was the right refusal for the wrong reason. The platform cannot \emph{evaluate} such a kernel, but
+it can \emph{run} one whose artefact it has validated, as an oracle in its sandbox, on the escrowed inputs
+alone (\Cref{prop:targetexcl}). The distinction between a term the platform can read and an oracle it can
+only execute is now drawn in the text, and a bought score is validated on the firm's own outcomes rather
+than not at all.
 
-The repository carries nine worked case studies, each a model taken through the whole chain by scripts
-that use the platform's own SDK: a retail PD scorecard, a mortgage cashflow model and a prepayment
-model, a home-equity exposure model, a Black--Scholes pricer, an IFRS~9 expected-credit-loss composite, a
-neural network governed as a declared black box, a factor model, and a Nelson--Siegel yield curve fitted
-from LaTeX the quant wrote (\texttt{case\_studies/}). They exist because a formalism that has only been
-exercised by its author's unit tests has not been exercised.
+\paragraph{A fairness check that saw nothing.} The first fairness evidence flagged a segment whose MAE was
+far above the overall figure. Run on a unisex mortality table it flagged nothing, because men's and women's
+errors were the same size in opposite directions. \Cref{prop:blind} states why no size-only criterion can
+see that, and the systematic flag is the repair; neither was anticipated before the case study ran.
+
+\subsection{Fourteen models, carried the whole way}
+
+The repository carries fourteen worked case studies, each a model taken through the whole chain by scripts
+that use the platform's own SDK, and each run from nothing by the test suite: a retail PD scorecard, a
+mortgage cashflow model and a prepayment model, a home-equity exposure model, a Black--Scholes pricer, an
+IFRS~9 expected-credit-loss composite, a neural network governed as a declared black box, a factor model, a
+Nelson--Siegel yield curve fitted from LaTeX the quant wrote, and five added with version~1.0.0 --- a Basel
+IRB capital formula proved by reconciliation, a bought bureau score imported from MLflow and scored in the
+sandbox, a demand model replaced by a challenger on a paired comparison, a unisex mortality table whose
+bias by sex is accepted in writing, and a language-model complaint-triage application
+(\texttt{case\_studies/}). They exist because a formalism that has only been exercised by its author's unit
+tests has not been exercised.
 
 Two of them earn a mention here for what they refused to do. The expected-credit-loss study is a
 composite of three fitted members under one combiner whose two parameters --- a significant-increase
@@ -2453,14 +2771,15 @@ every marker in this paper names a path.
 The platform described here is at \url{https://github.com/ajsinha/maya}, and it is the artefact this
 paper should be judged against. Every \textsf{Runs} marker above names a module and a test as paths from
 that repository's root, so any claim in this paper can be checked by opening two files. The register of
-\Cref{sec:laws} lists all twenty-five and can be walked in an afternoon.
+\Cref{sec:laws} lists all thirty-four and can be walked in an afternoon.
 
 What a reader will find alongside the code: the specification the system was built to, with its own
 revision history; the measurement results behind every number in this section, unedited, with the
-scripts that produced them; the nine case studies as runnable scripts against a throwaway instance; and
-the decision records for the choices a reader is most likely to disagree with --- among them why a
-declared black box is refused rather than scored, why there are no migrations and two generated schema
-files instead, and why the platform will not execute the artefacts it governs.
+scripts that produced them; the fourteen case studies as runnable scripts; a quick start and a REST API
+guide whose examples the test suite executes; and the decision records for the choices a reader is most
+likely to disagree with --- among them why there are no migrations and two generated schema files instead,
+and why the platform will not execute the artefacts it governs except as a sandboxed oracle on escrowed
+inputs.
 
 \subsection{For the practitioner}
 
@@ -2604,8 +2923,9 @@ float. \Cref{rem:variance} records a second divergence the implementation has no
 version substitution may judge output narrowing differently. Both readings are defensible; holding both
 silently is not.
 
-\paragraph{Most of the account does not execute.} Of the twenty-five rows of \Cref{sec:laws}, six run,
-ten run in part and seven are not in the system at all; the register is kept in this paper and not
+\paragraph{Most of the core account does not execute.} Of the thirty-four rows of \Cref{sec:laws},
+fourteen run, eleven run in part and seven are not in the system at all, and the rows that run are
+concentrated in the governance layer rather than in the order and the operator; the register is kept in this paper and not
 in a test, so nothing enforces that it stays true. In particular \Cref{cor:lax} --- the interaction premium,
 which we present as one of the paper's more useful consequences --- is not computed anywhere.
 \Cref{thm:noncomp} says what a correct aggregate cannot be, and does not construct one.
@@ -2615,6 +2935,14 @@ element, and the meet is partial. Both are honest and both mean the structure is
 complete lattice'' would suggest. In \textsc{Maya} the meet is in use, on names and datatypes, and the join and
 the order's bounds and nullability are not built. A reader should take neither the availability of an
 operation nor its absence from one build as evidence about the mathematics.
+
+\paragraph{The judgements are only as good as their rules.} \Cref{sec:judgements} shows that tiering,
+monitoring and fairness are computed from derived facts; it does not show that a firm's questionnaire, its
+PSI thresholds or the systematic cut-off of one half are the right ones. They are declared rules in the sense
+of \Cref{obs:constitutive}, chosen for being conventional and stated for being contestable. The evaluation
+checks for language-model applications are deterministic by design, which makes them reproducible and also
+means they test what can be written as a check and nothing subtler; and the platform's connectors to external
+model registries have been tested against the documents those systems publish, not against live services.
 
 \paragraph{Formalising normative text is lossy and contestable.} Encoding a regime as an institution commits
 to a reading of prose that is deliberately open-textured. The encoding is a claim about the regulation, not
@@ -2674,6 +3002,12 @@ the model's capability nor the task's sensitivity, but whether the fact was deri
 derives, generation is free because acceptance is checked. Where it constitutes the standard, there is
 nothing for the automation to be checked against, and the question is not one of risk appetite but of
 category.
+
+The judgements a model-risk function makes every day fall on the same line. A tier, a review date, a
+monitoring grade, a verdict between two models, a fairness flag and an application's approval are each a
+declared rule applied to facts the platform derives, and the properties that make them trustworthy ---
+monotonicity, pairing by a shared escrow, sensitivity to the direction of an error, evidence bound to exactly
+what it was gathered on --- are as elementary as the rest, and as easy to leave out.
 
 None of the mathematics is new. What we suggest is that a domain served by tools that each solve half the
 problem is not waiting for a better product but for a definition --- and that the definition, once written
