@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Evaluation run{% endblock %}
+{% block content %}
+<h1>{{ a.ref }} · {{ r.passed }} of {{ r.cases }} passed</h1>
+<div class="small-muted mb-2">{{ r.mode }} run {{ r.created_at|dt }} by {{ r.created_by }} · definition <span class="mono">{{ r.definition_hash|short(12) }}</span> · set <span class="mono">{{ r.eval_set_hash|short(12) }}</span> · <a href="/llm/{{ a.namespace }}/{{ a.name }}">back to the application</a></div>
+{% call(c) table("llm-cases", ["Case", "Result", "Checks", "Guardrails", "Answer"], r.results) %}
+  <td>{{ c.case }}</td><td>{{ pill('true' if c.passed else 'false', 'passed' if c.passed else 'failed') }}</td>
+  <td class="small">{% for k in c.checks %}<div>{{ '✓' if k.passed else '✗' }} {{ k.check }}</div>{% endfor %}</td>
+  <td class="small">{% for g in c.guardrails %}<div>{{ g }}</div>{% else %}—{% endfor %}</td>
+  <td class="small" style="white-space:pre-wrap;max-width:40ch">{{ c.answer }}</td>
+{% endcall %}
+{% endblock %}

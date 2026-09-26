@@ -166,3 +166,38 @@ def challenge(
         "findings": findings,
         "model": response.model,
     }
+
+
+def complete(
+    client: Any,
+    *,
+    model: str,
+    system: str,
+    prompt: str,
+    max_tokens: int = 1024,
+    temperature: float | None = None,
+) -> dict[str, Any]:
+    """One completion for an LLM application's evaluation (§ LLM governance).
+
+    Kept in this module because it is the one that imports the Anthropic SDK. The prompt is
+    the application's own rendered template over an evaluation case; what comes back is
+    scored by MAYA, never obeyed. ``temperature`` is sent only when the version declares
+    one, so a version that leaves sampling to the provider's default is run as declared."""
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "max_tokens": int(max_tokens),
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system:
+        kwargs["system"] = system
+    if temperature is not None:
+        kwargs["temperature"] = float(temperature)
+    response = client.messages.create(**kwargs)
+    text = "".join(getattr(block, "text", "") for block in response.content if block.type == "text")
+    usage = getattr(response, "usage", None)
+    return {
+        "text": text,
+        "stop_reason": response.stop_reason,
+        "input_tokens": getattr(usage, "input_tokens", None),
+        "output_tokens": getattr(usage, "output_tokens", None),
+    }

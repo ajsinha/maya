@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}{{ a.name }}{% endblock %}
+{% block content %}
+<h1>{{ a.ref }}</h1>
+<div class="small-muted mb-2">Owner {{ a.owner }} · {{ a.use_case }}</div>
+<h2>Versions</h2>
+{% call(v) table("llm-versions", ["Version", "State", "Provider · model", "Definition", "Submitted", "Decided", "!Actions"], a.versions, empty="No versions yet. Write the first one below.") %}
+  <td>v{{ v.version_no }}</td><td>{{ pill(v.state) }}</td><td>{{ v.provider }} · {{ v.model }}</td><td class="mono">{{ v.definition_hash|short(12) }}</td>
+  <td>{{ v.submitted_by or '—' }}</td><td>{% if v.decided_by %}{{ v.decided_by }}: {{ v.decision_note }}{% else %}—{% endif %}</td>
+  <td>{% if v.state == 'draft' %}<form method="post" action="/llm/{{ a.namespace }}/{{ a.name }}/versions/{{ v.version_no }}/submit"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit">Submit</button></form>
+  {% elif v.state == 'in_review' %}<form method="post" action="/llm/{{ a.namespace }}/{{ a.name }}/versions/{{ v.version_no }}/decision" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="note" placeholder="why (required)" aria-label="Decision note" required style="max-width:180px"><button class="btn btn-sm btn-primary" name="decision" value="approve" type="submit">Approve</button><button class="btn btn-sm btn-outline-secondary" name="decision" value="reject" type="submit">Reject</button></form>{% endif %}</td>
+{% endcall %}
+{% if a.can_edit %}
+{% set d = draft or {} %}{% set g = d.guardrails or {} %}
+<form method="post" action="/llm/{{ a.namespace }}/{{ a.name }}/draft" class="card card-body mb-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>{% if d and d.state == 'draft' %}Edit draft v{{ d.version_no }}{% else %}New version{% endif %}</h3>
+  <p class="small-muted mb-2">Saving edits the draft. Once a version has been submitted, saving opens a new version instead: an approved definition never changes.</p>
+  <div class="row g-2">
+    <div class="col-md-3"><label class="form-label" for="vprov">Provider</label><select class="form-select" id="vprov" name="provider">{% for pr in a.providers %}<option {% if d.provider == pr %}selected{% endif %}>{{ pr }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="vmodel">Model</label><input class="form-control mono" id="vmodel" name="model" value="{{ d.model or '' }}" required></div>
+    <div class="col-md-5"><label class="form-label" for="vparams">Parameters (JSON)</label><input class="form-control mono" id="vparams" name="parameters" value="{{ (d.parameters or {'max_tokens': 1024})|tojson }}"></div>
+    <div class="col-12"><label class="form-label" for="vsys">System prompt</label><textarea class="form-control mono" id="vsys" name="system_prompt" rows="3">{{ d.system_prompt or '' }}</textarea></div>
+    <div class="col-12"><label class="form-label" for="vtpl">Prompt template — <span class="small-muted">{placeholders} are filled from each case's variables</span></label><textarea class="form-control mono" id="vtpl" name="prompt_template" rows="3" required>{{ d.prompt_template or '' }}</textarea></div>
+    <div class="col-md-5"><label class="form-label" for="vblock">Blocked terms, comma-separated</label><input class="form-control" id="vblock" name="blocked_terms" value="{{ (g.blocked_terms or [])|join(', ') }}"></div>
+    <div class="col-md-2"><label class="form-label" for="vmax">Max characters</label><input class="form-control" id="vmax" name="max_chars" type="number" min="1" value="{{ g.max_chars or '' }}"></div>
+    <div class="col-md-2"><label class="form-label" for="vrate">Pass rate needed</label><input class="form-control" id="vrate" name="min_pass_rate" type="number" min="0.5" max="1" step="0.05" value="{{ g.min_pass_rate or 1.0 }}"></div>
+    <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="vpii" name="pii" value="1" {% if g.pii is not defined or g.pii %}checked{% endif %}><label class="form-check-label" for="vpii">Fail on personal data</label></div></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Save</button></div>
+</form>
+{% endif %}
+<h2>Evaluation sets</h2>
+{% call(e) table("llm-sets", ["Set", "Cases", "Content hash", "Description"], a.eval_sets, empty="No evaluation sets yet.") %}
+  <td>{{ e.name }}</td><td>{{ e.cases|length }}</td><td class="mono">{{ e.content_hash|short(12) }}</td><td>{{ e.description or '—' }}</td>
+{% endcall %}
+{% if a.can_edit %}
+<form method="post" action="/llm/{{ a.namespace }}/{{ a.name }}/eval-sets" class="card card-body mb-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create or replace an evaluation set</h3>
+  <p class="small-muted mb-2">Checks: <code>contains</code>, <code>not_contains</code>, <code>equals</code>, <code>regex</code>, <code>max_chars</code>, <code>json</code> (value: required keys). Replacing a set changes its hash, so runs against the old content stop counting.</p>
+  <div class="row g-2">
+    <div class="col-md-4"><label class="form-label" for="esname">Name</label><input class="form-control" id="esname" name="set_name" required></div>
+    <div class="col-md-8"><label class="form-label" for="esdesc">Description</label><input class="form-control" id="esdesc" name="description"></div>
+    <div class="col-12"><label class="form-label" for="escases">Cases (JSON)</label><textarea class="form-control mono" id="escases" name="cases" rows="6" required data-json placeholder='[{"id": "refund", "vars": {"complaint": "Charged twice"}, "checks": [{"kind": "contains", "value": "refund"}]}]'></textarea></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Save set</button></div>
+</form>
+{% endif %}
+<h2>Evaluation runs</h2>
+{% call(r) table("llm-runs", ["When", "Version", "Set", "Mode", "Passed", "Guardrail violations", "Counts as evidence"], a.runs, empty="No runs yet.") %}
+  <td><a href="/llm/{{ a.namespace }}/{{ a.name }}/runs/{{ r.id }}">{{ r.created_at|dt }}</a></td><td>v{{ r.version_no }}</td><td>{{ r.eval_set }}</td><td>{{ r.mode }}</td>
+  <td data-sort="{{ r.pass_rate }}">{{ r.passed }} / {{ r.cases }}</td><td>{{ r.guardrail_violations }}</td>
+  <td>{% if r.stale %}no: the set changed since{% else %}yes, for its definition{% endif %}</td>
+{% endcall %}
+{% if a.versions and a.eval_sets %}
+<form method="post" action="/llm/{{ a.namespace }}/{{ a.name }}/runs" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Evaluate a version</h3>
+  <div class="row g-2">
+    <div class="col-md-3"><label class="form-label" for="rver">Version</label><select class="form-select" id="rver" name="version_no">{% for v in a.versions %}<option value="{{ v.version_no }}">v{{ v.version_no }} · {{ v.state }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="rset">Evaluation set</label><select class="form-select" id="rset" name="eval_set">{% for e in a.eval_sets %}<option>{{ e.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="form-label" for="rmode">How</label><select class="form-select" id="rmode" name="mode"><option value="recorded">Score answers produced elsewhere (recorded)</option><option value="live">MAYA calls the provider (live: {{ a.live_providers|join(', ') }})</option></select></div>
+    <div class="col-12"><label class="form-label" for="rresp">Recorded answers (JSON, case id → answer)</label><textarea class="form-control mono" id="rresp" name="responses" rows="4" data-json placeholder='{"refund": "A refund is on its way."}'></textarea></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Evaluate</button></div>
+</form>
+{% endif %}
+{% endblock %}

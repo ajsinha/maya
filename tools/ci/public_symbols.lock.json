@@ -270,6 +270,19 @@
      "retry": "(self, job_id)"
     }
    },
+   "llm": {
+    "class": "Llm",
+    "methods": {
+     "app": "(self, ref)",
+     "apps": "(self)",
+     "create_app": "(self, namespace, name, use_case, description='')",
+     "decide": "(self, ref, version_no, decision, note)",
+     "run_eval": "(self, ref, version_no, eval_set, responses=None)",
+     "save_eval_set": "(self, ref, name, cases, description='')",
+     "save_version": "(self, ref, *, provider, model, prompt_template, system_prompt='', parameters=None, guardrails=None)",
+     "submit": "(self, ref, version_no)"
+    }
+   },
    "models": {
     "class": "Models",
     "methods": {
@@ -662,6 +675,19 @@
      "list": "(self, all=False)",
      "page": "(self, all=False, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "retry": "(self, job_id)"
+    }
+   },
+   "llm": {
+    "class": "Llm",
+    "methods": {
+     "app": "(self, ref)",
+     "apps": "(self)",
+     "create_app": "(self, namespace, name, use_case, description='')",
+     "decide": "(self, ref, version_no, decision, note)",
+     "run_eval": "(self, ref, version_no, eval_set, responses=None)",
+     "save_eval_set": "(self, ref, name, cases, description='')",
+     "save_version": "(self, ref, *, provider, model, prompt_template, system_prompt='', parameters=None, guardrails=None)",
+     "submit": "(self, ref, version_no)"
     }
    },
    "models": {

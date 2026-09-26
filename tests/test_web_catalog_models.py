@@ -540,3 +540,64 @@ def test_the_connectors_page_imports_a_sagemaker_package(people):
     assert w.p.models.get(w.mona, "quant/pd_web")["kind"] == "black_box"
     events = admin.get("/integrations/openlineage.json")
     assert events.headers["content-type"].startswith("application/json")
+
+
+def test_an_llm_application_from_registration_to_approval_through_forms(people):
+    import json as _json
+
+    w, app, b = people
+    mona, mgr = b["mona"], b["mgr"]
+    mona.post(
+        "/llm",
+        {"namespace": "quant", "name": "triage", "use_case": "route complaints", "description": ""},
+        expect="success",
+    )
+    mona.post(
+        "/llm/quant/triage/draft",
+        {
+            "provider": "anthropic",
+            "model": "claude-sonnet-5",
+            "parameters": '{"max_tokens": 200}',
+            "system_prompt": "Be brief.",
+            "prompt_template": "Route: {text}",
+            "blocked_terms": "guarantee",
+            "max_chars": "500",
+            "min_pass_rate": "1.0",
+            "pii": "1",
+        },
+        expect="success",
+    )
+    cases = [
+        {
+            "id": "c1",
+            "vars": {"text": "card charged twice"},
+            "checks": [{"kind": "contains", "value": "billing"}],
+        }
+    ]
+    mona.post(
+        "/llm/quant/triage/eval-sets",
+        {"set_name": "core", "cases": _json.dumps(cases), "description": ""},
+        expect="success",
+    )
+    mona.post(
+        "/llm/quant/triage/runs",
+        {
+            "version_no": "1",
+            "eval_set": "core",
+            "mode": "recorded",
+            "responses": _json.dumps({"c1": "Route to billing."}),
+        },
+        expect="success",
+    )
+    page = mona.get("/llm/quant/triage").text
+    assert "1 / 1" in page and "yes, for its definition" in page
+    mona.post("/llm/quant/triage/versions/1/submit", expect="success")
+    mgr.post(
+        "/llm/quant/triage/versions/1/decision",
+        {"decision": "approve", "note": "clean"},
+        expect="success",
+    )
+    assert w.p.llm.get_app(w.mgr, "quant/triage")["versions"][0]["state"] == "approved"
+    run_id = w.p.llm.get_app(w.mgr, "quant/triage")["runs"][0]["id"]
+    assert "Route to billing." in mgr.get(f"/llm/quant/triage/runs/{run_id}").text
+    assert "quant/triage" in mgr.get("/llm").text

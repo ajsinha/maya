@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}LLM applications{% endblock %}
+{% block content %}
+<h1>LLM applications</h1>
+<p class="small-muted">An LLM application is governed like a model. A version seals the provider, model, system prompt, prompt template, parameters and guardrails in one definition hash. It is judged on evaluation sets with deterministic checks, and approved only on a clean run of that exact definition, by someone who neither owns it nor submitted it.</p>
+{% call(a) table("llm-apps", ["Application", "Use", "Approved version", "Latest version"], apps, empty="No LLM applications yet.") %}
+  <td><a href="/llm/{{ a.namespace }}/{{ a.name }}">{{ a.ref }}</a></td><td>{{ a.use_case }}</td>
+  <td>{% if a.approved %}v{{ a.approved.version_no }} · {{ a.approved.model }}{% else %}—{% endif %}</td>
+  <td>{% if a.latest %}v{{ a.latest.version_no }} {{ pill(a.latest.state) }}{% else %}—{% endif %}</td>
+{% endcall %}
+<form method="post" action="/llm" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Register an application</h3>
+  <div class="row g-2">
+    <div class="col-md-3"><label class="form-label" for="lns">Namespace</label><select class="form-select" id="lns" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="lname">Name</label><input class="form-control" id="lname" name="name" required></div>
+    <div class="col-md-6"><label class="form-label" for="luse">What it is used for</label><input class="form-control" id="luse" name="use_case" required></div>
+    <div class="col-12"><label class="form-label" for="ldesc">Description</label><textarea class="form-control" id="ldesc" name="description" rows="2"></textarea></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Register</button></div>
+</form>
+{% endblock %}

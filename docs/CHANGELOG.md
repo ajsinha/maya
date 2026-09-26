@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+**LLM applications, governed like models**
+
+- `/llm` (SDK `llm`, `/api/v1/llm/*`). An application's **version** seals the provider,
+  model, system prompt, prompt template (`{placeholders}`), parameters and guardrails in one
+  definition hash; editing is allowed only in draft, so an approved definition never
+  changes and any change is a new version.
+- **Evaluation sets** are the holdout: named cases — the template's variables and the checks
+  the answer must pass — hashed as content. Checks are deterministic (`contains`,
+  `not_contains`, `equals`, `regex`, `max_chars`, `json` with required keys); no model grades
+  another model, because a judgement MAYA cannot reproduce is not evidence it can seal.
+- **Guardrails** run on every answer: blocked terms, a length cap, and personal data
+  (e-mail addresses, Luhn-valid card numbers, phone numbers). A violation fails the case.
+- **Runs** are *recorded* (answers produced anywhere, submitted for scoring) or *live*
+  (MAYA calls the provider; Anthropic, through the assistant's client and its API-key
+  settings).
+- **Approval on evidence**: submission needs a run on the version's own definition, against
+  the evaluation set as it now stands, meeting the version's pass rate (all cases by
+  default) with no guardrail violation; approval is by a model manager or administrator
+  who neither owns the application nor submitted it, and retires the previous approved
+  version. Applications appear in the regulatory inventory export, with their evaluation
+  evidence and without the model-only fields (tier, findings, reviews) invented.
+
 **Tiering questionnaires, and loose ends**
 
 - **A firm's own materiality questionnaire.** `config/tiering.yaml`

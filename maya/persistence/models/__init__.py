@@ -9,7 +9,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 
 from maya.persistence.models.base import Base, new_id
-from maya.persistence.models import catalog, governance, identity, operations, registry
+from maya.persistence.models import catalog, governance, identity, llm, operations, registry
 
 MODELS = {mapper.class_.__tablename__: mapper.class_ for mapper in Base.registry.mappers}
 
@@ -20,6 +20,7 @@ __all__ = [
     "catalog",
     "governance",
     "identity",
+    "llm",
     "operations",
     "registry",
 ]
