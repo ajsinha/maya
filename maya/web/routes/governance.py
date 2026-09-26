@@ -1,6 +1,6 @@
 """
-Model governance pages (§ governance): the findings register, one model's tier, review
-schedule and findings, and one finding's history.
+Model governance pages: the findings register, one model's tier, review schedule and
+findings, one finding's history, and the ongoing-monitoring dashboards.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -12,6 +12,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
+from maya.web.charts import line_chart
 from maya.web.routes.common import action, client, flash, form, is_admin, page, render
 
 router = APIRouter()
@@ -163,6 +164,104 @@ async def governance_sweep(request: Request) -> Any:
         out = await sdk.governance.sweep()
     flash(request, f"{len(out['suspended'])} warrant(s) suspended for overdue reviews.", "info")
     return RedirectResponse("/governance", status_code=303)
+
+
+WINDOWS = (7, 30, 90, 365)
+
+
+def _window(request: Request, default: int) -> int:
+    try:
+        days = int(request.query_params.get("days", default))
+    except ValueError:
+        return default
+    return days if days in WINDOWS else default
+
+
+@router.get("/monitoring")
+@page
+async def monitoring_page(request: Request) -> Any:
+    days = _window(request, 30)
+    async with client(request) as sdk:
+        overview = await sdk.monitoring.overview(days=days)
+    return await render(
+        request, "monitoring/index.html", {"m": overview, "days": days, "windows": WINDOWS}
+    )
+
+
+def dashboard(m: dict[str, Any]) -> dict[str, Any]:
+    """Chart geometry for one warrant's series: volume, then each attribute's charts."""
+    marks = [b["at"] for b in m["breaches"]]
+    volume = [{"at": d["date"], "rows": d["rows"], "runs": d["runs"]} for d in m["daily"]]
+    charts = {
+        "rows": line_chart(volume, "rows", marks=marks, floor=0),
+        "runs": line_chart(volume, "runs", floor=0),
+        "attrs": [],
+    }
+    for side in ("inputs", "outputs"):
+        for attr, points in sorted(m["series"][side].items()):
+            b = m["bounds"].get(attr, {})
+            group = {"attr": attr, "side": side, "charts": []}
+            if any(p["psi"] is not None for p in points):
+                group["charts"].append(
+                    (
+                        "Population stability index",
+                        line_chart(
+                            points,
+                            "psi",
+                            bounds=[(0.10, "watch"), (b.get("psi_max"), "covenant")],
+                            marks=marks,
+                            floor=0,
+                        ),
+                    )
+                )
+            if any(p["null_rate"] is not None for p in points):
+                group["charts"].append(
+                    (
+                        "Null rate",
+                        line_chart(
+                            points,
+                            "null_rate",
+                            bounds=[(b.get("null_max"), "covenant")],
+                            marks=marks,
+                            floor=0,
+                        ),
+                    )
+                )
+            if any(p["mean"] is not None for p in points):
+                group["charts"].append(
+                    (
+                        "Mean",
+                        line_chart(
+                            points,
+                            "mean",
+                            bounds=[(b.get("lo"), "min"), (b.get("hi"), "max")],
+                            marks=marks,
+                        ),
+                    )
+                )
+            elif any(p["max"] is not None for p in points):
+                group["charts"].append(
+                    (
+                        "Maximum",
+                        line_chart(points, "max", bounds=[(b.get("hi"), "max")], marks=marks),
+                    )
+                )
+            if group["charts"]:
+                charts["attrs"].append(group)
+    return charts
+
+
+@router.get("/monitoring/warrants/{ew_id}")
+@page
+async def monitoring_warrant(request: Request, ew_id: str) -> Any:
+    days = _window(request, 90)
+    async with client(request) as sdk:
+        m = await sdk.monitoring.warrant(ew_id, days=days)
+    return await render(
+        request,
+        "monitoring/warrant.html",
+        {"m": m, "charts": dashboard(m), "days": days, "windows": WINDOWS},
+    )
 
 
 __all__ = ["router"]

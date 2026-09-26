@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Ongoing monitoring dashboards**
+
+- **`/monitoring`** (SDK `monitoring`, `GET /monitoring`, `GET /monitoring/warrants/{id}`)
+  reads the executions reported under each sealed warrant as series. The overview grades
+  every warrant you can read: *breach* (suspended, or a covenant breached in the last 7
+  days), *watch* (a PSI between 0.10 and the covenant, an input null rate at least double
+  its median, or a live warrant silent for 30 days) or *ok*.
+- A warrant's dashboard draws volume per day and, per input and output, the PSI against
+  the covenant's baseline, the null rate and the mean, with the covenant bounds as dashed
+  lines and breaches marked on the time axis. The charts are server-drawn SVG in the theme's
+  colours: no charting library, nothing for the content security policy to allow.
+- Nothing here writes; it is a reading of evidence the covenants already judged, so it
+  cannot disagree with them. Offline, unattested runs report nothing and are not graded.
+
 **Model governance: findings, materiality and periodic review**
 
 - **The findings register.** `/governance` (SDK `governance`, `/api/v1/governance/*`). A

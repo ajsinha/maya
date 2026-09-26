@@ -143,3 +143,77 @@ def test_the_register_is_reachable_through_the_sdk(gov):
     from maya.sdk.resources import ENDPOINTS
 
     assert ENDPOINTS[("POST", "/governance/findings")] == "Governance.raise_finding"
+
+
+# ------------------------------------------------------------------ monitoring
+
+
+def _reports(w, ew_id: str, runs: list[dict]) -> None:
+    with w.p.uow("test") as uow:
+        for i, r in enumerate(runs):
+            row = uow.repo("execution_reports").add(
+                {"execution_warrant_id": ew_id, "environment": "dev", **r}
+            )
+            when = utcnow() - dt.timedelta(days=len(runs) - i)
+            uow.repo("execution_reports").update(row["id"], {"created_at": when})
+
+
+def test_monitoring_reads_reports_as_series_and_grades_the_warrant(gov):
+    w = gov
+    ew_id = _live_warrant(w, "gov_monitored", approved_days_ago=10)
+    baseline = [10, 10, 10, 10]
+    with w.p.uow("test") as uow:
+        uow.repo("execution_warrants").update(
+            ew_id,
+            {
+                "spec": {
+                    "environments": ["dev"],
+                    "covenants": [
+                        {
+                            "kind": "input_psi",
+                            "attr": "x",
+                            "max": 0.25,
+                            "baseline": {"edges": [0, 1, 2, 3, 4], "counts": baseline},
+                        },
+                        {"kind": "input_null_rate", "attr": "x", "max": 0.5},
+                    ],
+                }
+            },
+        )
+    steady = {"null_rate": 0.01, "mean": 1.5, "min": 0.0, "max": 3.9, "histogram": baseline}
+    drifted = {"null_rate": 0.05, "mean": 2.4, "min": 0.0, "max": 3.9, "histogram": [4, 8, 12, 16]}
+    runs = [
+        {"rows": 100, "input_stats": {"x": steady}, "output_stats": {"yhat": {"mean": 3.0}}}
+        for _ in range(5)
+    ]
+    runs.append(
+        {"rows": 120, "input_stats": {"x": drifted}, "output_stats": {"yhat": {"mean": 4.0}}}
+    )
+    _reports(w, ew_id, runs)
+
+    m = w.p.monitoring.warrant(w.mona, ew_id, days=30)
+    xs = m["series"]["inputs"]["x"]
+    assert len(xs) == 6 and xs[0]["psi"] == 0.0 and 0.10 < xs[-1]["psi"] < 0.25
+    assert m["rows"] == 620 and m["runs"] == 6 and len(m["daily"]) == 6
+    assert m["bounds"]["x"]["null_max"] == 0.5
+    levels = {(s["what"], s["level"]) for s in m["signals"]}
+    assert ("x", "watch") in levels  # PSI in the watch band and a doubled null rate
+    assert not any(s["level"] == "breach" for s in m["signals"])
+
+    row = next(r for r in w.p.monitoring.overview(w.mona)["warrants"] if r["id"] == ew_id)
+    assert row["health"] == "watch" and row["worst_psi"] == xs[-1]["psi"]
+    with pytest.raises(PermissionDenied):
+        w.p.monitoring.warrant(w.principal("dana"), ew_id)
+
+
+def test_chart_geometry_keeps_bounds_on_the_scale():
+    from maya.web.charts import line_chart, nice_ticks
+
+    assert nice_ticks(0.0, 0.23) == [0.0, 0.1, 0.2, 0.3]
+    pts = [{"at": f"2026-03-0{i}T00:00:00", "v": v} for i, v in enumerate([0.1, 0.2, 0.15], 1)]
+    c = line_chart(pts, "v", bounds=[(0.5, "covenant")], marks=["2026-03-02T00:00:00"], floor=0)
+    assert not c["empty"] and c["last"] == 0.15
+    # the axis reaches the covenant rather than cropping it, and draws it inside the plot
+    assert float(c["yticks"][-1][1]) >= 0.5
+    assert c["top"] <= c["lines"][0][0] < c["bottom"] and len(c["marks"]) == 1
+    assert line_chart([], "v")["empty"]

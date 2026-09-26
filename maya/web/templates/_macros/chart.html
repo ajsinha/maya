@@ -1,0 +1,21 @@
+{#
+  Draws the geometry maya.web.charts.line_chart computed: one series, its covenant bounds as
+  dashed lines, breaches as ticks on the time axis. Colours come from the theme tokens, so a
+  chart follows light, dark, blue and green like the rest of the page.
+#}
+{% macro line_chart(c, title, unit="") -%}
+<figure class="mchart mb-3">
+  <figcaption class="small-muted">{{ title }}{% if not c.empty %} · latest <strong>{{ '%g'|format(c.last) }}{{ unit }}</strong>{% endif %}</figcaption>
+  {% if c.empty %}<div class="mchart-empty small-muted">Nothing reported in this window.</div>
+  {% else %}
+  <svg viewBox="0 0 {{ c.w }} {{ c.h }}" role="img" aria-label="{{ title }}" preserveAspectRatio="xMidYMid meet">
+    {% for yv, label in c.yticks %}<line class="mc-grid" x1="{{ c.left }}" x2="{{ c.right }}" y1="{{ yv }}" y2="{{ yv }}"/><text class="mc-axis" x="{{ c.left - 6 }}" y="{{ yv }}" text-anchor="end" dominant-baseline="middle">{{ label }}</text>{% endfor %}
+    {% for xv, label in c.xticks %}<text class="mc-axis" x="{{ xv }}" y="{{ c.h - 6 }}" text-anchor="{{ 'start' if loop.first and not loop.last else 'end' if loop.last and not loop.first else 'middle' }}">{{ label }}</text>{% endfor %}
+    {% for yv, label in c.lines %}<line class="mc-bound" x1="{{ c.left }}" x2="{{ c.right }}" y1="{{ yv }}" y2="{{ yv }}"/><text class="mc-bound-label" x="{{ c.right - 2 }}" y="{{ yv - 3 }}" text-anchor="end">{{ label }}</text>{% endfor %}
+    {% for xv in c.marks %}<line class="mc-mark" x1="{{ xv }}" x2="{{ xv }}" y1="{{ c.bottom - 8 }}" y2="{{ c.bottom }}"/>{% endfor %}
+    <polyline class="mc-line" fill="none" points="{{ c.path }}"/>
+    {% for xv, yv, tip in c.dots %}<circle class="mc-dot" cx="{{ xv }}" cy="{{ yv }}" r="2.5"><title>{{ tip }}</title></circle>{% endfor %}
+  </svg>
+  {% endif %}
+</figure>
+{%- endmacro %}
