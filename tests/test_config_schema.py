@@ -148,7 +148,8 @@ def _accessor_calls() -> list[tuple[str, int, str, str, ast.expr | None]]:
     found = []
     files = [ROOT / "run_maya_web.py"]
     for pkg in ("maya", "maya_delta", "tools"):
-        files += sorted((ROOT / pkg).rglob("*.py"))
+        # a gate test's temporary ``_planted*`` file may appear and vanish mid-scan
+        files += sorted(p for p in (ROOT / pkg).rglob("*.py") if not p.name.startswith("_planted"))
     for path in files:
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):

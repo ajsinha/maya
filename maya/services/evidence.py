@@ -7,8 +7,10 @@ Two questions a validator is asked about every model and could not answer from M
   column the validator names -- a region, a product, a protected characteristic where the
   firm is allowed to hold one -- and each segment gets its own error, bias (mean error) and
   mean prediction. The spread across segments is summarised as the ratio of the worst
-  segment's MAE to the best's and the widest gap in bias, and a segment whose MAE is more
-  than a quarter above the overall figure is flagged. A segment with fewer than
+  segment's MAE to the best's and the widest gap in bias. A segment is *flagged* when its
+  MAE is more than a quarter above the overall figure, and *systematic* when its bias is
+  more than half its own MAE -- when the model is wrong for that group mostly in one
+  direction, which two groups with the same MAE can hide completely. A segment with fewer than
   ``min_segment`` rows is reported as suppressed, with no figures: a mean over three rows
   of an escrowed holdout is three rows of the holdout.
 * **What drives it?** Permutation importance: each input is shuffled across the holdout
@@ -38,6 +40,7 @@ MAX_SEGMENTS = 50
 REPEATS = 5
 MAX_REPEATS = 20
 FLAG_RATIO = 1.25
+SYSTEMATIC_SHARE = 0.5
 SEED = 20260926
 
 
@@ -81,6 +84,9 @@ def segments(
             "mean_prediction": float(np.nanmean(pr)),
         }
         row["flagged"] = bool(overall > 0 and row["mae"] > FLAG_RATIO * overall)
+        row["systematic"] = bool(
+            row["mae"] > 0 and abs(row["bias"]) > SYSTEMATIC_SHARE * row["mae"]
+        )
         rows.append(row)
         shown.append(row)
     maes = [float(r["mae"]) for r in shown]
@@ -94,6 +100,7 @@ def segments(
         "mae_ratio": (max(maes) / min(maes)) if len(maes) > 1 and min(maes) > 0 else None,
         "bias_gap": (max(biases) - min(biases)) if len(biases) > 1 else None,
         "flagged": [r["segment"] for r in shown if r["flagged"]],
+        "systematic": [r["segment"] for r in shown if r["systematic"]],
     }
 
 

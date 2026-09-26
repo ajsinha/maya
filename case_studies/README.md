@@ -186,12 +186,17 @@ same six calls would demonstrate nothing that one study could not.
 | 10 | [Factor models, CAPM to Fama–French](10-factor-models/) | Asset management | Simple then multiple regression | Two versions of one model: a semantic diff, a contract that grew, and the maturity ladder from candidate to retired. |
 | 11 | [Nelson–Siegel yield curve](11-nelson-siegel-curve/) | Fixed income, rates | Closed-form, non-linearly calibrated | A λ that is a convention rather than a measurement, and a planted bug a recalibration absorbs exactly — so only MAYA's blind score against the specification can see it. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable. MAYA refuses to score it, and says so rather than implying it did. |
+| 09 | [Basel IRB regulatory capital](09-basel-irb-capital/) | Banking, regulatory capital | Closed-form, **prescribed**, no fit | A formula you may not change, proved by reconciliation. Version 1 misses the maturity floor and cap; a **finding**, a fix, **independent closure**, tier 1, a periodic review and the SR 11-7 inventory row |
+| 19 | [Vendor bureau score](19-vendor-bureau-score/) | Banking, retail credit | **Bought black box**, from MLflow | Imported from its MLflow signature, its code validated and **scored blind in the sandbox**, fairness by region, and a drift covenant that takes it from *ok* to *watch* to *breach* |
+| 42 | [Demand elasticity](42-demand-elasticity/) | Economics, retail pricing | Linear champion, log–log challenger | **Champion and challenger** on the same escrowed rows: a paired bootstrap interval, a refusal to compare different holdouts, and a decision the challenger's author may not take |
+| 45 | [Gompertz–Makeham mortality](45-gompertz-makeham-mortality/) | Life sciences, actuarial | Mortality law, **non-linear** | Fairness when the law forbids the fair answer: a unisex table's bias by sex, invisible to the MAE ratio and marked *systematic*, and the risk **accepted in writing** |
+| 49 | [LLM complaint triage](49-llm-complaint-triage/) | Operations, retail banking | **LLM application** | Prompts and guardrails sealed as a version, a fixed evaluation set, recorded runs from a provider MAYA never calls, and approval only on evidence gathered on exactly that definition |
 
 ### The catalogue
 
-Fifty in all. Nine are built; the rest are listed with their final numbers, so a folder name
-never has to be renumbered. Study 08's data and declarations are written and its steps are
-not, so it has no folder table above and no README of its own; 09 does not exist yet. The order within each group is roughly the delivery order, and
+Fifty in all. Fourteen are built; the rest are listed with their final numbers, so a folder
+name never has to be renumbered. Study 08's data and declarations are written and its steps
+are not, so it has no folder table above and no README of its own. The order within each group is roughly the delivery order, and
 every entry is there for a **distinct thing it makes MAYA do** — fifty models that all
 exercised the same six calls would demonstrate nothing one study could not.
 
@@ -204,7 +209,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | 03 | Mortgage prepayment ✅ | Fitted hazard | A workspace, an impact analysis and a shadow replay of a change proposed under a live model |
 | 04 | HELOC exposure at default ✅ | **Composite router** | Two members with different functional forms; a parameter set each; a seal that waits for both |
 | 06 | IFRS 9 expected credit loss ✅ | **Composite** with its own parameters | PD × LGD × EAD under one warrant, plus two judgements that belong to the combination rather than to any member |
-| 09 | Basel IRB regulatory capital | Closed-form, no fit | Regulatory constants that are approved and never fitted; the Vasicek single-factor formula |
+| 09 | Basel IRB regulatory capital ✅ | Closed-form, no fit | Regulatory constants that are approved and never fitted; the Vasicek single-factor formula |
 | 12 | LGD and recovery, two-stage | Fitted, conditional | A target conditional on another model's event: cure rate, then loss given no cure |
 | 13 | Credit card behavioural scoring | Fitted | A model whose own output changes the population it next sees |
 | 14 | Collections roll-rate | Estimated matrix | A Markov transition matrix as a parameter set: a matrix, not a vector |
@@ -213,7 +218,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | 07 | Card-fraud neural network ✅ | **Declared black box** | What is left to hold to account when the mathematics is unreadable |
 | 17 | AML transaction monitoring | Tree ensemble | An opaque ensemble, and weights carried as a parameter file |
 | 18 | AML segmentation | Unsupervised | **No target at all** — a warrant for a model with nothing to predict |
-| 19 | Vendor bureau score | Bought black box | What MAYA cannot verify, *marked* unverifiable rather than omitted |
+| 19 | Vendor bureau score ✅ | Bought black box | What MAYA cannot verify, *marked* unverifiable rather than omitted |
 
 **Banking — asset-liability management and treasury**
 
@@ -260,7 +265,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | --- | --- | --- | --- |
 | 40 | Inflation nowcast | Mixed-frequency regression | **Data vintages**: what was knowable at the time |
 | 41 | GDP nowcast, dynamic factor | Latent state | A state nobody observes |
-| 42 | Demand elasticity | **Log–log** | A logarithmic fit used in natural space |
+| 42 | Demand elasticity ✅ | **Log–log** | A logarithmic fit used in natural space |
 | 43 | Okun's law | Simple linear regression | The simplest possible model, governed properly, as the floor case |
 
 **Life sciences**
@@ -268,7 +273,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 | | Study | Model type | What it adds |
 | --- | --- | --- | --- |
 | 44 | Cox proportional hazards | Survival | Censoring: rows whose outcome has not happened *yet* |
-| 45 | Gompertz–Makeham mortality | **Exponential law** | A century of published parameters to argue with |
+| 45 | Gompertz–Makeham mortality ✅ | **Exponential law** | A century of published parameters to argue with |
 | 46 | Gene-expression classifier | Regularised, wide | More features than rows, and what a contract means then |
 | 47 | Pharmacokinetics, two compartments | ODE solution | A sum of exponentials |
 | 48 | SIR epidemic | Recursive | A model used for decisions before it can be validated |
@@ -277,7 +282,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 
 | | Study | Model type | What it adds |
 | --- | --- | --- | --- |
-| 49 | LLM complaint triage | LLM | A prompt as a versioned parameter set, and a model MAYA never executes |
+| 49 | LLM complaint triage ✅ | LLM | A prompt as a versioned parameter set, and a model MAYA never executes |
 | 50 | Spreadsheet-lifted provision overlay | Lifted from Excel | MAYA judging the lift against the workbook's own results |
 
 ## What a case study is not

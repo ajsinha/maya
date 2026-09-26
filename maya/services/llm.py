@@ -10,7 +10,8 @@ governs what it can pin down:
   version, judged again.
 * **The evaluation set is the holdout.** Named cases -- the template's variables and the
   checks the answer must pass -- hashed as content, so "passed the evaluation" always names
-  which evaluation, in which state.
+  which evaluation, in which state. The owner maintains it, and so may a model manager:
+  a validator adds the case that breaks the application without asking its author.
 * **Checks are deterministic.** ``contains``, ``not_contains``, ``equals``, ``regex``,
   ``max_chars``, ``json`` (the answer parses, optionally with required keys). No model grades
   another model here: a judgement MAYA cannot reproduce is not evidence it can seal.
@@ -354,7 +355,11 @@ class LlmService:
         clean = _validate_cases(cases)
         digest = djson.canonical_hash(clean)
         with self.p.uow(p.username) as uow:
-            app, ns = self._app(uow, p, ref, "update")
+            # The owner maintains the evaluation set, and so may a validator: a model manager
+            # must be able to add the case that breaks the application without asking the
+            # person whose work it tests.
+            validator = any(r in p.roles for r in DECIDERS)
+            app, ns = self._app(uow, p, ref, "read" if validator else "update")
             row = uow.repo("llm_eval_sets").find_one(app_id=app["id"], name=name)
             values = {"cases": clean, "content_hash": digest, "description": description}
             if row:
