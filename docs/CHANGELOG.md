@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Derivations keep their clock; the formula IR gets the normal quantile**
+
+- **Six algebra operators no longer drop the knowledge clock.** Projection, composition,
+  coalescing, aggregation, resampling and case selection built their output from the index
+  and attributes alone, so a derived feature arrived without `_knowledge_time` and read as if
+  it had always been known. Each now carries the latest knowledge time of the input rows it
+  was built from, row by row — the same rule feature-set assembly and pivot already used.
+- **`ncdfinv`, the standard normal quantile.** `N^{-1}(p)`, `\Phi^{-1}(p)`, `ncdfinv(p)` and
+  `probit(p)` all parse to it; read as a power the superscript would have made it `1/N(p)`,
+  which parses, computes and is wrong. It evaluates, generates code, renders and round-trips
+  as LaTeX, lifts from Python (`norm.ppf`) and from Excel (`NORM.S.INV`, `NORMSINV`,
+  `NORM.INV`). The Basel IRB and parametric VaR templates now compute the quantile instead of
+  taking it as an input.
+
 **Models: the translation step on its own (§8.1, §16.2)**
 
 - **The compute-kernel wizard.** Somebody who writes their mathematics in LaTeX had to type

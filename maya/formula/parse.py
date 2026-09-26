@@ -61,6 +61,8 @@ FUNCS = {
     "ncdf": "ncdf",
     "N": "ncdf",
     "Phi": "ncdf",
+    "ncdfinv": "ncdfinv",
+    "probit": "ncdfinv",
     "npdf": "npdf",
     "max": "max",
     "min": "min",
@@ -288,7 +290,21 @@ class _Parser:
             return {"op": "abs", "args": [node]}
         raise ValidationFailed(f"unexpected '{tok.text}' at position {tok.pos}", position=tok.pos)
 
+    def inverse_call(self) -> bool:
+        """``N^{-1}(p)`` or ``\\Phi^{-1}(p)``: the normal quantile, not a reciprocal.
+
+        Read as a power, the superscript would make it ``1/N(p)`` -- a formula that parses,
+        computes and is about something else entirely. So the marker is consumed here."""
+        ahead = [t.text for t in self.toks[self.i : self.i + 6]]
+        for marker in (["^", "{", "-", "1", "}", "("], ["^", "-", "1", "("]):
+            if ahead[: len(marker)] == marker:
+                self.i += len(marker) - 1  # leave the '(' for call_args
+                return True
+        return False
+
     def name(self, tok: Tok) -> dict[str, Any]:
+        if tok.text in ("N", "Phi") and tok.text not in self.known and self.inverse_call():
+            return {"op": "ncdfinv", "args": self.call_args()}
         nxt = self.peek()
         if tok.text in FUNCS and tok.text not in self.known and nxt and nxt.text == "(":
             return {"op": FUNCS[tok.text], "args": self.call_args()}
@@ -322,7 +338,8 @@ class _Parser:
         if name in ("max", "min"):
             return {"op": name, "args": self.call_args()}
         if name == "Phi":
-            return {"op": "ncdf", "args": self.call_args()}
+            op = "ncdfinv" if self.inverse_call() else "ncdf"
+            return {"op": op, "args": self.call_args()}
         base, _, subscript = name.partition("_")
         if base in GREEK:
             # ``\sigma_{atm}`` is one symbol, so it is atomic: without that the multi-letter

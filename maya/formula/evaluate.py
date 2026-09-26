@@ -11,6 +11,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 from __future__ import annotations
 
 import math
+import statistics
 from typing import Any, Callable
 
 import numpy as np
@@ -27,6 +28,23 @@ def ncdf(x: Any) -> np.ndarray:
     """Standard normal CDF via ``math.erfc``, which keeps relative precision in the left tail."""
     arr = np.asarray(x, dtype=float)
     return 0.5 * _erfc(-arr / _SQRT2)
+
+
+def _probit(p: float) -> float:
+    if p != p or p < 0.0 or p > 1.0:
+        return math.nan
+    if p in (0.0, 1.0):
+        return math.inf if p else -math.inf
+    return _NORMAL.inv_cdf(p)
+
+
+_NORMAL = statistics.NormalDist()
+_probit_v = np.vectorize(_probit, otypes=[float])
+
+
+def ncdfinv(p: Any) -> np.ndarray:
+    """The standard normal quantile: -inf at 0, +inf at 1, and no answer outside [0, 1]."""
+    return _probit_v(np.asarray(p, dtype=float))
 
 
 def npdf(x: Any) -> np.ndarray:
@@ -54,6 +72,7 @@ _OPS: dict[str, Callable[[list[Any]], Any]] = {
     "sqrt": lambda v: np.sqrt(v[0]),
     "abs": lambda v: np.abs(v[0]),
     "ncdf": lambda v: ncdf(v[0]),
+    "ncdfinv": lambda v: ncdfinv(v[0]),
     "npdf": lambda v: npdf(v[0]),
     "max": lambda v: _reduce(np.maximum, v),
     "min": lambda v: _reduce(np.minimum, v),

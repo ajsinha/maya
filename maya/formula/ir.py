@@ -32,6 +32,7 @@ OPS: dict[str, tuple[int, int | None]] = {
     "sqrt": (1, 1),
     "abs": (1, 1),
     "ncdf": (1, 1),
+    "ncdfinv": (1, 1),
     "npdf": (1, 1),
     "max": (2, None),
     "min": (2, None),

@@ -398,18 +398,16 @@ ecl = h \cdot pd_{12} \cdot lgd \cdot ead
         "Basel IRB capital for a corporate exposure",
         "Prescribed by regulation rather than fitted, so it is a model with no dials at all: "
         "what has to be evidenced is that the implementation computes what the text says. "
-        "The inverse normal of the default probability is an input, because the IR has no "
-        "inverse-normal operator -- so that step is computed upstream and arrives as a "
-        "feature, which is the honest way to say it rather than writing something the "
-        "parser will read as a reciprocal.",
+        "N^{-1} is the normal quantile, not a reciprocal: the parser reads the superscript "
+        "as the inverse function, and 0.999 is the confidence the rule fixes.",
         r"""
 R = 0.12 \frac{1 - \exp(-50 pd)}{1 - \exp(-50)} + 0.24 \left(1 - \frac{1 - \exp(-50 pd)}{1 - \exp(-50)}\right)
 b = (0.11852 - 0.05478 \log(pd))^2
 mat = (1 + (M - 2.5) b) / (1 - 1.5 b)
-cond = ncdf((probit_{pd} + \sqrt{R} z_{999}) / \sqrt{1 - R})
+cond = ncdf((N^{-1}(pd) + \sqrt{R} N^{-1}(0.999)) / \sqrt{1 - R})
 k = (lgd \cdot cond - pd \cdot lgd) \cdot mat
 """,
-        {"pd": "feature", "lgd": "feature", "M": "feature", "probit_pd": "feature", "z_999": _C},
+        {"pd": "feature", "lgd": "feature", "M": "feature"},
         "regulatory capital rwa asset correlation maturity adjustment",
     ),
     _t(
@@ -588,14 +586,13 @@ pti = payment \cdot 12 / income
         "var_normal",
         "Market risk",
         "Parametric value at risk",
-        "Normal, one horizon, one confidence. Two things are inputs rather than steps: the "
-        "volatility, because computing it aggregates over rows, and the standard normal "
-        "quantile at the confidence level -- a constant chosen with the confidence, and one "
-        "the IR cannot compute because it has no inverse-normal operator.",
+        "Normal, one horizon, one confidence. The volatility is an input rather than a "
+        "step, because computing it aggregates over rows; the quantile is computed from "
+        "the confidence, which is a constant chosen with the policy.",
         r"""
-var = -(\mu + \sigma z_c) V
+var = -(\mu + \sigma N^{-1}(1 - c)) V
 """,
-        {"z_c": _C, "mu": "feature", "sigma": "feature", "V": "feature"},
+        {"c": _C, "mu": "feature", "sigma": "feature", "V": "feature"},
         "value at risk parametric variance covariance confidence",
     ),
     _t(

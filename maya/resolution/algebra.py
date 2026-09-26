@@ -286,8 +286,24 @@ def _prep(df: pd.DataFrame, meta: Meta) -> pd.DataFrame:
     return df[cols].copy()
 
 
+def _with_kt(df: pd.DataFrame, cols: list[str]) -> list[str]:
+    """The columns to keep, plus the knowledge clock when the frame carries one."""
+    return cols + ([KT] if KT in df.columns else [])
+
+
+def _latest(out: pd.DataFrame, clocks: list[str]) -> pd.DataFrame:
+    """Collapse the inputs' knowledge clocks into one: a row is knowable when its latest part is."""
+    present = [c for c in clocks if c in out.columns]
+    if not present:
+        return out
+    latest = out[present].max(axis=1)
+    out = out.drop(columns=present)
+    out[KT] = latest
+    return out
+
+
 def _ex_project(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
-    return f[0][list(m[0]["index"]) + list(o["attrs"])].copy()
+    return f[0][_with_kt(f[0], list(m[0]["index"]) + list(o["attrs"]))].copy()
 
 
 def _ex_rename(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
@@ -338,8 +354,10 @@ def _ex_compose(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.D
     prefixes = o.get("prefixes") or ["", ""]
     frames = []
     for df, mm, p in zip(f, m, prefixes):
-        d = df[list(mm["index"]) + _attrs(mm)].rename(columns={a: p + a for a in _attrs(mm)})
-        frames.append(d)
+        d = df[_with_kt(df, list(mm["index"]) + _attrs(mm))]
+        frames.append(
+            d.rename(columns={**{a: p + a for a in _attrs(mm)}, KT: f"{KT}__{len(frames)}"})
+        )
     on = [c for c in m[0]["index"] if c in m[1]["index"]]
     left, right = frames[0], frames[1]
     how = "outer"
@@ -348,7 +366,7 @@ def _ex_compose(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.D
         how = "left"
         if len(m[0]["index"]) < len(m[1]["index"]):
             left, right = frames[1], frames[0]
-    out = left.merge(right, on=on, how=how)
+    out = _latest(left.merge(right, on=on, how=how), [f"{KT}__0", f"{KT}__1"])
     index = _compose_index(m, bool(o.get("broadcast")))
     return out.sort_values(index, kind="mergesort").reset_index(drop=True)
 
@@ -358,17 +376,21 @@ def _ex_coalesce(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.
     base = pd.concat([df[idx] for df in f]).drop_duplicates().sort_values(idx, kind="mergesort")
     out = base.reset_index(drop=True)
     for i, df in enumerate(f):
-        part = df[idx + attrs].rename(columns={a: f"{a}__{i}" for a in attrs})
+        part = df[_with_kt(df, idx + attrs)]
+        part = part.rename(columns={**{a: f"{a}__{i}" for a in attrs}, KT: f"{KT}__{i}"})
         out = out.merge(part, on=idx, how="left")
     for a in attrs:
         cols = [f"{a}__{i}" for i in range(len(f))]
         out[a] = out[cols].bfill(axis=1).iloc[:, 0]
         out = out.drop(columns=cols)
-    return out
+    return _latest(out, [f"{KT}__{i}" for i in range(len(f))])
 
 
 def _ex_aggregate(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
-    return f[0].groupby(list(o["by"]), sort=True).agg(o["agg"]).reset_index()
+    agg = dict(o["agg"])
+    if KT in f[0].columns:
+        agg[KT] = "max"
+    return f[0].groupby(list(o["by"]), sort=True).agg(agg).reset_index()
 
 
 def _ex_lag(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
@@ -387,18 +409,26 @@ def _ex_resample(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.
         "freq": o["freq"],
         "agg": o.get("agg") or {a: "last" for a in _attrs(m[0])},
     }
-    return apply_pipeline(f[0][list(m[0]["index"]) + _attrs(m[0])], [step], m[0]["index"])
+    index = list(m[0]["index"])
+    out = apply_pipeline(f[0][index + _attrs(m[0])], [step], index)
+    if KT in f[0].columns:  # the bucket is knowable when its latest row is
+        clock = {**step, "agg": {KT: "max"}}
+        out = out.merge(apply_pipeline(f[0][index + [KT]], [clock], index), on=index, how="left")
+    return out
 
 
 def _ex_case(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:
     idx, attrs = list(m[0]["index"]), _attrs(m[0])
-    a = f[0][idx + attrs]
-    b = f[1][idx + attrs].rename(columns={x: f"{x}__else" for x in attrs})
+    a = f[0][_with_kt(f[0], idx + attrs)].rename(columns={KT: f"{KT}__0"})
+    b = f[1][_with_kt(f[1], idx + attrs)]
+    b = b.rename(columns={**{x: f"{x}__else" for x in attrs}, KT: f"{KT}__1"})
     both = a.merge(b, on=idx, how="outer").sort_values(idx, kind="mergesort").reset_index(drop=True)
     cond = compile_expr(o["cond"]).evaluate(both).fillna(False).astype(bool).to_numpy()
     for x in attrs:
         both[x] = np.where(cond, both[x], both[f"{x}__else"])
-    return both[idx + attrs]
+    # both branches were read to decide the row, so both clocks bound when it was knowable
+    out = _latest(both, [f"{KT}__0", f"{KT}__1"])
+    return out[_with_kt(out, idx + attrs)]
 
 
 def _ex_pivot(o: dict[str, Any], f: list[pd.DataFrame], m: list[Meta]) -> pd.DataFrame:

@@ -32,6 +32,7 @@ _FN = {
     "sqrt": "np.sqrt",
     "abs": "np.abs",
     "ncdf": "_ncdf",
+    "ncdfinv": "_ncdfinv",
     "npdf": "_npdf",
 }
 _RED = {"max": "np.maximum", "min": "np.minimum", "and": "np.logical_and", "or": "np.logical_or"}
@@ -188,6 +189,18 @@ _HELPERS = {
         '        """The standard normal CDF, vectorised over arrays."""\n'
         "        return 0.5 * _erfc(-np.asarray(x, dtype=float) / math.sqrt(2.0))\n"
     ),
+    "ncdfinv": (
+        "    def _ncdfinv(p):\n"
+        '        """The standard normal quantile, vectorised; nan outside [0, 1]."""\n'
+        "        nd = statistics.NormalDist()\n"
+        "        def one(q):\n"
+        "            if q != q or q < 0.0 or q > 1.0:\n"
+        "                return math.nan\n"
+        "            if q in (0.0, 1.0):\n"
+        "                return math.inf if q else -math.inf\n"
+        "            return nd.inv_cdf(q)\n"
+        "        return np.vectorize(one, otypes=[float])(np.asarray(p, dtype=float))\n"
+    ),
     "npdf": (
         "    def _npdf(x):\n"
         '        """The standard normal density, vectorised over arrays."""\n'
@@ -218,10 +231,12 @@ def _preamble(used: set[str]) -> list[str]:
 
     Only what the formula actually uses: `math` is here for the helpers' constants, and a
     formula with no normal distribution in it should not import it to say so."""
-    helpers = [k for k in ("ncdf", "npdf") if k in used]
+    helpers = [k for k in ("ncdf", "ncdfinv", "npdf") if k in used]
     lines = []
     if helpers:
         lines += ["    import math", ""]
+    if "ncdfinv" in helpers:
+        lines += ["    import statistics", ""]
     lines += ["    import numpy as np", ""]
     if helpers:
         lines += ["    _erfc = np.vectorize(math.erfc, otypes=[float])", ""]

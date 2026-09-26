@@ -8,7 +8,8 @@ scope is deliberately narrow, as the specification asks:
 
 * arithmetic (``+ - * / ^``, unary minus, ``%``) and comparisons;
 * SUM, PRODUCT, MIN, MAX, AVERAGE (ranges allowed), ABS, SQRT, EXP, LN, LOG,
-  LOG10, POWER, IF, AND, OR, NOT, NORM.S.DIST, NORMSDIST, NORM.DIST;
+  LOG10, POWER, IF, AND, OR, NOT, NORM.S.DIST, NORMSDIST, NORM.DIST, NORM.S.INV,
+  NORMSINV, NORM.INV;
 * named cells and ranges;
 * VLOOKUP / HLOOKUP over a table of constants, exact or approximate.
 
@@ -60,6 +61,8 @@ _TOKEN = re.compile(
 )
 _CMP = {"=": "eq", "<": "lt", ">": "gt", "<=": "le", ">=": "ge"}
 LN10 = math.log(10.0)
+
+_NORMAL_FNS = ("NORM.S.DIST", "NORMSDIST", "NORM.DIST", "NORM.S.INV", "NORMSINV", "NORM.INV")
 
 
 def _refuse(where: str, what: str) -> ValidationFailed:
@@ -352,7 +355,7 @@ class _Lift:
                     (("SUM", "PRODUCT", "MIN", "MAX", "AVERAGE"), self._aggregate),
                     (("ABS", "SQRT", "EXP", "LN", "LOG10", "LOG", "POWER"), self._maths),
                     (("IF", "AND", "OR", "NOT", "TRUE", "FALSE"), self._logic),
-                    (("NORM.S.DIST", "NORMSDIST", "NORM.DIST"), self._normal),
+                    (_NORMAL_FNS, self._normal),
                     (("VLOOKUP", "HLOOKUP"), self.lookup),
                 )
                 if fn in names
@@ -411,6 +414,14 @@ class _Lift:
         return xs[0] if len(xs) == 1 else {"op": fn.lower(), "args": xs}
 
     def _normal(self, fn: str, args: list[Any], here: str) -> Any:
+        if fn in ("NORM.S.INV", "NORMSINV"):
+            self._arity(fn, args, here, 1, 1)
+            return {"op": "ncdfinv", "args": [self.node(args[0], here)]}
+        if fn == "NORM.INV":
+            self._arity(fn, args, here, 3, 3)
+            p, mu, sd = (self.node(a, here) for a in args)
+            z = {"op": "ncdfinv", "args": [p]}
+            return {"op": "add", "args": [mu, {"op": "mul", "args": [sd, z]}]}
         if fn == "NORM.DIST":
             self._arity(fn, args, here, 4, 4)
             x, mu, sd = (self.node(a, here) for a in args[:3])
