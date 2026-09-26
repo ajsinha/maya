@@ -266,6 +266,13 @@
      "workbook": "(self, ref, version_no)"
     }
    },
+   "monitoring": {
+    "class": "Monitoring",
+    "methods": {
+     "overview": "(self, days=30)",
+     "warrant": "(self, ew_id, days=90)"
+    }
+   },
    "namespaces": {
     "class": "Namespaces",
     "methods": {
@@ -624,6 +631,13 @@
      "update_draft": "(self, ref, **kw)",
      "upload_artifact": "(self, ref, source, sample=None, params=None)",
      "workbook": "(self, ref, version_no)"
+    }
+   },
+   "monitoring": {
+    "class": "Monitoring",
+    "methods": {
+     "overview": "(self, days=30)",
+     "warrant": "(self, ew_id, days=90)"
     }
    },
    "namespaces": {

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Monitoring{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-2"><h1 class="me-auto">Monitoring</h1>
+<form method="get" action="/monitoring" class="d-flex gap-1 align-items-center"><label class="small-muted" for="mdays">Window</label>
+<select class="form-select form-select-sm" id="mdays" name="days" style="width:auto">{% for d in windows %}<option value="{{ d }}" {% if d == days %}selected{% endif %}>{{ d }} days</option>{% endfor %}</select>
+<button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form></div>
+<p class="small-muted">Every sealed execution warrant you can read, graded from the executions reported under it.
+<strong>Breach</strong>: suspended, or a covenant breached in the last 7 days. <strong>Watch</strong>: a population
+stability index between 0.10 and the covenant, an input's null rate at least double its median, or a live warrant
+silent for 30 days. Warrants run offline, unattested, report nothing and cannot be graded.</p>
+<div class="d-flex flex-wrap gap-3 mb-3">
+  {% for h in ('breach', 'watch', 'ok') %}<div class="card card-body py-2 health-tile"><div>{{ pill(h) }}</div><div class="fs-4">{{ m.counts[h] }}</div></div>{% endfor %}
+</div>
+{% call(r) table("monitoring", ["Warrant", "Model", "Health", "Status", "Runs", "Rows", "Breaches", "Worst PSI", "Last run", "!Why"], m.warrants, empty="No sealed execution warrants you can read. A warrant is monitored from the executions reported under it once it is sealed.") %}
+  <td><a href="/monitoring/warrants/{{ r.id }}">{{ r.namespace }}/{{ r.name }}@v{{ r.version_no }}</a></td>
+  <td class="mono">{{ r.model_ref or '—' }}</td>
+  <td data-sort="{{ {'breach': 0, 'watch': 1, 'ok': 2}[r.health] }}">{{ pill(r.health) }}</td><td>{{ pill(r.status) }}</td>
+  <td>{{ r.runs }}</td><td data-sort="{{ r.rows }}">{{ '{:,}'.format(r.rows) }}</td><td>{{ r.breaches }}</td>
+  <td data-sort="{{ r.worst_psi if r.worst_psi is not none else -1 }}">{{ '%.3f'|format(r.worst_psi) if r.worst_psi is not none else '—' }}</td>
+  <td>{{ r.last_run|dt or '—' }}</td>
+  <td class="small">{% for s in r.signals[:2] %}<div>{{ s.what }}: {{ s.why }}</div>{% endfor %}{% if r.signals|length > 2 %}<div class="small-muted">and {{ r.signals|length - 2 }} more</div>{% endif %}</td>
+{% endcall %}
+{% endblock %}

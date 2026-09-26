@@ -42,6 +42,7 @@ from maya.sdk.resources import (
     Governance,
     Jobs,
     Models,
+    Monitoring,
     Namespaces,
     Sources,
     TrainingWarrants,
@@ -75,6 +76,7 @@ class _Namespaces:
         self.custody = Custody(transport)
         self.assistant = Assistant(transport)
         self.governance = Governance(transport)
+        self.monitoring = Monitoring(transport)
         self.cache = PinCache()
 
     @property

@@ -99,3 +99,15 @@ class Governance(_Resource):
     @endpoint("POST", "/governance/sweep")
     def sweep(self) -> Any:
         return self._c("POST", "/governance/sweep")
+
+
+class Monitoring(_Resource):
+    """Ongoing monitoring of live models, read from their reported executions."""
+
+    @endpoint("GET", "/monitoring")
+    def overview(self, days: int = 30) -> Any:
+        return self._c("GET", "/monitoring", params={"days": days})
+
+    @endpoint("GET", "/monitoring/warrants/{ew_id}")
+    def warrant(self, ew_id: str, days: int = 90) -> Any:
+        return self._c("GET", f"/monitoring/warrants/{seg(ew_id)}", params={"days": days})

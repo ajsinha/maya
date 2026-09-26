@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+**Black boxes are scored blind, in the sandbox**
+
+- A declared black box (a vendor model, or any opaque one) used to be refused at holdout
+  scoring: MAYA cannot evaluate a model it cannot read. It can run one it has validated,
+  though, so a black box whose code artifact passed the validation ladder is now scored by
+  running that artifact in the sandbox on the escrowed holdout's input columns — never the
+  target, with no network and no view of storage. MAYA computes the metrics from the
+  predictions; the caller sees the metrics and never a row.
+- The score records what was run: `scored_in: sandbox`, the sandbox tier and the
+  artifact's hash, on the attempt and in the warrant's custody chain. A black box with no
+  validated artifact is refused by name, and one that reads the target as an input is
+  refused rather than handed the answer.
+
+**Ongoing monitoring dashboards**
+
+- **`/monitoring`** (SDK `monitoring`, `GET /monitoring`, `GET /monitoring/warrants/{id}`)
+  reads the executions reported under each sealed warrant as series. The overview grades
+  every warrant you can read: *breach* (suspended, or a covenant breached in the last 7
+  days), *watch* (a PSI between 0.10 and the covenant, an input null rate at least double
+  its median, or a live warrant silent for 30 days) or *ok*.
+- A warrant's dashboard draws volume per day and, per input and output, the PSI against
+  the covenant's baseline, the null rate and the mean, with the covenant bounds as dashed
+  lines and breaches marked on the time axis. The charts are server-drawn SVG in the theme's
+  colours: no charting library, nothing for the content security policy to allow.
+- Nothing here writes; it is a reading of evidence the covenants already judged, so it
+  cannot disagree with them. Offline, unattested runs report nothing and are not graded.
+
 **Model governance: findings, materiality and periodic review**
 
 - **The findings register.** `/governance` (SDK `governance`, `/api/v1/governance/*`). A

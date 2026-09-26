@@ -63,7 +63,8 @@
 </div>
 <div class="tab-pane {% if tab == 'holdout' %}show active{% endif %}" id="tab-holdout" role="tabpanel">
   <p>Attempts so far: <strong>{{ w.holdout_attempts }}</strong>. Every attempt is counted and shown, because twenty attempts against a holdout is itself overfitting.</p>
-  {% call(s) table("scores", ["Attempt", "When", "Metrics"], w.holdout_scores, empty="No blind scoring attempts yet.") %}<td>{{ s.attempt_no }}</td><td>{{ s.created_at|dt }}</td><td class="mono">{{ s.metrics|tojson }}</td>{% endcall %}
+  {% if w.model.opaque %}<p class="small-muted">This model is a black box. It is scored by running its validated code artifact in the sandbox on the holdout's input columns only; the target never enters the sandbox, and only the metrics come out.</p>{% endif %}
+  {% call(s) table("scores", ["Attempt", "When", "Scored", "Metrics"], w.holdout_scores, empty="No blind scoring attempts yet.") %}<td>{{ s.attempt_no }}</td><td>{{ s.created_at|dt }}</td><td>{% if s.metrics.scored_in == 'sandbox' %}sandbox ({{ s.metrics.sandbox_tier }}), artifact {{ s.metrics.artifact_hash|short(12) }}{% else %}by MAYA from the formula{% endif %}</td><td class="mono">{{ s.metrics|tojson }}</td>{% endcall %}
   <form method="post" action="/warrants/training/{{ w.id }}/score" class="card card-body">
     <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Score against the escrowed holdout</h3>
     <div class="row g-2"><div class="col-md-6"><label class="form-label" for="sps">Parameter set</label><select class="form-select" id="sps" name="parameter_set_id"><option value="">— use values below —</option>{% for p in w.parameter_sets %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>

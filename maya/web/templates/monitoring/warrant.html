@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% from "_macros/chart.html" import line_chart %}
+{% block title %}Monitoring · {{ m.name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-start gap-2 mb-1"><div class="me-auto">
+<h1 class="mb-0">{{ m.name }}@v{{ m.version_no }} {{ pill(m.status) }}</h1>
+<div class="small-muted mono">{{ m.uri }}{% if m.model_ref %} · {{ m.model_ref }}{% endif %}</div></div>
+<a class="btn btn-sm btn-outline-secondary" href="/warrants/execution/{{ m.id }}">Open the warrant</a>
+<form method="get" class="d-flex gap-1 align-items-center"><label class="small-muted" for="wdays">Window</label>
+<select class="form-select form-select-sm" id="wdays" name="days" style="width:auto">{% for d in windows %}<option value="{{ d }}" {% if d == days %}selected{% endif %}>{{ d }} days</option>{% endfor %}</select>
+<button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form></div>
+<p class="small-muted mt-2">{{ m.runs }} run(s) and {{ '{:,}'.format(m.rows) }} row(s) reported in the last {{ m.days }} days{% if m.last_run %}, the latest {{ m.last_run|dt }}{% endif %}. Dashed lines are the warrant's covenants and the 0.10 PSI watch line; red ticks on the time axis are breaches.{% if m.truncated %} Only the most recent 2,000 reports are read.{% endif %}</p>
+{% if m.signals %}<div class="mb-3">{% for s in m.signals %}<div class="alert alert-{{ 'danger' if s.level == 'breach' else 'warning' }} py-2 mb-1">{{ pill(s.level) }} <strong>{{ s.what }}</strong>: {{ s.why }}</div>{% endfor %}</div>
+{% else %}<div class="alert alert-success py-2">{{ pill('ok') }} Nothing to look at in this window.</div>{% endif %}
+<h2>Volume</h2>
+<div class="row g-3"><div class="col-lg-6">{{ line_chart(charts.rows, "Rows per day") }}</div><div class="col-lg-6">{{ line_chart(charts.runs, "Runs per day") }}</div></div>
+{% for g in charts.attrs %}
+<h2 class="mt-2">{{ g.attr }} <span class="small-muted fs-6">{{ 'output' if g.side == 'outputs' else 'input' }}</span></h2>
+<div class="row g-3">{% for title, c in g.charts %}<div class="col-lg-4">{{ line_chart(c, title) }}</div>{% endfor %}</div>
+{% endfor %}
+<h2 class="mt-2">Breaches</h2>
+{% call(b) table("mon-breaches", ["When", "Covenant", "Detail"], m.breaches|reverse|list, empty="No covenant breached in this window.") %}
+  <td>{{ b.at|dt }}</td><td>{{ b.kind }}</td><td>{{ b.detail }}</td>
+{% endcall %}
+{% endblock %}

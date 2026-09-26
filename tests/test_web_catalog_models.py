@@ -417,3 +417,47 @@ def test_governance_pages_raise_move_declare_and_review(people):
     )
     admin.post("/governance/sweep", expect="info")
     assert "Governance" in mona.get("/models/quant/linear").text
+
+
+def test_monitoring_pages_draw_the_series(people):
+    from maya.core.clock import utcnow
+
+    w, app, b = people
+    mona = b["mona"]
+    with w.p.uow("test") as uow:
+        model = uow.repo("models").find_one(name="linear")
+        v = uow.repo("model_versions").find_one(model_id=model["id"], version_no=1)
+        ew = uow.repo("execution_warrants").add(
+            {
+                "namespace_id": model["namespace_id"],
+                "name": "mon-web",
+                "state": "approved",
+                "owner_id": model["owner_id"],
+                "model_version_id": v["id"],
+                "spec": {
+                    "environments": ["dev"],
+                    "covenants": [{"kind": "input_null_rate", "attr": "x", "max": 0.2}],
+                },
+                "sealed_at": utcnow(),
+                "valid_from": utcnow(),
+                "valid_to": utcnow() + dt.timedelta(days=30),
+            }
+        )
+        for i in range(3):
+            r = uow.repo("execution_reports").add(
+                {
+                    "execution_warrant_id": ew["id"],
+                    "environment": "dev",
+                    "rows": 50 + i,
+                    "input_stats": {"x": {"null_rate": 0.01 * i, "mean": 1.0 + i}},
+                    "output_stats": {},
+                }
+            )
+            uow.repo("execution_reports").update(
+                r["id"], {"created_at": utcnow() - dt.timedelta(days=3 - i)}
+            )
+    overview = mona.get("/monitoring").text
+    assert "mon-web@v1" in overview
+    page = mona.get(f"/monitoring/warrants/{ew['id']}?days=30").text
+    assert page.count("<svg") >= 4 and "covenant 0.2" in page and "Rows per day" in page
+    assert "Monitoring" in mona.get(f"/warrants/execution/{ew['id']}").text

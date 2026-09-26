@@ -1,5 +1,6 @@
 """
-Model governance: the findings register, materiality tiers and periodic review.
+Model governance: the findings register, materiality tiers, periodic review and ongoing
+monitoring.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -81,3 +82,17 @@ def record_review(
 def sweep(me: Principal = Me, plat: Any = Plat) -> Response:
     """Suspend the live warrants of every model whose periodic review is overdue."""
     return ok(plat.governance.sweep(me))
+
+
+@router.get("/monitoring", tags=["monitoring"])
+def monitoring(days: int = 30, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Every sealed execution warrant the caller may read, graded ok, watch or breach."""
+    return ok(plat.monitoring.overview(me, days))
+
+
+@router.get("/monitoring/warrants/{ew_id}", tags=["monitoring"])
+def monitoring_warrant(
+    ew_id: str, days: int = 90, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """One warrant's reported executions read as series: volume, null rates, ranges, PSI."""
+    return ok(plat.monitoring.warrant(me, ew_id, days))

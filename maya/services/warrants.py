@@ -156,6 +156,7 @@ class WarrantService:
                     "version_no": mv["version_no"],
                     "ir_hash": mv["ir_hash"],
                     "artifact_hash": mv["artifact_hash"],
+                    "opaque": bool(mv.get("opaque")),
                 },
                 "custody": uow.repo("custody_events").list(
                     warrant_type="train", warrant_id=warrant_id, order_by=["created_at"]
@@ -765,13 +766,19 @@ class WarrantService:
                     escrowed_rows=w["holdout_rows"],
                     found_rows=fresh.num_rows,
                 )
-        pred = self.predict(mv, test, w["spec"].get("bindings", {}), values or {})
+        bindings = w["spec"].get("bindings", {})
+        sandboxed: dict[str, Any] = {}
+        if irmod.is_opaque(mv["formula_ir"] or {}):
+            pred, sandboxed = self._predict_blind(mv, test, bindings, values or {}, target)
+        else:
+            pred = self.predict(mv, test, bindings, values or {})
         y = test[target].astype(float).to_numpy()
         err = pred - y
         metrics = {
             "rmse": float(np.sqrt(np.nanmean(err**2))),
             "mae": float(np.nanmean(np.abs(err))),
             "rows": int(len(test)),
+            **sandboxed,
         }
         with self.p.uow(p.username) as uow:
             w = uow.repo("training_warrants").update(
@@ -796,6 +803,73 @@ class WarrantService:
             "metrics": metrics,
             "attempt": w["holdout_attempts"],
             "note": "Every attempt is counted and shown on the warrant.",
+        }
+
+    def _predict_blind(
+        self,
+        mv: dict[str, Any],
+        df: pd.DataFrame,
+        bindings: dict[str, str],
+        values: dict[str, Any],
+        target: str,
+    ) -> tuple[np.ndarray, dict[str, Any]]:
+        """Score a black box by running its validated artifact in the sandbox (§29.4).
+
+        MAYA cannot evaluate a model it cannot read, but it can run one it has validated,
+        and that is enough to keep the holdout blind: the artifact is given the input
+        columns of the escrowed rows and nothing else -- never the target -- inside the
+        sandbox, with no network and no view of storage. Its predictions come back to MAYA,
+        which computes the metrics; the person who asked sees the metrics and never a row.
+        What was run is recorded with the score: the artifact's hash and the sandbox tier."""
+        from maya.security.sandbox import run_sandboxed
+
+        report = mv.get("artifact_report") or {}
+        if not mv.get("artifact_hash") or not report.get("passed"):
+            raise ValidationFailed(
+                "A black box is scored by running its code artifact in the sandbox, and this "
+                "version has no artifact that passed the validation ladder. Upload one to the "
+                "model and let it validate, then score.",
+                artifact=report.get("status")
+                or ("none" if not mv.get("artifact_hash") else "failed"),
+            )
+        wanted = [c["name"] for c in mv["input_contract"] or []]
+        missing = [n for n in wanted if bindings.get(n, n) not in df.columns]
+        if not wanted or missing:
+            raise ValidationFailed(
+                "The black box's input contract cannot be met from the holdout: "
+                + (f"missing {missing}" if missing else "the version declares no inputs"),
+                missing=missing,
+            )
+        if target in {bindings.get(n, n) for n in wanted}:
+            raise ValidationFailed(
+                f"The black box reads the target '{target}' as an input; scoring it would hand "
+                "it the answer"
+            )
+        X = {n: df[bindings.get(n, n)].astype(float).tolist() for n in wanted}
+        source = self.p.blobs.get(mv["artifact_hash"]).decode("utf-8")
+        out = run_sandboxed(
+            source,
+            "Model",
+            {"mode": "predict", "X": X, "params": values, "seed": 0},
+            cpu_seconds=60,
+            memory_mb=2048,
+            wall_seconds=120,
+            output_limit_bytes=max(2_000_000, 64 * len(df)),
+        )
+        if not out["ok"]:
+            raise ValidationFailed(f"The black box failed in the sandbox: {out['error']}")
+        result = out["result"]
+        if isinstance(result, dict):
+            result = next(iter(result.values()), None)
+        pred = np.asarray(result, dtype=float).reshape(-1)
+        if pred.shape[0] != len(df):
+            raise ValidationFailed(
+                f"The black box returned {pred.shape[0]} predictions for {len(df)} holdout rows"
+            )
+        return pred, {
+            "scored_in": "sandbox",
+            "sandbox_tier": out["tier"],
+            "artifact_hash": mv["artifact_hash"],
         }
 
     def predict(
