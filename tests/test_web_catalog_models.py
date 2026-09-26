@@ -387,21 +387,22 @@ def test_api_keys_and_two_factor_through_the_account_pages(people):
 
 def test_governance_pages_raise_move_declare_and_review(people):
     w, app, b = people
-    devi, mona, admin = b["devi"], b["mona"], b["admin"]
+    # mgr is the independent reviewer here; devi's session was signed out earlier in the module
+    devi, mona, admin = b["mgr"], b["mona"], b["admin"]
     assert "quant/linear" in devi.get("/governance").text
     devi.post(
         "/governance/findings",
         {"model": "quant/linear", "title": "Residuals drift", "severity": "high"},
         expect="success",
     )
-    fid = w.p.governance.findings(w.devi, "quant/linear")[0]["id"]
+    fid = w.p.governance.findings(w.mgr, "quant/linear")[0]["id"]
     page = mona.get(f"/governance/findings/{fid}").text
     assert "Residuals drift" in page and "Mark remediated" in page
     mona.post(f"/governance/findings/{fid}/move", {"action": "remediated"}, expect="success")
     devi.post(
         f"/governance/findings/{fid}/move", {"action": "close", "note": "checked"}, expect="success"
     )
-    assert w.p.governance.finding(w.devi, fid)["state"] == "closed"
+    assert w.p.governance.finding(w.mgr, fid)["state"] == "closed"
     mona.post(
         "/governance/models/quant/linear/profile",
         {"use": "business_decision", "exposure": "20000000"},

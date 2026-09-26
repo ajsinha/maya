@@ -20,8 +20,8 @@
   <td>{{ m.open_findings }}</td><td>{{ m.by_severity.critical }}</td><td>{{ m.by_severity.high }}</td>
 {% endcall %}
 <div class="d-flex align-items-center"><h2 class="me-auto">Findings register</h2>
-<form method="get" action="/governance" class="d-flex gap-1"><label class="visually-hidden" for="gstate">Show</label><select class="form-select form-select-sm" id="gstate" name="state" onchange="this.form.submit()">
-{% for v, l in [('active', 'Not yet closed'), ('', 'All'), ('closed', 'Closed'), ('accepted', 'Risk accepted')] %}<option value="{{ v }}" {% if state == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></form></div>
+<form method="get" action="/governance" class="d-flex gap-1"><label class="visually-hidden" for="gstate">Show</label><select class="form-select form-select-sm" id="gstate" name="state">
+{% for v, l in [('active', 'Not yet closed'), ('', 'All'), ('closed', 'Closed'), ('accepted', 'Risk accepted')] %}<option value="{{ v }}" {% if state == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form></div>
 {% call(f) table("gov-findings", ["Finding", "Model", "Severity", "State", "Owner", "Due"], findings, empty="Nothing in the register for this view.") %}
   <td><a href="/governance/findings/{{ f.id }}">{{ f.title }}</a></td><td class="mono">{{ f.model_ref }}{% if f.version_no %}@v{{ f.version_no }}{% endif %}</td>
   <td>{{ pill(f.severity) }}</td><td>{{ pill(f.state) }}</td><td>{{ f.owner or '—' }}</td>

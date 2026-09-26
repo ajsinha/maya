@@ -179,3 +179,15 @@ def approved_feature(
     w.p.features.transition(w.dana, ref, 1, "submit")
     w.p.features.transition(w.mick, ref, 1, "approve")
     return ref
+
+
+def pytest_configure(config: Any) -> None:
+    """Under pytest-xdist, keep each module on one worker.
+
+    The web journey modules share one estate per module and run in order -- a test signs a
+    user out, enrols MFA or leaves an object the next one uses -- so the default ``load``
+    distribution, which scatters one module's tests across workers, fails them for reasons
+    that have nothing to do with the code. ``loadfile`` is set here rather than in pytest.ini
+    because xdist is optional and an unknown option would break a plain ``pytest`` run."""
+    if getattr(config.option, "dist", None) == "load":
+        config.option.dist = "loadfile"
