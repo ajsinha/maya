@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 — 2026-09-26
+
+The first release: model governance on top of the 0.3.0 spine — findings, materiality,
+periodic review, monitoring, champion and challenger, fairness and explainability
+evidence, regulatory inventory exports, LLM application governance and connectors.
 
 **LLM applications, governed like models**
 

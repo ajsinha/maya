@@ -26,7 +26,7 @@ import httpx
 
 from maya.core.errors import ERRORS_BY_CODE, MayaError
 
-CLIENT_VERSION = "0.2.0"
+CLIENT_VERSION = "1.0.0"
 RETRY_STATUS = {429, 502, 503, 504}
 CHUNK = 1 << 20
 

@@ -21,6 +21,8 @@ from pptx.enum.text import PP_ALIGN
 import theme as T
 from metrics import SH, SW, text_h
 
+from maya.core.version import VERSION
+
 GAP = 0.18
 
 
@@ -143,7 +145,7 @@ def title(s: dict[str, Any]) -> None:
     T.para(tf, s.get("date", "September 2026"), size=12, color=T.CRIMSON, space_after=1)
     T.para(
         tf,
-        s.get("version", "MAYA 0.3.0 · specification revision 2.3"),
+        s.get("version", f"MAYA {VERSION} · specification revision 2.6"),
         size=11,
         color=T.SLATE,
         space_after=0,

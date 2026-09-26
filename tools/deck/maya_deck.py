@@ -21,6 +21,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 from __future__ import annotations
 
+from maya.core.version import VERSION
 from maya_deck_1b import SLIDES as DERIVED
 from maya_deck_2 import SLIDES as SYSTEM
 from maya_deck_3 import SLIDES as STUDIES
@@ -35,7 +36,7 @@ OPENING = [
         "kicker": "",
         "title": ["MAYA : Model Management", "& System Design"],
         "sub": "Evidence, not assertion.",
-        "version": "MAYA 0.3.0 · specification revision 2.6",
+        "version": f"MAYA {VERSION} · specification revision 2.6",
         "agenda": [
             "What a model actually is",
             "Four facts you should not have to type",
