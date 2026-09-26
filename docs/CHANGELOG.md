@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+**Five new case studies, and what writing them found**
+
+- **09 Basel IRB regulatory capital** — a prescribed formula proved by reconciliation;
+  version 1 misses the maturity floor and cap (6.5m of overstated capital); a finding, a fix,
+  independent closure, tier 1, a periodic review and the SR 11-7 inventory row.
+- **19 Vendor bureau score** — a bought model imported from its MLflow signature, its code
+  validated and scored blind in the sandbox, fairness by region, and a drift covenant that
+  goes from *ok* to *watch* to *breach*.
+- **42 Demand elasticity** — champion and challenger on the same escrowed rows: a paired
+  bootstrap interval clear of zero, a refusal to compare different holdouts, and a decision
+  the challenger's author may not take.
+- **45 Gompertz–Makeham mortality** — a unisex table's bias by sex, invisible to the MAE ratio,
+  and the risk accepted in writing with the legal reason.
+- **49 LLM complaint triage** — an LLM application whose first version gets every category
+  right and still fails on repeated card numbers and a promised refund; approval only on
+  evidence gathered on exactly the definition and evaluation set in force.
+- **Fairness evidence marks a *systematic* segment**: one whose bias is more than half its
+  MAE, wrong mostly in one direction. Study 45 found the gap: two groups wrong by the same
+  amount in opposite directions have an MAE ratio near 1, and the evidence reported nothing.
+- **A validator may extend an LLM application's evaluation set** without the owner: study 49
+  found that only the owner could, which left the author as sole judge of the test.
+
 **The quick start, followed literally**
 
 - [`docs/QUICKSTART.md`](QUICKSTART.md): from nothing to MAYA running, signed in, with a case

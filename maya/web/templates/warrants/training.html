@@ -79,11 +79,11 @@
     <div class="d-flex flex-wrap gap-2 align-items-baseline"><h3 class="me-auto mb-1">{{ e.created_at|dt }} · {{ e.created_by }}</h3><span class="small-muted">{{ r.rows }} rows · RMSE {{ '%.4g'|format(r.rmse) }} · MAE {{ '%.4g'|format(r.mae) }}{% if r.scored_in == 'sandbox' %} · sandbox ({{ r.sandbox_tier }}){% endif %}</span></div>
     {% if r.segments %}{% set sg = r.segments %}
     <h4 class="mt-2">By {{ sg.column }}</h4>
-    <p class="small-muted mb-1">{{ sg.compared }} segment(s) compared, {{ sg.suppressed }} suppressed below {{ sg.min_segment }} rows.{% if sg.mae_ratio %} Worst-to-best MAE ratio {{ '%.2f'|format(sg.mae_ratio) }}.{% endif %}{% if sg.bias_gap is not none %} Widest bias gap {{ '%.4g'|format(sg.bias_gap) }}.{% endif %}{% if sg.flagged %} <strong>Flagged</strong> (MAE more than 25% above overall): {{ sg.flagged|join(', ') }}.{% endif %}</p>
+    <p class="small-muted mb-1">{{ sg.compared }} segment(s) compared, {{ sg.suppressed }} suppressed below {{ sg.min_segment }} rows.{% if sg.mae_ratio %} Worst-to-best MAE ratio {{ '%.2f'|format(sg.mae_ratio) }}.{% endif %}{% if sg.bias_gap is not none %} Widest bias gap {{ '%.4g'|format(sg.bias_gap) }}.{% endif %}{% if sg.flagged %} <strong>Flagged</strong> (MAE more than 25% above overall): {{ sg.flagged|join(', ') }}.{% endif %}{% if sg.systematic %} <strong>Systematic</strong> (bias more than half the MAE — wrong mostly in one direction): {{ sg.systematic|join(', ') }}.{% endif %}</p>
     {% call(g) table("seg-" ~ e.id[:8], ["Segment", "Rows", "RMSE", "MAE", "Bias", "Mean prediction", "Flag"], sg.segments) %}
       <td>{{ g.segment }}</td><td>{{ g.rows }}</td>
       {% if g.suppressed %}<td class="small-muted">suppressed</td><td>—</td><td>—</td><td>—</td><td class="small-muted">fewer than {{ sg.min_segment }} rows</td>
-      {% else %}<td>{{ '%.4g'|format(g.rmse) }}</td><td>{{ '%.4g'|format(g.mae) }}</td><td>{{ '%+.4g'|format(g.bias) }}</td><td>{{ '%.4g'|format(g.mean_prediction) }}</td><td>{% if g.flagged %}{{ pill('watch', 'flagged') }}{% else %}—{% endif %}</td>{% endif %}
+      {% else %}<td>{{ '%.4g'|format(g.rmse) }}</td><td>{{ '%.4g'|format(g.mae) }}</td><td>{{ '%+.4g'|format(g.bias) }}</td><td>{{ '%.4g'|format(g.mean_prediction) }}</td><td>{% if g.flagged %}{{ pill('watch', 'flagged') }} {% endif %}{% if g.systematic %}{{ pill('watch', 'systematic') }}{% endif %}{% if not g.flagged and not g.systematic %}—{% endif %}</td>{% endif %}
     {% endcall %}{% endif %}
     {% if r.importance %}
     <h4 class="mt-2">What drives it</h4>

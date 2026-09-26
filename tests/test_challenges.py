@@ -128,6 +128,11 @@ def test_segments_suppress_small_groups_and_flag_the_worst():
     assert rows["C"]["suppressed"] and "mae" not in rows["C"]  # three rows would be three rows
     assert out["flagged"] == ["B"] and out["mae_ratio"] == pytest.approx(10.0)
     assert out["compared"] == 2 and out["suppressed"] == 1
+    # equal MAE, opposite directions: nothing flagged, both systematic
+    two = segments(
+        np.array(["F"] * 30 + ["M"] * 30), np.array([0.5] * 30 + [-0.5] * 30), np.zeros(60)
+    )
+    assert two["flagged"] == [] and two["systematic"] == ["F", "M"] and two["bias_gap"] == 1.0
 
 
 def test_evidence_on_the_holdout_names_the_driver_and_counts_an_attempt(estate):

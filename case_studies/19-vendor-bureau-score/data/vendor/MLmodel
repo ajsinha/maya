@@ -1,0 +1,17 @@
+artifact_path: bureau_score
+flavors:
+  python_function:
+    env:
+      virtualenv: python_env.yaml
+    loader_module: bureau_score
+    python_version: 3.11.9
+mlflow_version: 2.14.1
+model_uuid: 7c1e5d1a9b2f4a0c8e6d3b2a1f0e9d8c
+run_id: b3f1a2c4d5e6f708192a3b4c5d6e7f80
+signature:
+  inputs: '[{"type": "double", "name": "utilisation", "required": true}, {"type": "long",
+    "name": "delinquencies", "required": true}, {"type": "double", "name": "age_of_file",
+    "required": true}, {"type": "long", "name": "inquiries", "required": true}]'
+  outputs: '[{"type": "double", "name": "score", "required": true}]'
+  params: null
+utc_time_created: '2025-11-03 09:14:22.418000'
