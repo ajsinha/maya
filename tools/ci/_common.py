@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import io
+import os
 import sys
 import tokenize
 from pathlib import Path
@@ -19,6 +20,16 @@ if str(ROOT) not in sys.path:
 SOURCE_ROOTS = ("maya", "maya_delta", "tools", "run_maya_web.py")
 
 
+def visible(path: Path) -> bool:
+    """False for a file a gate test planted, unless this run is the one that planted it.
+
+    The gate tests prove each gate fails by writing a violating ``_planted*`` file into the
+    tree and running the gate on it. Another test worker running the same gates at that
+    moment would otherwise see the plant too -- or see it listed and then deleted -- and
+    fail for a reason that is not in the code. The planting test sets ``MAYA_CI_PLANTED``."""
+    return not path.name.startswith("_planted") or os.environ.get("MAYA_CI_PLANTED") == "1"
+
+
 def python_files() -> list[Path]:
     out: list[Path] = []
     for name in SOURCE_ROOTS:
@@ -26,7 +37,7 @@ def python_files() -> list[Path]:
         if path.is_file():
             out.append(path)
         elif path.is_dir():
-            out += [p for p in path.rglob("*.py") if "__pycache__" not in p.parts]
+            out += [p for p in path.rglob("*.py") if "__pycache__" not in p.parts and visible(p)]
     return sorted(out)
 
 

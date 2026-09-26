@@ -226,8 +226,15 @@ def test_real_server_over_http_with_sdk_and_cli(tmp_path):
 
 # -- gates, green and red ---------------------------------------------------------------------
 def _gate(name: str) -> subprocess.CompletedProcess:
+    """Run a gate that is meant to see this test's ``_planted*`` file; gates in any other
+    process ignore such files (tools/ci/_common.visible)."""
     return subprocess.run(
-        [sys.executable, str(CI / name)], cwd=ROOT, capture_output=True, text=True, timeout=300
+        [sys.executable, str(CI / name)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        env={**os.environ, "MAYA_CI_PLANTED": "1"},
     )
 
 

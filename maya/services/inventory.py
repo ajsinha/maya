@@ -180,7 +180,62 @@ class InventoryService:
                         ),
                     }
                 )
-        return out, hidden
+            llm_rows, llm_hidden = self._llm_rows(uow, p)
+        return out + llm_rows, hidden + llm_hidden
+
+    def _llm_rows(self, uow: Any, p: Principal) -> tuple[builtins.list[dict[str, Any]], int]:
+        """LLM applications as inventory rows. Fields that belong to the model governance
+        records -- tier, findings, periodic review -- are left blank rather than invented:
+        those records are kept for models, and an application's evidence is its evaluations."""
+        rows, hidden = [], 0
+        blank = dict.fromkeys(COLUMNS, "")
+        for app in uow.repo("llm_apps").list(order_by=["name"]):
+            if not self.p.access.allowed(uow, p, "read", "model", app):
+                hidden += 1
+                continue
+            ns = uow.repo("namespaces").get(app["namespace_id"])
+            versions = uow.repo("llm_app_versions").list(app_id=app["id"], order_by=["-version_no"])
+            approved = next((v for v in versions if v["state"] == "approved"), None)
+            current = approved or (versions[0] if versions else {})
+            evidence = self.p.llm._evidence(uow, current) if current and current.get("id") else None
+            owner = uow.repo("users").get(app["owner_id"])
+            rows.append(
+                {
+                    **blank,
+                    "model_ref": f"maya://llm/{ns['name']}/{app['name']}",
+                    "name": app["name"],
+                    "namespace": ns["name"],
+                    "description": app.get("description") or app.get("use_case") or "",
+                    "use": app.get("use_case") or "",
+                    "kind": "llm application",
+                    "black_box": "yes",
+                    "vendor": f"{current.get('provider', '')} {current.get('model', '')}".strip(),
+                    "owner": owner["username"] if owner else "",
+                    "tier": None,
+                    "derived_tier": None,
+                    "exposure": None,
+                    "status": current.get("state", "no version"),
+                    "current_version": current.get("version_no"),
+                    "approved_at": current.get("decided_at") if approved else None,
+                    "approved_by": (current.get("decided_by") or "") if approved else "",
+                    "implementation_tested": (
+                        f"evaluated: {evidence['passed']}/{evidence['cases']} cases passed "
+                        f"({evidence['mode']})"
+                        if evidence
+                        else "no qualifying evaluation"
+                    ),
+                    "last_review": None,
+                    "next_review_due": None,
+                    "open_findings": None,
+                    "open_critical_high": None,
+                    "overdue_findings": None,
+                    "accepted_risks": None,
+                    "live_warrants": None,
+                    "executions": None,
+                    "monitoring": "not monitored by MAYA",
+                }
+            )
+        return rows, hidden
 
     def _health(self, p: Principal) -> dict[str, str]:
         rows = self.p.monitoring.overview(p)["warrants"]

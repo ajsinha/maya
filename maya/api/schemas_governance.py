@@ -88,3 +88,35 @@ class SagemakerImportIn(BaseModel):
     estimates: str
     inputs: list[str] | None = None
     outputs: list[str] | None = None
+
+
+class LlmAppIn(BaseModel):
+    namespace: str
+    name: str
+    use_case: str
+    description: str = ""
+
+
+class LlmVersionIn(BaseModel):
+    provider: str
+    model: str
+    prompt_template: str
+    system_prompt: str = ""
+    parameters: dict[str, Any] | None = None
+    guardrails: dict[str, Any] | None = None
+
+
+class LlmEvalSetIn(BaseModel):
+    name: str
+    cases: list[dict[str, Any]]
+    description: str = ""
+
+
+class LlmRunIn(BaseModel):
+    eval_set: str
+    responses: dict[str, str] | None = None
+
+
+class LlmDecisionIn(BaseModel):
+    decision: str
+    note: str

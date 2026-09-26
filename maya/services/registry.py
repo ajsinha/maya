@@ -24,6 +24,7 @@ def _governance(platform: Any) -> None:
     from maya.services.governance import GovernanceService
     from maya.services.integrations import IntegrationService
     from maya.services.inventory import InventoryService
+    from maya.services.llm import LlmService
     from maya.services.monitoring import MonitoringService
 
     for name, cls in (
@@ -33,6 +34,7 @@ def _governance(platform: Any) -> None:
         ("challenges", ChallengeService),
         ("evidence", EvidenceService),
         ("integrations", IntegrationService),
+        ("llm", LlmService),
     ):
         platform.register_service(name, cls(platform))
 

@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: ccb1ad82e51059712f122cddfb4c674d003308ea76c2159f9bec45ad1bd45f88
+-- schema-hash: 9275794917de7f6e5613d99a61e08196121c0a217475eda51c26ee4773d8eec2
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -903,6 +903,26 @@ CREATE TABLE features (
 
 CREATE INDEX ix_features_namespace_id ON features (namespace_id);
 
+CREATE TABLE llm_apps (
+	namespace_id CHAR(36) NOT NULL, 
+	name VARCHAR(128) NOT NULL, 
+	owner_id CHAR(36) NOT NULL, 
+	description TEXT, 
+	use_case TEXT, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_llm_apps PRIMARY KEY (id), 
+	CONSTRAINT uq_llm_apps_namespace_id_name UNIQUE (namespace_id, name), 
+	CONSTRAINT fk_llm_apps_namespace_id_namespaces FOREIGN KEY(namespace_id) REFERENCES namespaces (id), 
+	CONSTRAINT fk_llm_apps_owner_id_users FOREIGN KEY(owner_id) REFERENCES users (id)
+);
+
+CREATE INDEX ix_llm_apps_namespace_id ON llm_apps (namespace_id);
+
 CREATE TABLE models (
 	namespace_id CHAR(36) NOT NULL, 
 	name VARCHAR(128) NOT NULL, 
@@ -1032,6 +1052,54 @@ CREATE TABLE findings (
 );
 
 CREATE INDEX ix_findings_model_state ON findings (model_id, state);
+
+CREATE TABLE llm_app_versions (
+	app_id CHAR(36) NOT NULL, 
+	version_no INTEGER NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	provider VARCHAR(32) NOT NULL, 
+	model VARCHAR(128) NOT NULL, 
+	system_prompt TEXT NOT NULL, 
+	prompt_template TEXT NOT NULL, 
+	parameters JSON NOT NULL, 
+	guardrails JSON NOT NULL, 
+	definition_hash VARCHAR(64) NOT NULL, 
+	submitted_by VARCHAR(128), 
+	submitted_at DATETIME, 
+	decided_by VARCHAR(128), 
+	decided_at DATETIME, 
+	decision_note TEXT, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_llm_app_versions PRIMARY KEY (id), 
+	CONSTRAINT uq_llm_app_versions_app_id_version_no UNIQUE (app_id, version_no), 
+	CONSTRAINT fk_llm_app_versions_app_id_llm_apps FOREIGN KEY(app_id) REFERENCES llm_apps (id)
+);
+
+CREATE INDEX ix_llm_app_versions_app_id ON llm_app_versions (app_id);
+
+CREATE TABLE llm_eval_sets (
+	app_id CHAR(36) NOT NULL, 
+	name VARCHAR(128) NOT NULL, 
+	description TEXT, 
+	cases JSON NOT NULL, 
+	content_hash VARCHAR(64) NOT NULL, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_llm_eval_sets PRIMARY KEY (id), 
+	CONSTRAINT uq_llm_eval_sets_app_id_name UNIQUE (app_id, name), 
+	CONSTRAINT fk_llm_eval_sets_app_id_llm_apps FOREIGN KEY(app_id) REFERENCES llm_apps (id)
+);
+
+CREATE INDEX ix_llm_eval_sets_app_id ON llm_eval_sets (app_id);
 
 CREATE TABLE model_governance (
 	model_id CHAR(36) NOT NULL, 
@@ -1250,6 +1318,30 @@ CREATE TABLE feature_set_pins (
 );
 
 CREATE INDEX ix_feature_set_pins_feature_set_id ON feature_set_pins (feature_set_id);
+
+CREATE TABLE llm_eval_runs (
+	version_id CHAR(36) NOT NULL, 
+	eval_set_id CHAR(36) NOT NULL, 
+	eval_set_hash VARCHAR(64) NOT NULL, 
+	definition_hash VARCHAR(64) NOT NULL, 
+	mode VARCHAR(16) NOT NULL, 
+	cases INTEGER NOT NULL, 
+	passed INTEGER NOT NULL, 
+	pass_rate FLOAT NOT NULL, 
+	guardrail_violations INTEGER NOT NULL, 
+	results JSON NOT NULL, 
+	id CHAR(36) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at DATETIME NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_llm_eval_runs PRIMARY KEY (id), 
+	CONSTRAINT fk_llm_eval_runs_version_id_llm_app_versions FOREIGN KEY(version_id) REFERENCES llm_app_versions (id), 
+	CONSTRAINT fk_llm_eval_runs_eval_set_id_llm_eval_sets FOREIGN KEY(eval_set_id) REFERENCES llm_eval_sets (id)
+);
+
+CREATE INDEX ix_llm_eval_runs_version ON llm_eval_runs (version_id);
 
 CREATE TABLE parameter_sets (
 	model_version_id CHAR(36) NOT NULL, 

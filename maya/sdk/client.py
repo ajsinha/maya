@@ -44,6 +44,7 @@ from maya.sdk.resources import (
     Governance,
     Integrations,
     Jobs,
+    Llm,
     Models,
     Monitoring,
     Namespaces,
@@ -83,6 +84,7 @@ class _Namespaces:
         self.challenges = Challenges(transport)
         self.evidence = Evidence(transport)
         self.integrations = Integrations(transport)
+        self.llm = Llm(transport)
         self.cache = PinCache()
 
     @property
