@@ -160,3 +160,31 @@ class Challenges(_Resource):
             f"/challenges/{seg(challenge_id)}/decision",
             json_body={"decision": decision, "rationale": rationale},
         )
+
+
+class Evidence(_Resource):
+    """Fairness and explainability evidence on a training warrant's escrowed holdout."""
+
+    @endpoint("GET", "/warrants/training/{warrant_id}/evidence")
+    def list(self, warrant_id: str) -> Any:
+        return self._c("GET", f"/warrants/training/{seg(warrant_id)}/evidence")
+
+    @endpoint("POST", "/warrants/training/{warrant_id}/evidence")
+    def compute(
+        self,
+        warrant_id: str,
+        *,
+        parameter_set_id: str | None = None,
+        segment: str | None = None,
+        importance: bool = True,
+        repeats: int = 5,
+        min_segment: int = 20,
+    ) -> Any:
+        body = {
+            "parameter_set_id": parameter_set_id,
+            "segment": segment,
+            "importance": importance,
+            "repeats": repeats,
+            "min_segment": min_segment,
+        }
+        return self._c("POST", f"/warrants/training/{seg(warrant_id)}/evidence", json_body=body)

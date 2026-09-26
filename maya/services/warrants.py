@@ -749,20 +749,21 @@ class WarrantService:
             "note": "Every attempt is counted and shown on the warrant.",
         }
 
-    def holdout_errors(
+    def holdout(
         self,
         p: Principal,
         warrant_id: str,
         *,
         parameter_set_id: str | None = None,
         values: dict[str, Any] | None = None,
-        purpose: str | None = None,
-    ) -> tuple[np.ndarray, dict[str, Any], int]:
-        """Score once and record the attempt; returns the per-row errors, in the escrowed
-        holdout's row order, for comparisons MAYA makes itself (champion and challenger).
-        The errors never leave the platform: callers outside it get metrics only."""
+    ) -> dict[str, Any]:
+        """The escrowed holdout, checked against its seal, and a predictor over it.
+
+        For MAYA's own use -- scoring, comparisons, evidence -- never returned to a caller:
+        ``test`` holds the rows. ``predict(frame)`` returns ``(predictions, provenance)``,
+        running a black box's artifact in the sandbox and anything else from its IR."""
         with self.p.uow() as uow:
-            w, ns = self._load(uow, warrant_id)
+            w, _ = self._load(uow, warrant_id)
             self.p.access.require(uow, p, "read", "training_warrant", w)
             mv = uow.repo("model_versions").require(w["model_version_id"])
             if parameter_set_id:
@@ -788,20 +789,35 @@ class WarrantService:
                     found_rows=fresh.num_rows,
                 )
         bindings = w["spec"].get("bindings", {})
-        sandboxed: dict[str, Any] = {}
-        if irmod.is_opaque(mv["formula_ir"] or {}):
-            pred, sandboxed = self._predict_blind(mv, test, bindings, values or {}, target)
-        else:
-            pred = self.predict(mv, test, bindings, values or {})
-        y = test[target].astype(float).to_numpy()
-        err = pred - y
-        metrics = {
-            "rmse": float(np.sqrt(np.nanmean(err**2))),
-            "mae": float(np.nanmean(np.abs(err))),
-            "rows": int(len(test)),
-            **sandboxed,
+        prm = values or {}
+
+        def predict(frame: pd.DataFrame) -> tuple[np.ndarray, dict[str, Any]]:
+            if irmod.is_opaque(mv["formula_ir"] or {}):
+                return self._predict_blind(mv, frame, bindings, prm, target)
+            return self.predict(mv, frame, bindings, prm), {}
+
+        return {
+            "warrant": w,
+            "model_version": mv,
+            "test": test.reset_index(drop=True),
+            "target": target,
+            "y": test[target].astype(float).to_numpy(),
+            "bindings": bindings,
+            "predict": predict,
         }
+
+    def record_attempt(
+        self,
+        p: Principal,
+        warrant_id: str,
+        metrics: dict[str, Any],
+        *,
+        parameter_set_id: str | None = None,
+        purpose: str | None = None,
+    ) -> int:
+        """Count one use of the holdout, on the warrant and in its custody chain."""
         with self.p.uow(p.username) as uow:
+            w = uow.repo("training_warrants").require(warrant_id)
             w = uow.repo("training_warrants").update(
                 warrant_id, {"holdout_attempts": w["holdout_attempts"] + 1}
             )
@@ -824,7 +840,33 @@ class WarrantService:
                     **({"purpose": purpose} if purpose else {}),
                 },
             )
-        return err, metrics, int(w["holdout_attempts"])
+            return int(w["holdout_attempts"])
+
+    def holdout_errors(
+        self,
+        p: Principal,
+        warrant_id: str,
+        *,
+        parameter_set_id: str | None = None,
+        values: dict[str, Any] | None = None,
+        purpose: str | None = None,
+    ) -> tuple[np.ndarray, dict[str, Any], int]:
+        """Score once and record the attempt; returns the per-row errors, in the escrowed
+        holdout's row order, for comparisons MAYA makes itself (champion and challenger).
+        The errors never leave the platform: callers outside it get metrics only."""
+        h = self.holdout(p, warrant_id, parameter_set_id=parameter_set_id, values=values)
+        pred, sandboxed = h["predict"](h["test"])
+        err = pred - h["y"]
+        metrics = {
+            "rmse": float(np.sqrt(np.nanmean(err**2))),
+            "mae": float(np.nanmean(np.abs(err))),
+            "rows": int(len(h["test"])),
+            **sandboxed,
+        }
+        attempt = self.record_attempt(
+            p, warrant_id, metrics, parameter_set_id=parameter_set_id, purpose=purpose
+        )
+        return err, metrics, attempt
 
     def _predict_blind(
         self,

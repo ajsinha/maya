@@ -262,3 +262,6 @@ def test_a_black_box_with_a_validated_artifact_is_scored_blind_in_the_sandbox(ve
     custody = w.p.warrants.get(w.devi, tw["id"])["custody"]
     scored = [c for c in custody if c["event"] == "holdout_scored"][-1]
     assert scored["detail"]["scored_in"] == "sandbox"
+    # a black box's drivers are measured the same way, through the sandbox
+    ev = w.p.evidence.compute(w.devi, tw["id"], repeats=2)["result"]
+    assert ev["scored_in"] == "sandbox" and ev["importance"][0]["input"] == "x"

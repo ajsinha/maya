@@ -506,3 +506,11 @@ def test_champion_challenger_pages_score_and_decide(people):
         expect="success",
     )
     assert w.p.challenges.get(w.mgr, cid)["state"] == "promoted"
+    wid, psid = ids[0]
+    mgr.post(
+        f"/warrants/training/{wid}/evidence",
+        {"parameter_set_id": psid, "segment": "symbol", "importance": "1", "repeats": "2"},
+        expect="success",
+    )
+    page = mgr.get(f"/warrants/training/{wid}?tab=evidence").text
+    assert "What drives it" in page and "By symbol" in page

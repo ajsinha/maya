@@ -1,5 +1,5 @@
 """
-Champion and challenger on the same escrowed holdout.
+Champion and challenger, and fairness and explainability evidence, on the escrowed holdout.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -113,3 +113,35 @@ def test_warrants_on_different_holdouts_are_not_compared(estate):
         pytest.skip("the two seeds happened to draw the same holdout")
     with pytest.raises(ValidationFailed, match="same escrowed holdout"):
         w.p.challenges.create(w.devi, a["id"], b["id"], challenger_parameter_set_id=None)
+
+
+# --------------------------------------------------------- fairness and drivers
+
+
+def test_segments_suppress_small_groups_and_flag_the_worst():
+    from maya.services.evidence import segments
+
+    groups = np.array(["A"] * 40 + ["B"] * 40 + ["C"] * 3)
+    err = np.concatenate([np.full(40, 0.1), np.full(40, 1.0), np.full(3, 5.0)])
+    out = segments(groups, err, err + 10, min_rows=20)
+    rows = {r["segment"]: r for r in out["segments"]}
+    assert rows["C"]["suppressed"] and "mae" not in rows["C"]  # three rows would be three rows
+    assert out["flagged"] == ["B"] and out["mae_ratio"] == pytest.approx(10.0)
+    assert out["compared"] == 2 and out["suppressed"] == 1
+
+
+def test_evidence_on_the_holdout_names_the_driver_and_counts_an_attempt(estate):
+    w = estate
+    tw, ps = _warrant(w, "evid", b=0.4)
+    before = w.p.warrants.get(w.devi, tw)["holdout_attempts"]
+    row = w.p.evidence.compute(w.devi, tw, parameter_set_id=ps, segment="symbol", repeats=3)
+    r = row["result"]
+    assert r["importance"][0]["input"] == "x" and r["importance"][0]["share"] == 1.0
+    sg = r["segments"]
+    assert sg["column"] == "symbol" and sg["compared"] + sg["suppressed"] == 3
+    assert w.p.warrants.get(w.devi, tw)["holdout_attempts"] == before + 1
+    assert w.p.evidence.list(w.devi, tw)[0]["id"] == row["id"]
+    with pytest.raises(ValidationFailed, match="not a column"):
+        w.p.evidence.compute(w.devi, tw, parameter_set_id=ps, segment="nope")
+    with pytest.raises(ValidationFailed, match="target"):
+        w.p.evidence.compute(w.devi, tw, parameter_set_id=ps, segment="y", importance=False)

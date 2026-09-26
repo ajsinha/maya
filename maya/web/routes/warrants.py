@@ -114,11 +114,13 @@ async def training(request: Request, wid: str) -> Any:
         w = await sdk.training.get(wid)
         history = await sdk.workflow.history("training_warrant", wid)
         comments = await sdk.workflow.comments("training_warrant", wid)
+        evidence = await sdk.evidence.list(wid)
     return await render(
         request,
         "warrants/training.html",
         {
             "w": w,
+            "evidence": evidence,
             "history": history,
             "comments": comments,
             "is_admin": is_admin(request),
@@ -129,6 +131,24 @@ async def training(request: Request, wid: str) -> Any:
             "depth": "3",
         },
     )
+
+
+@router.post("/warrants/training/{wid}/evidence")
+@action
+async def training_evidence(request: Request, wid: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        row = await sdk.evidence.compute(
+            wid,
+            parameter_set_id=data.get("parameter_set_id") or None,
+            segment=data.get("segment") or None,
+            importance=bool(data.get("importance")),
+            repeats=int(data.get("repeats") or 5),
+        )
+    flagged = (row["result"].get("segments") or {}).get("flagged") or []
+    note = f" Flagged segments: {', '.join(flagged)}." if flagged else ""
+    flash(request, f"Evidence computed; one holdout attempt counted.{note}", "success")
+    return RedirectResponse(f"/warrants/training/{wid}?tab=evidence", status_code=303)
 
 
 @router.post("/warrants/training/{wid}/transition")

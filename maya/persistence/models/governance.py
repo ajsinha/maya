@@ -88,3 +88,14 @@ class Challenge(Tracked, Base):
     decided_by: Mapped[str | None] = mapped_column(String(128))
     decided_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     rationale: Mapped[str | None] = mapped_column(Text)
+
+
+class WarrantEvidence(Tracked, Base):
+    """Fairness and explainability evidence computed on a training warrant's holdout."""
+
+    __tablename__ = "warrant_evidence"
+    training_warrant_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    parameter_set_id: Mapped[str | None] = mapped_column(PortableUUID)
+    kind: Mapped[str] = mapped_column(String(32))
+    spec: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    result: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)

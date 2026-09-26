@@ -135,3 +135,17 @@ def decide_challenge(
     challenge_id: str, body: s.DecisionIn, me: Principal = Me, plat: Any = Plat
 ) -> Response:
     return ok(plat.challenges.decide(me, challenge_id, body.decision, body.rationale))
+
+
+@router.get("/warrants/training/{warrant_id}/evidence", tags=["warrants"])
+def evidence(warrant_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Fairness and explainability evidence computed on this warrant's holdout."""
+    return ok(plat.evidence.list(me, warrant_id))
+
+
+@router.post("/warrants/training/{warrant_id}/evidence", status_code=201, tags=["warrants"])
+def compute_evidence(
+    warrant_id: str, body: s.EvidenceIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """Segment metrics and permutation importance on the holdout; counts as one attempt."""
+    return ok(plat.evidence.compute(me, warrant_id, **body.model_dump()), 201)

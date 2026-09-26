@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: bfa1c4d7178bca3bf0cdf18dfeedbb20f786c4bb265525d501c8cef4a477e5a2
+-- schema-hash: 24c7dfe1b89042b97979e84da2ca1ed86ac71b45a27f03eb7d438316be1c7eac
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -545,6 +545,23 @@ CREATE TABLE users (
 );
 
 CREATE INDEX ix_users_external_subject ON users (external_subject);
+
+CREATE TABLE warrant_evidence (
+	training_warrant_id UUID NOT NULL, 
+	parameter_set_id UUID, 
+	kind VARCHAR(32) NOT NULL, 
+	spec JSONB NOT NULL, 
+	result JSONB NOT NULL, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_warrant_evidence PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_warrant_evidence_training_warrant_id ON warrant_evidence (training_warrant_id);
 
 CREATE TABLE webhook_deliveries (
 	webhook_id UUID NOT NULL, 
