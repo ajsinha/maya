@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+**The research paper, rewritten against 1.0.0**
+
+- *Models as Parametric Kernels* gains a section, **Judgements over derived facts**, that treats
+  the governance layer as declared rules over derived facts and proves what each needs: the
+  derived tier is monotone; suspensions are independent; equal escrow hashes (row-order
+  sensitive) license a paired comparison; a fairness criterion over error sizes alone is
+  blind to direction; the target never reaches a black box run as an oracle; and evidence for
+  an authored parameter object is bound to its definition and evaluation by hash. Each carries
+  its module and tests.
+- The register grows from 25 claims (6 running) to 34 (14 running, 11 in part, 7 absent, 2
+  mathematics); the implementation section, the case studies, the limitations and the
+  conclusion are brought to 1.0.0, including two corrections the previous revision owed — the
+  dropped knowledge clock is repaired, and black boxes are now run as sandboxed oracles rather
+  than refused. The article version carries the same changes in its own voice. PDF rebuilt.
+
+**The deck, rethought for 1.0.0**
+
+- `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx`, rebuilt as 70 slides in
+  nine parts, in the order a head of model risk, a validator or a supervisor asks their
+  questions: why governance fails and what SR 11-7 and SS1/23 expect; the vocabulary; the
+  lifecycle end to end; the governance layer 1.0.0 added; black boxes, vendor imports and
+  LLM applications; the formal core, condensed; how it runs, with the REST API; fourteen
+  case studies with five in depth; and what is measured and not done. Slides that were still
+  right were kept word for word, with their figures brought up to date (246 endpoints); every
+  figure on the new ones comes from a run.
+
 **Five new case studies, and what writing them found**
 
 - **09 Basel IRB regulatory capital** — a prescribed formula proved by reconciliation;
