@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+**The REST API guide, executed**
+
+- [`docs/API_GUIDE.md`](API_GUIDE.md): the API from first `curl` to a sealed execution
+  warrant, with a thirty-line Python client, every convention a client needs (API keys,
+  paging, ETags, `If-Match`, idempotency, jobs, limits, second factor), every error type
+  with what to do about it, troubleshooting, and every endpoint. `tests/test_api_guide.py`
+  starts a real MAYA and runs each `python` and `bash` block in order, and checks the
+  endpoint appendix against the OpenAPI document.
+- **A retried pin gets its original answer.** Writing the guide showed that retrying a pin
+  request with the same `Idempotency-Key` answered `409 conflict` instead of the pin and job
+  the first request created, so a client whose first answer was lost had to go looking for
+  its own pin. Both pin endpoints now return the original pin and job (marked `replayed`);
+  a different key asking for the same series and date is still a conflict.
+
 ## 1.0.0 — 2026-09-26
 
 The first release: model governance on top of the 0.3.0 spine — findings, materiality,

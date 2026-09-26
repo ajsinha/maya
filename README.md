@@ -588,7 +588,7 @@ python tools/ci/gates.py --tests                   # the gate ladder
 git config core.hooksPath .githooks                # commit-msg and pre-commit hooks
 ```
 
-API documentation: `/api/v1/docs`. SDK: `from maya.sdk import connect`.
+**Writing a client?** [`docs/API_GUIDE.md`](docs/API_GUIDE.md) walks the REST API end to end with examples that are run by the test suite; the live reference is at `/api/v1/docs`. SDK: `from maya.sdk import connect`.
 
 ---
 

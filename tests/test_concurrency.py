@@ -376,3 +376,27 @@ def test_what_a_cascade_does_with_each_kind_of_existing_member_pin():
     assert act(Uow(), pin("requested"), "me") == "replace"
     with pytest.raises(ConflictError, match="direct pin request"):
         act(Uow(), pin("materializing"), "me")
+
+
+def test_a_retried_pin_under_the_same_key_gets_the_original_answer(cw):
+    """A client whose first request timed out retries with the same key and is given the
+    pin and job it already created -- before and after the pin seals -- while another key
+    asking for the same series and date is still a clash."""
+    w = cw
+    first = w.p.features.pin(
+        w.mick, "eq/cc1", version_no=1, pin_name="retry", as_of=AS_OF, idempotency_key="k-retry"
+    )
+    again = w.p.features.pin(
+        w.mick, "eq/cc1", version_no=1, pin_name="retry", as_of=AS_OF, idempotency_key="k-retry"
+    )
+    assert again["replayed"] and again["job"]["id"] == first["job"]["id"]
+    assert again["pin"]["id"] == first["pin"]["id"]
+    w.drain()
+    later = w.p.features.pin(
+        w.mick, "eq/cc1", version_no=1, pin_name="retry", as_of=AS_OF, idempotency_key="k-retry"
+    )
+    assert later["pin"]["state"] == "sealed" and later["job"]["id"] == first["job"]["id"]
+    with pytest.raises(ConflictError, match="already exists"):
+        w.p.features.pin(
+            w.mick, "eq/cc1", version_no=1, pin_name="retry", as_of=AS_OF, idempotency_key="k-other"
+        )
