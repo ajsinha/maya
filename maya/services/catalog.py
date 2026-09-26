@@ -1168,3 +1168,19 @@ class CatalogService:
             "bytes_per_row": round(per_row, 2),
             "sampled_rows": int(table.num_rows),
         }
+
+
+def replayed_pin(uow: Any, idempotency_key: str | None, pin: dict[str, Any]) -> Any:
+    """The original answer to a retried pin request, or None.
+
+    A client whose first request timed out cannot tell whether it arrived. Retrying with
+    the same ``Idempotency-Key`` must then give back the pin and job the first request
+    created, not a conflict that sends the client looking for its own pin. Only a pin made
+    under that key is returned: a different key asking for the same series and date is a
+    genuine clash."""
+    if not idempotency_key:
+        return None
+    job = uow.repo("jobs").find_one(idempotency_key=idempotency_key)
+    if job and (job.get("params") or {}).get("pin_id") == pin["id"]:
+        return {"pin": pin, "job": job, "replayed": True}
+    return None

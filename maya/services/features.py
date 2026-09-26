@@ -809,6 +809,9 @@ class FeatureService:
                 feature_id=feature["id"], pin_name=pin_name, as_of_date=as_of
             )
             if clash and clash["state"] != "failed":
+                replay = catalog.replayed_pin(uow, idempotency_key, clash)
+                if replay:
+                    return replay
                 raise ConflictError(f"Pin {pin_name}/{as_of} already exists ({clash['state']})")
             if clash:
                 uow.repo("feature_pins").delete(clash["id"])

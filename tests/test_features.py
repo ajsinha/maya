@@ -156,15 +156,16 @@ def test_idempotency_key_never_pins_twice(world):
         as_of=dt.date(2026, 1, 5),
         idempotency_key="k-1",
     )
-    with pytest.raises(Exception):
-        world.p.features.pin(
-            world.mick,
-            ref,
-            version_no=1,
-            pin_name="i1",
-            as_of=dt.date(2026, 1, 5),
-            idempotency_key="k-1",
-        )
+    # a retry under the same key is given the original pin and job, not a second pin
+    b = world.p.features.pin(
+        world.mick,
+        ref,
+        version_no=1,
+        pin_name="i1",
+        as_of=dt.date(2026, 1, 5),
+        idempotency_key="k-1",
+    )
+    assert b["replayed"] and b["pin"]["id"] == a["pin"]["id"] and b["job"]["id"] == a["job"]["id"]
     with world.p.uow() as uow:
         assert uow.repo("jobs").count(idempotency_key="k-1") == 1
     assert a["job"]["idempotency_key"] == "k-1"

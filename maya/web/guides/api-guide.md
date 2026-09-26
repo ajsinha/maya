@@ -2,6 +2,9 @@
 
 MAYA's public API is JSON over HTTP under `/api/v1`. The web UI, the Python SDK and the CLI all use exactly these endpoints, so anything they can do, your own client can do too, with the same permissions and the same audit trail. This guide covers authentication, the conventions every endpoint shares, errors, paging, idempotency and jobs, then lists the endpoints by area.
 
+!!! tip "The step-by-step guide"
+    This page is the reference. For a worked walkthrough — signing in, loading data, pinning, fitting under a warrant, running in production, reporting back — with a small Python client and curl examples that the test suite executes, read `docs/API_GUIDE.md` in the MAYA source tree.
+
 !!! tip "The interactive reference"
     The running server publishes its OpenAPI document at `/api/v1/openapi.json` and an interactive explorer at `/api/v1/docs`. They are generated from the same code that serves the requests, so they are always current.
 
