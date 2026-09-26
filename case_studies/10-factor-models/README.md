@@ -14,7 +14,7 @@ library exercises.
 
 ## The scripts, and what each one does
 
-Nine scripts, in this order. They share one MAYA at `case_studies/runs/factor_models/`,
+Nine scripts, in this order. They share the project's MAYA — the estate `config/application.yaml` configures, shared by every study, in which this study is the `factor_models` namespace —,
 which the first builds and the rest reopen, so **each runs on its own, in its own process** —
 and between any two of them you can open the web UI and show what the last one created.
 

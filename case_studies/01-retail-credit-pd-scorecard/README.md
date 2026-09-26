@@ -7,8 +7,7 @@ data by checksum, blind holdout scoring, and an execution warrant that suspends 
 
 ## The scripts, and what each one does
 
-The study is seven scripts, run in this order. They share one MAYA at
-`case_studies/runs/retail_credit/`, which the first script builds and the rest reopen, so
+The study is seven scripts, run in this order. They share the project's MAYA — the estate `config/application.yaml` configures, shared by every study, in which this study is the `retail_credit` namespace —, which the first script builds and the rest reopen, so
 **each can be run on its own, in its own process** — and between any two of them you can
 open the web UI and show what the last one actually created. That is the demonstration.
 

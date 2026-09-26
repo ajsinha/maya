@@ -78,7 +78,8 @@ def _suite() -> list[tuple[str, list[str], dict[str, str]]]:
                 "--cov-report=term:skip-covered",
                 "--cov-fail-under=90",
             ],
-            {},
+            # the full stage also runs every case study end to end (tests/test_case_studies)
+            {"MAYA_TEST_CASE_STUDIES": "1"},
         )
     ]
 

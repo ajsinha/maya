@@ -8,7 +8,7 @@ per-account error cannot see.
 
 ## The scripts, and what each one does
 
-Nine scripts, in this order, sharing one MAYA at `case_studies/runs/impairment/`. Each runs
+Nine scripts, in this order, sharing the project's MAYA — the estate `config/application.yaml` configures, shared by every study, in which this study is the `impairment` namespace —. Each runs
 on its own, in its own process.
 
 | Script | What it does | Shows |

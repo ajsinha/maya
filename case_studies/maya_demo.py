@@ -7,11 +7,11 @@ can be run on its own, in its own process, in front of people. ``run.py`` runs t
 order for an unattended pass; running them one at a time is the demonstration, because
 between two steps you can open the web UI and show what the last one actually created.
 
-That only works if MAYA outlives the process, so a study's MAYA lives at
-``case_studies/runs/<namespace>/`` rather than in a temporary directory. The first
-script to ask for it builds it — database, blob store, Delta lake, signer, every
-service, one user per built-in role, the study's namespace — and every script after
-that opens the same one (``maya.testing``, which is a supported part of the platform
+That only works if MAYA outlives the process, so every study uses the project's own
+estate -- the one ``config/application.yaml`` configures, under ``data/`` -- rather than a
+temporary directory. The first script to ask for it builds it -- database, blob store,
+Delta lake, signer, every service, one user per built-in role -- each study adds its own
+namespace, and every script after that opens the same one (``maya.testing``, which is a supported part of the platform
 and not a test fixture smuggled into a demo). ``--reset`` starts again from nothing.
 
 Everything a study then does goes through ``maya.sdk.Client`` as a named user with that
@@ -22,7 +22,7 @@ would run, and ``maya.platform``, which the studies do not use.
 
 Flags, on every script:
 
-``--reset``   delete this study's MAYA and build it again from nothing.
+``--reset``   delete the shared demonstration estate and build it again from nothing.
 ``--quiet``   print the headline results without the narration.
 
 Copyright (c) 2026 Ashutosh Sinha.  All rights reserved.

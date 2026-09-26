@@ -27,8 +27,7 @@ problem, and it says out loud which of its own evidence is worth little.
 
 ## The scripts, and what each one does
 
-Seven scripts, run in this order. They share one MAYA at
-`case_studies/runs/equity_derivatives/`, which the first builds and the rest reopen, so
+Seven scripts, run in this order. They share the project's MAYA — the estate `config/application.yaml` configures, shared by every study, in which this study is the `equity_derivatives` namespace —, which the first builds and the rest reopen, so
 **each can be run on its own, in its own process** — and between any two you can open the web
 UI and show what the last one created.
 

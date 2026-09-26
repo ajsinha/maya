@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**A fresh install's sandbox, and the case studies checked**
+
+- **The strong sandbox starts from any virtual environment.** Following the quick start on a
+  fresh clone — a venv made with `python3.13 -m venv` where `python3.13` lives in
+  `~/.local/bin` — found that the sandbox could not start the interpreter: the venv's
+  `python` links through the home directory, which the sandbox hides, so the tier probe
+  failed and MAYA fell back to the *minimal* tier without saying why, and every artifact
+  then failed validation. Each unbound link in the interpreter's chain is now recreated
+  inside the sandbox, pointing straight at the real interpreter; the probe still verifies
+  that the home directory itself is not visible. Four case studies (02, 05, 07, 11) failed
+  on a fresh clone because of it and pass now.
+- **Every case study is run by the suite**, each from nothing in its own throwaway estate
+  (`tests/test_case_studies.py`, on with `MAYA_TEST_CASE_STUDIES=1`, which
+  `gates.py --tests` sets).
+- **The case-study READMEs describe the estate they actually use**: one shared MAYA under
+  `data/`, configured by `config/application.yaml`, with each study in its own namespace,
+  not a MAYA per study under `case_studies/runs/`.
+
 **The REST API guide, executed**
 
 - [`docs/API_GUIDE.md`](API_GUIDE.md): the API from first `curl` to a sealed execution

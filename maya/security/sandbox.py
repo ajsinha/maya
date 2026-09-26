@@ -126,6 +126,24 @@ def _binds() -> list[str]:
             bound.append(real)
         if path != real and not any(path.startswith(b + "/") for b in bound):
             args += ["--symlink", real, path]  # a symlinked prefix stays reachable
+    # The interpreter itself can be a chain of links through directories that are not
+    # bound: a virtual environment made with ``~/.local/bin/python3.13 -m venv`` points at
+    # ``~/.local/bin/python3.13``, which points at the real interpreter. Inside the sandbox
+    # the home directory does not exist, so the chain breaks and the child cannot start --
+    # and the tier probe then fails and MAYA falls back to the minimal tier without the
+    # user having changed anything. Each unbound hop is recreated as a symlink straight to
+    # the real interpreter, which *is* bound (it lives under ``sys.base_prefix``).
+    target = os.path.realpath(sys.executable)
+    hop, seen = sys.executable, set()
+    while os.path.islink(hop) and hop not in seen:
+        seen.add(hop)
+        nxt = os.readlink(hop)
+        nxt = nxt if os.path.isabs(nxt) else os.path.join(os.path.dirname(hop), nxt)
+        nxt = os.path.normpath(nxt)
+        if not any(nxt == b or nxt.startswith(b + "/") for b in bound) and nxt != target:
+            args += ["--symlink", target, nxt]
+            bound.append(nxt)
+        hop = nxt
     return args
 
 
