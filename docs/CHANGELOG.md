@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+**Champion and challenger**
+
+- `/governance/challenges` (SDK `challenges`, `/api/v1/challenges`). Two training warrants
+  drawn on the same escrowed holdout — equal holdout hashes, so the same rows in the same
+  order — are both scored, each attempt counted on its warrant, and compared row by row:
+  the metric difference (RMSE or MAE), a paired bootstrap 95% interval with a fixed seed,
+  and the share of rows the challenger wins. The verdict is *challenger better* only when
+  the whole interval is below zero.
+- Warrants on different holdouts, or scoring different targets, are refused rather than
+  compared. The decision — promote or retain, with a rationale — is recorded by someone
+  who does not own the challenger, and is evidence for a change rather than the change:
+  the champion's live warrants are untouched.
+
+**The model inventory, exported for SR 11-7 and SS1/23**
+
+- `/governance` → *Export the model inventory* (SDK `governance.inventory`,
+  `GET /governance/inventory?format=xlsx|csv|json&framework=sr11-7|ss1-23|maya`). One row
+  per model: purpose, use, type, vendor, owner, tier with its basis and any override,
+  exposure, status and approval, the evidence that the implementation computes the model,
+  last review and its outcome, next review due, open, overdue and accepted findings, live
+  warrants and environments, executions, monitoring status and restrictions on use.
+- Built from the records MAYA already keeps, so it cannot drift from them. The two layouts
+  are labellings of the same rows; SS1/23's adds the basis of tiering and restrictions on
+  use. Each file says it is an aligned layout, not a submission template, and counts the
+  models the exporting user could not read rather than leaving them out silently. Every
+  export is audited.
+
 **Black boxes are scored blind, in the sandbox**
 
 - A declared black box (a vendor model, or any opaque one) used to be refused at holdout

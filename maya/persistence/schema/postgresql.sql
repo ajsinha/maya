@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 086a6b02af0693574cd4379bcf5a1f91d172500f5d1b9aabd8351d9ba11c2b12
+-- schema-hash: bfa1c4d7178bca3bf0cdf18dfeedbb20f786c4bb265525d501c8cef4a477e5a2
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -148,6 +148,32 @@ CREATE TABLE challenge_memos (
 CREATE INDEX ix_challenge_memos_object_id ON challenge_memos (object_id);
 
 CREATE INDEX ix_challenge_memos_object_type ON challenge_memos (object_type);
+
+CREATE TABLE challenges (
+	champion_warrant_id UUID NOT NULL, 
+	challenger_warrant_id UUID NOT NULL, 
+	champion_parameter_set_id UUID, 
+	challenger_parameter_set_id UUID, 
+	metric VARCHAR(16) NOT NULL, 
+	holdout_hash VARCHAR(64) NOT NULL, 
+	result JSONB NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	raised_by VARCHAR(128) NOT NULL, 
+	decided_by VARCHAR(128), 
+	decided_at TIMESTAMP WITH TIME ZONE, 
+	rationale TEXT, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_challenges PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_challenges_challenger_warrant_id ON challenges (challenger_warrant_id);
+
+CREATE INDEX ix_challenges_champion_warrant_id ON challenges (champion_warrant_id);
 
 CREATE TABLE comments (
 	object_type VARCHAR(32) NOT NULL, 

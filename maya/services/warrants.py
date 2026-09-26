@@ -740,6 +740,27 @@ class WarrantService:
         values: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Blind scoring against the escrowed partition: metrics out, rows never (§29.4)."""
+        _, metrics, attempt = self.holdout_errors(
+            p, warrant_id, parameter_set_id=parameter_set_id, values=values
+        )
+        return {
+            "metrics": metrics,
+            "attempt": attempt,
+            "note": "Every attempt is counted and shown on the warrant.",
+        }
+
+    def holdout_errors(
+        self,
+        p: Principal,
+        warrant_id: str,
+        *,
+        parameter_set_id: str | None = None,
+        values: dict[str, Any] | None = None,
+        purpose: str | None = None,
+    ) -> tuple[np.ndarray, dict[str, Any], int]:
+        """Score once and record the attempt; returns the per-row errors, in the escrowed
+        holdout's row order, for comparisons MAYA makes itself (champion and challenger).
+        The errors never leave the platform: callers outside it get metrics only."""
         with self.p.uow() as uow:
             w, ns = self._load(uow, warrant_id)
             self.p.access.require(uow, p, "read", "training_warrant", w)
@@ -797,13 +818,13 @@ class WarrantService:
                 warrant_id,
                 "holdout_scored",
                 p.username,
-                detail={"attempt": w["holdout_attempts"], **metrics},
+                detail={
+                    "attempt": w["holdout_attempts"],
+                    **metrics,
+                    **({"purpose": purpose} if purpose else {}),
+                },
             )
-        return {
-            "metrics": metrics,
-            "attempt": w["holdout_attempts"],
-            "note": "Every attempt is counted and shown on the warrant.",
-        }
+        return err, metrics, int(w["holdout_attempts"])
 
     def _predict_blind(
         self,

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}Challenge{% endblock %}
+{% block content %}
+{% set r = c.result %}
+<h1>{{ c.challenger.model }} challenges {{ c.champion.model }} {{ pill(r.verdict) }} {{ pill(c.state) }}</h1>
+<div class="small-muted mb-2">Holdout <span class="mono">{{ c.holdout_hash|short(16) }}</span> · {{ r.rows }} rows · raised by {{ c.raised_by }} {{ c.created_at|dt }}</div>
+<div class="row g-3"><div class="col-lg-6">
+{{ kv([('Champion', c.champion.warrant), ('Challenger', c.challenger.warrant), ('Metric', r.metric), ('Champion ' ~ r.metric, '%.6g'|format(r.champion)), ('Challenger ' ~ r.metric, '%.6g'|format(r.challenger)), ('Difference (challenger − champion)', '%+.6g'|format(r.difference)), ('95% interval', '[%.6g, %.6g]'|format(r.interval[0], r.interval[1])), ('Rows the challenger wins', '%.1f%%'|format(100 * r.challenger_wins)), ('Bootstrap', r.bootstrap.draws ~ ' paired draws, seed ' ~ r.bootstrap.seed)]) }}
+<p class="small-muted">Lower is better for both metrics, so a negative difference favours the challenger. The verdict is <em>challenger better</em> only when the whole interval is below zero; an average improvement whose interval straddles zero has not been shown.</p>
+</div><div class="col-lg-6">
+{% if c.state == 'scored' %}
+<form method="post" action="/governance/challenges/{{ c.id }}/decision" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Decide</h3>
+  <p class="small-muted mb-2">Recorded, not enacted: promoting does not touch the champion's live execution warrants. Draw the challenger's and retire the champion's as a separate, reviewed change.</p>
+  <label class="form-label" for="drat">Rationale</label><textarea class="form-control mb-2" id="drat" name="rationale" rows="3" required></textarea>
+  <div class="d-flex gap-2"><button class="btn btn-primary" name="decision" value="promote" type="submit">Promote the challenger</button><button class="btn btn-outline-secondary" name="decision" value="retain" type="submit">Retain the champion</button></div>
+</form>
+{% else %}
+{{ kv([('Decision', c.state), ('By', c.decided_by), ('When', c.decided_at|dt), ('Rationale', c.rationale)]) }}
+{% endif %}
+</div></div>
+{% endblock %}

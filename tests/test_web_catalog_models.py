@@ -416,6 +416,10 @@ def test_governance_pages_raise_move_declare_and_review(people):
         expect="success",
     )
     admin.post("/governance/sweep", expect="info")
+    xl = mona.get("/governance/inventory?framework=ss1-23&format=xlsx")
+    assert xl.content[:2] == b"PK" and "ss1-23" in xl.headers["content-disposition"]
+    csv_text = mona.get("/governance/inventory?framework=sr11-7&format=csv").text
+    assert "Risk rating" in csv_text and "maya://model/quant/linear" in csv_text
     assert "Governance" in mona.get("/models/quant/linear").text
 
 
@@ -461,3 +465,44 @@ def test_monitoring_pages_draw_the_series(people):
     page = mona.get(f"/monitoring/warrants/{ew['id']}?days=30").text
     assert page.count("<svg") >= 4 and "covenant 0.2" in page and "Rows per day" in page
     assert "Monitoring" in mona.get(f"/warrants/execution/{ew['id']}").text
+
+
+def test_champion_challenger_pages_score_and_decide(people):
+    w, app, b = people
+    mgr, mona = b["mgr"], b["mona"]
+    ids = []
+    for name, intercept in (("web_champ", 0.3), ("web_chall", 0.5)):
+        tw = w.p.warrants.create(
+            w.devi,
+            namespace="quant",
+            name=name,
+            model="quant/linear@v1",
+            featureset="maya://featureset/quant/panel#q1/2026-02-28",
+            spec={"target": "y", "seed": 7},
+        )
+        checksum = w.p.warrants.data(w.devi, tw["id"])["manifest"]["checksum"]
+        ps = w.p.warrants.upload_parameters(
+            w.devi, tw["id"], values={"a": 2.0, "b": intercept}, data_checksum=checksum
+        )
+        ids.append((tw["id"], ps["id"]))
+    assert "Score both and compare" in mgr.get("/governance/challenges").text
+    mgr.post(
+        "/governance/challenges",
+        {
+            "champion": ids[0][0],
+            "challenger": ids[1][0],
+            "metric": "rmse",
+            "champion_parameter_set_id": ids[0][1],
+            "challenger_parameter_set_id": ids[1][1],
+        },
+        expect="success",
+    )
+    cid = w.p.challenges.list(w.mgr)[0]["id"]
+    page = mona.get(f"/governance/challenges/{cid}").text
+    assert "challenger better" in page and "Promote the challenger" in page
+    mona.post(
+        f"/governance/challenges/{cid}/decision",
+        {"decision": "promote", "rationale": "clear"},
+        expect="success",
+    )
+    assert w.p.challenges.get(w.mgr, cid)["state"] == "promoted"

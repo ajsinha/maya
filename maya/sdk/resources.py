@@ -17,7 +17,7 @@ from typing import Any
 
 from maya.core.errors import MayaError
 from maya.sdk.base import ENDPOINTS, PAGE_SIZE, _nn, _Resource, endpoint
-from maya.sdk.governance import Governance, Monitoring
+from maya.sdk.governance import Challenges, Governance, Monitoring
 from maya.sdk.transport import Call, seg
 
 
@@ -1778,4 +1778,4 @@ class Jobs(_Resource):
         return self._c("GET", f"/jobs/{seg(job_id)}/events")
 
 
-__all__ = ["ENDPOINTS", "PAGE_SIZE", "Governance", "Monitoring", "endpoint"]
+__all__ = ["ENDPOINTS", "PAGE_SIZE", "Challenges", "Governance", "Monitoring", "endpoint"]

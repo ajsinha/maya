@@ -217,3 +217,46 @@ def test_chart_geometry_keeps_bounds_on_the_scale():
     assert float(c["yticks"][-1][1]) >= 0.5
     assert c["top"] <= c["lines"][0][0] < c["bottom"] and len(c["marks"]) == 1
     assert line_chart([], "v")["empty"]
+
+
+# ------------------------------------------------------------------- inventory
+
+
+def test_the_inventory_exports_in_each_layout_and_counts_what_it_leaves_out(gov):
+    import csv
+    import io
+    import json
+
+    from openpyxl import load_workbook
+
+    w = gov
+    out = w.p.inventory.export(w.mona, "json", "ss1-23")
+    doc = json.loads(out["data"])
+    row = next(r for r in doc["rows"] if r["name"] == "gov_lin")
+    assert row["tier"] == 1 and row["use"] == "regulatory" and row["owner"] == "mona"
+    assert row["last_review_outcome"] == "satisfactory" and row["review_overdue"] == "no"
+    assert row["accepted_risks"] >= 1 and "use: regulatory" in row["tier_basis"]
+    assert doc["columns"]["tier"] == "Model tier" and "restrictions" in doc["columns"]
+    assert "not a regulatory submission template" in doc["notice"]
+
+    sr = w.p.inventory.export(w.mona, "csv", "sr11-7")
+    lines = list(csv.reader(io.StringIO(sr["data"].decode())))
+    assert lines[0][0].startswith("# Model inventory, SR 11-7 layout")
+    header = lines[2]
+    assert "Risk rating" in header and "Restrictions on use" not in header  # SS1/23 only
+    assert any(r and r[0] == "maya://model/eq/gov_lin" for r in lines[3:])
+
+    xl = w.p.inventory.export(w.mona, "xlsx", "sr11-7")
+    wb = load_workbook(io.BytesIO(xl["data"]))
+    assert wb.sheetnames == ["Inventory", "About"] and wb["Inventory"]["A1"].value == "Model ID"
+    assert xl["filename"].endswith(".xlsx")
+
+    # a model in a namespace devi is not staffed in is left out of her inventory, and counted
+    w.p.access.create_namespace(w.admin, name="tiny", preset="small_team")
+    w.p.models.create(w.admin, namespace="tiny", name="gov_hidden", formula="y = 2*x")
+    seen = json.loads(w.p.inventory.export(w.devi, "json", "maya")["data"])
+    assert "gov_hidden" not in {r["name"] for r in seen["rows"]} and seen["not_shown"] >= 1
+    everything = json.loads(w.p.inventory.export(w.admin, "json", "maya")["data"])
+    assert "gov_hidden" in {r["name"] for r in everything["rows"]}
+    with pytest.raises(ValidationFailed):
+        w.p.inventory.export(w.mona, "pdf")

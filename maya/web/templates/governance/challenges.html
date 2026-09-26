@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Champion &amp; challenger{% endblock %}
+{% block content %}
+<h1>Champion &amp; challenger</h1>
+<p class="small-muted">Two training warrants drawn on the same escrowed holdout are scored on exactly the same rows. MAYA compares their errors row by row: the difference in the metric, a paired bootstrap 95% interval for it, and how often the challenger's error is the smaller. Each scoring counts as a holdout attempt on its warrant. The decision is recorded by somebody who does not own the challenger.</p>
+{% call(c) table("challenges", ["When", "Champion", "Challenger", "Metric", "Difference", "95% interval", "Verdict", "Decision"], rows, empty="No challenges yet.") %}
+  <td><a href="/governance/challenges/{{ c.id }}">{{ c.created_at|dt }}</a></td>
+  <td>{{ c.champion.model }}</td><td>{{ c.challenger.model }}</td><td>{{ c.metric }}</td>
+  <td data-sort="{{ c.result.difference }}">{{ '%+.4g'|format(c.result.difference) }}</td>
+  <td>[{{ '%.4g'|format(c.result.interval[0]) }}, {{ '%.4g'|format(c.result.interval[1]) }}]</td>
+  <td>{{ pill(c.result.verdict) }}</td><td>{{ pill(c.state) }}</td>
+{% endcall %}
+<form method="post" action="/governance/challenges" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Challenge a champion</h3>
+  {% if warrants|length < 2 %}<p class="small-muted mb-2">Two training warrants with an escrowed holdout are needed. Draw the challenger's warrant on the champion's feature set pin with the same split and seed, so both hold the same rows.</p>{% endif %}
+  <div class="row g-2">
+    <div class="col-md-5"><label class="form-label" for="champ">Champion</label><select class="form-select" id="champ" name="champion" required>{% for w in warrants %}<option value="{{ w.id }}">{{ w.namespace }}/{{ w.name }}@v{{ w.version_no }} · {{ w.holdout_hash|short(10) }}</option>{% endfor %}</select></div>
+    <div class="col-md-5"><label class="form-label" for="chall">Challenger</label><select class="form-select" id="chall" name="challenger" required>{% for w in warrants %}<option value="{{ w.id }}" {% if loop.index == 2 %}selected{% endif %}>{{ w.namespace }}/{{ w.name }}@v{{ w.version_no }} · {{ w.holdout_hash|short(10) }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label" for="cmetric">Metric</label><select class="form-select" id="cmetric" name="metric"><option>rmse</option><option>mae</option></select></div>
+    <div class="col-md-6"><label class="form-label" for="cps1">Champion parameter set (optional)</label><input class="form-control mono" id="cps1" name="champion_parameter_set_id"></div>
+    <div class="col-md-6"><label class="form-label" for="cps2">Challenger parameter set (optional)</label><input class="form-control mono" id="cps2" name="challenger_parameter_set_id"></div>
+  </div>
+  <p class="small-muted mt-2 mb-0">The short hash after each warrant is its holdout's: the two must match.</p>
+  <div class="mt-2"><button class="btn btn-primary" type="submit" {% if warrants|length < 2 %}disabled{% endif %}>Score both and compare</button></div>
+</form>
+{% endblock %}

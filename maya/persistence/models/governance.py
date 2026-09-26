@@ -70,3 +70,21 @@ class ModelReview(Tracked, Base):
     note: Mapped[str] = mapped_column(Text)
     tier: Mapped[int] = mapped_column(Integer)
     next_due: Mapped[dt.date | None] = mapped_column(Date)
+
+
+class Challenge(Tracked, Base):
+    """A champion and a challenger scored on the same escrowed holdout, and the decision."""
+
+    __tablename__ = "challenges"
+    champion_warrant_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    challenger_warrant_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    champion_parameter_set_id: Mapped[str | None] = mapped_column(PortableUUID)
+    challenger_parameter_set_id: Mapped[str | None] = mapped_column(PortableUUID)
+    metric: Mapped[str] = mapped_column(String(16))
+    holdout_hash: Mapped[str] = mapped_column(String(64))
+    result: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    state: Mapped[str] = mapped_column(String(16), default="scored")
+    raised_by: Mapped[str] = mapped_column(String(128))
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decided_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    rationale: Mapped[str | None] = mapped_column(Text)

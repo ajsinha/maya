@@ -25,6 +25,21 @@ def overview(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.governance.overview(me))
 
 
+@router.get("/governance/inventory")
+def inventory(
+    format: str = "csv", framework: str = "sr11-7", me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """The model inventory as a file, in an SR 11-7 or SS1/23 aligned layout (or MAYA's own
+    keys with ``framework=maya``). Only models the caller may read; the file says how many
+    were left out."""
+    out = plat.inventory.export(me, format, framework)
+    return Response(
+        out["data"],
+        media_type=out["content_type"],
+        headers={"Content-Disposition": f'attachment; filename="{out["filename"]}"'},
+    )
+
+
 @router.get("/governance/findings")
 def findings(
     model: str | None = None, state: str | None = None, me: Principal = Me, plat: Any = Plat
@@ -96,3 +111,27 @@ def monitoring_warrant(
 ) -> Response:
     """One warrant's reported executions read as series: volume, null rates, ranges, PSI."""
     return ok(plat.monitoring.warrant(me, ew_id, days))
+
+
+@router.get("/challenges", tags=["governance"])
+def challenges(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.challenges.list(me))
+
+
+@router.post("/challenges", status_code=201, tags=["governance"])
+def create_challenge(body: s.ChallengeIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Score a champion and a challenger on their shared escrowed holdout and compare them."""
+    data = body.model_dump()
+    return ok(plat.challenges.create(me, data.pop("champion"), data.pop("challenger"), **data), 201)
+
+
+@router.get("/challenges/{challenge_id}", tags=["governance"])
+def challenge(challenge_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.challenges.get(me, challenge_id))
+
+
+@router.post("/challenges/{challenge_id}/decision", tags=["governance"])
+def decide_challenge(
+    challenge_id: str, body: s.DecisionIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    return ok(plat.challenges.decide(me, challenge_id, body.decision, body.rationale))
