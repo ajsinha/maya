@@ -35,6 +35,7 @@ class GovernanceProfileIn(BaseModel):
     tier_override: int | None = None
     override_reason: str | None = None
     review_days: int | None = None
+    answers: dict[str, str] | None = None
 
 
 class ReviewIn(BaseModel):

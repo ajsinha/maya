@@ -1,0 +1,39 @@
+# The materiality questionnaire (governance.tiering_questionnaire points here).
+#
+# A model risk function tunes this to its own policy: add questions, reword them, change
+# what each answer scores. Scores run 1 (low) to 3 (high), the same scale as the drivers
+# MAYA measures itself (reach, transparency, use, exposure).
+#
+# rule: max     -- the tier follows the highest-scoring answer (and driver): one serious
+#                  consideration is enough to make a model material.
+# rule: points  -- answers are summed and the total is placed by the thresholds below;
+#                  the result joins the drivers as one score.
+rule: max
+thresholds:        # used by rule: points; the total at or above which a score applies
+  3: 9
+  2: 6
+questions:
+  - id: automation
+    text: How far does the model's output decide the outcome without a person?
+    answers:
+      advisory: 1
+      reviewed_by_a_person: 2
+      fully_automated: 3
+  - id: customer_impact
+    text: Does the output affect customers directly?
+    answers:
+      no: 1
+      indirectly: 2
+      directly: 3
+  - id: reporting
+    text: Does the output feed financial or regulatory reporting?
+    answers:
+      no: 1
+      management_reporting: 2
+      external_reporting: 3
+  - id: complexity
+    text: How hard is the method for a reviewer to challenge?
+    answers:
+      standard_and_well_understood: 1
+      judgement_or_expert_overlays: 2
+      novel_or_highly_complex: 3

@@ -259,6 +259,87 @@ class GovernanceService:
             return self._decorate(uow, p, [out])[0]
 
     # -- materiality ----------------------------------------------------------------
+    def questionnaire(self) -> dict[str, Any]:
+        """The materiality questionnaire from ``governance.tiering_questionnaire``.
+
+        A firm's own policy, in a file it edits: questions, the answers each allows, and
+        the score (1 to 3) of each answer. Blank means none: the measured drivers alone."""
+        path = self.p.settings.get("governance.tiering_questionnaire") or ""
+        if not path:
+            return {"rule": "max", "thresholds": {}, "questions": []}
+        from pathlib import Path
+
+        import yaml
+
+        file = Path(path)
+        try:
+            stamp = file.stat().st_mtime
+        except OSError as exc:
+            raise ValidationFailed(
+                f"The tiering questionnaire '{path}' (governance.tiering_questionnaire) "
+                "cannot be read"
+            ) from exc
+        cached = getattr(self, "_questionnaire", None)
+        if cached and cached[0] == (path, stamp):
+            return cached[1]
+        doc = yaml.safe_load(file.read_text(encoding="utf-8")) or {}
+        rule = doc.get("rule", "max")
+        if rule not in ("max", "points"):
+            raise ValidationFailed(f"{path}: rule is 'max' or 'points'")
+        questions = []
+        for q in doc.get("questions") or []:
+            answers = {str(k): int(v) for k, v in (q.get("answers") or {}).items()}
+            if not q.get("id") or not answers or not all(1 <= v <= 3 for v in answers.values()):
+                raise ValidationFailed(
+                    f"{path}: each question has an id and answers scored 1 to 3", question=q
+                )
+            questions.append(
+                {"id": str(q["id"]), "text": q.get("text", q["id"]), "answers": answers}
+            )
+        out = {
+            "rule": rule,
+            "thresholds": {int(k): int(v) for k, v in (doc.get("thresholds") or {}).items()},
+            "questions": questions,
+        }
+        self._questionnaire = ((path, stamp), out)
+        return out
+
+    def _answers_score(self, answers: dict[str, str]) -> tuple[int, builtins.list[Any], bool]:
+        """(score, drivers, complete) from the owner's answers under the questionnaire."""
+        q = self.questionnaire()
+        drivers, scores = [], []
+        for question in q["questions"]:
+            answer = answers.get(question["id"])
+            if answer is None:
+                continue
+            score = question["answers"][answer]
+            scores.append(score)
+            if q["rule"] == "max":
+                drivers.append(
+                    {
+                        "driver": f"questionnaire: {question['id']}",
+                        "value": answer.replace("_", " "),
+                        "score": score,
+                        "why": question["text"],
+                    }
+                )
+        complete = all(question["id"] in answers for question in q["questions"])
+        if q["rule"] == "points" and scores:
+            total = sum(scores)
+            score = next(
+                (k for k, v in sorted(q["thresholds"].items(), reverse=True) if total >= v), 1
+            )
+            drivers.append(
+                {
+                    "driver": "questionnaire",
+                    "value": f"{total} points over {len(scores)} answer(s)",
+                    "score": score,
+                    "why": "the firm's questionnaire, summed and placed by its thresholds",
+                }
+            )
+            return score, drivers, complete
+        return (max(scores) if scores else 1), drivers, complete
+
     def _profile_row(self, uow: Any, model_id: str) -> dict[str, Any]:
         return uow.repo("model_governance").find_one(model_id=model_id) or {}
 
@@ -307,9 +388,15 @@ class GovernanceService:
                 "why": "a model nobody can read is one tier more material than its reach",
             }
         )
-        score = max(USES.get(use or "", 1), e_score, reach) + (1 if opaque else 0)
+        q_score, q_drivers, complete = self._answers_score(prof.get("answers") or {})
+        drivers.extend(q_drivers)
+        score = max(USES.get(use or "", 1), e_score, reach, q_score) + (1 if opaque else 0)
         tier = 4 - min(score, 3)
-        return {"tier": tier, "drivers": drivers, "declared": bool(use and exposure is not None)}
+        return {
+            "tier": tier,
+            "drivers": drivers,
+            "declared": bool(use and exposure is not None and complete),
+        }
 
     def _review_days(self, tier: int, prof: dict[str, Any]) -> int:
         if prof.get("review_days"):
@@ -331,6 +418,7 @@ class GovernanceService:
         return {
             "use": prof.get("use"),
             "exposure": prof.get("exposure"),
+            "answers": prof.get("answers") or {},
             "derived_tier": derived["tier"],
             "drivers": derived["drivers"],
             "declared": derived["declared"],
@@ -359,6 +447,7 @@ class GovernanceService:
                 **self._profile(uow, m),
                 "findings": findings,
                 "reviews": reviews,
+                "questionnaire": self.questionnaire()["questions"],
                 "can_edit": self.p.access.allowed(uow, p, "update", "model", m),
             }
 
@@ -372,8 +461,19 @@ class GovernanceService:
         tier_override: int | None = None,
         override_reason: str | None = None,
         review_days: int | None = None,
+        answers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
-        """Declare what only the owner knows, and override the derived tier with a reason."""
+        """Declare what only the owner knows, and override the derived tier with a reason.
+        ``answers`` replaces the questionnaire answers; ``None`` leaves them as they were."""
+        if answers is not None:
+            allowed = {q["id"]: q["answers"] for q in self.questionnaire()["questions"]}
+            for qid, answer in answers.items():
+                if qid not in allowed:
+                    raise ValidationFailed(f"'{qid}' is not a question in the questionnaire")
+                if answer not in allowed[qid]:
+                    raise ValidationFailed(
+                        f"'{answer}' is not an answer to '{qid}'", allowed=sorted(allowed[qid])
+                    )
         if use is not None and use not in USES:
             raise ValidationFailed(f"use is one of {', '.join(USES)}")
         if exposure is not None and exposure < 0:
@@ -386,13 +486,15 @@ class GovernanceService:
             raise ValidationFailed("a review interval is between 30 days and five years")
         with self.p.uow(p.username) as uow:
             m, ns = self._model(uow, p, model, "update")
-            values = {
+            values: dict[str, Any] = {
                 "use": use,
                 "exposure": exposure,
                 "tier_override": tier_override,
                 "override_reason": (override_reason or "").strip() or None,
                 "review_days": review_days,
             }
+            if answers is not None:
+                values["answers"] = dict(answers)
             prof = self._profile_row(uow, m["id"])
             if prof:
                 uow.repo("model_governance").update(prof["id"], values)

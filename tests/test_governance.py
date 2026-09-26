@@ -260,3 +260,46 @@ def test_the_inventory_exports_in_each_layout_and_counts_what_it_leaves_out(gov)
     assert "gov_hidden" in {r["name"] for r in everything["rows"]}
     with pytest.raises(ValidationFailed):
         w.p.inventory.export(w.mona, "pdf")
+
+
+def test_the_questionnaire_drives_the_tier_and_refuses_answers_it_does_not_offer(gov):
+    w = gov
+    w.p.models.create(
+        w.mona, namespace="eq", name="gov_q", formula="yhat = a*x", roles={"a": "parameter"}
+    )
+    q = w.p.governance.questionnaire()
+    assert q["rule"] == "max" and {x["id"] for x in q["questions"]} >= {"automation", "reporting"}
+    low = w.p.governance.set_profile(w.mona, "eq/gov_q", use="internal", exposure=1.0)
+    assert low["derived_tier"] == 3 and not low["declared"]  # questions still unanswered
+    answers = {x["id"]: min(x["answers"], key=x["answers"].get) for x in q["questions"]}
+    answers["automation"] = "fully_automated"
+    high = w.p.governance.set_profile(
+        w.mona, "eq/gov_q", use="internal", exposure=1.0, answers=answers
+    )
+    assert high["derived_tier"] == 1 and high["declared"]
+    assert any(
+        d["driver"] == "questionnaire: automation" and d["score"] == 3 for d in high["drivers"]
+    )
+    kept = w.p.governance.set_profile(w.mona, "eq/gov_q", use="internal", exposure=1.0)
+    assert kept["answers"] == answers  # None leaves the answers as they were
+    with pytest.raises(ValidationFailed, match="not an answer"):
+        w.p.governance.set_profile(w.mona, "eq/gov_q", answers={"automation": "sometimes"})
+    with pytest.raises(ValidationFailed, match="not a question"):
+        w.p.governance.set_profile(w.mona, "eq/gov_q", answers={"colour": "red"})
+
+
+def test_the_points_rule_sums_answers_and_places_them_by_threshold(gov, monkeypatch):
+    w = gov
+    policy = {
+        "rule": "points",
+        "thresholds": {3: 5, 2: 3},
+        "questions": [
+            {"id": "a", "text": "A?", "answers": {"lo": 1, "hi": 3}},
+            {"id": "b", "text": "B?", "answers": {"lo": 1, "hi": 3}},
+        ],
+    }
+    monkeypatch.setattr(w.p.governance, "questionnaire", lambda: policy)
+    assert w.p.governance._answers_score({"a": "lo", "b": "lo"})[0] == 1  # 2 points
+    assert w.p.governance._answers_score({"a": "hi", "b": "lo"})[0] == 2  # 4 points
+    score, drivers, complete = w.p.governance._answers_score({"a": "hi", "b": "hi"})
+    assert score == 3 and complete and drivers[0]["value"].startswith("6 points")

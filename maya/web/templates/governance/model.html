@@ -23,6 +23,7 @@
     <div class="col-md-6"><label class="form-label" for="gexp">Exposure (amount)</label><input class="form-control" id="gexp" name="exposure" type="number" min="0" step="any" value="{{ g.exposure if g.exposure is not none else '' }}"></div>
     <div class="col-md-4"><label class="form-label" for="gtier">Override tier</label><select class="form-select" id="gtier" name="tier_override"><option value="">derived</option>{% for t in (1, 2, 3) %}<option value="{{ t }}" {% if g.tier_override == t %}selected{% endif %}>Tier {{ t }}</option>{% endfor %}</select></div>
     <div class="col-md-8"><label class="form-label" for="greason">Override reason</label><input class="form-control" id="greason" name="override_reason" value="{{ g.override_reason or '' }}"></div>
+    {% for q in g.questionnaire %}<div class="col-12"><label class="form-label" for="q_{{ q.id }}">{{ q.text }}</label><select class="form-select" id="q_{{ q.id }}" name="q_{{ q.id }}"><option value="">not answered</option>{% for a, sc in q.answers.items() %}<option value="{{ a }}" {% if g.answers.get(q.id) == a %}selected{% endif %}>{{ a.replace('_', ' ') }} (scores {{ sc }})</option>{% endfor %}</select></div>{% endfor %}
     <div class="col-md-6"><label class="form-label" for="gdays">Review every (days, blank: by tier)</label><input class="form-control" id="gdays" name="review_days" type="number" min="30" max="1825" value="{{ g.tier_override and g.review_days or '' }}"></div>
   </div>
   <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Save</button></div>

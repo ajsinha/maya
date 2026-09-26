@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 0cfcfdf590d4a6ca702cd2f3d6ac17992a330ccfc5797553859a725143411c4b
+-- schema-hash: ccb1ad82e51059712f122cddfb4c674d003308ea76c2159f9bec45ad1bd45f88
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -1040,6 +1040,7 @@ CREATE TABLE model_governance (
 	tier_override INTEGER, 
 	override_reason TEXT, 
 	review_days INTEGER, 
+	answers JSON NOT NULL, 
 	last_reviewed_at DATETIME, 
 	last_reviewed_by VARCHAR(128), 
 	id CHAR(36) NOT NULL, 
