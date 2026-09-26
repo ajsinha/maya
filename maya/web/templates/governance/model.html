@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}Governance · {{ name }}{% endblock %}
+{% block content %}
+<h1>{{ ns_name }}/{{ name }} <span class="badge text-bg-secondary">Tier {{ g.tier }}</span>{% if g.review_overdue %} {{ pill('overdue') }}{% endif %}</h1>
+<div class="small-muted mb-2"><a href="/models/{{ ns_name }}/{{ name }}">Open the model</a> · owner {{ g.owner or '—' }}</div>
+{% if g.review_overdue %}<div class="alert alert-danger">The periodic review was due on {{ g.next_review_due }}. The model's live execution warrants are suspended by the sweep until an independent reviewer records a review.</div>{% endif %}
+{% if g.override_lowers %}<div class="alert alert-warning">The tier is overridden to {{ g.tier }}, less material than the {{ g.derived_tier }} the evidence supports. Reason given: {{ g.override_reason }}</div>{% endif %}
+<div class="row g-3"><div class="col-lg-6">
+<h2>Materiality</h2>
+{{ kv([('Tier', g.tier), ('Derived tier', g.derived_tier), ('Override', g.tier_override), ('Override reason', g.override_reason), ('Review every', g.review_days ~ ' days'), ('Last reviewed', (g.last_reviewed_at|dt) ~ (' by ' ~ g.last_reviewed_by if g.last_reviewed_by else '')), ('Next review due', g.next_review_due)]) }}
+{% call(d) table("gov-drivers", ["Driver", "Value", "Score", "Why"], g.drivers) %}
+  <td>{{ d.driver }}</td><td>{{ d.value }}</td><td>{{ d.score }}{% if d.bump %} (+1){% endif %}</td><td class="small-muted">{{ d.why }}</td>
+{% endcall %}
+<p class="small-muted">Tier 1 is the most material. The derived tier is the highest driver score, one tier higher again for a black box: score 3 is tier 1, 2 is tier 2, 1 is tier 3.</p>
+</div><div class="col-lg-6">
+{% if g.can_edit %}
+<form method="post" action="/governance/models/{{ ns_name }}/{{ name }}/profile" class="card card-body mb-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>What only the owner can declare</h3>
+  <div class="row g-2">
+    <div class="col-md-6"><label class="form-label" for="guse">Use</label><select class="form-select" id="guse" name="use"><option value="">not declared</option>{% for u in uses %}<option value="{{ u }}" {% if g.use == u %}selected{% endif %}>{{ u.replace('_', ' ') }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="form-label" for="gexp">Exposure (amount)</label><input class="form-control" id="gexp" name="exposure" type="number" min="0" step="any" value="{{ g.exposure if g.exposure is not none else '' }}"></div>
+    <div class="col-md-4"><label class="form-label" for="gtier">Override tier</label><select class="form-select" id="gtier" name="tier_override"><option value="">derived</option>{% for t in (1, 2, 3) %}<option value="{{ t }}" {% if g.tier_override == t %}selected{% endif %}>Tier {{ t }}</option>{% endfor %}</select></div>
+    <div class="col-md-8"><label class="form-label" for="greason">Override reason</label><input class="form-control" id="greason" name="override_reason" value="{{ g.override_reason or '' }}"></div>
+    <div class="col-md-6"><label class="form-label" for="gdays">Review every (days, blank: by tier)</label><input class="form-control" id="gdays" name="review_days" type="number" min="30" max="1825" value="{{ g.tier_override and g.review_days or '' }}"></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Save</button></div>
+</form>
+{% endif %}
+<form method="post" action="/governance/models/{{ ns_name }}/{{ name }}/review" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Record a periodic review</h3>
+  <p class="small-muted mb-2">By someone other than the model's owner. Recording it sets the next due date and lifts any suspension the overdue review caused, and no other.</p>
+  <label class="form-label" for="rout">Outcome</label><select class="form-select mb-2" id="rout" name="outcome">{% for o in outcomes %}<option value="{{ o }}">{{ o.replace('_', ' ') }}</option>{% endfor %}</select>
+  <label class="form-label" for="rnote">What was looked at, and what was concluded</label><textarea class="form-control" id="rnote" name="note" rows="3" required></textarea>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Record review</button></div>
+</form>
+</div></div>
+<h2 class="mt-3">Findings</h2>
+{% call(f) table("model-findings", ["Finding", "Severity", "State", "Owner", "Due", "!Next"], g.findings, empty="No findings on this model.") %}
+  <td><a href="/governance/findings/{{ f.id }}">{{ f.title }}</a>{% if f.version_no %} <span class="small-muted">v{{ f.version_no }}</span>{% endif %}</td>
+  <td>{{ pill(f.severity) }}</td><td>{{ pill(f.state) }}</td><td>{{ f.owner or '—' }}</td>
+  <td data-sort="{{ f.due_date }}">{{ f.due_date }}{% if f.overdue %} {{ pill('overdue') }}{% endif %}</td>
+  <td>{% set fid = f.id %}{% with moves = moves.get(f.state, [])[:1] %}{% include "governance/_moves.html" %}{% endwith %}</td>
+{% endcall %}
+<form method="post" action="/governance/findings" class="card card-body mb-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="model" value="{{ ns_name }}/{{ name }}"><h3>Raise a finding</h3>
+  <div class="row g-2">
+    <div class="col-md-6"><label class="form-label" for="mtitle">What is wrong</label><input class="form-control" id="mtitle" name="title" maxlength="256" required></div>
+    <div class="col-md-2"><label class="form-label" for="msev">Severity</label><select class="form-select" id="msev" name="severity">{% for s in severities %}<option {% if s == 'medium' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label" for="msrc">Found by</label><select class="form-select" id="msrc" name="source">{% for s in sources %}<option>{{ s }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label" for="mver">Version</label><input class="form-control" id="mver" name="version_no" type="number" min="1"></div>
+    <div class="col-12"><label class="form-label" for="mdet">Detail</label><textarea class="form-control" id="mdet" name="detail" rows="2"></textarea></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-outline-primary" type="submit">Raise</button></div>
+</form>
+<h2>Reviews</h2>
+{% call(r) table("model-reviews", ["When", "Reviewer", "Outcome", "Tier", "Next due", "Note"], g.reviews, empty="Never reviewed. The first review falls due one interval after the first approval.") %}
+  <td>{{ r.created_at|dt }}</td><td>{{ r.reviewer }}</td><td>{{ pill(r.outcome) }}</td><td>{{ r.tier }}</td><td>{{ r.next_due }}</td><td>{{ r.note }}</td>
+{% endcall %}
+{% endblock %}

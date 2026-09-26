@@ -39,6 +39,7 @@ from maya.sdk.resources import (
     ExecutionWarrants,
     Features,
     FeatureSets,
+    Governance,
     Jobs,
     Models,
     Namespaces,
@@ -73,6 +74,7 @@ class _Namespaces:
         self.events = Events(transport)
         self.custody = Custody(transport)
         self.assistant = Assistant(transport)
+        self.governance = Governance(transport)
         self.cache = PinCache()
 
     @property

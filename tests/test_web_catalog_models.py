@@ -383,3 +383,36 @@ def test_api_keys_and_two_factor_through_the_account_pages(people):
     # half-finished arrival, and what they should meet is what MAYA is for.
     assert str(r.url).endswith("/")
     assert "MAYA keeps the answer" in r.text
+
+
+def test_governance_pages_raise_move_declare_and_review(people):
+    w, app, b = people
+    devi, mona, admin = b["devi"], b["mona"], b["admin"]
+    assert "quant/linear" in devi.get("/governance").text
+    devi.post(
+        "/governance/findings",
+        {"model": "quant/linear", "title": "Residuals drift", "severity": "high"},
+        expect="success",
+    )
+    fid = w.p.governance.findings(w.devi, "quant/linear")[0]["id"]
+    page = mona.get(f"/governance/findings/{fid}").text
+    assert "Residuals drift" in page and "Mark remediated" in page
+    mona.post(f"/governance/findings/{fid}/move", {"action": "remediated"}, expect="success")
+    devi.post(
+        f"/governance/findings/{fid}/move", {"action": "close", "note": "checked"}, expect="success"
+    )
+    assert w.p.governance.finding(w.devi, fid)["state"] == "closed"
+    mona.post(
+        "/governance/models/quant/linear/profile",
+        {"use": "business_decision", "exposure": "20000000"},
+        expect="success",
+    )
+    model_page = mona.get("/governance/models/quant/linear").text
+    assert "Tier 2" in model_page and "Record a periodic review" in model_page
+    devi.post(
+        "/governance/models/quant/linear/review",
+        {"outcome": "satisfactory", "note": "annual look"},
+        expect="success",
+    )
+    admin.post("/governance/sweep", expect="info")
+    assert "Governance" in mona.get("/models/quant/linear").text

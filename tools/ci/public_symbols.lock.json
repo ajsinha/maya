@@ -217,6 +217,20 @@
      "update_draft": "(self, ref, definition, **kw)"
     }
    },
+   "governance": {
+    "class": "Governance",
+    "methods": {
+     "finding": "(self, finding_id)",
+     "findings": "(self, model=None, state=None)",
+     "move_finding": "(self, finding_id, action, note=None)",
+     "overview": "(self)",
+     "profile": "(self, model)",
+     "raise_finding": "(self, model, title, severity, *, detail=None, source='validation', owner=None, due_date=None, version_no=None)",
+     "record_review": "(self, model, outcome, note)",
+     "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None)",
+     "sweep": "(self)"
+    }
+   },
    "jobs": {
     "class": "Jobs",
     "methods": {
@@ -561,6 +575,20 @@
      "preview": "(self, ref, as_of_known=None)",
      "transition": "(self, ref, version_no, transition, **kw)",
      "update_draft": "(self, ref, definition, **kw)"
+    }
+   },
+   "governance": {
+    "class": "Governance",
+    "methods": {
+     "finding": "(self, finding_id)",
+     "findings": "(self, model=None, state=None)",
+     "move_finding": "(self, finding_id, action, note=None)",
+     "overview": "(self)",
+     "profile": "(self, model)",
+     "raise_finding": "(self, model, title, severity, *, detail=None, source='validation', owner=None, due_date=None, version_no=None)",
+     "record_review": "(self, model, outcome, note)",
+     "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None)",
+     "sweep": "(self)"
     }
    },
    "jobs": {

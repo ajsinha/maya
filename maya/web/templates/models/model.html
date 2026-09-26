@@ -5,6 +5,7 @@
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ m.name }}</h1><div class="small-muted mono">{{ m.ref }}{% if v %}@v{{ v.version_no }}{% endif %}</div></div>
   <form method="get" class="d-flex gap-1"><label class="visually-hidden" for="vsel">Version</label><select class="form-select form-select-sm" id="vsel" name="v">{% for x in m.versions %}<option value="{{ x.version_no }}" {% if v and x.version_no == v.version_no %}selected{% endif %}>v{{ x.version_no }} · {{ x.state }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form>
+  <a class="btn btn-sm btn-outline-secondary" href="/governance/models/{{ m.namespace }}/{{ m.name }}" title="Materiality tier, periodic review and findings"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i> Governance</a>
   {% if m.can_edit %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/new-draft"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">New draft</button></form>{% endif %}
   <form method="post" action="/catalog/subscriptions"><input type="hidden" name="csrf_token" value="{{ csrf }}">
     <input type="hidden" name="object_ref" value="{{ m.ref }}">
