@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**The deck, rethought for 1.0.0**
+
+- `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx`, rebuilt as 70 slides in
+  nine parts, in the order a head of model risk, a validator or a supervisor asks their
+  questions: why governance fails and what SR 11-7 and SS1/23 expect; the vocabulary; the
+  lifecycle end to end; the governance layer 1.0.0 added; black boxes, vendor imports and
+  LLM applications; the formal core, condensed; how it runs, with the REST API; fourteen
+  case studies with five in depth; and what is measured and not done. Slides that were still
+  right were kept word for word, with their figures brought up to date (246 endpoints); every
+  figure on the new ones comes from a run.
+
 **Five new case studies, and what writing them found**
 
 - **09 Basel IRB regulatory capital** — a prescribed formula proved by reconciliation;
