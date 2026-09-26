@@ -26,7 +26,7 @@
       ('/models', 'calculator', 'All models', 'Formulas, specifications, artifacts, diffs', '/models/'),
       ('/models/new', 'plus-square', 'New model', 'From LaTeX, Python or a declared black box', None)]),
     ('Author', [
-      ('/models/kernel', 'braces-asterisk', 'Design your compute kernel', 'Write the mathematics in LaTeX; read back the typed tree and the Python', '/models/kernel')])]),
+      ('/models/kernel', 'braces', 'Design your compute kernel', 'Write the mathematics in LaTeX; read back the typed tree and the Python', '/models/kernel')])]),
   ('Warrants', 'file-earmark-lock', [
     ('Issue', [
       ('/warrants/training/new', 'mortarboard', 'Training warrant', 'Freeze a model against a feature set', '/warrants/training/new'),
@@ -119,8 +119,7 @@
       <div class="maya-tools">
         <a class="tool" href="/inbox" aria-label="Inbox, {{ unread }} unread"><i class="bi bi-bell" aria-hidden="true"></i>
           {% if unread %}<span class="dot">{{ unread }}</span>{% endif %}</a>
-        <button class="tool" type="button" id="theme-toggle" aria-label="Toggle light and dark theme">
-          <i class="bi bi-circle-half" aria-hidden="true"></i></button>
+        {% include "_theme_menu.html" %}
         <div class="dropdown">
           <button class="tool user dropdown-toggle" data-bs-toggle="dropdown" type="button" aria-expanded="false">
             <span class="avatar" aria-hidden="true">{{ (user or '?')[:1]|upper }}</span><span class="uname">{{ user }}</span></button>

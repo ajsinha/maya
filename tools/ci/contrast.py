@@ -61,17 +61,33 @@ def blocks(css: str) -> list[tuple[list[str], str]]:
 
 
 def schemes(css: str) -> dict[str, dict[str, str]]:
+    """Every theme, each checked on its own.
+
+    The bare ``:root`` block is the light scheme; a block under a dark media query or a
+    ``[data-theme="dark"]`` selector is dark; any other ``[data-theme="<name>"]`` is a
+    scheme of its own, laid over the light one. Lumping every non-dark block into "light"
+    -- which was right with two themes -- would let a later theme overwrite the crimson
+    tokens in the gate's view, so the crimson scheme would be checked with blue values
+    and a failure in either could hide the other."""
     light: dict[str, str] = {}
     dark: dict[str, str] = {}
+    named: dict[str, dict[str, str]] = {}
     for headers, body in blocks(css):
         tokens = dict(re.findall(r"(--maya-[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})", body))
         if not tokens:
             continue
-        if any("dark" in h for h in headers):
+        joined = " ".join(headers)
+        theme = re.search(r'data-theme="([\w-]+)"\]', joined.replace(":not([data-theme", ":not(["))
+        if "dark" in joined:
             dark.update(tokens)
+        elif theme and theme.group(1) not in ("light", "dark"):
+            named.setdefault(theme.group(1), {}).update(tokens)
         else:
             light.update(tokens)
-    return {"light": light, "dark": {**light, **dark}}
+    out = {"light": light, "dark": {**light, **dark}}
+    for name, tokens in named.items():
+        out[name] = {**light, **tokens}
+    return out
 
 
 def main() -> int:

@@ -489,3 +489,120 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .kt-item:hover, .kt-item:focus { background: var(--maya-canvas); color: var(--maya-crimson); }
 .kt-item[aria-selected="true"] { background: var(--maya-crimson-tint); color: var(--maya-crimson); font-weight: 600; }
 .kt-item[hidden] { display: none; }
+
+/* The theme menu. The check mark is the aria state, drawn, so what a screen reader is told
+   and what the eye sees cannot disagree. */
+.theme-menu .dropdown-item { display: flex; align-items: center; gap: .55rem; font-size: 13.5px; }
+.theme-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); flex: none; }
+.theme-menu [aria-checked="true"]::after { content: "\2713"; margin-left: auto; color: var(--maya-crimson); font-weight: 700; }
+/* The theme button outside the signed-in toolbar, where .maya-tools does not reach. */
+.maya-nav .tool { position: relative; display: inline-flex; align-items: center; border: 0;
+  background: transparent; color: var(--maya-on-nav); padding: .35rem .5rem; border-radius: 8px; }
+.maya-nav .tool:hover, .maya-nav .tool:focus-visible { background: rgba(255,255,255,.14); }
+.maya-nav .tool.dropdown-toggle::after { display: none; }
+
+/* ---- the landing page, second edition ---------------------------------------------------
+   Laid out after the SAJHA server's front door and coloured only through MAYA's tokens, so
+   the same markup is the crimson, dark, blue and green page. The gradients are the ones the
+   navigation already uses -- nav-from, nav-via, nav-to -- which is what keeps the hue of
+   each theme consistent between the bar and the page beneath it. */
+.lp2-hero { position: relative; overflow: hidden; display: flex; align-items: center;
+  justify-content: center; text-align: center; min-height: 560px; margin: -1.4rem -1.8rem 0;
+  padding: 4.5rem 1.8rem 3.5rem;
+  background: radial-gradient(900px 420px at 50% 30%, var(--maya-glow), transparent 72%); }
+#lpNet { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lp2-hero-inner { position: relative; z-index: 1; max-width: 900px; }
+.lp2-badge { display: inline-flex; align-items: center; gap: .5rem; padding: .38rem 1rem;
+  border-radius: 999px; margin-bottom: 1.6rem; font-size: 12.5px; color: var(--maya-slate);
+  border: 1px solid var(--maya-border);
+  background: color-mix(in srgb, var(--maya-surface) 78%, transparent); }
+.lp2-badge i { font-size: .55rem; color: var(--maya-ok); }
+.lp2-title { font-size: clamp(2.2rem, 5.2vw, 3.9rem); font-weight: 800; line-height: 1.08;
+  letter-spacing: -.02em; color: var(--maya-ink); margin-bottom: 1.3rem; text-wrap: balance; }
+.lp2-gradient { background: linear-gradient(135deg, var(--maya-nav-via), var(--maya-nav-to));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lp2-sub { max-width: 690px; margin: 0 auto 2rem; font-size: 1.07rem; line-height: 1.65;
+  color: var(--maya-slate); }
+.lp2-actions { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; }
+.lp2-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .78rem 1.7rem;
+  border-radius: 999px; font-weight: 700; font-size: .98rem; text-decoration: none;
+  transition: transform .2s ease, box-shadow .2s ease; }
+.lp2-btn:hover { transform: translateY(-2px); }
+.lp2-btn-primary { color: var(--maya-on-nav);
+  background: linear-gradient(135deg, var(--maya-nav-via), var(--maya-nav-to));
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--maya-nav-via) 38%, transparent); }
+.lp2-btn-primary:hover { color: var(--maya-on-nav); }
+.lp2-btn-outline { color: var(--maya-ink); border: 1.5px solid var(--maya-border);
+  background: color-mix(in srgb, var(--maya-surface) 70%, transparent); }
+.lp2-btn-outline:hover { color: var(--maya-crimson); border-color: var(--maya-crimson); }
+
+.lp2-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;
+  padding: 2rem 0; margin-bottom: 1rem; text-align: center;
+  border-top: 1px solid var(--maya-border); border-bottom: 1px solid var(--maya-border); }
+.lp2-stats div { display: flex; flex-direction: column; gap: .2rem; }
+.lp2-num { font-size: 2.4rem; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, var(--maya-nav-via), var(--maya-nav-to));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lp2-label { font-size: 12.5px; color: var(--maya-slate); }
+
+.lp2-section { padding: 3.2rem 0 1rem; }
+.lp2-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--maya-crimson); margin-bottom: .6rem; }
+.lp2-h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -.015em;
+  color: var(--maya-heading); margin-bottom: .8rem; text-wrap: balance; }
+.lp2-desc { max-width: 640px; color: var(--maya-slate); line-height: 1.65; margin-bottom: 2rem; }
+.lp2-centre { text-align: center; margin-left: auto; margin-right: auto; }
+
+.lp2-chain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.5rem;
+  align-items: center; }
+@media (max-width: 991.98px) { .lp2-chain { grid-template-columns: 1fr; } }
+
+.lp2-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.1rem; }
+.lp2-card { background: var(--maya-surface); border: 1px solid var(--maya-border); border-radius: 14px;
+  padding: 1.5rem 1.4rem; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+.lp2-card:hover { transform: translateY(-4px); border-color: var(--maya-crimson);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--maya-nav-via) 14%, transparent); }
+.lp2-card > i { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 10px;
+  font-size: 1.2rem; color: var(--maya-crimson); background: var(--maya-crimson-tint); margin-bottom: .9rem; }
+.lp2-card h3 { font-size: 1.02rem; font-weight: 700; color: var(--maya-heading); margin-bottom: .45rem; }
+.lp2-card p { margin: 0; font-size: 13.8px; line-height: 1.6; color: var(--maya-ink); opacity: .86; }
+
+.lp2-ways-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 1.6rem;
+  align-items: center; }
+@media (max-width: 991.98px) { .lp2-ways-grid { grid-template-columns: 1fr; } }
+.lp2-ways-list { display: grid; gap: .8rem; }
+.lp2-way { display: flex; gap: .9rem; align-items: flex-start; padding: .9rem 1rem; border-radius: 12px;
+  background: var(--maya-surface); border: 1px solid var(--maya-border); }
+.lp2-way i { font-size: 1.3rem; color: var(--maya-crimson); line-height: 1.2; }
+.lp2-way strong { display: block; color: var(--maya-heading); }
+.lp2-way span { font-size: 13px; color: var(--maya-slate); }
+/* The code window takes the deepest colour of the theme's own gradient, so it is dark in all
+   four and still belongs to the page it sits on. */
+.lp2-code { border-radius: 14px; overflow: hidden; background: var(--maya-nav-to);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--maya-nav-to) 35%, transparent); }
+.lp2-code-bar { display: flex; align-items: center; gap: .4rem; padding: .6rem .9rem;
+  background: color-mix(in srgb, var(--maya-nav-to) 80%, #000); }
+.lp2-code-bar span { width: 10px; height: 10px; border-radius: 50%; background: color-mix(in srgb, var(--maya-on-nav) 30%, transparent); }
+.lp2-code-bar em { margin-left: .6rem; font-style: normal; font-size: 12px; color: var(--maya-on-nav); opacity: .7; }
+.lp2-code pre { margin: 0; padding: 1.1rem 1.2rem; font-size: 12.8px; line-height: 1.7;
+  /* the global `pre` rule paints a surface-coloured box; here the window is the ground */
+  background: transparent; border: 0; border-radius: 0; max-height: none;
+  color: var(--maya-on-nav); white-space: pre; overflow-x: auto; }
+/* Syntax colours are tints of the window's own text colour, never theme tokens that flip
+   between light and dark: the window is dark in every theme, so its accents must be light
+   in every theme too. */
+.lp2-code .k { color: var(--maya-on-nav); font-weight: 700; }
+.lp2-code .f { color: color-mix(in srgb, var(--maya-on-nav) 72%, var(--maya-nav-via)); }
+.lp2-code .s { color: color-mix(in srgb, var(--maya-on-nav) 58%, var(--maya-nav-via)); }
+.lp2-code .c { color: var(--maya-on-nav); opacity: .55; font-style: italic; }
+
+.lp2-cta { margin: 3.4rem -1.8rem 0; padding: 3.4rem 1.8rem; text-align: center; color: var(--maya-on-nav);
+  background: linear-gradient(120deg, var(--maya-nav-from), var(--maya-nav-via) 55%, var(--maya-nav-to)); }
+.lp2-cta h2 { font-size: clamp(1.7rem, 3.4vw, 2.5rem); font-weight: 800; font-style: italic; margin-bottom: .6rem; }
+.lp2-cta p { opacity: .88; margin-bottom: 1.6rem; }
+.lp2-btn-light { background: var(--maya-on-nav); color: var(--maya-nav-via); }
+.lp2-btn-light:hover { color: var(--maya-nav-from); }
+.lp2-btn-ghost { color: var(--maya-on-nav); border: 1.5px solid color-mix(in srgb, var(--maya-on-nav) 55%, transparent); }
+.lp2-btn-ghost:hover { color: var(--maya-on-nav); border-color: var(--maya-on-nav); }
+@media (prefers-reduced-motion: reduce) { .lp2-btn, .lp2-card { transition: none; } }

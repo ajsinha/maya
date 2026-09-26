@@ -170,16 +170,25 @@ def test_a_server_paged_table_pages_searches_and_sorts(site, browser):
     ctx.close()
 
 
-def test_the_theme_toggle_switches_and_is_remembered(site, browser):
+def test_every_theme_can_be_chosen_and_is_remembered(site, browser):
+    """Four themes from one menu, each one surviving a reload.
+
+    Bootstrap is told dark only for the dark theme: blue and green are light schemes with a
+    different accent, and telling Bootstrap otherwise would give them dark form controls."""
     base, _ = site
     ctx, page = _page(browser)
     _login(page, base)
-    before = page.evaluate("document.documentElement.getAttribute('data-theme')")
-    page.click("#theme-toggle")
-    after = page.evaluate("document.documentElement.getAttribute('data-theme')")
-    assert after in ("dark", "light") and after != before
-    page.reload()
-    assert page.evaluate("document.documentElement.getAttribute('data-theme')") == after
+    for theme, bs in (("dark", "dark"), ("blue", "light"), ("green", "light"), ("light", "light")):
+        page.click("#theme-toggle")
+        page.click(f"[data-theme-choice='{theme}']")
+        assert page.evaluate("document.documentElement.getAttribute('data-theme')") == theme
+        assert page.evaluate("document.documentElement.getAttribute('data-bs-theme')") == bs
+        page.reload()
+        assert page.evaluate("document.documentElement.getAttribute('data-theme')") == theme
+        accent = page.evaluate(
+            "getComputedStyle(document.documentElement).getPropertyValue('--maya-crimson').trim()"
+        )
+        assert accent, f"{theme}: no accent token resolved"
     ctx.close()
 
 

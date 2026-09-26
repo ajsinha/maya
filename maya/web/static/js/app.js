@@ -15,21 +15,33 @@
   var csrf = document.body.getAttribute('data-csrf') || '';
   window.MayaCsrf = csrf;
 
+  // Four themes: crimson (stored as "light", so preferences saved before there were four
+  // still mean what they meant), dark, blue and green. Only dark is dark to Bootstrap; the
+  // other three are light schemes with a different accent.
+  var THEMES = ['light', 'dark', 'blue', 'green'];
+
   function applyTheme(t) {
     var root = document.documentElement;
-    if (t) { root.setAttribute('data-theme', t); root.setAttribute('data-bs-theme', t); }
-  }
-  try { applyTheme(localStorage.getItem('maya.theme')); } catch (e) { /* storage blocked */ }
-  var toggle = document.getElementById('theme-toggle');
-  if (toggle) {
-    toggle.addEventListener('click', function () {
-      var cur = document.documentElement.getAttribute('data-theme') ||
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      var next = cur === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      try { localStorage.setItem('maya.theme', next); } catch (e) { /* ignore */ }
+    if (!t || THEMES.indexOf(t) < 0) { return; }
+    root.setAttribute('data-theme', t);
+    root.setAttribute('data-bs-theme', t === 'dark' ? 'dark' : 'light');
+    document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+      b.setAttribute('aria-checked', b.getAttribute('data-theme-choice') === t ? 'true' : 'false');
     });
   }
+
+  function chooseTheme(t) {
+    applyTheme(t);
+    try { localStorage.setItem('maya.theme', t); } catch (e) { /* storage blocked */ }
+  }
+
+  try { applyTheme(localStorage.getItem('maya.theme')); } catch (e) { /* storage blocked */ }
+  document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+    b.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      chooseTheme(b.getAttribute('data-theme-choice'));
+    });
+  });
 
   // Mega menu: on a wide screen a panel opens on hover as well as on click/keyboard.
   var wide = window.matchMedia('(min-width: 992px)');

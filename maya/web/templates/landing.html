@@ -1,30 +1,47 @@
-{# What a visitor meets before they have an account: what MAYA is for, in its own words,
-   and the three doors out of it — sign in, the help centre, the About page. Nothing here
-   reads the estate, so it renders for somebody who has no right to read anything. #}
+{# The landing page. Its structure follows the SAJHA server's front door -- a centred hero over
+   a live network, a strip of numbers, capability cards, the ways in, a closing call -- and its
+   colour comes entirely from MAYA's tokens, so it is the same page in all four themes. The
+   evidence chain that animated the previous version is kept exactly as it was and given a
+   section of its own: it is still the page's argument, now with room to make it. #}
 {% extends "base.html" %}
 {% block title %}{{ APP_NAME }} — {{ APP_TAGLINE }}{% endblock %}
 {% block content %}
-<section class="lp-hero">
-  <div class="lp-hero-copy">
-    <p class="lp-eyebrow">{{ APP_TAGLINE|upper }}</p>
-    <h1 class="lp-headline">Every model has to answer <em>one question</em>. MAYA keeps the answer.</h1>
-    <p class="lp-lede">A model said a number. Which data did it see, as the data stood <em>then</em>? Which
-      version of the mathematics, which parameters, whose approval? MAYA is the record that answers that
-      months later, without anybody having to remember — features that keep two clocks, a formula the
-      platform can evaluate itself, and a warrant that has to exist before a model may be fitted or run.</p>
-    <div class="lp-actions">
-      <a class="btn btn-primary btn-lg" href="/login">Sign in <span aria-hidden="true">→</span></a>
-      <a class="btn btn-outline-secondary btn-lg" href="/help">Read the documentation</a>
+<section class="lp2-hero">
+  <canvas id="lpNet" aria-hidden="true"></canvas>
+  <div class="lp2-hero-inner">
+    <div class="lp2-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i>
+      {{ APP_TAGLINE }} · version {{ VERSION }} · open source on GitHub</div>
+    <h1 class="lp2-title">Every model has to answer<br><span class="lp2-gradient">one question.</span>
+      MAYA keeps the answer.</h1>
+    <p class="lp2-sub">Which data did it see, as the data stood <em>then</em>? Which mathematics, which
+      parameters, whose approval? MAYA is the record that answers months later without anybody having to
+      remember — features that keep two clocks, a formula the platform evaluates itself, and a warrant that
+      has to exist before a model may be fitted or run.</p>
+    <div class="lp2-actions">
+      <a class="lp2-btn lp2-btn-primary" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>
+      <a class="lp2-btn lp2-btn-outline" href="/help"><i class="bi bi-book" aria-hidden="true"></i> Read the documentation</a>
     </div>
-    <dl class="lp-stats">
-      <div><dt>Two clocks</dt><dd>event time and knowledge time, on every value</dd></div>
-      <div><dt>One hash</dt><dd>a pin is named by the data it seals</dd></div>
-      <div><dt>No warrant, no run</dt><dd>fitting and scoring are authorised acts</dd></div>
-    </dl>
   </div>
+</section>
 
-  {# The chain the platform actually keeps, drawn once. It is the page's illustration and its
-     argument at the same time: every arrow here is an object MAYA stores, not a metaphor. #}
+<section class="lp2-stats" aria-label="MAYA in numbers">
+  <div><span class="lp2-num">2</span><span class="lp2-label">clocks on every value</span></div>
+  <div><span class="lp2-num">215</span><span class="lp2-label">API operations, one SDK</span></div>
+  <div><span class="lp2-num">106</span><span class="lp2-label">formula templates</span></div>
+  <div><span class="lp2-num">9</span><span class="lp2-label">models carried end to end</span></div>
+  <div><span class="lp2-num">2,000+</span><span class="lp2-label">tests on every change</span></div>
+  <div><span class="lp2-num">0</span><span class="lp2-label">runs without a warrant</span></div>
+</section>
+
+<section class="lp2-section lp2-chain">
+  <div class="lp2-chain-copy">
+    <p class="lp2-eyebrow">The chain</p>
+    <h2 class="lp2-h2">One value, making the whole journey.</h2>
+    <p class="lp2-desc">A value leaves its source, is read as of a moment, is sealed by the hash of its own
+      contents, meets the mathematics, and only then is allowed to run. Every box in this figure is an object
+      MAYA stores, with a version, an owner and an audit trail — so the picture is not a metaphor for the
+      system. It is the system.</p>
+  </div>
   <figure class="lp-figure">
     <svg viewBox="0 0 420 448" role="img" aria-labelledby="lp-fig-title">
       <title id="lp-fig-title">The chain of evidence: data, feature, pin, model, warrant, execution</title>
@@ -120,32 +137,78 @@
   </figure>
 </section>
 
-<section class="lp-cards">
-  <article>
-    <h2 class="h6">Features that remember when they were true</h2>
-    <p>A value carries the moment it describes and the moment MAYA learnt it. Ask a feature what it held on
-      a date, and you get what was known then — not what a later correction says now.</p>
-  </article>
-  <article>
-    <h2 class="h6">Mathematics the platform can read</h2>
-    <p>A model is registered as a typed expression, parsed from LaTeX or Python. MAYA generates its own
-      reference implementation from that tree and checks your code against it.</p>
-  </article>
-  <article>
-    <h2 class="h6">Training and execution under warrant</h2>
-    <p>Fitting a model draws on sealed pins under a training warrant; scoring runs under an execution
-      warrant with covenants on its inputs and outputs. Both are records, not conventions.</p>
-  </article>
-  <article>
-    <h2 class="h6">Evidence somebody else can check</h2>
-    <p>Leakage certificates, conformance runs and signed evidence bundles: the point is never MAYA's word
-      for it, but a file a reviewer can open and verify without MAYA installed.</p>
-  </article>
+<section class="lp2-section" id="capabilities">
+  <p class="lp2-eyebrow lp2-centre">Capabilities</p>
+  <h2 class="lp2-h2 lp2-centre">Not a model inventory. A model record.</h2>
+  <p class="lp2-desc lp2-centre">An inventory lists what exists. A record can say what a model saw, what it
+    computed and who allowed it — and refuse the run when one of those is missing.</p>
+  <div class="lp2-grid">
+    <article class="lp2-card"><i class="bi bi-clock-history" aria-hidden="true"></i>
+      <h3>Features that remember when they were true</h3>
+      <p>Every value carries the moment it describes and the moment MAYA learnt it. A restatement is a new
+        record, never an overwrite, so a training row rebuilt a year later is the row built then.</p></article>
+    <article class="lp2-card"><i class="bi bi-shield-lock" aria-hidden="true"></i>
+      <h3>Pins sealed by their own contents</h3>
+      <p>A pin is named by the hash of what it holds. The same data pinned twice is the same pin, and changed
+        data cannot hide behind an unchanged name.</p></article>
+    <article class="lp2-card"><i class="bi bi-braces" aria-hidden="true"></i>
+      <h3>Mathematics the platform can read</h3>
+      <p>Write a model in LaTeX; MAYA parses it into a typed tree, renders it back so a misreading shows, and
+        generates its own reference implementation to check your code against.</p></article>
+    <article class="lp2-card"><i class="bi bi-file-earmark-lock" aria-hidden="true"></i>
+      <h3>Training and execution under warrant</h3>
+      <p>Fitting draws on sealed pins under a training warrant with a leakage certificate. Scoring runs under
+        an execution warrant whose covenants can suspend it in production.</p></article>
+    <article class="lp2-card"><i class="bi bi-diagram-3" aria-hidden="true"></i>
+      <h3>Composites governed as one model</h3>
+      <p>Ensembles, pipelines, routers: one contract computed from the members, one approval for the whole,
+        and maturity capped at the least mature part.</p></article>
+    <article class="lp2-card"><i class="bi bi-patch-check" aria-hidden="true"></i>
+      <h3>Evidence somebody else can check</h3>
+      <p>A bundle carries the pins, the parameters, the certificates and a verifier that runs on a machine
+        with no MAYA installed. The point is never MAYA's word for it.</p></article>
+  </div>
 </section>
 
-<section class="lp-close">
-  <p class="lp-close-slogan">{{ APP_SLOGAN }}</p>
-  <p class="mb-0"><a href="/login">Sign in</a> · <a href="/help">Help centre</a> ·
-    <a href="/about">About {{ APP_NAME }} {{ VERSION }}</a></p>
+<section class="lp2-section lp2-ways">
+  <p class="lp2-eyebrow lp2-centre">Four ways in</p>
+  <h2 class="lp2-h2 lp2-centre">Four ways in. One API.</h2>
+  <p class="lp2-desc lp2-centre">The web application is an SDK client with no private path, so whatever a
+    person can do on screen, a script can do the same way — and be refused the same way.</p>
+  <div class="lp2-ways-grid">
+    <div class="lp2-ways-list">
+      <div class="lp2-way"><i class="bi bi-window" aria-hidden="true"></i><div><strong>Web</strong>
+        <span>Catalog, workbench, lineage canvas, the compute-kernel wizard</span></div></div>
+      <div class="lp2-way"><i class="bi bi-filetype-py" aria-hidden="true"></i><div><strong>Python SDK</strong>
+        <span>Every operation, synchronous or async, with record and replay</span></div></div>
+      <div class="lp2-way"><i class="bi bi-terminal" aria-hidden="true"></i><div><strong>CLI</strong>
+        <span>The same verbs from a shell, for pipelines and operators</span></div></div>
+      <div class="lp2-way"><i class="bi bi-hdd-network" aria-hidden="true"></i><div><strong>REST</strong>
+        <span>215 operations under a locked API snapshot</span></div></div>
+    </div>
+    <div class="lp2-code" aria-label="An example of the SDK">
+      <div class="lp2-code-bar"><span></span><span></span><span></span><em>fit.py</em></div>
+<pre><span class="k">from</span> maya.sdk <span class="k">import</span> <span class="f">connect</span>
+
+my = <span class="f">connect</span>(api_key=<span class="s">"maya_…"</span>)
+w  = my.training.<span class="f">create</span>(<span class="s">"retail"</span>, <span class="s">"pd_fit"</span>,
+        model=<span class="s">"retail/pd_scorecard@v1"</span>,
+        featureset=<span class="s">"retail/panel#q2/2026-06-30"</span>)
+rows = w.<span class="f">data</span>()        <span class="c"># sealed pin, leakage-certified</span>
+w.<span class="f">upload_parameters</span>(fit(rows), data_checksum=rows.checksum)
+w.<span class="f">submit</span>()               <span class="c"># and a second person approves</span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="lp2-cta">
+  <h2>{{ APP_SLOGAN }}</h2>
+  <p>Sign in to the catalog, or start with the help centre if you have not seen MAYA before.</p>
+  <div class="lp2-actions">
+    <a class="lp2-btn lp2-btn-light" href="/login">Sign in</a>
+    <a class="lp2-btn lp2-btn-ghost" href="/help">Help centre</a>
+    <a class="lp2-btn lp2-btn-ghost" href="/about">About {{ APP_NAME }}</a>
+  </div>
 </section>
 {% endblock %}
+{% block scripts %}<script src="/static/js/landing.js?v={{ ASSET_V }}"></script>{% endblock %}
