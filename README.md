@@ -563,8 +563,12 @@ words, which is the weaker arrangement and is why the count is approximate.
 
 ## Getting started
 
+**New to MAYA? Follow [`docs/QUICKSTART.md`](docs/QUICKSTART.md)** — a step-by-step guide from
+nothing to MAYA running with demonstration data, in about fifteen minutes, with what you
+should see at every step and what to do if you don't. The short version, for the impatient:
+
 ```bash
-python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
 python run_maya_web.py                 # http://127.0.0.1:8600 — the landing page, then
                                        #   Sign in as admin / maya-dev-admin
 ```

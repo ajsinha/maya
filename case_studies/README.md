@@ -22,6 +22,9 @@ scripts needs to change, and running them from the project root has always worke
 
     .venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py
 
+New to MAYA? The [quick start](../docs/QUICKSTART.md) installs it and runs study 01 with you,
+step by step.
+
 ## How a study is laid out
 
 ```
@@ -74,10 +77,9 @@ estate stops and says so.
 application and the rest of MAYA use — configured once as `lake.root` and shared, because a
 demonstration that invented its own storage arrangement would be demonstrating the wrong
 thing. A lake table is `<kind>/<namespace>/<name>`, and each study owns a namespace, so
-they sit side by side without colliding and `--reset` removes only the resetting study's
-namespace from each kind. The metadata of each study — its database, its keys, its logs —
-stays separate, at `case_studies/runs/<namespace>/`, so a study can be reset or served on
-its own.
+they sit side by side without colliding. The rest of the estate is shared too: one
+database (`data/maya.db`), one blob store, one set of signing keys and one log, all under
+`data/` as `config/application.yaml` says.
 
 **Between any two steps you can open the web UI on exactly what has been built so far** —
 `show_estate.py` prints the command — and walk through the catalog, the pin preview, the
@@ -96,12 +98,11 @@ S=case_studies/01-retail-credit-pd-scorecard
 .venv/bin/python $S/show_estate.py              # prints how to serve this instance
 ```
 
-`show_estate.py` ends by printing the exact command to run, which is of this shape:
+`show_estate.py` ends by printing the exact command to run, and it is always the same one,
+because every study lives in the estate the application serves by default:
 
 ```bash
-.venv/bin/python run_maya_web.py \
-  --storage.root=case_studies/runs/retail_credit \
-  --db.sqlite.path=case_studies/runs/retail_credit/maya.db
+.venv/bin/python run_maya_web.py
 ```
 
 Leave that running in its own terminal and open <http://127.0.0.1:8600>. Sign in as any
@@ -130,10 +131,11 @@ approve her own feature, `mgr` cannot see the admin estate, `tess` can.
 the first script of a study does it, and doing it yourself would leave the study seeding a
 namespace that already exists. A study needs no server, no API key and nothing configured.
 
-The first script builds a complete MAYA at `case_studies/runs/<namespace>/` in about two
-seconds — real database, real Delta lake, real permissions, real workflow, real signer —
-and every later script opens the same one. Building it creates the study's namespace and
-one user per built-in role, through the SDK, exactly as an administrator would:
+The first script opens the project's MAYA, creating it under `data/` in about two seconds if
+this is the first study ever run: a real database, a real Delta lake, real permissions, real
+workflow and a real signer. Every later script opens the same one. The first study also
+creates one user per built-in role, through the SDK, exactly as an administrator would, and
+each study creates its own namespace:
 
 | User | Role | What they may do in a study |
 |---|---|---|

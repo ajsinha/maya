@@ -26,7 +26,7 @@ import threading
 from pathlib import Path
 from typing import Any, Mapping
 
-from maya.core.errors import MayaError, ValidationFailed
+from maya.core.errors import MayaError, NotAuthenticated, ValidationFailed
 from maya.sdk import Client
 
 ADMIN = "admin"
@@ -239,9 +239,39 @@ class Maya:
         if username not in self._clients:
             pw = password or (ADMIN_PASSWORD if username == ADMIN else PASSWORD)
             with Client(app=self.app) as anonymous:
-                token = anonymous.auth.login(username, pw)["token"]
+                try:
+                    token = anonymous.auth.login(username, pw)["token"]
+                except NotAuthenticated:
+                    if username != ADMIN or password is not None:
+                        raise
+                    token = self._operator_session()
             self._clients[username] = Client(app=self.app, token=token)
         return self._clients[username]
+
+    def _operator_session(self) -> str:
+        """An administrator session opened in-process, when the bootstrap password is gone.
+
+        The quick start tells a new user to change the administrator's published password
+        at first sign-in, which is right -- and which used to break every case study, since
+        they sign in as ``admin`` with that password. This kit runs inside the platform's own
+        process, with the access an operator at the server's shell already has, so it opens
+        the session directly rather than asking for a password it was never given. It is
+        recorded in the audit chain as exactly that; the password itself is not touched."""
+        with self.platform.uow("maya-testing") as uow:
+            user = uow.repo("users").find_one(username=ADMIN)
+            if user is None:
+                raise NotAuthenticated("There is no 'admin' user in this estate")
+            token = self.platform.auth._open_session(
+                uow, user, None, "maya.testing", "api", auth_method="operator"
+            )
+            uow.audit(
+                "auth.operator_session",
+                object_type="user",
+                object_ref=ADMIN,
+                detail={"by": "maya.testing", "why": "the bootstrap password was changed"},
+                principal_type="system",
+            )
+            return token
 
     def drain(self) -> None:
         """Run every queued job to completion, inline (pins, renders, scans)."""

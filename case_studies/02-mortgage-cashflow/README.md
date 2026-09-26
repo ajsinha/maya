@@ -9,8 +9,7 @@ report, and a covenant about the data rather than the model.
 
 ## The scripts, and what each one does
 
-Seven scripts, run in this order. They share one MAYA at
-`case_studies/runs/mortgage_alm/`, which the first builds and the rest reopen, so **each
+Seven scripts, run in this order. They share the project's MAYA — the estate `config/application.yaml` configures, shared by every study, in which this study is the `mortgage_alm` namespace —, which the first builds and the rest reopen, so **each
 can be run on its own, in its own process** — and between any two you can open the web UI
 and show what the last one created.
 

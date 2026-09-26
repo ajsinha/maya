@@ -9,7 +9,7 @@ what MAYA does when somebody proposes changing a feature underneath a live model
 
 ## The scripts, and what each one does
 
-Eight scripts, in this order. They share one MAYA at `case_studies/runs/mortgage_prepay/`,
+Eight scripts, in this order. They share the project's MAYA — the estate `config/application.yaml` configures, shared by every study, in which this study is the `mortgage_prepay` namespace —,
 which the first builds and the rest reopen, so **each runs on its own, in its own process**.
 
 | Script | What it does | Shows |

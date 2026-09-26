@@ -117,3 +117,25 @@ def test_file_write_blocked_by_rlimit() -> None:
     )
     res = run_sandboxed(src, "run", {"X": {}, "params": {}})
     assert not res["ok"]
+
+
+def test_an_interpreter_reached_through_unbound_links_still_starts(tmp_path, monkeypatch):
+    """A venv made with ``~/.local/bin/python3.13 -m venv`` links through the home
+    directory, which the sandbox hides. Each unbound hop must be recreated, or the child
+    cannot start, the tier probe fails and MAYA falls back to the minimal tier unasked."""
+    import os
+    import sys
+
+    from maya.security import sandbox
+
+    real = os.path.realpath(sys.executable)
+    hidden = tmp_path / "home" / ".local" / "bin"
+    hidden.mkdir(parents=True)
+    (hidden / "python3.13").symlink_to(real)
+    venv = tmp_path / "venv" / "bin"
+    venv.mkdir(parents=True)
+    (venv / "python").symlink_to(hidden / "python3.13")
+    monkeypatch.setattr(sys, "executable", str(venv / "python"))
+    args = sandbox._binds()
+    pairs = list(zip(args, args[1:], args[2:]))
+    assert ("--symlink", real, str(hidden / "python3.13")) in pairs

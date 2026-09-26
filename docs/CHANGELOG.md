@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+**The quick start, followed literally**
+
+- [`docs/QUICKSTART.md`](QUICKSTART.md): from nothing to MAYA running, signed in, with a case
+  study's data to look at and a feature of your own, in nine steps. Each says what to type,
+  what you should see and what to do if you don't; a troubleshooting table covers the
+  failures a newcomer actually meets (the wrong Python, a busy port, a locked account, a
+  lost administrator password). Every step was carried out on a fresh clone, and a sample
+  file to upload ships at `docs/quickstart/prices.csv`.
+- **Case studies keep working after the administrator's password is changed.** The quick
+  start tells a new user to change the published password at first sign-in; every case
+  study signed in as `admin` with it, and so failed with *Invalid username or password*.
+  `maya.testing`, which runs in the platform's own process, now opens an operator session
+  when the bootstrap password no longer works, records `auth.operator_session` in the audit
+  chain, and never learns or resets the new password.
+
+**A fresh install's sandbox, and the case studies checked**
+
+- **The strong sandbox starts from any virtual environment.** Following the quick start on a
+  fresh clone — a venv made with `python3.13 -m venv` where `python3.13` lives in
+  `~/.local/bin` — found that the sandbox could not start the interpreter: the venv's
+  `python` links through the home directory, which the sandbox hides, so the tier probe
+  failed and MAYA fell back to the *minimal* tier without saying why, and every artifact
+  then failed validation. Each unbound link in the interpreter's chain is now recreated
+  inside the sandbox, pointing straight at the real interpreter; the probe still verifies
+  that the home directory itself is not visible. Four case studies (02, 05, 07, 11) failed
+  on a fresh clone because of it and pass now.
+- **Every case study is run by the suite**, each from nothing in its own throwaway estate
+  (`tests/test_case_studies.py`, on with `MAYA_TEST_CASE_STUDIES=1`, which
+  `gates.py --tests` sets).
+- **The case-study READMEs describe the estate they actually use**: one shared MAYA under
+  `data/`, configured by `config/application.yaml`, with each study in its own namespace,
+  not a MAYA per study under `case_studies/runs/`.
+
 **The REST API guide, executed**
 
 - [`docs/API_GUIDE.md`](API_GUIDE.md): the API from first `curl` to a sealed execution

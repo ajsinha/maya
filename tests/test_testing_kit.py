@@ -110,3 +110,21 @@ def test_keep_leaves_the_directory_for_a_post_mortem():
         import shutil
 
         shutil.rmtree(home, ignore_errors=True)
+
+
+def test_the_admin_client_survives_a_changed_bootstrap_password(maya_factory):
+    """The quick start tells a new user to change the published admin password, and every
+    case study signs in as admin: the kit opens an operator session instead, and says so
+    in the audit chain, without learning or resetting the new password."""
+    m = maya_factory()
+    m.client("admin").auth.change_password("maya-dev-admin", "Changed-by-user-2026")
+    fresh = Maya.__new__(Maya)  # a later process: same platform, no cached clients
+    fresh.__dict__.update({**m.__dict__, "_clients": {}})
+    admin = fresh.client("admin")
+    assert admin.auth.me()["username"] == "admin"
+    with m.platform.uow() as uow:
+        assert uow.repo("audit_events").find_one(action="auth.operator_session")
+    again = Maya.__new__(Maya)
+    again.__dict__.update({**m.__dict__, "_clients": {}})
+    with pytest.raises(MayaError):
+        again.client("admin", password="maya-dev-admin")  # an explicit password is not bypassed
