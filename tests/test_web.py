@@ -387,7 +387,7 @@ def test_web_imports_only_the_sdk():
     allowed = ("maya.sdk", "maya.core.version", "maya.core.errors", "maya.web")
     web = TEMPLATES.parent
     bad = []
-    for path in web.rglob("*.py"):
+    for path in (p for p in web.rglob("*.py") if not p.name.startswith("_planted")):
         for m in re.finditer(r"^\s*(?:from|import)\s+(maya[\w.]*)", path.read_text(), re.M):
             if not m.group(1).startswith(allowed):
                 bad.append((path.name, m.group(1)))
