@@ -606,3 +606,9 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .lp2-btn-ghost { color: var(--maya-on-nav); border: 1.5px solid color-mix(in srgb, var(--maya-on-nav) 55%, transparent); }
 .lp2-btn-ghost:hover { color: var(--maya-on-nav); border-color: var(--maya-on-nav); }
 @media (prefers-reduced-motion: reduce) { .lp2-btn, .lp2-card { transition: none; } }
+
+/* The competitive table's verdicts: a word always, a colour only as a second signal. */
+.cmp { display: inline-block; padding: .08rem .55rem; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.cmp-yes { color: var(--maya-ok); background: color-mix(in srgb, var(--maya-ok) 12%, transparent); }
+.cmp-partial { color: var(--maya-warn); background: color-mix(in srgb, var(--maya-warn) 12%, transparent); }
+.cmp-no { color: var(--maya-slate); background: color-mix(in srgb, var(--maya-slate) 10%, transparent); }

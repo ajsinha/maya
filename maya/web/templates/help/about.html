@@ -109,6 +109,80 @@
     </div></section></div>
 </div>
 
+{# Competitive landscape. Categories, not vendors: a comparison naming one product's
+   features would be wrong by its next release and is not ours to state. What is stable is
+   where each category's centre of gravity sits, and that is what the table claims. #}
+{% from "_macros/table.html" import table %}
+{% set Y, P, N = 'Yes', 'Partial', 'No' %}
+{% set cmp_rows = [
+  {'cap': 'Inventory, approval workflow, segregation of duties', 'mrm': Y, 'ml': P, 'fs': N, 'maya': Y},
+  {'cap': 'Materiality tiering questionnaires', 'mrm': Y, 'ml': N, 'fs': N, 'maya': N},
+  {'cap': 'Findings and remediation register', 'mrm': Y, 'ml': N, 'fs': N, 'maya': N},
+  {'cap': 'Sees the artefact itself: code, parameters, data', 'mrm': P, 'ml': Y, 'fs': P, 'maya': Y},
+  {'cap': 'Point-in-time training data, two clocks on every value', 'mrm': N, 'ml': P, 'fs': Y, 'maya': Y},
+  {'cap': 'Data sealed by content hash, reproducible years later', 'mrm': N, 'ml': P, 'fs': P, 'maya': Y},
+  {'cap': 'Mathematics as an evaluable specification, code checked against it', 'mrm': N, 'ml': N, 'fs': N, 'maya': Y},
+  {'cap': 'Licence to fit or run granted in advance, and refusable', 'mrm': P, 'ml': P, 'fs': N, 'maya': Y},
+  {'cap': 'Leakage certificate on the training set', 'mrm': N, 'ml': N, 'fs': P, 'maya': Y},
+  {'cap': 'Evidence a reviewer verifies without the platform installed', 'mrm': N, 'ml': N, 'fs': N, 'maya': Y},
+  {'cap': 'Production monitoring and drift dashboards', 'mrm': P, 'ml': Y, 'fs': P, 'maya': P},
+  {'cap': 'Training infrastructure and model serving', 'mrm': N, 'ml': Y, 'fs': P, 'maya': N},
+  {'cap': 'Scale of deployment, ecosystem, vendor support', 'mrm': Y, 'ml': Y, 'fs': Y, 'maya': N},
+] %}
+<section class="card mb-4 about-compete">
+  <div class="card-header"><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Competitive landscape</div>
+  <div class="card-body">
+    <p>Three families of product touch the problem MAYA addresses, and each is good at what it does.
+      <strong>Model risk management platforms</strong> — SAS Model Risk Management, IBM OpenPages Model Risk
+      Governance, ModelOp, ValidMind, Yields and others — hold the inventory, the tiering, the approvals, the
+      independent challenge and the findings, but see the model through documents about it.
+      <strong>ML platforms and model registries</strong> — MLflow, Databricks, Amazon SageMaker, Google Vertex AI,
+      Azure Machine Learning — hold the artefact, its runs and its deployment, but have no representation of
+      approved use, challenge or remediation. <strong>Feature stores</strong> — Feast, Tecton, Hopsworks — solve
+      point-in-time correctness for the data and stop at the data.</p>
+    <p class="mb-3">The split is consistent: one family governs without seeing the artefact, the others see it
+      without governing it. MAYA is a record that does both for the chain behind a number — the data as it stood,
+      sealed; the mathematics, evaluable; the licence to fit and to run, granted in advance and refusable.</p>
+
+    {% call(r) table("competitors", ["Capability", "!MRM platforms", "!ML platforms", "!Feature stores", "!MAYA"], cmp_rows, caption="How the product categories compare") %}
+      <td>{{ r.cap }}</td>
+      {% for k in ('mrm', 'ml', 'fs', 'maya') %}
+      <td><span class="cmp cmp-{{ r[k]|lower }}">{{ r[k] }}</span></td>
+      {% endfor %}
+    {% endcall %}
+
+    <p class="small-muted">Categories, not vendors. Each row says where a category's centre of gravity sits as
+      understood in September 2026; individual products differ, change between releases, and some cross these
+      lines. Nothing here is a statement about any one vendor's current offering.</p>
+
+    <div class="row g-3 mt-1">
+      <div class="col-md-6">
+        <div class="cap-group">Where MAYA is different</div>
+        <ul class="cap-list">
+          <li>It derives what others ask somebody to type: the input contract from the formula, a pin's identity
+            from its contents, what a training row could have known from two clocks.</li>
+          <li>It refuses before the fact. A warrant is a licence, not a log entry, so an unapproved fit or an
+            unlicensed run is stopped rather than recorded.</li>
+          <li>Its evidence leaves with a verifier. A bundle is checked on a machine with no MAYA on it.</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <div class="cap-group">Where MAYA loses</div>
+        <ul class="cap-list">
+          <li>It has no materiality tiering and no findings register yet, which a model risk function
+            uses daily.</li>
+          <li>It neither trains nor serves models, by design, so it sits beside an ML platform rather than
+            replacing one.</li>
+          <li>It is one author's work, open source, and has not been deployed at a supervised institution; the
+            established products have the customers, the integrations and the support.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="small-muted mb-0">The practical reading: MAYA is a complement. It licenses what an ML platform
+      trains and serves, and supplies the evidence a model risk platform records.</p>
+  </div>
+</section>
+
 <section class="card mb-4">
   <div class="card-header"><i class="bi bi-code-square" aria-hidden="true"></i> Technology</div>
   <div class="card-body">
