@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+**Model governance: findings, materiality and periodic review**
+
+- **The findings register.** `/governance` (SDK `governance`, `/api/v1/governance/*`). A
+  finding has a severity, an owner (the model's, by default), a due date (30, 90, 180 or 365
+  days by severity) and a history of every move. Whoever marks it remediated does not
+  close it — an independent reviewer confirms the fix or sends it back — and accepting the
+  risk instead needs a written reason and is not the model owner's call.
+- **Materiality tiers, derived.** Tier 1 (most material) to 3, from the model's use and
+  exposure as its owner declares them and from what MAYA measures: live execution warrants,
+  executions, and whether it is a black box (one tier higher). An override needs a reason,
+  and one that makes the model less material than the evidence says is flagged.
+- **Periodic review with teeth.** The tier sets the interval (1, 2 or 3 years, or per
+  model). An hourly sweep suspends every live execution warrant of a model whose review is
+  overdue, through the same suspension a covenant breach uses; recording a review — by
+  someone other than the owner — lifts exactly those suspensions and no others.
+
+**Derivations keep their clock; the formula IR gets the normal quantile**
+
+- **Six algebra operators no longer drop the knowledge clock.** Projection, composition,
+  coalescing, aggregation, resampling and case selection built their output from the index
+  and attributes alone, so a derived feature arrived without `_knowledge_time` and read as if
+  it had always been known. Each now carries the latest knowledge time of the input rows it
+  was built from, row by row — the same rule feature-set assembly and pivot already used.
+- **`ncdfinv`, the standard normal quantile.** `N^{-1}(p)`, `\Phi^{-1}(p)`, `ncdfinv(p)` and
+  `probit(p)` all parse to it; read as a power the superscript would have made it `1/N(p)`,
+  which parses, computes and is wrong. It evaluates, generates code, renders and round-trips
+  as LaTeX, lifts from Python (`norm.ppf`) and from Excel (`NORM.S.INV`, `NORMSINV`,
+  `NORM.INV`). The Basel IRB and parametric VaR templates now compute the quantile instead of
+  taking it as an input.
+
 **Models: the translation step on its own (§8.1, §16.2)**
 
 - **The compute-kernel wizard.** Somebody who writes their mathematics in LaTeX had to type

@@ -26,6 +26,7 @@ def wire(platform: Any) -> None:
     from maya.services.bundle import BundleService
     from maya.services.execution import ExecutionService
     from maya.services.feature_data import FeatureData
+    from maya.services.governance import GovernanceService
     from maya.services.features import FeatureService
     from maya.services.featuresets import FeatureSetService
     from maya.services.models import ModelService
@@ -66,6 +67,7 @@ def wire(platform: Any) -> None:
         ("access_requests", AccessRequestService),
         ("retention", RetentionService),
         ("tracking", TrackingService),
+        ("governance", GovernanceService),
     ):
         platform.register_service(name, cls(platform))
     _jobs(platform)
@@ -85,6 +87,8 @@ def wire(platform: Any) -> None:
     )
     platform.scheduler.every("execution.expiry_notices", 3600, platform.execution.expire_sweep)
     platform.scheduler.every("notices.sweep", 3600, platform.subscriptions.notices)
+    # an overdue periodic review suspends the model's live execution warrants
+    platform.scheduler.every("governance.review_sweep", 3600, platform.governance.sweep)
     platform.scheduler.every(
         "tracking.revoked_members", 3600, platform.tracking.sweep_revoked_members
     )

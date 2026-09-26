@@ -7,7 +7,7 @@ import pytest
 
 from maya.core.errors import ContractMismatch, ValidationFailed
 from maya.formula import composite as comp
-from maya.formula.codegen import compile_reference, to_python
+from maya.formula.codegen import compile_reference, to_python, to_python_kernel
 from maya.formula.conformance import conformance_test, sample_inputs
 from maya.formula.diff import semantic_diff
 from maya.formula.evaluate import evaluate, evaluate_composite, ncdf
@@ -413,3 +413,29 @@ def test_a_model_can_declare_a_constraint_bounds_cannot_express() -> None:
     ]
     reads_data = [{"expr": {"ref": "shockSq"}, "op": "lt", "rhs": 1.0, "why": why}]
     assert "must hold before any data is seen" in constraint_errors(reads_data, declared)[0]
+
+
+# ------------------------------------------------------------- inverse normal
+
+
+@pytest.mark.parametrize(
+    "text", ["q = N^{-1}(p)", r"q = \Phi^{-1}(p)", "q = ncdfinv(p)", "q = probit(p)"]
+)
+def test_the_normal_quantile_is_an_operator_not_a_reciprocal(text):
+    """``N^{-1}(p)`` read as a power is ``1/N(p)``: it parses, computes, and is wrong."""
+    ir = parse_model(text)
+    assert ir["body"] == {"op": "ncdfinv", "args": [{"ref": "p"}]}
+    assert parse_model("q = 1/N(p)")["body"]["op"] == "div"
+
+
+def test_the_normal_quantile_evaluates_generates_and_round_trips():
+    ir = parse_model("q = N^{-1}(p)")
+    p = np.array([0.0, 0.025, 0.5, 0.975, 1.0, 1.5])
+    got = evaluate(ir, {"p": p}, {})["q"]
+    assert got[0] == -np.inf and got[4] == np.inf and np.isnan(got[5])
+    assert got[2] == 0.0 and abs(got[3] - 1.959963984540054) < 1e-12
+    assert abs(got[1] + got[3]) < 1e-12
+    ns: dict = {}
+    exec(to_python_kernel(ir, "k"), ns)  # noqa: S102
+    np.testing.assert_array_equal(ns["k"]({"p": p}, {})["q"], got)
+    assert parse_model(to_latex(ir))["body"] == ir["body"]

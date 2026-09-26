@@ -114,6 +114,8 @@ def node_latex(node: dict[str, Any]) -> str:  # noqa: C901 - one case per IR ope
         return rf"\left|{node_latex(args[0])}\right|"
     if op == "ncdf":
         return rf"N\left({node_latex(args[0])}\right)"
+    if op == "ncdfinv":
+        return rf"N^{{-1}}\left({node_latex(args[0])}\right)"
     if op == "npdf":
         return rf"\phi\left({node_latex(args[0])}\right)"
     if op in ("max", "min"):

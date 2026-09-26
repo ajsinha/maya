@@ -358,3 +358,32 @@ class AccessDecisionIn(BaseModel):
     approve: bool
     note: str = ""
     days: int | None = None
+
+
+class FindingIn(BaseModel):
+    model: str
+    title: str = Field(max_length=256)
+    severity: str
+    detail: str | None = None
+    source: str = "validation"
+    owner: str | None = None
+    due_date: str | None = None
+    version_no: int | None = None
+
+
+class FindingMoveIn(BaseModel):
+    action: str
+    note: str | None = None
+
+
+class GovernanceProfileIn(BaseModel):
+    use: str | None = None
+    exposure: float | None = None
+    tier_override: int | None = None
+    override_reason: str | None = None
+    review_days: int | None = None
+
+
+class ReviewIn(BaseModel):
+    outcome: str
+    note: str

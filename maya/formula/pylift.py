@@ -33,6 +33,9 @@ _CALLS = {
     "cdf": "ncdf",
     "ncdf": "ncdf",
     "norm_cdf": "ncdf",
+    "ppf": "ncdfinv",
+    "norm_ppf": "ncdfinv",
+    "ncdfinv": "ncdfinv",
     "pdf": "npdf",
     "npdf": "npdf",
 }

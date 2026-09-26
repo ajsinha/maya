@@ -23,6 +23,7 @@ from maya.api.routers import (
     catalog,
     custody,
     events,
+    governance,
     identity,
     registry,
     retention,
@@ -52,6 +53,7 @@ ROUTERS = (
     auth.router,
     assistant.router,
     retention.router,
+    governance.router,
 )
 
 

@@ -1,0 +1,101 @@
+"""
+SDK: model governance -- the findings register, materiality tiers and periodic review.
+
+Its own module because ``resources.py`` is at the file-size gate's limit; the methods
+register in the same ``ENDPOINTS`` table, and ``resources`` imports this module, so the
+parity gates see them like any other.
+
+Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from maya.sdk.base import _nn, _Resource, endpoint
+from maya.sdk.transport import seg
+
+
+class Governance(_Resource):
+    """Findings, materiality and periodic review for the models you can read."""
+
+    @endpoint("GET", "/governance")
+    def overview(self) -> Any:
+        return self._c("GET", "/governance")
+
+    @endpoint("GET", "/governance/findings")
+    def findings(self, model: str | None = None, state: str | None = None) -> Any:
+        return self._c("GET", "/governance/findings", params={"model": model, "state": state})
+
+    @endpoint("POST", "/governance/findings")
+    def raise_finding(
+        self,
+        model: str,
+        title: str,
+        severity: str,
+        *,
+        detail: str | None = None,
+        source: str = "validation",
+        owner: str | None = None,
+        due_date: str | None = None,
+        version_no: int | None = None,
+    ) -> Any:
+        body = {
+            "model": model,
+            "title": title,
+            "severity": severity,
+            "detail": detail,
+            "source": source,
+            "owner": owner,
+            "due_date": due_date,
+            "version_no": version_no,
+        }
+        return self._c("POST", "/governance/findings", json_body=body)
+
+    @endpoint("GET", "/governance/findings/{finding_id}")
+    def finding(self, finding_id: str) -> Any:
+        return self._c("GET", f"/governance/findings/{seg(finding_id)}")
+
+    @endpoint("POST", "/governance/findings/{finding_id}/move")
+    def move_finding(self, finding_id: str, action: str, note: str | None = None) -> Any:
+        return self._c(
+            "POST",
+            f"/governance/findings/{seg(finding_id)}/move",
+            json_body={"action": action, "note": note},
+        )
+
+    @endpoint("GET", "/governance/models/{namespace}/{name}")
+    def profile(self, model: str) -> Any:
+        return self._c("GET", f"/governance/models/{_nn(model, 'model')}")
+
+    @endpoint("PUT", "/governance/models/{namespace}/{name}")
+    def set_profile(
+        self,
+        model: str,
+        *,
+        use: str | None = None,
+        exposure: float | None = None,
+        tier_override: int | None = None,
+        override_reason: str | None = None,
+        review_days: int | None = None,
+    ) -> Any:
+        body = {
+            "use": use,
+            "exposure": exposure,
+            "tier_override": tier_override,
+            "override_reason": override_reason,
+            "review_days": review_days,
+        }
+        return self._c("PUT", f"/governance/models/{_nn(model, 'model')}", json_body=body)
+
+    @endpoint("POST", "/governance/models/{namespace}/{name}/reviews")
+    def record_review(self, model: str, outcome: str, note: str) -> Any:
+        return self._c(
+            "POST",
+            f"/governance/models/{_nn(model, 'model')}/reviews",
+            json_body={"outcome": outcome, "note": note},
+        )
+
+    @endpoint("POST", "/governance/sweep")
+    def sweep(self) -> Any:
+        return self._c("POST", "/governance/sweep")

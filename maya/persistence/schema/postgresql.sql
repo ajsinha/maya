@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: e4e49de2de9163c197d4dfa1b17e902f7465441ae48fed5b69bac6d412c97f0e
+-- schema-hash: 086a6b02af0693574cd4379bcf5a1f91d172500f5d1b9aabd8351d9ba11c2b12
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -961,6 +961,73 @@ CREATE TABLE feature_versions (
 CREATE INDEX ix_feature_versions_definition_hash ON feature_versions (definition_hash);
 
 CREATE INDEX ix_feature_versions_feature_id ON feature_versions (feature_id);
+
+CREATE TABLE findings (
+	model_id UUID NOT NULL, 
+	version_no INTEGER, 
+	title VARCHAR(256) NOT NULL, 
+	detail TEXT, 
+	severity VARCHAR(16) NOT NULL, 
+	source VARCHAR(24) NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	raised_by VARCHAR(128) NOT NULL, 
+	owner VARCHAR(128), 
+	due_date DATE, 
+	remediated_by VARCHAR(128), 
+	closed_by VARCHAR(128), 
+	closed_at TIMESTAMP WITH TIME ZONE, 
+	resolution TEXT, 
+	history JSONB NOT NULL, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_findings PRIMARY KEY (id), 
+	CONSTRAINT fk_findings_model_id_models FOREIGN KEY(model_id) REFERENCES models (id)
+);
+
+CREATE INDEX ix_findings_model_state ON findings (model_id, state);
+
+CREATE TABLE model_governance (
+	model_id UUID NOT NULL, 
+	use VARCHAR(32), 
+	exposure FLOAT, 
+	tier_override INTEGER, 
+	override_reason TEXT, 
+	review_days INTEGER, 
+	last_reviewed_at TIMESTAMP WITH TIME ZONE, 
+	last_reviewed_by VARCHAR(128), 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_model_governance PRIMARY KEY (id), 
+	CONSTRAINT uq_model_governance_model_id UNIQUE (model_id), 
+	CONSTRAINT fk_model_governance_model_id_models FOREIGN KEY(model_id) REFERENCES models (id)
+);
+
+CREATE TABLE model_reviews (
+	model_id UUID NOT NULL, 
+	reviewer VARCHAR(128) NOT NULL, 
+	outcome VARCHAR(24) NOT NULL, 
+	note TEXT NOT NULL, 
+	tier INTEGER NOT NULL, 
+	next_due DATE, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_model_reviews PRIMARY KEY (id), 
+	CONSTRAINT fk_model_reviews_model_id_models FOREIGN KEY(model_id) REFERENCES models (id)
+);
+
+CREATE INDEX ix_model_reviews_model ON model_reviews (model_id);
 
 CREATE TABLE model_versions (
 	model_id UUID NOT NULL, 

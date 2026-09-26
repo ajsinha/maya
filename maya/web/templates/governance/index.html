@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% block title %}Findings &amp; reviews{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-2"><h1 class="me-auto">Findings &amp; reviews</h1>
+{% if admin %}<form method="post" action="/governance/sweep" data-confirm="Suspend the live execution warrants of every model whose periodic review is overdue?"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit" title="Runs hourly on its own; this runs it now">Run the review sweep</button></form>{% endif %}</div>
+<p class="small-muted">Every model you can read: how material it is, when it is next due for review, and what is still open against it. A review that falls overdue suspends the model's live execution warrants until an independent reviewer records one.</p>
+<div class="d-flex flex-wrap gap-3 mb-3">
+  <div class="card card-body py-2"><div class="small-muted">Open findings</div><div class="fs-4">{{ overview.open_findings }}</div></div>
+  <div class="card card-body py-2"><div class="small-muted">Critical open</div><div class="fs-4">{{ overview.critical_open }}</div></div>
+  <div class="card card-body py-2"><div class="small-muted">Reviews overdue</div><div class="fs-4">{{ overview.overdue_reviews }}</div></div>
+</div>
+<h2>Models</h2>
+{% call(m) table("gov-models", ["Model", "Tier", "Derived", "Next review", "Open findings", "Critical", "High"], overview.models, empty="No models you can read yet.") %}
+  <td><a href="/governance/models/{{ m.namespace }}/{{ m.name }}">{{ m.namespace }}/{{ m.name }}</a></td>
+  <td data-sort="{{ m.tier }}">Tier {{ m.tier }}{% if not m.declared %} <span class="small-muted" title="use or exposure not declared by the owner">(undeclared)</span>{% endif %}</td>
+  <td>{{ m.derived_tier }}</td>
+  <td data-sort="{{ m.next_review_due or '9999' }}">{{ m.next_review_due or '—' }}{% if m.review_overdue %} {{ pill('overdue') }}{% endif %}</td>
+  <td>{{ m.open_findings }}</td><td>{{ m.by_severity.critical }}</td><td>{{ m.by_severity.high }}</td>
+{% endcall %}
+<div class="d-flex align-items-center"><h2 class="me-auto">Findings register</h2>
+<form method="get" action="/governance" class="d-flex gap-1"><label class="visually-hidden" for="gstate">Show</label><select class="form-select form-select-sm" id="gstate" name="state">
+{% for v, l in [('active', 'Not yet closed'), ('', 'All'), ('closed', 'Closed'), ('accepted', 'Risk accepted')] %}<option value="{{ v }}" {% if state == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-secondary" type="submit">Show</button></form></div>
+{% call(f) table("gov-findings", ["Finding", "Model", "Severity", "State", "Owner", "Due"], findings, empty="Nothing in the register for this view.") %}
+  <td><a href="/governance/findings/{{ f.id }}">{{ f.title }}</a></td><td class="mono">{{ f.model_ref }}{% if f.version_no %}@v{{ f.version_no }}{% endif %}</td>
+  <td>{{ pill(f.severity) }}</td><td>{{ pill(f.state) }}</td><td>{{ f.owner or '—' }}</td>
+  <td data-sort="{{ f.due_date }}">{{ f.due_date }}{% if f.overdue %} {{ pill('overdue') }}{% endif %}</td>
+{% endcall %}
+<form method="post" action="/governance/findings" class="card card-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Raise a finding</h3>
+  <div class="row g-2">
+    <div class="col-md-4"><label class="form-label" for="fmodel">Model</label><select class="form-select" id="fmodel" name="model" required>{% for m in overview.models %}<option value="{{ m.namespace }}/{{ m.name }}">{{ m.namespace }}/{{ m.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-8"><label class="form-label" for="ftitle">What is wrong</label><input class="form-control" id="ftitle" name="title" maxlength="256" required></div>
+    <div class="col-md-3"><label class="form-label" for="fsev">Severity</label><select class="form-select" id="fsev" name="severity">{% for s in severities %}<option {% if s == 'medium' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="fsrc">Found by</label><select class="form-select" id="fsrc" name="source">{% for s in sources %}<option>{{ s }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label" for="fdue">Due (default by severity)</label><input class="form-control" id="fdue" name="due_date" type="date"></div>
+    <div class="col-md-3"><label class="form-label" for="fown">Owner (default: model owner)</label><input class="form-control" id="fown" name="owner"></div>
+    <div class="col-12"><label class="form-label" for="fdet">Detail</label><textarea class="form-control" id="fdet" name="detail" rows="3"></textarea></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit" {% if not overview.models %}disabled{% endif %}>Raise</button></div>
+</form>
+{% endblock %}

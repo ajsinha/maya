@@ -1,0 +1,10 @@
+{# The moves a finding can take from its state, each a small form; a note where one is required. #}
+<div class="d-flex flex-wrap gap-2">
+{% for act, label, needs_note in moves %}
+<form method="post" action="/governance/findings/{{ fid }}/move" class="d-flex gap-1">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="action" value="{{ act }}">
+  {% if needs_note %}<input class="form-control form-control-sm" name="note" placeholder="why (required)" aria-label="Why: {{ label }}" required style="max-width:220px">{% endif %}
+  <button class="btn btn-sm {% if act in ('close', 'remediated') %}btn-primary{% else %}btn-outline-secondary{% endif %}" type="submit">{{ label }}</button>
+</form>
+{% endfor %}
+</div>

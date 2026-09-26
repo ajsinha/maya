@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill, kv %}
+{% block title %}{{ f.title }}{% endblock %}
+{% block content %}
+<h1>{{ f.title }} {{ pill(f.severity) }} {{ pill(f.state) }}{% if f.overdue %} {{ pill('overdue') }}{% endif %}</h1>
+<div class="small-muted mb-2">On <a class="mono" href="/governance/models/{{ f.model_ref.split('/')[-2] }}/{{ f.model_ref.split('/')[-1] }}">{{ f.model_ref }}</a>{% if f.version_no %} version {{ f.version_no }}{% endif %}</div>
+<div class="row g-3"><div class="col-lg-6">
+{{ kv([('Raised by', f.raised_by), ('Found by', f.source), ('Owner', f.owner), ('Due', f.due_date), ('Remediated by', f.remediated_by), ('Closed by', f.closed_by), ('Closed', f.closed_at|dt), ('Resolution', f.resolution)]) }}
+{% set fid = f.id %}{% include "governance/_moves.html" %}
+<p class="small-muted mt-2">Whoever marks a finding remediated does not close it: an independent reviewer confirms the fix, or sends it back. Accepting the risk instead of fixing it needs a written reason, and the model's owner cannot accept it for their own model.</p>
+</div><div class="col-lg-6"><h3>Detail</h3><p style="white-space:pre-wrap">{{ f.detail or '—' }}</p></div></div>
+<h3>History</h3>
+{% call(h) table("finding-history", ["When", "Who", "Action", "From", "To", "Note"], f.history|reverse|list, empty="No history.") %}
+  <td>{{ h.at|dt }}</td><td>{{ h.by }}</td><td>{{ h.action }}</td><td>{{ h.from or '—' }}</td><td>{{ pill(h.to) }}</td><td>{{ h.note or '—' }}</td>
+{% endcall %}
+{% endblock %}

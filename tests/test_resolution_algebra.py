@@ -344,3 +344,50 @@ def test_property_round_trip(rows: list, fmt: str) -> None:
     assert back["x"].tolist() == df["x"].tolist()
     assert back["v"].tolist() == [list(map(float, r[1])) for r in rows]
     assert np.array_equal(back["date"].to_numpy(), df["date"].to_numpy())
+
+
+# ------------------------------------------------------------ knowledge clock
+
+KT = "_knowledge_time"
+
+
+def _clocked(px: list[float], kt: list[str], **extra: list) -> pd.DataFrame:
+    df = _frame(["2026-01-02", "2026-01-05", "2026-01-06"], ["AAA"] * 3, px=px, **extra)
+    df[KT] = pd.to_datetime(kt)
+    return df
+
+
+A_KT = ["2026-01-03", "2026-01-06", "2026-01-07"]
+B_KT = ["2026-01-10", "2026-01-04", "2026-01-12"]
+
+
+@pytest.mark.parametrize(
+    "op, options, operands, metas",
+    [
+        ("project", {"attrs": ["px"]}, "a2", [_meta("px", "vol")]),
+        ("compose", {"prefixes": ["a_", "b_"]}, "ab", [_meta("px"), _meta("px")]),
+        ("coalesce", {}, "ab", [_meta("px"), _meta("px")]),
+        ("aggregate", {"by": ["symbol"], "agg": {"px": "mean"}}, "a", [_meta("px")]),
+        ("resample", {"freq": "W"}, "a", [_meta("px")]),
+        ("case", {"cond": "px > 1.5"}, "ab", [_meta("px"), _meta("px")]),
+    ],
+)
+def test_every_operator_carries_the_knowledge_clock(op, options, operands, metas) -> None:
+    """A derived row is knowable when the latest input it was built from is knowable.
+
+    Dropping the clock would let the leakage certificate read a derived feature as if it had
+    always been known, which is the one thing a bitemporal store is for preventing."""
+    a = _clocked([1.0, 2.0, 3.0], A_KT)
+    frames = {
+        "a": [a],
+        "a2": [_clocked([1.0, 2.0, 3.0], A_KT, vol=[5.0, 6.0, 7.0])],
+        "ab": [a, _clocked([10.0, 20.0, 30.0], B_KT)],
+    }[operands]
+    out = algebra.execute(op, options, frames, metas)
+    assert KT in out.columns, f"{op} dropped the knowledge clock"
+    latest = max(pd.to_datetime(A_KT + (B_KT if operands == "ab" else [])))
+    assert out[KT].max() == latest
+    if operands == "ab" and op != "aggregate":
+        # row by row: the later of the two inputs' clocks
+        expected = [max(x, y) for x, y in zip(pd.to_datetime(A_KT), pd.to_datetime(B_KT))]
+        assert out[KT].tolist() == expected

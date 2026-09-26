@@ -283,21 +283,29 @@ def test_web_import_boundary_fails_when_web_reaches_past_the_sdk():
         path.unlink()
 
 
-def test_schema_drift_gate_fails_after_a_hand_edit():
-    target = ROOT / "maya" / "persistence" / "schema" / "sqlite.sql"
-    original = target.read_bytes()
-    target.write_bytes(original + b"-- hand edit\n")
-    try:
-        result = subprocess.run(
-            [sys.executable, str(CI / "gen_schema.py"), "--check"],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        assert result.returncode == 1
-    finally:
-        target.write_bytes(original)
+def test_schema_drift_gate_fails_after_a_hand_edit(tmp_path, monkeypatch):
+    """Run in process against a hand-edited *copy*: editing the shipped file, even briefly,
+    breaks every other test worker that creates a database from it at that moment."""
+    import importlib.util
+
+    from maya.persistence import schema
+
+    shipped = schema.schema_file
+
+    def edited(name: str):
+        copy = tmp_path / f"{name}.sql"
+        if not copy.exists():
+            extra = "-- hand edit\n" if name == "sqlite" else ""
+            copy.write_text(shipped(name).read_text(encoding="utf-8") + extra, encoding="utf-8")
+        return copy
+
+    monkeypatch.setattr(schema, "schema_file", edited)
+    monkeypatch.syspath_prepend(str(CI))
+    spec = importlib.util.spec_from_file_location("gen_schema", CI / "gen_schema.py")
+    gate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gate)
+    assert gate.main(["--check"]) == 1
+    assert schema.drift() == {"sqlite": True, "postgresql": False}
 
 
 def test_denials_are_audited_even_though_they_roll_back(api):
