@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+**Tiering questionnaires, and loose ends**
+
+- **A firm's own materiality questionnaire.** `config/tiering.yaml`
+  (`governance.tiering_questionnaire`) holds the questions, the answers each allows and what
+  each answer scores, 1 to 3. The owner answers them on the model's governance page (SDK
+  `governance.set_profile(answers=...)`); under `rule: max` the highest answer joins the
+  measured drivers, under `rule: points` the answers are summed and placed by the file's
+  thresholds. An answer the questionnaire does not offer is refused, and a model is shown
+  as *undeclared* until every question is answered. Shipped with four questions — automation,
+  customer impact, reporting, complexity — to be tuned to policy.
+- **Expected shortfall and Cornish–Fisher templates** now compute the normal quantile with
+  `N^{-1}` instead of taking it as a constant.
+- **The template library is a package**, one module per domain, each well under the
+  file-size gate.
+
 **Connectors: MLflow, SageMaker, OpenLineage, Snowflake, Databricks**
 
 - **MLflow import** (`/integrations`, SDK `integrations.import_mlflow` / `fetch_mlflow`). The

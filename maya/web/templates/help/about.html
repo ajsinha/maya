@@ -116,7 +116,7 @@
 {% set Y, P, N = 'Yes', 'Partial', 'No' %}
 {% set cmp_rows = [
   {'cap': 'Inventory, approval workflow, segregation of duties', 'mrm': Y, 'ml': P, 'fs': N, 'maya': Y},
-  {'cap': 'Materiality tiering', 'mrm': Y, 'ml': N, 'fs': N, 'maya': P},
+  {'cap': 'Materiality tiering, measured drivers plus a firm questionnaire', 'mrm': Y, 'ml': N, 'fs': N, 'maya': Y},
   {'cap': 'Findings and remediation register', 'mrm': Y, 'ml': N, 'fs': N, 'maya': Y},
   {'cap': 'Overdue periodic review stops the model running', 'mrm': P, 'ml': N, 'fs': N, 'maya': Y},
   {'cap': 'Regulatory inventory export (SR 11-7, SS1/23 layouts)', 'mrm': Y, 'ml': N, 'fs': N, 'maya': Y},
@@ -174,8 +174,6 @@
       <div class="col-md-6">
         <div class="cap-group">Where MAYA loses</div>
         <ul class="cap-list">
-          <li>Its materiality tier is derived from a handful of drivers, not the configurable
-            questionnaires a model risk function tunes to its own policy.</li>
           <li>It neither trains nor serves models, by design, so it sits beside an ML platform rather than
             replacing one.</li>
           <li>It is one author's work, open source, and has not been deployed at a supervised institution; the

@@ -88,8 +88,10 @@ class Governance(_Resource):
         tier_override: int | None = None,
         override_reason: str | None = None,
         review_days: int | None = None,
+        answers: dict[str, str] | None = None,
     ) -> Any:
         body = {
+            "answers": answers,
             "use": use,
             "exposure": exposure,
             "tier_override": tier_override,

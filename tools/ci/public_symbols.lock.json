@@ -244,7 +244,7 @@
      "profile": "(self, model)",
      "raise_finding": "(self, model, title, severity, *, detail=None, source='validation', owner=None, due_date=None, version_no=None)",
      "record_review": "(self, model, outcome, note)",
-     "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None)",
+     "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None, answers=None)",
      "sweep": "(self)"
     }
    },
@@ -638,7 +638,7 @@
      "profile": "(self, model)",
      "raise_finding": "(self, model, title, severity, *, detail=None, source='validation', owner=None, due_date=None, version_no=None)",
      "record_review": "(self, model, outcome, note)",
-     "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None)",
+     "set_profile": "(self, model, *, use=None, exposure=None, tier_override=None, override_reason=None, review_days=None, answers=None)",
      "sweep": "(self)"
     }
    },

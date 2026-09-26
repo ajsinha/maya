@@ -55,6 +55,7 @@ class ModelGovernance(Tracked, Base):
     tier_override: Mapped[int | None] = mapped_column(Integer)
     override_reason: Mapped[str | None] = mapped_column(Text)
     review_days: Mapped[int | None] = mapped_column(Integer)
+    answers: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
     last_reviewed_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
     last_reviewed_by: Mapped[str | None] = mapped_column(String(128))
 

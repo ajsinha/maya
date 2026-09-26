@@ -17243,6 +17243,19 @@
   },
   "GovernanceProfileIn": {
    "properties": {
+    "answers": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "type": "string"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
     "exposure": {
      "anyOf": [
       {

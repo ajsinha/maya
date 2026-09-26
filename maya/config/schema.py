@@ -698,6 +698,12 @@ SETTINGS: tuple[Setting, ...] = (
         "5",
         minimum=0.1,
     ),
+    _s(
+        "governance.tiering_questionnaire",
+        "path",
+        "The materiality questionnaire a model's owner answers; blank for measured drivers only.",
+        "config/tiering.yaml",
+    ),
     # -- connectors -----------------------------------------------------------------
     _s(
         "integrations.mlflow.tracking_uri",
