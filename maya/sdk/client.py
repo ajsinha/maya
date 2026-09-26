@@ -34,6 +34,7 @@ from maya.sdk.resources import (
     Assistant,
     Auth,
     Catalog,
+    Challenges,
     Custody,
     Events,
     ExecutionWarrants,
@@ -77,6 +78,7 @@ class _Namespaces:
         self.assistant = Assistant(transport)
         self.governance = Governance(transport)
         self.monitoring = Monitoring(transport)
+        self.challenges = Challenges(transport)
         self.cache = PinCache()
 
     @property

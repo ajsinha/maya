@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**Champion and challenger**
+
+- `/governance/challenges` (SDK `challenges`, `/api/v1/challenges`). Two training warrants
+  drawn on the same escrowed holdout — equal holdout hashes, so the same rows in the same
+  order — are both scored, each attempt counted on its warrant, and compared row by row:
+  the metric difference (RMSE or MAE), a paired bootstrap 95% interval with a fixed seed,
+  and the share of rows the challenger wins. The verdict is *challenger better* only when
+  the whole interval is below zero.
+- Warrants on different holdouts, or scoring different targets, are refused rather than
+  compared. The decision — promote or retain, with a rationale — is recorded by someone
+  who does not own the challenger, and is evidence for a change rather than the change:
+  the champion's live warrants are untouched.
+
 **The model inventory, exported for SR 11-7 and SS1/23**
 
 - `/governance` → *Export the model inventory* (SDK `governance.inventory`,

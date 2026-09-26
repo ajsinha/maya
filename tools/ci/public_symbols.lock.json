@@ -131,6 +131,15 @@
      "unsubscribe": "(self, object_ref)"
     }
    },
+   "challenges": {
+    "class": "Challenges",
+    "methods": {
+     "create": "(self, champion, challenger, *, metric='rmse', champion_parameter_set_id=None, challenger_parameter_set_id=None)",
+     "decide": "(self, challenge_id, decision, rationale)",
+     "get": "(self, challenge_id)",
+     "list": "(self)"
+    }
+   },
    "custody": {
     "class": "Custody",
     "methods": {
@@ -497,6 +506,15 @@
      "subscribe": "(self, object_ref)",
      "subscriptions": "(self)",
      "unsubscribe": "(self, object_ref)"
+    }
+   },
+   "challenges": {
+    "class": "Challenges",
+    "methods": {
+     "create": "(self, champion, challenger, *, metric='rmse', champion_parameter_set_id=None, challenger_parameter_set_id=None)",
+     "decide": "(self, challenge_id, decision, rationale)",
+     "get": "(self, challenge_id)",
+     "list": "(self)"
     }
    },
    "custody": {

@@ -121,3 +121,42 @@ class Monitoring(_Resource):
     @endpoint("GET", "/monitoring/warrants/{ew_id}")
     def warrant(self, ew_id: str, days: int = 90) -> Any:
         return self._c("GET", f"/monitoring/warrants/{seg(ew_id)}", params={"days": days})
+
+
+class Challenges(_Resource):
+    """Champion and challenger compared on the same escrowed holdout, and the decision."""
+
+    @endpoint("GET", "/challenges")
+    def list(self) -> Any:
+        return self._c("GET", "/challenges")
+
+    @endpoint("POST", "/challenges")
+    def create(
+        self,
+        champion: str,
+        challenger: str,
+        *,
+        metric: str = "rmse",
+        champion_parameter_set_id: str | None = None,
+        challenger_parameter_set_id: str | None = None,
+    ) -> Any:
+        body = {
+            "champion": champion,
+            "challenger": challenger,
+            "metric": metric,
+            "champion_parameter_set_id": champion_parameter_set_id,
+            "challenger_parameter_set_id": challenger_parameter_set_id,
+        }
+        return self._c("POST", "/challenges", json_body=body)
+
+    @endpoint("GET", "/challenges/{challenge_id}")
+    def get(self, challenge_id: str) -> Any:
+        return self._c("GET", f"/challenges/{seg(challenge_id)}")
+
+    @endpoint("POST", "/challenges/{challenge_id}/decision")
+    def decide(self, challenge_id: str, decision: str, rationale: str) -> Any:
+        return self._c(
+            "POST",
+            f"/challenges/{seg(challenge_id)}/decision",
+            json_body={"decision": decision, "rationale": rationale},
+        )

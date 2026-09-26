@@ -111,3 +111,27 @@ def monitoring_warrant(
 ) -> Response:
     """One warrant's reported executions read as series: volume, null rates, ranges, PSI."""
     return ok(plat.monitoring.warrant(me, ew_id, days))
+
+
+@router.get("/challenges", tags=["governance"])
+def challenges(me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.challenges.list(me))
+
+
+@router.post("/challenges", status_code=201, tags=["governance"])
+def create_challenge(body: s.ChallengeIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Score a champion and a challenger on their shared escrowed holdout and compare them."""
+    data = body.model_dump()
+    return ok(plat.challenges.create(me, data.pop("champion"), data.pop("challenger"), **data), 201)
+
+
+@router.get("/challenges/{challenge_id}", tags=["governance"])
+def challenge(challenge_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.challenges.get(me, challenge_id))
+
+
+@router.post("/challenges/{challenge_id}/decision", tags=["governance"])
+def decide_challenge(
+    challenge_id: str, body: s.DecisionIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    return ok(plat.challenges.decide(me, challenge_id, body.decision, body.rationale))

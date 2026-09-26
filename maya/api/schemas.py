@@ -387,3 +387,16 @@ class GovernanceProfileIn(BaseModel):
 class ReviewIn(BaseModel):
     outcome: str
     note: str
+
+
+class ChallengeIn(BaseModel):
+    champion: str
+    challenger: str
+    metric: str = "rmse"
+    champion_parameter_set_id: str | None = None
+    challenger_parameter_set_id: str | None = None
+
+
+class DecisionIn(BaseModel):
+    decision: str
+    rationale: str

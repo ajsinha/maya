@@ -285,4 +285,49 @@ async def monitoring_warrant(request: Request, ew_id: str) -> Any:
     )
 
 
+@router.get("/governance/challenges")
+@page
+async def challenges_page(request: Request) -> Any:
+    async with client(request) as sdk:
+        rows = await sdk.challenges.list()
+        warrants = [w for w in await sdk.training.list() if w.get("holdout_hash")]
+    return await render(request, "governance/challenges.html", {"rows": rows, "warrants": warrants})
+
+
+@router.post("/governance/challenges")
+@action
+async def challenge_create(request: Request) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        row = await sdk.challenges.create(
+            data.get("champion", ""),
+            data.get("challenger", ""),
+            metric=data.get("metric") or "rmse",
+            champion_parameter_set_id=data.get("champion_parameter_set_id") or None,
+            challenger_parameter_set_id=data.get("challenger_parameter_set_id") or None,
+        )
+    flash(request, f"Scored: {row['result']['verdict'].replace('_', ' ')}.", "success")
+    return RedirectResponse(f"/governance/challenges/{row['id']}", status_code=303)
+
+
+@router.get("/governance/challenges/{challenge_id}")
+@page
+async def challenge_page(request: Request, challenge_id: str) -> Any:
+    async with client(request) as sdk:
+        row = await sdk.challenges.get(challenge_id)
+    return await render(request, "governance/challenge.html", {"c": row})
+
+
+@router.post("/governance/challenges/{challenge_id}/decision")
+@action
+async def challenge_decide(request: Request, challenge_id: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        row = await sdk.challenges.decide(
+            challenge_id, data.get("decision", ""), data.get("rationale", "")
+        )
+    flash(request, f"Decision recorded: {row['state']}.", "success")
+    return RedirectResponse(f"/governance/challenges/{challenge_id}", status_code=303)
+
+
 __all__ = ["router"]
