@@ -78,6 +78,65 @@ rate a year later.
 | `validate.py` | Warrants → `bureau_validation`: the blind score marked *sandbox*, and the **Fairness & drivers** tab |
 | `monitor.py` | Models → Monitoring: the warrant graded *breach*; open it for the PSI chart with the 0.10 and 0.25 lines and the breach marked on the time axis |
 
+## The data
+
+`make_data.py` writes three files from a seed, plus what the vendor shipped:
+
+| File | Rows | What it holds |
+|---|---|---|
+| `applications.csv` | 1,800 | 2025, 150 applications a month: `utilisation`, `delinquencies`, `age_of_file`, `inquiries`, `region`; known the evening the bureau file is pulled |
+| `outcomes.csv` | 1,800 | `default_12m` per application, drawn from the vendor's own scoring function with noise; known a year after the application |
+| `live_2026.csv` | 1,200 | January–March 2026, inputs only, 400 a month, with utilisation drifting up |
+| `vendor/MLmodel` | — | The MLflow model file: signature with four inputs and a `score` output, run id, flavours |
+| `vendor/bureau_score.py` | — | The vendor's scoring code, with `fit` and `predict` |
+
+## Who does what
+
+| Person | Role | In this study |
+|---|---|---|
+| `dana` | feature designer | Defines and loads the two feeds |
+| `mick` | feature manager | Approves them and pins the year-end panel |
+| `mona` | model designer | Imports the vendor's model, uploads its code, writes the document; owns the model |
+| `devi` | model developer | Draws the validation warrant, scores it, computes the fairness evidence; reports live runs |
+| `mgr` | model manager | Approves the model, the warrant and the execution licence |
+| `lara` | second model manager | Approves the execution licence as the second pair of eyes |
+
+## Running it
+
+Everything runs from the project folder with the project's own interpreter, against the
+project's MAYA (the estate `config/application.yaml` configures, shared by every study).
+Nothing needs to be prepared first: the first script creates the users and the study's
+namespace.
+
+```bash
+.venv/bin/python case_studies/19-vendor-bureau-score/run.py            # the whole study
+.venv/bin/python case_studies/19-vendor-bureau-score/run.py --quiet    # results only, no narration
+```
+
+To demonstrate it, run the scripts one at a time in the order of the table above, and open
+the web UI between them (`.venv/bin/python run_maya_web.py`, then <http://127.0.0.1:8600>,
+signing in as any of the people below with the password `Maya-testing-pass-1`). A full pass
+refuses to run twice in the same estate, because MAYA does not delete governed objects; pass
+`--reset` to rebuild the whole demonstration estate from nothing, or run a study into a
+throwaway estate with `--storage.root=/tmp/demo --lake.root=/tmp/demo/lake`.
+
+## What MAYA refused, on purpose
+
+- **The service scoring on a drifted population.** After March's report breaks the stability
+  covenant, the next request is refused with the reason and the contact
+  (`credit-risk-models@example.com`).
+- **A model without a signature** would not import at all: the input contract has to come from
+  what the vendor declared, not from a guess.
+
+## What this study does not show
+
+The vendor's code is short and readable here so that the study is self-contained; a real
+bureau score would ship as a binary artefact or a hosted endpoint. The first runs in the
+sandbox exactly as this does; the second cannot be scored blind at all, because MAYA would have
+to send escrowed rows to a third party, and MAYA says so rather than doing it. The MLflow import
+reads the file the vendor shipped; fetching from a live tracking server is supported and tested
+against a recorded exchange, not against a live server.
+
 Everything is synthetic (`make_data.py`); no applicant is real, and *BureauScore* is not a
 real product.
 

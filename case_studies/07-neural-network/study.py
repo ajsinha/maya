@@ -298,12 +298,10 @@ SECTIONS = {
         "against the checksum of the exact rows MAYA issued. A logistic regression on the "
         "same six drivers, fitted on the same rows, is reported beside it as the challenger; "
         "accepting an unreadable model is only defensible while that gap is real, and the "
-        "gap is the justification of record. What is \\emph{not} available is MAYA's blind "
-        "scoring of the escrowed holdout: MAYA evaluates a model's formula and this model "
-        "has none, so it refuses, and the holdout cannot be scored by the desk either "
-        "because the desk never sees those rows. Every figure here is therefore asserted by "
-        "a named person against a named dataset, which is a weaker claim than case study "
-        "1's blind score, and is recorded as such."
+        "gap is the justification of record. The escrowed holdout is scored blind by MAYA: "
+        "the approved artifact is run in MAYA's sandbox on the holdout's inputs only, never "
+        "the target, and MAYA computes the metric on rows the desk never sees -- the same "
+        "claim a formula's blind score makes."
     ),
     "Known Weaknesses": (
         "Nobody can read the model. There is no coefficient to sanity-check, no monotonicity "

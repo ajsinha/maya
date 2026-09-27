@@ -4,7 +4,8 @@
 fitted, **declared black box** · **What it exercises:** what governance still means when
 the mathematics is unreadable — an exact input contract with no formula behind it, weights
 as an approved parameter set, determinism from a declared seed, the six-rung ladder on the
-code, and MAYA refusing to score the model at all.
+code, and — since MAYA 1.0.0 — a blind score on the escrowed holdout, computed by running the
+validated artifact in MAYA's sandbox rather than by reading a formula it does not have.
 
 ## The scripts, and what each one does
 
@@ -19,7 +20,7 @@ open the web UI and show what the last one actually created. That is the demonst
 | `setup_featureset.py` | Composes six drivers and the target into `fraud_panel` on `(date, card)` with as-of alignment, approves it, and pins it point-in-time. | A month-end profile carried as-of rather than resampled; an immutable, content-hashed pin — the only way to ask "which rows produced this score" when there is no coefficient to read. |
 | `setup_model.py` | Registers the network as a **declared black box**, fills the nine specification sections, uploads two code artifacts and runs the ladder on both. | **Three refusals**: an IR with no mathematics at all, a black box that will not say what it estimates, and the artifact that loads its weights from a file. Then the ladder, the artifact hash, and **the differential test skipped by name**. |
 | `get_training_warrant.py` | Draws a warrant with a target the panel lacks, then naively, then with the forward-looking target explained. | The input contract checked before anything is fitted; **the leakage certificate refusing all 13,500 rows**; the seed and the stopping rule written down before anybody fits. |
-| `fit_parameters.py` | Fits the network three times, fits the challengers, carries 209 numbers through an `.npz`, uploads twice, and asks MAYA to score the holdout. | **Determinism**, exactly; both AUCs; **a pickle of the weights refused**; parameters that cannot prove their data refused; and **MAYA refusing to blind-score a declared black box**. |
+| `fit_parameters.py` | Fits the network three times, fits the challengers, carries 209 numbers through an `.npz`, uploads twice, and asks MAYA to score the holdout. | **Determinism**, exactly; both AUCs; **a pickle of the weights refused**; parameters that cannot prove their data refused; and **a declared black box scored blind in the sandbox** on 2,000 rows the desk never saw. |
 | `get_execution_warrant.py` | Draws an execution warrant with three covenants, gets it approved by a *second* model manager, takes it live, then reports a batch whose amount ratios have all moved. | Covenants as the *primary* control rather than one of several; a PSI baseline fixed from the fitting data; **the warrant suspending itself on a PSI of 1.082**. |
 | `show_estate.py` | Creates a reproducibility bundle, verifies it, and reads back the catalog, the audit chain, the custody and the lineage. | That everything above is discoverable afterwards — and that **the bundle marks re-execution "not run" and says why** instead of leaving a tick to be misread. |
 | `network.py` | The desk's implementation: `fit` and `predict` to MAYA's model interface. Imported by the fit, and uploaded verbatim as the artifact. | One implementation, hashed once. The artifact MAYA validated is byte-for-byte the file the desk trained with. |
@@ -75,8 +76,8 @@ unverifiable. Nothing quietly degrades.
 | The mathematics reviewable | The formula *is* the model | **Gone.** Replaced by a declaration: architecture, loss, optimiser, learning rate, batch size, initialisation, epochs, stopping rule, seed (§5) |
 | The code agrees with the mathematics (differential test) | Compared on 2,000 sampled inputs | **Skipped by name** — there is no closed form to compare against (§6) |
 | The code runs, deterministically, in a sandbox | Optional extra | **The whole of what the platform can check about the code** (§6) |
-| Blind scoring of an escrowed holdout | RMSE on 5,295 rows the developer never saw | **Refused.** MAYA evaluates formulas; this model has none (§10) |
-| The reported metrics | Computed by MAYA | **Asserted by a named person** against a checksum (§10) |
+| Blind scoring of an escrowed holdout | RMSE on 5,295 rows the developer never saw | **Unchanged, by a different route**: the validated artifact is run in the sandbox on the holdout's inputs (§10) |
+| The reported metrics | Computed by MAYA | **Computed by MAYA** on the holdout; the desk's AUCs on the rows it had sit beside them (§10) |
 | A reproducibility bundle that re-executes | Output hash re-derived by the verifier | **Marked "not run", with the reason** (§12) |
 | Covenants on inputs and outputs | One control among several | **The primary control, because it is the only one left** (§11) |
 
@@ -409,47 +410,44 @@ unavailable; the declaration of what parameters it takes is not, and that declar
 only thing left to check the weights against. §8.4 says parameters are validated on upload,
 and for a black box that is now true.
 
-## 10. The refusal the study is built around
+## 10. Scored blind, in the sandbox
 
 The holdout is escrowed and hashed exactly as in case study 1: 2,000 rows, hash
 `56cc091e0b59b8f8…`. Then:
 
 ```
-refused — blind-scoring a declared black box
-  ValidationFailed: A declared black box cannot be scored by MAYA
-holdout attempts on the warrant:   0
+scored in:                         sandbox, tier strong, artifact 50487efb1899…
+RMSE (= root Brier score):         0.1273 on 2,000 rows
+attempt:                           1 (every attempt is counted on the warrant)
 ```
 
-This is ADR-007 doing exactly what it says. MAYA concedes one piece of model runtime —
-blind scoring — and implements it by evaluating the model's formula IR with its own
-evaluator. This model has no formula IR to evaluate, so the concession does not reach it.
+MAYA cannot read this model — there is no formula to evaluate — but it can **run** the artifact
+it validated. `score_holdout` hands the approved code and the approved weights the holdout's
+input columns, inside the same sandbox the ladder used (no network, no view of storage, capped
+resources, a separate uid), and never the target; MAYA then computes the metric itself. The
+score records which artifact produced it and under which sandbox tier.
 
-**The escrow is intact and useless.** MAYA will not score those 2,000 rows, and the desk
-cannot either, because it was never given them. So the numbers on the parameter set are the
-desk's own AUCs on the training and validation partitions, uploaded with
-`computed_by: "the desk, outside MAYA, on the rows this checksum names"`.
-
-How much weaker is that than case study 1? Precisely this much:
+This section used to say the opposite. When the study was first written MAYA refused: blind
+scoring evaluated formula IR, a black box has none, and the escrowed rows could be scored by
+nobody — so every figure on the parameter set was the desk's own assertion against a checksum,
+and the study spent a table saying exactly how much weaker that was than case study 1. It also
+recommended the fix (§13): run the approved artifact against the escrowed rows in the sandbox
+that already ran it on every upload. MAYA 1.0.0 did exactly that, and the comparison now reads:
 
 | | Case study 1 | Here |
 | --- | --- | --- |
-| Who computed the number | MAYA | devi |
-| On which rows | 5,295 rows the developer never saw | 11,500 rows the developer had in full |
-| What stops a flattering number | The rows were escrowed; every attempt is counted on the warrant | Nothing, except that the rows are named by checksum and the person is named |
-| What a reviewer can re-derive | The metric, by asking MAYA to score again | Nothing inside MAYA. They can re-run the artifact themselves from the bundle |
+| Who computed the number | MAYA | MAYA |
+| On which rows | 5,295 rows the developer never saw | 2,000 rows the developer never saw |
+| How | Evaluating the formula | Running the validated artifact in the sandbox |
+| What stops a flattering number | The rows were escrowed; every attempt is counted | The same |
+| What a reviewer can re-derive | The metric, by asking MAYA to score again | The same; the score names the artifact's hash |
 
-The claim has moved from *demonstrated on unseen data* to *asserted by a named person
-against a checksummed dataset*. That is a real control — it is falsifiable, because anyone
-with the bundle and the weights can re-run it and get a different answer if the assertion
-was wrong — but it is an attestation, not a measurement, and the model document's
-*Validation Evidence* section records it as one.
-
-What would make it stronger is narrow and already mostly built: MAYA's sandbox **already
-runs this artifact**, twice, on every upload, and the bundle already carries the code, the
-weights and the data. Letting blind scoring run an *approved* artifact against the escrowed
-partition in that same sandbox — instead of only evaluating formula IR — would restore the
-whole of case study 1's claim for a black box, at the cost of one narrowly-scoped execution
-path. §13 states it as a recommendation, not as something this study did.
+The desk's own AUCs, computed on the training and validation rows it did have, still sit on
+the parameter set beside the challenger's, because the gap between the network and the
+readable logistic regression remains the justification for accepting a model nobody can read.
+What the blind score adds is that the network's performance is now *measured on unseen data by
+the platform*, not asserted by the person who built it. The same path gives the network
+fairness evidence and permutation importance (the warrant's *Fairness & drivers* tab).
 
 ## 11. Going live, and coming back down
 
@@ -552,16 +550,12 @@ is a reasonable design — the server never parses a pickle — but §9.3's "an 
 accepts JSON, NPZ, Pickle (scanned), or ONNX weights with a declared schema" reads as an API
 capability, and there is no "declared schema" for a black box at all (finding 1).
 
-**A recommendation, not a finding.** ADR-007 concedes exactly one piece of model runtime and
-implements it by evaluating formula IR, which is why §10 happens. The sandbox that the
-ladder uses already runs *this* artifact, twice, on every upload, in a separate interpreter
-under tier `strong`; the escrowed partition is already hashed on the warrant; the approved
-parameter set is already named. Letting `score_holdout` run an **approved** artifact against
-the escrowed rows in that same sandbox — no new execution surface, only an existing one
-pointed at rows the developer may not see — would give a declared black box the same blind
-metric a formula gets, and turn §10's attestation back into a measurement. The same
-extension would let the bundle's `reexecutable` be true for a black box with an artifact and
-a parameter set, since the bundle's verifier already runs code on the verifier's own machine.
+**A recommendation this study made, now built.** It recommended that `score_holdout` run an
+**approved** artifact against the escrowed rows in the sandbox the ladder already uses — no new
+execution surface, only an existing one pointed at rows the developer may not see — to give a
+declared black box the same blind metric a formula gets. MAYA 1.0.0 implements exactly that
+(§10). The companion suggestion is still open: the bundle's `reexecutable` stays false for a
+black box, even with an artifact and a parameter set, and says so (§12).
 
 ## 14. What to point at when demonstrating this
 
@@ -573,8 +567,8 @@ a parameter set, since the bundle's verifier already runs code on the verifier's
    gone, and said out loud.
 4. **The determinism block in §8** — identical to the last bit with the seed held, 3.690
    apart without it, and the same AUC either way.
-5. **"A declared black box cannot be scored by MAYA" in §10** — then the table that says
-   exactly how much weaker the resulting claim is.
+5. **The blind score in §10** — `scored_in: sandbox`, tier `strong`, the artifact's hash — and
+   the history: this study recommended it, and MAYA 1.0.0 built it.
 6. **`not run  re-execution` in §12** — the platform declining to imply a check it did not
    perform.
 

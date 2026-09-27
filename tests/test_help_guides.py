@@ -47,3 +47,27 @@ def test_guides_are_served_to_anyone(env):  # noqa: F811 - the imported fixture
     assert anon.get("/help/guides/nope", follow_redirects=False).status_code == 303
     page = anon.get("/help/features").text
     assert "Full reference:" in page and "/help/guides/features-reference" in page
+
+
+def test_every_case_study_has_a_card_and_a_page_rendered_from_its_readme(env):  # noqa: F811
+    from pathlib import Path
+
+    from starlette.testclient import TestClient
+
+    from maya.web.case_studies import catalog
+
+    _, app, _, _ = env
+    anon = TestClient(app)
+    studies = catalog()
+    runnable = sorted(p.parent.name for p in Path("case_studies").glob("[0-9]*/run.py"))
+    assert sorted(s["slug"] for s in studies) == runnable, "every runnable study has a card"
+    listing = anon.get("/help/case-studies").text
+    assert "Case studies" in anon.get("/help").text
+    for s in studies:
+        assert f'href="/help/case-studies/{s["slug"]}"' in listing
+        page = anon.get(f"/help/case-studies/{s['slug']}")
+        assert page.status_code == 200 and s["title"].split(":")[0] in page.text, s["slug"]
+        assert "MAYAMATH" not in page.text and "$$" not in page.text
+    basel = anon.get("/help/case-studies/09-basel-irb-capital").text
+    assert 'class="maya-math display"' in basel and "maths.js" in basel
+    assert anon.get("/help/case-studies/nope", follow_redirects=False).status_code == 303
