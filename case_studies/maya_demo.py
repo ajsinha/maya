@@ -222,6 +222,29 @@ def seed(maya: Any, users: dict[str, list[str]]) -> None:
         pass  # this study has been run before in this estate
 
 
+def conformance_of(report: dict[str, Any]) -> dict[str, Any]:
+    """The comparison an artifact's ladder recorded, or a plain explanation of why there is none.
+
+    The comparison runs only when every rung passes, so a failed rung leaves nothing to read. It
+    usually means the sandbox's child interpreter could not import something the artifact needs:
+    the child runs isolated (``python -I``), from the same interpreter as the study.
+    """
+    if "conformance" in report:
+        return dict(report["conformance"])
+    failed = [
+        f"  {r['rung']}. {r['name']}: {r['detail']}"
+        for r in report.get("rungs", [])
+        if not r.get("passed", True)
+    ]
+    raise SystemExit(
+        "The artifact's ladder did not pass, so there is no comparison to show:\n"
+        + ("\n".join(failed) or "  (no rung reported)")
+        + "\nIf a rung says 'No module named ...', the sandbox's child interpreter cannot see a "
+        "library the study's interpreter has. Run the study with the project's .venv, where "
+        "MAYA's requirements are installed."
+    )
+
+
 def browse_hint(maya: Any) -> None:
     """How to open the web UI on what the studies have built so far."""
     print(

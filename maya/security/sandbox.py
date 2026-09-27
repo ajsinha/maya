@@ -107,6 +107,29 @@ def capabilities() -> dict[str, bool]:
     return _CACHE["caps"]
 
 
+def _library_paths() -> list[str]:
+    """The site-packages directories this interpreter imports its libraries from.
+
+    The child runs with ``-I``, which leaves out the user site-packages -- where
+    ``pip install --user`` puts numpy, and where pip itself installs on a Windows Python it
+    cannot write to. Without these the child could not import a library the parent has, and a
+    valid artifact would fail its smoke run with ``No module named 'numpy'``. Only package
+    directories are passed, never the working directory or the project, and the import
+    allowlist is checked before any code runs, so this widens where an allowed library is
+    found, not what may be imported.
+    """
+    seen: list[str] = []
+    for entry in sys.path:
+        name = os.path.basename(entry.rstrip("/\\")).lower() if entry else ""
+        if (
+            name in ("site-packages", "dist-packages")
+            and os.path.isdir(entry)
+            and entry not in seen
+        ):
+            seen.append(entry)
+    return seen
+
+
 def _binds() -> list[str]:
     """bubblewrap arguments exposing only what Python needs, read-only — never the home
     directory or MAYA's data. Top-level symlinks (merged /usr: /bin -> usr/bin) are
@@ -119,7 +142,8 @@ def _binds() -> list[str]:
         elif os.path.isdir(path):
             args += ["--ro-bind", path, path]
             bound.append(path)
-    for path in (sys.base_prefix, sys.prefix):
+    # the prefixes, then any library directory outside them (a user site-packages), read-only
+    for path in (sys.base_prefix, sys.prefix, *_library_paths()):
         real = os.path.realpath(path)
         if os.path.isdir(real) and not any(real == b or real.startswith(b + "/") for b in bound):
             args += ["--ro-bind", real, real]
@@ -389,6 +413,7 @@ def run_sandboxed(
             "entry": entry,
             "payload": payload,
             "preload": list(preload),
+            "paths": _library_paths(),
             "limits": {"cpu_seconds": cpu_seconds, "memory_mb": memory_mb},
             "seccomp": platform.system() == "Linux",
         }

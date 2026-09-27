@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**The sandbox finds the libraries its parent has (Windows, `pip install --user`)**
+
+- The artifact sandbox runs a separate interpreter with `-I`, which leaves out the user
+  site-packages. When numpy was installed there, as `pip install --user` does and as pip does
+  on a Windows Python it cannot write to, a valid artifact failed its smoke run with
+  `No module named 'numpy'`. The child is now given the parent's site-packages directories
+  (and bubblewrap binds them read-only). Where a library is found widens; what may be
+  imported does not, since the allowlist is checked first.
+- Case studies 2, 5 and 11 say plainly why there is no comparison when an artifact's ladder
+  fails, instead of stopping with `KeyError: 'conformance'`.
+
 **Landing page: three figures that make the headline's argument**
 
 - The hero's drifting network is replaced by the question turning into the chain MAYA keeps:

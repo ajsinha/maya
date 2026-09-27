@@ -139,3 +139,25 @@ def test_an_interpreter_reached_through_unbound_links_still_starts(tmp_path, mon
     args = sandbox._binds()
     pairs = list(zip(args, args[1:], args[2:]))
     assert ("--symlink", real, str(hidden / "python3.13")) in pairs
+
+
+def test_the_child_finds_a_library_from_a_site_packages_the_isolated_mode_leaves_out(
+    tmp_path, monkeypatch
+):
+    """``python -I`` drops the user site-packages, where ``pip install --user`` -- and pip on a
+    Windows Python it cannot write to -- puts numpy. The child is told where the parent's
+    libraries are, so a library the parent can import, the child can import too."""
+    import sys
+
+    from maya.security.sandbox import run_sandboxed
+
+    site = tmp_path / "site-packages"
+    site.mkdir()
+    (site / "maya_user_site_probe.py").write_text("VALUE = 42\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "path", [*sys.path, str(site)])
+    source = (
+        "import maya_user_site_probe\n\ndef f(X, params):\n    return maya_user_site_probe.VALUE\n"
+    )
+    out = run_sandboxed(source, "f", {"X": {}})
+    assert out["ok"], out
+    assert out["result"] == 42
