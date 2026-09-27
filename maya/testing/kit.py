@@ -158,6 +158,7 @@ class Maya:
         self._app: Any = None
         self._clients: dict[str, Client] = {}
         self.closed = False
+        self._opened = dt.datetime.now(dt.timezone.utc)
 
     # -- lifecycle --------------------------------------------------------------------
     @classmethod
@@ -273,9 +274,33 @@ class Maya:
             )
             return token
 
-    def drain(self) -> None:
-        """Run every queued job to completion, inline (pins, renders, scans)."""
-        self.platform.jobs.drain()
+    def drain(self, wait_seconds: float = 600) -> None:
+        """Run every queued job to completion, inline (pins, renders, scans).
+
+        Another process can share this database -- a web server started on the same MAYA
+        home, whose job workers claim a queued job first. Draining inline then finds nothing
+        to run and returns while that job is still running elsewhere, and the caller reads a
+        pin that does not exist yet. So this also waits for jobs claimed since this kit
+        opened to finish, whoever runs them; one left running by a process that died
+        earlier is not waited for."""
+        import time
+
+        deadline = time.monotonic() + wait_seconds
+        while True:
+            self.platform.jobs.drain()
+            with self.platform.uow() as uow:
+                jobs = uow.repo("jobs")
+                busy = jobs.list(state="queued") + [
+                    j
+                    for j in jobs.list(state="running")
+                    if j.get("started_at") is not None and _aware(j["started_at"]) >= self._opened
+                ]
+            if not busy:
+                return
+            if time.monotonic() > deadline:
+                names = ", ".join(f"{j['job_type']} ({j['state']})" for j in busy[:5])
+                raise MayaError(f"Jobs still unfinished after {wait_seconds:.0f}s: {names}")
+            time.sleep(0.25)
 
     def ref(self, name: str) -> str:
         """``ns/name`` in this kit's namespace, unless ``name`` already names one."""
@@ -419,3 +444,8 @@ class Maya:
         return dict(
             self.client(developer).training.create(ns, short, model, featureset, spec=spec or {})
         )
+
+
+def _aware(value: dt.datetime) -> dt.datetime:
+    """A stored timestamp as UTC-aware; SQLite hands some back naive."""
+    return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)

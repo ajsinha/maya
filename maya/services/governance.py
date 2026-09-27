@@ -271,7 +271,12 @@ class GovernanceService:
 
         import yaml
 
-        file = Path(path)
+        from maya.config import project_root
+
+        # A path from the configuration file is already anchored at the project root; the
+        # schema's own default is not, and read against the working directory it is missing
+        # whenever a script runs from its own folder (an IDE's default) rather than the root.
+        file = Path(path) if Path(path).is_absolute() else project_root() / path
         try:
             stamp = file.stat().st_mtime
         except OSError as exc:
