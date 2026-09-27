@@ -991,6 +991,9 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `POST` | `/warrants/training/{warrant_id}/dispatch` | A job definition for your own compute (Kubernetes, SageMaker), a signed manifest and a one-day key. MAYA runs nothing. |
 | `POST` | `/warrants/training/{warrant_id}/evidence` | Segment metrics and permutation importance on the holdout; counts as one attempt. |
 | `POST` | `/warrants/training/{warrant_id}/refit` | MAYA's own least-squares fit on the training split, compared with a parameter set. |
+| `POST` | `/warrants/execution/{ew_id}/batches` | Score a pin under a live execution warrant, as a job: output sealed by hash, the run reported and covenants evaluated, the custody chain updated. |
+| `GET` | `/warrants/execution/{ew_id}/batches` | The batches scored under an execution warrant. |
+| `GET` | `/warrants/execution/{ew_id}/batches/{job_id}/output` | The batch's output as Parquet; its content hash is in X-Maya-Content-Hash. |
 
 ### inbox
 

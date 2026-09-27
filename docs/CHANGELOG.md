@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Attested batch scoring**
+
+- An execution warrant can score a pinned feature set as a background job, using what blind
+  scoring already runs: a formula evaluated from its IR with the approved parameters, or a
+  black box's validated artifact in the sandbox. It runs only while the warrant is live in the
+  environment asked for, and each batch is attested three ways. The output is sealed by its
+  content hash, the run is reported so its covenants are evaluated (a breach suspends the
+  warrant), and the pin and the output hash go into the custody chain. The output downloads
+  as Parquet. MAYA still does not serve models online.
+  `POST/GET /warrants/execution/{id}/batches`, `GET …/batches/{job}/output`; SDK
+  `evidence.batch_score/batches/batch_output`; a Batch scoring section on the warrant page.
+
 **The research paper, rewritten against 1.0.0**
 
 - *Models as Parametric Kernels* gains a section, **Judgements over derived facts**, that treats

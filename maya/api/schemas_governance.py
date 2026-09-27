@@ -130,3 +130,8 @@ class DispatchIn(BaseModel):
 
 class RefitIn(BaseModel):
     parameter_set_id: str | None = None
+
+
+class BatchIn(BaseModel):
+    pin: str
+    environment: str

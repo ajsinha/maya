@@ -16,7 +16,13 @@ import zipfile
 
 import pytest
 
-from maya.core.errors import ContractMismatch, NotApproved, ValidationFailed, WarrantSuspended
+from maya.core.errors import (
+    ContractMismatch,
+    NotApproved,
+    PermissionDenied,
+    ValidationFailed,
+    WarrantSuspended,
+)
 from maya.formula.specdoc import REQUIRED_SECTIONS
 from tests.conftest import PASSWORD
 
@@ -408,3 +414,57 @@ def test_execution_limits_throttle_and_record_overage(journey):
     with w.p.uow() as uow:
         assert uow.repo("audit_events").list(action="warrant.limit_exceeded")
         assert uow.repo("events").list(type="warrant.limit_exceeded")
+
+
+def test_batch_scoring_is_attested_reported_and_refused_off_warrant(journey):
+    """Attested batch scoring: a pin scored under a live warrant, as a job; the output sealed
+    by its hash, the run reported, custody updated. A non-pin, or an environment the warrant
+    does not cover, is refused before any job is queued."""
+    import io
+
+    import pyarrow.parquet as pq
+
+    from maya.core import canonical
+
+    w = journey
+    with w.p.uow() as uow:
+        tw = uow.repo("training_warrants").find_one(name="calib")
+        ps = next(
+            p
+            for p in uow.repo("parameter_sets").list(training_warrant_id=tw["id"])
+            if p["state"] == "approved"
+        )
+    ew = w.p.execution.create(
+        w.mgr,
+        namespace="quant",
+        name="batch",
+        training_warrant_id=tw["id"],
+        parameter_set_id=ps["id"],
+        spec={"environments": ["dev"], "contact": "desk@example.com"},
+    )
+    w.p.execution.transition(w.mgr, ew["id"], "submit")
+    w.p.execution.transition(w.principal("mgr2"), ew["id"], "approve")
+    w.p.execution.seal(w.mgr, ew["id"])
+    pin = "maya://featureset/quant/panel#q1/2026-02-28"
+    with pytest.raises(ValidationFailed, match="pin"):
+        w.p.batches.submit(
+            w.devi, ew["id"], pin="maya://featureset/quant/panel@v1", environment="dev"
+        )
+    with pytest.raises(PermissionDenied):
+        w.p.batches.submit(w.devi, ew["id"], pin=pin, environment="prod")
+    job = w.p.batches.submit(w.devi, ew["id"], pin=pin, environment="dev")
+    w.drain()
+    (batch,) = w.p.batches.list(w.devi, ew["id"])
+    assert batch["id"] == job["id"] and batch["state"] == "succeeded", batch
+    result = batch["result"]
+    assert result["status_after"] == "live" and result["rows"] > 0
+    out = w.p.batches.output(w.devi, ew["id"], job["id"])
+    table = pq.read_table(io.BytesIO(out["data"]))
+    assert canonical.table_content_hash(table) == out["content_hash"] == result["output_hash"]
+    assert {"date", "symbol", "yhat"} <= set(table.column_names)
+    frame = table.to_pandas()
+    shown = w.p.execution.get(w.devi, ew["id"])
+    assert shown["reports"][-1]["rows"] == result["rows"]
+    assert shown["custody"][-1]["event"] == "batch_scored"
+    assert shown["custody"][-1]["detail"]["output_hash"] == result["output_hash"]
+    assert len(frame) == result["rows"]

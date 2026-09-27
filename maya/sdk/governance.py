@@ -212,3 +212,21 @@ class Evidence(_Resource):
             f"/warrants/training/{seg(warrant_id)}/refit",
             json_body={"parameter_set_id": parameter_set_id},
         )
+
+    @endpoint("POST", "/warrants/execution/{ew_id}/batches")
+    def batch_score(self, ew_id: str, pin: str, environment: str) -> Any:
+        return self._c(
+            "POST",
+            f"/warrants/execution/{seg(ew_id)}/batches",
+            json_body={"pin": pin, "environment": environment},
+        )
+
+    @endpoint("GET", "/warrants/execution/{ew_id}/batches")
+    def batches(self, ew_id: str) -> Any:
+        return self._c("GET", f"/warrants/execution/{seg(ew_id)}/batches")
+
+    @endpoint("GET", "/warrants/execution/{ew_id}/batches/{job_id}/output")
+    def batch_output(self, ew_id: str, job_id: str) -> Any:
+        return self._c(
+            "GET", f"/warrants/execution/{seg(ew_id)}/batches/{seg(job_id)}/output", raw=True
+        )

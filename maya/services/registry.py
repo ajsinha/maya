@@ -26,6 +26,7 @@ def _governance(platform: Any) -> None:
     from maya.services.inventory import InventoryService
     from maya.services.llm import LlmService
     from maya.services.training_ops import TrainingOps
+    from maya.services.batch_scoring import BatchScoring
     from maya.services.monitoring import MonitoringService
 
     for name, cls in (
@@ -37,6 +38,7 @@ def _governance(platform: Any) -> None:
         ("integrations", IntegrationService),
         ("llm", LlmService),
         ("training_ops", TrainingOps),
+        ("batches", BatchScoring),
     ):
         platform.register_service(name, cls(platform))
 
@@ -172,6 +174,7 @@ def _jobs(platform: Any) -> None:
         on_cancel=lambda uow, params: _cancel_pin(uow, "feature_pins", params),
     )
     q.register("assistant.challenge", platform.assistant.run_job)
+    q.register("execution.batch_score", platform.batches.run_job)
     q.register(
         "featureset.pin",
         _announcing(platform, "featureset", platform.featuresets.run_pin_job),
