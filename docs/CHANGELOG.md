@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+**Landing page: three figures that make the headline's argument**
+
+- The hero's drifting network is replaced by the question turning into the chain MAYA keeps:
+  data, feature, pin, model (with its formula), warrant and run, sealed by a hash. A new *Two
+  clocks* section shows values known too late refused at the gate `k ≤ e + ℓ`. A new *The
+  record* section shows the audit log writing itself, one hash-linked entry at a time.
+- Each figure plays once when it comes into view, rests on its last frame, and has a replay
+  button. Reduced motion gets the last frame. The number strip is brought up to date (252 API
+  operations, 14 case studies).
+
 **Forced password change is a setting, off by default; a shorter default password policy**
 
 - `auth.password.force_change` (default `false`) decides whether a password an administrator
