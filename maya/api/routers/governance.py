@@ -166,3 +166,29 @@ def reference_refit(
 ) -> Response:
     """MAYA's own least-squares fit on the training split, compared with a parameter set."""
     return ok(plat.training_ops.refit(me, warrant_id, parameter_set_id=body.parameter_set_id), 201)
+
+
+@router.post("/warrants/execution/{ew_id}/batches", status_code=202, tags=["warrants"])
+def batch_score(ew_id: str, body: s.BatchIn, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Score a pin under a live execution warrant, as a job: output sealed by hash, the run
+    reported and covenants evaluated, the custody chain updated."""
+    return ok(plat.batches.submit(me, ew_id, pin=body.pin, environment=body.environment), 202)
+
+
+@router.get("/warrants/execution/{ew_id}/batches", tags=["warrants"])
+def batches(ew_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    return ok(plat.batches.list(me, ew_id))
+
+
+@router.get("/warrants/execution/{ew_id}/batches/{job_id}/output", tags=["warrants"])
+def batch_output(ew_id: str, job_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """The batch's output as Parquet; its content hash is in X-Maya-Content-Hash."""
+    out = plat.batches.output(me, ew_id, job_id)
+    return Response(
+        out["data"],
+        media_type="application/vnd.apache.parquet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{out["filename"]}"',
+            "X-Maya-Content-Hash": out["content_hash"],
+        },
+    )

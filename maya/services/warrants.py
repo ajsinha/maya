@@ -874,7 +874,7 @@ class WarrantService:
         df: pd.DataFrame,
         bindings: dict[str, str],
         values: dict[str, Any],
-        target: str,
+        target: str | None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
         """Score a black box by running its validated artifact in the sandbox (§29.4).
 

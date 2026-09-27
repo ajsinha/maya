@@ -396,6 +396,7 @@ async def execution_create(request: Request) -> Any:
 async def execution(request: Request, eid: str) -> Any:
     async with client(request) as sdk:
         ew = await sdk.execution.get(eid)
+        batches = await sdk.evidence.batches(eid)
         history = await sdk.workflow.history("execution_warrant", eid)
         comments = await sdk.workflow.comments("execution_warrant", eid)
     return await render(
@@ -403,6 +404,7 @@ async def execution(request: Request, eid: str) -> Any:
         "warrants/execution.html",
         {
             "ew": ew,
+            "batches": batches,
             "history": history,
             "comments": comments,
             "is_admin": is_admin(request),
@@ -467,6 +469,30 @@ async def execution_report(request: Request, eid: str) -> Any:
     else:
         flash(request, "Execution recorded; all covenants hold.", "success")
     return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
+
+
+@router.post("/warrants/execution/{eid}/batches")
+@action
+async def execution_batch(request: Request, eid: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        job = await sdk.evidence.batch_score(eid, data.get("pin", ""), data.get("environment", ""))
+    flash(
+        request,
+        f"Batch queued as job {job['id'][:8]}; its result appears below when it finishes.",
+        "success",
+    )
+    return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
+
+
+@router.get("/warrants/execution/{eid}/batches/{job_id}/output")
+@page
+async def execution_batch_output(request: Request, eid: str, job_id: str) -> Any:
+    async with client(request) as sdk:
+        result = await sdk.evidence.batch_output(eid, job_id)
+    return download(
+        {**result, "content_type": "application/vnd.apache.parquet"}, f"batch-{job_id[:8]}.parquet"
+    )
 
 
 @router.post("/warrants/execution/{eid}/reinstate")
