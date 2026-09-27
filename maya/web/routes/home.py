@@ -122,6 +122,12 @@ async def about(request: Request) -> Any:
     return await render(request, "help/about.html", {"highlights": HIGHLIGHTS, "public_nav": True})
 
 
+@router.get("/about/competitive")
+async def competitive(request: Request) -> Any:
+    """Public too: how MAYA compares with each category, and how it does what the others do not."""
+    return await render(request, "help/competitive.html", {"public_nav": True})
+
+
 @router.get("/help")
 async def help_index(request: Request) -> Any:
     from maya.web.help_catalog import CATEGORIES, GUIDES

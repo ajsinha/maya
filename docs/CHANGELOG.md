@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Competitive landscape, its own page**
+
+- `/about/competitive`, public like About and linked from About and from Help, holds the category
+  comparison. Each row links to a note on what the others leave unsolved and how MAYA does it.
+  Rows where MAYA is partial or behind are explained as well. About keeps a short summary.
+
 **Attested batch scoring**
 
 - An execution warrant can score a pinned feature set as a background job, using what blind

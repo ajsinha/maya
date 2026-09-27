@@ -548,7 +548,7 @@ def test_help_and_about_render_signed_in_and_anonymously(env):
 
     _, app, client, _ = env
     anon = TestClient(app)
-    paths = ["/help", "/about"] + [f"/help/{t['slug']}" for t in all_topics()]
+    paths = ["/help", "/about", "/about/competitive"] + [f"/help/{t['slug']}" for t in all_topics()]
     for c, who in ((client, "signed in"), (anon, "anonymous")):
         for path in paths:
             r = c.get(path, follow_redirects=False)
