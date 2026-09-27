@@ -111,4 +111,24 @@ async def openlineage_emit(request: Request) -> Any:
     return RedirectResponse("/integrations", status_code=303)
 
 
+@router.post("/integrations/mlflow/sync")
+@action
+async def mlflow_sync(request: Request) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.integrations.sync_mlflow()
+    if not out["configured"]:
+        flash(
+            request,
+            "No MLflow tracking server is configured (integrations.mlflow.tracking_uri).",
+            "warning",
+        )
+    else:
+        flash(
+            request,
+            f"MLflow alias '{out['alias']}': set on {len(out['set'])}, removed from {len(out['removed'])}, {len(out['failed'])} failed.",
+            "success" if not out["failed"] else "warning",
+        )
+    return RedirectResponse("/integrations", status_code=303)
+
+
 __all__ = ["router"]

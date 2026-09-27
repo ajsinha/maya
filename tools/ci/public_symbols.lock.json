@@ -255,7 +255,8 @@
      "fetch_mlflow": "(self, namespace, name, model_name, version, estimates, description='')",
      "import_mlflow": "(self, namespace, name, mlmodel, estimates, description='')",
      "import_sagemaker": "(self, namespace, name, package, estimates, inputs=None, outputs=None)",
-     "openlineage_events": "(self)"
+     "openlineage_events": "(self)",
+     "sync_mlflow": "(self)"
     }
    },
    "jobs": {
@@ -662,7 +663,8 @@
      "fetch_mlflow": "(self, namespace, name, model_name, version, estimates, description='')",
      "import_mlflow": "(self, namespace, name, mlmodel, estimates, description='')",
      "import_sagemaker": "(self, namespace, name, package, estimates, inputs=None, outputs=None)",
-     "openlineage_events": "(self)"
+     "openlineage_events": "(self)",
+     "sync_mlflow": "(self)"
     }
    },
    "jobs": {

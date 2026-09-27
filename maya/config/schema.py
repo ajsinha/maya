@@ -718,6 +718,12 @@ SETTINGS: tuple[Setting, ...] = (
         "",
     ),
     _s(
+        "integrations.mlflow.live_alias",
+        "string",
+        "The MLflow alias MAYA points at each model version with a live execution warrant.",
+        "maya-live",
+    ),
+    _s(
         "integrations.openlineage.url",
         "string",
         "An OpenLineage endpoint (e.g. Marquez) lineage is posted to; blank means download only.",

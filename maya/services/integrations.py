@@ -311,6 +311,81 @@ class IntegrationService:
             description=facts["description"],
         )
 
+    # -- decisions back into the registry --------------------------------------------
+    def sync_mlflow(self, p: Principal | None = None, http: Any = None) -> dict[str, Any]:
+        """Point the ``integrations.mlflow.live_alias`` alias at every MLflow-imported model
+        version with a live execution warrant, and take it off every version without one.
+
+        MAYA does not serve models; this is how its decisions reach the platform that does. A
+        reconciler rather than a hook in every warrant transition: each pass compares what
+        should be true with what it last made true, so a suspension, a revocation, an expiry
+        and an overdue review all reach the registry the same way, within one interval."""
+        if p is not None and not p.is_admin:
+            raise PermissionDenied("Syncing the model registry is for administrators")
+        base = (self.p.settings.get("integrations.mlflow.tracking_uri") or "").rstrip("/")
+        if not base:
+            return {"configured": False, "set": [], "removed": []}
+        alias = self.p.settings.get("integrations.mlflow.live_alias") or "maya-live"
+        wanted: dict[tuple[str, str], bool] = {}
+        with self.p.uow() as uow:
+            for v in uow.repo("model_versions").list():
+                prov = ((v.get("formula_ir") or {}).get("black_box") or {}).get("provenance") or {}
+                uri = str(prov.get("uri") or "")
+                if prov.get("source") != "mlflow" or not uri.startswith("models:/"):
+                    continue
+                name, _, version = uri[len("models:/") :].rpartition("/")
+                live = any(
+                    self.p.execution.status(w) == "live"
+                    for w in uow.repo("execution_warrants").list(model_version_id=v["id"])
+                )
+                wanted[(name, version)] = live
+        state = getattr(self, "_mlflow_alias", {})
+        headers = {}
+        token_env = self.p.settings.get("integrations.mlflow.token_env")
+        if token_env and os.environ.get(token_env):
+            headers["Authorization"] = f"Bearer {os.environ[token_env]}"
+        import httpx
+
+        client = http or httpx.Client(timeout=30)
+        done: dict[str, builtins.list[str]] = {"set": [], "removed": [], "failed": []}
+        try:
+            for (name, version), live in sorted(wanted.items()):
+                if state.get((name, version)) == live:
+                    continue
+                try:
+                    if live:
+                        r = client.post(
+                            f"{base}/api/2.0/mlflow/registered-models/alias",
+                            json={"name": name, "alias": alias, "version": version},
+                            headers=headers,
+                        )
+                    else:
+                        r = client.delete(
+                            f"{base}/api/2.0/mlflow/registered-models/alias",
+                            params={"name": name, "alias": alias},
+                            headers=headers,
+                        )
+                    r.raise_for_status()
+                except httpx.HTTPError as exc:
+                    done["failed"].append(f"{name}/{version}: {str(exc)[:120]}")
+                    continue
+                state[(name, version)] = live
+                done["set" if live else "removed"].append(f"{name}/{version}")
+        finally:
+            if http is None:
+                client.close()
+        self._mlflow_alias = state
+        if done["set"] or done["removed"]:
+            with self.p.uow(p.username if p else "registry-sync") as uow:
+                uow.audit(
+                    "integration.mlflow_synced",
+                    object_type="integration",
+                    object_ref="mlflow",
+                    detail={"alias": alias, **done},
+                    principal_type="user" if p else "system",
+                )
+        return {"configured": True, "alias": alias, **done}
+
     # -- lineage out -----------------------------------------------------------------
     def openlineage_events(self, p: Principal) -> builtins.list[dict[str, Any]]:
         """Every lineage edge, grouped by what it produces, as OpenLineage RunEvents."""

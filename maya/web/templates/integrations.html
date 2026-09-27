@@ -37,6 +37,11 @@
 </div>
 {% if admin %}
 <div class="card card-body mt-3">
+  <h2>MLflow registry sync</h2>
+  <p class="small-muted mb-2">MAYA does not serve models; the platform that does reads MAYA's decisions from the registry. Every MLflow version imported from a registered model carries the alias <code>maya-live</code> while one of its execution warrants is live, and loses it when the warrant is suspended, revoked or expires, or its periodic review falls overdue. This runs every five minutes on its own.</p>
+  <form method="post" action="/integrations/mlflow/sync"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-outline-primary" type="submit">Sync now</button></form>
+</div>
+<div class="card card-body mt-3">
   <h2>OpenLineage</h2>
   <p class="small-muted mb-2">Every lineage edge, grouped by what it produces, as an OpenLineage <code>RunEvent</code>: one job per produced object, its sources as inputs. Download them, or send them to the endpoint in <code>integrations.openlineage.url</code>.</p>
   <div class="d-flex flex-wrap gap-2">

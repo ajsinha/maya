@@ -112,6 +112,8 @@ def wire(platform: Any) -> None:
     platform.scheduler.every("notices.sweep", 3600, platform.subscriptions.notices)
     # an overdue periodic review suspends the model's live execution warrants
     platform.scheduler.every("governance.review_sweep", 3600, platform.governance.sweep)
+    # MAYA's live/not-live decisions pushed to the MLflow registry the models came from
+    platform.scheduler.every("integrations.mlflow_sync", 300, platform.integrations.sync_mlflow)
     platform.scheduler.every(
         "tracking.revoked_members", 3600, platform.tracking.sweep_revoked_members
     )
