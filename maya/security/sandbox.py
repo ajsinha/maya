@@ -158,7 +158,7 @@ def _binds() -> list[str]:
     # user having changed anything. Each unbound hop is recreated as a symlink straight to
     # the real interpreter, which *is* bound (it lives under ``sys.base_prefix``).
     target = os.path.realpath(sys.executable)
-    hop, seen = sys.executable, set()
+    hop, seen = _python(), set()
     while os.path.islink(hop) and hop not in seen:
         seen.add(hop)
         nxt = os.readlink(hop)
@@ -383,11 +383,18 @@ def _child_env() -> dict[str, str]:
     return env
 
 
+def _python() -> str:
+    """This interpreter, as an absolute path. ``sys.executable`` is whatever the process was
+    started as -- ``../../.venv/bin/python`` from a study's own folder -- and the child starts
+    in a temporary directory, where a relative path names nothing."""
+    return os.path.abspath(sys.executable)
+
+
 def _argv(workdir: str, memory_mb: int, cpu_seconds: int) -> list[str]:
     if platform.system() == "Linux":
         prefix, runner = _linux_prefix(workdir, memory_mb, cpu_seconds)
-        return [*prefix, sys.executable, "-I", "-B", runner]
-    argv = [sys.executable, "-I", "-B", str(Path(workdir) / "sandbox_runner.py")]
+        return [*prefix, _python(), "-I", "-B", runner]
+    argv = [_python(), "-I", "-B", str(Path(workdir) / "sandbox_runner.py")]
     if platform.system() == "Darwin" and shutil.which("sandbox-exec"):
         argv = ["sandbox-exec", "-p", _MAC_PROFILE, *argv]
     return argv

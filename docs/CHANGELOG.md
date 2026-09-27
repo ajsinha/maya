@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**Case studies run from an IDE, beside a running web server**
+
+- `drain()` in the testing kit also waits for jobs another process on the same estate has
+  claimed, such as a web server started on the same MAYA home. Studies 7 and 19 read a pin
+  that a server's worker was still building (`pinning running`, `'NoneType' object is not
+  subscriptable`). A job left running by a process that died earlier is not waited for.
+- The tiering questionnaire's default path, `config/tiering.yaml`, is resolved against the
+  project root rather than the working directory, so studies 9 and 49 find it when run from
+  their own folder.
+- The sandbox starts its child with this interpreter's absolute path, so a relative
+  `sys.executable` does not break it.
+- Study 8's folder says it is not built yet.
+
 **The sandbox finds the libraries its parent has (Windows, `pip install --user`)**
 
 - The artifact sandbox runs a separate interpreter with `-I`, which leaves out the user
