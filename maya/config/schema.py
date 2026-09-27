@@ -366,12 +366,19 @@ SETTINGS: tuple[Setting, ...] = (
         "3",
         minimum=0,
     ),
-    _s("auth.password.min_length", "int", "Shortest password accepted.", "12", minimum=8),
+    _s("auth.password.min_length", "int", "Shortest password accepted.", "8", minimum=4),
+    _s(
+        "auth.password.force_change",
+        "bool",
+        "Make a person change a password an administrator set (the bootstrap admin's, a new "
+        "account's, a reset) at their next sign-in. Off by default: with SSO it is rarely wanted.",
+        "false",
+    ),
     _s(
         "auth.password.require_classes",
         "int",
         "How many of lower, upper, digit and symbol a password must use.",
-        "3",
+        "2",
         minimum=1,
         maximum=4,
     ),

@@ -2,8 +2,8 @@
 Bootstrap (§12): default roles, the admin user, and the default workflow
 policies — idempotent, run at every start, changing nothing that exists.
 
-On an empty database MAYA creates ``admin`` / ``maya-dev-admin`` with
-``must_change_password``, and warns in the log, on the login page and on the
+On an empty database MAYA creates ``admin`` / ``maya-dev-admin`` (flagged
+``must_change_password`` only when ``auth.password.force_change`` is on), and warns in the log, on the login page and on the
 health page while that password is unchanged.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 def seed(platform: Any) -> None:
     with platform.uow("system") as uow:
         _roles(uow)
-        _admin(uow)
+        _admin(uow, platform.auth.rules.force_change)
         _policies(uow)
     if platform.auth.default_admin_password_active():
         logger.warning(
@@ -50,7 +50,7 @@ def _roles(uow: Any) -> None:
             uow.repo("roles").update(role["id"], {"capabilities": caps})
 
 
-def _admin(uow: Any) -> None:
+def _admin(uow: Any, force_change: bool) -> None:
     if uow.repo("users").count() > 0:
         return
     user = uow.repo("users").add(
@@ -60,7 +60,7 @@ def _admin(uow: Any) -> None:
             "email": "",
             "auth_source": "db",
             "password_hash": kdf.hash_password(DEFAULT_ADMIN_PASSWORD),
-            "must_change_password": True,
+            "must_change_password": force_change,
             "password_changed_at": utcnow(),
         }
     )

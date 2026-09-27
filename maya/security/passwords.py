@@ -42,8 +42,9 @@ class PasswordRules:
     """The configured password policy, and the three refusals it can make."""
 
     def __init__(self, settings: Any) -> None:
-        self.min_length = settings.int("auth.password.min_length", 12)
-        self.require_classes = settings.int("auth.password.require_classes", 3)
+        self.min_length = settings.int("auth.password.min_length", 8)
+        self.require_classes = settings.int("auth.password.require_classes", 2)
+        self.force_change = settings.bool("auth.password.force_change", False)
         self.history = settings.int("auth.password.history", 5)
         self.max_age = dt.timedelta(days=settings.int("auth.password.max_age_days", 90))
         self.reset_token_life = dt.timedelta(

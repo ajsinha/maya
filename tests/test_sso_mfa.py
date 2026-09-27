@@ -273,7 +273,7 @@ def test_web_holds_an_mfa_pending_session_at_the_code_page():
     from starlette.testclient import TestClient
     from maya.server import build_app
 
-    platform = build_platform()
+    platform = build_platform(["--auth.password.force_change=true"])
     World(platform)
     app = build_app(platform)
     # enroll dana through the API first
