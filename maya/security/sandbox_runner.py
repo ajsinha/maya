@@ -211,6 +211,10 @@ def _call(namespace: dict[str, Any], entry: str, payload: dict[str, Any]) -> Any
 def main() -> None:
     request = json.loads(sys.stdin.read())
     limits = request.get("limits", {})
+    # where the parent's libraries live, which ``-I`` left out (the user site, above all)
+    for path in request.get("paths", []):
+        if path not in sys.path:
+            sys.path.append(path)
     # heavy libraries are imported before the address-space cap bites
     for name in request.get("preload", []):
         try:

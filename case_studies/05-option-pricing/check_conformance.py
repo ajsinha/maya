@@ -32,7 +32,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from maya_demo import Narrator, step_script  # noqa: E402
+from maya_demo import Narrator, conformance_of, step_script  # noqa: E402
 from study import (  # noqa: E402
     BUGGY_CODE,
     DESK_CODE,
@@ -70,7 +70,7 @@ def plant_the_bug(cast: Cast, maya: Any, n: Narrator) -> None:
     from maya.core.errors import NotApproved
 
     n.step("The same pricer with sigma*T where the mathematics says sigma*sqrt(T)")
-    caught = upload(cast, maya, BUGGY_CODE)["conformance"]
+    caught = conformance_of(upload(cast, maya, BUGGY_CODE))
     n.fact("ladder", "passed=True — it is valid, running, deterministic Python")
     n.fact("agreement over the unit interval", f"{caught['agreed']:,} of {caught['total']:,}")
 
@@ -118,7 +118,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.fact("ladder", f"passed={report.get('passed')}, sandbox tier '{report.get('tier')}'")
     for rung in report.get("rungs", []):
         n.say(f"  {rung['rung']}. {rung['name']}: {rung['detail']}")
-    got = report["conformance"]
+    got = conformance_of(report)
     n.fact("comparison", f"{got['agreed']:,} of {got['total']:,} agree")
     n.fact("domain", got["domain"])
 
@@ -133,7 +133,7 @@ def main(maya: Any, n: Narrator) -> None:
     plant_the_bug(cast, maya, n)
 
     n.step("Putting the correct pricer back, which is tested again as it is uploaded")
-    again = upload(cast, maya, DESK_CODE)["conformance"]
+    again = conformance_of(upload(cast, maya, DESK_CODE))
     n.fact("on upload", f"{again['agreed']:,} of {again['total']:,} over the unit interval")
     n.say("A clean result is never inherited: it belongs to the code it was run on. And the")
     n.say("evidence kept on the version should be the evidence worth having, so the last")
