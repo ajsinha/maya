@@ -139,10 +139,11 @@ another port instead, and use that number in the browser:
 1. Open your browser at **<http://127.0.0.1:8600>**.
 2. You see MAYA's landing page. Click **Sign in** (top right).
 3. Enter username **`admin`** and password **`maya-dev-admin`**, and click **Sign in**.
-4. MAYA asks you to **change the password**, because this one is published. Type the old
-   password, then a new one twice. A new password must be **at least 12 characters** and use
-   **three of**: lower-case letters, upper-case letters, digits, symbols — for example
-   `Maya-first-2026`. Click **Change password**.
+4. Change this published password from the menu under your name, **Change password**. MAYA insists on the
+   change at sign-in only when `auth.password.force_change` is `true`. A new password must be
+   **at least 8 characters** and use **two of**: lower-case letters, upper-case letters,
+   digits, symbols — for example `admin123`. Both limits are settings
+   (`auth.password.min_length`, `auth.password.require_classes`).
 5. You arrive on the **dashboard**. You are signed in as the administrator.
 
 **Write the new password down.** On a fresh install there is only one administrator, and
@@ -250,7 +251,7 @@ interactive reference is at <http://127.0.0.1:8600/api/v1/docs>.
 | `ModuleNotFoundError: No module named 'fastapi'` (or any other) | You ran plain `python` instead of `.venv/bin/python` | Use `.venv/bin/python …`, or `source .venv/bin/activate` first |
 | `address already in use` when starting | Port 8600 is taken — perhaps MAYA is already running in another terminal | Stop the other one, or add `--server.port=8700` and browse to that port |
 | The browser says *This site can't be reached* | MAYA is not running, or you used a different address | Check the first terminal; use `http://127.0.0.1:8600` exactly |
-| `Password must be at least 12 characters and use 3 of: …` | The new password is too simple | Make it longer, and mix upper and lower case with digits or symbols |
+| `Password must be at least 8 characters and use 2 of: …` | The new password is too simple | Make it longer, and mix upper and lower case with digits or symbols |
 | `That password was used before` | MAYA remembers the last five passwords of each account | Choose a different one |
 | *Account locked* after several wrong passwords | Five failures in fifteen minutes lock an account for thirty minutes | Wait thirty minutes, or have an administrator reset the password in **Admin → Users**, which also lifts the lock |
 | Lost the only administrator's password | There is no recovery link, on purpose | On a scratch install: stop MAYA, `rm -rf data`, start again (this deletes everything). With another administrator: they set a new one in **Admin → Users** |

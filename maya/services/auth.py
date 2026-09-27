@@ -238,7 +238,9 @@ class AuthService:
         return {
             "token": token,
             "username": user["username"],
-            "must_change_password": user["must_change_password"],
+            # honoured only when configured, so a flag set before it was switched off, or
+            # the bootstrap admin's, does not force a change nobody asked for
+            "must_change_password": bool(user["must_change_password"]) and self.rules.force_change,
             "default_password": password == DEFAULT_ADMIN_PASSWORD,
             "mfa": mfa,
             "break_glass": glass,
@@ -582,7 +584,7 @@ class AuthService:
             self.rules.remember(uow, user)
         return {
             "password_hash": kdf.hash_password(new),
-            "must_change_password": must_change,
+            "must_change_password": must_change and self.rules.force_change,
             "password_changed_at": utcnow(),
         }
 

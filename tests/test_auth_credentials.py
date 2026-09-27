@@ -36,6 +36,7 @@ def creds():
     platform = build_platform(
         [
             "--auth.password.history=3",
+            "--auth.password.force_change=true",
             "--auth.password.max_age_days=30",
             "--auth.session.concurrent_sessions=2",
             "--auth.api_keys.rotation_overlap_days=3",
@@ -243,7 +244,7 @@ def test_an_expired_or_unknown_reset_token_is_refused(creds):
 def test_a_reset_honours_the_password_policy_and_history(creds):
     w, _ = creds
     issued = w.p.auth.issue_password_reset(w.admin, "devi")
-    with pytest.raises(ValidationFailed, match="at least 12 characters"):
+    with pytest.raises(ValidationFailed, match="at least 8 characters"):
         w.p.auth.complete_password_reset(issued["token"], "short")
     with pytest.raises(ValidationFailed, match="used before"):
         w.p.auth.complete_password_reset(issued["token"], PASSWORD)
@@ -499,5 +500,22 @@ def test_the_shipped_admin_password_is_recognised_until_it_is_changed():
         w = World(platform)
         platform.access.reset_password(w.admin, "admin", "A-real-password-1")
         assert platform.auth.default_admin_password_active() is False
+    finally:
+        platform.shutdown()
+
+
+def test_the_forced_change_is_off_by_default_and_a_short_password_is_accepted():
+    """With SSO the forced first-sign-in change is rarely wanted, so it is a setting, off by
+    default; the default policy is 8 characters of two classes, so ``admin123`` passes."""
+    platform = build_platform()
+    try:
+        w = World(platform)
+        assert platform.auth.login("admin", "maya-dev-admin")["must_change_password"] is False
+        platform.access.create_user(w.admin, username="shorty", password="admin123", roles=[])
+        assert platform.auth.login("shorty", "admin123")["must_change_password"] is False
+        with platform.uow() as uow:
+            assert uow.repo("users").find_one(username="shorty")["must_change_password"] is False
+        with pytest.raises(ValidationFailed, match="at least 8"):
+            platform.access.create_user(w.admin, username="tiny", password="abc12", roles=[])
     finally:
         platform.shutdown()

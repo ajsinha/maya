@@ -581,8 +581,8 @@ python run_maya_web.py                 # http://127.0.0.1:8600 — the landing p
 
 `/` is the landing page until somebody signs in and the dashboard afterwards, and signing
 out returns to it: a visitor who has not been told what MAYA is should not be handed a
-password box. Change the admin password when prompted — an administrator-set password must
-be changed at first sign-in (§12). To switch the database, set `db.dialect` in
+password box. Change the admin password after the first sign-in. MAYA forces that change only when
+`auth.password.force_change` is `true`; it is off by default, since with SSO it is rarely wanted. To switch the database, set `db.dialect` in
 `config/application.yaml`, set `MAYA_DB_DIALECT`, or pass
 `python run_maya_web.py --db.dialect=postgresql`, then supply `db.postgresql.*`, with the
 password from `MAYA_PG_PASSWORD` or `config/application.local.yaml`. The schema is created

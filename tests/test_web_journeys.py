@@ -25,7 +25,9 @@ FLASH_RE = re.compile(r'class="alert alert-(\w+)[^"]*"[^>]*>([^<]*)')
 def site():
     from maya.server import build_app
 
-    platform = build_platform(["--observability.webhooks.allow_private=true"])
+    platform = build_platform(
+        ["--observability.webhooks.allow_private=true", "--auth.password.force_change=true"]
+    )
     w = World(platform)
     p = platform
     p.access.create_user(w.admin, username="mgr2", password=PASSWORD, roles=["model_manager"])

@@ -40,7 +40,8 @@ def env():
     from starlette.testclient import TestClient
     from tests.conftest import build_platform
 
-    platform = build_platform()  # PostgreSQL too when MAYA_TEST_PG_URL is set
+    # PostgreSQL too when MAYA_TEST_PG_URL is set; the forced change is on, to journey through it
+    platform = build_platform(["--auth.password.force_change=true"])
     app = build_app(platform)
     ids = _seed(platform)
     client = TestClient(app)

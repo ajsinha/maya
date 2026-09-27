@@ -99,7 +99,9 @@ auth:
     # web process reaches a session at most this late; in the same process, at once.
     principal_cache_seconds: 2
   password:
-    min_length: 12
+    min_length: 8
+    # true: a password an administrator set must be changed at the next sign-in
+    force_change: false
   lockout:
     attempts: 5
     window_minutes: 15

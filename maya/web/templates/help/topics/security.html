@@ -94,7 +94,9 @@ supported, by design: it cannot be tied to a request MAYA made.</p>
 {% call example('config/application.yaml', 'yaml') %}
 auth:
   password:
-    min_length: 12
+    min_length: 8            # at least 4
+    require_classes: 2       # of lower, upper, digit, symbol
+    force_change: false      # true: an administrator-set password is changed at next sign-in
   lockout:
     attempts: 5              # failures inside the window…
     window_minutes: 15

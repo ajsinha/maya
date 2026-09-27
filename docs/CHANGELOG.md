@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**Forced password change is a setting, off by default; a shorter default password policy**
+
+- `auth.password.force_change` (default `false`) decides whether a password an administrator
+  set (the bootstrap admin's, a new account's, a reset) must be changed at the next sign-in.
+  With SSO it is rarely wanted. A flag left from before is ignored while the setting is off.
+- The default policy is now 8 characters using two of lower, upper, digit and symbol, so
+  `admin123` is accepted. `auth.password.min_length` may go as low as 4.
+
 **Competitive landscape, its own page**
 
 - `/about/competitive`, public like About and linked from About and from Help, holds the category

@@ -183,8 +183,9 @@ call("POST", "/namespaces", ADMIN, json={"name": "demo", "preset": "standard"})
 
 ### 5.2 Sign everybody in
 
-A password set by an administrator must be changed at first sign-in. The helper does that
-once and returns a session token.
+When `auth.password.force_change` is on, a password set by an administrator must be changed
+at first sign-in (`must_change_password` in the login answer); it is off by default. The
+helper changes it either way, since the administrator knows it, and returns a session token.
 
 ```python
 NEW_PASSWORD = "Guide-Pass-2026-changed!"
@@ -193,13 +194,12 @@ NEW_PASSWORD = "Guide-Pass-2026-changed!"
 def first_sign_in(username):
     """Sign in with the administrator-set password, change it, and sign in again."""
     first = call("POST", "/auth/login", json={"username": username, "password": PASSWORD})
-    if first["must_change_password"]:
-        call(
-            "POST",
-            "/auth/password",
-            first["token"],
-            json={"old_password": PASSWORD, "new_password": NEW_PASSWORD},
-        )
+    call(
+        "POST",
+        "/auth/password",
+        first["token"],
+        json={"old_password": PASSWORD, "new_password": NEW_PASSWORD},
+    )
     return call("POST", "/auth/login", json={"username": username, "password": NEW_PASSWORD})["token"]
 
 
