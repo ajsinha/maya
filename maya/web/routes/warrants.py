@@ -151,6 +151,37 @@ async def training_evidence(request: Request, wid: str) -> Any:
     return RedirectResponse(f"/warrants/training/{wid}?tab=evidence", status_code=303)
 
 
+@router.post("/warrants/training/{wid}/dispatch")
+@action
+async def training_dispatch(request: Request, wid: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        out = await sdk.evidence.dispatch(
+            wid,
+            data.get("image", ""),
+            data.get("entrypoint") or "python train.py",
+            data.get("maya_url") or str(request.base_url).rstrip("/"),
+        )
+    return await render(request, "warrants/dispatch.html", {"d": out, "wid": wid})
+
+
+@router.post("/warrants/training/{wid}/refit")
+@action
+async def training_refit(request: Request, wid: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        row = await sdk.evidence.refit(wid, data.get("parameter_set_id") or None)
+    r = row["result"]
+    verdict = "agrees with" if r.get("agrees") else "differs from"
+    note = f" MAYA's fit {verdict} the parameter set." if "agrees" in r else ""
+    flash(
+        request,
+        f"Reference re-fit: RMSE {r['rmse_maya']:.6g} on {r['rows']} training rows.{note}",
+        "success",
+    )
+    return RedirectResponse(f"/warrants/training/{wid}?tab=evidence", status_code=303)
+
+
 @router.post("/warrants/training/{wid}/transition")
 @action
 async def training_transition(request: Request, wid: str) -> Any:

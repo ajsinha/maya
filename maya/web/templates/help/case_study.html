@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} · Help{% endblock %}
+{% block content %}
+<nav class="help-crumbs" aria-label="Breadcrumb">
+  <a href="/help"><i class="bi bi-book" aria-hidden="true"></i> Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  <a href="/help/case-studies">Case studies</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  <span aria-current="page">{{ study.num }} · {{ study.title }}</span>
+</nav>
+<header class="help-topic-hero">
+  <span class="ico">{{ study.num }}</span>
+  <div><h1>{{ doc.title }}</h1><p>{{ study.domain }} · {{ study.model }}</p></div>
+</header>
+<div class="guide-layout">
+  {% if doc.toc %}
+  <nav class="guide-toc" aria-label="On this page">
+    <div class="head">On this page</div>
+    <ol>{% for t in doc.toc %}<li><a href="#{{ t.id }}">{{ t.name }}</a>{% if t.children %}<ol>{% for c in t.children %}<li><a href="#{{ c.id }}">{{ c.name }}</a></li>{% endfor %}</ol>{% endif %}</li>{% endfor %}</ol>
+  </nav>
+  {% endif %}
+  <article class="help-article guide-body">{{ doc.html|safe }}</article>
+</div>
+<div class="help-pager">
+  {% if prev %}<a class="btn btn-outline-secondary" href="/help/case-studies/{{ prev.slug }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> {{ prev.num }} {{ prev.title }}</a>{% else %}<span></span>{% endif %}
+  {% if next %}<a class="btn btn-primary" href="/help/case-studies/{{ next.slug }}">{{ next.num }} {{ next.title }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/maths.js?v={{ ASSET_V }}"></script>{% endblock %}

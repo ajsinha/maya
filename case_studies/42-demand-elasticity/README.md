@@ -85,6 +85,62 @@ are made, and that is the information two headline RMSEs hide.
 | `fit_both.py` | Warrants: the two training warrants, their holdout hashes (identical), their blind scores |
 | `challenge.py` | Models → Champion & challenger: the challenge with its interval and verdict, and the recorded decision |
 
+## The data
+
+One feed, `data/weekly_sales.csv`, written by `make_data.py` from a seed: 104 weeks × 40 fictional
+products = 4,160 rows.
+
+| Column | Meaning |
+|---|---|
+| `date`, `product` | The week and the product: the feature's index |
+| `price_index` | The week's price as a multiple of the product's reference price: 1.0 most weeks, promotions at 0.8 and 0.65, list rises at 1.15 and 1.3 |
+| `demand_index` | The week's units as a multiple of the product's normal weekly units, drawn from a constant-elasticity law with elasticity −1.6 and 15% noise |
+| `kt` | When the week's sales were finalised: two days after it closed |
+
+## Who does what
+
+| Person | Role | In this study |
+|---|---|---|
+| `dana`, `mick` | feature designer and manager | Load, approve and pin the sales feed |
+| `mona` | model designer | Writes both models and their documents |
+| `devi` | model developer | Fits the champion under its warrant |
+| `dev2` | second model developer | Fits the challenger, and raises the challenge |
+| `mgr` | model manager | Approves both models, both parameter sets and both warrants |
+| `lara` | second model manager | Takes the decision, because `dev2` owns the challenger |
+
+## Running it
+
+Everything runs from the project folder with the project's own interpreter, against the
+project's MAYA (the estate `config/application.yaml` configures, shared by every study).
+Nothing needs to be prepared first: the first script creates the users and the study's
+namespace.
+
+```bash
+.venv/bin/python case_studies/42-demand-elasticity/run.py            # the whole study
+.venv/bin/python case_studies/42-demand-elasticity/run.py --quiet    # results only, no narration
+```
+
+To demonstrate it, run the scripts one at a time in the order of the table above, and open
+the web UI between them (`.venv/bin/python run_maya_web.py`, then <http://127.0.0.1:8600>,
+signing in as any of the people below with the password `Maya-testing-pass-1`). A full pass
+refuses to run twice in the same estate, because MAYA does not delete governed objects; pass
+`--reset` to rebuild the whole demonstration estate from nothing, or run a study into a
+throwaway estate with `--storage.root=/tmp/demo --lake.root=/tmp/demo/lake`.
+
+## What MAYA refused, on purpose
+
+- **A comparison on different rows.** A warrant drawn on the same pin with seed 7 instead of 42
+  holds a different holdout, and the challenge is refused rather than computed.
+- **The challenger's author deciding.** `dev2` is refused; `lara` records the decision.
+
+## What this study does not show
+
+Both models are fitted to relative indices pooled across the range, which is what makes one
+elasticity meaningful; a real pricing model would add product and seasonal effects, competitor
+prices and stock-outs, and the documents say so. The decision is recorded and not enacted: the
+study stops before drawing the challenger's execution warrant and retiring the champion's,
+which is a change of its own.
+
 The data is synthetic (`make_data.py`); the products are fictional.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_macros/ui.html" import json_block %}
+{% block title %}Training job{% endblock %}
+{% block content %}
+<h1>Training job, ready to submit</h1>
+<p class="small-muted">MAYA has run nothing. Submit one of these to your own compute. Dispatch <span class="mono">{{ d.dispatch_id }}</span> · <a href="/warrants/training/{{ wid }}">back to the warrant</a></p>
+<div class="alert alert-warning"><strong>API key, shown once</strong> (expires {{ d.api_key_expires_at|dt }}): <span class="mono">{{ d.api_key }}</span><br>
+Store it as the Kubernetes secret <code>{{ d.kubernetes_secret.name }}</code> (key <code>{{ d.kubernetes_secret.key }}</code>), or in your secret store for SageMaker.</div>
+<div class="row g-3"><div class="col-lg-6"><h3>Kubernetes Job</h3>{{ json_block(d.kubernetes_job) }}</div>
+<div class="col-lg-6"><h3>SageMaker CreateTrainingJob</h3>{{ json_block(d.sagemaker_request) }}</div></div>
+<h3 class="mt-3">Signed manifest</h3>{{ json_block(d.manifest) }}
+<p class="small-muted">Signature: <span class="mono">{{ (d.signature or 'no signing key configured')|short(40) }}</span></p>
+{% endblock %}

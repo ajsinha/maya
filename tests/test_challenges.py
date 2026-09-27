@@ -150,3 +150,52 @@ def test_evidence_on_the_holdout_names_the_driver_and_counts_an_attempt(estate):
         w.p.evidence.compute(w.devi, tw, parameter_set_id=ps, segment="nope")
     with pytest.raises(ValidationFailed, match="target"):
         w.p.evidence.compute(w.devi, tw, parameter_set_id=ps, segment="y", importance=False)
+
+
+# ------------------------------------------------ dispatched training, reference re-fit
+
+
+def test_a_reference_refit_finds_the_true_parameters_and_says_whether_a_set_agrees(estate):
+    w = estate
+    tw, off = _warrant(w, "refit_off", b=0.3)
+    row = w.p.training_ops.refit(w.devi, tw, parameter_set_id=off)
+    r = row["result"]
+    assert abs(r["maya"]["a"] - 2.0) < 1e-6 and abs(r["maya"]["b"] - 0.5) < 1e-6
+    assert r["rmse_maya"] < 1e-9 < r["rmse_given"] and r["agrees"] is False
+    tw2, exact = _warrant(w, "refit_exact", b=0.5)
+    assert w.p.training_ops.refit(w.devi, tw2, parameter_set_id=exact)["result"]["agrees"] is True
+    assert w.p.warrants.get(w.devi, tw)["holdout_attempts"] == 0  # training rows only
+
+
+def test_a_dispatched_job_fits_on_its_own_compute_and_reports_back(estate):
+    import numpy as np
+
+    from maya.api.app import create_api
+    from maya.sdk import Client
+    from maya.sdk.trainer import fit_under_warrant
+
+    w = estate
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="dispatched",
+        model="quant/linear@v1",
+        featureset=PIN,
+        spec={"target": "y", "seed": 7},
+    )
+    d = w.p.training_ops.dispatch(w.devi, tw["id"], image="registry.example.com/train:1")
+    assert d["kubernetes_job"]["kind"] == "Job" and d["sagemaker_request"]["TrainingJobName"]
+    assert d["manifest"]["warrant_id"] == tw["id"] and d["api_key"].startswith("maya_")
+
+    def fit(train, target):  # the firm's code, on the firm's compute
+        a, b = np.polyfit(train["x"], train[target], 1)  # yhat = a*x + b
+        return {"a": float(a), "b": float(b)}, {"rows": len(train)}
+
+    job_client = Client(app=create_api(w.p), token=d["api_key"])
+    ps = fit_under_warrant(
+        fit,
+        client=job_client,
+        env={"MAYA_WARRANT_ID": tw["id"], "MAYA_DISPATCH_ID": d["dispatch_id"]},
+    )
+    assert ps["verified_data"] and ps["metrics"]["dispatch_id"] == d["dispatch_id"]
+    assert abs(ps["values"]["a"] - 2.0) < 1e-6

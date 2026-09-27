@@ -83,6 +83,31 @@
   `data/`, configured by `config/application.yaml`, with each study in its own namespace,
   not a MAYA per study under `case_studies/runs/`.
 
+**Case studies in Help**
+
+- *Help → Case studies* (`/help/case-studies`): a card for every study, read from the index in
+  `case_studies/README.md`, each opening the study's README rendered as its page — tables, code,
+  and mathematics typeset by the vendored KaTeX, with links between studies kept inside Help and
+  links to a study's files opening them in the repository. Public, like the rest of Help.
+- **Study 07 tells the true story again.** Its §10 was built around MAYA refusing to score a
+  declared black box, and recommended the fix; MAYA 1.0.0 built the fix, and the study had been
+  silently scoring the network blind while still narrating a refusal. It now shows the blind
+  score (RMSE 0.1273 on 2,000 escrowed rows, in the strong sandbox) and says the history.
+- **The five new studies' READMEs** gain the sections the originals have: the data, who does
+  what, running it step by step, the refusals it demonstrates, and what it does not show.
+
+**Training directed, not done; and a second route to a fit**
+
+- **Dispatched training** (`POST /warrants/training/{id}/dispatch`, the warrant's *Fairness &
+  drivers* tab). MAYA runs nothing: it returns a signed manifest, a one-day API key scoped to the
+  namespace, and ready-to-submit Kubernetes `Job` and SageMaker `CreateTrainingJob` definitions.
+  Inside the job, `maya.sdk.trainer.fit_under_warrant(fit)` fetches the warrant's rows, calls the
+  firm's fit function, and uploads the parameters with the data checksum and the dispatch id.
+- **Reference re-fit** (`POST /warrants/training/{id}/refit`). For a closed-form model MAYA fits
+  the parameters itself on the training split — Levenberg–Marquardt least squares, in NumPy — and
+  compares with a parameter set: both training errors, the relative gap, and whether they agree.
+  Recorded as evidence; it never becomes a parameter set, and it does not touch the holdout.
+
 **Beside the ML platform, and in control of what it deploys**
 
 - **The MLflow registry follows the licence.** Every model version imported from an MLflow

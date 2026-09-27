@@ -13962,6 +13962,78 @@
     }
    }
   },
+  "/api/v1/warrants/training/{warrant_id}/dispatch": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "warrant_id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DispatchIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/warrants/training/{warrant_id}/evidence": {
    "get": {
     "parameters": [
@@ -14141,6 +14213,78 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/ParametersIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/warrants/training/{warrant_id}/refit": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "warrant_id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-maya-channel",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RefitIn"
        }
       }
      },
@@ -17642,6 +17786,25 @@
    ],
    "type": "object"
   },
+  "DispatchIn": {
+   "properties": {
+    "entrypoint": {
+     "default": "python train.py",
+     "type": "string"
+    },
+    "image": {
+     "type": "string"
+    },
+    "maya_url": {
+     "default": "http://maya:8600",
+     "type": "string"
+    }
+   },
+   "required": [
+    "image"
+   ],
+   "type": "object"
+  },
   "DraftIn": {
    "properties": {
     "definition": {
@@ -18686,6 +18849,21 @@
    "required": [
     "reason"
    ],
+   "type": "object"
+  },
+  "RefitIn": {
+   "properties": {
+    "parameter_set_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
    "type": "object"
   },
   "ReportIn": {

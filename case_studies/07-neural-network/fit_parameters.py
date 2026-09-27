@@ -19,12 +19,13 @@ read, and it is uploaded with the parameters as the justification of record.
 weights is refused by MAYA's parameter reader — it would run code — and the ``.npz`` is
 read into named values, with the file's own sha256 recorded beside them.
 
-**The refusal.** ``score_holdout`` on a declared black box is refused by name: MAYA
-evaluates a model's formula IR and this model has none (ADR-007). So the escrowed holdout —
-5,328 rows, hashed on the warrant — cannot be scored by MAYA, and cannot be scored by the
-desk either, because the desk never received those rows. Every number on this parameter set
-is therefore *asserted by devi against a checksum*, which is a weaker claim than case study
-1's blind score, and the README says exactly how much weaker.
+**Blind scoring, restored.** When this study was written, ``score_holdout`` refused a declared
+black box: MAYA evaluated formula IR and this model has none, so the escrowed holdout could be
+scored by nobody and every figure was the desk's assertion against a checksum. The study
+recommended letting blind scoring run the *approved* artifact in the sandbox the ladder already
+uses; MAYA 1.0.0 does exactly that. The artifact runs on the holdout's input columns only, the
+target never enters the sandbox, and MAYA computes the metric -- a measurement again, not an
+attestation.
 
 Copyright (c) 2026 Ashutosh Sinha.  All rights reserved.
 """
@@ -256,17 +257,18 @@ def main(maya: Any, n: Narrator) -> None:
     )
 
     n.step("Asking MAYA to score the escrowed holdout")
-    try:
-        warrant.score_holdout(parameter_set_id=tied["id"])
-    except ValidationFailed as exc:
-        n.refused("blind-scoring a declared black box", exc)
+    scored = warrant.score_holdout(parameter_set_id=tied["id"])
+    m = scored["metrics"]
     n.fact("escrowed rows", f"{found['holdout_rows']:,}, hash {found['holdout_hash'][:16]}…")
     n.fact(
-        "holdout attempts on the warrant", cast.devi.training.get(found["id"])["holdout_attempts"]
+        "scored in",
+        f"{m['scored_in']}, tier {m['sandbox_tier']}, artifact {m['artifact_hash'][:12]}…",
     )
-    n.say("Nobody can score them. MAYA will not, because it evaluates formulas and there is")
-    n.say("no formula; the desk cannot, because it was never given the rows. The escrow is")
-    n.say("intact and useless, and every figure above is an assertion with a checksum.")
+    n.fact("RMSE (= root Brier score)", f"{m['rmse']:.4f} on {m['rows']:,} rows")
+    n.fact("attempt", f"{scored['attempt']} (every attempt is counted on the warrant)")
+    n.say("MAYA cannot read the network, but it can run the artifact it validated: in the")
+    n.say("sandbox, on the escrowed rows' inputs only, never the target. The metric is MAYA's,")
+    n.say("on rows the desk never saw -- the same claim case study 1 makes for a formula.")
 
     n.step("Sealing the warrant: data, certificate, exception and parameters fixed together")
     cast.devi.training.transition(found["id"], "submit")

@@ -74,7 +74,11 @@
 </div>
 <div class="tab-pane {% if tab == 'evidence' %}show active{% endif %}" id="tab-evidence" role="tabpanel">
   <p class="small-muted">Computed on the escrowed holdout, so each run counts as one holdout attempt. Only aggregates are kept: a segment smaller than its minimum is reported as suppressed, with no figures. Permutation importance shuffles one input at a time (seeded) and measures the rise in RMSE; it needs only predictions, so it works for a black box through the sandbox.</p>
-  {% for e in evidence %}{% set r = e.result %}
+  {% for e in evidence %}{% set r = e.result %}{% if e.kind == 'reference_refit' %}
+  <div class="card card-body mb-3"><h3 class="mb-1">Reference re-fit · {{ e.created_at|dt }} · {{ e.created_by }}</h3>
+    <p class="small-muted mb-1">{{ r.method }}, {{ r.iterations }} iterations, {{ r.rows }} training rows. RMSE MAYA {{ '%.6g'|format(r.rmse_maya) }}{% if r.rmse_given is defined %} · parameter set {{ '%.6g'|format(r.rmse_given) }} · {{ pill('true' if r.agrees else 'false', 'agrees' if r.agrees else 'differs') }}{% endif %}</p>
+    <p class="mono small mb-0">{% for k, v in r.maya.items() %}{{ k }} = {{ '%.6g'|format(v) }}{% if r.given is defined and k in r.given %} (given {{ '%.6g'|format(r.given[k]) }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+  </div>{% else %}
   <div class="card card-body mb-3">
     <div class="d-flex flex-wrap gap-2 align-items-baseline"><h3 class="me-auto mb-1">{{ e.created_at|dt }} · {{ e.created_by }}</h3><span class="small-muted">{{ r.rows }} rows · RMSE {{ '%.4g'|format(r.rmse) }} · MAE {{ '%.4g'|format(r.mae) }}{% if r.scored_in == 'sandbox' %} · sandbox ({{ r.sandbox_tier }}){% endif %}</span></div>
     {% if r.segments %}{% set sg = r.segments %}
@@ -90,8 +94,23 @@
     {% call(i) table("imp-" ~ e.id[:8], ["Input", "RMSE increase when shuffled", "Spread", "Share"], r.importance) %}
       <td>{{ i.input }}{% if i.column != i.input %} <span class="small-muted">({{ i.column }})</span>{% endif %}</td><td data-sort="{{ i.rmse_increase }}">{{ '%.4g'|format(i.rmse_increase) }}</td><td>{{ '%.2g'|format(i.spread) }}</td><td data-sort="{{ i.share }}">{{ '%.0f%%'|format(100 * i.share) }}</td>
     {% endcall %}{% endif %}
-  </div>
+  </div>{% endif %}
   {% else %}<p class="small-muted">No evidence computed yet.</p>{% endfor %}
+  <div class="row g-3 mb-3">
+  <div class="col-lg-6"><form method="post" action="/warrants/training/{{ w.id }}/refit" class="card card-body h-100">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Reference re-fit</h3>
+    <p class="small-muted mb-2">For a closed-form model, MAYA fits the parameters itself on the training rows (least squares) and compares with a parameter set: a second route to the same answer. It never becomes a parameter set, and it does not touch the holdout.</p>
+    <label class="form-label" for="rfps">Compare with</label><select class="form-select mb-2" id="rfps" name="parameter_set_id"><option value="">nothing (just fit)</option>{% for p in w.parameter_sets %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+    <div><button class="btn btn-outline-primary" type="submit">Re-fit</button></div>
+  </form></div>
+  <div class="col-lg-6">{% if not w.sealed_at %}<form method="post" action="/warrants/training/{{ w.id }}/dispatch" class="card card-body h-100">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Dispatch to your compute</h3>
+    <p class="small-muted mb-2">MAYA runs nothing. It returns a signed manifest, a one-day key and ready-to-submit Kubernetes and SageMaker job definitions; inside the job, <code>maya.sdk.trainer.fit_under_warrant</code> fetches this warrant's data and uploads the parameters with the checksum.</p>
+    <label class="form-label" for="dimg">Container image</label><input class="form-control mb-2 mono" id="dimg" name="image" required placeholder="registry.example.com/risk/train:1.4">
+    <label class="form-label" for="dent">Entrypoint</label><input class="form-control mb-2 mono" id="dent" name="entrypoint" value="python train.py">
+    <div><button class="btn btn-outline-primary" type="submit">Prepare the job</button></div>
+  </form>{% endif %}</div>
+  </div>
   <form method="post" action="/warrants/training/{{ w.id }}/evidence" class="card card-body">
     <input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Compute evidence</h3>
     <div class="row g-2">

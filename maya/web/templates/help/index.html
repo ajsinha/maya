@@ -21,6 +21,7 @@
   <div class="cat-chips">
     {% for c in catalog %}<a class="chip" href="#cat-{{ c.id }}"><i class="bi bi-{{ c.icon }}" aria-hidden="true"></i> {{ c.name }} <span>{{ c.topics|length }}</span></a>{% endfor %}
     <a class="chip" href="#cat-guides"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Tutorials and references <span>{{ guides|length }}</span></a>
+    <a class="chip" href="/help/case-studies"><i class="bi bi-journal-code" aria-hidden="true"></i> Case studies <span>{{ studies|length }}</span></a>
   </div>
 </div>
 
@@ -58,6 +59,11 @@
     </div>
     {% endfor %}
   </div>
+</details>
+<details class="help-cat" id="cat-studies" open>
+  <summary><span class="cat-name"><span class="cat-ico"><i class="bi bi-journal-code" aria-hidden="true"></i></span> Case studies</span>
+    <span class="cat-count">{{ studies|length }}</span></summary>
+  <p class="cat-blurb">Real models carried through MAYA end to end — a PD scorecard, a Basel formula, a bought score, a mortality table, an LLM application and more. <a href="/help/case-studies">Open the case studies</a>.</p>
 </details>
 <div id="help-none" class="help-none" hidden><i class="bi bi-search" aria-hidden="true"></i> No help topic matches that search.</div>
 

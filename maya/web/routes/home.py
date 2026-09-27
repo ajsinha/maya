@@ -126,8 +126,12 @@ async def about(request: Request) -> Any:
 async def help_index(request: Request) -> Any:
     from maya.web.help_catalog import CATEGORIES, GUIDES
 
+    from maya.web.case_studies import catalog as studies
+
     return await render(
-        request, "help/index.html", {"catalog": CATEGORIES, "guides": GUIDES, "public_nav": True}
+        request,
+        "help/index.html",
+        {"catalog": CATEGORIES, "guides": GUIDES, "studies": studies(), "public_nav": True},
     )
 
 
@@ -152,6 +156,37 @@ async def help_guide(request: Request, slug: str) -> Any:
         return RedirectResponse("/help/guides", status_code=303)
     return await render(
         request, "help/guide.html", {"guide": guide, "doc": doc, "public_nav": True}
+    )
+
+
+@router.get("/help/case-studies")
+async def help_case_studies(request: Request) -> Any:
+    from maya.web.case_studies import catalog
+
+    return await render(
+        request, "help/case_studies.html", {"studies": catalog(), "public_nav": True}
+    )
+
+
+@router.get("/help/case-studies/{slug}")
+async def help_case_study(request: Request, slug: str) -> Any:
+    from maya.web import case_studies
+
+    studies = case_studies.catalog()
+    study = next((s for s in studies if s["slug"] == slug), None)
+    if study is None:
+        return RedirectResponse("/help/case-studies", status_code=303)
+    i = studies.index(study)
+    return await render(
+        request,
+        "help/case_study.html",
+        {
+            "study": study,
+            "doc": case_studies.render(slug),
+            "prev": studies[i - 1] if i else None,
+            "next": studies[i + 1] if i + 1 < len(studies) else None,
+            "public_nav": True,
+        },
     )
 
 
