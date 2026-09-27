@@ -988,7 +988,9 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `GET` | `/monitoring` | Every sealed execution warrant the caller may read, graded ok, watch or breach. |
 | `GET` | `/monitoring/warrants/{ew_id}` | One warrant's reported executions read as series: volume, null rates, ranges, PSI. |
 | `GET` | `/warrants/training/{warrant_id}/evidence` | Fairness and explainability evidence computed on this warrant's holdout. |
+| `POST` | `/warrants/training/{warrant_id}/dispatch` | A job definition for your own compute (Kubernetes, SageMaker), a signed manifest and a one-day key. MAYA runs nothing. |
 | `POST` | `/warrants/training/{warrant_id}/evidence` | Segment metrics and permutation importance on the holdout; counts as one attempt. |
+| `POST` | `/warrants/training/{warrant_id}/refit` | MAYA's own least-squares fit on the training split, compared with a parameter set. |
 
 ### inbox
 

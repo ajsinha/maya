@@ -120,3 +120,13 @@ class LlmRunIn(BaseModel):
 class LlmDecisionIn(BaseModel):
     decision: str
     note: str
+
+
+class DispatchIn(BaseModel):
+    image: str
+    entrypoint: str = "python train.py"
+    maya_url: str = "http://maya:8600"
+
+
+class RefitIn(BaseModel):
+    parameter_set_id: str | None = None

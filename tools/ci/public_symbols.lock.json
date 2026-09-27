@@ -167,7 +167,9 @@
     "class": "Evidence",
     "methods": {
      "compute": "(self, warrant_id, *, parameter_set_id=None, segment=None, importance=True, repeats=5, min_segment=20)",
-     "list": "(self, warrant_id)"
+     "dispatch": "(self, warrant_id, image, entrypoint='python train.py', maya_url='http://maya:8600')",
+     "list": "(self, warrant_id)",
+     "refit": "(self, warrant_id, parameter_set_id=None)"
     }
    },
    "execution": {
@@ -575,7 +577,9 @@
     "class": "Evidence",
     "methods": {
      "compute": "(self, warrant_id, *, parameter_set_id=None, segment=None, importance=True, repeats=5, min_segment=20)",
-     "list": "(self, warrant_id)"
+     "dispatch": "(self, warrant_id, image, entrypoint='python train.py', maya_url='http://maya:8600')",
+     "list": "(self, warrant_id)",
+     "refit": "(self, warrant_id, parameter_set_id=None)"
     }
    },
    "execution": {

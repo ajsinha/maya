@@ -83,6 +83,18 @@
   `data/`, configured by `config/application.yaml`, with each study in its own namespace,
   not a MAYA per study under `case_studies/runs/`.
 
+**Training directed, not done; and a second route to a fit**
+
+- **Dispatched training** (`POST /warrants/training/{id}/dispatch`, the warrant's *Fairness &
+  drivers* tab). MAYA runs nothing: it returns a signed manifest, a one-day API key scoped to the
+  namespace, and ready-to-submit Kubernetes `Job` and SageMaker `CreateTrainingJob` definitions.
+  Inside the job, `maya.sdk.trainer.fit_under_warrant(fit)` fetches the warrant's rows, calls the
+  firm's fit function, and uploads the parameters with the data checksum and the dispatch id.
+- **Reference re-fit** (`POST /warrants/training/{id}/refit`). For a closed-form model MAYA fits
+  the parameters itself on the training split — Levenberg–Marquardt least squares, in NumPy — and
+  compares with a parameter set: both training errors, the relative gap, and whether they agree.
+  Recorded as evidence; it never becomes a parameter set, and it does not touch the holdout.
+
 **Beside the ML platform, and in control of what it deploys**
 
 - **The MLflow registry follows the licence.** Every model version imported from an MLflow

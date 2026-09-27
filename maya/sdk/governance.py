@@ -190,3 +190,25 @@ class Evidence(_Resource):
             "min_segment": min_segment,
         }
         return self._c("POST", f"/warrants/training/{seg(warrant_id)}/evidence", json_body=body)
+
+    @endpoint("POST", "/warrants/training/{warrant_id}/dispatch")
+    def dispatch(
+        self,
+        warrant_id: str,
+        image: str,
+        entrypoint: str = "python train.py",
+        maya_url: str = "http://maya:8600",
+    ) -> Any:
+        return self._c(
+            "POST",
+            f"/warrants/training/{seg(warrant_id)}/dispatch",
+            json_body={"image": image, "entrypoint": entrypoint, "maya_url": maya_url},
+        )
+
+    @endpoint("POST", "/warrants/training/{warrant_id}/refit")
+    def refit(self, warrant_id: str, parameter_set_id: str | None = None) -> Any:
+        return self._c(
+            "POST",
+            f"/warrants/training/{seg(warrant_id)}/refit",
+            json_body={"parameter_set_id": parameter_set_id},
+        )

@@ -149,3 +149,20 @@ def compute_evidence(
 ) -> Response:
     """Segment metrics and permutation importance on the holdout; counts as one attempt."""
     return ok(plat.evidence.compute(me, warrant_id, **body.model_dump()), 201)
+
+
+@router.post("/warrants/training/{warrant_id}/dispatch", status_code=201, tags=["warrants"])
+def dispatch_training(
+    warrant_id: str, body: s.DispatchIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """A job definition for your own compute (Kubernetes, SageMaker), a signed manifest and a
+    one-day key. MAYA runs nothing."""
+    return ok(plat.training_ops.dispatch(me, warrant_id, **body.model_dump()), 201)
+
+
+@router.post("/warrants/training/{warrant_id}/refit", status_code=201, tags=["warrants"])
+def reference_refit(
+    warrant_id: str, body: s.RefitIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """MAYA's own least-squares fit on the training split, compared with a parameter set."""
+    return ok(plat.training_ops.refit(me, warrant_id, parameter_set_id=body.parameter_set_id), 201)

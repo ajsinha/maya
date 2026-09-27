@@ -601,3 +601,24 @@ def test_an_llm_application_from_registration_to_approval_through_forms(people):
     run_id = w.p.llm.get_app(w.mgr, "quant/triage")["runs"][0]["id"]
     assert "Route to billing." in mgr.get(f"/llm/quant/triage/runs/{run_id}").text
     assert "quant/triage" in mgr.get("/llm").text
+
+
+def test_dispatch_and_reference_refit_from_the_warrant_page(people):
+    w, app, b = people
+    devi = b["mgr"]
+    wid = next(t["id"] for t in w.p.warrants.list(w.mgr) if t["name"] == "web_chall")
+    devi.post(f"/warrants/training/{wid}/refit", {"parameter_set_id": ""}, expect="success")
+    assert "Reference re-fit" in devi.get(f"/warrants/training/{wid}?tab=evidence").text
+    other = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="web_dispatch",
+        model="quant/linear@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 7},
+    )
+    page = devi.post(
+        f"/warrants/training/{other['id']}/dispatch",
+        {"image": "reg/train:1", "entrypoint": "python train.py"},
+    )
+    assert "Kubernetes Job" in page.text and "shown once" in page.text
