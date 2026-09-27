@@ -510,7 +510,21 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
   justify-content: center; text-align: center; min-height: 560px; margin: -1.4rem -1.8rem 0;
   padding: 4.5rem 1.8rem 3.5rem;
   background: radial-gradient(900px 420px at 50% 30%, var(--maya-glow), transparent 72%); }
-#lpNet { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* the three figures landing.js draws; each canvas keeps the aspect of its drawing */
+.lp2-fig { position: relative; max-width: 860px; margin: 0 auto; }
+.lp2-fig canvas { display: block; width: 100%; }
+.lp2-fig-hero { margin-top: .6rem; }
+#lpQuestion { aspect-ratio: 800 / 260; }
+#lpClocks { aspect-ratio: 800 / 285; min-width: 620px; }
+#lpLedger { aspect-ratio: 800 / 295; min-width: 620px; }
+.lp2-fig-scroll { overflow-x: auto; }
+.lp2-fig-wide { padding: 1.2rem 1rem .6rem; border: 1px solid var(--maya-border); border-radius: 12px;
+  background: var(--maya-surface); }
+.lp2-figsec .lp2-eyebrow { text-align: center; }
+.lp2-replay { position: absolute; right: .6rem; bottom: .4rem; font-size: 12px; color: var(--maya-slate);
+  background: none; border: 0; padding: .2rem .4rem; border-radius: 6px; }
+.lp2-replay:hover, .lp2-replay:focus-visible { color: var(--maya-crimson); }
+@media (max-width: 575.98px) { .lp2-fig-hero { display: none; } }
 .lp2-hero-inner { position: relative; z-index: 1; max-width: 900px; }
 .lp2-badge { display: inline-flex; align-items: center; gap: .5rem; padding: .38rem 1rem;
   border-radius: 999px; margin-bottom: 1.6rem; font-size: 12.5px; color: var(--maya-slate);
