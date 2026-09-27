@@ -204,3 +204,103 @@ def test_snowflake_and_databricks_sources_are_accepted_with_their_guards():
     except ImportError:
         with pytest.raises(ValidationFailed, match="snowflake-sqlalchemy"):
             external.read_query("snowflake://r@a/db?role=R", None, "select 1")
+
+
+def test_the_registry_alias_follows_the_warrant(estate):
+    """Live warrant: the alias is set. Suspended: it is removed. Nothing changed: no call."""
+    import datetime as dt
+
+    from maya.core.clock import utcnow
+
+    w = estate
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path, request.content or str(request.url.params)))
+        return httpx.Response(200, json={})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    with w.p.uow("test") as uow:  # the model fetched from models:/pd/4 earlier in this module
+        model = uow.repo("models").find_one(name="pd_fetched")
+        v = uow.repo("model_versions").find_one(model_id=model["id"], version_no=1)
+        ew = uow.repo("execution_warrants").add(
+            {
+                "namespace_id": model["namespace_id"],
+                "name": "pd_live",
+                "state": "approved",
+                "owner_id": model["owner_id"],
+                "model_version_id": v["id"],
+                "spec": {"environments": ["prod"]},
+                "sealed_at": utcnow(),
+                "valid_from": utcnow(),
+                "valid_to": utcnow() + dt.timedelta(days=30),
+            }
+        )
+    first = w.p.integrations.sync_mlflow(w.admin, http=http)
+    assert first["set"] == ["pd/4"] and calls[-1][0] == "POST" and b'"maya-live"' in calls[-1][2]
+    assert w.p.integrations.sync_mlflow(w.admin, http=http)["set"] == [] and len(calls) == 1
+    with w.p.uow("test") as uow:
+        uow.repo("execution_warrants").update(
+            ew["id"], {"suspended_at": utcnow(), "suspend_reason": "drift"}
+        )
+    third = w.p.integrations.sync_mlflow(w.admin, http=http)
+    assert third["removed"] == ["pd/4"] and calls[-1][0] == "DELETE"
+    with pytest.raises(PermissionDenied):
+        w.p.integrations.sync_mlflow(w.mona, http=http)
+
+
+def test_a_guarded_scoring_call_is_licensed_reported_and_refused_once_suspended(estate):
+    import datetime as dt
+
+    import numpy as np
+    import pandas as pd
+
+    from maya.core.clock import utcnow
+    from maya.core.errors import WarrantSuspended
+    from maya.sdk.guard import WarrantGuard
+
+    w = estate
+    with w.p.uow("test") as uow:
+        model = uow.repo("models").find_one(name="pd_sm")
+        v = uow.repo("model_versions").find_one(model_id=model["id"], version_no=1)
+        ew = uow.repo("execution_warrants").add(
+            {
+                "namespace_id": model["namespace_id"],
+                "name": "pd_guarded",
+                "state": "approved",
+                "owner_id": model["owner_id"],
+                "model_version_id": v["id"],
+                "spec": {
+                    "environments": ["prod"],
+                    "contact": "risk@example.com",
+                    "covenants": [
+                        {
+                            "kind": "input_psi",
+                            "attr": "ltv",
+                            "max": 0.25,
+                            "baseline": [25, 25, 25, 25],
+                            "bin_edges": [0.0, 0.25, 0.5, 0.75, 1.0],
+                        }
+                    ],
+                },
+                "sealed_at": utcnow(),
+                "valid_from": utcnow(),
+                "valid_to": utcnow() + dt.timedelta(days=30),
+            }
+        )
+    from maya.api.app import create_api
+    from maya.sdk import Client
+
+    app = create_api(w.p)
+    admin = Client(app=app, token=Client(app=app).auth.login("admin", "maya-dev-admin")["token"])
+    guard = WarrantGuard(admin, ew["id"], "prod", recheck_seconds=0)
+    rng = np.random.default_rng(0)
+    steady = pd.DataFrame({"ltv": rng.uniform(0, 1, 400), "dti": rng.uniform(0, 1, 400)})
+    out = guard.score(lambda x: {"prediction": x["ltv"] * 0.1}, steady)
+    assert len(out["prediction"]) == 400
+    reports = w.p.monitoring.warrant(w.admin, ew["id"])
+    assert reports["runs"] == 1 and reports["series"]["inputs"]["ltv"][-1]["psi"] < 0.1
+    drifted = pd.DataFrame({"ltv": rng.uniform(0.8, 1, 400), "dti": rng.uniform(0, 1, 400)})
+    guard.score(lambda x: {"prediction": x["ltv"] * 0.1}, drifted)  # breaks the covenant
+    with pytest.raises(WarrantSuspended, match="risk@example.com"):
+        guard.score(lambda x: {"prediction": x["ltv"] * 0.1}, steady)

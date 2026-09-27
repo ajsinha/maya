@@ -74,3 +74,7 @@ class Integrations(_Resource):
     @endpoint("POST", "/integrations/openlineage/emit")
     def emit_openlineage(self) -> Any:
         return self._c("POST", "/integrations/openlineage/emit")
+
+    @endpoint("POST", "/integrations/mlflow/sync")
+    def sync_mlflow(self) -> Any:
+        return self._c("POST", "/integrations/mlflow/sync")

@@ -1003,6 +1003,7 @@ added without appearing here. Paths are relative to `/api/v1`.
 |---|---|---|
 | `POST` | `/integrations/mlflow/fetch` | The same, fetching the registered version's MLmodel from the configured server. |
 | `POST` | `/integrations/mlflow/import` | Register a black-box draft from an MLflow ``MLmodel`` file; its signature is the |
+| `POST` | `/integrations/mlflow/sync` | Point the live alias at MLflow versions with a live warrant, and remove it elsewhere (administrators; also runs every five minutes on its own). |
 | `POST` | `/integrations/openlineage/emit` | Post the events to the configured OpenLineage endpoint (administrators). |
 | `GET` | `/integrations/openlineage/events` | MAYA's lineage as OpenLineage RunEvents (administrators). |
 | `POST` | `/integrations/sagemaker/import` | Register a black-box draft from a SageMaker ``DescribeModelPackage`` document. |

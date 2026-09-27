@@ -47,3 +47,10 @@ def openlineage_events(me: Principal = Me, plat: Any = Plat) -> Response:
 def openlineage_emit(me: Principal = Me, plat: Any = Plat) -> Response:
     """Post the events to the configured OpenLineage endpoint (administrators)."""
     return ok(plat.integrations.emit_openlineage(me))
+
+
+@router.post("/integrations/mlflow/sync")
+def mlflow_sync(me: Principal = Me, plat: Any = Plat) -> Response:
+    """Point the live alias at MLflow versions with a live warrant, and remove it elsewhere
+    (administrators; also runs every five minutes on its own)."""
+    return ok(plat.integrations.sync_mlflow(me))

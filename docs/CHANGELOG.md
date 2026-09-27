@@ -83,7 +83,22 @@
   `data/`, configured by `config/application.yaml`, with each study in its own namespace,
   not a MAYA per study under `case_studies/runs/`.
 
-**The REST API guide, executed**
+**Beside the ML platform, and in control of what it deploys**
+
+- **The MLflow registry follows the licence.** Every model version imported from an MLflow
+  registered model carries the alias `maya-live` (`integrations.mlflow.live_alias`) while one of
+  its execution warrants is live, and loses it on suspension, revocation, expiry or an overdue
+  review. A reconciler, run every five minutes and on demand (`POST /integrations/mlflow/sync`,
+  *Connectors → Sync now*), so every way a warrant stops being live reaches the registry the
+  same way. MLflow aliases, not the stages MLflow deprecated.
+- **`maya.sdk.guard.WarrantGuard`** wraps whatever does the scoring: it checks the warrant is live
+  in the environment before the call, and reports the run after it — rows, and per input and
+  output the null rate, mean and range, plus a histogram on the covenant's own bin edges for any
+  input a stability covenant watches. Runs through a guard are attested; a breach suspends the
+  warrant and the next call is refused, naming whom to contact.
+- MAYA still trains and serves nothing: the platform that serves reads MAYA's decision from the
+  registry, and the code that scores asks MAYA before it runs.
+
 
 - [`docs/API_GUIDE.md`](API_GUIDE.md): the API from first `curl` to a sealed execution
   warrant, with a thirty-line Python client, every convention a client needs (API keys,
