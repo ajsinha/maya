@@ -17,7 +17,7 @@ import numpy as np
 
 NS = "market_risk"
 DATA = Path(__file__).resolve().parent / "data"
-FEEDS = ("index_daily", "macro_monthly")
+FEEDS = ("index_daily",)
 NEWLINE = b"\n"
 
 PANEL = "return_panel"
@@ -96,24 +96,25 @@ MEAN_CONSTRAINTS = [
 # admitting it. The model is registered as a declared black box with a code artifact.
 # ---------------------------------------------------------------------------------
 VOL_IR: dict[str, Any] = {
-    "outputs": [{"name": "sigma", "type": "float64"}],
+    "outputs": [{"name": "sigma2", "type": "float64"}],
     "inputs": [
         {"name": "ret", "type": "float64", "role": "feature"},
+        {"name": "index", "type": "string", "role": "feature"},
         {"name": "omega", "type": "float64", "role": "parameter", "bounds": [1e-12, 1e-2]},
         {"name": "alpha", "type": "float64", "role": "parameter", "bounds": [0.0, 1.0]},
         {"name": "beta", "type": "float64", "role": "parameter", "bounds": [0.0, 1.0]},
     ],
     "black_box": {
         "estimates": (
-            "the conditional standard deviation of tomorrow's log return, given every return "
-            "up to today"
+            "the conditional variance of each day's log return, given every return before it"
         ),
         "architecture": (
             "GARCH(1,1): sigma2_t = omega + alpha*shock_{t-1}^2 + beta*sigma2_{t-1}, recursed "
-            "from the sample variance, fitted by maximum likelihood under a Gaussian "
-            "conditional density with variance targeting. Recursive by construction: the "
-            "variance is a state carried between rows, which is why this is a black box and "
-            "not a formula"
+            "separately for each index from the unconditional variance omega/(1-alpha-beta), "
+            "the shock measured against the mean of the returns before it, fitted by maximum "
+            "likelihood under a Gaussian conditional density with variance targeting. "
+            "Recursive by construction: the variance is a state carried between rows, which is "
+            "why this is a black box and not a formula"
         ),
     },
     "constraints": [
@@ -137,8 +138,7 @@ VOL_WEIGHTS = ("omega", "alpha", "beta")
 # it can still run it in a sandbox, hash it, and refuse to let it be submitted if it does not
 # parse, imports something forbidden, touches the filesystem or is non-deterministic.
 VOL_CODE = '''
-"""GARCH(1,1) conditional volatility. Desk implementation."""
-
+"""GARCH(1,1) conditional variance, one recursion per index. Desk implementation."""
 import numpy as np
 
 
@@ -149,14 +149,20 @@ class Model:
 
     def predict(self, X, params, ctx):
         ret = np.asarray(X["ret"], dtype=float)
+        names = np.asarray(X["index"]).astype(str)
         omega, alpha, beta = params["omega"], params["alpha"], params["beta"]
         variance = np.empty(len(ret))
-        state = float(np.var(ret)) if len(ret) else omega
-        for t in range(len(ret)):
-            variance[t] = state
-            shock = ret[t] - float(np.mean(ret))
-            state = omega + alpha * shock * shock + beta * state
-        return np.sqrt(variance)
+        for name in np.unique(names):
+            rows = np.flatnonzero(names == name)  # already in date order
+            state = omega / max(1.0 - alpha - beta, 1e-9)  # the unconditional variance
+            total, seen = 0.0, 0
+            for t in rows:
+                variance[t] = state  # known before day t's return
+                mean = total / seen if seen else 0.0  # only the returns before day t
+                shock = ret[t] - mean
+                state = omega + alpha * shock * shock + beta * state
+                total, seen = total + ret[t], seen + 1
+        return variance
 '''
 
 # ---------------------------------------------------------------------------------
@@ -185,17 +191,7 @@ DAILY_DEF = {
     ],
 }
 
-MACRO_DEF = {
-    "index": ["date", "series"],
-    "index_types": {"date": "date", "series": "string"},
-    "schema": [{"name": "level", "type": "float64"}, {"name": "vintage", "type": "string"}],
-    "source": {"type": "csv", "knowledge_time_column": "kt"},
-    "resolution": {"grid": "as_is", "rules": {}},
-    "transform": [],
-    "quality": [{"check": "not_null", "attr": "level"}],
-}
-
-DEFINITIONS = {"index_daily": DAILY_DEF, "macro_monthly": MACRO_DEF}
+DEFINITIONS = {"index_daily": DAILY_DEF}
 
 PANEL_DEF = {
     "index": ["date", "index"],
@@ -279,12 +275,13 @@ SECTIONS_MEAN = {
 
 SECTIONS_VOL = {
     "Purpose": (
-        "Forecast the conditional standard deviation of tomorrow's daily log return, for "
+        "Forecast the conditional variance of tomorrow's daily log return, for "
         "value-at-risk, for option pricing inputs and for limit monitoring. The companion to "
         "market_risk/ar2_mean, which forecasts the conditional mean."
     ),
     "Scope and Limitations": (
-        "Daily log returns on liquid broad indices, one series at a time. It is a symmetric "
+        "Daily log returns on liquid broad indices, each recursed on its own with one pooled "
+        "parameter set. It is a symmetric "
         "model: it treats a fall and a rise of equal size as equally informative about "
         "tomorrow's variance, which is false for equities — the leverage effect is real and a "
         "GJR or EGARCH extension is the usual answer. It forecasts one day ahead; the "
@@ -292,9 +289,11 @@ SECTIONS_VOL = {
         "stationarity assumption. It says nothing about the shape of the tail beyond its scale."
     ),
     "Mathematical Formulation": (
-        "GARCH(1,1) on the residual of the mean model: $\\sigma_t^2 = \\omega + \\alpha "
-        "\\varepsilon_{t-1}^2 + \\beta \\sigma_{t-1}^2$, recursed from the sample variance, "
-        "with the forecast being $\\sigma_t$. \\textbf{This is not a row-wise expression.} The "
+        "GARCH(1,1): $\\sigma_t^2 = \\omega + \\alpha \\varepsilon_{t-1}^2 + \\beta "
+        "\\sigma_{t-1}^2$, where $\\varepsilon$ is the return less the mean of the returns before "
+        "it, recursed for each index from the unconditional variance $\\omega/(1-\\alpha-\\beta)$, "
+        "with the forecast being $\\sigma_t^2$. Nothing after day $t-1$ enters the forecast for "
+        "day $t$. \\textbf{This is not a row-wise expression.} The "
         "variance on the right is yesterday's variance, which is not an observable column but "
         "a state carried from row to row and dependent on the parameters, so no lag transform "
         "can produce it. MAYA's formula language evaluates one row at a time, so the model is "
@@ -390,7 +389,9 @@ def fit_ar2(lag1: np.ndarray, lag2: np.ndarray, y: np.ndarray) -> tuple[np.ndarr
     return beta, 1.0 - ss_res / ss_tot
 
 
-def garch_loglik(shock: np.ndarray, alpha: np.ndarray, beta: np.ndarray) -> np.ndarray:
+def garch_loglik(
+    shock: np.ndarray, alpha: np.ndarray, beta: np.ndarray, sample: float | None = None
+) -> np.ndarray:
     """Gaussian quasi-log-likelihood for every (alpha, beta) pair at once.
 
     The recursion is sequential in time and independent across pairs, so it vectorises across
@@ -399,7 +400,7 @@ def garch_loglik(shock: np.ndarray, alpha: np.ndarray, beta: np.ndarray) -> np.n
 
     Variance targeting pins omega to the sample variance and the persistence, which is what
     makes the surface a function of two parameters rather than three."""
-    sample = float(np.var(shock))
+    sample = float(np.var(shock)) if sample is None else sample
     omega = sample * (1.0 - alpha - beta)
     variance = np.full(alpha.shape, sample)
     total = np.zeros(alpha.shape)
@@ -410,14 +411,18 @@ def garch_loglik(shock: np.ndarray, alpha: np.ndarray, beta: np.ndarray) -> np.n
     return total
 
 
-def fit_garch(shock: np.ndarray) -> tuple[dict[str, float], float]:
+def fit_garch(shock: np.ndarray | list[np.ndarray]) -> tuple[dict[str, float], float]:
     """Grid, then refine twice. Returns the parameters and the log-likelihood.
 
     A grid rather than a gradient method on purpose: the likelihood is nearly flat along
     ``alpha + beta``, and an optimiser started carelessly walks up to the stationarity
     boundary and reports a persistence of one, which is the commonest way a GARCH fit goes
-    wrong and the reason the constraint on this model exists."""
-    sample = float(np.var(shock))
+    wrong and the reason the constraint on this model exists.
+
+    Given several series (one per index, all from one process) it maximises their summed
+    likelihood with one parameter set, each series recursed on its own."""
+    series = shock if isinstance(shock, list) else [shock]
+    sample = float(np.var(np.concatenate(series)))
     lo_a, hi_a, lo_b, hi_b = 0.005, 0.30, 0.50, 0.99
     best = {"alpha": 0.1, "beta": 0.85}
     loglik = -np.inf
@@ -427,7 +432,7 @@ def fit_garch(shock: np.ndarray) -> tuple[dict[str, float], float]:
         grid_a, grid_b = np.meshgrid(a, b, indexing="ij")
         allowed = grid_a + grid_b < 0.9995
         flat_a, flat_b = grid_a[allowed], grid_b[allowed]
-        ll = garch_loglik(shock, flat_a, flat_b)
+        ll = sum(garch_loglik(x, flat_a, flat_b, sample) for x in series)
         k = int(np.argmax(ll))
         best = {"alpha": float(flat_a[k]), "beta": float(flat_b[k])}
         loglik = float(ll[k])
@@ -438,7 +443,15 @@ def fit_garch(shock: np.ndarray) -> tuple[dict[str, float], float]:
     return {"omega": float(omega), **best}, loglik
 
 
-def constant_variance_loglik(shock: np.ndarray) -> float:
+def constant_variance_loglik(shock: np.ndarray | list[np.ndarray]) -> float:
     """The likelihood of the model GARCH has to beat: one variance for the whole sample."""
-    sample = float(np.var(shock))
-    return float(-0.5 * np.sum(np.log(sample) + shock**2 / sample))
+    x = np.concatenate(shock) if isinstance(shock, list) else shock
+    sample = float(np.var(x))
+    return float(-0.5 * np.sum(np.log(sample) + x**2 / sample))
+
+
+# A few rows for the artifact ladder's smoke run: two indices, interleaved as a panel is.
+SAMPLE = {
+    "ret": [0.004, -0.006, 0.011, -0.002, -0.013, 0.007],
+    "index": ["AZX", "BQI", "AZX", "BQI", "AZX", "BQI"],
+}

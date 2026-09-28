@@ -468,3 +468,72 @@ def test_batch_scoring_is_attested_reported_and_refused_off_warrant(journey):
     assert shown["custody"][-1]["event"] == "batch_scored"
     assert shown["custody"][-1]["detail"]["output_hash"] == result["output_hash"]
     assert len(frame) == result["rows"]
+
+
+def test_a_time_series_warrant_holds_out_the_last_dates_in_order():
+    """``shape: time_series`` splits by event date, never at random: the test is the last
+    stretch of dates, every row of a date in one partition, and the frame in date order."""
+    import pandas as pd
+
+    from maya.services.warrants import assign_splits
+
+    dates = pd.date_range("2025-01-01", periods=100, freq="D")
+    df = pd.DataFrame({"date": list(dates) * 2, "index": ["a"] * 100 + ["b"] * 100})
+    split = {"train": 0.7, "validation": 0.1, "test": 0.2}
+    parts = assign_splits(df, ["date", "index"], split, seed=1, shape="time_series")
+    by_date = df.assign(part=parts).groupby("date")["part"].nunique()
+    assert (by_date == 1).all(), "every row of a date is in one partition"
+    last = df.assign(part=parts)
+    assert (
+        last.loc[last.part == "test", "date"].min() > last.loc[last.part == "train", "date"].max()
+    )
+    assert (parts == "test").sum() == 40 and (parts == "train").sum() == 140
+    # the seed does not move a time-series split; the tabular one it does
+    assert (assign_splits(df, ["date", "index"], split, seed=2, shape="time_series") == parts).all()
+    with pytest.raises(ValidationFailed, match="shape"):
+        from tests.conftest import build_platform
+
+        p = build_platform()
+        try:
+            p.warrants._normalise_spec({"shape": "panel"})
+        finally:
+            p.shutdown()
+
+
+def test_a_features_transforms_are_part_of_what_it_offers():
+    """A lag or a derived column exists only after the pipeline runs; the feature still
+    offers it, so a feature set can map it (it used to see only the upload's columns)."""
+    from maya.services.feature_data import output_schema
+
+    eff = {
+        "index": ["date", "index"],
+        "schema": [{"name": "ret", "type": "float64"}],
+        "transform": [
+            {"op": "lag", "attr": "ret", "n": 1, "name": "retLag1"},
+            {"op": "derive", "name": "retSq", "expr": "ret * ret"},
+        ],
+    }
+    assert [a["name"] for a in output_schema(eff)] == ["ret", "retLag1", "retSq"]
+
+
+def test_a_model_may_read_an_index_column_and_a_text_input_is_not_forced_numeric():
+    """A per-series model reads the series name to keep its recursions apart; the contract
+    lets it, and still refuses a numeric input bound to a text column."""
+    from maya.services.warrants import WarrantService
+
+    meta = {
+        "index": ["date", "index"],
+        "index_types": {"date": "date", "index": "string"},
+        "schema": [{"name": "ret", "type": "float64"}],
+    }
+    per_series = {
+        "input_contract": [
+            {"name": "ret", "type": "float64", "role": "feature"},
+            {"name": "index", "type": "string", "role": "feature"},
+        ]
+    }
+    ok = WarrantService(None).validate_contract(per_series, meta, {"bindings": {}, "target": "ret"})
+    assert ok["ok"], ok["problems"]
+    wrong = {"input_contract": [{"name": "index", "type": "float64", "role": "feature"}]}
+    bad = WarrantService(None).validate_contract(wrong, meta, {"bindings": {}, "target": "ret"})
+    assert not bad["ok"] and "is float64 but 'index' is string" in bad["problems"][0]

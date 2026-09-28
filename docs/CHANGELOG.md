@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+**Case study 8: AR(2) and GARCH(1,1), and what time series needed from MAYA**
+
+- Case study 8 is built: daily returns on three indices, the lags of an AR(2) as governed
+  feature transforms, stationarity as joint constraints (an explosive AR(2) and a GARCH
+  persistence above one are refused at upload), GARCH as a declared black box scored blind
+  in the sandbox, and an execution warrant a crash week suspends. It is in Help with the
+  other fourteen, and the landing page counts the studies from the index.
+- **Time-ordered splits.** A training warrant drawn with `shape: time_series` holds out the
+  last dates: the earliest train, the next validate, the last are the escrowed test, every
+  row of a date in one partition and the rows in date order. A random split trains on the
+  future and scatters the holdout a stateful model has to run through in order. The warrant
+  form offers it as *Split: by date*.
+- **A feature offers what its transforms add.** A resolved feature, a pin and a feature's
+  definition-time metadata now report the schema as the transform pipeline leaves it, so a
+  feature set can map a lag or a derived column.
+- **A model may read an index column**, such as the series name a per-series model groups by,
+  and blind scoring passes each input as its declared type rather than forcing every input to
+  a number.
+
 - The hero's chain names what each stage means, from the chain figure's own notes: data as
   it arrived, a feature as it stood then, a pin readable for ever, a model MAYA evaluates, a
   warrant without which it does not run, and a run reported and checked.

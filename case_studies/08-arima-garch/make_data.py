@@ -1,5 +1,5 @@
 """
-The two feeds this case study ingests, written to ``data/`` as CSV.
+The feed this case study ingests, written to ``data/`` as CSV.
 
     .venv/bin/python case_studies/08-arima-garch/make_data.py
 
@@ -9,12 +9,6 @@ and the data is shaped to make both halves of that awkwardness visible.
 * ``index_daily.csv`` — the daily close of three equity indices and the log return
   computed from it. Known that evening, which for a closing price is the one lag nobody
   argues about.
-* ``macro_monthly.csv`` — one macro series, industrial production, indexed on ``(date,
-  series)`` at month end and **revised**: the first estimate lands two weeks after the
-  month, and a revision lands six weeks after it. Both are in the file, with different
-  knowledge times, because that is what a macro series *is*. The AR model never uses it;
-  it is there so the study can say what a lag means when the value at a lag has been
-  revised since.
 
 The returns are generated from a process with two parts, and they are the two halves of
 the study:
@@ -104,31 +98,7 @@ def generate() -> dict[str, pd.DataFrame]:
                 }
             )
 
-    # The macro series, with both vintages of every month in the file.
-    macro = []
-    level = 100.0
-    month = dt.date(FIRST.year, FIRST.month, 1)
-    while month < dates[-1]:
-        end = (month.replace(day=28) + dt.timedelta(days=8)).replace(day=1) - dt.timedelta(days=1)
-        if end > dates[-1]:
-            break
-        level *= 1.0 + float(rng.normal(0.0018, 0.008))
-        first_estimate = level * (1.0 + float(rng.normal(0.0, 0.004)))
-        for value, lag, vintage in (
-            (first_estimate, 14, "first"),
-            (level, 45, "revised"),
-        ):
-            macro.append(
-                {
-                    "date": end,
-                    "series": "industrial_production",
-                    "level": round(float(value), 4),
-                    "vintage": vintage,
-                    "kt": f"{end + dt.timedelta(days=lag)}T09:30:00Z",
-                }
-            )
-        month = (month.replace(day=28) + dt.timedelta(days=8)).replace(day=1)
-    return {"index_daily": pd.DataFrame(rows), "macro_monthly": pd.DataFrame(macro)}
+    return {"index_daily": pd.DataFrame(rows)}
 
 
 def main() -> int:
