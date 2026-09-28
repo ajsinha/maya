@@ -180,3 +180,28 @@ class HoldoutScore(Tracked, Base):
     parameter_set_id: Mapped[str | None] = mapped_column(PortableUUID)
     attempt_no: Mapped[int] = mapped_column(Integer)
     metrics: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+
+
+class RestatementImpact(Tracked, Base):
+    """What a restatement under a live model's training pin changed (§29.1, §29.4).
+
+    The pin itself never moves; this records the difference between it and the same
+    definition resolved with what is known now: rows changed, the holdout metrics both ways,
+    and how far the live parameters' predictions moved."""
+
+    __tablename__ = "restatement_impacts"
+    execution_warrant_id: Mapped[str] = mapped_column(PortableUUID, index=True)
+    training_warrant_id: Mapped[str] = mapped_column(PortableUUID)
+    feature_set_pin_id: Mapped[str] = mapped_column(PortableUUID)
+    trigger: Mapped[str | None] = mapped_column(String(512))
+    knowledge_time: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    sealed_hash: Mapped[str] = mapped_column(String(64))
+    corrected_hash: Mapped[str] = mapped_column(String(64))
+    rows: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    metrics_sealed: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    metrics_corrected: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    shift: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    state: Mapped[str] = mapped_column(String(16), default="open")
+    acknowledged_by: Mapped[str | None] = mapped_column(String(128))
+    acknowledged_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)
+    note: Mapped[str | None] = mapped_column(Text)

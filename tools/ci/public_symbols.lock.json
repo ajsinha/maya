@@ -199,7 +199,9 @@
    "execution": {
     "class": "ExecutionWarrants",
     "methods": {
+     "acknowledge_restatement": "(self, impact_id, note)",
      "bundle": "(self, ew_id, environment, offline=False)",
+     "check_restatements": "(self, ew_id)",
      "create": "(self, namespace, name, **kw)",
      "get": "(self, ew_id)",
      "iter": "(self, q=None, page_size=100, sort=None)",
@@ -208,6 +210,7 @@
      "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "reinstate": "(self, ew_id, reason)",
      "report": "(self, ew_id, environment, rows, input_stats=None, output_stats=None)",
+     "restatements": "(self, ew_id)",
      "revoke": "(self, ew_id, reason)",
      "seal": "(self, ew_id)",
      "token": "(self, ew_id, environment)",
@@ -634,7 +637,9 @@
    "execution": {
     "class": "ExecutionWarrants",
     "methods": {
+     "acknowledge_restatement": "(self, impact_id, note)",
      "bundle": "(self, ew_id, environment, offline=False)",
+     "check_restatements": "(self, ew_id)",
      "create": "(self, namespace, name, **kw)",
      "get": "(self, ew_id)",
      "iter": "(self, q=None, page_size=100, sort=None)",
@@ -643,6 +648,7 @@
      "page": "(self, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "reinstate": "(self, ew_id, reason)",
      "report": "(self, ew_id, environment, rows, input_stats=None, output_stats=None)",
+     "restatements": "(self, ew_id)",
      "revoke": "(self, ew_id, reason)",
      "seal": "(self, ew_id)",
      "token": "(self, ew_id, environment)",

@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**Restatement alerts: when data is corrected under a live model**
+
+- After an ingest restates rows, MAYA checks every live execution warrant. It resolves the
+  training pin's definition again with what is known now, over the same member feature
+  versions and as-of date. If the result differs from the sealed pin, it records an
+  **impact**: the rows changed (in training and in the holdout), added and dropped; the
+  approved parameters scored blind on the holdout both ways; and how far the predictions
+  moved (mean, largest, share of rows).
+- The warrant's owner, the model's owner and every model manager are notified. The impact
+  stays open on the warrant's new **Restated data** section until one of them acknowledges
+  it with a note.
+- The pin never changes, no holdout attempt is spent, nothing is suspended automatically,
+  and the same correction is never reported twice. **Check now** runs the check on demand.
+  `GET /warrants/execution/{id}/restatements`, `POST …/restatements/check`,
+  `POST /restatements/{id}/acknowledge`; the setting `restatements.alerts` turns the
+  automatic check off.
+- **Schema change:** a new `restatement_impacts` table; rebuild an existing database.
+
 **Every language-model call goes through the AI gateway**
 
 - **The recorded challenger on any model.** `assistant.provider: llm` asks the profile

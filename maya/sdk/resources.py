@@ -1351,6 +1351,22 @@ class ExecutionWarrants(_Resource):
             "POST", f"/warrants/execution/{seg(ew_id)}/revoke", json_body={"reason": reason}
         )
 
+    @endpoint("GET", "/warrants/execution/{ew_id}/restatements")
+    def restatements(self, ew_id: str) -> Any:
+        """Corrections to the data under the training pin: rows changed, the holdout scored
+        both ways, and how far the predictions moved."""
+        return self._c("GET", f"/warrants/execution/{seg(ew_id)}/restatements")
+
+    @endpoint("POST", "/warrants/execution/{ew_id}/restatements/check")
+    def check_restatements(self, ew_id: str) -> Any:
+        return self._c("POST", f"/warrants/execution/{seg(ew_id)}/restatements/check")
+
+    @endpoint("POST", "/restatements/{impact_id}/acknowledge")
+    def acknowledge_restatement(self, impact_id: str, note: str) -> Any:
+        return self._c(
+            "POST", f"/restatements/{seg(impact_id)}/acknowledge", json_body={"reason": note}
+        )
+
 
 class Workflow(_Resource):
     @endpoint("GET", "/workflow/queue")

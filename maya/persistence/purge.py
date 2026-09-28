@@ -108,6 +108,8 @@ class _Purge:
         warrants = c["trains"] | c["execs"]
         self.drop("custody_events", "warrant_id", warrants)
         self.drop("execution_reports", "execution_warrant_id", c["execs"])
+        self.drop("restatement_impacts", "execution_warrant_id", c["execs"])
+        self.drop("restatement_impacts", "training_warrant_id", c["trains"])
         for table in ("holdout_scores", "warrant_evidence"):
             self.drop(table, "training_warrant_id", c["trains"])
         for column in ("champion_warrant_id", "challenger_warrant_id"):

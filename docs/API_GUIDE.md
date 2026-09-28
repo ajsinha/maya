@@ -1111,6 +1111,7 @@ added without appearing here. Paths are relative to `/api/v1`.
 |---|---|---|
 | `POST` | `/bundles/verify` | Verify Bundle |
 | `POST` | `/parameters/{parameter_set_id}/transitions/{transition}` | Parameter Transition |
+| `POST` | `/restatements/{impact_id}/acknowledge` | Say what was done about a restatement: refitted, or why it does not matter. |
 | `GET` | `/warrants/execution` | List Execution |
 | `POST` | `/warrants/execution` | Create Execution |
 | `GET` | `/warrants/execution/{ew_id}` | Get Execution |
@@ -1118,6 +1119,8 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `GET` | `/warrants/execution/{ew_id}/manifest.pdf` | §9.2's human-readable execution manifest: what can be run, on what inputs, by whom, |
 | `POST` | `/warrants/execution/{ew_id}/reinstate` | Reinstate Execution |
 | `POST` | `/warrants/execution/{ew_id}/report` | Execution Report |
+| `GET` | `/warrants/execution/{ew_id}/restatements` | What corrections to the data under this warrant's training pin changed, newest first. |
+| `POST` | `/warrants/execution/{ew_id}/restatements/check` | Queue a check of the training pin against what is known now. |
 | `POST` | `/warrants/execution/{ew_id}/revoke` | Revoke Execution |
 | `POST` | `/warrants/execution/{ew_id}/seal` | Seal Execution |
 | `POST` | `/warrants/execution/{ew_id}/token` | Execution Token |

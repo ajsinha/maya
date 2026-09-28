@@ -30,6 +30,7 @@ def _governance(platform: Any) -> None:
     from maya.services.ai import AiGateway
     from maya.services.documents import DocumentService
     from maya.services.monitoring import MonitoringService
+    from maya.services.restatements import RestatementService
 
     for name, cls in (
         ("governance", GovernanceService),
@@ -43,6 +44,7 @@ def _governance(platform: Any) -> None:
         ("batches", BatchScoring),
         ("ai", AiGateway),
         ("documents", DocumentService),
+        ("restatements", RestatementService),
     ):
         platform.register_service(name, cls(platform))
 
@@ -180,6 +182,8 @@ def _jobs(platform: Any) -> None:
     q.register("assistant.challenge", platform.assistant.run_job)
     q.register("execution.batch_score", platform.batches.run_job)
     q.register("documents.generate", platform.documents.run_job)
+    q.register("restatement.assess", platform.restatements.run_job)
+    q.register("restatement.assess.one", platform.restatements.run_one)
     q.register(
         "featureset.pin",
         _announcing(platform, "featureset", platform.featuresets.run_pin_job),

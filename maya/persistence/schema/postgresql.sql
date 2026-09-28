@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 0bb7daaac8b769ed2c65222fc5adcca5318f8501706b1458b1a8b10176a17193
+-- schema-hash: bcf8f993a7e72ee5062b17a6974a93fb7b92c76281053ff140e4287952e0a6a0
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -445,6 +445,33 @@ CREATE TABLE notifications (
 );
 
 CREATE INDEX ix_notifications_user_id ON notifications (user_id);
+
+CREATE TABLE restatement_impacts (
+	execution_warrant_id UUID NOT NULL, 
+	training_warrant_id UUID NOT NULL, 
+	feature_set_pin_id UUID NOT NULL, 
+	trigger VARCHAR(512), 
+	knowledge_time TIMESTAMP WITH TIME ZONE, 
+	sealed_hash VARCHAR(64) NOT NULL, 
+	corrected_hash VARCHAR(64) NOT NULL, 
+	rows JSONB NOT NULL, 
+	metrics_sealed JSONB NOT NULL, 
+	metrics_corrected JSONB NOT NULL, 
+	shift JSONB NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	acknowledged_by VARCHAR(128), 
+	acknowledged_at TIMESTAMP WITH TIME ZONE, 
+	note TEXT, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_restatement_impacts PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_restatement_impacts_execution_warrant_id ON restatement_impacts (execution_warrant_id);
 
 CREATE TABLE restore_drills (
 	performed_at TIMESTAMP WITH TIME ZONE NOT NULL, 

@@ -490,3 +490,23 @@ def revoke_execution(
     ew_id: str, body: s.ReasonIn, me: Principal = Me, plat: Any = Plat
 ) -> Response:
     return ok(plat.execution.revoke(me, ew_id, body.reason))
+
+
+@router.get("/warrants/execution/{ew_id}/restatements", tags=["warrants"])
+def execution_restatements(ew_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """What corrections to the data under this warrant's training pin changed, newest first."""
+    return ok(plat.restatements.list(me, ew_id))
+
+
+@router.post("/warrants/execution/{ew_id}/restatements/check", tags=["warrants"], status_code=202)
+def check_restatements(ew_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Queue a check of the training pin against what is known now."""
+    return ok(plat.restatements.check(me, ew_id), 202)
+
+
+@router.post("/restatements/{impact_id}/acknowledge", tags=["warrants"])
+def acknowledge_restatement(
+    impact_id: str, body: s.ReasonIn, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """Say what was done about a restatement: refitted, or why it does not matter."""
+    return ok(plat.restatements.acknowledge(me, impact_id, body.reason))
