@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Specification revision 2.7**
+
+- The specification catches up with the code, each change marked *Revision 2.7* where it
+  lands: the governance layer (§21.4: findings, materiality, periodic review, monitoring,
+  champion and challenger, fairness and importance, the supervisory inventory); models MAYA
+  cannot read (§21.5: black boxes as sandboxed oracles, MLflow and SageMaker imports, LLM
+  applications); time-ordered splits, typed and index-column inputs, training dispatch and the
+  reference re-fit (§9.1); attested batch scoring (§9.6); the MLflow alias and the scoring
+  guard (§9.7); a feature's output schema (§5.4); the password settings (§12); the screens
+  (§16.8); the case-study runner (§23); and §25's model-runtime row corrected. The `.docx` and
+  `.pdf` are rebuilt, and the deck and the paper cite revision 2.7.
+
 **The deck and the research paper, brought up to date**
 
 - The deck is 72 slides. New: *The licence reaches the platform that trains and serves* (the

@@ -2,6 +2,23 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.7 — 2026-09-28.** The first revision since version 1.0.0, and the largest since
+> 2.2: this document had not described the governance layer at all, nor what was built after it.
+> Each change is marked *Revision 2.7* where it lands. §21.4 is new and specifies the governance
+> layer — findings, materiality, periodic review, monitoring, champion and challenger, fairness
+> and importance, and the supervisory inventory — and §21.5 the models MAYA cannot read: black
+> boxes scored as sandboxed oracles, imports from MLflow and SageMaker, and applications built on a
+> language model. §9 gains the time-ordered split a series needs (§9.1), training dispatched to the
+> firm's own compute and a reference re-fit (§9.1), attested batch scoring (§9.6), and the licence
+> carried to the platform that deploys — an MLflow alias that follows it and a guard around the
+> scoring call (§9.7). §25's model-runtime row said MAYA executes no model code, which stopped being
+> true when black boxes were first scored blind; it now says what MAYA runs and what it still does
+> not. Smaller: a feature offers the columns its transforms add (§5.4); a model's contract may name an
+> index column and each input keeps its declared type (§9.1); the forced first-sign-in password
+> change is a setting, off by default, and the default password policy is shorter (§12); what the
+> screens gained, from authoring hints to the case studies in Help (§16.8); the case-study runner as
+> a test layer (§23); and the competitive analysis as a public page (§27).
+>
 > **Revision 2.6 — 2026-09-20.** No new decisions. Like revision 2.4, this one marks places
 > where the document had fallen behind the code, each as *Revision 2.6* where it lands, found
 > by reading every sentence of it against `maya/`. §3's capability matrix still withheld
@@ -301,6 +318,12 @@ Look-ahead safety matters for anything used in training. `linear_interp` and `ba
 ### 5.4 Transformations
 
 A feature may declare an ordered pipeline of typed steps between source and output: `rename`, `cast`, `filter`, `derive(expr)`, `aggregate(by, agg)`, `pivot`, `unpivot`, `window(fn, size)`, `lag(n)`, `resample(freq, agg)`, `dedupe(keep)`, `clip`, `winsorize(p)`. Steps are expressed in a restricted, side-effect-free expression language that compiles to Arrow compute kernels, so MAYA can show the plan, hash it, and run it identically on every backend.
+
+*Revision 2.7:* what a feature **offers** is its declared schema as the pipeline leaves it, not the
+schema of the upload. A `lag` or a `derive` adds a column that exists only after the pipeline runs;
+the feature's metadata — resolved, pinned, or read at definition time by a feature set — reports the
+pipeline's output schema, so a feature set can map a lag like any other attribute. The declared
+schema still describes, and is checked against, what is ingested.
 
 ### 5.5 Quality contract
 
@@ -710,6 +733,36 @@ On download, MAYA records who downloaded, when, and the checksum issued. On para
 
 **Parameters produced outside MAYA are the normal case**, exactly as the notes describe, and MAYA treats offline training as first class: a `maya warrant fetch TW-114` CLI command, an SDK context manager that downloads, verifies and yields Arrow tables, and an upload that accepts JSON, NPZ, Pickle (scanned), or ONNX weights with a declared schema.
 
+*Revision 2.7:* **the split has a shape.** `shape: tabular` (the default) assigns rows by hashing the
+seed with each row's key, so train, validation and test are samples. `shape: time_series` splits by
+the first index column, the event date: the earliest dates train, the next validate, the last are
+the test. Every row of one date lands in one partition, so a panel of several series is cut at the
+same instant for all of them; the seed does not enter; and the frame is put in event order before
+it is escrowed, so a model that carries state from one row to the next scores the holdout in the
+order it happened. A random split of a series trains on the future and scatters the rows a
+recursion must run through; a warrant on a series MUST be drawn as `time_series`. The warrant
+form offers the choice as *Split: rows at random* or *by date*.
+
+*Revision 2.7:* **what a contract may bind.** A model input binds to an attribute of the feature set
+**or to one of its index columns** — an index column is on every row, and a per-series model keeps
+its series apart by it. Each input is passed as its declared type: numeric inputs as numbers,
+anything else as text; a numeric input bound to a text column is refused, listing it.
+
+*Revision 2.7:* **training that MAYA directs but does not do.** A training warrant can be dispatched:
+MAYA returns a manifest (the warrant, the data's download path, target, seed, split) signed with the
+platform key, an API key scoped to the warrant's namespace that expires in a day, and two job
+definitions ready to submit — a Kubernetes `Job` and a SageMaker `CreateTrainingJob` request. It runs
+nothing. Inside the job, `maya.sdk.trainer.fit_under_warrant` downloads the warrant's data, calls the
+firm's fit function and uploads the parameters with the data's checksum and the dispatch id, so the
+parameter set records which dispatched run produced it. A sealed warrant cannot be dispatched.
+
+*Revision 2.7:* **a reference re-fit.** For a closed-form model with parameters, MAYA can fit them
+itself on the warrant's training rows — Levenberg–Marquardt least squares, starting from a given
+parameter set's values and respecting declared bounds — and compare: both training errors, the
+relative gap per parameter, and whether the two agree. The result is stored as evidence on the
+warrant. It is never a parameter set: MAYA checks a fit, it does not supply one. It reads only the
+training split, so it is not a holdout attempt.
+
 ### 9.2 Execution warrant
 
 Drawn from either a training warrant (taking its model version and an approved parameter set) or directly from a model version for non-trainable models. It answers: *what can be run, on what inputs, by whom, until when.*
@@ -739,6 +792,35 @@ What the warrant adds for a composite:
 - **Per-member metrics.** Metrics are recorded per member and for the composite as a whole, which is what makes "the ensemble improved but the skew member degraded" visible at review.
 
 An execution warrant over a composite resolves the whole DAG: the manifest names the member models, their parameter sets, the combine expression, the execution order and the single input contract the caller must satisfy. The caller runs one thing. Revocation is atomic over the composite; revoking a warrant on a member model also flags every composite execution warrant that embeds it, with the member named.
+
+### 9.6 Attested batch scoring
+
+*Revision 2.7.* Under a **live** execution warrant, in an environment it covers, MAYA scores a
+**pinned** feature set as a background job, running only what blind scoring already runs: a model
+with a formula is evaluated from its IR with the warrant's approved parameters; a declared black box
+runs its validated artifact in the sandbox. A reference that is not a pin is refused, as is an
+environment the warrant does not cover, before any job is queued. Every batch is attested three ways
+at once: the output table is sealed by its canonical content hash and stored; the run is reported on
+the warrant exactly as an external caller reports one, so its covenants are evaluated and a breach
+suspends the warrant; and the custody chain records the pin that went in and the hash that came out.
+The output downloads as Parquet, with its hash in `X-Maya-Content-Hash`, by whoever ran the batch or an
+administrator. MAYA still serves nothing online (§2); a batch is a licensed, reproducible job, not a
+serving endpoint.
+
+### 9.7 The licence at the platform's edge
+
+*Revision 2.7.* MAYA does not deploy, so the licence has to reach whatever does.
+
+- **The registry alias follows the warrant.** For a model version imported from MLflow, a reconciler
+  sets an alias (`integrations.mlflow.live_alias`, default `maya-live`) on the registered version while
+  any execution warrant for it is live, and removes it when none is. It runs on the scheduler every five
+  minutes and on demand, calls MLflow only on a change, and audits each one. A deployment that follows the
+  alias follows the licence, lagging it by at most the interval; a write MLflow refuses is reported.
+- **A guard around the scoring call.** `maya.sdk.guard.WarrantGuard` checks the warrant's status and
+  environment before a call — refusing with the same errors as any SDK call against a suspended, expired
+  or revoked warrant — and reports the run after it, with input statistics on the bins an `input_psi`
+  covenant declared, so the covenants are evaluated on real traffic. It runs in the caller's process; MAYA
+  is not in the request path.
 
 ## 10. Workflow and approval engine
 
@@ -894,6 +976,13 @@ auth:
 ```
 
 **Bootstrap.** On first start with an empty database MAYA creates `admin` with password `maya-dev-admin`, as specified. It is created with `must_change_password: true`, and the login banner, the system health page and a startup log line all warn while the default password is unchanged. In any deployment where `environment != dev`, MAYA refuses to start with the default password unless `allow_default_admin_password: true` is set explicitly — a deliberate speed bump against shipping the default to production.
+
+*Revision 2.7:* the forced change is a setting. `auth.password.force_change` (default **false**) decides
+whether a password an administrator set — the bootstrap admin's, a new account's, a reset — must be
+changed at the next sign-in; with SSO it is rarely wanted, and a flag left from before is ignored while
+the setting is off. The default policy is now eight characters using two of lower, upper, digit and
+symbol (`auth.password.min_length`, at least four; `auth.password.require_classes`). The maximum age still
+refuses an expired password until it is reset; `auth.password.max_age_days: 0` switches that off.
 
 **Passwords** are hashed with Argon2id (memory 64 MB, time 3, parallelism 4), never logged, never returned by any API. Password reset uses single-use, time-limited tokens; an administrator reset forces a change at next login.
 
@@ -1431,6 +1520,28 @@ is produced by it. It provides, uniformly:
 macro (SC-17). This is deliberately the same shape of check as the navigation crawler:
 a rule that is merely written down is a rule that holds until the first deadline.
 
+### 16.8 What the screens gained
+
+*Revision 2.7.*
+
+- **The landing page** makes its argument in three figures, each drawn once when it comes into view and
+  then left at rest, with a replay control and a still frame under reduced motion: the question every
+  model must answer turning into the chain MAYA keeps (hero); two clocks, with values known too late
+  refused at the gate `k ≤ e + ℓ`; and the audit log writing itself. The number strip counts the case
+  studies from their index.
+- **A public competitive page** (`/about/competitive`), linked from About and Help: the category table of
+  §27, each row linked to a note on what the others leave unsolved and how MAYA does it.
+- **Case studies in Help** (`/help/case-studies`): a card per built study, each opening that study's README
+  rendered as a page — contents, tables, code, KaTeX maths, previous and next.
+- **What this needs.** Every authoring screen — the model definition, the artifact box, the feature designer,
+  the feature set builder, both warrant forms and the kernel designer — carries a closed panel with its rules
+  in brief, linking to the matching section of the reference *What each designer expects*.
+- **Python in, from a file or a paste.** The Python-function box, the artifact box and the kernel designer each
+  load a chosen `.py` file (up to 1 MB) into the editor for review; the form submits the text, so a file and a
+  paste reach the server the same way. The kernel designer lifts a Python function as well as formula text.
+- **A one-line description under each name** on the features, feature sets and models lists.
+- **The execution warrant page** schedules and lists batches (§9.6) with their output hashes and downloads.
+
 ## 17. Embedded editors
 
 Both editors use CodeMirror 5, vendored, no build step, consistent with the UI rules above.
@@ -1744,6 +1855,62 @@ MAYA is designed to satisfy the evidence a model risk function asks for, without
 
 This maps onto SR 26-2 — the April 2026 US supervisory guidance that superseded SR 11-7 and SR 21-8 — and its non-US equivalents, plus EU AI Act inventory and technical-documentation duties where a model is in scope. SR 26-2 is principles-based and puts weight on effective challenge proportionate to risk, which is exactly what a configurable approval policy plus a recorded challenge trail is for. MAYA holds the evidence; the firm's policy decides what "enough" means, which is why every requirement above is configurable per namespace rather than hard-coded.
 
+### 21.4 The governance layer
+
+*Revision 2.7.* §21.3 lists the evidence a model risk function asks for; version 1.0.0 records the judgements
+made on it. Each is computed from facts MAYA already holds, and each separates the person who acts from the
+person who closes.
+
+- **Findings.** A validator raises a finding against a model version with a severity, an owner and a due date;
+  every move is kept in its own history and in the audit chain. Somebody other than the person who remediated
+  closes it, or the risk is accepted with a written reason. Nobody closes their own fix, for the reason nobody
+  approves their own model.
+- **Materiality.** A tier from 1 (most material) to 3, derived from what MAYA can see — how many live execution
+  warrants the model runs under, how often it has run, whether it is a black box — and from what only the owner
+  can declare: its use and its exposure, and the firm's own questionnaire (`governance.tiering_questionnaire`,
+  a file the firm edits). The derivation is monotone: more exposure never lowers the tier. An override needs a
+  reason, and one that makes a model less material than the evidence says is flagged.
+- **Periodic review.** The tier sets how often a model is looked at again. When a review falls overdue, a
+  scheduled sweep suspends every live execution warrant the model runs under, through the same suspension a
+  covenant breach uses; recording the review lifts exactly those suspensions and no others.
+- **Monitoring.** The reports under each execution warrant read as series — volume, null rates, ranges against
+  the covenant bounds, PSI against the covenant's baseline — and every live warrant is graded *breach*
+  (suspended, or a breach in seven days), *watch* (PSI in 0.10–0.25, a null rate doubling its median, or thirty
+  days of silence) or *ok*. Monitoring writes nothing; it cannot drift from what the covenants decided.
+- **Champion and challenger.** Two warrants whose escrowed holdouts have equal content hashes are scored on the
+  same rows in the same order, and only they may be compared. MAYA reports the metric difference, a seeded
+  paired-bootstrap 95% interval and the share of rows the challenger wins; *challenger better* needs the whole
+  interval below zero. Promotion is recorded, with a rationale, by somebody who does not own the challenger;
+  the champion's execution warrants are untouched until someone changes them.
+- **Fairness and importance.** On a warrant's escrowed holdout: error, bias and mean prediction per segment, a
+  segment flagged when its error is well above the overall figure and marked *systematic* when its bias is more
+  than half its own error, segments below a minimum size suppressed; and permutation importance, which needs
+  only predictions and so covers black boxes. Each run counts as a holdout attempt.
+- **The supervisory inventory.** One row per model, exported in SR 11-7 and SS1/23 layouts (the same rows under
+  two labellings), built from the registry, the governance profile, the findings, the reviews and the warrants.
+  It exports only what the caller may read and says how many rows it left out; its header says it is an
+  aligned layout, not a filing template.
+
+### 21.5 Models MAYA cannot read
+
+*Revision 2.7.*
+
+- **Declared black boxes** carry an input contract, a written account of what they estimate and how, declared
+  parameters and their constraints, and a code artifact. The artifact passes the six-rung ladder (§17.2) and is
+  then run as an **oracle** in the sandbox: blind scoring hands it only the contract's columns of the escrowed
+  rows, compares its output with the target outside the sandbox, and refuses a contract that names the target.
+  A black box forfeits exactly the evidence it cannot give — conformance against a formula — and no more.
+- **Imports.** A model registered in MLflow (from its `MLmodel` signature, or from the configured tracking
+  server) or a SageMaker model package comes in as a declared black box with its provenance; the input contract
+  is the vendor's, never a guess. Lineage goes out as OpenLineage.
+- **Applications on a language model.** The version is the definition: provider, model name, system prompt,
+  template, sampling parameters and guardrails, sealed into a definition hash and editable only in draft. The
+  evaluation set is hashed as content. Checks are deterministic (`contains`, `not_contains`, `equals`, `regex`,
+  `max_chars`, `json`); no model grades another. Guardrails — blocked terms, a length cap, personal-data patterns —
+  run on every answer. Runs are *recorded* (answers produced elsewhere, submitted for scoring) or *live* (MAYA
+  calls the provider). A version is submitted only with a clean run on its own definition hash against the
+  evaluation set in its current state, and approved by somebody who neither owns it nor submitted it.
+
 ## 22. Engineering standards
 
 ### 22.1 Size and modularity
@@ -1833,6 +2000,11 @@ The discipline is verify-don't-assert: a behaviour is claimed only when a test, 
 | Performance | Benchmarks on fixed datasets, tracked per release | No regression over 10% without a note |
 | UI | Playwright end-to-end on the main journeys, with real screenshots | Green before release |
 | Security | Dependency scanning, SAST, sandbox escape tests, an annual external review | No high findings unresolved |
+
+*Revision 2.7:* **case studies** are a test layer. Every study with a `run.py` is run from nothing, in its own
+process, against its own throwaway estate (`MAYA_TEST_CASE_STUDIES=1`, which `tools/ci/gates.py --tests` sets),
+and every one must be listed in the case-study index. A study that has rotted is a demonstration that fails in
+front of people, which is worse than none.
 
 **Test data.** A synthetic market dataset ships with the repo — symbols, calendars, gaps, corporate actions, a volatility surface with tensor values, deliberately messy CSVs — so every developer tests against the same realistic, awkward data rather than tidy fixtures.
 
@@ -1937,7 +2109,7 @@ Every axis of variation is a registered plugin implementing a declared protocol,
 | Auth provider | `AuthProvider.authenticate()` | OIDC, SAML2, DB |
 | Workflow check | `Check.evaluate(object, ctx)` | Completeness, validation, quality, comment checks |
 | Notification channel | `Notifier.send(event, recipients)` | In-app inbox, email, webhook, Slack, Teams |
-| Model runtime | `ModelRuntime.predict(...)` | The formula IR evaluator (*Revision 2.5:* blind scoring only, per ADR-007. MAYA executes no model code, so ONNX and PMML are candidates for a plugin at this point, not for the core) |
+| Model runtime | `ModelRuntime.predict(...)` | The formula IR evaluator (*Revision 2.5:* blind scoring only, per ADR-007. MAYA executes no model code, so ONNX and PMML are candidates for a plugin at this point, not for the core) |MAYA executes no model code, so ONNX and PMML are candidates for a plugin at this point, not for the core. *Revision 2.7:* no longer true as written: MAYA runs a declared black box's validated artifact as a sandboxed oracle, for blind scoring and for attested batch scoring (§9.6, §21.5), and nothing else. ONNX and PMML remain plugin candidates) |
 | Calendar | `Calendar.business_days(range)` | NYSE, LSE, TARGET, ISO business days, natural days |
 | Search index | `SearchIndex` | MAYA's own inverted index, on both databases (Revision 2.4, ADR-019) |
 
@@ -2009,6 +2181,9 @@ Two questions remain genuinely open, and neither blocks code:
 ## 27. Competitive analysis
 
 No product occupies MAYA's position, but five adjacent categories each do part of the job well, and a serious design should steal from all of them rather than pretend they do not exist.
+
+*Revision 2.7:* the analysis is also a public page, `/about/competitive` (§16.8): categories, not vendors, with
+each capability linked to how MAYA does it.
 
 ### 27.1 The landscape
 

@@ -8,7 +8,7 @@ Read in this order.
 | [`QUICKSTART.md`](QUICKSTART.md) | **Start here.** From nothing to MAYA running, signed in, with demonstration data and a feature of your own, in about fifteen minutes; every step says what you should see and what to do if you don't |
 | [`API_GUIDE.md`](API_GUIDE.md) | **Talking to MAYA over HTTP.** The REST API from first `curl` to a sealed execution warrant, with a small Python client, every convention (keys, paging, ETags, idempotency, jobs), every error and every endpoint. Each example is executed by `tests/test_api_guide.py` |
 | [`authoring-reference.md`](../maya/web/guides/authoring-reference.md) | **What each designer expects.** The rules behind every authoring screen: a model's formula, its Python function (assignments and one `return`) and its Python artifact (a class `Model` with `fit(self, X, y, ctx)` and `predict(self, X, params, ctx)`, the import allowlist and the sandbox limits); features and their sources, rules and quality checks; feature sets; and both warrants, covenants included. The same page is in Help, and each screen's *What this needs* panel links to its section |
-| [`MAYA_Requirements_and_Design.md`](MAYA_Requirements_and_Design.md) | **The specification**, revision 2.6 (the notes for 2.2 to 2.6 are at its top, each marked where it lands). 30 sections: vision, personas, domain model, the four subsystems (features, feature sets, models, warrants), `maya_delta` and physical storage, authz, architecture, the UI, the API and SDK, engineering standards, the design read adversarially (§28), and the ten innovations (§29) |
+| [`MAYA_Requirements_and_Design.md`](MAYA_Requirements_and_Design.md) | **The specification**, revision 2.7 (the notes for 2.2 to 2.7 are at its top, each marked where it lands). 30 sections: vision, personas, domain model, the four subsystems (features, feature sets, models, warrants), `maya_delta` and physical storage, authz, architecture, the UI, the API and SDK, engineering standards, the design read adversarially (§28), and the ten innovations (§29) |
 | [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, each marked with what it delivered by 0.3.0 and what it did not; the 28-rung CI gate ladder and which rungs exist; the six one-way doors; and the decision register |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | **What has been measured**, against §3 and §24.3: the machine, how to reproduce each run, every number from the unedited result files in [`benchmarks/`](benchmarks/), and what has not been measured |
 | [`CHANGELOG.md`](CHANGELOG.md) | **What each release changed**, as narrative; the version itself lives in `maya/core/version.py` |
@@ -36,7 +36,7 @@ the sections that carry them:
 > **The `.docx` and `.pdf` beside the specification are renderings of the Markdown**, which
 > is the authority. `python tools/docs/build_spec.py` rebuilds both (pandoc and Tectonic;
 > the diagrams are drawn in headless Chrome) and is rerun whenever the Markdown changes.
-> They were last rebuilt at revision 2.6.
+> They were last rebuilt at revision 2.7.
 
 ## What goes here next
 
