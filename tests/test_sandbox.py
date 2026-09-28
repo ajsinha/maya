@@ -161,3 +161,29 @@ def test_the_child_finds_a_library_from_a_site_packages_the_isolated_mode_leaves
     out = run_sandboxed(source, "f", {"X": {}})
     assert out["ok"], out
     assert out["result"] == 42
+
+
+def test_the_bundle_verifier_finds_the_parents_libraries_and_a_failure_is_a_named_check(
+    tmp_path, monkeypatch
+):
+    """The verifier runs isolated, as on a machine without MAYA, yet still needs pyarrow and
+    numpy wherever they were installed (a user site on Windows); and a verifier that cannot
+    run is reported as a failed check, never as a report with no checks in it."""
+    import sys
+
+    from maya.services.bundle import run_verifier
+
+    site = tmp_path / "site-packages"
+    site.mkdir()
+    (site / "maya_verifier_probe.py").write_text("OK = True\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "path", [*sys.path, str(site)])
+    found = run_verifier(
+        b"zip",
+        "import json, maya_verifier_probe\n"
+        "print(json.dumps({'verified': maya_verifier_probe.OK, 'checks': []}))\n",
+    )
+    assert found["verified"] is True, found
+    broken = run_verifier(b"zip", "raise SystemExit('pyarrow is missing')\n")
+    assert broken["verified"] is False
+    assert broken["checks"][0]["check"] == "the verifier ran" and broken["checks"][0]["ok"] is False
+    assert "pyarrow is missing" in broken["checks"][0]["detail"]

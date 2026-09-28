@@ -141,17 +141,36 @@ def run_verifier(data: bytes, script: str) -> dict[str, Any]:
         path = Path(tmp) / "bundle.zip"
         path.write_bytes(data)
         (Path(tmp) / "verify.py").write_text(script, encoding="utf-8")
+        # ``-I`` so the verifier runs as it would on a machine with no MAYA: no working
+        # directory, no PYTHONPATH, no user site. It still needs pyarrow and numpy, so it is
+        # told where this interpreter's libraries live -- plain directories, no .pth files,
+        # so an editable install of MAYA is not among them.
+        from maya.security.sandbox import _library_paths, _python
+
+        boot = (
+            "import runpy, sys; sys.path.extend(%r); "
+            "sys.argv = sys.argv[1:]; runpy.run_path(sys.argv[0], run_name='__main__')"
+            % (_library_paths(),)
+        )
         proc = subprocess.run(
-            [sys.executable, "-I", str(Path(tmp) / "verify.py"), str(path)],
+            [_python(), "-I", "-c", boot, str(Path(tmp) / "verify.py"), str(path)],
             capture_output=True,
             text=True,
             timeout=300,
             check=False,
         )
     try:
-        return json.loads(proc.stdout)
+        return dict(json.loads(proc.stdout))
     except json.JSONDecodeError:
-        return {"verified": False, "error": proc.stderr[-2000:]}
+        # A verifier that could not run is a failed check, named, never a missing report.
+        error = (proc.stderr or proc.stdout or "no output")[-2000:]
+        return {
+            "verified": False,
+            "error": error,
+            "checks": [
+                {"check": "the verifier ran", "ok": False, "detail": error.strip().splitlines()[-1]}
+            ],
+        }
 
 
 class BundleService:

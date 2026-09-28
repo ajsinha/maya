@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The reproducibility bundle's verifier finds the libraries its parent has. It runs in an
+  isolated interpreter, as on a machine without MAYA, which also hid a user site-packages; on
+  Windows it could not import pyarrow, and the report came back with no checks, which stopped
+  case study 7 with `KeyError: 'checks'`. It is now given the parent's package directories
+  (never an editable install of MAYA), and a verifier that cannot run is reported as a failed
+  check with its reason.
+
 **Specification revision 2.7**
 
 - The specification catches up with the code, each change marked *Revision 2.7* where it
