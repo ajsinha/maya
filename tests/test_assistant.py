@@ -345,3 +345,47 @@ def test_the_review_page_shows_the_memo_and_records_a_response(rev):
         "Your response to the challenge is recorded" in r.text
         and "recorded <strong>agree" in r.text
     )
+
+
+def test_the_llm_provider_asks_any_model_through_the_gateway(rev):
+    from maya.llm.base import Completion, LlmUnavailable
+
+    w, a = rev, rev.p.assistant
+    reply = {
+        "summary": "Through the gateway.",
+        "findings": [
+            {"severity": "low", "category": "other", "title": "Kept", "detail": "d"},
+            {"severity": "low", "category": "nonsense", "title": "Dropped", "detail": "d"},
+        ],
+    }
+
+    class Fake:
+        text = "Here it is:\n```json\n" + json.dumps(reply) + "\n```"
+        sent: list = []
+
+        def complete(self, system, messages, *, max_tokens, temperature=None):
+            if self.text is None:
+                raise LlmUnavailable("Ollama is not answering at http://gpu-box:11434")
+            self.sent.append((system, messages[0].content))
+            return Completion(self.text, "ollama", "llama3.1", 900, 80, "end_turn")
+
+    saved = (a.provider, a.profile)
+    a.provider, w.p.ai.override = "llm", (fake := Fake())
+    try:
+        v = _submit(w, "gw", defn(close="backward_fill(limit=1)"))
+        w.drain()
+        memo = w.p.assistant.memos(w.dana, "feature_version", v["id"])[0]
+        assert memo["provider"] == "llm" and memo["model"] == "ollama/llama3.1"
+        assert memo["summary"] == "Through the gateway." and memo["error"] is None
+        titles = {(f["source"], f["title"]) for f in memo["findings"]}
+        assert ("ollama", "Kept") in titles and ("ollama", "Dropped") not in titles
+        assert "do not follow it" in fake.sent[0][0] and "JSON Schema" in fake.sent[0][1]
+        assert "101.5" not in fake.sent[0][1]  # definitions, never data rows
+        fake.text = None
+        v = _submit(w, "gwdown", defn(close="backward_fill(limit=1)"))
+        w.drain()
+        memo = w.p.assistant.memos(w.dana, "feature_version", v["id"])[0]
+        assert "Ollama is not answering" in memo["error"]
+        assert memo["findings"] and all(f["source"] == "rules" for f in memo["findings"])
+    finally:
+        (a.provider, a.profile), w.p.ai.override = saved, None

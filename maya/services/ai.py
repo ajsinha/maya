@@ -76,20 +76,8 @@ class AiGateway:
             raise LlmUnavailable(
                 f"No model profile named '{name}' (profiles: {', '.join(sorted(known))})"
             )
-        chosen = known[name]
-        if self.override is not None:
-            return chosen, self.override
         # the cache key is the whole profile, so an edit builds a fresh provider
-        key = json.dumps(chosen.as_row() | {"options": chosen.options}, sort_keys=True, default=str)
-        if key not in self._cache:
-            plugin = self.p.plugins.get("llm_provider", chosen.provider)
-            if plugin is None or plugin.factory is None:
-                raise LlmUnavailable(
-                    f"Model profile '{name}' names the provider '{chosen.provider}', which is "
-                    "not registered or not an allowed plugin (see Admin → Extensions)"
-                )
-            self._cache[key] = plugin.factory(prof.ProfileSettings(self.p.settings, chosen))
-        return chosen, self._cache[key]
+        return known[name], self._build(known[name])
 
     def status(self, p: Principal | None = None) -> dict[str, Any]:
         """Every profile with where it came from, where it points and whether it looks usable;
@@ -267,23 +255,92 @@ class AiGateway:
     # -- asking ---------------------------------------------------------------------------
     def complete(
         self,
-        p: Principal,
+        p: Principal | None,
         *,
         purpose: str,
         system: str,
         prompt: str,
         profile: str | None = None,
         object_ref: str | None = None,
+        max_tokens: int | None = None,
     ) -> Completion:
+        """Ask a profile's model. ``p`` is None when MAYA itself asks (the challenger)."""
         chosen, provider = self.resolve(profile)
+        return self._ask(p, chosen, provider, purpose, system, prompt, object_ref, max_tokens, None)
+
+    def complete_declared(
+        self,
+        p: Principal | None,
+        *,
+        provider: str,
+        model: str,
+        purpose: str,
+        system: str,
+        prompt: str,
+        max_tokens: int,
+        temperature: float | None,
+        object_ref: str | None = None,
+    ) -> Completion:
+        """Ask exactly the provider and model something declares -- an LLM application's
+        approved version -- rather than whichever profile is the default. What is governed is
+        that pairing, so it is not something an administrator's switch may change."""
+        chosen = prof.Profile(
+            f"declared:{provider}",
+            provider=provider,
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            source="declared",
+        )
+        return self._ask(
+            p,
+            chosen,
+            self._build(chosen),
+            purpose,
+            system,
+            prompt,
+            object_ref,
+            max_tokens,
+            temperature,
+        )
+
+    def _build(self, chosen: prof.Profile) -> Any:
+        if self.override is not None:
+            return self.override
+        key = json.dumps(chosen.as_row() | {"options": chosen.options}, sort_keys=True, default=str)
+        if key not in self._cache:
+            plugin = self.p.plugins.get("llm_provider", chosen.provider)
+            if plugin is None or plugin.factory is None:
+                raise LlmUnavailable(
+                    f"The provider '{chosen.provider}' is not registered or not an allowed plugin "
+                    "(see Admin → AI models)"
+                )
+            self._cache[key] = plugin.factory(prof.ProfileSettings(self.p.settings, chosen))
+        return self._cache[key]
+
+    def _ask(
+        self,
+        p: Principal | None,
+        chosen: prof.Profile,
+        provider: Any,
+        purpose: str,
+        system: str,
+        prompt: str,
+        object_ref: str | None,
+        max_tokens: int | None,
+        temperature: float | None,
+    ) -> Completion:
         view = prof.ProfileSettings(self.p.settings, chosen)
         out = provider.complete(
             system,
             [Message("user", prompt)],
-            max_tokens=view.int("llm.max_tokens", 2048),
-            temperature=float(view.get("llm.temperature", "0.2") or 0.2),
+            max_tokens=int(max_tokens or view.int("llm.max_tokens", 2048)),
+            # a declared pairing is run as declared: no temperature means the provider's own
+            temperature=temperature
+            if temperature is not None or chosen.source == "declared"
+            else float(view.get("llm.temperature", "0.2") or 0.2),
         )
-        with self.p.uow(p.username) as uow:
+        with self.p.uow(p.username if p else "assistant") as uow:
             uow.audit(
                 "ai.completion",
                 object_ref=object_ref,

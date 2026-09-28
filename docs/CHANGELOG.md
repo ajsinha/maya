@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Every language-model call goes through the AI gateway**
+
+- **The recorded challenger on any model.** `assistant.provider: llm` asks the profile
+  `assistant.profile` names (empty: the default), so the Admin → AI models switch moves it
+  too and it can run on Ollama, Bedrock, OpenAI or Azure as well as Anthropic. The reply is
+  checked against the memo schema; if the model cannot be reached the memo keeps the
+  deterministic findings and says why. `claude` still works as before.
+- **Live evaluations of LLM applications on more providers.** A version declaring `anthropic`,
+  `openai`, `azure_openai`, `bedrock` or `ollama` can now be run live. The gateway asks exactly
+  the declared provider and model, with the version's own parameters, never the switchable
+  default, because that pairing is part of what was approved. `ollama` is a new declarable
+  provider.
+- Both are audited as `ai.completion` with their purpose.
+
 **Admin → AI models: switch the language model at runtime**
 
 - A new admin page lists every model profile (from the settings, the profiles file, or saved

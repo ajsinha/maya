@@ -858,9 +858,16 @@ SETTINGS: tuple[Setting, ...] = (
     _s(
         "assistant.provider",
         "choice",
-        "rules is deterministic and offline; claude also asks Anthropic's API.",
+        "rules is deterministic and offline; llm also asks a model through the AI gateway "
+        "(any provider, see assistant.profile); claude asks Anthropic's API directly.",
         "rules",
-        choices=("rules", "claude"),
+        choices=("rules", "claude", "llm"),
+    ),
+    _s(
+        "assistant.profile",
+        "string",
+        "With provider llm: the model profile asked. Empty: the gateway's default profile.",
+        "",
     ),
     _s("assistant.claude.model", "string", "The Claude model asked.", "claude-opus-5"),
     _s("assistant.claude.effort", "string", "The reasoning effort asked for.", "high"),
