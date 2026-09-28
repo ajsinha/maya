@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/needs.html" import needs %}
 {% from "_macros/table.html" import table %}
 {% from "_macros/ui.html" import pill, kv, tabs, json_block, impact_panel %}
 {% block title %}{{ m.name }}{% endblock %}
@@ -140,6 +141,15 @@
       <span class="small-muted">Rung 4 of the ladder, before you upload:</span>
       <span data-checks-for="src" aria-live="polite"></span>
     </div>
+    {% call needs('the-python-artifact', 'What the artifact needs') %}
+<ul>
+  <li>A class named <strong><code>Model</code></strong> with exactly <code>fit(self, X, y, ctx)</code> and <code>predict(self, X, params, ctx)</code>.</li>
+  <li><code>X</code> is a dict of column name to NumPy array; <code>params</code> is the approved parameter set as a dict; <code>ctx.seed</code> seeds any randomness.</li>
+  <li><code>predict</code> returns one value per row (an array or list), or a dict of output name to array for several outputs.</li>
+  <li>Imports: <code>math</code>, <code>numpy</code>, <code>pandas</code>, <code>polars</code>, <code>pyarrow</code>, <code>scipy</code>, <code>sklearn</code>, <code>statsmodels</code> and the standard maths helpers. No files, processes, network or dynamic code (<code>os</code>, <code>sys</code>, <code>open</code>, <code>eval</code>, <code>getattr</code>…).</li>
+  <li>It runs in a sandbox: about 10 s of CPU, 1 GB of memory, no network, and must give the same output twice.</li>
+</ul>
+{% endcall %}
     <label class="form-label" for="src">Python artifact — a class <code>Model</code> with <code>fit(self, X, y, ctx)</code> and <code>predict(self, X, params, ctx)</code></label>
     <textarea class="form-control mono" id="src" name="source" rows="16" data-editor="python">import numpy as np
 

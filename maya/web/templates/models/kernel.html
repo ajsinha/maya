@@ -2,6 +2,7 @@
    the same parser and the same generator the registration path uses, offered on its own so
    that whoever wrote the mathematics can read what MAYA made of it before a version exists. #}
 {% extends "base.html" %}
+{% from "_macros/needs.html" import needs %}
 {% block title %}Design your compute kernel{% endblock %}
 {% block content %}
 <h1>Design your compute kernel</h1>
@@ -13,6 +14,28 @@
 <div class="kernel-split">
   <form class="card card-body" id="kernel-form">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="btn-group btn-group-sm mb-2" role="group" aria-label="Write it as">
+      <input type="radio" class="btn-check" name="kmode" id="kmode-formula" value="formula" checked>
+      <label class="btn btn-outline-secondary" for="kmode-formula">Formula</label>
+      <input type="radio" class="btn-check" name="kmode" id="kmode-python" value="python">
+      <label class="btn btn-outline-secondary" for="kmode-python">Python function</label>
+    </div>
+    <div id="kpython-pane" hidden>
+      {% call needs('the-python-function-rules', 'What the Python function needs') %}
+      <ul>
+        <li>One function: <strong>assignments, then a single <code>return</code></strong>. No loops, <code>if</code> or other calls; use <code>where(cond, a, b)</code> for a choice.</li>
+        <li>Functions: <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>abs</code>, <code>max</code>, <code>min</code>, <code>where</code>, and the normal <code>cdf</code>/<code>ppf</code>/<code>pdf</code>, plain or as <code>math.</code>, <code>np.</code> or <code>norm.</code></li>
+        <li>Features are plain names or <code>X["name"]</code>; parameters are <code>params["name"]</code>. MAYA reads the function as mathematics; it does not run it.</li>
+      </ul>
+      {% endcall %}
+      <label class="form-label" for="kpython">The Python function</label>
+      <textarea class="form-control mono" id="kpython" name="python_source" rows="8" spellcheck="false"
+        placeholder="def pd_logit(income, utilisation, params):
+    z = params[&quot;b0&quot;] + params[&quot;b1&quot;] * log(income) + params[&quot;b2&quot;] * utilisation
+    return 1 / (1 + exp(-z))"></textarea>
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-1 mb-2"><label class="small-muted mb-0" for="kpython-file">Or load it from a file</label><input class="form-control form-control-sm w-auto" type="file" id="kpython-file" accept=".py,text/x-python,text/plain"><span class="small-muted" id="kpython-status" aria-live="polite"></span></div>
+    </div>
+    <div id="kformula-pane">
     <label class="form-label" for="kformula">The mathematics — intermediates first, the output last</label>
     <textarea class="form-control mono" id="kformula" name="formula" rows="7" spellcheck="false"
       placeholder="d_1 = (\log(S/K) + (r + \sigma^2/2)T) / (\sigma\sqrt{T})
@@ -27,6 +50,7 @@ price = S\,ncdf(d_1) - K e^{-rT} ncdf(d_2)"></textarea>
 r: parameter"></textarea>
     <p class="small-muted mt-1 mb-2">Anything you do not name here is a feature. Declare every multi-letter symbol:
       an undeclared <code>tau</code> reads the way LaTeX means it, as <em>t·a·u</em>.</p>
+    </div>
 
     <div class="row g-2 align-items-end">
       <div class="col-sm-6">
@@ -111,6 +135,7 @@ r: parameter"></textarea>
       <form action="/models/new" method="get" id="kcarry">
         <input type="hidden" name="formula" id="kcarry-formula">
         <input type="hidden" name="roles" id="kcarry-roles">
+        <input type="hidden" name="python" id="kcarry-python">
         <button class="btn btn-outline-primary" type="submit">Use this in a new model</button>
         <span class="small-muted ms-2">Carries the mathematics and the roles into the model designer.</span>
       </form>

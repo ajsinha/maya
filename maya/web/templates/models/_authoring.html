@@ -1,8 +1,19 @@
+{% from "_macros/needs.html" import needs %}
 {# Three ways to write the same IR — nobody authors the IR by hand (§28.6). Needs: v (optional) #}
+{% call needs('defining-the-mathematics', 'What the definition needs') %}
+<ul>
+  <li><strong>Formula text:</strong> assignments, one per line, ending with the output, e.g. <code>price = S*ncdf(d1) - K*exp(-r*T)*ncdf(d2)</code>. Python-like or LaTeX-lite.</li>
+  <li><strong>Roles:</strong> every name is a <em>feature</em> (from data) unless you list it, one per line: <code>sigma: parameter</code> (fitted) or <code>r: constant</code> (fixed).</li>
+  <li><strong>Python function:</strong> one function, <strong>assignments then a single <code>return</code></strong>; no loops, <code>if</code> or other calls. Use <code>where(cond, a, b)</code> for a choice. It may call <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>abs</code>, <code>max</code>, <code>min</code>, <code>where</code> and the normal <code>cdf</code>/<code>ppf</code>/<code>pdf</code>. Features are plain names or <code>X["name"]</code>; parameters are <code>params["name"]</code>. MAYA reads it as mathematics and does not run it.</li>
+</ul>
+<pre>def pd_logit(income, utilisation, params):
+    z = params["b0"] + params["b1"] * log(income) + params["b2"] * utilisation
+    return 1 / (1 + exp(-z))</pre>
+{% endcall %}
 <label class="form-label" for="authoring">How to express the mathematics</label>
 <select class="form-select mb-2" id="authoring" name="authoring" data-toggle-show="auth" style="max-width:420px">
   <option value="formula">Formula text (Python-ish or LaTeX-lite)</option>
-  <option value="python">Lift from a Python function</option>
+  <option value="python" {% if prefill and prefill.python %}selected{% endif %}>Lift from a Python function</option>
   <option value="ir">Formula IR JSON (black box, composite, vendor)</option>
   {% if allow_workbook %}<option value="workbook">Lift from an Excel workbook (.xlsx)</option>{% endif %}</select>
 {% if allow_workbook %}
@@ -32,7 +43,7 @@ r: constant">{{ prefill.roles if prefill else '' }}</textarea>
 </div>
 <div data-show-group="auth" data-show-when="python">
   <label class="form-label" for="pysrc">Python function (assignments + a return of an arithmetic expression)</label>
-  <textarea class="form-control mono" id="pysrc" name="python_source" rows="6" data-editor="python"></textarea>
+  <textarea class="form-control mono" id="pysrc" name="python_source" rows="6" data-editor="python">{{ prefill.python if prefill else '' }}</textarea>
   <div class="d-flex flex-wrap align-items-center gap-2 mt-1 mb-2"><label class="small-muted mb-0" for="pysrc-file">Or load the function from a file</label><input class="form-control form-control-sm w-auto" type="file" id="pysrc-file" accept=".py,text/x-python,text/plain" data-load-into="pysrc"><span class="small-muted" data-load-status="pysrc" aria-live="polite"></span></div>
 </div>
 <div data-show-group="auth" data-show-when="ir">

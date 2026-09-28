@@ -1,7 +1,18 @@
 {% extends "base.html" %}
+{% from "_macros/needs.html" import needs %}
 {% block title %}New execution warrant{% endblock %}
 {% block content %}
 <h1>Draw an execution warrant</h1>
+{% call needs('execution-warrants', 'What an execution warrant needs') %}
+<ul>
+  <li>A sealed training warrant and its <strong>approved parameter set</strong>, or, for a model with nothing to fit, the model version.</li>
+  <li><strong>Environments</strong> it may run in (<code>dev, prod</code>) and an <strong>escalation contact</strong>, named in every refusal.</li>
+  <li><strong>Covenants</strong>, checked on every reported run; a breach suspends the warrant at once. Kinds: <code>input_null_rate</code>, <code>input_range</code>, <code>input_psi</code>, <code>output_range</code>, <code>max_rows_per_day</code>, <code>staleness_days</code>.</li>
+</ul>
+<pre>[{"kind": "input_null_rate", "attr": "income", "max": 0.05},
+ {"kind": "input_psi", "attr": "income", "max": 0.25},
+ {"kind": "output_range", "min": 0, "max": 1}]</pre>
+{% endcall %}
 <p class="lead-slate">What can be run, on what inputs, by whom, until when. Once sealed it is a live instrument: short-lived signed tokens, covenants that suspend it on breach, revocation that fails every consuming call closed.</p>
 <form method="post" action="/warrants/execution/new" class="card card-body">
 <input type="hidden" name="csrf_token" value="{{ csrf }}">

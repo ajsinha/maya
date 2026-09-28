@@ -46,15 +46,41 @@
     }).join('');
     text($('kir'), JSON.stringify(out.ir, null, 2));
     text($('kpy'), out.python);
-    $('kcarry-formula').value = $('kformula').value;
-    $('kcarry-roles').value = $('kroles').value;
+    var py = pythonMode();
+    $('kcarry-formula').value = py ? '' : $('kformula').value;
+    $('kcarry-roles').value = py ? '' : $('kroles').value;
+    $('kcarry-python').value = py ? $('kpython').value : '';
   }
+
+  // Formula or Python function: one of the two is sent, and the roles belong to the formula
+  // only -- a lifted function says which names are parameters by writing params["name"].
+  function pythonMode() { return $('kmode-python').checked; }
+  function setMode() {
+    var py = pythonMode();
+    $('kpython-pane').hidden = !py;
+    $('kformula-pane').hidden = py;
+  }
+  ['kmode-formula', 'kmode-python'].forEach(function (id) { $(id).addEventListener('change', setMode); });
+  $('kpython-file').addEventListener('change', function () {
+    var input = this, file = input.files && input.files[0];
+    if (!file) { return; }
+    if (file.size > 1024 * 1024) { text($('kpython-status'), file.name + ' is over 1 MB.'); input.value = ''; return; }
+    var reader = new FileReader();
+    reader.onload = function () { $('kpython').value = String(reader.result); text($('kpython-status'), 'Loaded ' + file.name + '.'); };
+    reader.onerror = function () { text($('kpython-status'), 'Could not read ' + file.name + '.'); };
+    reader.readAsText(file);
+    input.value = '';
+  });
 
   function translate(ev) {
     if (ev) { ev.preventDefault(); }
     var body = new FormData();
-    body.append('formula', $('kformula').value);
-    body.append('roles', $('kroles').value);
+    if (pythonMode()) {
+      body.append('python_source', $('kpython').value);
+    } else {
+      body.append('formula', $('kformula').value);
+      body.append('roles', $('kroles').value);
+    }
     body.append('name', $('kname').value || 'compute');
     body.append('csrf_token', form.querySelector('[name=csrf_token]').value);
     var button = $('ktranslate');
@@ -95,6 +121,7 @@
     b.addEventListener('click', function () {
       items.forEach(function (o) { o.setAttribute('aria-selected', 'false'); });
       b.setAttribute('aria-selected', 'true');
+      $('kmode-formula').checked = true; setMode();  // the library is written as formulae
       $('kformula').value = b.getAttribute('data-formula');
       $('kroles').value = b.getAttribute('data-roles');
       $('kexample-note').textContent = b.getAttribute('data-note') || '';

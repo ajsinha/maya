@@ -238,6 +238,7 @@ def formula_kernel(body: s.KernelIn, me: Principal = Me, plat: Any = Plat) -> Re
             roles=body.roles,
             output_type=body.output_type,
             name=body.name,
+            python_source=body.python_source,
         )
     )
 
