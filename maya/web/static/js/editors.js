@@ -775,6 +775,28 @@
     }
   });
 
+  // A .py file chosen from disk fills the editor beside it; the form still submits the text,
+  // so a file and a paste are the same thing to the server. Nothing is uploaded until then.
+  var MAX_SOURCE_BYTES = 1024 * 1024;
+  document.querySelectorAll('input[type=file][data-load-into]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      var id = input.getAttribute('data-load-into'), file = input.files && input.files[0];
+      var status = document.querySelector('[data-load-status="' + id + '"]');
+      function say(msg) { if (status) { status.textContent = msg; } }
+      if (!file) { return; }
+      if (file.size > MAX_SOURCE_BYTES) { say(file.name + ' is over 1 MB; paste the part MAYA needs instead.'); input.value = ''; return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var api = window.MayaEditors.instances[id], ta = document.getElementById(id);
+        if (api) { api.set(String(reader.result)); } else if (ta) { ta.value = String(reader.result); }
+        say('Loaded ' + file.name + '. Review it, then submit.');
+      };
+      reader.onerror = function () { say('Could not read ' + file.name + '.'); };
+      reader.readAsText(file);
+      input.value = '';
+    });
+  });
+
   document.querySelectorAll('[data-find-for]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var api = window.MayaEditors.instances[btn.getAttribute('data-find-for')];

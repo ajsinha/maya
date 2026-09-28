@@ -33,6 +33,7 @@ r: constant">{{ prefill.roles if prefill else '' }}</textarea>
 <div data-show-group="auth" data-show-when="python">
   <label class="form-label" for="pysrc">Python function (assignments + a return of an arithmetic expression)</label>
   <textarea class="form-control mono" id="pysrc" name="python_source" rows="6" data-editor="python"></textarea>
+  <div class="d-flex flex-wrap align-items-center gap-2 mt-1 mb-2"><label class="small-muted mb-0" for="pysrc-file">Or load the function from a file</label><input class="form-control form-control-sm w-auto" type="file" id="pysrc-file" accept=".py,text/x-python,text/plain" data-load-into="pysrc"><span class="small-muted" data-load-status="pysrc" aria-live="polite"></span></div>
 </div>
 <div data-show-group="auth" data-show-when="ir">
   <label class="form-label" for="ir">Formula IR (JSON)</label>

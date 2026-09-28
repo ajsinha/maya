@@ -547,3 +547,26 @@ def test_the_code_editor_names_the_line_the_ladder_would_refuse(site, browser):
     expect(checks).to_contain_text("from the plugged-in server")
     assert page.errors == []
     ctx.close()
+
+
+def test_a_py_file_chosen_from_disk_fills_the_artifact_editor(site, browser):
+    """The artifact box takes a file as well as a paste; the form still submits the text."""
+    base, _ = site
+    ctx, page = _page(browser)
+    try:
+        _login(page, base)
+        _code(page, base)
+        source = "import numpy as np\n\nclass Model:\n    def predict(self, X, params, ctx):\n        return X['x']\n"
+        page.set_input_files(
+            "#src-file",
+            files=[{"name": "model.py", "mimeType": "text/x-python", "buffer": source.encode()}],
+        )
+        page.wait_for_function(
+            "MayaEditors.instances['src'].get().includes('class Model')", timeout=5000
+        )
+        assert _get(page, "src") == source
+        assert page.input_value("#src") == source  # what the form submits
+        assert "Loaded model.py" in page.inner_text("[data-load-status=src]")
+        assert not page.errors, page.errors
+    finally:
+        ctx.close()

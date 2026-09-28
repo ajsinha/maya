@@ -151,6 +151,7 @@ class Model:
     def predict(self, X, params, ctx):
         return np.asarray(list(X.values())[0], dtype=float)
 </textarea>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-1 mb-2"><label class="small-muted mb-0" for="src-file">Or load the artifact from a file</label><input class="form-control form-control-sm w-auto" type="file" id="src-file" accept=".py,text/x-python,text/plain" data-load-into="src"><span class="small-muted" data-load-status="src" aria-live="polite"></span></div>
     <div class="row g-2 mt-1"><div class="col-md-6"><label class="form-label" for="sample">Smoke sample (JSON, optional)</label><textarea class="form-control mono" id="sample" name="sample" rows="2" data-json></textarea></div>
       <div class="col-md-6"><label class="form-label" for="params">Smoke parameters (JSON, optional)</label><textarea class="form-control mono" id="params" name="params" rows="2" data-json></textarea></div></div>
     <div class="mt-2"><button class="btn btn-primary" type="submit">Upload and validate</button></div>
