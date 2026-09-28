@@ -187,6 +187,13 @@ profiles:
   local:    {provider: ollama, model: llama3.1, options: {base_url: "http://gpu-box:11434"}}
 ```
 
+**Admin → AI models** shows every profile — where it came from, its provider and model, whether it
+is ready — with the providers on offer. An administrator can **make a profile the default** there,
+which takes effect at once for every process and is audited; **test** one, which asks its model a
+one-line question and shows the reply, the time and the tokens; and **add or edit** a profile, saved
+in the database, where it replaces a file profile of the same name. The default is, in order: the
+administrator's choice on that page, then the `llm.profile` setting, then the file's `default:`.
+
 A profile takes `provider`, `model`, `max_tokens`, `temperature`, `options` (that provider's own
 settings for this profile, such as `base_url`, `region` or `api_key_env`) and `description`.
 Without the file there is one profile, `default`, made from the `llm.*` settings. API keys are

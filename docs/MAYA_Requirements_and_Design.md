@@ -1947,7 +1947,13 @@ and any server speaking its Chat Completions API, `azure_openai`, `ollama`, `bed
 entry-point plugin, loaded only when `plugins.allow` names it (§25). API keys are never configuration: a
 setting names the environment variable that holds one. Every call is audited with its purpose, profile,
 provider, model, token counts and the hash of the prompt; the prompt is not logged, because it carries a
-model's facts and the audit log's readers may not be entitled to them.
+model's facts and the audit log's readers may not be entitled to them. **Admin → AI models** lists every
+profile with its source (settings, file or database), provider, model and readiness, and every provider on
+offer. An administrator may make a profile the **default** — stored as a runtime setting in the database,
+so it takes effect at once for every process, audited, and taking precedence over `llm.profile` and the file's
+`default:` until handed back — **test** a profile with a one-line prompt, and **add, edit or delete** profiles,
+which are stored in the database and replace a file profile of the same name. A profile's options may name
+the environment variable that holds a key and are refused if they appear to hold one.
 
 **Documents.** A document is generated from a snapshot of one model version's record — its mathematics and
 contract, code checks, warrants, leakage certificate, blind scores, fairness and importance evidence,

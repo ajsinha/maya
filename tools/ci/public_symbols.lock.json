@@ -58,6 +58,16 @@
      "verify_integrity": "(self)"
     }
    },
+   "ai": {
+    "class": "Ai",
+    "methods": {
+     "delete_profile": "(self, name)",
+     "save_profile": "(self, name, **fields)",
+     "set_default": "(self, profile)",
+     "status": "(self)",
+     "test": "(self, name)"
+    }
+   },
    "assistant": {
     "class": "Assistant",
     "methods": {
@@ -152,7 +162,6 @@
    "documents": {
     "class": "Documents",
     "methods": {
-     "ai_status": "(self)",
      "approve": "(self, doc_id)",
      "generate": "(self, ref, kind, version_no=None, template=None, use_ai=True, profile=None)",
      "get": "(self, doc_id)",
@@ -484,6 +493,16 @@
      "verify_integrity": "(self)"
     }
    },
+   "ai": {
+    "class": "Ai",
+    "methods": {
+     "delete_profile": "(self, name)",
+     "save_profile": "(self, name, **fields)",
+     "set_default": "(self, profile)",
+     "status": "(self)",
+     "test": "(self, name)"
+    }
+   },
    "assistant": {
     "class": "Assistant",
     "methods": {
@@ -578,7 +597,6 @@
    "documents": {
     "class": "Documents",
     "methods": {
-     "ai_status": "(self)",
      "approve": "(self, doc_id)",
      "generate": "(self, ref, kind, version_no=None, template=None, use_ai=True, profile=None)",
      "get": "(self, doc_id)",

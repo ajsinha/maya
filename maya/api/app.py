@@ -26,6 +26,7 @@ from maya.api.routers import (
     governance,
     identity,
     integrations,
+    ai,
     documents,
     llm,
     registry,
@@ -58,6 +59,7 @@ ROUTERS = (
     retention.router,
     governance.router,
     integrations.router,
+    ai.router,
     documents.router,
     llm.router,
 )

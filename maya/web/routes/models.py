@@ -235,7 +235,7 @@ async def model(request: Request, ns: str, name: str) -> Any:
         impact = await sdk.catalog.dependents(f"maya://model/{ns}/{name}")
         documents = await sdk.documents.list(f"{ns}/{name}")
         templates = await sdk.documents.templates()
-        ai = await sdk.documents.ai_status()
+        ai = await sdk.ai.status()
     return await render(
         request,
         "models/model.html",

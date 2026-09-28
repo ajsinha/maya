@@ -329,3 +329,67 @@ def test_the_documents_tab_generates_views_and_downloads(estate):
     assert view.status_code == 200 and "Validation report" in view.text
     md = web.get(f"/models/docs/linear_price/documents/{doc['id']}/download?format=md")
     assert md.status_code == 200 and b"## Evidence checklist" in md.content
+
+
+def test_an_administrator_saves_tests_and_switches_profiles_at_runtime(estate):
+    p, w = estate
+    with pytest.raises(PermissionDenied, match="administrator"):
+        p.ai.save_profile(w.mona, "offline", {"provider": "stub"})
+    with pytest.raises(ValidationFailed, match="may not hold a secret"):
+        p.ai.save_profile(w.admin, "leaky", {"provider": "openai", "options": {"api_key": "sk-x"}})
+    with pytest.raises(ValidationFailed, match="not a provider on offer"):
+        p.ai.save_profile(w.admin, "odd", {"provider": "nowhere"})
+    saved = p.ai.save_profile(
+        w.admin, "offline", {"provider": "stub", "model": "stub-9", "options": {"api_key_env": "X"}}
+    )
+    assert saved["source"] == "database" and saved["model"] == "stub-9"
+    rows = {r["name"]: r for r in p.ai.status()["profiles"]}
+    assert rows["offline"]["ready"] and not rows["offline"]["is_default"]
+
+    tested = p.ai.test(w.admin, "offline")
+    assert tested["ok"] and tested["provider"] == "stub" and tested["model"] == "stub-9"
+    broken = p.ai.test(w.admin, "default")  # the llm.* settings name no provider
+    assert broken["ok"] is False and "No language model is configured" in broken["error"]
+
+    status = p.ai.set_default(w.admin, "offline")
+    assert status["default"] == "offline" and "administrator" in status["default_source"]
+    assert p.ai.resolve()[0].name == "offline"  # every new request follows it, no restart
+    with pytest.raises(ValidationFailed, match="is the default"):
+        p.ai.delete_profile(w.admin, "offline")
+    assert p.ai.set_default(w.admin, None)["default"] == "default"
+    assert p.ai.delete_profile(w.admin, "offline") == {"deleted": "offline"}
+    with p.uow() as uow:
+        actions = {e["action"] for e in uow.repo("audit_events").list(order_by=["-seq"], limit=40)}
+    assert {
+        "ai.profile_saved",
+        "ai.default_changed",
+        "ai.profile_deleted",
+        "ai.completion",
+    } <= actions
+
+
+def test_the_admin_ai_page_switches_and_tests(estate):
+    import re
+
+    from starlette.testclient import TestClient
+
+    from maya.server import build_app
+
+    p, w = estate
+    p.ai.save_profile(w.admin, "demo", {"provider": "stub"})
+    web = TestClient(build_app(p))
+    page = web.get("/login")
+    token = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
+    web.post(
+        "/login", data={"username": "admin", "password": "maya-dev-admin", "csrf_token": token}
+    )
+    admin = web.get("/admin/ai")
+    assert admin.status_code == 200 and "Providers on offer" in admin.text and "demo" in admin.text
+    token = re.search(r'name="csrf_token" value="([^"]+)"', admin.text).group(1)
+    r = web.post("/admin/ai/default", data={"profile": "demo", "csrf_token": token})
+    assert "The default model profile is now demo" in r.text and p.ai.profiles()[1] == "demo"
+    r = web.post("/admin/ai/profiles/demo/test", data={"csrf_token": token})
+    assert "demo answered in" in r.text
+    web.post("/admin/ai/default", data={"profile": "", "csrf_token": token})
+    web.post("/admin/ai/profiles/demo/delete", data={"csrf_token": token})
+    assert "demo" not in {r["name"] for r in p.ai.status()["profiles"]}

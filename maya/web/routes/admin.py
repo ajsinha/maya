@@ -518,6 +518,79 @@ async def extensions(request: Request) -> Any:
     return await render(request, "admin/extensions.html", {"r": report})
 
 
+@router.get("/admin/ai")
+@page
+async def ai_models(request: Request) -> Any:
+    """The model profiles, the default and who chose it, and the providers on offer (§21.6)."""
+    async with client(request) as sdk:
+        status = await sdk.ai.status()
+    edit = request.query_params.get("edit")
+    editing = next((r for r in status["profiles"] if r["name"] == edit), None) if edit else None
+    return await render(request, "admin/ai.html", {"s": status, "editing": editing})
+
+
+@router.post("/admin/ai/default")
+@action
+async def ai_default(request: Request) -> Any:
+    data = await form(request)
+    profile = data.get("profile") or None
+    async with client(request) as sdk:
+        await sdk.ai.set_default(profile)
+    flash(
+        request,
+        f"The default model profile is now {profile}."
+        if profile
+        else "The default model profile is back to what the configuration says.",
+        "success",
+    )
+    return RedirectResponse("/admin/ai", status_code=303)
+
+
+@router.post("/admin/ai/profiles/{name}/test")
+@action
+async def ai_test(request: Request, name: str) -> Any:
+    async with client(request) as sdk:
+        out = await sdk.ai.test(name)
+    if out["ok"]:
+        flash(
+            request,
+            f"{name} answered in {out['seconds']} s ({out.get('provider')} · {out.get('model')}, "
+            f"{out.get('input_tokens')} tokens in, {out.get('output_tokens')} out): “{out['reply']}”",
+            "success",
+        )
+    else:
+        flash(request, f"{name} did not answer ({out['seconds']} s): {out['error']}", "danger")
+    return RedirectResponse("/admin/ai", status_code=303)
+
+
+@router.post("/admin/ai/profiles")
+@action
+async def ai_save(request: Request) -> Any:
+    data = await form(request)
+    name = (data.get("name") or "").strip()
+    async with client(request) as sdk:
+        await sdk.ai.save_profile(
+            name,
+            provider=data.get("provider", ""),
+            model=data.get("model", ""),
+            max_tokens=data.get("max_tokens") or None,
+            temperature=data.get("temperature") or None,
+            options=parse_json(data.get("options"), "Options", {}),
+            description=data.get("description", ""),
+        )
+    flash(request, f"Profile {name} saved. Test it before a document relies on it.", "success")
+    return RedirectResponse("/admin/ai", status_code=303)
+
+
+@router.post("/admin/ai/profiles/{name}/delete")
+@action
+async def ai_delete(request: Request, name: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.ai.delete_profile(name)
+    flash(request, f"Profile {name} deleted.", "success")
+    return RedirectResponse("/admin/ai", status_code=303)
+
+
 @router.get("/admin/retention")
 @page
 async def retention(request: Request) -> Any:

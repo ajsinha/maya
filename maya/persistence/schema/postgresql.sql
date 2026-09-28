@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: cc9d6e7f7a434ebec464f24351caa5b3b057892a629e1781fa0494de7a3b5f4c
+-- schema-hash: 0bb7daaac8b769ed2c65222fc5adcca5318f8501706b1458b1a8b10176a17193
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -411,6 +411,24 @@ CREATE INDEX ix_lineage_edges_dst_ref ON lineage_edges (dst_ref);
 
 CREATE INDEX ix_lineage_edges_src_ref ON lineage_edges (src_ref);
 
+CREATE TABLE llm_profiles (
+	name VARCHAR(64) NOT NULL, 
+	provider VARCHAR(64) NOT NULL, 
+	model VARCHAR(256) NOT NULL, 
+	max_tokens INTEGER, 
+	temperature FLOAT, 
+	options JSONB NOT NULL, 
+	description TEXT NOT NULL, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_llm_profiles PRIMARY KEY (id), 
+	CONSTRAINT uq_llm_profiles_name UNIQUE (name)
+);
+
 CREATE TABLE notifications (
 	user_id UUID NOT NULL, 
 	kind VARCHAR(32) NOT NULL, 
@@ -464,6 +482,19 @@ CREATE TABLE roles (
 	row_version INTEGER NOT NULL, 
 	CONSTRAINT pk_roles PRIMARY KEY (id), 
 	CONSTRAINT uq_roles_name UNIQUE (name)
+);
+
+CREATE TABLE runtime_settings (
+	key VARCHAR(128) NOT NULL, 
+	value JSONB NOT NULL, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_runtime_settings PRIMARY KEY (id), 
+	CONSTRAINT uq_runtime_settings_key UNIQUE (key)
 );
 
 CREATE TABLE schema_meta (

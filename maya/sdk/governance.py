@@ -235,11 +235,6 @@ class Evidence(_Resource):
 class Documents(_Resource):
     """Model cards, validation reports and model documentation, generated from the record."""
 
-    @endpoint("GET", "/ai/status")
-    def ai_status(self) -> Any:
-        """The model profiles and the language-model providers on offer."""
-        return self._c("GET", "/ai/status")
-
     @endpoint("GET", "/documents/templates")
     def templates(self) -> Any:
         return self._c("GET", "/documents/templates")
@@ -285,3 +280,29 @@ class Documents(_Resource):
     @endpoint("POST", "/documents/{doc_id}/approve")
     def approve(self, doc_id: str) -> Any:
         return self._c("POST", f"/documents/{seg(doc_id)}/approve")
+
+
+class Ai(_Resource):
+    """The AI gateway: model profiles, the default, and the providers on offer."""
+
+    @endpoint("GET", "/ai/status")
+    def status(self) -> Any:
+        return self._c("GET", "/ai/status")
+
+    @endpoint("POST", "/ai/default")
+    def set_default(self, profile: str | None) -> Any:
+        """Make ``profile`` the default now; ``None`` returns the choice to the configuration."""
+        return self._c("POST", "/ai/default", json_body={"profile": profile})
+
+    @endpoint("POST", "/ai/profiles/{name}/test")
+    def test(self, name: str) -> Any:
+        return self._c("POST", f"/ai/profiles/{seg(name)}/test")
+
+    @endpoint("PUT", "/ai/profiles/{name}")
+    def save_profile(self, name: str, **fields: Any) -> Any:
+        """``provider``, ``model``, ``max_tokens``, ``temperature``, ``options``, ``description``."""
+        return self._c("PUT", f"/ai/profiles/{seg(name)}", json_body=fields)
+
+    @endpoint("DELETE", "/ai/profiles/{name}")
+    def delete_profile(self, name: str) -> Any:
+        return self._c("DELETE", f"/ai/profiles/{seg(name)}")
