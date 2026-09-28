@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (
+    DESCRIPTIONS,
     APPLICATIONS_DEF,
     AS_OF,
     EXTRA_USERS,
@@ -40,7 +41,7 @@ def main(maya: Any, n: Narrator) -> None:
     cast = Cast(maya)
     n.step("The bureau attributes and the outcomes, as two governed features")
     for name, definition in (("applications", APPLICATIONS_DEF), ("outcomes", OUTCOMES_DEF)):
-        cast.dana.features.create(NS, name, definition)
+        cast.dana.features.create(NS, name, definition, description=DESCRIPTIONS[name])
         got = cast.dana.features.ingest(
             f"{NS}/{name}", feed(name), fmt="csv", filename=f"{name}.csv"
         )
@@ -49,7 +50,7 @@ def main(maya: Any, n: Narrator) -> None:
         n.fact(name, f"{got['rows']:,} rows, approved")
 
     n.step("The panel, pinned at the year end")
-    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF)
+    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF, description=DESCRIPTIONS[PANEL])
     cast.devi.featuresets.transition(f"{NS}/{PANEL}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{PANEL}", 1, "approve")
     cast.mick.featuresets.pin(f"{NS}/{PANEL}", 1, PIN, AS_OF.isoformat(), cascade=True)

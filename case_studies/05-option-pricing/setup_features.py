@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     DEFINITIONS,
     EXTRA_USERS,
     FEEDS,
@@ -60,7 +61,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("Defining each feed, ingesting it, and having it approved by someone else")
     for name in FEEDS:
-        cast.dana.features.create(NS, name, DEFINITIONS[name])
+        cast.dana.features.create(NS, name, DEFINITIONS[name], description=DESCRIPTIONS[name])
         cast.dana.features.ingest(f"{NS}/{name}", raw[name], fmt="csv", filename=f"{name}.csv")
         cast.dana.features.transition(f"{NS}/{name}", 1, "submit")
         cast.mick.features.transition(f"{NS}/{name}", 1, "approve")

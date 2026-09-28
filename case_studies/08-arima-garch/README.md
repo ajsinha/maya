@@ -120,9 +120,9 @@ cannot read the model, and it still ran the validated code on 840 rows nobody ha
 
 ## What to show in the UI
 
-- **Catalog → Features → `index_daily`**, *Definition* tab: the transform pipeline, `lag 1`,
+- **Catalog → Features → `daily_index_returns`**, *Definition* tab: the transform pipeline, `lag 1`,
   `lag 2` and `retSq`, as part of the approved version.
-- **Catalog → Models → `garch11_vol`**: the black-box declaration, the constraint and its
+- **Catalog → Models → `daily_return_variance_garch`**: the black-box declaration, the constraint and its
   sentence, and the *Code* tab's ladder report, all six rungs.
 - **Warrants → Training → `garch_fit_2025`**: the spec with `shape: time_series`, the
   certificate, the escrowed holdout, the blind score and `scored_in: sandbox`.

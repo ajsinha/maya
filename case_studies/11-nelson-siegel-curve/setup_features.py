@@ -7,7 +7,7 @@ Three feeds on two grains and two lags. The par quotes print at 16:15, the curve
 actually consumes is published at 18:40 — after somebody bootstrapped it — and the report of
 that build arrives with it, one row a day.
 
-The third feed is worth watching. ``curve_build`` carries the number of instruments the
+The third feed is worth watching. ``zero_curve_build_report`` carries the number of instruments the
 bootstrap used, the largest residual it left, and the name of the method. That is the
 construction report of a piece of mathematics with no specification, no parameter set and no
 approved version anywhere in MAYA, and the only control the platform can put on it is a
@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     DEFINITIONS,
     EXTRA_USERS,
     FEEDS,
@@ -51,7 +52,7 @@ def main(maya: Any, n: Narrator) -> None:
     for name, body in raw.items():
         n.fact(name, f"{body.count(NEWLINE) - 1:,} rows, {len(body) / 1e6:.2f} MB")
     curve = pd.read_csv(io.BytesIO(raw["zero_yields"]))
-    build = pd.read_csv(io.BytesIO(raw["curve_build"]))
+    build = pd.read_csv(io.BytesIO(raw["zero_curve_build_report"]))
     n.fact(
         "business days",
         f"{curve['date'].nunique():,}, {curve['date'].min()} to {curve['date'].max()}",
@@ -69,7 +70,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("Defining each feed, ingesting it, and submitting it")
     for name in FEEDS:
-        cast.dana.features.create(NS, name, DEFINITIONS[name])
+        cast.dana.features.create(NS, name, DEFINITIONS[name], description=DESCRIPTIONS[name])
         cast.dana.features.ingest(f"{NS}/{name}", raw[name], fmt="csv", filename=f"{name}.csv")
         cast.dana.features.transition(f"{NS}/{name}", 1, "submit")
         index = ", ".join(DEFINITIONS[name]["index"])

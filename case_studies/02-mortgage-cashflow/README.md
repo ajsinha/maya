@@ -17,7 +17,7 @@ and show what the last one created.
 | --- | --- | --- |
 | `make_data.py` | Writes the loan tape and the servicer's report to `data/` (already committed; run it only to regenerate). No MAYA. | The recipe: exact level-payment amortisation, disturbed by partial prepayments and late payments the way a real book is. |
 | `setup_features.py` | Declares and ingests the two feeds as features, submits them as **dana**, approves them as **mick**. | Two feeds on two different lags — two business days and a fortnight — each declaring its own knowledge time. |
-| `setup_featureset.py` | Composes `loan_month` on `(date, loan)` from the four tape columns *and* the servicer's remittance, approves it, pins it. | Keeping the benchmark inside the pinned set is what makes the later reconciliation reproducible. |
+| `setup_featureset.py` | Composes `mortgage_loan_month_panel` on `(date, loan)` from the four tape columns *and* the servicer's remittance, approves it, pins it. | Keeping the benchmark inside the pinned set is what makes the later reconciliation reproducible. |
 | `setup_model.py` | Registers the model from the **LaTeX** the analyst wrote, fills the specification, and prints the **reference Python MAYA lifts from the expression tree**. | That MAYA reads LaTeX and Python into the same tree; that `remitted` is not an input; a runnable statement of the specification nobody typed twice. |
 | `check_conformance.py` | Uploads the desk's implementation; the six-rung ladder **and** the differential test run together. Re-runs the test on the pinned tape's own values, then does the same for a buggy implementation, then puts the correct one back. | **The heart of the study.** A valid-but-wrong implementation passes every rung, agrees with the specification *nowhere*, and cannot be submitted. The domain the test used is stated, because agreement over an invented domain is worth less than it looks. |
 | `get_training_warrant.py` | Draws a warrant that fits nothing, registers the servicing fee as an approved parameter set, and has MAYA score the model blind against what the servicer actually remitted. | A model with no fit still owes a signed constant; an accuracy statement measured against an independent record. |
@@ -178,7 +178,7 @@ loan and a bug that only shows on a seasoned one hides there. So the study re-ru
 naming the pinned tape, and the inputs are resampled from its own values:
 
 ```
-domain: resampled from maya://featureset/mortgage_alm/loan_month#recon2509/2025-09-30
+domain: resampled from maya://featureset/mortgage_alm/mortgage_loan_month_panel#recon2509/2025-09-30
         (8,820 rows)
 ```
 

@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
-from study import DEFINITIONS, EXTRA_USERS, FEEDS, NS, Cast, feed  # noqa: E402
+from study import DESCRIPTIONS, DEFINITIONS, EXTRA_USERS, FEEDS, NS, Cast, feed  # noqa: E402
 
 TITLE = "Case study 10, step 1 — two feeds, two indexes, two very different lags"
 
@@ -68,7 +68,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("Defining each feed, and putting its rows into MAYA's lake")
     for name in FEEDS:
-        cast.dana.features.create(NS, name, DEFINITIONS[name])
+        cast.dana.features.create(NS, name, DEFINITIONS[name], description=DESCRIPTIONS[name])
         cast.dana.features.ingest(f"{NS}/{name}", raw[name], fmt="csv", filename=f"{name}.csv")
         cast.dana.features.transition(f"{NS}/{name}", 1, "submit")
         index = ", ".join(DEFINITIONS[name]["index"])

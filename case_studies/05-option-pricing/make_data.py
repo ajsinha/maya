@@ -75,7 +75,9 @@ def ncdf(x: float) -> float:
     return 0.5 * math.erfc(-x / math.sqrt(2.0))
 
 
-def bsm_call(spot: float, strike: float, rate: float, div: float, tte: float, vol: float) -> float:
+def black_scholes_call_price(
+    spot: float, strike: float, rate: float, div: float, tte: float, vol: float
+) -> float:
     """Black–Scholes–Merton European call with a continuous dividend yield."""
     root = vol * math.sqrt(tte)
     d1 = (math.log(spot / strike) + (rate - div + 0.5 * vol * vol) * tte) / root
@@ -169,7 +171,7 @@ def quotes(
                 rate = rate_of[(date, tenor)]
                 for strike in ladder:
                     vol = true_vol(spot, strike, rate, div, tte, atm0)
-                    fair = bsm_call(spot, strike, rate, div, tte, vol)
+                    fair = black_scholes_call_price(spot, strike, rate, div, tte, vol)
                     if fair < 0.02:
                         continue
                     noise = float(rng.normal(0.0, 1.0)) * max(0.0035 * fair, 0.015)

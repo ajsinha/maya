@@ -22,7 +22,7 @@ and between any two of them you can open the web UI and show what the last one c
 | --- | --- | --- |
 | `make_data.py` | Writes two feeds to `data/` (already committed; run it only to regenerate). No MAYA. | The recipe: a five-factor structure with **no alpha in it at all**, over a universe tilted small and value, in a window where size and value both earned money. |
 | `setup_features.py` | Declares and ingests two features: the equity tape on `(date, stock)`, the factor library on **`date` alone**. Measures each feed's knowledge-time lag from the file. | A close known that evening; a factor library known **4.5 to 34.5 days** later. **dana refused when she tries to approve her own feature.** |
-| `setup_featureset.py` | Composes `factor_panel` from both and pins it; also builds the narrow `capm_panel`. | MAYA broadcasting the 504-row factor feed across the cross-section — *one distinct market factor value per date*. **Pinning an unapproved version refused.** |
+| `setup_featureset.py` | Composes `five_factor_panel` from both and pins it; also builds the narrow `capm_market_panel`. | MAYA broadcasting the 504-row factor feed across the cross-section — *one distinct market factor value per date*. **Pinning an unapproved version refused.** |
 | `setup_model.py` | Registers version 1 — two parameters, one feature — and cannot submit it without a document. | That MAYA's ceremony is not proportional to a model's complexity. **Submission refused while the specification is empty.** The maturity on creation: `experimental`. |
 | `get_training_warrant.py` | Draws the warrant naively, then again with the publication lag explained. | A leakage certificate refusing **all 15,120 rows** — and refusing them on the **drivers**, which is a much harder exception than case study 1's. |
 | `fit_parameters.py` | Fits by OLS on the training partition, reports **two standard errors per coefficient**, uploads twice (wrong checksum, then right), and has MAYA blind-score the holdout twice. | An alpha of **+14.83% annualised** on a universe whose true alpha is zero. **Parameters that cannot prove their data refused approval.** A holdout figure with a benchmark. |
@@ -320,11 +320,11 @@ input contract, v1:  mktExcess
 input contract, v2:  cma, hml, mktExcess, rmw, smb
 ```
 
-`capm_panel` carries exactly `stockExcess` and `mktExcess` — what version 1 declared it
+`capm_market_panel` carries exactly `stockExcess` and `mktExcess` — what version 1 declared it
 needed. MAYA confirms it satisfies version 1:
 
 ```
-capm_panel against v1's contract:  True
+capm_market_panel against v1's contract:  True
 mapping:                           {'mktExcess': 'mktExcess'}
 ```
 

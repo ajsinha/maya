@@ -8,7 +8,7 @@ step script reads as the step it is, and so that two steps cannot disagree about
 the panel is called or what the model says.
 
 Steps find each other's work by name rather than by passing identifiers in a file:
-``pd_panel``, ``pd_fit_2025h1``, ``pd_scorecard_live``. That is deliberate. A step run
+``probability_of_default_panel``, ``pd_fit_2025h1``, ``pd_scorecard_live``. That is deliberate. A step run
 an hour later in a different process has to locate what the last one made exactly the
 way a person or a scheduled job would — by asking MAYA.
 
@@ -28,9 +28,9 @@ NS = "retail_credit"
 DATA = Path(__file__).resolve().parent / "data"
 FEEDS = ("servicing_monthly", "bureau_file", "default_outcome")
 
-PANEL = "pd_panel"
+PANEL = "probability_of_default_panel"
 PIN = "fit2025h1"
-MODEL = "pd_scorecard"
+MODEL = "probability_of_default_scorecard"
 WARRANT = "pd_fit_2025h1"
 NAIVE_WARRANT = "pd_fit_naive"
 LIVE = "pd_scorecard_live"
@@ -176,7 +176,7 @@ SECTIONS = {
         "fitting window, which is what the execution warrant's covenants monitor."
     ),
     "Data and Features Used": (
-        "Feature set retail_credit/pd_panel, pinned point-in-time. Drivers: utilisation, "
+        "Feature set retail_credit/probability_of_default_panel, pinned point-in-time. Drivers: utilisation, "
         "debt-to-income and the delinquency count from the monthly servicing extract, which "
         "is cut five days after month end; the bureau score from a quarterly file delivered "
         "a fortnight after the quarter it describes, carried forward as-of with a "
@@ -333,3 +333,13 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
     if not positives or not negatives:
         return float("nan")
     return float((ranks[y == 1].sum() - positives * (positives + 1) / 2) / (positives * negatives))
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "bureau_file": "Each account's credit bureau score, as the bureau delivered it each month",
+    "servicing_monthly": "Monthly servicing data per account: utilisation, debt-to-income, delinquencies, months on book",
+    "default_outcome": "Whether each account defaulted within the following 12 months",
+    "probability_of_default_panel": "One row per account and month: the scorecard's drivers and the 12-month default flag",
+    "probability_of_default_scorecard": "12-month probability of default for retail credit accounts, a logistic scorecard",
+}

@@ -6,7 +6,7 @@ The feed this case study ingests, written to ``data/`` as CSV.
 Time series are the awkward case for a platform whose models are row-wise expressions,
 and the data is shaped to make both halves of that awkwardness visible.
 
-* ``index_daily.csv`` — the daily close of three equity indices and the log return
+* ``daily_index_returns.csv`` — the daily close of three equity indices and the log return
   computed from it. Known that evening, which for a closing price is the one lag nobody
   argues about.
 
@@ -98,7 +98,7 @@ def generate() -> dict[str, pd.DataFrame]:
                 }
             )
 
-    return {"index_daily": pd.DataFrame(rows)}
+    return {"daily_index_returns": pd.DataFrame(rows)}
 
 
 def main() -> int:
@@ -111,7 +111,7 @@ def main() -> int:
             f"wrote {path.relative_to(HERE.parent.parent)}  {len(frame):,} rows, "
             f"{path.stat().st_size / 1e6:.2f} MB"
         )
-    daily = frames["index_daily"]
+    daily = frames["daily_index_returns"]
     print(f"generated AR(2)    c={TRUE_AR['c']:.5f} phi1={TRUE_AR['phi1']} phi2={TRUE_AR['phi2']}")
     print(
         f"generated GARCH    omega={TRUE_GARCH['omega']:.3e} alpha={TRUE_GARCH['alpha']} "

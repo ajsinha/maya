@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
-from study import DEFINITIONS, EXTRA_USERS, FEEDS, NEWLINE, NS, Cast, feed  # noqa: E402
+from study import DESCRIPTIONS, DEFINITIONS, EXTRA_USERS, FEEDS, NEWLINE, NS, Cast, feed  # noqa: E402
 
 TITLE = "Case study 2, step 1 — the loan tape and the servicer's report"
 
@@ -42,7 +42,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("Defining each one, ingesting it, and having it approved by someone else")
     for name in FEEDS:
-        cast.dana.features.create(NS, name, DEFINITIONS[name])
+        cast.dana.features.create(NS, name, DEFINITIONS[name], description=DESCRIPTIONS[name])
         cast.dana.features.ingest(f"{NS}/{name}", raw[name], fmt="csv", filename=f"{name}.csv")
         cast.dana.features.transition(f"{NS}/{name}", 1, "submit")
         cast.mick.features.transition(f"{NS}/{name}", 1, "approve")

@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     CURVE_FEATURE,
     EXTRA_USERS,
     LIVE,
@@ -99,7 +100,9 @@ def main(maya: Any, n: Narrator) -> None:  # noqa: PLR0915 - one narrated step p
     n.say("curve needs.")
 
     n.step("Defining it as a derived feature over the published pillars")
-    cast.dana.features.create(NS, CURVE_FEATURE, definition(expr))
+    cast.dana.features.create(
+        NS, CURVE_FEATURE, definition(expr), description=DESCRIPTIONS[CURVE_FEATURE]
+    )
     cast.dana.features.transition(f"{NS}/{CURVE_FEATURE}", 1, "submit")
     cast.mick.features.transition(f"{NS}/{CURVE_FEATURE}", 1, "approve")
     got = cast.mick.features.get(f"{NS}/{CURVE_FEATURE}")

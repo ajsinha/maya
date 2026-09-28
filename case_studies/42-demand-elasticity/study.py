@@ -13,7 +13,7 @@ from typing import Any
 NS = "pricing"
 DATA = Path(__file__).resolve().parent / "data"
 FEED = "weekly_sales"
-PANEL = "demand_panel"
+PANEL = "weekly_demand_panel"
 PIN = "fy2025"
 AS_OF = dt.date(2025, 12, 31)
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
@@ -27,8 +27,8 @@ LEAKAGE_JUSTIFICATION = (
     "decide anything about the week it describes."
 )
 
-CHAMPION = "demand_linear"
-CHALLENGER = "demand_loglog"
+CHAMPION = "weekly_demand_linear"
+CHALLENGER = "weekly_demand_constant_elasticity"
 CHAMPION_WARRANT = "demand_linear_fit"
 CHALLENGER_WARRANT = "demand_loglog_fit"
 OTHER_WARRANT = "demand_loglog_reseeded"
@@ -112,3 +112,12 @@ def find_warrant(client: Any, name: str) -> dict[str, Any]:
 
 def approved_parameters(warrant: dict[str, Any]) -> dict[str, Any]:
     return next(p for p in warrant["parameter_sets"] if p["state"] == "approved")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "weekly_sales": "Weekly price and demand index per product",
+    "weekly_demand_panel": "One row per product and week: price and demand",
+    "weekly_demand_linear": "Demand as a straight line in price: the model in production today",
+    "weekly_demand_constant_elasticity": "Constant elasticity: demand as a power of price, beta the elasticity",
+}

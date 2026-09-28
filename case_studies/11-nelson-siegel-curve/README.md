@@ -82,7 +82,7 @@ study starts.
 | --- | --- | --- | --- | --- | --- |
 | `data/ois_par_quotes.csv` | 10,962 | 0.71 MB | date × tenor | **16:15 that afternoon** | The closing par rate of the GBP OIS swap at each benchmark tenor, with bid and ask. |
 | `data/zero_yields.csv` | 10,962 | 0.55 MB | date × tenor | 18:40 that evening | The continuously compounded zero rate the curve team publishes, bootstrapped from those quotes. **The calibration target.** |
-| `data/curve_build.csv` | 522 | 0.04 MB | date | 18:40 that evening | One row a day: how many instruments went into that build, the largest residual it left, and the method. |
+| `data/zero_curve_build_report.csv` | 522 | 0.04 MB | date | 18:40 that evening | One row a day: how many instruments went into that build, the largest residual it left, and the method. |
 
 522 business days, 2024-07-01 to 2026-06-30, 21 pillars from one month to thirty years, zero
 yields from 1.3598% to 4.4612%. The curve is upward sloping throughout and steepens slowly:
@@ -111,7 +111,7 @@ one day at a time and gets answers from 0.85 to 3.37.
 
 ### The third feed is the study's first exhibit
 
-`curve_build.csv` is the construction report of the bootstrap that produced the target: 21 to
+`zero_curve_build_report.csv` is the construction report of the bootstrap that produced the target: 21 to
 24 instruments a day, a largest repricing residual of at most 0.46 basis points over the
 window, one named method. That bootstrap has parameters, a method, an owner and an error. It
 has no specification document, no conformance test, no parameter set and no approved version
@@ -133,7 +133,7 @@ says so:
 ```
 join member           'maya://feature/rates/zero_yields@v1'    on ['date', 'tenor']
 join member           'maya://feature/rates/ois_par_quotes@v1' on ['date', 'tenor']
-broadcast join member 'maya://feature/rates/curve_build@v1'    on ['date']
+broadcast join member 'maya://feature/rates/zero_curve_build_report@v1'    on ['date']
 ```
 
 The pin is `maya://featureset/rates/gbp_zero_curve#ns2606/2026-06-30`, taken `as_of_known`
@@ -193,7 +193,7 @@ minus 6.7%, and MAYA accepts it.
 The version is left a draft, and nothing can be drawn on it:
 
 ```
-NotApproved: rates/nelson_siegel@v1 is 'draft';
+NotApproved: rates/gbp_yield_curve_nelson_siegel@v1 is 'draft';
   warrants are drawn on approved model versions
 ```
 

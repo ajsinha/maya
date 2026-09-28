@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     EXTRA_USERS,
     MEAN_CONSTRAINTS,
     MEAN_FORMULA,
@@ -55,7 +56,7 @@ def main(maya: Any, n: Narrator) -> None:
     translated = cast.mona.models.kernel(MEAN_FORMULA, roles=MEAN_ROLES)
     ir = dict(translated["ir"])
     ir["constraints"] = MEAN_CONSTRAINTS
-    cast.mona.models.create(NS, MEAN_MODEL, ir=ir, description="AR(2) conditional mean")
+    cast.mona.models.create(NS, MEAN_MODEL, ir=ir, description=DESCRIPTIONS[MEAN_MODEL])
     cast.mona.models.update_draft(
         f"{NS}/{MEAN_MODEL}", spec_latex=document("AR(2) conditional mean", SECTIONS_MEAN)
     )
@@ -67,7 +68,9 @@ def main(maya: Any, n: Narrator) -> None:
         n.say(f"  constraint: {c['why'].split(':')[0]}")
 
     n.step("The conditional variance: GARCH(1,1), a declared black box")
-    cast.mona.models.create(NS, VOL_MODEL, kind="black_box", ir=VOL_IR)
+    cast.mona.models.create(
+        NS, VOL_MODEL, kind="black_box", ir=VOL_IR, description=DESCRIPTIONS[VOL_MODEL]
+    )
     cast.mona.models.upload_artifact(
         f"{NS}/{VOL_MODEL}", VOL_CODE, sample=SAMPLE, params=dict(TRUE_GARCH)
     )

@@ -17,13 +17,13 @@ import numpy as np
 
 NS = "market_risk"
 DATA = Path(__file__).resolve().parent / "data"
-FEEDS = ("index_daily",)
+FEEDS = ("daily_index_returns",)
 NEWLINE = b"\n"
 
-PANEL = "return_panel"
+PANEL = "daily_index_return_panel"
 PIN = "ts2025"
-MEAN_MODEL = "ar2_mean"
-VOL_MODEL = "garch11_vol"
+MEAN_MODEL = "daily_return_mean_ar2"
+VOL_MODEL = "daily_return_variance_garch"
 MEAN_WARRANT = "ar2_fit_2025"
 VOL_WARRANT = "garch_fit_2025"
 LIVE = "garch_vol_live"
@@ -191,12 +191,12 @@ DAILY_DEF = {
     ],
 }
 
-DEFINITIONS = {"index_daily": DAILY_DEF}
+DEFINITIONS = {"daily_index_returns": DAILY_DEF}
 
 PANEL_DEF = {
     "index": ["date", "index"],
     "members": [
-        {"attr": attr, "ref": f"maya://feature/{NS}/index_daily@v1", "source_attr": attr}
+        {"attr": attr, "ref": f"maya://feature/{NS}/daily_index_returns@v1", "source_attr": attr}
         for attr in ("ret", "retLag1", "retLag2", "retSq")
     ],
 }
@@ -246,7 +246,7 @@ SECTIONS_MEAN = {
         "to, which is only true to the extent this mean model is right."
     ),
     "Data and Features Used": (
-        "Feature set market_risk/return_panel, pinned point-in-time: the log return and its "
+        "Feature set market_risk/daily_index_return_panel, pinned point-in-time: the log return and its "
         "first two lags, from the daily index feed, known at that day's close."
     ),
     "Calibration Methodology": (
@@ -277,7 +277,7 @@ SECTIONS_VOL = {
     "Purpose": (
         "Forecast the conditional variance of tomorrow's daily log return, for "
         "value-at-risk, for option pricing inputs and for limit monitoring. The companion to "
-        "market_risk/ar2_mean, which forecasts the conditional mean."
+        "market_risk/daily_return_mean_ar2, which forecasts the conditional mean."
     ),
     "Scope and Limitations": (
         "Daily log returns on liquid broad indices, each recursed on its own with one pooled "
@@ -310,7 +310,7 @@ SECTIONS_VOL = {
         "sample changes it whether or not the process changed."
     ),
     "Data and Features Used": (
-        "Feature set market_risk/return_panel, pinned point-in-time: the log return series, "
+        "Feature set market_risk/daily_index_return_panel, pinned point-in-time: the log return series, "
         "and the squared return as the benchmark the forecast is measured against."
     ),
     "Calibration Methodology": (
@@ -454,4 +454,13 @@ def constant_variance_loglik(shock: np.ndarray | list[np.ndarray]) -> float:
 SAMPLE = {
     "ret": [0.004, -0.006, 0.011, -0.002, -0.013, 0.007],
     "index": ["AZX", "BQI", "AZX", "BQI", "AZX", "BQI"],
+}
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "daily_index_returns": "Daily close and log return of three equity indices, with the return's two lags and its square",
+    "daily_index_return_panel": "One row per index and day: the return, its two lags and its square",
+    "daily_return_mean_ar2": "Tomorrow's expected daily index return from the last two, an AR(2)",
+    "daily_return_variance_garch": "Tomorrow's variance of the daily index return, a GARCH(1,1) (declared black box)",
 }

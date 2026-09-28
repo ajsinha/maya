@@ -7,7 +7,7 @@ in a repository under source control at a bank — kept in one place so that eac
 script reads as the step it is, and so that two steps cannot disagree about what the
 panel is called or what the network is.
 
-Steps find each other's work by name: ``fraud_panel``, ``fraud_mlp``,
+Steps find each other's work by name: ``card_fraud_daily_panel``, ``card_fraud_neural_network``,
 ``fraud_mlp_fit_2025q2``, ``fraud_mlp_live``. A step run an hour later in a different
 process locates what the last one made exactly the way a person or a scheduled job would —
 by asking MAYA.
@@ -37,9 +37,9 @@ NS = "card_fraud"
 DATA = Path(__file__).resolve().parent / "data"
 FEEDS = ("card_day_activity", "card_profile", "fraud_confirmed")
 
-PANEL = "fraud_panel"
+PANEL = "card_fraud_daily_panel"
 PIN = "fit2025q2"
-MODEL = "fraud_mlp"
+MODEL = "card_fraud_neural_network"
 WARRANT = "fraud_mlp_fit_2025q2"
 NAIVE_WARRANT = "fraud_mlp_fit_naive"
 LIVE = "fraud_mlp_live"
@@ -275,7 +275,7 @@ SECTIONS = {
         "carried as-of is a fair view of tenure and dispute history on the day scored."
     ),
     "Data and Features Used": (
-        "Feature set card_fraud/fraud_panel, pinned point-in-time. Four drivers from the "
+        "Feature set card_fraud/card_fraud_daily_panel, pinned point-in-time. Four drivers from the "
         "daily authorisation summary, cut one day after the day they describe: the largest "
         "authorisation as a ratio to the card's own usual largest, the foreign share, the "
         "night share and the authorisation-count ratio. Two drivers from the month-end "
@@ -364,7 +364,7 @@ class Model:
         return {}
 
     def predict(self, X, params, ctx):
-        weights = np.load(open("/models/fraud_mlp/weights.npz", "rb"))
+        weights = np.load(open("/models/card_fraud_neural_network/weights.npz", "rb"))
         matrix = np.column_stack([np.asarray(v, dtype=float) for v in X.values()])
         hidden = np.tanh(matrix @ weights["W1"] + weights["b1"])
         return 1.0 / (1.0 + np.exp(-(hidden @ weights["W3"] + weights["b3"]))).ravel()
@@ -496,3 +496,13 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
     if not positives or not negatives:
         return float("nan")
     return float((ranks[y == 1].sum() - positives * (positives + 1) / 2) / (positives * negatives))
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "card_day_activity": "Daily card activity: amount, foreign and night shares, velocity, authorisations",
+    "card_profile": "Each card's profile: tenure and prior disputes",
+    "fraud_confirmed": "Whether fraud on the card that day was later confirmed",
+    "card_fraud_daily_panel": "One row per card and day: activity, profile, and whether fraud was confirmed",
+    "card_fraud_neural_network": "Probability that a card-day is fraudulent, a feed-forward neural network (declared black box)",
+}

@@ -13,7 +13,7 @@ went arrives with it:
 * ``zero_yields.csv`` — the continuously compounded zero rate the curve team publishes for
   each of those tenors, bootstrapped from those quotes. 18:40 UTC the same evening: two
   hours and twenty-five minutes after the quotes, because somebody had to build it.
-* ``curve_build.csv`` — one row a day describing that build: how many instruments went in,
+* ``zero_curve_build_report.csv`` — one row a day describing that build: how many instruments went in,
   the largest residual it left against the quotes, and the method. The construction report
   of a piece of mathematics nobody governs, arriving in MAYA as a CSV.
 
@@ -234,7 +234,7 @@ def generate() -> tuple[dict[str, pd.DataFrame], pd.DataFrame, pd.DataFrame]:
     feeds = {
         "ois_par_quotes": par_panel(zeros),
         "zero_yields": zeros.drop(columns=["trueYield"]),
-        "curve_build": build_panel(dates, rng),
+        "zero_curve_build_report": build_panel(dates, rng),
     }
     return feeds, truth, zeros
 

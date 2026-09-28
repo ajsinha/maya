@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     EXTRA_USERS,
     FORMULA_V1,
     MODEL,
@@ -46,7 +47,9 @@ def main(maya: Any, n: Narrator) -> None:
 
     cast = Cast(maya)
     n.step("Registering the market model as a formula")
-    cast.mona.models.create(NS, MODEL, formula=FORMULA_V1, roles=ROLES_V1)
+    cast.mona.models.create(
+        NS, MODEL, formula=FORMULA_V1, roles=ROLES_V1, description=DESCRIPTIONS[MODEL]
+    )
     v1 = version(cast.mona, f"{NS}/{MODEL}", 1)
     n.fact("formula", FORMULA_V1.strip())
     n.fact("input contract", ", ".join(c["name"] for c in v1["input_contract"]))

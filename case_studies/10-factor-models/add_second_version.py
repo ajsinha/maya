@@ -13,7 +13,7 @@ then makes every consequence of that explicit:
 2. ``models.diff(ref, 1, 2)`` states what changed *in the mathematics*: four parameters
    added, four features added, and the output equation rewritten with the refs it now uses.
    A text diff of two Python files would have shown a longer line.
-3. The **input contract grew by four attributes**, so ``capm_panel`` — which satisfied
+3. The **input contract grew by four attributes**, so ``capm_market_panel`` — which satisfied
    version 1 exactly — no longer satisfies the model. MAYA refuses the warrant and names
    the four missing attributes.
 4. Version 2 gets its **own** training warrant, drawn on the same pin with the same split

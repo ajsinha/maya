@@ -2,7 +2,7 @@
 What the steps of this case study share: names, feature definitions, the hazard model,
 its specification document, the proposed change, and the people.
 
-Nothing here talks to MAYA. Steps find each other's work by name — ``prepay_panel``,
+Nothing here talks to MAYA. Steps find each other's work by name — ``mortgage_prepayment_panel``,
 ``smm_fit_2025``, ``prepay_live`` — because a step run later in a different process has
 to locate what the last one made the way a person or a scheduled job would.
 
@@ -23,9 +23,9 @@ DATA = Path(__file__).resolve().parent / "data"
 FEEDS = ("loan_month", "mortgage_rate", "seasonality", "prepaid")
 NEWLINE = b"\n"
 
-PANEL = "prepay_panel"
+PANEL = "mortgage_prepayment_panel"
 PIN = "fit2512"
-MODEL = "smm_hazard"
+MODEL = "monthly_prepayment_hazard"
 WARRANT = "smm_fit_2025"
 LIVE = "prepay_live"
 WORKSPACE = "smoother-rate-2026q1"
@@ -212,7 +212,7 @@ SECTIONS = {
         "is estimated over one down-and-up rate cycle and no more."
     ),
     "Data and Features Used": (
-        "Feature set mortgage_prepay/prepay_panel, pinned point-in-time. Loan-level: "
+        "Feature set mortgage_prepay/mortgage_prepayment_panel, pinned point-in-time. Loan-level: "
         "coupon, age and loan-to-value from the monthly tape, cut two business days after "
         "month end. Date-level, joined on the shared index: the thirty-year survey rate, "
         "published the first business day after the month it describes, and a moving-season "
@@ -360,3 +360,14 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
 def cpr(smm: float) -> float:
     """The annualised constant prepayment rate a monthly hazard implies."""
     return 1.0 - (1.0 - smm) ** 12
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "loan_month": "Monthly mortgage attributes: coupon, age, loan-to-value and balance",
+    "mortgage_rate": "The market mortgage rate each month",
+    "prepaid": "Whether each mortgage prepaid in full that month",
+    "seasonality": "The seasonal house-moving index each month",
+    "mortgage_prepayment_panel": "One row per mortgage and month: the prepayment drivers and whether it prepaid",
+    "monthly_prepayment_hazard": "Monthly prepayment probability (SMM) of a mortgage, a logistic hazard",
+}

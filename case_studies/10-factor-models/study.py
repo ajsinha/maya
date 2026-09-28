@@ -3,7 +3,7 @@ What the steps of this case study share: names, the two feature definitions, the
 panels, **both versions of the model**, a specification document for each, the fitting
 mathematics and the people.
 
-Nothing here talks to MAYA. Steps find each other's work by name — ``factor_panel``,
+Nothing here talks to MAYA. Steps find each other's work by name — ``five_factor_panel``,
 ``capm_fit_2324``, ``ff5_fit_2324`` — because a step run an hour later in a different
 process has to locate what the last one made the way a person or a scheduled job would.
 
@@ -30,8 +30,8 @@ NS = "factor_models"
 DATA = Path(__file__).resolve().parent / "data"
 FEEDS = ("equity_daily", "factor_daily")
 
-PANEL = "factor_panel"  # the wide panel: the market factor and the four others
-NARROW = "capm_panel"  # what version 1's contract was enough for
+PANEL = "five_factor_panel"  # the wide panel: the market factor and the four others
+NARROW = "capm_market_panel"  # what version 1's contract was enough for
 PIN = "y2023_24"
 MODEL = "equity_factor_model"
 WARRANT_V1 = "capm_fit_2324"
@@ -169,8 +169,8 @@ FACTOR_DEF = {
 
 DEFINITIONS = {"equity_daily": EQUITY_DEF, "factor_daily": FACTOR_DEF}
 
-# The panels. ``factor_panel`` carries all five factors and is what both versions are
-# fitted on, so that the holdout is literally the same rows. ``capm_panel`` carries only
+# The panels. ``five_factor_panel`` carries all five factors and is what both versions are
+# fitted on, so that the holdout is literally the same rows. ``capm_market_panel`` carries only
 # what version 1 declared it needed — and is therefore what step 7 uses to show that a
 # feature set which satisfied version 1's contract does not satisfy version 2's.
 MEMBERS = {
@@ -497,3 +497,13 @@ def coefficient_table(
             f"{b / cl:+13.2f} {truth[name]:+12.4f}"
         )
     return out
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "equity_daily": "The daily total and excess return of each stock",
+    "factor_daily": "Daily Fama–French factors: market, size, value, profitability, investment and the risk-free rate",
+    "five_factor_panel": "One row per stock and day: its excess return and the five Fama–French factors",
+    "capm_market_panel": "One row per stock and day: its excess return and the market's",
+    "equity_factor_model": "Expected excess return of a stock: CAPM in version 1, the Fama–French five factors in version 2",
+}

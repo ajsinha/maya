@@ -14,11 +14,11 @@ NS = "bureau"
 DATA = Path(__file__).resolve().parent / "data"
 VENDOR = DATA / "vendor"
 INPUTS = ("utilisation", "delinquencies", "age_of_file", "inquiries")
-PANEL = "bureau_panel"
+PANEL = "credit_application_panel"
 PIN = "fy2025"
 AS_OF = dt.date(2025, 12, 31)
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
-MODEL = "bureau_score"
+MODEL = "vendor_bureau_credit_score"
 WARRANT = "bureau_validation"
 LIVE = "bureau_score_live"
 CONTACT = "credit-risk-models@example.com"
@@ -113,3 +113,12 @@ def find_warrant(client: Any, name: str) -> dict[str, Any]:
         if row["name"] == name:
             return dict(client.training.get(row["id"]))
     raise SystemExit(f"No training warrant called '{name}' yet")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "applications": "Credit applications: bureau utilisation, delinquencies, file age, inquiries and region",
+    "outcomes": "Whether each applicant defaulted within 12 months",
+    "credit_application_panel": "One row per application: the bureau attributes and the 12-month default",
+    "vendor_bureau_credit_score": "BureauScore 4.1, bought from a credit bureau",
+}

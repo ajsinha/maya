@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     EAD_FORMULA,
     EAD_MODEL,
     EAD_ROLES,
@@ -63,7 +64,9 @@ def main(maya: Any, n: Narrator) -> None:
         n.step(name)
         for line in formula.strip().splitlines():
             n.say(line)
-        cast.mona.models.create(NS, name, formula=formula, roles=roles)
+        cast.mona.models.create(
+            NS, name, formula=formula, roles=roles, description=DESCRIPTIONS[name]
+        )
         cast.mona.models.update_draft(f"{NS}/{name}", spec_latex=document(title, sections))
         cast.mona.models.transition(f"{NS}/{name}", 1, "submit")
         cast.mgr.models.transition(f"{NS}/{name}", 1, "approve")
