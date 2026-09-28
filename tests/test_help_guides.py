@@ -65,6 +65,9 @@ def test_every_case_study_has_a_card_and_a_page_rendered_from_its_readme(env):  
     assert "Case studies" in anon.get("/help").text
     for s in studies:
         assert f'href="/help/case-studies/{s["slug"]}"' in listing
+        assert "*" not in s["about"] and "`" not in s["about"], (
+            f"raw markdown on {s['slug']}'s card"
+        )
         page = anon.get(f"/help/case-studies/{s['slug']}")
         assert page.status_code == 200 and s["title"].split(":")[0] in page.text, s["slug"]
         assert "MAYAMATH" not in page.text and "$$" not in page.text
