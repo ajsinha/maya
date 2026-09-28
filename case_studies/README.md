@@ -52,8 +52,8 @@ Every study's README carries a table of **what each script does and what it show
 #  … and so on
 ```
 
-`--reset` deletes that study's MAYA and starts again from nothing. `--quiet` prints the
-results without the narration.
+`--reset` removes that study's namespace and everything in it, then runs the study from
+nothing. `--quiet` prints the results without the narration.
 
 **Every study runs in one estate, configured by one file.** A study reads
 `config/application.yaml` — the same file `run_maya_web.py` reads, with nothing overridden
@@ -67,11 +67,20 @@ Studies stay apart by **namespace**, which is what namespaces are for: `retail_c
 else, pass the setting exactly as you would to the application — `--lake.root=/tmp/demo-lake`,
 `--storage.root=/tmp/demo` — and the study passes it straight to the configuration loader.
 
-`--reset` deletes the **whole** demonstration estate and builds it again, every study in it.
-There is no resetting one study out of a shared estate: MAYA does not delete governed
-objects, and a reset that removed a namespace's rows from underneath an audit chain would
-teach the wrong lesson about what a register is. A full pass over a study already in the
-estate stops and says so.
+**Resetting one study, and cleaning up after a failure.** MAYA does not delete governed
+objects in a register people rely on. The demonstration estate is a development estate
+(`app.environment: dev`), and there an administrator may **purge a namespace**: every row and
+every lake file of it goes, and the purge itself is written to the audit log. The studies use
+that in three ways:
+
+| Flag | What happens |
+|---|---|
+| `--reset` | This study's namespace is purged, then the study runs from nothing. The other studies are untouched. |
+| *(a failure)* | If a full pass (`run.py`) stops part way, it purges its own namespace, so the next pass starts clean. `--keep-on-failure` leaves the partial work in place for debugging. A single step script that fails is not purged — that would throw away the steps before it — and says how to clean up. |
+| `--reset-all` | The **whole** demonstration estate is deleted and built again, every study in it. |
+
+A full pass over a study already in the estate stops and names these options. The same purge
+is on **Admin → Namespaces** in a development estate, and refused anywhere else.
 
 **Every study writes into one lake**, at `data/maya-deltalake/`, which is the lake the web
 application and the rest of MAYA use — configured once as `lake.root` and shared, because a

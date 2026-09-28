@@ -3,7 +3,8 @@
 * Nothing outside ``maya.persistence`` imports ``sqlalchemy``.
 * Application code reaches the database only through the unit of work
   (``maya.persistence.session``), the engine factory (``maya.persistence.engine``)
-  and the external-source reader (``maya.persistence.external``) — never the ORM
+  and the external-source reader (``maya.persistence.external``), plus the two whole-schema
+  operations (``estate`` and ``purge``) exposed as single functions — never the ORM
   models, the schema, a session, an engine or table metadata.
 * Nothing under ``maya.web`` imports any ``maya`` module except the SDK
   (plus the version and error modules the SDK itself re-exports).
@@ -24,6 +25,7 @@ PERSISTENCE_API = (
     "maya.persistence.engine",
     "maya.persistence.external",
     "maya.persistence.estate",
+    "maya.persistence.purge",  # like the estate: a whole-schema operation behind one function
 )
 LEAKS = re.compile(
     r"\buow\.session\b|\.db\.engine\b|\bBase\.metadata\b|"

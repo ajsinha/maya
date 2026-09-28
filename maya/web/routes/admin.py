@@ -360,6 +360,21 @@ async def update_namespace(request: Request, name: str) -> Any:
     return RedirectResponse("/admin/namespaces", status_code=303)
 
 
+@router.post("/admin/namespaces/{name}/purge")
+@action
+async def purge_namespace(request: Request, name: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        out = await sdk.namespaces.purge(name, data.get("confirm", ""))
+    flash(
+        request,
+        f"Namespace {name} purged: {out['rows_removed']} rows and "
+        f"{out['lake_folders_removed']} lake folder(s) removed. The purge is in the audit log.",
+        "success",
+    )
+    return RedirectResponse("/admin/namespaces", status_code=303)
+
+
 @router.get("/admin/grants")
 @page
 async def grants(request: Request) -> Any:

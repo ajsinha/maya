@@ -129,8 +129,8 @@ namespace.
 To demonstrate it, run the scripts one at a time in the order of the table above, and open
 the web UI between them (`.venv/bin/python run_maya_web.py`, then <http://127.0.0.1:8600>,
 signing in as any of the people below with the password `Maya-testing-pass-1`). A full pass
-refuses to run twice in the same estate, because MAYA does not delete governed objects; pass
-`--reset` to rebuild the whole demonstration estate from nothing, or run a study into a
+refuses to run twice in the same estate; pass `--reset` to remove this study's namespace and
+run it again (a failed pass cleans up after itself), or run a study into a
 throwaway estate with `--storage.root=/tmp/demo --lake.root=/tmp/demo/lake`.
 
 ## What MAYA refused, on purpose

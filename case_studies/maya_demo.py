@@ -95,7 +95,17 @@ def arguments(description: str) -> argparse.Namespace:
     ap.add_argument(
         "--reset",
         action="store_true",
-        help="delete the shared demonstration estate and build it again from nothing",
+        help="remove this study's namespace, everything in it, and run the study from nothing",
+    )
+    ap.add_argument(
+        "--reset-all",
+        action="store_true",
+        help="delete the whole shared demonstration estate, every study in it, and start again",
+    )
+    ap.add_argument(
+        "--keep-on-failure",
+        action="store_true",
+        help="if the study fails, leave what it created in place for debugging",
     )
     ap.add_argument("--quiet", action="store_true", help="results only, no narration")
     args, rest = ap.parse_known_args()
@@ -110,6 +120,7 @@ def open_study(
     *,
     reset: bool = False,
     fresh: bool = False,
+    args: argparse.Namespace | None = None,
     extra_users: dict[str, list[str]] | None = None,
     settings: dict[str, str] | None = None,
 ) -> Any:
@@ -131,7 +142,7 @@ def open_study(
     from maya.testing import DEFAULT_USERS, Maya
     from maya.testing.kit import default_config
 
-    if reset:
+    if args is not None and getattr(args, "reset_all", False):
         _reset_everything()
     config = load_settings(default_config(), fresh=True)
     if settings:  # a study that needs a setting of its own re-reads with it applied
@@ -142,20 +153,57 @@ def open_study(
     users = {**DEFAULT_USERS, **(extra_users or {})}
     maya = Maya(platform, home, namespace, users, keep=True)
     seed(maya, users)
+    if reset and _namespace_exists(maya, namespace):
+        purge(maya, namespace, "--reset")
+        seed(maya, users)  # the namespace the study works in, created again, empty
     if fresh and _already_run(maya, namespace):
         maya.close()
         raise SystemExit(
             f"    The '{namespace}' namespace is already in this estate, so a full pass would\n"
-            "    try to create objects that exist. MAYA does not delete governed objects, so\n"
-            "    there is no resetting one study out of a shared estate. Either:\n"
-            "      --reset   rebuild the whole demonstration estate, every study in it\n"
+            "    try to create objects that exist. Either:\n"
+            "      --reset       remove this study's namespace and run it again from nothing\n"
+            "      --reset-all   rebuild the whole demonstration estate, every study in it\n"
             "      or run the step scripts, which continue the study that is already there."
         )
     return maya
 
 
+def _namespace_exists(maya: Any, namespace: str) -> bool:
+    return any(n["name"] == namespace for n in maya.client("admin").namespaces.list())
+
+
+def purge(maya: Any, namespace: str, why: str) -> None:
+    """Remove this study's namespace and everything in it, through MAYA's own purge.
+
+    MAYA purges only in a development estate, which the demonstration estate is; anywhere
+    else it refuses, and so does this."""
+    out = maya.client("admin").namespaces.purge(namespace, namespace)
+    print(
+        f"    {why}: removed the '{namespace}' namespace — {out['rows_removed']} rows and "
+        f"{out['lake_folders_removed']} lake folder(s); the purge is in the audit log."
+    )
+
+
+def after_failure(maya: Any, namespace: str, args: argparse.Namespace) -> None:
+    """A full pass that stopped part way leaves a half-built study behind, which the next
+    pass would trip over. Remove it -- unless the reader asked to keep it to look at."""
+    if getattr(args, "keep_on_failure", False):
+        print(
+            f"\n    The study failed; '{namespace}' is left as it was (--keep-on-failure).\n"
+            f"    Remove it with --reset, or from Admin → Namespaces → Purge."
+        )
+        return
+    try:
+        print()
+        purge(maya, namespace, "The study failed, so its partial work was removed")
+    except Exception as exc:  # the original failure matters more than the cleanup's
+        print(f"    Could not remove '{namespace}' after the failure: {exc}")
+
+
 def _already_run(maya: Any, namespace: str) -> bool:
     """Has a study already put objects in this namespace?"""
+    if not _namespace_exists(maya, namespace):
+        return False
     admin = maya.client("admin")
     return bool(admin.features.list(namespace=namespace) or admin.models.list(namespace=namespace))
 
@@ -267,10 +315,18 @@ def step_script(
     """
     args = arguments(title)
     n = Narrator(title, args.quiet)
-    maya = open_study(namespace, reset=args.reset, extra_users=extra_users)
+    maya = open_study(namespace, reset=args.reset, args=args, extra_users=extra_users)
     try:
         work(maya, n)
         n.done()
         return 0
+    except BaseException:
+        # One step of a demonstration is not purged on failure: that would throw away the
+        # steps before it. Say how to clean up instead.
+        print(
+            f"\n    This step stopped part way. Start the study again from nothing with\n"
+            f"    run.py --reset, or remove '{namespace}' from Admin → Namespaces → Purge."
+        )
+        raise
     finally:
         maya.close()

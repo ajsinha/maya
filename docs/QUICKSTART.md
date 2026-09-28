@@ -255,7 +255,7 @@ interactive reference is at <http://127.0.0.1:8600/api/v1/docs>.
 | `That password was used before` | MAYA remembers the last five passwords of each account | Choose a different one |
 | *Account locked* after several wrong passwords | Five failures in fifteen minutes lock an account for thirty minutes | Wait thirty minutes, or have an administrator reset the password in **Admin → Users**, which also lifts the lock |
 | Lost the only administrator's password | There is no recovery link, on purpose | On a scratch install: stop MAYA, `rm -rf data`, start again (this deletes everything). With another administrator: they set a new one in **Admin → Users** |
-| A case study stops with `the 'retail_credit' namespace is already in this estate` | You ran the same study twice | Run it with `--reset` to rebuild the demonstration data from nothing (this deletes the whole estate), or just look at what is already there |
+| A case study stops with `the 'retail_credit' namespace is already in this estate` | You ran the same study twice | Run it with `--reset`, which removes that study's namespace and runs it again (the other studies stay), or just look at what is already there |
 | Warnings about `duckdb`, `uvloop` or other packages | Optional accelerators are not installed | Nothing: MAYA says what it uses instead and works without them |
 | The **System health** page says the sandbox tier is `minimal` | The strong sandbox (bubblewrap) is not available on this machine | Fine for trying MAYA. For real use, install `bubblewrap` (`sudo apt install bubblewrap`) and restart |
 

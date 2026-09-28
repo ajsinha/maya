@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Purging a namespace, and case studies that clean up after themselves**
+
+- An administrator may purge a namespace in a development estate: every row that belongs to
+  it (by foreign key, by object id and by reference) and its lake folders, in one transaction,
+  with the name typed again to confirm. Refused outside `app.environment: dev`, and for a
+  namespace with children. The audit log and the event stream stay, and the purge records
+  itself in the audit log. `POST /namespaces/{name}/purge`, SDK `namespaces.purge`, and a
+  panel on **Admin → Namespaces** shown only in development.
+- Case studies: `--reset` now purges only the study's own namespace and reruns it;
+  `--reset-all` rebuilds the whole estate; a failed full pass purges its partial work unless
+  `--keep-on-failure` is given; a failed single step says how to clean up.
+
 - The reproducibility bundle's verifier finds the libraries its parent has. It runs in an
   isolated interpreter, as on a machine without MAYA, which also hid a user site-packages; on
   Windows it could not import pyarrow, and the report came back with no checks, which stopped

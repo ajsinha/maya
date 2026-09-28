@@ -67,7 +67,7 @@ import setup_featureset  # noqa: E402
 import setup_features  # noqa: E402
 import setup_model  # noqa: E402
 import show_estate  # noqa: E402
-from maya_demo import Narrator, arguments, open_study  # noqa: E402
+from maya_demo import Narrator, after_failure, arguments, open_study  # noqa: E402
 from study import EXTRA_USERS, NS  # noqa: E402
 
 TITLE = "Case study 3 — mortgage prepayment (banking, fitted hazard)"
@@ -87,13 +87,16 @@ STEPS = (
 def main() -> int:
     args = arguments(__doc__ or "")
     n = Narrator(TITLE, args.quiet)
-    maya = open_study(NS, reset=args.reset, fresh=True, extra_users=EXTRA_USERS)
+    maya = open_study(NS, reset=args.reset, args=args, fresh=True, extra_users=EXTRA_USERS)
     try:
         for step in STEPS:
             print(f"\n{'─' * 78}\n{step.TITLE}\n{'─' * 78}")
             step.main(maya, Narrator("", args.quiet))
         n.done("eight steps done")
         return 0
+    except BaseException:
+        after_failure(maya, NS, args)
+        raise
     finally:
         maya.close()
 

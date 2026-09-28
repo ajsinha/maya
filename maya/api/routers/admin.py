@@ -231,6 +231,15 @@ def update_namespace(
     return ok(plat.access.update_namespace(me, name, body))
 
 
+@router.post("/namespaces/{name}/purge", tags=["access"])
+def purge_namespace(
+    name: str, body: dict[str, Any], me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """Remove a namespace and everything in it, rows and lake data. Development environments
+    only, administrators only, and ``confirm`` must repeat the name. The purge is audited."""
+    return ok(plat.access.purge_namespace(me, name, confirm=str(body.get("confirm", ""))))
+
+
 @router.get("/grants", tags=["access"])
 def grants(
     kind: str,

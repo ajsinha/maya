@@ -163,8 +163,8 @@ each series recursed on its own.
 ```
 
 On Windows use `.venv\Scripts\python`. The steps share the project's MAYA, so between any two
-you can start the web server and look at what the last one created. `--reset` rebuilds the
-shared demonstration estate from nothing, every study in it.
+you can start the web server and look at what the last one created. `--reset` removes this study's
+namespace and runs it again from nothing; `--reset-all` rebuilds the whole estate.
 
 ## What MAYA refused, on purpose
 
