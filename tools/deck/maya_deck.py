@@ -35,7 +35,7 @@ OPENING = [
         "kicker": "",
         "title": ["MAYA : Model Management", "& System Design"],
         "sub": "Evidence, not assertion.",
-        "version": f"MAYA {VERSION} · specification revision 2.7",
+        "version": f"MAYA {VERSION} · specification revision 2.8",
         "agenda": [
             "Why model governance fails",
             "The vocabulary, from nothing",

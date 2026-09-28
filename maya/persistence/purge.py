@@ -151,7 +151,7 @@ class _Purge:
         self.drop("llm_apps", "id", c["apps"])
         self.drop("parameter_sets", "id", c["params"])
         self.drop("composite_members", "composite_version_id", c["m_versions"])
-        for table in ("findings", "model_governance", "model_reviews"):
+        for table in ("findings", "model_governance", "model_reviews", "model_documents"):
             self.drop(table, "model_id", c["models"])
         self.drop("model_versions", "id", c["m_versions"])
         self.drop("models", "id", c["models"])

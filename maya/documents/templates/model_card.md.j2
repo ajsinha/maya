@@ -1,0 +1,104 @@
+{# maya: kind=model_card; title=Model card #}
+{#
+  The built-in model card. To change it, copy this file to config/templates/documents/
+  under the same name and edit the copy; MAYA uses yours from then on. Everything a
+  template can use is described in Help -> guides -> "Documents and model cards".
+  Sections written with ai(...) are drafted by a language model from the facts and are
+  labelled as drafted until the document is approved.
+#}
+{% set m = facts.model %}{% set v = facts.version %}{% set g = facts.governance %}
+# Model card: {{ m.name }} v{{ v.number }}
+
+{{ m.description }}
+
+| | |
+|---|---|
+| Model | `{{ m.ref }}` |
+| Version | v{{ v.number }} · {{ v.state }} · maturity {{ v.maturity or "—" }} |
+| Kind | {{ m.kind }}{% if v.opaque %} (declared black box){% endif %} |
+| Owner | {{ m.owner or "—" }} |
+| Materiality tier | {{ g.tier or "—" }}{% if g.override_reason %} (overridden: {{ g.override_reason }}){% endif %} |
+| Approved | {{ v.approved_by or "not yet" }}{% if v.approved_at %} on {{ v.approved_at | dt }}{% endif %} |
+| Next review due | {{ g.next_review_due | dt }}{% if g.review_overdue %} — **overdue**{% endif %} |
+
+## Intended use
+
+{{ ai("intended_use", "Describe what this model is for and who uses its output, from the model's description, its declared use and exposure, and its live execution warrants. Say plainly what it should not be used for if the facts indicate it.", words=160) }}
+
+## What it computes
+
+{% if v.latex %}
+$$ {{ v.latex }} $$
+{% elif v.black_box %}
+A declared black box. It estimates: {{ v.black_box.estimates or "not recorded" }}.
+
+Architecture, as declared: {{ v.black_box.architecture or "not recorded" }}.
+{% endif %}
+
+{{ ai("how_it_works", "Explain in plain language what the model computes and how its inputs affect the output, for a reader who is not a quant. Refer to the formula or the declared architecture.", words=180) }}
+
+### Inputs
+
+{{ table(v.inputs, ["name", "type", "role"]) }}
+
+{% if v.parameters %}
+### Parameters
+
+{{ table(v.parameters, ["name", "type", "bounds"]) }}
+{% endif %}
+{% if v.constraints %}
+Joint constraints the parameters must satisfy:
+{% for c in v.constraints %}
+- {{ c.why }}
+{% endfor %}
+{% endif %}
+
+## Training data
+
+{% for t in facts.training %}
+- **{{ t.name }}** on `{{ t.featureset }}`: target `{{ t.target or "—" }}`, split {{ t.shape }}{% if t.split %} ({{ t.split.train }}/{{ t.split.validation }}/{{ t.split.test }}){% endif %}, seed {{ t.seed }}. Leakage certificate: **{{ t.certificate.status or "—" }}** over {{ t.certificate.rows_examined or 0 }} rows{% for x in t.certificate.exceptions %}; exception "{{ x.rule }}" on {{ x.rows }} rows{% if x.justification %}, justified: {{ x.justification }}{% else %}, not justified{% endif %}{% endfor %}.
+{% else %}
+*No training warrant has been drawn on this version.*
+{% endfor %}
+
+## Performance
+
+{% set scored = [] %}{% for t in facts.training %}{% for s in t.scores %}{% set _ = scored.append({"warrant": t.name, "attempt": s.attempt, "rmse": s.rmse, "mae": s.mae, "rows": s.rows}) %}{% endfor %}{% endfor %}
+Scored blind by MAYA on each warrant's escrowed holdout, which the developer never sees:
+
+{{ table(scored, ["warrant", "attempt", "rmse", "mae", "rows"]) }}
+
+{% for c in facts.challenges %}
+Against a challenger ({{ c.champion }} vs {{ c.challenger }}, {{ c.metric }}, {{ c.rows }} shared rows): difference {{ c.difference | num }}, 95% interval [{{ c.interval[0] | num }}, {{ c.interval[1] | num }}], verdict **{{ c.verdict }}**; decision {{ c.state }}{% if c.rationale %} — "{{ c.rationale }}"{% endif %}.
+{% endfor %}
+
+## Fairness and what drives it
+
+{% set ev = [] %}{% for t in facts.training %}{% for e in t.evidence %}{% set _ = ev.append(e) %}{% endfor %}{% endfor %}
+{% for e in ev if e.segment_column %}
+- By **{{ e.segment_column }}**: {{ e.segments | length }} segments{% if e.flagged %}; flagged: {{ e.flagged | join(", ") }}{% endif %}{% if e.systematic %}; **systematic bias**: {{ e.systematic | join(", ") }}{% endif %}.
+{% else %}
+*No fairness evidence has been computed.*
+{% endfor %}
+
+{{ ai("fairness_summary", "Summarise the fairness and importance evidence: which segments were examined, any flagged or systematic bias and its direction, and what the model leans on. If none was computed, say so.", words=140) }}
+
+## Limitations and open issues
+
+{{ ai("limitations", "List the model's limitations and assumptions that the facts support: from its findings, its black-box status, any leakage exceptions, its constraints, and any gaps in the evidence (for example no challenger, no fairness evidence, no live monitoring).", words=180) }}
+
+{% if g.findings %}
+{{ table(g.findings, ["title", "severity", "state", "owner", "due_date"]) }}
+{% endif %}
+
+## In production
+
+{% for e in facts.execution %}
+- **{{ e.name }}**: {{ e.status }} in {{ e.environments | join(", ") }}, valid to {{ e.valid_to | dt }}; {{ e.covenants | length }} covenant(s); {{ e.reports }} reported run(s), {{ e.breaches }} breach(es); monitoring {{ e.monitoring or "—" }}. Contact: {{ e.contact or "—" }}.
+{% else %}
+*This version is not licensed to run anywhere.*
+{% endfor %}
+
+---
+
+*Generated by MAYA {{ facts.maya_version }} on {{ facts.generated_at | dt }} from the model's recorded facts.*

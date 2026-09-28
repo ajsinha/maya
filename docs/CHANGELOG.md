@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**Documents from the record, drafted by any language model**
+
+- **Model cards, validation reports and model documentation** are generated from a model
+  version's record on its new **Documents** tab (and `POST /models/{ns}/{name}/documents`).
+  Each comes from a Jinja2 Markdown template; a firm changes one by placing a file of the same
+  name in `config/templates/documents/`, and any other template there becomes one of its own.
+  Documents are stored with their template hash, facts hash and the provider and model that
+  drafted them, render as Markdown, HTML or PDF, and are approved by someone other than whoever
+  generated them. The validation report never drafts the validator's conclusion.
+- **An AI gateway with pluggable providers.** `anthropic` (official SDK, streamed, adaptive
+  thinking), `openai` and any compatible server, `azure_openai`, `ollama`, `bedrock`, `stub`
+  and `none` (the default), at a new `llm_provider` extension point that third-party plugins
+  can join. Callers name a **model profile** (`config/llm_profiles.yaml`; see
+  `config/llm_profiles.example.yaml`), never a provider or a model. Every call is audited.
+- **Schema change:** a new `model_documents` table. MAYA has no migrations, so an existing
+  database must be rebuilt: export and re-import the estate, or rerun the case studies with
+  `--reset-all`.
+
 **Purging a namespace, and case studies that clean up after themselves**
 
 - An administrator may purge a namespace in a development estate: every row that belongs to

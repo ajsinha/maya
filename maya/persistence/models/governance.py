@@ -100,3 +100,26 @@ class WarrantEvidence(Tracked, Base):
     kind: Mapped[str] = mapped_column(String(32))
     spec: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
     result: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+
+
+class ModelDocument(Tracked, Base):
+    """A document generated from a model version's record: a model card, a validation
+    report, the model's documentation. What it was made from is kept with it -- the template
+    and its hash, the hash of the facts snapshot, and the language model that drafted any
+    section -- so a reader can tell a reviewed document from a draft, and which of each."""
+
+    __tablename__ = "model_documents"
+    model_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey("models.id"), index=True)
+    model_version_id: Mapped[str] = mapped_column(PortableUUID, ForeignKey("model_versions.id"))
+    kind: Mapped[str] = mapped_column(String(32))
+    template_name: Mapped[str] = mapped_column(String(128))
+    template_sha256: Mapped[str] = mapped_column(String(64))
+    facts_sha256: Mapped[str] = mapped_column(String(64))
+    provider: Mapped[str | None] = mapped_column(String(64))
+    llm_model: Mapped[str | None] = mapped_column(String(128))
+    ai_sections: Mapped[list[Any]] = mapped_column(PortableJSON, default=list)
+    markdown: Mapped[str] = mapped_column(Text)
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(16), default="draft")
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[dt.datetime | None] = mapped_column(UTCDateTime)

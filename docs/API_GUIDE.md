@@ -992,6 +992,13 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `POST` | `/warrants/training/{warrant_id}/dispatch` | A job definition for your own compute (Kubernetes, SageMaker), a signed manifest and a one-day key. MAYA runs nothing. |
 | `POST` | `/warrants/training/{warrant_id}/evidence` | Segment metrics and permutation importance on the holdout; counts as one attempt. |
 | `POST` | `/warrants/training/{warrant_id}/refit` | MAYA's own least-squares fit on the training split, compared with a parameter set. |
+| `GET` | `/ai/status` | The model profiles, where each points and whether it looks usable, and every language-model provider on offer (built-in or plugin). Nothing is called. |
+| `GET` | `/documents/templates` | The document templates on offer: the built-ins, and the firm's own in documents.template_dir, which replace a built-in of the same name. |
+| `POST` | `/models/{namespace}/{name}/documents` | Generate a model card, validation report or model documentation from the model's record, as a job. Sections the template drafts with a language model are labelled as drafted. |
+| `GET` | `/models/{namespace}/{name}/documents` | The documents generated for a model. |
+| `GET` | `/documents/{doc_id}` | One document, with its template, facts hash, provider and model, and its text with drafted sections labelled. |
+| `GET` | `/documents/{doc_id}/render` | The document as Markdown, HTML or PDF, with each drafted section labelled. |
+| `POST` | `/documents/{doc_id}/approve` | Approve a document, drafted sections and all: someone other than whoever generated it. |
 | `POST` | `/warrants/execution/{ew_id}/batches` | Score a pin under a live execution warrant, as a job: output sealed by hash, the run reported and covenants evaluated, the custody chain updated. |
 | `GET` | `/warrants/execution/{ew_id}/batches` | The batches scored under an execution warrant. |
 | `GET` | `/warrants/execution/{ew_id}/batches/{job_id}/output` | The batch's output as Parquet; its content hash is in X-Maya-Content-Hash. |

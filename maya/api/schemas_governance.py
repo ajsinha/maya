@@ -135,3 +135,11 @@ class RefitIn(BaseModel):
 class BatchIn(BaseModel):
     pin: str
     environment: str
+
+
+class DocumentIn(BaseModel):
+    kind: str
+    version_no: int | None = None
+    template: str | None = None
+    use_ai: bool = True
+    profile: str | None = None

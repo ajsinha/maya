@@ -1,0 +1,43 @@
+# Model profiles: logical models that MAYA's callers name, never a provider or a model.
+# Copy this file to config/llm_profiles.yaml and edit it. Without that file there is one
+# profile, "default", made from the llm.* settings in application.yaml.
+#
+# A profile takes: provider, model, max_tokens, temperature, options, description.
+# options are the provider's own settings for this profile (the part after llm.<provider>.),
+# e.g. base_url, region, api_key_env, thinking. API keys are never written here: name the
+# environment variable that holds one.
+
+default: drafting
+
+profiles:
+  drafting:
+    description: Documents and model cards, with the most capable model
+    provider: anthropic
+    model: claude-opus-5
+    max_tokens: 2048
+    options:
+      thinking: adaptive
+      api_key_env: ANTHROPIC_API_KEY
+
+  local:
+    description: A model served on the firm's own hardware; nothing leaves the building
+    provider: ollama
+    model: llama3.1
+    temperature: 0.1
+    options:
+      base_url: http://localhost:11434
+
+  bedrock:
+    description: Claude through the firm's AWS account
+    provider: bedrock
+    model: "<the Bedrock model id your account has access to>"
+    options:
+      region: us-east-1
+
+  compatible:
+    description: Any server that speaks the OpenAI Chat Completions API (vLLM, LM Studio, ...)
+    provider: openai
+    model: my-model
+    options:
+      base_url: http://localhost:8000/v1
+      api_key_env: ""

@@ -2,6 +2,14 @@
 
 **Model & Feature Management Platform** · Version 2.0 (ground-up rebuild) · 2026-09-17 · Ash (Ashutosh Sinha)
 
+> **Revision 2.8 — 2026-09-28.** One decision: MAYA generates documents from a model's record,
+> and may draft their prose with a language model it does not depend on. §21.6 specifies the AI
+> gateway — providers behind one interface at a new extension point, `llm_provider` (§25), and
+> callers that name a logical **model profile** rather than a provider or a model — and the
+> documents: a model card, a validation report and model documentation, each from a template a
+> firm replaces by placing a file, drafted sections labelled until a second person approves, and
+> the validator's conclusion never drafted.
+>
 > **Revision 2.7 — 2026-09-28.** The first revision since version 1.0.0, and the largest since
 > 2.2: this document had not described the governance layer at all, nor what was built after it.
 > Each change is marked *Revision 2.7* where it lands. §21.4 is new and specifies the governance
@@ -1922,6 +1930,44 @@ person who closes.
   calls the provider). A version is submitted only with a clean run on its own definition hash against the
   evaluation set in its current state, and approved by somebody who neither owns it nor submitted it.
 
+### 21.6 Documents, and the language models that draft them
+
+*Revision 2.8.*
+
+**The AI gateway.** Every request MAYA makes of a language model goes through one service. A caller
+names a **model profile** — a logical model such as `drafting` or `local` — never a provider or a model.
+Profiles live in `config/llm_profiles.yaml` (`llm.profiles_file`): each names a provider, a model, the
+parameters to ask with (`max_tokens`, `temperature`) and any option of that provider this profile needs
+differently (a base URL, a region, the environment variable holding a key). Without the file there is one
+profile, `default`, from the `llm.*` settings. Providers implement one interface —
+`complete(system, messages, max_tokens, temperature)` returning text and token counts — and are registered
+at the `llm_provider` extension point: `anthropic` (the official SDK, streamed, adaptive thinking), `openai`
+and any server speaking its Chat Completions API, `azure_openai`, `ollama`, `bedrock` (`boto3`), `stub`
+(deterministic, offline) and `none` (the default: nothing is drafted). A third party adds a provider as an
+entry-point plugin, loaded only when `plugins.allow` names it (§25). API keys are never configuration: a
+setting names the environment variable that holds one. Every call is audited with its purpose, profile,
+provider, model, token counts and the hash of the prompt; the prompt is not logged, because it carries a
+model's facts and the audit log's readers may not be entitled to them.
+
+**Documents.** A document is generated from a snapshot of one model version's record — its mathematics and
+contract, code checks, warrants, leakage certificate, blind scores, fairness and importance evidence,
+challengers, findings, reviews, covenants and monitoring — gathered through the services under the
+requester's own read permissions, and hashed. Three kinds ship: a **model card**, a **validation report**
+and **model documentation**, each a Jinja2 template producing Markdown. A firm changes one by placing a file
+of the same name in `documents.template_dir`; any other template there is offered for the kind its first
+line declares. A template calls `ai(key, instruction, profile=…)` for a section to be drafted; the model is
+given the facts and told to use nothing else and to write "not recorded" rather than invent. The document
+stores its template and the template's hash, the facts' hash, the provider and model, and its text; it
+renders as Markdown, HTML (with all raw HTML escaped) or PDF (through §17's typesetting, falling back to the
+draft renderer, and saying so, when a build fails). Each drafted section is shown labelled as drafted by
+that provider and model and not reviewed, until someone **other than the person who generated it** approves
+the document; the label then names the reviewer. The built-in validation report never drafts its
+conclusion: fitness for use is irreducibly declared (§28), and the report leaves the validator a place for it.
+Without a configured model, or with drafting off, each drafted section says it was not drafted and the rest
+of the document is complete. Documents are generated as jobs, listed on a model's **Documents** tab, and
+reachable through `POST /models/{namespace}/{name}/documents`, `GET /documents/{id}/render` and
+`POST /documents/{id}/approve`.
+
 ## 22. Engineering standards
 
 ### 22.1 Size and modularity
@@ -2123,6 +2169,7 @@ Every axis of variation is a registered plugin implementing a declared protocol,
 | Model runtime | `ModelRuntime.predict(...)` | The formula IR evaluator (*Revision 2.5:* blind scoring only, per ADR-007. MAYA executes no model code, so ONNX and PMML are candidates for a plugin at this point, not for the core) |MAYA executes no model code, so ONNX and PMML are candidates for a plugin at this point, not for the core. *Revision 2.7:* no longer true as written: MAYA runs a declared black box's validated artifact as a sandboxed oracle, for blind scoring and for attested batch scoring (§9.6, §21.5), and nothing else. ONNX and PMML remain plugin candidates) |
 | Calendar | `Calendar.business_days(range)` | NYSE, LSE, TARGET, ISO business days, natural days |
 | Search index | `SearchIndex` | MAYA's own inverted index, on both databases (Revision 2.4, ADR-019) |
+| Language-model provider | `LlmProvider.complete(system, messages, max_tokens, temperature)` | *Revision 2.8:* anthropic, openai (and compatible servers), azure_openai, ollama, bedrock, stub, none; chosen through model profiles (§21.6) |
 
 A plugin declares its name, version, configuration schema and required capabilities, and is listed on an admin page with its status. *Revision 2.5:* the second half of that promise cannot be kept as it was written. An entry-point plugin is imported into MAYA's own process and runs with MAYA's privileges — it can reach the database and the signing key — so the sandbox rules for user Python, which exist because that code runs in a container with no network and no credentials, do not apply to it and no amount of care makes them apply. What MAYA does instead is make loading one an explicit decision: a third-party plugin loads only when `plugins.allow` names it, a plugin that is installed and not allowed is shown as refused with that reason rather than silently absent, and one that fails to import is shown as failed with the error instead of stopping MAYA. The sandbox rules continue to govern user Python in a model artifact, which is a different thing at a different trust level.
 

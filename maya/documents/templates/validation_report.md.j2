@@ -1,0 +1,109 @@
+{# maya: kind=validation_report; title=Validation report #}
+{#
+  The built-in validation report: the evidence MAYA holds, assembled for a validator.
+  Almost everything here is deterministic. A language model may draft the executive
+  summary, but never the conclusion: whether a model is fit for use is the validator's
+  judgement, and the report leaves a place for it rather than a draft of it.
+  Replace it by placing validation_report.md.j2 in config/templates/documents/.
+#}
+{% set m = facts.model %}{% set v = facts.version %}{% set g = facts.governance %}
+{% set t0 = facts.training[-1] if facts.training else none %}
+# Validation report: {{ m.name }} v{{ v.number }}
+
+**Model** `{{ m.ref }}` · **version** v{{ v.number }} ({{ v.state }}) · **owner** {{ m.owner or "—" }} · **tier** {{ g.tier or "—" }} · **prepared** {{ facts.generated_at | dt }}
+
+## Executive summary
+
+{{ ai("executive_summary", "Summarise the validation evidence below for a model risk committee: what was tested, what passed, what failed or is missing, and the open findings. State facts only; do not conclude whether the model is fit for use.", words=200) }}
+
+## Evidence checklist
+
+| Check | Result |
+|---|---|
+| Specification document | {{ "present" if v.spec_document.present else "**missing**" }}{% if v.spec_document.state %} ({{ v.spec_document.state }}){% endif %} |
+| Mathematics MAYA can evaluate | {{ "no — declared black box" if v.opaque else ("yes" if v.latex else "—") }} |
+| Code artifact through the six-rung ladder | {% if v.artifact %}{{ "passed" if v.artifact.passed else "**failed**" }} at tier {{ v.artifact.tier }}{% else %}no artifact uploaded{% endif %} |
+| Code agrees with the mathematics | {% if v.conformance %}{{ v.conformance.agreed }} of {{ v.conformance.total }} sampled inputs{% else %}not tested{% endif %} |
+| Leakage certificate | {% if t0 %}{{ t0.certificate.status }}{% if t0.certificate.exceptions %}, {{ t0.certificate.exceptions | length }} exception(s){% endif %}{% else %}no training warrant{% endif %} |
+| Parameters trained on data MAYA issued | {% if t0 and t0.parameter_sets %}{{ "yes" if t0.parameter_sets | selectattr("verified_data") | list else "**no**" }}{% else %}no parameter set{% endif %} |
+| Blind score on the escrowed holdout | {% if t0 and t0.scores %}{{ t0.scores | length }} attempt(s){% else %}**none**{% endif %} |
+| Fairness and importance evidence | {% set evs = [] %}{% for t in facts.training %}{% for e in t.evidence %}{% set _ = evs.append(e) %}{% endfor %}{% endfor %}{{ (evs | length) ~ " run(s)" if evs else "**none**" }} |
+| Challenger comparison | {{ (facts.challenges | length) ~ " comparison(s)" if facts.challenges else "none" }} |
+| Live covenants | {% set cov = [] %}{% for e in facts.execution %}{% for c in e.covenants %}{% set _ = cov.append(c) %}{% endfor %}{% endfor %}{{ (cov | length) ~ " on " ~ (facts.execution | length) ~ " warrant(s)" if facts.execution else "not licensed to run" }} |
+| Periodic review | {% if g.review_overdue %}**overdue**{% else %}due {{ g.next_review_due | dt }}{% endif %} |
+| Open findings | {{ g.findings | selectattr("state", "in", ["open", "remediated"]) | list | length }} |
+
+## The model
+
+{% if v.latex %}
+$$ {{ v.latex }} $$
+{% else %}
+Declared black box: {{ v.black_box.estimates if v.black_box else "not recorded" }}.
+{% endif %}
+
+{{ table(v.inputs, ["name", "type", "role"]) }}
+
+{% if v.constraints %}
+Joint constraints: {% for c in v.constraints %}{{ c.why }}{% if not loop.last %}; {% endif %}{% endfor %}.
+{% endif %}
+
+## Implementation
+
+{% if v.artifact %}
+{{ table(v.artifact.rungs, ["rung", "name", "passed", "detail"]) }}
+{% if v.conformance %}
+Differential test against the mathematics: {{ v.conformance.agreed }} of {{ v.conformance.total }} agree. Domain: {{ v.conformance.domain }}.
+{% endif %}
+{% else %}
+*No code artifact has been uploaded for this version.*
+{% endif %}
+
+## Data and training
+
+{% for t in facts.training %}
+### {{ t.name }}
+
+- Feature set: `{{ t.featureset }}`, target `{{ t.target }}`, split `{{ t.shape }}` {{ t.split }}, seed {{ t.seed }}
+- Leakage certificate: **{{ t.certificate.status }}** — {{ t.certificate.rule }}; {{ t.certificate.rows_examined }} rows examined
+{% for x in t.certificate.exceptions %}
+- Exception: {{ x.rule }} on {{ x.rows }} rows — {{ x.justification or "**no justification recorded**" }}
+{% endfor %}
+- Escrowed holdout: {{ t.holdout_rows }} rows; {{ t.holdout_attempts or 0 }} scoring attempt(s)
+
+{{ table(t.parameter_sets, ["state", "verified_data", "created_by", "values"]) }}
+
+{{ table(t.scores, ["attempt", "rmse", "mae", "rows"]) }}
+{% else %}
+*No training warrant.*
+{% endfor %}
+
+## Fairness and explainability
+
+{% for t in facts.training %}{% for e in t.evidence if e.segment_column %}
+By **{{ e.segment_column }}** ({{ t.name }}):
+
+{{ table(e.segments, ["segment", "rows", "mae", "bias", "suppressed"]) }}
+
+{% if e.systematic %}Systematic bias in: **{{ e.systematic | join(", ") }}**.{% endif %}
+{% endfor %}{% endfor %}
+
+## Challengers
+
+{{ table(facts.challenges, ["champion", "challenger", "metric", "difference", "verdict", "state", "decided_by"]) }}
+
+## Findings
+
+{{ table(g.findings, ["title", "severity", "state", "raised_by", "owner", "due_date", "closed_by"]) }}
+
+## Production use and monitoring
+
+{{ table(facts.execution, ["name", "status", "valid_to", "reports", "breaches", "monitoring", "contact"]) }}
+
+## Validator's conclusion
+
+*To be written by the validator.* This section records a judgement — whether the model is fit
+for its intended use, with what conditions — and MAYA does not draft it.
+
+---
+
+*Assembled by MAYA {{ facts.maya_version }} from the recorded evidence on {{ facts.generated_at | dt }}.*
