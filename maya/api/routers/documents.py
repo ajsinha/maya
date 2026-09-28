@@ -1,5 +1,5 @@
 """
-Documents generated from a model's record, and the AI gateway's status.
+Documents generated from a model's record.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -16,13 +16,6 @@ from maya.api.deps import Me, Plat, ok
 from maya.security.authz import Principal
 
 router = APIRouter(tags=["documents"])
-
-
-@router.get("/ai/status")
-def ai_status(me: Principal = Me, plat: Any = Plat) -> Response:
-    """The model profiles, where each points and whether it looks usable, and every language-model
-    provider on offer (built-in or plugin). Nothing is called."""
-    return ok(plat.ai.status(me))
 
 
 @router.get("/documents/templates")

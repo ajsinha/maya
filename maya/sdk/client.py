@@ -37,6 +37,7 @@ from maya.sdk.resources import (
     Challenges,
     Custody,
     Events,
+    Ai,
     Documents,
     Evidence,
     ExecutionWarrants,
@@ -85,6 +86,7 @@ class _Namespaces:
         self.challenges = Challenges(transport)
         self.evidence = Evidence(transport)
         self.documents = Documents(transport)
+        self.ai = Ai(transport)
         self.integrations = Integrations(transport)
         self.llm = Llm(transport)
         self.cache = PinCache()

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Admin → AI models: switch the language model at runtime**
+
+- A new admin page lists every model profile (from the settings, the profiles file, or saved
+  here), its provider and model, and whether it is ready, with every provider on offer and its
+  plugin status. **Make default** switches the profile new documents are drafted with, at once
+  and for every process, stored as a runtime setting and audited. **Test** asks a profile's
+  model one short question and shows the reply, the time and the tokens. Profiles can be added,
+  edited and deleted there; they live in the database and replace a file profile of the same
+  name, and their options may name a key's environment variable but never hold a key.
+  `POST /ai/default`, `POST /ai/profiles/{name}/test`, `PUT`/`DELETE /ai/profiles/{name}`; SDK
+  `client.ai`.
+- **Schema change:** new `llm_profiles` and `runtime_settings` tables; rebuild an existing
+  database (export and re-import, or `--reset-all` for the case studies).
+
 **Documents from the record, drafted by any language model**
 
 - **Model cards, validation reports and model documentation** are generated from a model

@@ -74,3 +74,31 @@ class LlmEvalRun(Tracked, Base):
     pass_rate: Mapped[float] = mapped_column(Float, default=0.0)
     guardrail_violations: Mapped[int] = mapped_column(Integer, default=0)
     results: Mapped[list[Any]] = mapped_column(PortableJSON, default=list)
+
+
+class LlmProfile(Tracked, Base):
+    """A model profile an administrator defined in the UI (§21.6): a logical model a caller
+    names, laid over the ones in ``llm.profiles_file`` -- a profile here replaces one of the
+    same name there. Keys are never stored: ``options`` may name the environment variable that
+    holds one (``api_key_env``), nothing more."""
+
+    __tablename__ = "llm_profiles"
+    __table_args__ = (UniqueConstraint("name"),)
+    name: Mapped[str] = mapped_column(String(64))
+    provider: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(256), default="")
+    max_tokens: Mapped[int | None] = mapped_column(Integer)
+    temperature: Mapped[float | None] = mapped_column(Float)
+    options: Mapped[dict[str, Any]] = mapped_column(PortableJSON, default=dict)
+    description: Mapped[str] = mapped_column(Text, default="")
+
+
+class RuntimeSetting(Tracked, Base):
+    """A setting an administrator changes while MAYA runs, from the UI, and that every process
+    reads from the database -- such as which model profile is the default. Configuration files
+    say what MAYA starts with; these say what someone chose since, and who."""
+
+    __tablename__ = "runtime_settings"
+    __table_args__ = (UniqueConstraint("key"),)
+    key: Mapped[str] = mapped_column(String(128))
+    value: Mapped[Any] = mapped_column(PortableJSON)

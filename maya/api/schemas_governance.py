@@ -143,3 +143,7 @@ class DocumentIn(BaseModel):
     template: str | None = None
     use_ai: bool = True
     profile: str | None = None
+
+
+class AiDefaultIn(BaseModel):
+    profile: str | None = None

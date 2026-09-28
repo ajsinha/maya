@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% from "_macros/ui.html" import pill %}
+{% from "_macros/needs.html" import needs %}
+{% block title %}AI models{% endblock %}
+{% block content %}
+<h1>AI models</h1>
+<p class="lead-slate">MAYA drafts documents with a language model through <strong>model profiles</strong>: logical models that name a provider, a model and how to ask it. Callers name a profile, never a provider, so switching the default here changes what every new document is drafted with, at once.</p>
+{% call needs('model-profiles-and-providers', 'How profiles and providers fit together') %}
+<ul>
+  <li>Profiles come from the <code>llm.*</code> settings (<em>settings</em>), <code>config/llm_profiles.yaml</code> (<em>file</em>) and this page (<em>database</em>); one saved here replaces a file profile of the same name.</li>
+  <li><strong>Make default</strong> takes effect immediately for every process, is audited, and overrides the file's <code>default:</code> line until you hand the choice back.</li>
+  <li>API keys are never entered here: a profile's options name the environment variable that holds one (<code>api_key_env</code>).</li>
+  <li>A provider is a built-in or a plugin allowed by <code>plugins.allow</code>; <strong>Test</strong> asks the model one short question before a document relies on it.</li>
+</ul>
+{% endcall %}
+{% if s.error %}<div class="alert alert-danger">The profiles could not be read: {{ s.error }}</div>{% endif %}
+<p>Default: <strong>{{ s.default or '—' }}</strong>{% if s.default_source %} <span class="small-muted">— chosen by {{ s.default_source }}</span>{% endif %}
+  {% if s.default_source and 'administrator' in s.default_source %}<form method="post" action="/admin/ai/default" class="d-inline ms-2"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="profile" value=""><button class="btn btn-sm btn-outline-secondary" type="submit">Use the configuration's default</button></form>{% endif %}</p>
+
+{% call(r) table("ai-profiles", ["Profile", "Source", "Provider", "Model", "Ready", "Detail", ""], s.profiles, empty="No profiles.") %}
+  <td><strong>{{ r.name }}</strong>{% if r.is_default %} {{ pill('ok', 'default') }}{% endif %}{% if r.description %}<div class="row-desc">{{ r.description }}</div>{% endif %}</td>
+  <td>{{ r.source }}</td><td class="mono">{{ r.provider }}</td><td class="mono small">{{ r.model or '—' }}</td>
+  <td>{{ pill('ok' if r.ready else 'warn', 'ready' if r.ready else 'not ready') }}</td><td class="small">{{ r.detail }}</td>
+  <td class="text-nowrap">
+    {% if not r.is_default %}<form method="post" action="/admin/ai/default" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="profile" value="{{ r.name }}"><button class="btn btn-sm btn-primary" type="submit">Make default</button></form>{% endif %}
+    <form method="post" action="/admin/ai/profiles/{{ r.name }}/test" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Test</button></form>
+    <a class="btn btn-sm btn-outline-secondary" href="/admin/ai?edit={{ r.name }}#profile-form">Edit</a>
+    {% if r.source == 'database' and not r.is_default %}<form method="post" action="/admin/ai/profiles/{{ r.name }}/delete" class="d-inline" data-confirm="Delete the profile {{ r.name }}?"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>{% endif %}
+  </td>
+{% endcall %}
+
+{% set e = editing or {} %}
+<form method="post" action="/admin/ai/profiles" class="card card-body mt-3" id="profile-form"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h3>{{ 'Edit ' ~ e.name if editing else 'Add a profile' }}</h3>
+  {% if editing and e.source != 'database' %}<p class="small-muted">Saving creates a database profile named {{ e.name }}, which replaces the one from the {{ e.source }} while it exists.</p>{% endif %}
+  <div class="row g-2">
+    <div class="col-md-3"><label class="form-label" for="pname">Name</label><input class="form-control" id="pname" name="name" value="{{ e.name or '' }}" required pattern="[a-z][a-z0-9_\-]*" placeholder="drafting"></div>
+    <div class="col-md-3"><label class="form-label" for="pprov">Provider</label><select class="form-select" id="pprov" name="provider">{% for pr in s.providers if pr.status == 'active' %}<option {% if pr.name == e.provider %}selected{% endif %}>{{ pr.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="form-label" for="pmodel">Model</label><input class="form-control mono" id="pmodel" name="model" value="{{ e.model or '' }}" placeholder="claude-opus-5, llama3.1, … (empty: the provider's default)"></div>
+    <div class="col-md-2"><label class="form-label" for="pmax">Max tokens</label><input class="form-control" type="number" min="64" id="pmax" name="max_tokens" value="{{ e.max_tokens or '' }}"></div>
+    <div class="col-md-2"><label class="form-label" for="ptemp">Temperature</label><input class="form-control" type="number" step="0.05" min="0" max="2" id="ptemp" name="temperature" value="{{ e.temperature if e.temperature is not none else '' }}"></div>
+    <div class="col-md-8"><label class="form-label" for="pdesc">Description</label><input class="form-control" id="pdesc" name="description" value="{{ e.description or '' }}"></div>
+    <div class="col-12"><label class="form-label" for="popts">Options (JSON): the provider's own settings for this profile — e.g. base_url, region, api_key_env, thinking</label><textarea class="form-control mono" id="popts" name="options" rows="3" data-json placeholder='{"base_url": "http://gpu-box:11434"}'>{{ (e.options or {})|tojson if editing else '' }}</textarea></div>
+  </div>
+  <div class="mt-2"><button class="btn btn-primary" type="submit">Save profile</button></div>
+</form>
+
+<h3 class="mt-4">Providers on offer</h3>
+{% call(pr) table("ai-providers", ["Provider", "Origin", "Version", "Status", "Detail"], s.providers, empty="None.") %}
+  <td class="mono">{{ pr.name }}</td><td>{{ pr.origin }}</td><td>{{ pr.version }}</td><td>{{ pill('ok' if pr.status == 'active' else 'warn', pr.status) }}</td><td class="small">{{ pr.detail }}</td>
+{% endcall %}
+<p class="small-muted mt-2">A third-party provider installs as a package with an entry point in the <code>maya.llm_provider</code> group and loads only when <code>plugins.allow</code> names it. See Help → guides → <em>What each designer expects</em> → <em>Model profiles and providers</em>.</p>
+{% endblock %}

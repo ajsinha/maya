@@ -992,7 +992,11 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `POST` | `/warrants/training/{warrant_id}/dispatch` | A job definition for your own compute (Kubernetes, SageMaker), a signed manifest and a one-day key. MAYA runs nothing. |
 | `POST` | `/warrants/training/{warrant_id}/evidence` | Segment metrics and permutation importance on the holdout; counts as one attempt. |
 | `POST` | `/warrants/training/{warrant_id}/refit` | MAYA's own least-squares fit on the training split, compared with a parameter set. |
-| `GET` | `/ai/status` | The model profiles, where each points and whether it looks usable, and every language-model provider on offer (built-in or plugin). Nothing is called. |
+| `GET` | `/ai/status` | Every model profile — where it came from, where it points, whether it looks usable — which one is the default and who chose it, and every provider on offer. Nothing is called. |
+| `POST` | `/ai/default` | Make a profile the default, at once and for every process; null returns the choice to the configuration. Administrators only; audited. |
+| `POST` | `/ai/profiles/{name}/test` | Ask the profile's model one short question: the reply, the time, the tokens, or why not. Administrators only. |
+| `PUT` | `/ai/profiles/{name}` | Create or replace a profile: provider, model, max_tokens, temperature, options, description. Options name a key's environment variable; they never hold a key. Administrators only; audited. |
+| `DELETE` | `/ai/profiles/{name}` | Remove a profile saved from the UI; one from the profiles file is edited there. Administrators only; audited. |
 | `GET` | `/documents/templates` | The document templates on offer: the built-ins, and the firm's own in documents.template_dir, which replace a built-in of the same name. |
 | `POST` | `/models/{namespace}/{name}/documents` | Generate a model card, validation report or model documentation from the model's record, as a job. Sections the template drafts with a language model are labelled as drafted. |
 | `GET` | `/models/{namespace}/{name}/documents` | The documents generated for a model. |

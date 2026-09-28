@@ -49,6 +49,7 @@ class Profile:
     temperature: float | None = None
     options: dict[str, Any] = field(default_factory=dict)
     description: str = ""
+    source: str = "file"  # "settings", "file" or "database"
 
     def as_row(self) -> dict[str, Any]:
         return {
@@ -59,6 +60,7 @@ class Profile:
             "temperature": self.temperature,
             "options": {k: v for k, v in self.options.items() if "key" not in k.lower()},
             "description": self.description,
+            "source": self.source,
         }
 
 
@@ -107,6 +109,7 @@ def load(settings: Any) -> tuple[dict[str, Profile], str]:
         provider=(settings.get("llm.provider", "none") or "none").strip(),
         model=(settings.get("llm.model", "") or "").strip(),
         description="made from the llm.* settings",
+        source="settings",
     )
     profiles = {IMPLICIT: implicit}
     default = IMPLICIT
@@ -125,6 +128,20 @@ def load(settings: Any) -> tuple[dict[str, Profile], str]:
             f"(profiles: {', '.join(sorted(profiles))})"
         )
     return profiles, chosen
+
+
+def from_row(row: dict[str, Any]) -> Profile:
+    """A profile an administrator saved in the database."""
+    return Profile(
+        str(row["name"]),
+        provider=str(row["provider"]),
+        model=str(row.get("model") or ""),
+        max_tokens=row.get("max_tokens"),
+        temperature=row.get("temperature"),
+        options=dict(row.get("options") or {}),
+        description=str(row.get("description") or ""),
+        source="database",
+    )
 
 
 def _path(settings: Any) -> Path | None:
