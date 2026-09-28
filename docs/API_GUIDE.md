@@ -858,6 +858,7 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `GET` | `/namespaces` | Namespaces |
 | `POST` | `/namespaces` | Create Namespace |
 | `PATCH` | `/namespaces/{name}` | Update Namespace |
+| `POST` | `/namespaces/{name}/purge` | Remove a namespace and everything in it, rows and lake data. Development environments only, administrators only, and `confirm` must repeat the name. The purge is audited. |
 
 ### admin
 

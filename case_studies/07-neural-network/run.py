@@ -68,7 +68,7 @@ import setup_featureset  # noqa: E402
 import setup_features  # noqa: E402
 import setup_model  # noqa: E402
 import show_estate  # noqa: E402
-from maya_demo import Narrator, arguments, open_study  # noqa: E402
+from maya_demo import Narrator, after_failure, arguments, open_study  # noqa: E402
 from study import EXTRA_USERS, NS  # noqa: E402
 
 TITLE = "Case study 7 — a card-fraud neural network (banking, declared black box)"
@@ -89,13 +89,16 @@ def main() -> int:
     args = arguments(__doc__ or "")
     n = Narrator(TITLE, args.quiet)
     # A full pass starts from nothing, so that running it twice means the same thing twice.
-    maya = open_study(NS, reset=args.reset, fresh=True, extra_users=EXTRA_USERS)
+    maya = open_study(NS, reset=args.reset, args=args, fresh=True, extra_users=EXTRA_USERS)
     try:
         for step in STEPS:
             print(f"\n{'─' * 78}\n{step.TITLE}\n{'─' * 78}")
             step.main(maya, Narrator("", args.quiet))
         n.done("seven steps done")
         return 0
+    except BaseException:
+        after_failure(maya, NS, args)
+        raise
     finally:
         maya.close()
 

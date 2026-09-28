@@ -16,6 +16,20 @@
     <input class="form-control form-control-sm" type="number" min="1" name="api_key_max_days" style="max-width:7rem" value="{{ n.api_key_max_days or '' }}" placeholder="key days" aria-label="Maximum API-key life in days for {{ n.name }}, empty for the global maximum">
     <button class="btn btn-sm btn-outline-secondary" type="submit">Save</button></form></td>
 {% endcall %}
+{% if health and health.environment == 'dev' and rows %}
+<details class="card card-body mb-3">
+  <summary><strong>Purge a namespace</strong> <span class="small-muted">— development only: removes it and everything in it, for good</span></summary>
+  <p class="small-muted mt-2 mb-2">MAYA never deletes what it governs in a register people rely on. In a development estate this recovers from a run that stopped half way, such as a failed case study. Every row and every lake file of the namespace goes; the audit log keeps the history and records the purge.</p>
+  {% for n in rows if not n.is_scratch %}
+  <form method="post" action="/admin/namespaces/{{ n.name }}/purge" class="d-flex flex-wrap gap-2 align-items-center mb-1" data-confirm="Purge {{ n.name }} and everything in it? This cannot be undone.">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <span class="mono" style="min-width:12rem">{{ n.name }}</span>
+    <input class="form-control form-control-sm" name="confirm" placeholder="type {{ n.name }} to confirm" aria-label="Confirm purge of {{ n.name }}" style="max-width:16rem" required>
+    <button class="btn btn-sm btn-outline-danger" type="submit">Purge</button>
+  </form>
+  {% endfor %}
+</details>
+{% endif %}
 <form method="post" action="/admin/namespaces" class="card card-body"><input type="hidden" name="csrf_token" value="{{ csrf }}"><h3>Create a namespace</h3>
   <div class="row g-2">
   <div class="col-md-3"><label class="form-label" for="nn">Name</label><input class="form-control" id="nn" name="name" required placeholder="equity.pricing"></div>

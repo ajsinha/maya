@@ -34,7 +34,7 @@ open the web UI and show what the last one actually created. That is the demonst
 ...
 ```
 
-`--reset` deletes this study's MAYA and starts again from nothing; `--quiet` prints the
+`--reset` removes this study's namespace and runs it again from nothing; `--quiet` prints the
 results without the narration.
 
 ---

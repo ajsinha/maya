@@ -324,6 +324,7 @@
     "methods": {
      "create": "(self, name, **kw)",
      "list": "(self)",
+     "purge": "(self, name, confirm)",
      "update": "(self, name, **changes)"
     }
    },
@@ -737,6 +738,7 @@
     "methods": {
      "create": "(self, name, **kw)",
      "list": "(self)",
+     "purge": "(self, name, confirm)",
      "update": "(self, name, **changes)"
     }
    },

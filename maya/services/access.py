@@ -252,6 +252,57 @@ class AccessService:
             )
             return ns
 
+    def purge_namespace(self, p: Principal, name: str, *, confirm: str) -> dict[str, Any]:
+        """Remove a namespace and everything in it: rows and lake data, in a development
+        environment only, by an administrator who types the name again.
+
+        MAYA never deletes governed objects in a register people rely on; this is how a
+        demonstration or a test estate recovers from a run that stopped half way. The purge
+        itself is audited -- who, when, which namespace and what was removed -- so the chain
+        records a deletion rather than losing history silently."""
+        import shutil
+
+        from maya.persistence.purge import purge_namespace
+
+        if not p.is_admin:
+            raise PermissionDenied("Only an administrator may purge a namespace")
+        if self.p.settings.environment != "dev":
+            raise PermissionDenied(
+                "A namespace can be purged only when app.environment is dev: a register "
+                f"people rely on does not delete what it governs (this is '{self.p.settings.environment}')"
+            )
+        if confirm != name:
+            raise ValidationFailed("Type the namespace's name to confirm the purge")
+        with self.p.uow() as uow:
+            ns = self.namespace(uow, name)
+            children = [n["name"] for n in uow.repo("namespaces").list(parent_id=ns["id"])]
+        if children:
+            raise ValidationFailed(
+                f"'{name}' has child namespaces ({', '.join(sorted(children))}); purge them first",
+                children=children,
+            )
+        removed = purge_namespace(self.p.db, ns["id"], name)
+        lake_root = self.p.lake.root
+        folders = [d / name for d in lake_root.iterdir() if d.is_dir() and (d / name).is_dir()]
+        for folder in folders:
+            shutil.rmtree(folder, ignore_errors=True)
+        with self.p.uow(p.username) as uow:
+            uow.audit(
+                "namespace.purged",
+                object_type="namespace",
+                object_ref=f"maya://namespace/{name}",
+                detail={
+                    "rows": removed,
+                    "lake_folders": [str(f.relative_to(lake_root)) for f in folders],
+                },
+            )
+        return {
+            "namespace": name,
+            "rows_removed": sum(removed.values()),
+            "by_table": removed,
+            "lake_folders_removed": len(folders),
+        }
+
     def update_namespace(self, p: Principal, name: str, changes: dict[str, Any]) -> dict[str, Any]:
         self.require_capability(p, "namespace", "U")
         allowed = {

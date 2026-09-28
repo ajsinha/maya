@@ -17,7 +17,8 @@
 > index column and each input keeps its declared type (§9.1); the forced first-sign-in password
 > change is a setting, off by default, and the default password policy is shorter (§12); what the
 > screens gained, from authoring hints to the case studies in Help (§16.8); the case-study runner as
-> a test layer (§23); and the competitive analysis as a public page (§27).
+> a test layer (§23); the competitive analysis as a public page (§27); and purging a namespace in a
+> development estate, the one deletion MAYA allows (§20).
 >
 > **Revision 2.6 — 2026-09-20.** No new decisions. Like revision 2.4, this one marks places
 > where the document had fallen behind the code, each as *Revision 2.6* where it lands, found
@@ -1804,6 +1805,16 @@ Impact analysis runs **before** a change is submitted, not after it lands, and t
 **Comments and decisions.** Review comments, approval rationales and break-glass justifications are part of the record, not a side channel in chat. A model's *Decisions* view reads as a narrative: what was proposed, who objected, what changed, who approved, and when.
 
 ## 20. Observability and operations
+
+*Revision 2.7:* **purging a namespace**, the one deletion MAYA allows. In a development estate
+(`app.environment: dev`) an administrator may remove a namespace and everything in it — every row that
+belongs to it, found by foreign key, by object id and by reference, and its folders in the lake — in one
+transaction, typing the name again to confirm (`POST /namespaces/{name}/purge`, **Admin → Namespaces**).
+Anywhere else it is refused: a register people rely on does not delete what it governs. The audit log and the
+event stream are history and stay; the purge records itself in the audit log with what it removed. A
+namespace with child namespaces is refused until they are purged. The case studies use it: `--reset` purges
+the study's own namespace before running, a failed full pass purges its partial work unless
+`--keep-on-failure` is given, and `--reset-all` rebuilds the whole estate.
 
 **Metrics** (Prometheus): request rate, latency histograms and error rate per endpoint; job queue depth, wait time, run time and failure rate per job type; resolution rows and bytes per second; Delta file counts and small-file ratio per table; database pool utilization and slow-query count; cache hit rates; active sessions; authorization denials; pins created and bytes stored per namespace.
 

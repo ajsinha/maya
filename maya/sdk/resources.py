@@ -420,6 +420,12 @@ class Namespaces(_Resource):
         Anything else is refused by name."""
         return self._c("PATCH", f"/namespaces/{seg(name)}", json_body=changes)
 
+    @endpoint("POST", "/namespaces/{name}/purge")
+    def purge(self, name: str, confirm: str) -> Any:
+        """Remove the namespace and everything in it (development environments only);
+        ``confirm`` repeats the name."""
+        return self._c("POST", f"/namespaces/{seg(name)}/purge", json_body={"confirm": confirm})
+
 
 class Access(_Resource):
     @endpoint("GET", "/grants")
