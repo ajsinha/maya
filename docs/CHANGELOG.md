@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Load a model's Python from a file**
+
+- The "Lift from a Python function" box and the Python artifact box each have a file picker
+  beside them. A chosen `.py` file (up to 1 MB) fills the editor for review before anything
+  is submitted, so a file and a paste reach the server the same way.
+
 **Case studies run from an IDE, beside a running web server**
 
 - `drain()` in the testing kit also waits for jobs another process on the same estate has
