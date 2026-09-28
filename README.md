@@ -115,7 +115,9 @@ something that should be read plainly:
   and only against that. Whether the live service answers the way the stub does is
   unproven. The deterministic `rules` provider, the default, is unaffected. The same holds
   for a *live* evaluation run of an LLM application: it goes through the same client, and
-  is tested against a stub; recorded runs are unaffected.
+  is tested against a stub; recorded runs are unaffected. Both can also go through the AI
+  gateway (`assistant.provider: llm`; any `anthropic`, `openai`, `azure_openai`, `bedrock`
+  or `ollama` version for a live run), where each provider is tested against its own stub.
 - **Windows and macOS are not exercised.** Only Linux is. The specification's SC-14 —
   the full suite green on all three — is therefore not met, and the code paths that
   exist only for the other two (`sandbox-exec` at `moderate` on macOS, the wall-clock

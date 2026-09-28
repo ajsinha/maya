@@ -4,7 +4,10 @@ The assistant as a recorded challenger (§29.8): memos on every review.
 When a feature, feature set or model version is submitted, a memo is queued in
 the same transaction (so it exists only if the submission commits) and written
 by a job: the deterministic findings always, and — with
-``assistant.provider: claude`` — Claude's challenge on top. The memo is stored
+``assistant.provider: llm`` — a language model's challenge on top, asked through the AI
+gateway with the model profile ``assistant.profile`` names (empty: the default one), so
+any provider an administrator set up serves (``claude`` asks Anthropic directly, as
+before). The memo is stored
 beside the review, attributed to the provider and the exact model that wrote
 it; the reviewer records whether they agreed, and that is audited.
 
@@ -12,7 +15,7 @@ The boundaries are structural, not promises. The memo lives in its own table;
 nothing here updates the version or runs a workflow transition, and no check
 reads a memo, so it cannot approve, block or edit anything. With the Claude
 provider, the definitions, the specification and the formula are sent to
-Anthropic's API — never data rows — which is why that provider is opt-in.
+the model's provider — never data rows — which is why those providers are opt-in.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -48,8 +51,9 @@ class AssistantService:
         s = platform.settings
         self.enabled = s.bool("assistant.enabled", True)
         self.provider = (s.get("assistant.provider") or "rules").strip()
-        if self.provider not in ("rules", "claude"):
-            raise ValidationFailed("assistant.provider must be 'rules' or 'claude'")
+        if self.provider not in ("rules", "claude", "llm"):
+            raise ValidationFailed("assistant.provider must be 'rules', 'claude' or 'llm'")
+        self.profile = (s.get("assistant.profile") or "").strip() or None
         self.model = (s.get("assistant.claude.model") or "claude-opus-5").strip()
         self.effort = (s.get("assistant.claude.effort") or "high").strip()
         self.client: Any = None  # tests inject a Claude client
@@ -197,7 +201,9 @@ class AssistantService:
                 "object_id": object_id,
                 "object_ref": ref,
                 "provider": self.provider,
-                "model": self.model if self.provider == "claude" else "rules/1",
+                "model": {"claude": self.model, "llm": f"profile:{self.profile or 'default'}"}.get(
+                    self.provider, "rules/1"
+                ),
                 "state": "pending",
             }
         )
@@ -256,6 +262,22 @@ class AssistantService:
                     findings=result["findings"] + llm["findings"],
                 )
             except claude.ChallengerUnavailable as exc:
+                changes["error"] = f"{exc.message} — the memo holds the deterministic findings only"
+        elif memo["provider"] == "llm":
+            ctx.progress(40, f"asking {memo['model']}")
+            from maya.assistant import challenger
+            from maya.assistant.claude import ChallengerUnavailable
+
+            try:
+                llm = challenger.challenge(
+                    self.p.ai, dossier, result, profile=self.profile, object_ref=memo["object_ref"]
+                )
+                changes.update(
+                    summary=llm["summary"] or result["summary"],
+                    model=llm["model"],
+                    findings=result["findings"] + llm["findings"],
+                )
+            except ChallengerUnavailable as exc:
                 changes["error"] = f"{exc.message} — the memo holds the deterministic findings only"
         with self.p.uow("assistant") as uow:
             row = uow.repo("challenge_memos").update(memo["id"], changes)

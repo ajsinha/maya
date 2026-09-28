@@ -1974,6 +1974,17 @@ of the document is complete. Documents are generated as jobs, listed on a model'
 reachable through `POST /models/{namespace}/{name}/documents`, `GET /documents/{id}/render` and
 `POST /documents/{id}/approve`.
 
+**Every language-model call goes through the gateway.** The recorded challenger (§29.8) asks through it when
+`assistant.provider` is `llm`, with the profile `assistant.profile` names or the default, so switching the
+default in Admin → AI models moves the challenger too; a provider that cannot enforce a schema is asked for
+one JSON object and its reply is checked, a finding of an unknown severity or category being dropped
+(`claude` keeps its direct, schema-enforced Anthropic call). A **live evaluation** of an LLM application
+is different in kind: the version's provider and model are part of what is approved, so the gateway asks
+exactly that pairing, with the version's own `max_tokens` and temperature (none means the provider's own),
+and never the switchable default. `anthropic`, `openai`, `azure_openai`, `bedrock` and `ollama` can be run
+live; any other provider is evaluated by a recorded run. Each call is audited as `ai.completion` with its
+purpose (`assistant.challenge`, `llm.evaluation`, a document section, `ai.test`).
+
 ## 22. Engineering standards
 
 ### 22.1 Size and modularity

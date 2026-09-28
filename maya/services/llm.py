@@ -49,8 +49,19 @@ from maya.core.errors import (
 )
 from maya.security.authz import Principal
 
-PROVIDERS = ("anthropic", "openai", "azure_openai", "bedrock", "vertex", "self_hosted", "other")
-LIVE_PROVIDERS = ("anthropic",)
+PROVIDERS = (
+    "anthropic",
+    "openai",
+    "azure_openai",
+    "bedrock",
+    "ollama",
+    "vertex",
+    "self_hosted",
+    "other",
+)
+# the providers the AI gateway can call for a live evaluation, always with exactly the
+# provider and model the version declares -- never the switchable default profile
+LIVE_PROVIDERS = ("anthropic", "openai", "azure_openai", "bedrock", "ollama")
 CHECKS = ("contains", "not_contains", "equals", "regex", "max_chars", "json")
 DECIDERS = ("admin", "model_manager")
 MAX_CASES = 500
@@ -374,7 +385,9 @@ class LlmService:
             )
             return row
 
-    def _live(self, version: dict[str, Any], prompt: str) -> dict[str, Any]:
+    def _live(
+        self, version: dict[str, Any], prompt: str, p: Principal | None = None
+    ) -> dict[str, Any]:
         if self.runner is not None:
             return self.runner(version, prompt)
         if version["provider"] not in LIVE_PROVIDERS:
@@ -382,17 +395,18 @@ class LlmService:
                 f"MAYA does not call {version['provider']} itself; run the evaluation where the "
                 "application runs and submit the answers as a recorded run"
             )
-        from maya.assistant.claude import client_from, complete
-
         prm = version["parameters"] or {}
-        return complete(
-            client_from(self.p.settings),
+        out = self.p.ai.complete_declared(
+            p,
+            provider=version["provider"],
             model=version["model"],
-            system=version["system_prompt"],
+            purpose="llm.evaluation",
+            system=version["system_prompt"] or "",
             prompt=prompt,
             max_tokens=int(prm.get("max_tokens", 1024)),
             temperature=prm.get("temperature"),
         )
+        return {"text": out.text, **out.usage(), "stop_reason": out.stop_reason}
 
     def run_eval(
         self,
@@ -426,7 +440,7 @@ class LlmService:
             if responses is not None:
                 answer, meta = str(responses[case["id"]]), {}
             else:
-                out = self._live(version, prompt)
+                out = self._live(version, prompt, p)
                 answer = out["text"]
                 meta = {k: v for k, v in out.items() if k != "text"}
             checks = [

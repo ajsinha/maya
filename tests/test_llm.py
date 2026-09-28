@@ -134,7 +134,7 @@ def test_a_live_run_calls_the_provider_through_the_runner(llm):
 def test_mayas_own_calls_are_limited_to_providers_it_integrates(llm):
     w = llm
     w.p.llm.save_version(
-        w.mona, APP, provider="openai", model="gpt-x", prompt_template="Q: {complaint}"
+        w.mona, APP, provider="vertex", model="gemini-x", prompt_template="Q: {complaint}"
     )
     with pytest.raises(ValidationFailed, match="recorded run"):
         w.p.llm.run_eval(w.mona, APP, 3, "core")
@@ -191,3 +191,31 @@ def test_a_validator_may_add_to_the_evaluation_set_but_a_developer_may_not(llm):
     w.p.llm.save_eval_set(w.mgr, APP, name="validator", cases=CASES[:1])
     with pytest.raises(PermissionDenied):
         w.p.llm.save_eval_set(w.devi, APP, name="developer", cases=CASES[:1])
+
+
+def test_a_live_run_asks_the_gateway_for_exactly_the_declared_provider_and_model(llm):
+    from maya.llm.base import Completion
+
+    w = llm
+    calls = []
+
+    class Fake:
+        def complete(self, system, messages, *, max_tokens, temperature=None):
+            calls.append((system, messages[0].content, max_tokens, temperature))
+            return Completion("A refund is on its way.", "fake", "fake-1", 12, 7, "end_turn")
+
+    before = w.p.ai.profiles()[1]
+    w.p.ai.override = Fake()
+    try:
+        run = w.p.llm.run_eval(w.mona, APP, 2, "core")
+    finally:
+        w.p.ai.override = None
+    assert run["mode"] == "live" and run["pass_rate"] == 1.0
+    assert calls[0][1] == "Answer briefly: I was charged twice for my card fee."
+    assert calls[0][3] is None  # no declared temperature: the provider's own, not a default
+    assert run["results"][0]["output_tokens"] == 7
+    with w.p.uow() as uow:
+        event = uow.repo("audit_events").find_one(action="ai.completion")
+    assert event["detail"]["purpose"] == "llm.evaluation"
+    assert event["detail"]["profile"] == "declared:anthropic"  # never the switchable default
+    assert w.p.ai.profiles()[1] == before
