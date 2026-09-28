@@ -1100,11 +1100,12 @@ class Models(_Resource):
     @endpoint("POST", "/formula/kernel")
     def kernel(
         self,
-        text: str,
+        text: str = "",
         *,
         roles: dict[str, str] | None = None,
         output_type: str = "float64",
         name: str = "compute",
+        python_source: str | None = None,
     ) -> Any:
         """Translate written mathematics into the IR and a single-function Python kernel.
 
@@ -1121,6 +1122,7 @@ class Models(_Resource):
                 "roles": roles or {},
                 "output_type": output_type,
                 "name": name,
+                "python_source": python_source,
             },
         )
 

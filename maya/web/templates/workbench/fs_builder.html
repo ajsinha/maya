@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/needs.html" import needs %}
 {% from "_macros/ui.html" import pill %}
 {% block title %}Feature set builder{% endblock %}
 {% block content %}
@@ -9,6 +10,15 @@
 <a class="btn btn-sm btn-outline-secondary" href="/catalog/featuresets/{{ fs.namespace }}/{{ fs.name }}">Open in catalog</a></div>
 <form method="post" action="/workbench/featuresets/{{ fs.namespace }}/{{ fs.name }}/edit">
 {% else %}<h1>Feature set builder</h1><form method="post" action="/workbench/featuresets/new">{% endif %}
+{% call needs('feature-sets', 'What a feature set needs') %}
+<ul>
+  <li><strong>Members:</strong> each maps an attribute name in the set to a feature reference and that feature's attribute; optionally a cast and a fill rule.</li>
+  <li><strong>Index:</strong> the set's keys, e.g. <code>date, symbol</code>. Every member must carry them or be aligned to them.</li>
+  <li><strong>Grid:</strong> <code>as_is</code> keeps the data's own rows; a calendar (<code>NYSE</code>, <code>ISO_business_days</code>…) puts every key on it.</li>
+  <li><strong>Alignment:</strong> <code>inner</code> (keys every member has), <code>outer</code> (any member), <code>left</code> (one driving member), or <code>asof</code> (others matched to the driver's dates within a tolerance, usually looking backward).</li>
+  <li><strong>Pinning</strong> needs every member pinned; <em>cascade</em> pins them together and rolls all back if one fails.</li>
+</ul>
+{% endcall %}
 <input type="hidden" name="csrf_token" value="{{ csrf }}">
 <div class="row g-2 mb-3">
   <div class="col-md-3"><label class="form-label" for="namespace">Namespace</label>{% if fs %}<input class="form-control" value="{{ fs.namespace }}" disabled id="namespace">{% else %}<select class="form-select" id="namespace" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select>{% endif %}</div>

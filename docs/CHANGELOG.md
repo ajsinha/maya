@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+**Every authoring screen says what it needs; the kernel designer takes Python**
+
+- A new reference, *What each designer expects* (Help → guides, and
+  `maya/web/guides/authoring-reference.md`), sets out the rules behind each authoring
+  screen: a model's formula and roles, the Python function a definition is lifted from
+  (assignments and one `return`), the Python artifact (a class `Model` with
+  `fit(self, X, y, ctx)` and `predict(self, X, params, ctx)`, the import allowlist, the
+  banned calls and the sandbox limits), features, feature sets, and both warrants,
+  covenants included.
+- A closed *What this needs* panel on the model definition, the artifact box, the feature
+  designer, the feature set builder, both warrant forms and the kernel designer gives each
+  screen's rules in brief and links to the matching section.
+- The compute kernel designer can take a Python function as well as formula text, pasted
+  or loaded from a file, through the same lifter a model definition uses. *Use this in a new
+  model* carries it into the model designer. `POST /formula/kernel` and `models.kernel`
+  take `python_source`.
+
 **Load a model's Python from a file**
 
 - The "Lift from a Python function" box and the Python artifact box each have a file picker

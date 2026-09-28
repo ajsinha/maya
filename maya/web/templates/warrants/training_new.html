@@ -1,7 +1,17 @@
 {% extends "base.html" %}
+{% from "_macros/needs.html" import needs %}
 {% block title %}New training warrant{% endblock %}
 {% block content %}
 <h1>Draw a training warrant</h1>
+{% call needs('training-warrants', 'What a training warrant needs') %}
+<ul>
+  <li>An <strong>approved model version</strong> and a feature set, best a <strong>sealed pin</strong> (<code>maya://featureset/ns/panel#q1/2026-03-31</code>), which never moves.</li>
+  <li>The <strong>target</strong> attribute. <strong>Bindings</strong> only where a model input's name differs from the attribute, e.g. <code>{"income": "gross_income"}</code>.</li>
+  <li><strong>Split</strong> fractions that add up to 1 (default 0.7 / 0.15 / 0.15), fixed by the <strong>seed</strong>, so the split is the same anywhere.</li>
+  <li><strong>Holdout</strong> <code>escrowed</code> keeps the test rows sealed; every scoring attempt on them is counted.</li>
+  <li><strong>Leakage lag:</strong> how many days after its event date a value may be known. Later rows go on the leakage certificate, which must be clean or justified in writing.</li>
+</ul>
+{% endcall %}
 <p class="lead-slate">MAYA validates the model's input contract against the feature set before issuing, listing every mismatch, and signs a leakage certificate over every row.</p>
 <form method="post" action="/warrants/training/new" class="card card-body">
 <input type="hidden" name="csrf_token" value="{{ csrf }}">

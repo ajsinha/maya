@@ -937,12 +937,16 @@ class ModelService:
         self,
         p: Principal,
         *,
-        text: str,
+        text: str = "",
         roles: dict[str, str] | None = None,
         output_type: str = "float64",
         name: str = "compute",
+        python_source: str | None = None,
     ) -> dict[str, Any]:
         """Translate written mathematics into the IR, and emit a kernel for it.
+
+        ``python_source`` instead of ``text`` lifts a simple Python function -- assignments
+        and one return -- through the same lifter a model definition uses.
 
         This reads and writes nothing: it is the translation step of registering a model,
         offered on its own so that whoever wrote the mathematics can see what MAYA made of
@@ -954,7 +958,12 @@ class ModelService:
         A formula MAYA cannot read is refused here, with the reason, which is the point:
         the alternative is finding out at `models.create`."""
         del p  # authenticated is enough: nothing is read, nothing is written
-        ir = parse_model(text, roles=roles or {}, output_type=output_type)
+        if python_source and python_source.strip():
+            ir = lift_python(python_source)
+        elif text.strip():
+            ir = parse_model(text, roles=roles or {}, output_type=output_type)
+        else:
+            raise ValidationFailed("Write the mathematics, or a Python function to lift")
         return {
             "ir": ir,
             "latex": ir.get("latex", ""),

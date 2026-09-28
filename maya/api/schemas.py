@@ -161,10 +161,11 @@ class KernelIn(BaseModel):
     symbols. Nothing is named and nothing is stored — this is the translation step on
     its own, before a model exists to attach it to."""
 
-    text: str
+    text: str = ""
     roles: dict[str, str] = Field(default_factory=dict)
     output_type: str = "float64"
     name: str = "compute"
+    python_source: str | None = None
 
 
 class ModelDraftIn(BaseModel):

@@ -639,3 +639,15 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .mc-bound-label { fill: var(--maya-warn); font-size: 11px; }
 .mc-mark { stroke: var(--maya-bad); stroke-width: 3; }
 .health-tile { min-width: 9rem; }
+
+/* "What this needs" on the authoring screens (_macros/needs.html) */
+.maya-needs { border: 1px solid var(--maya-border); border-radius: 8px; background: var(--maya-surface);
+  padding: .45rem .9rem; }
+.maya-needs > summary { cursor: pointer; font-weight: 600; color: var(--maya-heading); }
+.maya-needs > summary i { color: var(--maya-crimson); }
+.maya-needs[open] > summary { margin-bottom: .4rem; }
+.maya-needs-body { font-size: .9rem; color: var(--maya-ink); }
+.maya-needs-body ul { padding-left: 1.2rem; margin-bottom: .5rem; }
+.maya-needs-body li { margin-bottom: .2rem; }
+.maya-needs-body pre { font-size: 12px; background: var(--maya-canvas); border: 1px solid var(--maya-border);
+  border-radius: 6px; padding: .5rem .7rem; margin-bottom: .5rem; overflow-x: auto; }

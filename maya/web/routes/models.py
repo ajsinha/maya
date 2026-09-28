@@ -80,7 +80,11 @@ async def new_model(request: Request) -> Any:
         {
             "namespaces": namespaces,
             "kinds": KINDS,
-            "prefill": {"formula": qp.get("formula", ""), "roles": qp.get("roles", "")},
+            "prefill": {
+                "formula": qp.get("formula", ""),
+                "roles": qp.get("roles", ""),
+                "python": qp.get("python", ""),
+            },
         },
     )
 
@@ -103,6 +107,7 @@ async def kernel_translate(request: Request) -> Any:
             data.get("formula", ""),
             roles=_roles(data.get("roles", "")),
             name=data.get("name") or "compute",
+            python_source=data.get("python_source") or None,
         )
 
 

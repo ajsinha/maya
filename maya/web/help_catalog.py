@@ -345,6 +345,14 @@ GUIDES: list[dict[str, Any]] = [
         "specification documents, artifacts, conformance, spreadsheet lifting.",
     },
     {
+        "slug": "authoring-reference",
+        "kind": "reference",
+        "icon": "lightbulb",
+        "title": "What each designer expects",
+        "summary": "The rules behind every authoring screen: a model's Python function and "
+        "artifact, features, feature sets, and both warrants.",
+    },
+    {
         "slug": "warrants-reference",
         "kind": "reference",
         "icon": "file-earmark-lock",

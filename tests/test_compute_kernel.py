@@ -144,6 +144,75 @@ def test_the_wizard_page_translates_and_carries_its_work_to_the_designer(site): 
     assert bad.json()["error"]
 
 
+def _mona(app):
+    """Mona, whichever password an earlier test left her with (the estate forces a change)."""
+    try:
+        return Browser(app, "mona", PASSWORD)
+    except AssertionError:
+        return Browser(app, "mona", PASSWORD + "-2")
+
+
+PD_LOGIT = """def pd_logit(income, utilisation, params):
+    z = params["b0"] + params["b1"] * log(income) + params["b2"] * utilisation
+    return 1 / (1 + exp(-z))
+"""
+
+
+def test_the_wizard_lifts_a_python_function_and_carries_it_to_the_designer(site):  # noqa: F811
+    """A Python function goes through the same lifter a model definition uses; the names
+    written ``params[...]`` become parameters, the rest features."""
+    _, app = site
+    mona = _mona(app)
+    r = mona.c.post(
+        "/ui/kernel",
+        data={"python_source": PD_LOGIT, "name": "pd"},
+        headers={"X-CSRF-Token": mona.csrf("/models/kernel")},
+    )
+    assert r.status_code == 200, r.text[:300]
+    roles = {i["name"]: i["role"] for i in r.json()["inputs"]}
+    assert roles == {
+        "b0": "parameter",
+        "b1": "parameter",
+        "b2": "parameter",
+        "income": "feature",
+        "utilisation": "feature",
+    }
+    assert ast.parse(r.json()["python"]).body[0].name == "pd"
+    loop = mona.c.post(
+        "/ui/kernel",
+        data={"python_source": "def f(x):\n    for i in x:\n        pass\n    return x\n"},
+        headers={"X-CSRF-Token": mona.csrf("/models/kernel")},
+    )
+    assert loop.status_code >= 400 and "line" in loop.json()["error"]
+    designer = mona.get("/models/new?python=def+f%28x%29%3A%0A++++return+2*x").text
+    assert 'value="python" selected' in designer and "return 2*x" in designer
+
+
+def test_every_authoring_screen_says_what_it_needs(site):  # noqa: F811
+    _, app = site
+    mona = _mona(app)
+    for path, heading in (
+        ("/models/kernel", "What the Python function needs"),
+        ("/models/new", "What the definition needs"),
+        ("/workbench/features/new", "What a feature needs"),
+        ("/workbench/featuresets/new", "What a feature set needs"),
+        ("/warrants/training/new", "What a training warrant needs"),
+        ("/warrants/execution/new", "What an execution warrant needs"),
+    ):
+        page = mona.get(path).text
+        assert heading in page, path
+        assert "/help/guides/authoring-reference#" in page, path
+    guide = mona.get("/help/guides/authoring-reference").text
+    for anchor in (
+        "the-python-artifact",
+        "features",
+        "feature-sets",
+        "training-warrants",
+        "execution-warrants",
+    ):
+        assert f'id="{anchor}"' in guide
+
+
 def test_every_generated_implementation_is_one_function(site):  # noqa: F811
     """The rule is not the wizard's: it is the platform's.
 

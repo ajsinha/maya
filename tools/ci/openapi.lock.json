@@ -18433,6 +18433,16 @@
      "default": "float64",
      "type": "string"
     },
+    "python_source": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
     "roles": {
      "additionalProperties": {
       "type": "string"
@@ -18440,12 +18450,10 @@
      "type": "object"
     },
     "text": {
+     "default": "",
      "type": "string"
     }
    },
-   "required": [
-    "text"
-   ],
    "type": "object"
   },
   "LlmAppIn": {

@@ -1,4 +1,15 @@
+{% from "_macros/needs.html" import needs %}
 {# Structured feature-definition controls. Needs: d (definition), types, calendars, operators, refs #}
+{% call needs('features', 'What a feature needs') %}
+<ul>
+  <li><strong>Index:</strong> the columns that identify a row. The <strong>first is the event date</strong>; others (<code>symbol</code>, <code>account</code>) make it a panel.</li>
+  <li><strong>Schema:</strong> each attribute's name and type (<code>float64</code>, <code>int64</code>, <code>string</code>, <code>date</code>…).</li>
+  <li><strong>Knowledge-time column</strong> (optional): when the source published each value. Without one, a value is known from the moment it is uploaded.</li>
+  <li><strong>Rules</strong> fill gaps: <code>forward_fill(limit=3, max_age=5)</code>, <code>zero</code>, <code>constant(v=0)</code>, <code>none</code>… <code>backward_fill</code> and the interpolations use the future and need a justification in a training warrant.</li>
+  <li><strong>Quality contract:</strong> checks that block a pin when they fail, e.g. <code>[{"check": "not_null", "attr": "close"}]</code>.</li>
+  <li><strong>Python source:</strong> a function <code>produce(params)</code> returning columns <code>{"date": [...], "close": [...]}</code> or records. It runs in the sandbox and cannot fetch.</li>
+</ul>
+{% endcall %}
 {% set src = d.get('source', {}) %}{% set res = d.get('resolution', {}) %}
 {% set gcal = res.get('grid').get('calendar') if res.get('grid') is mapping else '' %}
 {% set mode = 'extends' if d.get('extends') else ('derived' if src.get('type') == 'derived' else 'source') %}
