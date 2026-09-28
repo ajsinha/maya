@@ -1,5 +1,5 @@
 """
-The deck, as data. Parts 8 and 9: fourteen case studies, what is measured, and where to start.
+The deck, as data. Parts 8 and 9: fifteen case studies, what is measured, and where to start.
 
 One deck split across four modules only to keep each file under the repository's file-size gate; read them in order (see GUIDE.md).
 
@@ -14,12 +14,13 @@ SLIDES: list[dict[str, Any]] = [
     {
         "kind": "divider",
         "num": "8",
-        "title": "Fourteen models, carried the whole way",
+        "title": "Fifteen models, carried the whole way",
         "sub": "Each case study is a real modelling problem taken through MAYA end to end, by named "
         "people with real roles, so the refusals are the platform's. Each is chosen for a "
         "different thing it makes MAYA do, and the suite runs every one from nothing.",
         "points": [
-            "The fourteen, and what each is about",
+            "The fifteen, and what each is about",
+            "A time series, split by date",
             "A prescribed formula, and a finding",
             "A bought score that drifts",
             "A challenger that earns its place",
@@ -31,15 +32,13 @@ SLIDES: list[dict[str, Any]] = [
     {
         "kind": "table",
         "kicker": "The studies",
-        "title": "Fourteen, different in kind",
-        "intro": "Every figure on the slides that follow was reproduced by running the study against a "
-        "MAYA built from nothing.",
+        "title": "Fifteen, different in kind",
         "rows": [
             ["Study", "Model", "What it is really about"],
             [
                 "01 Retail PD scorecard",
                 "Fitted logistic",
-                "Bitemporality; a leakage certificate that refuses every row",
+                "Bitemporality; a certificate that refuses every row",
             ],
             [
                 "02 Mortgage cashflow",
@@ -55,6 +54,11 @@ SLIDES: list[dict[str, Any]] = [
             ["05 Option pricing", "Calibrated closed form", "A parameter nobody can observe"],
             ["06 IFRS 9 ECL", "Composite", "Committee judgements as approved parameter sets"],
             ["07 Card-fraud network", "Declared black box", "What is left to hold to account"],
+            [
+                "08 AR(2) and GARCH",
+                "Formula and black box",
+                "The last dates held out; joint stationarity constraints",
+            ],
             [
                 "09 Basel IRB capital",
                 "Prescribed formula",
@@ -75,13 +79,31 @@ SLIDES: list[dict[str, Any]] = [
             [
                 "45 Mortality table",
                 "Non-linear law",
-                "A systematic bias the law requires, accepted in writing",
+                "A bias the law requires, accepted in writing",
             ],
             [
                 "49 Complaint triage",
                 "LLM application",
                 "Guardrails, evaluation sets, approval on evidence",
             ],
+        ],
+    },
+    {
+        "kind": "stats",
+        "kicker": "Study 08 · AR(2) and GARCH(1,1)",
+        "title": "A recursion MAYA cannot write, scored blind on the last dates",
+        "stats": [
+            ("0.9754", "fitted GARCH persistence alpha + beta; the generating process has 0.972"),
+            ("840", "escrowed rows: the last 280 days of each index, in date order"),
+            ("1.05", "a persistence offered and refused: each parameter fine, the pair explosive"),
+            ("8.7e-4", "forecast variance in a crash week, over the 6e-4 covenant: suspended"),
+        ],
+        "items": [
+            "The lags of the AR(2) are transforms on the governed feature, so the mean model is a "
+            "formula. GARCH carries yesterday's variance as a state no column holds, so it is a "
+            "declared black box, run in the sandbox on 840 rows the developer never saw.",
+            "The warrants split by date: the earliest dates train and the last are the test. A random "
+            "split trains on the future and scatters the rows a recursion must run through in order.",
         ],
     },
     {
@@ -205,7 +227,7 @@ SLIDES: list[dict[str, Any]] = [
         "for it.",
         "steps": [
             ("Ingest", "Three features by dana, approved by mick"),
-            ("Assemble", "pd_panel by devi, approved by mick"),
+            ("Assemble", "The panel by devi, approved by mick"),
             ("Pin", "Cascade, as of 2025-06-30, 9,600 rows"),
             ("Register", "The formula by mona, approved by mgr"),
             ("Fit", "Under a training warrant, by devi"),
@@ -257,8 +279,8 @@ SLIDES: list[dict[str, Any]] = [
         "title": "Version 1.0.0, and the evidence for it",
         "stats": [
             (
-                "2,089",
-                "tests: 2,065 pass on SQLite and 24 are skipped by design (Keycloak, PostgreSQL-only, "
+                "2,109",
+                "tests: 2,084 pass on SQLite and 25 are skipped by design (Keycloak, PostgreSQL-only, "
                 "opt-in)",
             ),
             (
@@ -266,8 +288,8 @@ SLIDES: list[dict[str, Any]] = [
                 "gates that fail the build: typing, boundaries, parity, contrast, the API snapshot, "
                 "security",
             ),
-            ("246", "API endpoints, each with an SDK method and a way to reach it from the UI"),
-            ("14", "case studies, each run from nothing by the suite"),
+            ("252", "API endpoints, each with an SDK method and a way to reach it from the UI"),
+            ("15", "case studies, each run from nothing by the suite"),
         ],
         "items": [
             "Every example in the API guide and every step of the quick start was executed against "
@@ -284,12 +306,14 @@ SLIDES: list[dict[str, Any]] = [
         "rows": [
             ["Limit", "Why, and what it costs"],
             [
-                "It trains and serves nothing",
-                "By design: it is where evidence lives, beside an ML platform, not instead of one",
+                "It trains and serves nothing itself",
+                "By design: it licenses what an ML platform does, and batch-scores only what it can "
+                "attest",
             ],
             [
-                "Linux only",
-                "Windows and macOS are out of scope for now; their sandbox paths have never run",
+                "Linux is what is tested",
+                "The case studies have run on Windows, but it is outside the test matrix and its "
+                "sandbox has no OS isolation",
             ],
             [
                 "Connectors not met live",
@@ -319,7 +343,7 @@ SLIDES: list[dict[str, Any]] = [
             ),
             (
                 "case_studies/",
-                "Fourteen worked models; any one runs in under ten seconds and fills the catalog.",
+                "Fifteen worked models; any one runs in well under a minute and fills the catalog.",
             ),
             (
                 "docs/API_GUIDE.md",

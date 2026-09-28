@@ -13,7 +13,7 @@ nobody can edit safely.
 
 | Deck | Slides | Source |
 |---|---|---|
-| `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 70 | `maya_deck.py`, then `deck_part1.py` to `deck_part4.py` |
+| `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 72 | `maya_deck.py`, then `deck_part1.py` to `deck_part4.py` |
 
 **Why one, where there were four.** The build previously carried an executive
 briefing, a system design, a capabilities deck and a formalism deck. Four decks
@@ -31,9 +31,9 @@ defined. (3) The lifecycle end to end, from a delivered file to a model reportin
 back under a live licence. (4) The governance a model risk function works in:
 findings, materiality, periodic review, monitoring, champion and challenger,
 fairness and explainability, and the supervisory inventory. (5) Models beyond
-formulas: black boxes scored blind, imports from MLflow and SageMaker, and LLM
-applications. (6) The formal core, with an engineer's lens. (7) How it runs. (8)
-Fourteen case studies, five of them in depth. (9) What is measured, what MAYA does
+formulas: black boxes scored blind, imports from MLflow and SageMaker, what MAYA does beside
+an ML platform, and LLM applications. (6) The formal core, with an engineer's lens. (7) How it runs. (8)
+Fifteen case studies, six of them in depth. (9) What is measured, what MAYA does
 not do, and where to start.
 
 **What it deliberately is not.** It carries no implementation-status register and

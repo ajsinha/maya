@@ -7,7 +7,7 @@ a validator, a supervisor, an engineer asked to integrate -- and it answers thei
 questions in the order they ask them: why the usual register fails, what MAYA is, the
 vocabulary it needs, the lifecycle end to end, the governance a model risk function works
 in, models that are not formulas, the formal core that makes the facts derivable, how it
-runs, fourteen worked models, and what is measured and what is not done.
+runs, fifteen worked models, and what is measured and what is not done.
 
 Every figure comes from the code, ``maya/core/version.py``, the README, ``docs/BENCHMARKS.md``
 or a case study's run against a MAYA built from nothing.

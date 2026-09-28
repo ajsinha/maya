@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**The deck and the research paper, brought up to date**
+
+- The deck is 72 slides. New: *The licence reaches the platform that trains and serves* (the
+  MLflow alias, the SDK guard, training dispatch, the reference re-fit, attested batch
+  scoring) and study 8 in depth. Fifteen studies throughout, the counts current (2,109
+  tests, 252 endpoints), the limits restated: MAYA trains and serves nothing itself, and
+  Windows has run the case studies but is outside the test matrix.
+- The paper (and its article version) gains Proposition 9.6, *a series holdout is a
+  suffix*, with the time-ordered split it describes; the typed oracle inputs and the series
+  key; the MLflow alias as a declared fact kept equal to a derived one; the five places the
+  implementation reaches the edge of its boundary and how each stays inside it; two more
+  findings under *what building it changed*; and the fifteenth case study.
+
 **Names you can read, and a line saying what each thing is**
 
 - The features, feature sets and models lists show each item's one-line description under
