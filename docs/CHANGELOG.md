@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The hero's chain names what each stage means, from the chain figure's own notes: data as
+  it arrived, a feature as it stood then, a pin readable for ever, a model MAYA evaluates, a
+  warrant without which it does not run, and a run reported and checked.
+
 **Every authoring screen says what it needs; the kernel designer takes Python**
 
 - A new reference, *What each designer expects* (Help → guides, and

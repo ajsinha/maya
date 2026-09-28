@@ -514,7 +514,7 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .lp2-fig { position: relative; max-width: 860px; margin: 0 auto; }
 .lp2-fig canvas { display: block; width: 100%; }
 .lp2-fig-hero { margin-top: .6rem; }
-#lpQuestion { aspect-ratio: 800 / 260; }
+#lpQuestion { aspect-ratio: 800 / 272; }
 #lpClocks { aspect-ratio: 800 / 285; min-width: 620px; }
 #lpLedger { aspect-ratio: 800 / 295; min-width: 620px; }
 .lp2-fig-scroll { overflow-x: auto; }

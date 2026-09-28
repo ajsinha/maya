@@ -63,6 +63,9 @@
   }());
   var STAGES = ['data', 'feature', 'pin', 'model', 'warrant', 'run'];
   var GLYPHS = ['≡', 'ƒ', '#', 'Σ', '✓', '▸'];
+  // the chain figure's own notes, one line under each stage
+  var NOTES = ['as it arrived', 'as it stood then', 'readable for ever', 'MAYA evaluates it',
+    'or it does not run', 'reported, checked'];
 
   function question(c, t) {
     var appear = ease(seg(t, 0, 0.16)), morph = ease(seg(t, 0.26, 0.52)), nodes = seg(t, 0.48, 0.58), ny = 150;
@@ -84,11 +87,12 @@
       c.beginPath(); c.arc(nx(i), ny, 19, 0, 7); c.fill(); c.stroke();
       text(c, GLYPHS[i], nx(i), ny + 5, '600 14px ' + MONO, C.accent, 'center');
       text(c, name, nx(i), ny + 42, '500 13px ' + SANS, C.ink, 'center');
+      text(c, NOTES[i], nx(i), ny + 59, '11.5px ' + SANS, C.slate, 'center');
     });
     c.globalAlpha = seg(t, 0.6, 0.7); text(c, 'ŷ = a·x + b', nx(3), ny - 34, 'italic 21px ' + MATH, C.ink, 'center');
     var s = seg(t, 0.84, 0.92);
-    c.globalAlpha = s * 0.6; c.strokeStyle = C.accent; c.lineWidth = 1.2; box(c, 230, 218, 340, 32, 6); c.stroke();
-    c.globalAlpha = s; text(c, 'sealed · sha256 9f3a 61c0 … 7b2d e21c', W / 2, 240, '500 13px ' + MONO, C.slate, 'center');
+    c.globalAlpha = s * 0.6; c.strokeStyle = C.accent; c.lineWidth = 1.2; box(c, 230, 232, 340, 32, 6); c.stroke();
+    c.globalAlpha = s; text(c, 'sealed · sha256 9f3a 61c0 … 7b2d e21c', W / 2, 254, '500 13px ' + MONO, C.slate, 'center');
   }
 
   /* -- two clocks -------------------------------------------------------------------- */
@@ -176,7 +180,7 @@
 
   /* -- the runner -------------------------------------------------------------------- */
   var FIGURES = [
-    { id: 'lpQuestion', draw: question, h: 260 },
+    { id: 'lpQuestion', draw: question, h: 272 },
     { id: 'lpClocks', draw: clocks, h: 285 },
     { id: 'lpLedger', draw: ledger, h: 295 }
   ].map(function (f) {
