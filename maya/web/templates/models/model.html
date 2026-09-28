@@ -16,7 +16,7 @@
 {% if v and v.needs_reapproval %}<div class="alert alert-warning py-2">{{ v.needs_reapproval }}</div>{% endif %}
 {% include "_job.html" %}
 {% if v %}
-{{ tabs([('overview','Overview'),('definition','Definition'),('spec','Specification'),('code','Code'),('params','Parameters'),('lineage','Lineage'),('history','History & Comments')], tab) }}
+{{ tabs([('overview','Overview'),('definition','Definition'),('spec','Specification'),('code','Code'),('params','Parameters'),('lineage','Lineage'),('documents','Documents'),('history','History & Comments')], tab) }}
 <div class="tab-content">
 <div class="tab-pane {% if tab == 'overview' %}show active{% endif %}" id="tab-overview" role="tabpanel">
   <div class="row g-3"><div class="col-lg-5">
@@ -179,6 +179,33 @@ class Model:
   {% endcall %}
 </div>
 <div class="tab-pane {% if tab == 'lineage' %}show active{% endif %}" id="tab-lineage" role="tabpanel">{{ impact_panel(impact) }}{% include "_lineage_canvas.html" %}</div>
+<div class="tab-pane {% if tab == 'documents' %}show active{% endif %}" id="tab-documents" role="tabpanel">
+  {% call needs('documents-and-model-cards', 'How documents are made') %}
+  <ul>
+    <li>A <strong>model card</strong>, a <strong>validation report</strong> or <strong>model documentation</strong>, built from this model's record: its mathematics, code checks, warrants, blind scores, fairness evidence, challengers, findings and covenants.</li>
+    <li>Each comes from a template. Place your own in <code>config/templates/documents/</code>: a file named like a built-in (<code>model_card.md.j2</code>) replaces it, and any other becomes a template of its own.</li>
+    <li>Sections a template asks a language model to draft are labelled as drafted, with the provider and model, until someone other than the person who generated the document approves it. The validator's conclusion is never drafted.</li>
+  </ul>
+  {% endcall %}
+  <p class="small-muted mb-2">Language model: {% if ai and ai.drafting %}<strong>{{ ai.default }}</strong> profile{% for pr in ai.profiles if pr.name == ai.default %} — {{ pr.provider }} · {{ pr.model or 'provider default' }}{% endfor %}{% else %}<strong>not configured</strong> — drafted sections will be marked as not drafted (set <code>llm.provider</code> or <code>config/llm_profiles.yaml</code>){% endif %}.</p>
+  {% if v %}
+  <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/documents" class="d-flex flex-wrap gap-2 align-items-end mb-3"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version_no" value="{{ v.version_no }}">
+    <div><label class="form-label" for="dkind">Document</label><select class="form-select form-select-sm" id="dkind" name="kind"><option value="model_card">Model card</option><option value="validation_report">Validation report</option><option value="model_documentation">Model documentation</option></select></div>
+    <div><label class="form-label" for="dtpl">Template</label><select class="form-select form-select-sm" id="dtpl" name="template"><option value="">the kind's own</option>{% for t in doc_templates %}<option value="{{ t.name }}">{{ t.title }} ({{ t.kind.replace('_', ' ') }}, {{ t.origin }})</option>{% endfor %}</select></div>
+    <div><label class="form-label" for="dprof">Model profile</label><select class="form-select form-select-sm" id="dprof" name="profile"><option value="">default</option>{% for pr in (ai.profiles if ai else []) %}<option value="{{ pr.name }}">{{ pr.name }} — {{ pr.provider }}{% if not pr.ready %} (not ready){% endif %}</option>{% endfor %}</select></div>
+    <label class="small-muted mb-1"><input type="checkbox" name="use_ai" value="1" {% if ai and ai.drafting %}checked{% endif %}> draft sections with the language model</label>
+    <button class="btn btn-sm btn-primary" type="submit">Generate for v{{ v.version_no }}</button></form>
+  {% endif %}
+  {% call(d) table("documents", ["Generated", "By", "Version", "Document", "Template", "Drafted with", "State", ""], documents, empty="No documents yet.") %}
+    <td>{{ d.created_at|dt }}</td><td>{{ d.created_by }}</td><td>v{{ d.version_no }}</td><td>{{ d.kind.replace('_', ' ') }}</td><td class="mono small">{{ d.template_name }}</td>
+    <td class="small">{% if d.provider %}{{ d.provider }} · {{ d.llm_model }}{% else %}<span class="small-muted">no model</span>{% endif %}</td>
+    <td>{{ pill(d.state) }}{% if d.approved_by %} <span class="small-muted">by {{ d.approved_by }}</span>{% endif %}</td>
+    <td class="text-nowrap"><a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}" target="_blank" rel="noopener">View</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/download?format=pdf">PDF</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/download?format=md">MD</a>
+      {% if d.state == 'draft' %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/approve" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit">Approve</button></form>{% endif %}</td>
+  {% endcall %}
+</div>
 <div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">
   {% set object_type = 'model_version' %}{% set object_id = v.id %}{% include "_history.html" %}
 </div>

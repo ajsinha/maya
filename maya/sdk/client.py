@@ -37,6 +37,7 @@ from maya.sdk.resources import (
     Challenges,
     Custody,
     Events,
+    Documents,
     Evidence,
     ExecutionWarrants,
     Features,
@@ -83,6 +84,7 @@ class _Namespaces:
         self.monitoring = Monitoring(transport)
         self.challenges = Challenges(transport)
         self.evidence = Evidence(transport)
+        self.documents = Documents(transport)
         self.integrations = Integrations(transport)
         self.llm = Llm(transport)
         self.cache = PinCache()

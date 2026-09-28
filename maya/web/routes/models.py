@@ -233,10 +233,16 @@ async def model(request: Request, ns: str, name: str) -> Any:
                 except MayaError:
                     reference = None
         impact = await sdk.catalog.dependents(f"maya://model/{ns}/{name}")
+        documents = await sdk.documents.list(f"{ns}/{name}")
+        templates = await sdk.documents.templates()
+        ai = await sdk.documents.ai_status()
     return await render(
         request,
         "models/model.html",
         {
+            "documents": documents,
+            "doc_templates": templates,
+            "ai": ai,
             "impact": impact,
             "m": m,
             "v": v,
@@ -253,6 +259,57 @@ async def model(request: Request, ns: str, name: str) -> Any:
             "editable": bool(v and v["state"] in ("draft", "changes_requested")),
         },
     )
+
+
+@router.post("/models/{ns}/{name}/documents")
+@action
+async def generate_document(request: Request, ns: str, name: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        job = await sdk.documents.generate(
+            f"{ns}/{name}",
+            data.get("kind", "model_card"),
+            version_no=int(data["version_no"]) if data.get("version_no") else None,
+            template=data.get("template") or None,
+            use_ai=bool(data.get("use_ai")),
+            profile=data.get("profile") or None,
+        )
+    flash(
+        request,
+        f"Generating it as job {job['id'][:8]}; it appears below when it finishes.",
+        "success",
+    )
+    return RedirectResponse(f"/models/{ns}/{name}?tab=documents&job={job['id']}", status_code=303)
+
+
+@router.get("/models/{ns}/{name}/documents/{doc_id}")
+@page
+async def view_document(request: Request, ns: str, name: str, doc_id: str) -> Any:
+    """The document as a page of its own, drafted sections labelled."""
+    from fastapi.responses import HTMLResponse
+
+    async with client(request) as sdk:
+        await sdk.documents.get(doc_id)  # read access, and it exists
+        out = await sdk.documents.render(doc_id, "html")
+    return HTMLResponse(out["data"])
+
+
+@router.get("/models/{ns}/{name}/documents/{doc_id}/download")
+@page
+async def download_document(request: Request, ns: str, name: str, doc_id: str) -> Any:
+    fmt = request.query_params.get("format", "pdf")
+    async with client(request) as sdk:
+        out = await sdk.documents.render(doc_id, fmt)
+    return download(out, f"document-{doc_id[:8]}.{fmt}")
+
+
+@router.post("/models/{ns}/{name}/documents/{doc_id}/approve")
+@action
+async def approve_document(request: Request, ns: str, name: str, doc_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.documents.approve(doc_id)
+    flash(request, "Document approved; its drafted sections now say who reviewed them.", "success")
+    return RedirectResponse(f"/models/{ns}/{name}?tab=documents", status_code=303)
 
 
 @router.post("/models/{ns}/{name}/formula")

@@ -27,6 +27,8 @@ def _governance(platform: Any) -> None:
     from maya.services.llm import LlmService
     from maya.services.training_ops import TrainingOps
     from maya.services.batch_scoring import BatchScoring
+    from maya.services.ai import AiGateway
+    from maya.services.documents import DocumentService
     from maya.services.monitoring import MonitoringService
 
     for name, cls in (
@@ -39,6 +41,8 @@ def _governance(platform: Any) -> None:
         ("llm", LlmService),
         ("training_ops", TrainingOps),
         ("batches", BatchScoring),
+        ("ai", AiGateway),
+        ("documents", DocumentService),
     ):
         platform.register_service(name, cls(platform))
 
@@ -175,6 +179,7 @@ def _jobs(platform: Any) -> None:
     )
     q.register("assistant.challenge", platform.assistant.run_job)
     q.register("execution.batch_score", platform.batches.run_job)
+    q.register("documents.generate", platform.documents.run_job)
     q.register(
         "featureset.pin",
         _announcing(platform, "featureset", platform.featuresets.run_pin_job),

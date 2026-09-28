@@ -145,7 +145,7 @@ def title(s: dict[str, Any]) -> None:
     T.para(tf, s.get("date", "September 2026"), size=12, color=T.CRIMSON, space_after=1)
     T.para(
         tf,
-        s.get("version", f"MAYA {VERSION} · specification revision 2.7"),
+        s.get("version", f"MAYA {VERSION} · specification revision 2.8"),
         size=11,
         color=T.SLATE,
         space_after=0,

@@ -3,7 +3,7 @@
 -- maya/persistence/models/. DO NOT EDIT BY HAND: regenerate with
 --     python tools/ci/gen_schema.py
 -- and CI fails the build on any drift (spec §14.3, SC-15).
--- schema-hash: 73e86f5f2c9015c3629ada8cb73a02d7e15ef7f953d10ef3a8278fe20f8e82bd
+-- schema-hash: cc9d6e7f7a434ebec464f24351caa5b3b057892a629e1781fa0494de7a3b5f4c
 -- ==========================================================================
 
 CREATE TABLE access_requests (
@@ -1342,6 +1342,34 @@ CREATE TABLE llm_eval_runs (
 );
 
 CREATE INDEX ix_llm_eval_runs_version ON llm_eval_runs (version_id);
+
+CREATE TABLE model_documents (
+	model_id UUID NOT NULL, 
+	model_version_id UUID NOT NULL, 
+	kind VARCHAR(32) NOT NULL, 
+	template_name VARCHAR(128) NOT NULL, 
+	template_sha256 VARCHAR(64) NOT NULL, 
+	facts_sha256 VARCHAR(64) NOT NULL, 
+	provider VARCHAR(64), 
+	llm_model VARCHAR(128), 
+	ai_sections JSONB NOT NULL, 
+	markdown TEXT NOT NULL, 
+	content_sha256 VARCHAR(64) NOT NULL, 
+	state VARCHAR(16) NOT NULL, 
+	approved_by VARCHAR(128), 
+	approved_at TIMESTAMP WITH TIME ZONE, 
+	id UUID NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	created_by VARCHAR(128), 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_by VARCHAR(128), 
+	row_version INTEGER NOT NULL, 
+	CONSTRAINT pk_model_documents PRIMARY KEY (id), 
+	CONSTRAINT fk_model_documents_model_id_models FOREIGN KEY(model_id) REFERENCES models (id), 
+	CONSTRAINT fk_model_documents_model_version_id_model_versions FOREIGN KEY(model_version_id) REFERENCES model_versions (id)
+);
+
+CREATE INDEX ix_model_documents_model_id ON model_documents (model_id);
 
 CREATE TABLE parameter_sets (
 	model_version_id UUID NOT NULL, 

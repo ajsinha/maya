@@ -149,6 +149,18 @@
      "verify": "(self)"
     }
    },
+   "documents": {
+    "class": "Documents",
+    "methods": {
+     "ai_status": "(self)",
+     "approve": "(self, doc_id)",
+     "generate": "(self, ref, kind, version_no=None, template=None, use_ai=True, profile=None)",
+     "get": "(self, doc_id)",
+     "list": "(self, ref)",
+     "render": "(self, doc_id, format='md')",
+     "templates": "(self)"
+    }
+   },
    "events": {
     "class": "Events",
     "methods": {
@@ -561,6 +573,18 @@
      "anchors": "(self)",
      "licence": "(self, kind, ref)",
      "verify": "(self)"
+    }
+   },
+   "documents": {
+    "class": "Documents",
+    "methods": {
+     "ai_status": "(self)",
+     "approve": "(self, doc_id)",
+     "generate": "(self, ref, kind, version_no=None, template=None, use_ai=True, profile=None)",
+     "get": "(self, doc_id)",
+     "list": "(self, ref)",
+     "render": "(self, doc_id, format='md')",
+     "templates": "(self)"
     }
    },
    "events": {

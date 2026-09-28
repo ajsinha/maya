@@ -230,3 +230,58 @@ class Evidence(_Resource):
         return self._c(
             "GET", f"/warrants/execution/{seg(ew_id)}/batches/{seg(job_id)}/output", raw=True
         )
+
+
+class Documents(_Resource):
+    """Model cards, validation reports and model documentation, generated from the record."""
+
+    @endpoint("GET", "/ai/status")
+    def ai_status(self) -> Any:
+        """The model profiles and the language-model providers on offer."""
+        return self._c("GET", "/ai/status")
+
+    @endpoint("GET", "/documents/templates")
+    def templates(self) -> Any:
+        return self._c("GET", "/documents/templates")
+
+    @endpoint("POST", "/models/{namespace}/{name}/documents")
+    def generate(
+        self,
+        ref: str,
+        kind: str,
+        version_no: int | None = None,
+        template: str | None = None,
+        use_ai: bool = True,
+        profile: str | None = None,
+    ) -> Any:
+        """Queue a document; returns the job. ``profile`` names a model profile."""
+        return self._c(
+            "POST",
+            f"/models/{_nn(ref, 'model')}/documents",
+            json_body={
+                "kind": kind,
+                "version_no": version_no,
+                "template": template,
+                "use_ai": use_ai,
+                "profile": profile,
+            },
+        )
+
+    @endpoint("GET", "/models/{namespace}/{name}/documents")
+    def list(self, ref: str) -> Any:
+        return self._c("GET", f"/models/{_nn(ref, 'model')}/documents")
+
+    @endpoint("GET", "/documents/{doc_id}")
+    def get(self, doc_id: str) -> Any:
+        return self._c("GET", f"/documents/{seg(doc_id)}")
+
+    @endpoint("GET", "/documents/{doc_id}/render")
+    def render(self, doc_id: str, format: str = "md") -> Any:
+        """The document as a file: ``{data, content_type, ...}``."""
+        return self._c(
+            "GET", f"/documents/{seg(doc_id)}/render", params={"format": format}, raw=True
+        )
+
+    @endpoint("POST", "/documents/{doc_id}/approve")
+    def approve(self, doc_id: str) -> Any:
+        return self._c("POST", f"/documents/{seg(doc_id)}/approve")
