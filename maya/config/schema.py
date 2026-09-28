@@ -854,6 +854,13 @@ SETTINGS: tuple[Setting, ...] = (
         "Where a firm's own document templates live; a file named like a built-in replaces it.",
         "config/templates/documents",
     ),
+    _s(
+        "restatements.alerts",
+        "bool",
+        "After a restatement, check every live model's training pin against what is known now "
+        "and tell its owners how far the result moves.",
+        "true",
+    ),
     _s("assistant.enabled", "bool", "The recorded challenger writes a memo on submission.", "true"),
     _s(
         "assistant.provider",

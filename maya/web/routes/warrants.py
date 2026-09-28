@@ -397,6 +397,7 @@ async def execution_create(request: Request) -> Any:
 async def execution(request: Request, eid: str) -> Any:
     async with client(request) as sdk:
         ew = await sdk.execution.get(eid)
+        restatements = await sdk.execution.restatements(eid)
         batches = await sdk.evidence.batches(eid)
         history = await sdk.workflow.history("execution_warrant", eid)
         comments = await sdk.workflow.comments("execution_warrant", eid)
@@ -405,6 +406,7 @@ async def execution(request: Request, eid: str) -> Any:
         "warrants/execution.html",
         {
             "ew": ew,
+            "restatements": restatements,
             "batches": batches,
             "history": history,
             "comments": comments,
@@ -426,6 +428,25 @@ async def execution_transition(request: Request, eid: str) -> Any:
             force=bool(data.get("force")),
         )
     flash(request, out["message"], "success" if out["moved"] else "info")
+    return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
+
+
+@router.post("/warrants/execution/{eid}/restatements/check")
+@action
+async def execution_restatements_check(request: Request, eid: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.execution.check_restatements(eid)
+    flash(request, "Checking the training pin against what is known now.", "info")
+    return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
+
+
+@router.post("/warrants/execution/{eid}/restatements/{impact_id}/acknowledge")
+@action
+async def execution_restatement_ack(request: Request, eid: str, impact_id: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.execution.acknowledge_restatement(impact_id, data.get("note", ""))
+    flash(request, "Acknowledged.", "success")
     return RedirectResponse(f"/warrants/execution/{eid}", status_code=303)
 
 

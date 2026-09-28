@@ -469,6 +469,13 @@ class FeatureService:
                     "knowledge_time": known_at.isoformat(),
                 },
             )
+            if restatement:
+                self.p.restatements.queue(
+                    uow,
+                    trigger=refs.object_ref("feature", ns["name"], feature["name"]),
+                    knowledge_time=known_at,
+                    actor=p.username,
+                )
         return {**row, "duplicate_upload_of": existing}
 
     def _store_blob(

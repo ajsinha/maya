@@ -25,6 +25,18 @@
 {% if not ew.revoked_at %}<form method="post" action="/warrants/execution/{{ ew.id }}/revoke" class="d-flex gap-1" data-confirm="Revoke now? Every consuming call fails closed."><input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="reason" placeholder="reason (required)" aria-label="Revocation reason" required><button class="btn btn-sm btn-outline-secondary" type="submit">Revoke</button></form>{% endif %}
 </div>
 </div><div class="col-lg-6"><h3>Execution manifest</h3>{{ json_block(ew.manifest) }}</div></div>
+<h3 id="restatements">Restated data</h3>
+<p class="small-muted">When data under this warrant's training pin is corrected, MAYA resolves the pin's definition again with what is known now, scores these parameters on the holdout both ways and measures how far the predictions move. The pin itself never changes, and no holdout attempt is spent.</p>
+{% set open_impacts = restatements|selectattr('state', 'equalto', 'open')|list %}
+{% if open_impacts %}<div class="alert alert-warning"><strong>{{ open_impacts|length }} restatement{{ 's' if open_impacts|length != 1 }} to acknowledge.</strong> The data this model was fitted on has been corrected since.</div>{% endif %}
+{% call(r) table("restatements", ["Found", "Trigger", "Rows changed", "Holdout RMSE", "Prediction shift", "State"], restatements, empty="No restatement has changed the data under this warrant's training pin.") %}
+  <td>{{ r.created_at|dt }}</td><td class="mono small">{{ r.trigger or '—' }}</td>
+  <td>{{ r.rows.changed }} ({{ r.rows.changed_in_holdout }} in holdout){% if r.rows.added or r.rows.dropped %}, +{{ r.rows.added }} / −{{ r.rows.dropped }}{% endif %}</td>
+  <td class="mono">{% if r.metrics_sealed and r.metrics_corrected %}{{ '%.4g'|format(r.metrics_sealed.rmse) }} → {{ '%.4g'|format(r.metrics_corrected.rmse) }}{% else %}—{% endif %}</td>
+  <td class="mono">mean {{ '%.4g'|format(r.shift.mean_abs) }}, max {{ '%.4g'|format(r.shift.max_abs) }}, {{ '%.0f'|format(100 * r.shift.share_moved) }}% moved</td>
+  <td>{% if r.state == 'open' %}<form method="post" action="/warrants/execution/{{ ew.id }}/restatements/{{ r.id }}/acknowledge" class="d-flex gap-1"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input class="form-control form-control-sm" name="note" placeholder="refitted, or why it does not matter" aria-label="What was done" required><button class="btn btn-sm btn-outline-primary" type="submit">Acknowledge</button></form>{% else %}{{ pill('acknowledged') }} <span class="small-muted">{{ r.acknowledged_by }}: {{ r.note }}</span>{% endif %}</td>
+{% endcall %}
+{% if ew.status in ('live', 'suspended') %}<form method="post" action="/warrants/execution/{{ ew.id }}/restatements/check" class="mb-3"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Check now</button></form>{% endif %}
 <h3>Reported executions</h3>
 {% call(r) table("reports", ["When", "Environment", "Rows", "Input stats", "Breaches"], ew.reports, empty="No executions reported. SDK callers report each run; covenants are evaluated on every report.") %}
   <td>{{ r.created_at|dt }}</td><td>{{ r.environment }}</td><td>{{ r.rows }}</td><td class="mono">{{ r.input_stats|tojson }}</td><td>{% if r.breaches %}{{ pill('bad', r.breaches|length ~ ' breach(es)') }}{% else %}—{% endif %}</td>

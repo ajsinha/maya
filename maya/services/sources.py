@@ -272,4 +272,11 @@ class SourceService:
                     "restatement": restatement,
                 },
             )
+            if restatement:
+                self.p.restatements.queue(
+                    uow,
+                    trigger=refs.object_ref("feature", ns["name"], feature["name"]),
+                    knowledge_time=known_at,
+                    actor=p.username,
+                )
         return row

@@ -2402,6 +2402,14 @@ Point-in-time correctness exists in Feast and Tecton as a join semantic. Nobody 
 
 **Cost.** Two extra columns in every table, a second index dimension, and roughly 20–30% more storage. It must be in the schema from Phase 1.
 
+**Restatement alerts** (*Revision 2.8*). Keeping pins still has a cost of its own: a model fitted on a pin goes on running on what the pin says after the source has corrected it. So a restatement is acted on as well as recorded. Every ingest that restates rows queues a job, which checks each live (or suspended) execution warrant. It resolves the definition of the feature set pin that warrant's training warrant was drawn on again, over the same member feature *versions* and to the same as-of date, with everything known now. If that hashes the same as the sealed pin, nothing under the model moved and nothing is said. If it differs, MAYA records an **impact** on the warrant, with no row shown to anyone:
+
+- the rows changed (and how many of them fall in the escrowed holdout), added and dropped;
+- the warrant's approved parameters scored on the holdout both ways, from the IR or in the sandbox, as blind scoring does (this is MAYA's own check, so no holdout attempt is spent);
+- the prediction shift over every row: its mean and its largest absolute value, and the share of rows that moved.
+
+The warrant's owner, the model's owner and every model manager are notified. The impact stays open on the warrant's page until one of them acknowledges it with a note, either that the model was refitted or why the change is immaterial. Nothing is suspended automatically, because whether a correction invalidates a model is a judgement; the impact is the evidence for making it. The same corrected state is never reported twice, and an owner can ask for a check at any time (`GET /warrants/execution/{id}/restatements`, `POST …/restatements/check`, `POST /restatements/{id}/acknowledge`). The setting `restatements.alerts` turns the automatic check off.
+
 ### 29.2 Shadow replay: numeric impact analysis
 
 §19 answers *what depends on this*. The question people actually have is *how much does it move*. Before approving a feature change, MAYA re-runs every affected execution warrant on a sampled window — once against the current definition, once against the proposed one — and reports the distribution of output differences per model: median shift, 95th percentile, worst row, and the count of rows crossing the materiality threshold the model version declares (failing that, its namespace's; failing that, the configured default). *Revision 2.5:* only the model knows whether its output is a price, a spread in basis points or a probability, so the threshold belongs on the model version and the report says where the figure it used came from.
