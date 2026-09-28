@@ -17,11 +17,11 @@ from typing import Any
 NS = "regulatory_capital"
 DATA = Path(__file__).resolve().parent / "data"
 FEED = "corporate_exposures"
-PANEL = "irb_panel"
+PANEL = "corporate_exposure_panel"
 PIN = "ye2025"
 AS_OF = dt.date(2025, 12, 31)
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
-MODEL = "irb_corporate"
+MODEL = "basel_irb_corporate_capital"
 WARRANT_V1 = "irb_reconcile_v1"
 WARRANT_V2 = "irb_reconcile_v2"
 LIVE = "irb_capital_live"
@@ -136,3 +136,11 @@ def find_warrant(client: Any, name: str) -> dict[str, Any]:
         if row["name"] == name:
             return dict(client.training.get(row["id"]))
     raise SystemExit(f"No training warrant called '{name}' yet")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "corporate_exposures": "Corporate exposures per obligor: PD, LGD, EAD, maturity and the reference capital",
+    "corporate_exposure_panel": "One row per corporate obligor: the IRB inputs and the reference capital to reconcile against",
+    "basel_irb_corporate_capital": "Corporate IRB capital requirement K per unit of EAD (Basel CRE31)",
+}

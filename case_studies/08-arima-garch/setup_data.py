@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     AS_OF,
     DEFINITIONS,
     EXTRA_USERS,
@@ -39,7 +40,7 @@ from study import (  # noqa: E402
 )
 
 TITLE = "Case study 8, step 1 — the daily feed, its lags declared, pinned as it stood"
-FEED = "index_daily"
+FEED = "daily_index_returns"
 
 
 def main(maya: Any, n: Narrator) -> None:
@@ -57,7 +58,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("A governed feature whose lags are part of its definition")
     definition = DEFINITIONS[FEED]
-    cast.dana.features.create(NS, FEED, definition)
+    cast.dana.features.create(NS, FEED, definition, description=DESCRIPTIONS[FEED])
     cast.dana.features.ingest(f"{NS}/{FEED}", raw, fmt="csv", filename=f"{FEED}.csv")
     cast.dana.features.transition(f"{NS}/{FEED}", 1, "submit")
     cast.mick.features.transition(f"{NS}/{FEED}", 1, "approve")
@@ -67,7 +68,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.say("is never BQI's. A reviewer sees 'lag 1, lag 2' in the definition, not in a script.")
 
     n.step("The panel, pinned point-in-time")
-    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF)
+    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF, description=DESCRIPTIONS[PANEL])
     cast.devi.featuresets.transition(f"{NS}/{PANEL}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{PANEL}", 1, "approve")
     pinned = cast.mick.featuresets.pin(

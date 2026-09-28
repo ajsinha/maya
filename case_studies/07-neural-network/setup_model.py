@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import network  # noqa: E402
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     EXTRA_USERS,
     HYPERPARAMETERS,
     LOADS_FROM_DISK,
@@ -69,7 +70,9 @@ def register(cast: Cast, n: Narrator) -> None:
     from maya.core.errors import NotApproved, ValidationFailed
 
     n.step("Registering the network as a declared black box")
-    cast.mona.models.create(NS, MODEL, kind="black_box", ir=model_ir())
+    cast.mona.models.create(
+        NS, MODEL, kind="black_box", ir=model_ir(), description=DESCRIPTIONS[MODEL]
+    )
     version = cast.mona.models.get(f"{NS}/{MODEL}")["versions"][0]
     n.fact("kind", cast.mona.models.get(f"{NS}/{MODEL}")["kind"])
     n.fact("opaque", version["opaque"])

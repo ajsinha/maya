@@ -20,7 +20,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
-from study import AS_OF, EXTRA_USERS, FEATURE_DEF, FEED, NS, PANEL, PANEL_DEF, PIN, Cast, feed  # noqa: E402
+from study import (
+    DESCRIPTIONS,
+    AS_OF,
+    EXTRA_USERS,
+    FEATURE_DEF,
+    FEED,
+    NS,
+    PANEL,
+    PANEL_DEF,
+    PIN,
+    Cast,
+    feed,
+)  # noqa: E402
 
 TITLE = "Case study 9, step 1 — the exposures feed, governed and pinned"
 
@@ -28,7 +40,7 @@ TITLE = "Case study 9, step 1 — the exposures feed, governed and pinned"
 def main(maya: Any, n: Narrator) -> None:
     cast = Cast(maya)
     n.step("Defining the feed and loading four quarter-ends of exposures")
-    cast.dana.features.create(NS, FEED, FEATURE_DEF)
+    cast.dana.features.create(NS, FEED, FEATURE_DEF, description=DESCRIPTIONS[FEED])
     got = cast.dana.features.ingest(f"{NS}/{FEED}", feed(), fmt="csv", filename=f"{FEED}.csv")
     n.fact("rows ingested", f"{got['rows']:,}")
     cast.dana.features.transition(f"{NS}/{FEED}", 1, "submit")
@@ -38,7 +50,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.fact("feature", f"{FEED} v1 approved by mick")
 
     n.step("The panel: three inputs and the reference, pinned at the year end")
-    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF)
+    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF, description=DESCRIPTIONS[PANEL])
     cast.devi.featuresets.transition(f"{NS}/{PANEL}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{PANEL}", 1, "approve")
     cast.mick.featuresets.pin(f"{NS}/{PANEL}", 1, PIN, AS_OF.isoformat(), cascade=True)

@@ -35,7 +35,7 @@ UI and show what the last one created.
 | --- | --- | --- |
 | `make_data.py` | Writes the four feeds to `data/` (already committed; run it only to regenerate). No MAYA. | The recipe: a known volatility surface with a skew and a smile, priced through Black–Scholes–Merton and disturbed by quote noise. It prints the surface it generated, which is what calibration is trying to recover. |
 | `setup_features.py` | Declares and ingests the option chain, the spot, the dividend forecast and the discount curve as **dana**, approved by **mick**. | Four feeds, three grains, four knowledge times — a closing quote at 21:10 the same evening, a forecast published at 07:00 that morning. |
-| `setup_featureset.py` | Composes `acme_chain` on `(date, underlying, tenor, contract)`, pins it, then derives the 1Y pillar as **set algebra** over the same definition. | Three broadcast joins across three grains, stated in MAYA's own resolution plan; the model's notation meeting the vendors' column names; a derived set that cannot drift from its parent. |
+| `setup_featureset.py` | Composes `acme_option_chain` on `(date, underlying, tenor, contract)`, pins it, then derives the 1Y pillar as **set algebra** over the same definition. | Three broadcast joins across three grains, stated in MAYA's own resolution plan; the model's notation meeting the vendors' column names; a derived set that cannot drift from its parent. |
 | `setup_model.py` | Registers Black–Scholes–Merton from **LaTeX**, declares **bounds** on the nine volatilities, fills the specification, prints the reference Python MAYA lifts from the tree, and tries to draw a warrant on the draft. | That `ncdf`, `where` and comparisons make the whole pricer one formula model; that a bound is a property of the tree; **a warrant refused on an unapproved version**. |
 | `check_conformance.py` | Uploads the desk's pricer; the ladder and the differential test run together. Then the same pricer with `sigma*T` for `sigma*sqrt(T)`, tested on the 1Y pillar, submitted, sent back by the reviewer, re-tested on the whole chain and **refused**. | **The heart of the study.** A maturity bug that is exactly right at one year, a test domain that hides it, and the refusal once the domain is honest. |
 | `get_training_warrant.py` | Draws the warrant, calibrates one volatility and then nine, **is refused a negative one**, registers both against the same warrant, and has MAYA score each blind. | Calibration as distinct from fitting; the smile, measured; the bias a single volatility leaves bucket by bucket; two blind scores on the same escrowed quotes. |
@@ -124,7 +124,7 @@ not the model's. And it is filtered to one underlying, because **a volatility su
 to one underlying**: the other two names are in the features and would each get their own
 chain, warrant and calibration.
 
-The pin is `maya://featureset/equity_derivatives/acme_chain#surf2509/2025-09-30`, taken
+The pin is `maya://featureset/equity_derivatives/acme_option_chain#surf2509/2025-09-30`, taken
 `as_of_known` 2025-10-01T06:00Z — six the next morning, and it already contains everything,
 because this data is knowable the evening it happens. Case study 1 had to wait a year.
 
@@ -192,7 +192,7 @@ it refusing.
 The version is left a draft, and nothing can be drawn on it. `setup_model.py` tries:
 
 ```
-NotApproved: equity_derivatives/bsm_call@v1 is 'draft';
+NotApproved: equity_derivatives/black_scholes_call_price@v1 is 'draft';
   warrants are drawn on approved model versions
 ```
 
@@ -263,8 +263,8 @@ gets written. The study does not assert what happens next; it runs it.
 | Domain of the differential test | Agreement |
 | --- | --- |
 | The default domain, numbers near 1 | 19 of 2,000 |
-| `acme_1y@v1` — the 1Y pillar, 1,479 quotes | **2,000 of 2,000** |
-| `acme_chain#surf2509/2025-09-30` — the whole chain, 5,859 quotes | **501 of 2,000** |
+| `acme_option_chain_one_year@v1` — the 1Y pillar, 1,479 quotes | **2,000 of 2,000** |
+| `acme_option_chain#surf2509/2025-09-30` — the whole chain, 5,859 quotes | **501 of 2,000** |
 
 Three things follow, and the middle one is uncomfortable.
 

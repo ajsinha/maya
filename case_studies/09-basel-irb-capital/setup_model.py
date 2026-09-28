@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
-from study import EXTRA_USERS, FORMULA_V1, MODEL, NS, ROLES, Cast, spec_document  # noqa: E402
+from study import DESCRIPTIONS, EXTRA_USERS, FORMULA_V1, MODEL, NS, ROLES, Cast, spec_document  # noqa: E402
 
 TITLE = "Case study 9, step 2 — the IRB formula, version 1"
 
@@ -45,7 +45,7 @@ def main(maya: Any, n: Narrator) -> None:
         MODEL,
         formula=FORMULA_V1,
         roles=ROLES,
-        description="Corporate IRB capital requirement K per unit of EAD (Basel CRE31)",
+        description=DESCRIPTIONS[MODEL],
     )
     v = cast.mona.models.get(f"{NS}/{MODEL}")["versions"][0]
     n.fact("inputs", ", ".join(c["name"] for c in v["input_contract"]))

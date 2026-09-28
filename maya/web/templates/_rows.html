@@ -6,7 +6,7 @@
 {% from "_macros/ui.html" import pill %}
 
 {% macro feature_row(f) -%}
-  <td><a href="/catalog/features/{{ f.namespace }}/{{ f.name }}">{{ f.name }}</a>{% if f.ungoverned %} <span class="pill warn">ungoverned</span>{% endif %}</td>
+  <td><a href="/catalog/features/{{ f.namespace }}/{{ f.name }}">{{ f.name }}</a>{% if f.ungoverned %} <span class="pill warn">ungoverned</span>{% endif %}{% if f.description %}<div class="row-desc" title="{{ f.description }}">{{ f.description|truncate(110, True, "…") }}</div>{% endif %}</td>
   <td>{{ f.namespace }}</td><td>{{ f.owner }}</td><td data-sort="{{ f.latest_version }}">v{{ f.latest_version }}</td>
   <td>{{ pill(f.latest_state) }}</td><td>{{ f.pins }}</td><td>{{ (f.tags or [])|join(', ') }}</td><td>{{ f.updated_at|dt }}</td>
 {%- endmacro %}
@@ -19,12 +19,12 @@
 {%- endmacro %}
 
 {% macro featureset_row(s) -%}
-  <td><a href="/catalog/featuresets/{{ s.namespace }}/{{ s.name }}">{{ s.name }}</a></td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td>
+  <td><a href="/catalog/featuresets/{{ s.namespace }}/{{ s.name }}">{{ s.name }}</a>{% if s.description %}<div class="row-desc" title="{{ s.description }}">{{ s.description|truncate(110, True, "…") }}</div>{% endif %}</td><td>{{ s.namespace }}</td><td>v{{ s.latest_version }}</td>
   <td>{{ pill(s.latest_state) }}</td><td>{{ s.members }}</td><td>{{ s.pins }}</td><td>{{ s.updated_at|dt }}</td>
 {%- endmacro %}
 
 {% macro model_row(m) -%}
-  <td><a href="/models/{{ m.namespace }}/{{ m.name }}">{{ m.name }}</a></td><td>{{ m.namespace }}</td><td>{{ m.kind }}</td><td>v{{ m.latest_version }}</td>
+  <td><a href="/models/{{ m.namespace }}/{{ m.name }}">{{ m.name }}</a>{% if m.description %}<div class="row-desc" title="{{ m.description }}">{{ m.description|truncate(110, True, "…") }}</div>{% endif %}</td><td>{{ m.namespace }}</td><td>{{ m.kind }}</td><td>v{{ m.latest_version }}</td>
   <td>{{ pill(m.latest_state) }}</td><td>{{ pill(m.maturity) }}</td><td>{{ 'declared black box' if m.opaque else 'no' }}</td><td>{{ m.updated_at|dt }}</td>
 {%- endmacro %}
 

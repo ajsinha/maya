@@ -84,10 +84,10 @@ modeller did not write, is what finds it.
 
 | After | Show |
 |---|---|
-| `setup_model.py` | Models → `irb_corporate`: the formula rendered from the parsed tree, $N^{-1}$ included |
+| `setup_model.py` | Models → `basel_irb_corporate_capital`: the formula rendered from the parsed tree, $N^{-1}$ included |
 | `reconcile_v1.py` | Warrants → `irb_reconcile_v1`: the leakage certificate with its written exception, and the blind score. Models → Findings & reviews: the open finding |
 | `remediate.py` | The model's versions and the diff between them; the finding's history, with who remediated and who closed |
-| `govern.py` | Models → Findings & reviews → `irb_corporate`: tier 1, its drivers and the questionnaire answers, the review. Export the inventory as Excel from the same page |
+| `govern.py` | Models → Findings & reviews → `basel_irb_corporate_capital`: tier 1, its drivers and the questionnaire answers, the review. Export the inventory as Excel from the same page |
 
 ## The data
 

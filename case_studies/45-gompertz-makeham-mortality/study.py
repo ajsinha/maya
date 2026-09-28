@@ -13,11 +13,11 @@ from typing import Any
 NS = "mortality"
 DATA = Path(__file__).resolve().parent / "data"
 FEED = "mortality_experience"
-PANEL = "experience_panel"
+PANEL = "mortality_experience_panel"
 PIN = "exp2024"
 AS_OF = dt.date(2024, 12, 31)
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
-MODEL = "unisex_mortality"
+MODEL = "unisex_mortality_rate"
 WARRANT = "mortality_calibration_2024"
 EXTRA_USERS = {"lara": ["model_manager"]}
 
@@ -105,3 +105,11 @@ def find_warrant(client: Any, name: str) -> dict[str, Any]:
         if row["name"] == name:
             return dict(client.training.get(row["id"]))
     raise SystemExit(f"No training warrant called '{name}' yet")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "mortality_experience": "Deaths and exposure by age, calendar year, sex and region",
+    "mortality_experience_panel": "One row per age, year, sex and region: the observed death rate",
+    "unisex_mortality_rate": "Unisex central death rates by age and year",
+}

@@ -15,7 +15,7 @@ on its own, in its own process.
 | --- | --- | --- |
 | `make_data.py` | Writes the book and the outcomes to `data/` (committed; run it only to regenerate). No MAYA. | The recipe: a default hazard, a loss rate that falls with collateral, and a drawdown before default. |
 | `setup_features.py` | Declares and ingests the two feeds, approved by someone other than their author. | The column most credit feeds lack: the probability of default **at origination**, without which IFRS 9 cannot be applied at all. |
-| `setup_featureset.py` | Composes `ecl_panel` on `(date, account)` — eight attributes — and pins it. | One panel and one pin for three members and a combiner. |
+| `setup_featureset.py` | Composes `expected_credit_loss_panel` on `(date, account)` — eight attributes — and pins it. | One panel and one pin for three members and a combiner. |
 | `setup_members.py` | Registers and approves PD, LGD and EAD, each with its own specification document. | Three quantities, three shapes: two logistics because a probability and a loss rate are shares, and a linear interpolation because an exposure has a known floor and ceiling. |
 | `setup_composite.py` | Registers the composite, prints the contract MAYA computed, and shows what it made of the combiner's own parameters. | **The contract now carries the combiner's parameters**, which is this study's first finding. |
 | `get_training_warrant.py` | One warrant over the whole allowance, with the forward-looking target explained. | A contract check that maps the features and leaves the parameters alone — somebody has to approve those instead. |
@@ -71,9 +71,9 @@ synthetic data — it is what a credit book looks like.
 
 | Member | Form | Why that form |
 | --- | --- | --- |
-| `pd_12m` | Logistic in arrears, utilisation and loan-to-value | A probability is a share; it belongs in [0, 1] |
-| `lgd_secured` | Logistic in collateral coverage | A loss rate is also a share. A linear form would predict a negative loss on a well-secured account and a loss above par on a badly secured one, and both are *impossible* rather than merely unlikely |
-| `ead_ccf` | `drawn + ccf·(commitment − drawn)` | An exposure has a known floor and ceiling, so the model is an interpolation between them with one parameter — the credit conversion factor, and one of the most argued-over numbers in impairment |
+| `probability_of_default_12_month` | Logistic in arrears, utilisation and loan-to-value | A probability is a share; it belongs in [0, 1] |
+| `loss_given_default_secured` | Logistic in collateral coverage | A loss rate is also a share. A linear form would predict a negative loss on a well-secured account and a loss above par on a badly secured one, and both are *impossible* rather than merely unlikely |
+| `exposure_at_default_credit_conversion` | `drawn + ccf·(commitment − drawn)` | An exposure has a known floor and ceiling, so the model is an interpolation between them with one parameter — the credit conversion factor, and one of the most argued-over numbers in impairment |
 
 Each is registered and approved with its own specification document before the composite
 exists. One of those documents says something worth reading aloud: the LGD member measures

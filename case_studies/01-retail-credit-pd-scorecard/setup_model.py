@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
-from study import EXTRA_USERS, FORMULA, MODEL, NS, ROLES, Cast, specification  # noqa: E402
+from study import DESCRIPTIONS, EXTRA_USERS, FORMULA, MODEL, NS, ROLES, Cast, specification  # noqa: E402
 
 TITLE = "Case study 1, step 3 — the model, and the document it cannot skip"
 
@@ -32,7 +32,9 @@ def main(maya: Any, n: Narrator) -> None:
 
     cast = Cast(maya)
     n.step("Registering the scorecard as a formula")
-    cast.mona.models.create(NS, MODEL, formula=FORMULA, roles=ROLES)
+    cast.mona.models.create(
+        NS, MODEL, formula=FORMULA, roles=ROLES, description=DESCRIPTIONS[MODEL]
+    )
     version = cast.mona.models.get(f"{NS}/{MODEL}")["versions"][0]
     n.fact("input contract", ", ".join(c["name"] for c in version["input_contract"]))
     n.fact(

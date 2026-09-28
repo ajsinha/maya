@@ -14,7 +14,7 @@ of the expression tree the SDK handed back, so the volatility it finds is the vo
 MAYA's blind holdout score will reprice with, and a disagreement between the calibrator and
 the specification is impossible rather than merely unlikely.
 
-Steps find each other's work by name: ``acme_chain``, ``acme_surface_2509``,
+Steps find each other's work by name: ``acme_option_chain``, ``acme_surface_2509``,
 ``bsm_call_acme_live``. A step run an hour later in a different process locates what the
 last one made exactly the way a person or a scheduled job would — by asking MAYA.
 
@@ -195,10 +195,10 @@ DEFINITIONS = {
     "discount_curve": CURVE_DEF,
 }
 
-PANEL = "acme_chain"
-PILLAR = "acme_1y"
+PANEL = "acme_option_chain"
+PILLAR = "acme_option_chain_one_year"
 PIN = "surf2509"
-MODEL = "bsm_call"
+MODEL = "black_scholes_call_price"
 WARRANT = "acme_surface_2509"
 LIVE = "bsm_call_acme_live"
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
@@ -398,7 +398,7 @@ SECTIONS = {
         "the calibration as if it were information."
     ),
     "Data and Features Used": (
-        "Feature set equity_derivatives/acme_chain, pinned point-in-time: the closing mid "
+        "Feature set equity_derivatives/acme_option_chain, pinned point-in-time: the closing mid "
         "of every listed ACME call on four tenors and a fixed strike ladder, with the "
         "official close of the underlying, the research desk's continuous dividend yield "
         "and the risk-free rate for each tenor. All four feeds are knowable the evening of "
@@ -488,3 +488,15 @@ class Cast:
         self.mgr = maya.client("mgr")
         self.lara = maya.client("lara")
         self.admin = maya.client("admin")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "option_quotes": "Option quotes per contract: strike, time to expiry, mid price and moneyness",
+    "underlying_spot": "The daily spot price of each underlying",
+    "dividend_forecast": "The forecast dividend yield of each underlying",
+    "discount_curve": "Discount rates by tenor",
+    "acme_option_chain": "ACME's option chain with its spot, rate and dividend yield, one row per contract",
+    "acme_option_chain_one_year": "The one-year pillar of ACME's option chain",
+    "black_scholes_call_price": "Black–Scholes–Merton price of a European call, calibrated to a volatility surface",
+}

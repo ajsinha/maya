@@ -74,7 +74,7 @@ rate a year later.
 
 | After | Show |
 |---|---|
-| `import_model.py` | Models → `bureau_score`: *declared black box*, the contract, the artifact report with its six rungs, and (in the version's IR) the MLflow provenance |
+| `import_model.py` | Models → `vendor_bureau_credit_score`: *declared black box*, the contract, the artifact report with its six rungs, and (in the version's IR) the MLflow provenance |
 | `validate.py` | Warrants → `bureau_validation`: the blind score marked *sandbox*, and the **Fairness & drivers** tab |
 | `monitor.py` | Models → Monitoring: the warrant graded *breach*; open it for the PSI chart with the 0.10 and 0.25 lines and the breach marked on the time axis |
 
@@ -88,7 +88,7 @@ rate a year later.
 | `outcomes.csv` | 1,800 | `default_12m` per application, drawn from the vendor's own scoring function with noise; known a year after the application |
 | `live_2026.csv` | 1,200 | January–March 2026, inputs only, 400 a month, with utilisation drifting up |
 | `vendor/MLmodel` | — | The MLflow model file: signature with four inputs and a `score` output, run id, flavours |
-| `vendor/bureau_score.py` | — | The vendor's scoring code, with `fit` and `predict` |
+| `vendor/vendor_bureau_credit_score.py` | — | The vendor's scoring code, with `fit` and `predict` |
 
 ## Who does what
 

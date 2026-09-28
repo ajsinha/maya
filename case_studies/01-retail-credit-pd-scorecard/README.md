@@ -15,7 +15,7 @@ open the web UI and show what the last one actually created. That is the demonst
 | --- | --- | --- |
 | `make_data.py` | Writes the three input feeds to `data/` (already committed; run it only to regenerate). Nothing to do with MAYA. | The recipe behind the synthetic book: the lags, the latent borrower quality, the logistic hazard. |
 | `setup_features.py` | Reads the three CSVs, declares a feature definition for each, ingests the rows into MAYA's Delta lake, submits them as **dana** and approves them as **mick**. | Definitions as governed objects; knowledge time declared per feed; **dana refused when she tries to approve her own feature**. |
-| `setup_featureset.py` | Composes the three features into `pd_panel` on `(date, account)` with as-of alignment, approves it, and pins it point-in-time (cascading to the members). | As-of alignment instead of resampling; an immutable, content-hashed pin; the gap the alignment leaves rather than fills. |
+| `setup_featureset.py` | Composes the three features into `probability_of_default_panel` on `(date, account)` with as-of alignment, approves it, and pins it point-in-time (cascading to the members). | As-of alignment instead of resampling; an immutable, content-hashed pin; the gap the alignment leaves rather than fills. |
 | `setup_model.py` | Registers the scorecard as a formula, tries to submit it with an empty document, then fills the nine required sections and gets it approved. | The input contract MAYA derives from the formula; **submission refused while the specification is incomplete**; the mathematics MAYA renders. |
 | `get_training_warrant.py` | Draws a warrant naively, then draws it again with the forward-looking target explained. | The contract report; **the leakage certificate refusing all 9,600 rows**, and the written exception that lets the work proceed. |
 | `fit_parameters.py` | Opens the warrant's data, fits by IRLS on the training partition, uploads the fit twice — once with the wrong data checksum, once with the right one — then has MAYA score the escrowed holdout. | The developer never sees the test partition; **parameters that cannot prove their data are refused approval**; blind scoring, counted. |
@@ -115,7 +115,7 @@ Four-eyes is a property of the capability matrix, not a convention people follow
 
 ## 4. The panel: aligning three frequencies without lying
 
-The feature set `pd_panel` composes all three features on the index `(date, account)` with
+The feature set `probability_of_default_panel` composes all three features on the index `(date, account)` with
 
 ```python
 "alignment": {"mode": "asof", "tolerance_days": 100}
@@ -140,7 +140,7 @@ so the member features are pinned too. A pin is immutable, content-hashed and st
 MAYA's Delta lake. Its reference is
 
 ```
-maya://featureset/retail_credit/pd_panel#fit2025h1/2025-06-30
+maya://featureset/retail_credit/probability_of_default_panel#fit2025h1/2025-06-30
 ```
 
 That string, and not "the panel", is what everything downstream is drawn on.

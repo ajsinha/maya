@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (
+    DESCRIPTIONS,
     AS_OF,
     EXTRA_USERS,
     FEATURE_DEF,
@@ -43,11 +44,11 @@ TITLE = "Case study 45, step 1 — experience pinned, the law approved"
 def main(maya: Any, n: Narrator) -> None:
     cast = Cast(maya)
     n.step("The experience feed, governed and pinned")
-    cast.dana.features.create(NS, FEED, FEATURE_DEF)
+    cast.dana.features.create(NS, FEED, FEATURE_DEF, description=DESCRIPTIONS[FEED])
     got = cast.dana.features.ingest(f"{NS}/{FEED}", feed(), fmt="csv", filename=f"{FEED}.csv")
     cast.dana.features.transition(f"{NS}/{FEED}", 1, "submit")
     cast.mick.features.transition(f"{NS}/{FEED}", 1, "approve")
-    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF)
+    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF, description=DESCRIPTIONS[PANEL])
     cast.devi.featuresets.transition(f"{NS}/{PANEL}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{PANEL}", 1, "approve")
     cast.mick.featuresets.pin(f"{NS}/{PANEL}", 1, PIN, AS_OF.isoformat(), cascade=True)
@@ -60,7 +61,7 @@ def main(maya: Any, n: Narrator) -> None:
         MODEL,
         formula=FORMULA,
         roles=ROLES,
-        description="Unisex central death rates by age and year",
+        description=DESCRIPTIONS[MODEL],
     )
     cast.mona.models.update_draft(f"{NS}/{MODEL}", spec_latex=spec_document())
     cast.mona.models.transition(f"{NS}/{MODEL}", 1, "submit")

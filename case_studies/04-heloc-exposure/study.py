@@ -21,11 +21,11 @@ DATA = Path(__file__).resolve().parent / "data"
 FEEDS = ("heloc_month", "exposure_later")
 NEWLINE = b"\n"
 
-PANEL = "heloc_panel"
+PANEL = "heloc_monthly_panel"
 PIN = "ead2506"
-DRAW_MODEL = "usage_draw_period"
-REPAY_MODEL = "usage_repayment"
-COMPOSITE = "ead_heloc"
+DRAW_MODEL = "credit_line_usage_draw_period"
+REPAY_MODEL = "credit_line_usage_repayment_period"
+COMPOSITE = "heloc_exposure_at_default"
 WARRANT = "ead_fit_2025h1"
 LIVE = "ead_heloc_live"
 
@@ -186,7 +186,7 @@ DRAW_SECTIONS = {
     "Purpose": (
         "Estimate the fraction of the undrawn portion of a home equity line of credit that "
         "a borrower will draw over the next twelve months, while the account is still "
-        "within its draw period. It is a member of the exposure model heloc/ead_heloc and "
+        "within its draw period. It is a member of the exposure model heloc/heloc_exposure_at_default and "
         "is not used on its own."
     ),
     "Scope and Limitations": (
@@ -215,7 +215,7 @@ DRAW_SECTIONS = {
         "draws at once."
     ),
     "Data and Features Used": (
-        "Feature set heloc/heloc_panel, pinned point-in-time: commitment, drawn balance, "
+        "Feature set heloc/heloc_monthly_panel, pinned point-in-time: commitment, drawn balance, "
         "combined loan-to-value and rate from the monthly tape, cut three business days "
         "after month end. Fitted on the realised twelve-month draw fraction, derived from "
         "the drawn balance twelve months later."
@@ -248,7 +248,7 @@ REPAY_SECTIONS = {
     "Purpose": (
         "Estimate the twelve-month change in the drawn balance of a home equity line of "
         "credit that has entered its repayment period, as a fraction of the undrawn line. "
-        "It is a member of heloc/ead_heloc and is not used on its own."
+        "It is a member of heloc/heloc_exposure_at_default and is not used on its own."
     ),
     "Scope and Limitations": (
         "Accounts in repayment only. The line is closed to new draws, so the twelve-month "
@@ -270,7 +270,7 @@ REPAY_SECTIONS = {
         "terms forbid and the data supports."
     ),
     "Data and Features Used": (
-        "Feature set heloc/heloc_panel, pinned point-in-time: the combined loan-to-value "
+        "Feature set heloc/heloc_monthly_panel, pinned point-in-time: the combined loan-to-value "
         "from the monthly tape. Fitted on the same realised twelve-month change as the "
         "other member, on the repayment-period rows."
     ),
@@ -324,7 +324,7 @@ COMPOSITE_SECTIONS = {
         "shadow limit. And that the two regimes are exhaustive."
     ),
     "Data and Features Used": (
-        "Feature set heloc/heloc_panel, pinned point-in-time. The composite's input "
+        "Feature set heloc/heloc_monthly_panel, pinned point-in-time. The composite's input "
         "contract is the union of its members' contracts plus the commitment, the drawn "
         "balance and the regime flag its own combiner reads."
     ),
@@ -472,3 +472,16 @@ def fit_logistic_fraction(
 def fit_least_squares(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     beta, *_ = np.linalg.lstsq(X, y, rcond=None)
     return beta
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "heloc_month": "Monthly home-equity line data: limit, drawn balance, combined LTV, rate, seasoning, draw period",
+    "exposure_later": "Each home-equity line's exposure twelve months later",
+    "heloc_monthly_panel": "One row per home-equity line and month, with its exposure twelve months on",
+    "credit_line_usage_draw_period": "Share of the undrawn limit a line draws before default, during its draw period",
+    "credit_line_usage_repayment_period": "Share of the undrawn limit a line draws before default, during its repayment period",
+    "credit_line_usage_experimental": "A one-constant usage model that is never fitted: the member that stops a composite sealing",
+    "heloc_exposure_at_default": "Exposure at default of a home-equity line, routed to the draw- or repayment-period usage model",
+    "heloc_exposure_at_default_unfitted": "The same composite over an unfitted member, which MAYA refuses to seal",
+}

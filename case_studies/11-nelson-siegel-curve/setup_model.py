@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     BOUNDS,
     CONSTRAINTS,
     EXTRA_USERS,
@@ -56,7 +57,9 @@ def main(maya: Any, n: Narrator) -> None:
     n.step("Registering it, in the notation it was written in")
     for line in FORMULA.strip().splitlines():
         n.say(line)
-    cast.mona.models.create(NS, MODEL, formula=FORMULA, roles=ROLES)
+    cast.mona.models.create(
+        NS, MODEL, formula=FORMULA, roles=ROLES, description=DESCRIPTIONS[MODEL]
+    )
     version = cast.mona.models.get(f"{NS}/{MODEL}")["versions"][0]
     n.fact("input contract", ", ".join(c["name"] for c in version["input_contract"]))
     n.fact("parameters", ", ".join(PARAMS))

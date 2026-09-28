@@ -46,7 +46,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.fact("flavours", ", ".join(prov["flavors"]))
 
     n.step("The vendor's code through the validation ladder")
-    cast.mona.models.upload_artifact(ref, (VENDOR / "bureau_score.py").read_text())
+    cast.mona.models.upload_artifact(ref, (VENDOR / "vendor_bureau_credit_score.py").read_text())
     maya.drain()
     report = cast.mona.models.get(ref)["versions"][0]["artifact_report"]
     for rung in report["rungs"]:

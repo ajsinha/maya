@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     COMBINE,
     COMPOSITE,
     COMPOSITE_SECTIONS,
@@ -43,7 +44,7 @@ from study import (  # noqa: E402
 )
 
 TITLE = "Case study 4, step 4 — the composite, and what MAYA works out for itself"
-HALF_BAKED = "usage_experimental"
+HALF_BAKED = "credit_line_usage_experimental"
 
 
 def main(maya: Any, n: Narrator) -> None:
@@ -55,7 +56,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.say(f"IR: {COMBINE['op']} of {len(COMBINE['args'])} arguments")
 
     n.step("Registering it as a model of kind 'composite'")
-    cast.mona.models.create(NS, COMPOSITE, kind="composite")
+    cast.mona.models.create(NS, COMPOSITE, kind="composite", description=DESCRIPTIONS[COMPOSITE])
     cast.mona.models.update_draft(
         f"{NS}/{COMPOSITE}",
         ir=composite_ir(),
@@ -79,21 +80,32 @@ def main(maya: Any, n: Narrator) -> None:
     n.say("A composite is capped at its least mature member, so those two are its ceiling.")
 
     n.step("A composite cannot be built on a member nobody has approved")
-    cast.mona.models.create(NS, HALF_BAKED, formula="leq = k", roles={"k": "parameter"})
+    cast.mona.models.create(
+        NS,
+        HALF_BAKED,
+        formula="leq = k",
+        roles={"k": "parameter"},
+        description=DESCRIPTIONS[HALF_BAKED],
+    )
     draft_ir = composite_ir()
     draft_ir["composite"]["members"][0] = {
         "alias": "draw",
         "ref": f"maya://model/{NS}/{HALF_BAKED}@v1",
     }
-    cast.mona.models.create(NS, "ead_premature", kind="composite")
+    cast.mona.models.create(
+        NS,
+        "heloc_exposure_at_default_unfitted",
+        kind="composite",
+        description=DESCRIPTIONS["heloc_exposure_at_default_unfitted"],
+    )
     cast.mona.models.update_draft(
-        f"{NS}/ead_premature",
+        f"{NS}/heloc_exposure_at_default_unfitted",
         ir=draft_ir,
         spec_latex=document("HELOC exposure at default", COMPOSITE_SECTIONS),
     )
     try:
-        cast.mona.models.transition(f"{NS}/ead_premature", 1, "submit")
-        cast.mgr.models.transition(f"{NS}/ead_premature", 1, "approve")
+        cast.mona.models.transition(f"{NS}/heloc_exposure_at_default_unfitted", 1, "submit")
+        cast.mgr.models.transition(f"{NS}/heloc_exposure_at_default_unfitted", 1, "approve")
         n.say("NOT REFUSED — a composite was approved over an unapproved member")
     except NotApproved as exc:
         n.refused("approving a composite whose member is still a draft", exc)

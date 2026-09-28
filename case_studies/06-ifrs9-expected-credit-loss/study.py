@@ -21,12 +21,12 @@ DATA = Path(__file__).resolve().parent / "data"
 FEEDS = ("exposures", "outcomes")
 NEWLINE = b"\n"
 
-PANEL = "ecl_panel"
+PANEL = "expected_credit_loss_panel"
 PIN = "ecl2506"
-PD_MODEL = "pd_12m"
-LGD_MODEL = "lgd_secured"
-EAD_MODEL = "ead_ccf"
-COMPOSITE = "ecl_stage_aware"
+PD_MODEL = "probability_of_default_12_month"
+LGD_MODEL = "loss_given_default_secured"
+EAD_MODEL = "exposure_at_default_credit_conversion"
+COMPOSITE = "expected_credit_loss_ifrs9"
 WARRANT = "ecl_fit_2025h1"
 LIVE = "ecl_live"
 
@@ -229,7 +229,7 @@ PD_SECTIONS = {
     "Purpose": (
         "Estimate the probability that a secured revolving facility defaults within twelve "
         "months of an observation month. It is the first factor of the impairment model "
-        "impairment/ecl_stage_aware and is not used on its own."
+        "impairment/expected_credit_loss_ifrs9 and is not used on its own."
     ),
     "Scope and Limitations": (
         "Secured revolving facilities in the domestic book, excluding accounts already in "
@@ -254,7 +254,7 @@ PD_SECTIONS = {
         "portfolio loss in a downturn."
     ),
     "Data and Features Used": (
-        "Feature set impairment/ecl_panel, pinned point-in-time: drawn balance, limit, "
+        "Feature set impairment/expected_credit_loss_panel, pinned point-in-time: drawn balance, limit, "
         "collateral and arrears from the monthly book, cut three business days after month "
         "end. Fitted on the twelve-month default flag, known a year and a day later."
     ),
@@ -281,7 +281,7 @@ PD_SECTIONS = {
 LGD_SECTIONS = {
     "Purpose": (
         "Estimate the share of exposure lost on a secured facility that defaults — the loss "
-        "given default. Second factor of impairment/ecl_stage_aware; not used on its own."
+        "given default. Second factor of impairment/expected_credit_loss_ifrs9; not used on its own."
     ),
     "Scope and Limitations": (
         "Secured facilities only, and only the economic loss net of recoveries on the "
@@ -302,7 +302,7 @@ LGD_SECTIONS = {
         "moment of default. It is not, and the weakness section says what that costs."
     ),
     "Data and Features Used": (
-        "Feature set impairment/ecl_panel, pinned point-in-time: collateral and drawn balance. "
+        "Feature set impairment/expected_credit_loss_panel, pinned point-in-time: collateral and drawn balance. "
         "Fitted on the realised loss rate of the accounts that actually defaulted, which is a "
         "small fraction of the panel — the sample size is the first thing a reviewer should "
         "ask about."
@@ -329,7 +329,7 @@ EAD_SECTIONS = {
     "Purpose": (
         "Estimate the exposure at default of a revolving facility: the balance drawn today "
         "plus the share of the remaining limit a defaulting borrower is expected to take "
-        "first. Third factor of impairment/ecl_stage_aware."
+        "first. Third factor of impairment/expected_credit_loss_ifrs9."
     ),
     "Scope and Limitations": (
         "Revolving facilities with an undrawn limit. For a fully drawn facility it returns "
@@ -348,7 +348,9 @@ EAD_SECTIONS = {
         "product, with utilisation and with how close the borrower is to default — and a "
         "single figure is a deliberate simplification whose direction of error is unknown."
     ),
-    "Data and Features Used": ("Feature set impairment/ecl_panel: drawn balance and limit."),
+    "Data and Features Used": (
+        "Feature set impairment/expected_credit_loss_panel: drawn balance and limit."
+    ),
     "Calibration Methodology": (
         "Estimated by least squares on the realised exposure of the accounts that defaulted, "
         "over the training partition, and bounded to $[0, 1]$ because a conversion factor "
@@ -404,7 +406,7 @@ COMPOSITE_SECTIONS = {
         "institution has adopted and disclosed."
     ),
     "Data and Features Used": (
-        "Feature set impairment/ecl_panel, pinned point-in-time. The composite's input "
+        "Feature set impairment/expected_credit_loss_panel, pinned point-in-time. The composite's input "
         "contract is the union of its three members' contracts plus the origination "
         "probability its own combiner reads."
     ),
@@ -541,3 +543,15 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
     if not positives or not negatives:
         return float("nan")
     return float((ranks[y == 1].sum() - positives * (positives + 1) / 2) / (positives * negatives))
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "exposures": "Monthly account exposures: drawn, limit, collateral, arrears and PD at origination",
+    "outcomes": "What happened twelve months on: default, loss rate and realised loss",
+    "expected_credit_loss_panel": "One row per account and month: exposure, collateral, arrears and the outcome twelve months on",
+    "probability_of_default_12_month": "12-month probability of default of an account",
+    "loss_given_default_secured": "Loss given default of a secured exposure, from its collateral cover",
+    "exposure_at_default_credit_conversion": "Exposure at default: the drawn balance plus a credit conversion factor on the undrawn limit",
+    "expected_credit_loss_ifrs9": "IFRS 9 expected credit loss, 12-month or lifetime by stage, from PD, LGD and EAD",
+}

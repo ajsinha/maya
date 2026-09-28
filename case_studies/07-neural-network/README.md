@@ -17,7 +17,7 @@ open the web UI and show what the last one actually created. That is the demonst
 | --- | --- | --- |
 | `make_data.py` | Writes the three input feeds to `data/` (already committed; run it only to regenerate). Nothing to do with MAYA. | The recipe: a compromise process with two opposite fraud patterns, and the innocent days that look like half of each. |
 | `setup_features.py` | Reads the three CSVs, declares a feature definition for each, ingests the rows, submits them as **dana** and approves them as **mick**. | Definitions as governed objects; the value ranges that are the only written statement of what the network may be given; **dana refused when she tries to approve her own feature**. |
-| `setup_featureset.py` | Composes six drivers and the target into `fraud_panel` on `(date, card)` with as-of alignment, approves it, and pins it point-in-time. | A month-end profile carried as-of rather than resampled; an immutable, content-hashed pin — the only way to ask "which rows produced this score" when there is no coefficient to read. |
+| `setup_featureset.py` | Composes six drivers and the target into `card_fraud_daily_panel` on `(date, card)` with as-of alignment, approves it, and pins it point-in-time. | A month-end profile carried as-of rather than resampled; an immutable, content-hashed pin — the only way to ask "which rows produced this score" when there is no coefficient to read. |
 | `setup_model.py` | Registers the network as a **declared black box**, fills the nine specification sections, uploads two code artifacts and runs the ladder on both. | **Three refusals**: an IR with no mathematics at all, a black box that will not say what it estimates, and the artifact that loads its weights from a file. Then the ladder, the artifact hash, and **the differential test skipped by name**. |
 | `get_training_warrant.py` | Draws a warrant with a target the panel lacks, then naively, then with the forward-looking target explained. | The input contract checked before anything is fitted; **the leakage certificate refusing all 13,500 rows**; the seed and the stopping rule written down before anybody fits. |
 | `fit_parameters.py` | Fits the network three times, fits the challengers, carries 209 numbers through an `.npz`, uploads twice, and asks MAYA to score the holdout. | **Determinism**, exactly; both AUCs; **a pickle of the weights refused**; parameters that cannot prove their data refused; and **a declared black box scored blind in the sandbox** on 2,000 rows the desk never saw. |
@@ -137,7 +137,7 @@ team confirms, which is written into the specification's *Assumptions*.
 
 ## 4. The panel
 
-`fraud_panel` composes six drivers and the target on `(date, card)` with
+`card_fraud_daily_panel` composes six drivers and the target on `(date, card)` with
 
 ```python
 "alignment": {"mode": "asof", "tolerance_days": 45}
@@ -154,7 +154,7 @@ knowledge time at which the last day's 45-day dispute window has closed — casc
 three member features. Its reference is
 
 ```
-maya://featureset/card_fraud/fraud_panel#fit2025q2/2025-04-14
+maya://featureset/card_fraud/card_fraud_daily_panel#fit2025q2/2025-04-14
 ```
 
 For a scorecard, the pin is one piece of provenance among several. Here it is the only one:

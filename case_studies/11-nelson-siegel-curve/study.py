@@ -31,7 +31,7 @@ import numpy as np
 
 NS = "rates"
 DATA = Path(__file__).resolve().parent / "data"
-FEEDS = ("ois_par_quotes", "zero_yields", "curve_build")
+FEEDS = ("ois_par_quotes", "zero_yields", "zero_curve_build_report")
 AS_OF = dt.date(2026, 6, 30)
 # A curve is knowable the evening it is built, so the pin is taken at seven the next
 # morning and already holds everything. Compare case study 1, which had to wait a year.
@@ -205,14 +205,18 @@ BUILD_DEF = {
         {"check": "allowed_values", "attr": "method", "values": [METHOD]},
     ],
 }
-DEFINITIONS = {"ois_par_quotes": QUOTE_DEF, "zero_yields": ZERO_DEF, "curve_build": BUILD_DEF}
+DEFINITIONS = {
+    "ois_par_quotes": QUOTE_DEF,
+    "zero_yields": ZERO_DEF,
+    "zero_curve_build_report": BUILD_DEF,
+}
 
 PANEL = "gbp_zero_curve"
 PIN = "ns2606"
-MODEL = "nelson_siegel"
+MODEL = "gbp_yield_curve_nelson_siegel"
 WARRANT = "gbp_curve_2606"
 LIVE = "nelson_siegel_gbp_live"
-CURVE_FEATURE = "gbp_ns_curve"
+CURVE_FEATURE = "gbp_nelson_siegel_yields"
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
 MODEL_REF = f"{NS}/{MODEL}@v1"
 CONTACT = "rates.curve.quant@example.com"
@@ -234,7 +238,7 @@ PANEL_DEF = {
             ("tau", "zero_yields", "tau"),
             ("y", "zero_yields", "zeroYield"),
             ("par", "ois_par_quotes", "parYield"),
-            ("buildResidual", "curve_build", "maxResidualBp"),
+            ("buildResidual", "zero_curve_build_report", "maxResidualBp"),
         )
     ],
 }
@@ -536,3 +540,14 @@ class Cast:
         self.mgr = maya.client("mgr")
         self.lara = maya.client("lara")
         self.admin = maya.client("admin")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "ois_par_quotes": "GBP OIS par yields by tenor, with bid and ask",
+    "zero_yields": "Bootstrapped GBP zero-coupon yields by tenor",
+    "zero_curve_build_report": "How each day's zero curve was bootstrapped: instruments, method and largest residual",
+    "gbp_nelson_siegel_yields": "Nelson–Siegel GBP yields by tenor, derived from the approved curve model",
+    "gbp_zero_curve": "One row per day and tenor: zero yield, par yield and the build residual",
+    "gbp_yield_curve_nelson_siegel": "The GBP zero-coupon yield at any maturity, a Nelson–Siegel curve",
+}

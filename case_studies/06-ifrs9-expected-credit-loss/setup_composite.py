@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     COMBINER_WEIGHTS,
     COMPOSITE,
     COMPOSITE_SECTIONS,
@@ -46,7 +47,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.say("ecl  = where(sicr > sicrThreshold, lifetimeFactor, 1) * pd.pd12 * lgd.lgd * ead.ead")
 
     n.step("Registering it")
-    cast.mona.models.create(NS, COMPOSITE, kind="composite")
+    cast.mona.models.create(NS, COMPOSITE, kind="composite", description=DESCRIPTIONS[COMPOSITE])
     cast.mona.models.update_draft(
         f"{NS}/{COMPOSITE}",
         ir=composite_ir(),

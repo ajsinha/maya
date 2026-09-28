@@ -1,9 +1,9 @@
-artifact_path: bureau_score
+artifact_path: vendor_bureau_credit_score
 flavors:
   python_function:
     env:
       virtualenv: python_env.yaml
-    loader_module: bureau_score
+    loader_module: vendor_bureau_credit_score
     python_version: 3.11.9
 mlflow_version: 2.14.1
 model_uuid: 7c1e5d1a9b2f4a0c8e6d3b2a1f0e9d8c

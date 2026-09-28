@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     AS_OF,
     EXTRA_USERS,
     KNOWN,
@@ -48,7 +49,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     cast = Cast(maya)
     n.step("Composing the chain")
-    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF)
+    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF, description=DESCRIPTIONS[PANEL])
     cast.devi.featuresets.transition(f"{NS}/{PANEL}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{PANEL}", 1, "approve")
     for member in PANEL_DEF["members"]:
@@ -76,7 +77,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("The 1Y pillar, as set algebra over the same chain")
     n.say("Not a second definition to keep in step: the same one, with one filter replaced.")
-    cast.devi.featuresets.create(NS, PILLAR, PILLAR_DEF)
+    cast.devi.featuresets.create(NS, PILLAR, PILLAR_DEF, description=DESCRIPTIONS[PILLAR])
     cast.devi.featuresets.transition(f"{NS}/{PILLAR}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{PILLAR}", 1, "approve")
     pillar = cast.mick.featuresets.preview(PILLAR_REF)

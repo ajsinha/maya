@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Names you can read, and a line saying what each thing is**
+
+- The features, feature sets and models lists show each item's one-line description under
+  its name.
+- The case studies use names that say what the object is: `probability_of_default_scorecard`
+  rather than `pd_scorecard`, `monthly_prepayment_hazard` rather than `smm_hazard`,
+  `card_fraud_neural_network` rather than `fraud_mlp`, and so on across all fifteen studies,
+  their feature sets and the few cryptic features. Every feature, feature set and model they
+  create carries a one-line description, kept with the study's other declarations. No
+  database change: all three already had a description column. Run any study with `--reset`
+  to rebuild the demonstration estate under the new names.
+
 **Case study 8: AR(2) and GARCH(1,1), and what time series needed from MAYA**
 
 - Case study 8 is built: daily returns on three indices, the lags of an AR(2) as governed

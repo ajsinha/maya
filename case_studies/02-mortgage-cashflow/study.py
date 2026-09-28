@@ -7,7 +7,7 @@ under source control at a bank — in one place, so each step script reads as th
 is, and so two steps cannot disagree about what the panel is called or what the model
 says.
 
-Steps find each other's work by name: ``loan_month``, ``cashflow_recon_2509``,
+Steps find each other's work by name: ``mortgage_loan_month_panel``, ``cashflow_recon_2509``,
 ``scheduled_cashflow_live``. A step run an hour later in a different process locates what
 the last one made exactly the way a person or a scheduled job would — by asking MAYA.
 
@@ -122,9 +122,9 @@ REPORT_DEF = {
 }
 
 
-PANEL = "loan_month"
+PANEL = "mortgage_loan_month_panel"
 PIN = "recon2509"
-MODEL = "scheduled_cashflow"
+MODEL = "mortgage_scheduled_cashflow"
 WARRANT = "cashflow_recon_2509"
 LIVE = "scheduled_cashflow_live"
 PIN_REF = f"maya://featureset/{NS}/{PANEL}#{PIN}/{AS_OF}"
@@ -218,7 +218,7 @@ SECTIONS = {
         "outstanding balance at a rate fixed by the servicing agreement."
     ),
     "Data and Features Used": (
-        "Feature set mortgage_alm/loan_month, pinned point-in-time. Inputs: balance, "
+        "Feature set mortgage_alm/mortgage_loan_month_panel, pinned point-in-time. Inputs: balance, "
         "coupon, original term and age from the monthly loan tape, cut two business days "
         "after month end. The servicer's remittance is carried in the same feature set as "
         "the benchmark the output is measured against; it is not an input, and the model's "
@@ -285,3 +285,12 @@ class Cast:
         self.mgr = maya.client("mgr")
         self.lara = maya.client("lara")
         self.admin = maya.client("admin")
+
+
+# One line each, shown under the name in MAYA's lists: what the object is, in words.
+DESCRIPTIONS = {
+    "loan_tape": "Monthly loan tape: balance, rate, term and age of each mortgage",
+    "servicer_report": "The cash each mortgage remitted to the servicer that month",
+    "mortgage_loan_month_panel": "One row per mortgage and month: the loan's terms and the cash it remitted",
+    "mortgage_scheduled_cashflow": "Scheduled monthly cash from a level-payment mortgage net of the servicing fee; nothing to fit",
+}

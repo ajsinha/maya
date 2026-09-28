@@ -15,7 +15,7 @@ its own, in its own process.
 | --- | --- | --- |
 | `make_data.py` | Writes the tape and the realised exposure to `data/` (committed; run it only to regenerate). No MAYA. | The recipe: two behavioural regimes, one of which draws down and one of which amortises. |
 | `setup_features.py` | Declares and ingests the two feeds, approved by someone other than their author. | The two amounts that matter and are easy to confuse: the **commitment** the bank promised and the **drawn** balance it actually lent. |
-| `setup_featureset.py` | Composes `heloc_panel` on `(date, account)` — both regimes, the regime flag, and the target — and pins it. | Both regimes in one panel and one pin, because the router selects per row and two feature sets would make one warrant impossible. |
+| `setup_featureset.py` | Composes `heloc_monthly_panel` on `(date, account)` — both regimes, the regime flag, and the target — and pins it. | Both regimes in one panel and one pin, because the router selects per row and two feature sets would make one warrant impossible. |
 | `setup_members.py` | Registers and approves the two member models, each with its own specification document. | A member is a model in its own right: own version, own contract, own document, own approval — before anything composes it. |
 | `setup_composite.py` | Registers the composite of kind `router`, prints the contract **MAYA computed**, gets it approved, then tries to compose a member that is still a draft. | The union contract nobody maintains; maturity capped at the members; **a composite over an unapproved member refused**. |
 | `get_training_warrant.py` | Draws one warrant over the composite against the pinned panel, and shows how the two regimes divide the data. | §8.7's "trains under **one** warrant against **one** feature set", and the two regimes' realised means — one positive, one negative. |
@@ -242,9 +242,9 @@ version"*. The reason is the governance; the model coming back is the easy part.
 ## 8. What the estate holds
 
 ```
-maya://model/heloc/usage_draw_period@v1  --composite_member (draw)-->   maya://model/heloc/ead_heloc@v1
-maya://model/heloc/usage_repayment@v1    --composite_member (repay)-->  maya://model/heloc/ead_heloc@v1
-maya://model/heloc/ead_heloc@v1          --trained_on (model)-->        maya://warrant/train/heloc/ead_fit_2025h1@v1
+maya://model/heloc/credit_line_usage_draw_period@v1  --composite_member (draw)-->   maya://model/heloc/heloc_exposure_at_default@v1
+maya://model/heloc/credit_line_usage_repayment_period@v1    --composite_member (repay)-->  maya://model/heloc/heloc_exposure_at_default@v1
+maya://model/heloc/heloc_exposure_at_default@v1          --trained_on (model)-->        maya://warrant/train/heloc/ead_fit_2025h1@v1
 …                                        --parameterized_by-->          two parameter sets
 maya://warrant/train/heloc/ead_fit_2025h1@v1 --executed_under-->        maya://warrant/exec/heloc/ead_heloc_live@v1
 ```

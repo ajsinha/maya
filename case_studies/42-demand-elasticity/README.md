@@ -26,8 +26,8 @@ weekly units — from relative price, the week's price as a multiple of its refe
 
 | | Model | Form |
 |---|---|---|
-| Champion | `demand_linear` | $\text{demand} = a + b \cdot \text{price}$ |
-| Challenger | `demand_loglog` | $\text{demand} = e^{\alpha}\,\text{price}^{\beta}$ |
+| Champion | `weekly_demand_linear` | $\text{demand} = a + b \cdot \text{price}$ |
+| Challenger | `weekly_demand_constant_elasticity` | $\text{demand} = e^{\alpha}\,\text{price}^{\beta}$ |
 
 The challenger is the constant-elasticity form economists use: a 1% change in price moves
 demand by $\beta$%, whatever the price. It is fitted by least squares on the logarithms,

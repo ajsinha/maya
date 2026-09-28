@@ -15,7 +15,7 @@ three later months of live applications, and what the vendor delivered.
   Utilisation drifts upward month by month -- a cost-of-living squeeze -- which is what the
   drift covenant is there to catch.
 * ``vendor/`` — what the vendor shipped: an MLflow ``MLmodel`` file naming the inputs and
-  output, and ``bureau_score.py``, the scoring code.
+  output, and ``vendor_bureau_credit_score.py``, the scoring code.
 
 Seeded; synthetic; no applicant is real.
 

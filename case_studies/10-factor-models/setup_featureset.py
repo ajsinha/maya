@@ -4,12 +4,12 @@ enough for version 1.
 
     .venv/bin/python case_studies/10-factor-models/setup_featureset.py
 
-``factor_panel`` composes the equity tape with all five factor series on ``(date, stock)``.
+``five_factor_panel`` composes the equity tape with all five factor series on ``(date, stock)``.
 MAYA broadcasts the date-indexed factor rows across the cross-section of each day, and the
 step proves it: one distinct market factor value per date in the pinned panel, out of
 thirty stocks.
 
-``capm_panel`` carries only the two attributes version 1 declared it needed. Nothing is
+``capm_market_panel`` carries only the two attributes version 1 declared it needed. Nothing is
 fitted on it. It exists so that step 7 can put the same question to both versions of the
 model and get two different answers, which is what an input contract changing actually
 means.
@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
 from study import (  # noqa: E402
+    DESCRIPTIONS,
     AS_OF,
     EXTRA_USERS,
     KNOWN,
@@ -52,7 +53,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     cast = Cast(maya)
     n.step("Composing the wide panel: the tape, and five factor series broadcast onto it")
-    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF)
+    cast.devi.featuresets.create(NS, PANEL, PANEL_DEF, description=DESCRIPTIONS[PANEL])
     n.fact("index", ", ".join(PANEL_DEF["index"]))
     n.fact("attributes", ", ".join(m["attr"] for m in PANEL_DEF["members"]))
     n.say("Five of the six members come from a feature indexed on date alone.")
@@ -93,7 +94,7 @@ def main(maya: Any, n: Narrator) -> None:
     n.say("can be wrong in one row and right in the next; this cannot.")
 
     n.step("And the narrow panel: exactly what version 1's contract asked for")
-    cast.devi.featuresets.create(NS, NARROW, NARROW_DEF)
+    cast.devi.featuresets.create(NS, NARROW, NARROW_DEF, description=DESCRIPTIONS[NARROW])
     cast.devi.featuresets.transition(f"{NS}/{NARROW}", 1, "submit")
     cast.mick.featuresets.transition(f"{NS}/{NARROW}", 1, "approve")
     n.fact(f"{NARROW} attributes", ", ".join(m["attr"] for m in NARROW_DEF["members"]))

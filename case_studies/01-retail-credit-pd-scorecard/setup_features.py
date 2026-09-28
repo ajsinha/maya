@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from maya_demo import Narrator, step_script  # noqa: E402
-from study import DEFINITIONS, EXTRA_USERS, FEEDS, NS, Cast, feed  # noqa: E402
+from study import DESCRIPTIONS, DEFINITIONS, EXTRA_USERS, FEEDS, NS, Cast, feed  # noqa: E402
 
 TITLE = "Case study 1, step 1 — three feeds become three features"
 
@@ -43,7 +43,7 @@ def main(maya: Any, n: Narrator) -> None:
 
     n.step("Defining each one, and putting its rows into the lake")
     for name in FEEDS:
-        cast.dana.features.create(NS, name, DEFINITIONS[name])
+        cast.dana.features.create(NS, name, DEFINITIONS[name], description=DESCRIPTIONS[name])
         cast.dana.features.ingest(f"{NS}/{name}", raw[name], fmt="csv", filename=f"{name}.csv")
         cast.dana.features.transition(f"{NS}/{name}", 1, "submit")
         n.say(f"{name}: defined and submitted by dana, and now in MAYA's lake")
