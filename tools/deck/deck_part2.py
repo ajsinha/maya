@@ -631,6 +631,7 @@ SLIDES: list[dict[str, Any]] = [
         "points": [
             "Black boxes, scored blind",
             "Models from MLflow and SageMaker",
+            "Beside your ML platform",
             "LLM applications",
             "Evaluation sets and guardrails",
         ],
@@ -744,6 +745,43 @@ SLIDES: list[dict[str, Any]] = [
                 "Snowflake, Databricks",
                 "Read-only SQL sources through their SQLAlchemy dialects",
                 "A named read-only role; SELECT only",
+            ],
+        ],
+    },
+    {
+        "kind": "table",
+        "kicker": "Beside your ML platform",
+        "title": "The licence reaches the platform that trains and serves",
+        "intro": "MAYA trains and serves nothing itself. It licenses what your platform does, and "
+        "keeps the evidence of each step.",
+        "rows": [
+            ["Step", "What MAYA does", "What it never does"],
+            [
+                "Registry",
+                "Sets an MLflow alias on a version while its execution warrant is live, removes it "
+                "when not",
+                "Deploy: the alias is what your deployment follows",
+            ],
+            [
+                "Scoring call",
+                "An SDK guard checks the warrant before each call and reports the run after it",
+                "Sit in the request path of your service",
+            ],
+            [
+                "Training",
+                "Turns a training warrant into a signed Kubernetes or SageMaker job with a one-day key",
+                "Run the job: it goes to your compute",
+            ],
+            [
+                "A second fit",
+                "Fits a closed-form model itself on the training rows and compares, as evidence",
+                "Supply the parameters it checks",
+            ],
+            [
+                "Batch scoring",
+                "Scores a pinned table under a live warrant: output sealed by hash, run reported, custody "
+                "updated",
+                "Serve online",
             ],
         ],
     },

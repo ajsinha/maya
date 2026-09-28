@@ -1002,6 +1002,17 @@ challenger better only if the whole interval is below zero, and won't let the ch
 decision. In the demand-model study the challenger wins only 60% of rows and is still clearly better, because
 where it wins it wins big, at the prices where decisions are made. Two headline numbers hide that.
 
+**A holdout for a series is a suffix, not a sample.** That escrow is drawn by hashing each row with a seed, so
+it's a sample, and for rows that don't depend on each other that's right. For a time series it's wrong twice:
+it trains on the future and tests on the past — the look-ahead the certificate exists to stop, arriving through
+the split instead of a late record — and it scatters the held-out rows, so a model that carries state from one
+day to the next can't even be run on them. A GARCH recursion over every fifth day isn't the model. So a warrant
+can be drawn as a *time series*: the earliest dates train, the next validate, the last are the test. Every test
+date is later than every training date, every row of one date lands in the same partition, the seed doesn't
+enter, and each series' held-out rows are contiguous and in order. Pairing still works, because two such
+warrants over one pin escrow the same rows. What changes is what the escrow means: a sample says how the model
+does on rows like the ones it saw; a suffix says how it does on their future, which is what a forecast is for.
+
 **A fairness check over error sizes can't see direction.** This one I found the practical way. For any group,
 the bias is at most the mean absolute error — and two groups can have the *same* mean absolute error with biases
 of exactly plus and minus that amount. So a check that compares error sizes across groups, which is the common
@@ -1303,14 +1314,25 @@ run — and can be *suspended* by a covenant breach or revoked on a Friday after
 and doesn't serve predictions, and that boundary is deliberate: a platform that executed the artefacts it
 governs would be checking its own work.
 
-The shape of it, because numbers are the cheapest thing to check in a document like this. It's 211 Python
+It goes right up to that line in five places, and each was built to stay on this side of it. An MLflow alias
+follows the licence: a reconciler sets it on a model version while an execution warrant for it is live and
+removes it when none is, so the deployment follows a declaration that is, up to the sync interval, a copy of a
+derivation. A guard in the SDK checks the warrant before a scoring call and reports the run after it, inside the
+caller's own process. A training warrant can become a signed job for the firm's own compute, with a key that
+expires in a day. For a closed-form model MAYA can fit the parameters itself, as a second route to the same
+answer recorded as evidence and never as a parameter set — it checks a fit, it doesn't supply one. And under a
+live warrant it can score a pinned table, running only what blind scoring already runs, with the output sealed
+by its hash, the run reported so its covenants are checked, and the pin and the hash in the custody chain.
+
+The shape of it, because numbers are the cheapest thing to check in a document like this. It's 216 Python
 modules in `maya/` and 11 more in `maya_delta/`, its own implementation of the Delta Lake protocol. 66 tables
 come from one typed metadata that generates the SQLite and the PostgreSQL schema file, each checked against
-the metadata for drift on every build — one schema per database, generated, with no migrations. 246 HTTP
+the metadata for drift on every build — one schema per database, generated, with no migrations. 252 HTTP
 operations each have an SDK method, held one-to-one by a gate that fails the build on a mismatch, which is why
-the web interface is an SDK client with no private path into the services. And 2,089 tests. It runs on Linux
+the web interface is an SDK client with no private path into the services. And 2,109 tests. It runs on Linux
 over SQLite; it last ran over PostgreSQL 16, 17 and 18 before the governance layer was added, which has run
-on SQLite only. Windows and macOS are, by decision, not exercised.
+on SQLite only. The case studies have been run on Windows, where the sandbox has no operating-system
+isolation, but Windows is outside the test matrix and macOS hasn't been tried.
 
 It's also been measured, and the measurements are on a developer workstation with an IDE running rather than a
 benchmark host, which is the first thing to know about them. Resolving a feature set of 500 symbols by ten
@@ -1373,6 +1395,15 @@ an oracle you can only execute is now in the text.
 **A fairness check that saw nothing.** Covered above — the mortality table that the first fairness evidence
 passed, because both sexes were wrong by the same amount in opposite directions.
 
+**Every split was a sample.** Until a time-series study was built, every warrant's holdout was a hashed sample,
+and nothing in the account said that's wrong for a series. The study found it, and the suffix above is the fix.
+
+**A feature that hid its own columns.** A feature's declared schema describes what's uploaded, and a lag or a
+derived column only exists after the feature's transforms run. The metadata a feature reported was the declared
+schema, so a feature set couldn't map a lag that every row of the pin held. The transform module could always
+compute the output schema; the resolver just didn't ask it. Same lesson as the dropped clock: a derivation one
+module can compute and its caller doesn't request is, to everything downstream, absent.
+
 ### Mathematics in, a typed tree back
 
 One small piece of the system is worth describing on its own, because it is where the separation this whole
@@ -1403,9 +1434,9 @@ only way to know is to run both — which is the
 [differential testing](#two-checks-that-arent-laws-conformance-and-the-second-implementation) discipline
 above, applied to the platform's own code generation.
 
-### Fourteen models, carried the whole way
+### Fifteen models, carried the whole way
 
-The repository carries fourteen worked case studies, each a real model taken through the whole chain — feature,
+The repository carries fifteen worked case studies, each a real model taken through the whole chain — feature,
 feature set, pin, model version, specification document, training warrant, parameters, blind score, execution
 warrant, covenant breach, suspension — by scripts that use nothing but the platform's own SDK, signed in as
 named users with those users' roles, so every refusal in them is the real capability matrix saying no. They share
@@ -1413,7 +1444,7 @@ one MAYA, each in its own namespace, each runs in under fifteen seconds, and the
 nothing. They exist because a
 formalism exercised only by its author's unit tests has not been exercised, and each was chosen for one thing
 it makes the platform do: a library of fifty models that all made the same six calls would demonstrate
-nothing a single one could not. (Fifty are catalogued; fourteen are built.)
+nothing a single one could not. (Fifty are catalogued; fifteen are built.)
 
 The first nine are a retail PD scorecard, a scheduled mortgage cashflow model, a mortgage prepayment model, a
 home-equity exposure model, a Black–Scholes pricer, an IFRS 9 expected-credit-loss composite, a card-fraud
@@ -1433,6 +1464,13 @@ reconciliation, whose first version missed the maturity floor and cap and overst
 a finding forced a second; a bought bureau score imported from MLflow, scored in the sandbox and taken out of
 service by drift; a demand model replaced by a challenger on a paired comparison; the unisex mortality table and
 its accepted risk; and a language-model complaint-triage application.
+
+The fifteenth is a time series: an AR(2) mean and a GARCH(1,1) variance on daily index returns. The mean is a
+formula once its lags are transforms on the governed feature; the variance carries yesterday's variance as a state
+no column holds, so it's a declared black box run in the sandbox. Its stationarity conditions are joint
+constraints — a persistence of 1.05 offered with each coefficient inside [0, 1] is refused — and it's the study
+that found three places MAYA assumed rows are independent: the random split, the hidden columns, and a contract
+that couldn't name the series key.
 
 Two of the original nine earn a longer description, for what they refused to do.
 

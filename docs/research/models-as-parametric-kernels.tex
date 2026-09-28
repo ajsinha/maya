@@ -1981,6 +1981,16 @@ judge reports success for exactly the cases it was least able to judge.
 
 \absent{as above.}
 
+A smaller instance of the same shape sits at the edge of the platform. A model registry outside
+\textsc{Maya} holds a fact that is declared there: an alias on a model version, which a deployment follows.
+Whether that version may run is derived here: some execution warrant for it is live. The two can be kept
+equal without either system trusting the other's declaration, by a reconciler that reads the derived fact
+and writes the declared one --- sets the alias when a live warrant exists and removes it when none does ---
+and records every change. Between passes the two may disagree for at most the reconciliation period, and a
+write the registry refuses is reported rather than retried silently. The deployment then follows a
+declaration that is, up to that bound, a copy of a derivation.
+\runs{maya/services/integrations.py::sync\_mlflow; tests/test\_integrations.py::test\_the\_registry\_alias\_follows\_the\_warrant}
+
 \subsection{Irreducibly declared}
 
 Concluding a validation, granting an approval, accepting residual risk, and choosing $\tau$: these are not
@@ -2191,6 +2201,42 @@ them.
 ::test\_a\_challenger\_is\_scored\_on\_the\_champions\_rows\_and\_decided\_independently,
 ::test\_warrants\_on\_different\_holdouts\_are\_not\_compared}
 
+\subsection{A holdout for a series is a suffix, not a sample}
+
+The holdout of \Cref{prop:pairing} is drawn by hashing each row's key with the warrant's seed, so it is a
+sample: every row is equally likely to be held out, whatever its date. For rows that are independent that is
+the right design. For a time series it fails twice. It trains on the future and tests on the past, which is
+the look-ahead \Cref{def:cert} exists to refuse, arriving by the split rather than by a late record. And it
+scatters the held-out rows, so a kernel that carries state from one row to the next --- a conditional variance,
+a moving-average error --- cannot be evaluated on them at all: the oracle of \Cref{prop:targetexcl} run over
+every fifth day is not the model.
+
+A warrant of shape \emph{time series} splits instead by the event date. Let $D$ be the ordered set of
+distinct event dates of the resolved rows and $0 \le f_1 \le f_1 + f_2 \le 1$ the train and validation
+fractions; a row with event date $e$ is \emph{train} if $e$ is among the first $\operatorname{round}(|D| f_1)$
+dates of $D$, \emph{validation} if among those up to the $\operatorname{round}(|D|(f_1+f_2))$-th, and \emph{test}
+otherwise, and the rows are kept in event order.
+
+\begin{proposition}[A series holdout is a suffix]\label{prop:suffix}
+Under the time-series split, (i) every test row's event date exceeds every train row's; (ii) rows sharing
+an event date share a partition, so a panel of several series is cut at the same instant for all of them;
+(iii) the partition does not depend on the seed; and (iv) within each series the escrowed rows are
+contiguous and in event order.
+\end{proposition}
+
+\begin{proof}
+(i) and (ii) hold because the partition is a function of the rank of $e$ in $D$ alone and is monotone in it.
+(iii) holds because the seed does not enter. For (iv), the test rows of a series are those whose dates are the
+last dates of $D$ that the series has, which form a contiguous run; the frame is sorted by the index, whose
+first column is the event date, before it is escrowed.
+\end{proof}
+\runs{maya/services/warrants.py::assign\_splits; tests/test\_warrants.py::test\_a\_time\_series\_warrant\_holds\_out\_the\_last\_dates\_in\_order}
+
+\Cref{prop:pairing} is unaffected: two warrants of this shape over one pin and one set of fractions escrow the
+same rows in the same order, so their hashes agree and their errors pair. What changes is what the escrow
+means. A sample estimates how the model does on rows like the ones it saw; a suffix estimates how it does on
+the future of the rows it saw, which is the question a forecast is asked.
+
 \subsection{Fairness: a summary of error sizes is blind to direction}
 
 For a segment $s$ of the holdout with errors $e_j = \hat y_j - y_j$, write $\mathrm{MAE}_s$ for the mean of
@@ -2250,6 +2296,14 @@ of storage; the target is compared with the oracle's output outside it. A contra
 refused before anything runs.
 \end{proof}
 \runs{maya/services/warrants.py; tests/test\_vendor\_models.py::test\_a\_black\_box\_with\_a\_validated\_artifact\_is\_scored\_blind\_in\_the\_sandbox}
+
+Two details make the oracle usable on series. The contract may name an index column as well as an attribute,
+because an index column is on every row: a per-series kernel keeps its recursions apart by the series key, and
+without it a panel's series would run into one another. And the oracle receives each input as its declared
+type, a number as a number and a key as text, rather than every column coerced to a float. Neither weakens
+\Cref{prop:targetexcl}: the target is still an attribute, still outside the contract, still compared outside
+the sandbox.
+\runs{maya/services/warrants.py::validate\_contract; tests/test\_warrants.py::test\_a\_model\_may\_read\_an\_index\_column\_and\_a\_text\_input\_is\_not\_forced\_numeric}
 
 An application built on a large language model is the limiting case. Its weights are unavailable; what can
 be pinned down is the provider, the model name, the system prompt, the prompt template, the sampling
@@ -2605,13 +2659,31 @@ and can be suspended or revoked while in use. It does not train models and does 
 The boundary is deliberate and is the subject of \Cref{sec:operatorfound}: a platform that executed the
 artefacts it governs would be checking its own work.
 
+It reaches the edge of that boundary in five places, and each was built to stay on this side of it. An
+MLflow alias follows the licence, as \Cref{sec:declared} describes. A guard in the SDK checks the warrant before
+a scoring call and reports the run after it, from inside the caller's own process. A training warrant can be
+turned into a signed job definition for the firm's own compute, with a key that expires in a day; the job runs
+there, and its parameters come back through the checksum cycle like any other. For a closed-form model the
+platform can fit the parameters itself on the training rows, as a second route to the same answer recorded as
+evidence and never as a parameter set: it checks a fit and does not supply one. And under a live warrant it
+can score a pinned table, running only what blind scoring already runs --- the formula from its term, a black
+box as the validated oracle --- with the output sealed by its content hash, the run reported so its covenants
+are evaluated, and the pin and the output hash entered in the warrant's custody chain.
+\runs{maya/sdk/guard.py, maya/services/training\_ops.py, maya/services/batch\_scoring.py;
+tests/test\_integrations.py::test\_a\_guarded\_scoring\_call\_is\_licensed\_reported\_and\_refused\_once\_suspended,
+tests/test\_challenges.py::test\_a\_dispatched\_job\_fits\_on\_its\_own\_compute\_and\_reports\_back,
+::test\_a\_reference\_refit\_finds\_the\_true\_parameters\_and\_says\_whether\_a\_set\_agrees,
+tests/test\_warrants.py::test\_batch\_scoring\_is\_attested\_reported\_and\_refused\_off\_warrant}
+
 At the revision this text describes --- version 1.0.0, built to revision 2.6 of its own specification ---
-it is 211 Python modules in \texttt{maya/} and 11 more in \texttt{maya\_delta/}, its own implementation
+it is 216 Python modules in \texttt{maya/} and 11 more in \texttt{maya\_delta/}, its own implementation
 of the Delta Lake protocol; one typed metadata from which the SQLite and PostgreSQL schema files are
-generated and checked for drift; 246 HTTP operations under a locked API snapshot, each with an SDK method
-and held one-to-one by a gate that fails the build on a mismatch; and 2{,}089 tests. The suite runs on
+generated and checked for drift; 252 HTTP operations under a locked API snapshot, each with an SDK method
+and held one-to-one by a gate that fails the build on a mismatch; and 2{,}109 tests. The suite runs on
 Linux over SQLite; it last ran over PostgreSQL 16, 17 and 18 before the governance layer of
-\Cref{sec:judgements} was added, which has run on SQLite only. Windows and macOS are not exercised.
+\Cref{sec:judgements} was added, which has run on SQLite only. The case studies have been run on Windows,
+where the sandbox has no operating-system isolation, but Windows is outside the test matrix and macOS has not
+been tried.
 
 Four measured results bound what it is, all from the repository's \texttt{docs/BENCHMARKS.md} with the
 unedited result files beside it. Resolving a feature set of 500 symbols by ten years of business days by
@@ -2657,7 +2729,7 @@ without a clean run on its exact definition and evaluation set \\
 
 \subsection{What building it changed}
 
-An implementation earns its place in a paper by changing the paper. Seven places where it did, each of
+An implementation earns its place in a paper by changing the paper. Nine places where it did, each of
 which is already in the text above rather than confined to this section.
 
 \paragraph{The certificate replaced the operator.} \Cref{def:asof} is the operator; \textsc{Maya} reads
@@ -2724,17 +2796,30 @@ far above the overall figure. Run on a unisex mortality table it flagged nothing
 errors were the same size in opposite directions. \Cref{prop:blind} states why no size-only criterion can
 see that, and the systematic flag is the repair; neither was anticipated before the case study ran.
 
-\subsection{Fourteen models, carried the whole way}
+\paragraph{Every split was a sample.} Until a time-series study was built, every warrant's holdout was a hashed
+sample of rows, and nothing in the account said that is wrong for a series. Building the study found it, and
+\Cref{prop:suffix} is the repair: a warrant of shape \emph{time series} holds out the last dates, in order.
 
-The repository carries fourteen worked case studies, each a model taken through the whole chain by scripts
+\paragraph{A feature that hid its own columns.} A feature's declared schema describes what is uploaded, and a
+lag or a derived column exists only after the feature's transforms run. The metadata a feature reported was the
+declared schema, so a feature set could not map a lag that every row of the pin held. The feature now reports its
+schema as the transforms leave it, which is the output-schema function the transform module always had and the
+resolver did not use
+(\texttt{tests/test\_warrants.py::test\_a\_features\_transforms\_are\_part\_of\_what\_it\_offers}). It is the
+same lesson as the dropped clock above: a derivation that a module can compute and that its caller does not ask
+for is, to everything downstream, absent.
+
+\subsection{Fifteen models, carried the whole way}
+
+The repository carries fifteen worked case studies, each a model taken through the whole chain by scripts
 that use the platform's own SDK, and each run from nothing by the test suite: a retail PD scorecard, a
 mortgage cashflow model and a prepayment model, a home-equity exposure model, a Black--Scholes pricer, an
 IFRS~9 expected-credit-loss composite, a neural network governed as a declared black box, a factor model, a
 Nelson--Siegel yield curve fitted from LaTeX the quant wrote, and five added with version~1.0.0 --- a Basel
 IRB capital formula proved by reconciliation, a bought bureau score imported from MLflow and scored in the
 sandbox, a demand model replaced by a challenger on a paired comparison, a unisex mortality table whose
-bias by sex is accepted in writing, and a language-model complaint-triage application
-(\texttt{case\_studies/}). They exist because a formalism that has only been exercised by its author's unit
+bias by sex is accepted in writing, and a language-model complaint-triage application, and since then an AR(2) mean with a GARCH(1,1) variance on
+daily index returns (\texttt{case\_studies/}). They exist because a formalism that has only been exercised by its author's unit
 tests has not been exercised.
 
 Two of them earn a mention here for what they refused to do. The expected-credit-loss study is a
@@ -2750,6 +2835,14 @@ instantaneous short rate, is a statement about two parameters at once, and a tab
 bounds has no place to put it. Joint constraints were added to the formula IR because that study asked
 for them (\texttt{maya/formula/ir.py}: \texttt{constraint\_errors}), which is the smallest possible
 instance of an implementation changing an account.
+
+The time-series study is the most recent instance. Its mean model is a formula once its lags are transforms on
+the governed feature; its variance model carries yesterday's variance as a state no column holds, so it is a
+declared black box, run as an oracle in the sandbox. Its stationarity conditions, $\phi_1 + \phi_2 < 1$ and
+$\alpha + \beta < 1$, are joint constraints of exactly the Nelson--Siegel kind, and a persistence of $1.05$
+offered with each coefficient inside $[0, 1]$ is refused at upload. It is also the study that found the three
+gaps above that assumed rows are independent: the random split, the hidden columns, and a contract that could
+not name the series key.
 
 \subsection{What the implementation does not establish}
 
@@ -2775,7 +2868,7 @@ that repository's root, so any claim in this paper can be checked by opening two
 
 What a reader will find alongside the code: the specification the system was built to, with its own
 revision history; the measurement results behind every number in this section, unedited, with the
-scripts that produced them; the fourteen case studies as runnable scripts; a quick start and a REST API
+scripts that produced them; the fifteen case studies as runnable scripts; a quick start and a REST API
 guide whose examples the test suite executes; and the decision records for the choices a reader is most
 likely to disagree with --- among them why there are no migrations and two generated schema files instead,
 and why the platform will not execute the artefacts it governs except as a sandboxed oracle on escrowed
