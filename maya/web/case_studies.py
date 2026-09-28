@@ -38,7 +38,7 @@ def catalog() -> list[dict[str, str]]:
     out = []
     for num, title, folder, domain, model, about in _ROW.findall(finished):
         if (ROOT / folder / "README.md").exists():
-            clean = re.sub(r"\*\*|`", "", about).strip()
+            clean = re.sub(r"\*+|`", "", about).strip()  # **bold**, *emphasis*, `code`
             out.append(
                 {
                     "num": num,
