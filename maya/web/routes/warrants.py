@@ -88,6 +88,7 @@ async def training_create(request: Request) -> Any:
         "target": data.get("target") or None,
         "bindings": parse_json(data.get("bindings"), "Bindings", {}),
         "holdout": data.get("holdout", "escrowed"),
+        "shape": data.get("shape") or "tabular",
         "leakage_lag_days": int(data.get("leakage_lag_days") or 1),
         "expiry_days": int(data.get("expiry_days") or 365),
         "allow_non_causal": bool(data.get("allow_non_causal")),

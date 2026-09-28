@@ -96,7 +96,7 @@ A training warrant licenses a fit before it happens. It is also the only way to 
 - **Feature set:** a **sealed pin** is best, e.g. `maya://featureset/ns/panel#q1/2026-03-31`, because it never moves.
 - **Target:** the attribute the model is fitted to predict.
 - **Bindings (JSON):** only where a model input's name differs from the feature set attribute, e.g. `{"income": "gross_income"}`.
-- **Split:** train, validation and test fractions that **add up to 1**. The default is 0.7, 0.15 and 0.15. Rows are assigned by hashing the seed and the row's key, so the split is the same anywhere.
+- **Split:** train, validation and test fractions that **add up to 1**. The default is 0.7, 0.15 and 0.15. With **rows at random** (`shape: tabular`, the default) rows are assigned by hashing the seed and the row's key, so the split is the same anywhere. With **by date** (`shape: time_series`) the earliest dates train, the next validate and the last are the test; every row of one date lands in the same partition, and rows stay in date order. A time series needs this: a random split trains on the future, and a model that carries state from day to day cannot run on scattered days.
 - **Seed:** fixes the split and anything random in the fit.
 - **Holdout:** `escrowed` (the default) keeps the test rows sealed. Scoring on them is counted per warrant. Choose `none` only when there is no holdout.
 - **Leakage lag (days):** how late a value may be known after its event date. Rows known later are violations on the **leakage certificate**, which must be clean, or carry a written justification, before the warrant goes forward.

@@ -186,6 +186,7 @@ same six calls would demonstrate nothing that one study could not.
 | 10 | [Factor models, CAPM to Fama–French](10-factor-models/) | Asset management | Simple then multiple regression | Two versions of one model: a semantic diff, a contract that grew, and the maturity ladder from candidate to retired. |
 | 11 | [Nelson–Siegel yield curve](11-nelson-siegel-curve/) | Fixed income, rates | Closed-form, non-linearly calibrated | A λ that is a convention rather than a measurement, and a planted bug a recalibration absorbs exactly — so only MAYA's blind score against the specification can see it. |
 | 07 | [Card-fraud neural network](07-neural-network/) | Banking, card fraud | Feed-forward network, **declared black box** | What is left to hold to account when the mathematics is unreadable: a contract, weights as a parameter set, a sandboxed ladder on the code, and a blind score computed by running the validated artifact in the sandbox. |
+| 08 | [AR(2) and GARCH(1,1)](08-arima-garch/) | Markets, market risk | Time series: formula mean, **black-box** variance | Models whose rows are not independent: lags as governed feature definitions, stationarity as **joint constraints**, a holdout that is **the last dates**, and a recursion MAYA cannot write scored blind in the sandbox |
 | 09 | [Basel IRB regulatory capital](09-basel-irb-capital/) | Banking, regulatory capital | Closed-form, **prescribed**, no fit | A formula you may not change, proved by reconciliation. Version 1 misses the maturity floor and cap; a **finding**, a fix, **independent closure**, tier 1, a periodic review and the SR 11-7 inventory row |
 | 19 | [Vendor bureau score](19-vendor-bureau-score/) | Banking, retail credit | **Bought black box**, from MLflow | Imported from its MLflow signature, its code validated and **scored blind in the sandbox**, fairness by region, and a drift covenant that takes it from *ok* to *watch* to *breach* |
 | 42 | [Demand elasticity](42-demand-elasticity/) | Economics, retail pricing | Linear champion, log–log challenger | **Champion and challenger** on the same escrowed rows: a paired bootstrap interval, a refusal to compare different holdouts, and a decision the challenger's author may not take |
@@ -194,9 +195,8 @@ same six calls would demonstrate nothing that one study could not.
 
 ### The catalogue
 
-Fifty in all. Fourteen are built; the rest are listed with their final numbers, so a folder
-name never has to be renumbered. Study 08's data and declarations are written and its steps
-are not, so it has no folder table above and no README of its own. The order within each group is roughly the delivery order, and
+Fifty in all. Fifteen are built; the rest are listed with their final numbers, so a folder
+name never has to be renumbered. The order within each group is roughly the delivery order, and
 every entry is there for a **distinct thing it makes MAYA do** — fifty models that all
 exercised the same six calls would demonstrate nothing one study could not.
 

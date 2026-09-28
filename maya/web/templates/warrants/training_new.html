@@ -7,7 +7,7 @@
 <ul>
   <li>An <strong>approved model version</strong> and a feature set, best a <strong>sealed pin</strong> (<code>maya://featureset/ns/panel#q1/2026-03-31</code>), which never moves.</li>
   <li>The <strong>target</strong> attribute. <strong>Bindings</strong> only where a model input's name differs from the attribute, e.g. <code>{"income": "gross_income"}</code>.</li>
-  <li><strong>Split</strong> fractions that add up to 1 (default 0.7 / 0.15 / 0.15), fixed by the <strong>seed</strong>, so the split is the same anywhere.</li>
+  <li><strong>Split</strong> fractions that add up to 1 (default 0.7 / 0.15 / 0.15). <em>Rows at random</em> hashes each row with the <strong>seed</strong>; <em>by date</em> holds out the last dates, which a time series needs.</li>
   <li><strong>Holdout</strong> <code>escrowed</code> keeps the test rows sealed; every scoring attempt on them is counted.</li>
   <li><strong>Leakage lag:</strong> how many days after its event date a value may be known. Later rows go on the leakage certificate, which must be clean or justified in writing.</li>
 </ul>
@@ -26,6 +26,7 @@
   <div class="col-md-2"><label class="form-label" for="val">Validation</label><input class="form-control" id="val" name="validation" value="0.15"></div>
   <div class="col-md-2"><label class="form-label" for="test">Test</label><input class="form-control" id="test" name="test" value="0.15"></div>
   <div class="col-md-3"><label class="form-label" for="holdout">Holdout</label><select class="form-select" id="holdout" name="holdout"><option value="escrowed">escrowed — MAYA scores; test rows never leave</option><option value="none">none — test rows downloadable</option></select></div>
+  <div class="col-md-3"><label class="form-label" for="shape">Split</label><select class="form-select" id="shape" name="shape"><option value="tabular">rows at random (tabular)</option><option value="time_series">by date: the last dates are the test (time series)</option></select></div>
   <div class="col-md-3"><label class="form-label" for="lag">Leakage lag (days)</label><input class="form-control" id="lag" name="leakage_lag_days" type="number" value="1"></div>
   <div class="col-md-3"><label class="form-label" for="exp">Expires in (days)</label><input class="form-control" id="exp" name="expiry_days" type="number" value="365"></div>
   <div class="col-md-6"><label class="form-label" for="bind">Bindings: model input → feature set attribute (JSON)</label><textarea class="form-control mono" id="bind" name="bindings" rows="2" data-json placeholder='{"S": "px"}'></textarea></div>

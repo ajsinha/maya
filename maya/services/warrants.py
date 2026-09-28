@@ -49,13 +49,37 @@ SPLIT_COL = "_split"
 table_checksum = canonical.table_content_hash
 
 
+SHAPES = ("tabular", "time_series")
+
+
 def assign_splits(
-    df: pd.DataFrame, index: list[str], split: dict[str, float], seed: int
+    df: pd.DataFrame,
+    index: list[str],
+    split: dict[str, float],
+    seed: int,
+    shape: str = "tabular",
 ) -> pd.Series:
-    """Deterministic split by hashing (seed, index key): reproducible anywhere."""
+    """Deterministic split: reproducible anywhere.
+
+    ``tabular`` hashes (seed, index key), so rows fall at random. ``time_series`` splits by
+    the first index column, the event date: the earliest dates train, the next validate, the
+    last are the test. A random split of a series trains on the future and tests on the past,
+    and it scatters the holdout, so a model that carries state from one day to the next (a
+    GARCH variance, an ARIMA error) cannot even be run on it. Every row of one date lands in
+    the same partition, so a panel of several series splits at the same moment for all."""
     fracs = [float(split.get(k, 0)) for k in ("train", "validation", "test")]
     if abs(sum(fracs) - 1.0) > 1e-9 or any(f < 0 for f in fracs):
         raise ValidationFailed("split fractions train/validation/test must be ≥0 and sum to 1")
+    if shape == "time_series":
+        when = pd.to_datetime(df[index[0]]).to_numpy()
+        dates = np.unique(when)
+        cut1 = int(round(len(dates) * fracs[0]))
+        cut2 = int(round(len(dates) * (fracs[0] + fracs[1])))
+        rank = np.searchsorted(dates, when)
+        return pd.Series(
+            np.where(rank < cut1, "train", np.where(rank < cut2, "validation", "test")),
+            index=df.index,
+        )
     keys = df[index].astype(str).agg("|".join, axis=1)
     u = keys.map(
         lambda k: int.from_bytes(hashlib.sha256(f"{seed}|{k}".encode()).digest()[:8], "big") / 2**64
@@ -280,6 +304,8 @@ class WarrantService:
         out.update({k: v for k, v in spec.items() if v is not None})
         if out["holdout"] not in ("escrowed", "none"):
             raise ValidationFailed("holdout must be 'escrowed' or 'none'")
+        if out["shape"] not in SHAPES:
+            raise ValidationFailed(f"shape must be one of {', '.join(SHAPES)}")
         return out
 
     def _fixed_ref(self, featureset: str) -> str:
@@ -309,21 +335,26 @@ class WarrantService:
     ) -> dict[str, Any]:
         """Check the model's input contract against the feature set, listing every miss."""
         attrs = {a["name"]: a.get("type", "") for a in meta["schema"]}
+        # An index column is on every row too, so a model may read one -- a per-series model
+        # keeps its series apart by it (a GARCH recursion must not run across two indices).
+        index_types = meta.get("index_types") or {}
+        readable = {**{c: index_types.get(c, "string") for c in meta.get("index", [])}, **attrs}
         problems, mapping = [], {}
         for inp in mv["input_contract"] or []:
             if inp.get("role", "feature") != "feature":
                 continue
             src = spec["bindings"].get(inp["name"], inp["name"])
-            if src not in attrs:
+            if src not in readable:
                 problems.append(
                     f"input '{inp['name']}' needs attribute '{src}', which the "
                     "feature set does not expose"
                 )
                 continue
-            if not str(attrs[src]).startswith(NUMERIC):
+            wants_number = str(inp.get("type", "float64")).startswith(NUMERIC)
+            if wants_number and not str(readable[src]).startswith(NUMERIC):
                 problems.append(
                     f"input '{inp['name']}' is {inp.get('type', 'float64')} but "
-                    f"'{src}' is {attrs[src]}"
+                    f"'{src}' is {readable[src]}"
                 )
             mapping[inp["name"]] = src
         target = spec.get("target")
@@ -405,8 +436,7 @@ class WarrantService:
         """The warrant's data. With a principal, that person's §11.4 conditions apply:
         a download never shows what a direct read would have withheld."""
         res = self.p.featuresets.resolve_ref(principal, w["featureset_ref"])
-        df = res.df.copy()
-        df[SPLIT_COL] = assign_splits(df, res.meta["index"], w["spec"]["split"], w["spec"]["seed"])
+        df = self._split_frame(res, w["spec"])
         if not include_test:
             df = df[df[SPLIT_COL] != "test"]
         return df.reset_index(drop=True), res.meta
@@ -531,14 +561,25 @@ class WarrantService:
             )
             return {**ps, "flag": None if verified else "unverified_data"}
 
+    @staticmethod
+    def _split_frame(res: Any, spec: dict[str, Any]) -> pd.DataFrame:
+        """The resolved rows with their partition. A time series is put in event order first,
+        so the training data, the escrowed holdout and a stateful model scoring it all see the
+        days in the order they happened."""
+        df = res.df.copy()
+        index, shape = res.meta["index"], spec.get("shape", "tabular")
+        if shape == "time_series":
+            df = df.sort_values(index, kind="stable").reset_index(drop=True)
+        df[SPLIT_COL] = assign_splits(df, index, spec["split"], spec["seed"], shape)
+        return df
+
     def _escrowed_holdout(self, res: Any, spec: dict[str, Any]) -> dict[str, Any]:
         """The escrowed test partition, fixed at this moment: its content hash and row
         count. ``holdout: none`` escrows nothing, and neither does a warrant with no
         target to score against."""
         if spec.get("holdout") != "escrowed":
             return {}
-        df = res.df.copy()
-        df[SPLIT_COL] = assign_splits(df, res.meta["index"], spec["split"], spec["seed"])
+        df = self._split_frame(res, spec)
         test = df[df[SPLIT_COL] == "test"].drop(columns=[SPLIT_COL]).reset_index(drop=True)
         table = pa.Table.from_pandas(test, preserve_index=False).replace_schema_metadata(None)
         return {"holdout_hash": table_checksum(table), "holdout_rows": table.num_rows}
@@ -908,7 +949,15 @@ class WarrantService:
                 f"The black box reads the target '{target}' as an input; scoring it would hand "
                 "it the answer"
             )
-        X = {n: df[bindings.get(n, n)].astype(float).tolist() for n in wanted}
+        # each input as its declared type: a number as a float, anything else (a series
+        # name a per-series model groups by) as text
+        types = {c["name"]: str(c.get("type", "float64")) for c in mv["input_contract"] or []}
+        X = {
+            n: df[bindings.get(n, n)]
+            .astype(float if types[n].startswith(NUMERIC) else str)
+            .tolist()
+            for n in wanted
+        }
         source = self.p.blobs.get(mv["artifact_hash"]).decode("utf-8")
         out = run_sandboxed(
             source,

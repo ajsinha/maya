@@ -36,9 +36,19 @@ from maya.core.version import VERSION
 from maya.core.clock import utcnow
 from maya.resolution import algebra, quality, shapes
 from maya.resolution.resolver import KT, resolve_feature
-from maya.resolution.transforms import apply_pipeline
+from maya.resolution.transforms import apply_pipeline, pipeline_output_schema
 from maya.resolution.types import cast_frame
 from maya.services import catalog, quota, refs
+
+
+def output_schema(eff: dict[str, Any]) -> list[dict[str, Any]]:
+    """The attributes a feature's rows carry: its declared schema as the transforms leave it.
+
+    ``schema`` describes the upload, and a lag or a derived column exists only after the
+    pipeline runs. Reporting the declared schema made those columns invisible to anything
+    reading the feature's metadata -- a feature set could not map ``retLag1`` although every
+    row of the pin held it."""
+    return pipeline_output_schema(eff["schema"], eff.get("transform") or [], eff["index"])
 
 
 @dataclass
@@ -322,7 +332,7 @@ class FeatureData:
         meta = {
             "index": index,
             "index_types": eff.get("index_types", {}),
-            "schema": eff["schema"],
+            "schema": output_schema(eff),
             "non_causal": non_causal,
             "policy": eff.get("resolution") or {},
         }
@@ -362,7 +372,7 @@ class FeatureData:
                     {
                         "index": eff["index"],
                         "index_types": eff.get("index_types", {}),
-                        "schema": eff["schema"],
+                        "schema": output_schema(eff),
                         "non_causal": version["non_causal"],
                     }
                 )
@@ -376,7 +386,7 @@ class FeatureData:
         meta = {
             "index": eff["index"],
             "index_types": eff.get("index_types", {}),
-            "schema": eff["schema"],
+            "schema": output_schema(eff),
             "non_causal": bool(pin["fill_report"].get("non_causal")),
             "policy": eff.get("resolution") or {},
         }
