@@ -15,7 +15,7 @@ from fastapi.responses import RedirectResponse
 
 from maya.core.errors import MayaError
 from maya.core.version import HIGHLIGHTS
-from maya.web.routes.common import action, api_json, client, page, render
+from maya.web.routes.common import action, api_json, client, flash, page, render
 
 router = APIRouter()
 
@@ -29,6 +29,10 @@ async def front(request: Request) -> Any:
     would want an account here."""
     if not request.session.get("token"):
         from maya.web.case_studies import catalog
+
+        if "signed_out" in request.query_params:
+            flash(request, "You are signed out.", "info")
+            return RedirectResponse("/", status_code=303)  # the message once, a clean address
 
         return await render(
             request, "landing.html", {"public_nav": True, "study_count": len(catalog())}

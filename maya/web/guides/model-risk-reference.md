@@ -65,7 +65,7 @@ prof = my.governance.set_profile(
 print(prof["derived_tier"], prof["tier"], [d["driver"] for d in prof["drivers"]])
 ```
 
-Setting the profile needs `update` on the model. The call is a replacement (`PUT /governance/models/{namespace}/{name}`): `use`, `exposure`, `tier_override`, `override_reason` and `review_days` are all written, so a field left out is cleared. `answers` is the exception — left out, the previous answers stand.
+Setting the profile needs `update` on the model. Only the fields sent change (`PUT /governance/models/{namespace}/{name}`, or `my.governance.set_profile(ref, review_days=400)`): a field left out keeps its value, and a field sent as `null` (`None` in the SDK) is cleared. Clearing `tier_override` clears its reason too. `answers` replaces the questionnaire answers as a whole when it is sent.
 
 | Rule | Refusal detail |
 |---|---|
@@ -125,7 +125,7 @@ print(out["next_review_due"], out["reinstated"])
 |---|---|
 | Outcome | `satisfactory`, `needs_improvement` or `unsatisfactory`. |
 | Note | Required: "A review records what was looked at and what was concluded". |
-| Who | Anyone who can read the model **except its owner**: "A model's owner does not review their own model". |
+| Who | A **model manager** or a **model validator** who can read the model, and never its owner: "A model's owner does not review their own model"; anyone else is refused with "A periodic review is recorded by a model manager or a model validator". A review lifts the sweep's suspensions, which is why reading the model is not enough. |
 | Record | A row in the review history with the tier and the next due date at the time; audit `governance.reviewed`. |
 
 The outcome is recorded, not acted on: an `unsatisfactory` review resets the clock like any other, and what follows from it is a separate, deliberate act.

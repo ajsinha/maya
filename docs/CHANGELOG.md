@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+**A validator role, and four fixes**
+
+- **`model_validator`**, a ninth shipped role for independent validation: it reads
+  everything a model rests on, raises findings and records periodic reviews, and approves
+  nothing. It is in the `standard` and `regulated` presets.
+- **Recording a periodic review needs `model_manager` or `model_validator`** (and is still
+  never done by the model's owner). A review lifts the suspensions an overdue review caused,
+  so reading the model is no longer enough.
+- **Editing a governance profile changes only the fields sent.** Setting one field (the review
+  interval, say) used to blank the declared use, exposure and tier override; now a field left
+  out keeps its value, and one sent as `null` is cleared (with its override reason).
+- **The MLflow live alias is decided per registered model.** With two imported versions of
+  one registered model, one live and one not, the sync could remove the alias from the live
+  one and, believing it set, never restore it. It now points the alias at the live version
+  and removes it only when no version is live.
+- **Signing out always lands on the landing page**, saying you are signed out — including
+  after a SAML single logout (which used to end on the sign-in form) and when an identity
+  provider returns people to the older `/login?signed_out=1` address. Register
+  `https://<maya>/?signed_out=1` as the post-logout address at the identity provider.
+- **A document records every provider and model that drafted it**, not only the last
+  section's.
+- The access reference's capability matrix is now pinned to the code by a test; it had said
+  the model owner could not approve a model or its execution warrant, which it can. The
+  preset descriptions (four roles in `small_team`, every role in `standard`) are corrected.
+- **Schema/seed note:** the new role is seeded at the next start; no database rebuild is
+  needed for it.
+
 **Help, consolidated and checked against the code**
 
 - **One page per subject.** The help index has 19 subject cards instead of about 44: each

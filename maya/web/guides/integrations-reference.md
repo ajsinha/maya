@@ -86,14 +86,15 @@ MAYA asks the server for the model version, then fetches its `MLmodel` from the 
 
 ### The live alias
 
-MAYA does not serve models, so its decisions have to reach the platform that does. For MLflow that is an **alias**: MAYA points `integrations.mlflow.live_alias` (default `maya-live`) at every imported MLflow model version that has a live execution warrant, and takes it off every one that does not. A serving platform that deploys `models:/pd-gbm@maya-live` then deploys only what MAYA currently licenses.
+MAYA does not serve models, so its decisions have to reach the platform that does. For MLflow that is an **alias**: MAYA points `integrations.mlflow.live_alias` (default `maya-live`) at the live version of each imported MLflow registered model, and removes it from a registered model none of whose versions is live. A serving platform that deploys `models:/pd-gbm@maya-live` then deploys only what MAYA currently licenses.
 
 | Aspect | Behaviour |
 |---|---|
 | Which versions | Model versions imported by **fetching**, whose provenance carries a `models:/<name>/<version>` URI. A version imported from an uploaded file has no registry address and is not synced. |
 | What "live" means | At least one of the version's execution warrants has status `live`. A suspended, expired or revoked warrant is not live — so a covenant breach, a revocation, an expiry and an overdue periodic review all take the alias off the same way. |
 | When | Every five minutes on its own, and on demand: **Sync now** on `/integrations`, `POST /integrations/mlflow/sync`, or `my.integrations.sync_mlflow()` (administrators). |
-| Calls | MLflow's registered-model alias API: set for a live version, delete for one that is not. |
+| Per registered model | An MLflow alias names one version of a registered model, so the decision is per registered model: set it on the live version, or delete it when no version is live. A version that is not live never removes it from a live sibling. If several versions of one registered model are live at once, the alias names the newest. |
+| Calls | MLflow's registered-model alias API. Deleting an alias that is already absent counts as removed. |
 | Changes only | Each pass compares what should be true with what it last made true, and calls MLflow only for the differences. That memory is per process and starts empty, so the first pass after a restart sends everything again. |
 | Failures | Listed in the result under `failed` and retried on the next pass. |
 | Record | Audit `integration.mlflow_synced` with what was set, removed and failed, whenever something changed. |
@@ -184,7 +185,6 @@ A training warrant can be turned into a ready Kubernetes `Job` and a SageMaker `
 ## What this does not do
 
 - MAYA does not deploy, serve or call a model in MLflow or SageMaker. The live alias is the only thing it writes to another platform, and what the serving side does with the alias is that platform's business.
-- An MLflow alias names one version of a registered model. If MAYA holds more than one imported version of the **same** registered model, removing the alias from a version that is not live is a delete by registered model and alias name, which can take it off a live sibling in the same pass. Until that is fixed, keep one imported version per registered model, or check the alias after a sync.
 - The alias follows execution warrants only. It says nothing about whether a model version is approved but not yet licensed, and a model imported by upload never gets one.
 - Imports copy metadata, not models: MAYA stores no weights from MLflow or SageMaker. Scoring a black box needs its code artifact uploaded and validated in MAYA like any other.
 - OpenLineage export is outbound only; MAYA does not read lineage from an OpenLineage consumer.

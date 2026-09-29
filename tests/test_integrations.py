@@ -304,3 +304,45 @@ def test_a_guarded_scoring_call_is_licensed_reported_and_refused_once_suspended(
     guard.score(lambda x: {"prediction": x["ltv"] * 0.1}, drifted)  # breaks the covenant
     with pytest.raises(WarrantSuspended, match="risk@example.com"):
         guard.score(lambda x: {"prediction": x["ltv"] * 0.1}, steady)
+
+
+def test_a_second_version_of_the_same_registered_model_never_takes_the_alias_off_the_live_one(
+    estate,
+):
+    """An MLflow alias names one version per registered model. With pd/4 live and pd/5 not,
+    the alias must end on pd/4, and nothing may delete it."""
+    import copy
+    import datetime as dt
+
+    from maya.core.clock import utcnow
+
+    w = estate
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.content or str(request.url.params)))
+        return httpx.Response(200, json={})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    with w.p.uow("test") as uow:
+        model = uow.repo("models").find_one(name="pd_fetched")
+        v = uow.repo("model_versions").find_one(model_id=model["id"], version_no=1)
+        ir = copy.deepcopy(v["formula_ir"])
+        ir["black_box"]["provenance"]["uri"] = "models:/pd/5"
+        row = {k: val for k, val in v.items() if k not in ("id", "created_at", "updated_at")}
+        uow.repo("model_versions").add({**row, "version_no": 99, "formula_ir": ir})
+        for ew in uow.repo("execution_warrants").list(model_version_id=v["id"]):
+            uow.repo("execution_warrants").update(
+                ew["id"],
+                {
+                    "suspended_at": None,
+                    "suspend_reason": None,
+                    "valid_to": utcnow() + dt.timedelta(days=30),
+                },
+            )
+    w.p.integrations._mlflow_alias = {}  # a fresh process: nothing assumed
+    out = w.p.integrations.sync_mlflow(w.admin, http=http)
+    assert out["set"] == ["pd/4"] and out["removed"] == []
+    assert [c[0] for c in calls] == ["POST"] and b'"version": "4"' in calls[0][1].replace(
+        b'":"', b'": "'
+    )

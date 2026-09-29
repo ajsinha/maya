@@ -159,7 +159,8 @@ async def governance_profile(request: Request, namespace: str, name: str) -> Any
             tier_override=_num(data.get("tier_override"), int),
             override_reason=data.get("override_reason") or None,
             review_days=_num(data.get("review_days"), int),
-            answers={k[2:]: v for k, v in data.items() if k.startswith("q_") and v},
+            # no answers given leaves the recorded answers as they are
+            answers={k[2:]: v for k, v in data.items() if k.startswith("q_") and v} or None,
         )
     flash(request, f"Tier {out['tier']} (derived: {out['derived_tier']}).", "success")
     return RedirectResponse(f"/governance/models/{namespace}/{name}", status_code=303)

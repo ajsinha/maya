@@ -366,7 +366,13 @@ def test_logout(env):
     a live session; what is, is that a page needing one still sends the browser to sign in."""
     _, _, client, _ = env
     r = client.post("/logout", data={"csrf_token": _csrf(client)}, follow_redirects=False)
-    assert r.status_code == 303 and r.headers["location"] == "/"
+    assert r.status_code == 303 and r.headers["location"] == "/?signed_out=1"
+    landed = client.get(r.headers["location"])  # the landing page, never a sign-in form
+    assert landed.url.path == "/" and "You are signed out." in landed.text
+    assert 'name="password"' not in landed.text
+    # an identity provider that returns people to the older /login?signed_out=1 lands there too
+    back = client.get("/login?signed_out=1", follow_redirects=False)
+    assert back.headers["location"] == "/?signed_out=1"
     assert client.get("/", follow_redirects=False).status_code == 200
     gated = client.get("/models", follow_redirects=False)
     assert gated.status_code == 303 and gated.headers["location"].startswith("/login")

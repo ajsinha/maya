@@ -245,7 +245,7 @@ class SsoService:
                 request_id = sp.logout_response_to(query_string)
                 self._claim(request_id, "saml_logout", "SAML logout request", ip)
                 sp.finish_logout(query_string, request_id or "")
-                return {"outcome": "signed_out", "redirect_url": "/login?signed_out=1"}
+                return {"outcome": "signed_out", "redirect_url": "/?signed_out=1"}
             accepted = sp.accept_logout(query_string)
         except NotAuthenticated as exc:
             self._saml_refused(exc.message, ip)

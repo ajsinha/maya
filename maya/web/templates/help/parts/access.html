@@ -9,7 +9,7 @@ your role's ceiling, and a condition can only ever take rows or values away.</p>
 {% endcall %}
 
 {{ cards([
-  ('person-badge', 'Roles: the ceiling', 'Eight shipped roles hold capability letters per object type — C create, R read, U update, A approve, P pin, G grant, Q request a pin.'),
+  ('person-badge', 'Roles: the ceiling', 'Nine shipped roles hold capability letters per object type — C create, R read, U update, A approve, P pin, G grant, Q request a pin.'),
   ('key', 'Grants: the door', 'A grant opens one object to a user, group, role or everyone, at a level from read to admin, and expires.'),
   ('funnel', 'Conditions: the filter', 'A grant may filter rows, mask columns or cut off at a date. The most restrictive combination wins.'),
 ]) }}
@@ -104,8 +104,8 @@ for row in my.access.recertification():
 
 <h2>Namespace presets and separation of duties</h2>
 <p>A namespace is created with a preset that says which roles it expects and how strict separation of
-duties is: <code>small_team</code> (three roles, SoD <code>none</code>), <code>standard</code> (six
-roles, <code>two_person</code>) or <code>regulated</code> (all eight, <code>strict</code>). Your personal
+duties is: <code>small_team</code> (four roles, SoD <code>none</code>), <code>standard</code> (every
+shipped role, <code>two_person</code>) or <code>regulated</code> (every role, <code>strict</code>). Your personal
 <code>scratch.&lt;you&gt;</code> namespace has no ceremony at all. See
 <a href="/help/workflow">Workflow and policies</a>.</p>
 

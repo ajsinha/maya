@@ -275,4 +275,5 @@ def test_the_front_door_is_the_landing_page_until_somebody_signs_in(site):  # no
         follow_redirects=False,
     )
     assert out.status_code == 303
-    assert out.headers["location"] == "/"
+    assert out.headers["location"] == "/?signed_out=1"  # the landing page, with a note
+    assert "MAYA keeps the answer" in signed_in.c.get(out.headers["location"]).text

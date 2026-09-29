@@ -57,6 +57,7 @@ USES = {
 OUTCOMES = ("satisfactory", "needs_improvement", "unsatisfactory")
 REVIEW_DAYS = {1: 365, 2: 730, 3: 1095}
 REVIEW_REASON = "Periodic review overdue"
+REVIEWER_ROLES = ("model_manager", "model_validator")
 
 
 def _date(value: Any) -> dt.date | None:
@@ -456,20 +457,18 @@ class GovernanceService:
                 "can_edit": self.p.access.allowed(uow, p, "update", "model", m),
             }
 
-    def set_profile(
-        self,
-        p: Principal,
-        model: str,
-        *,
-        use: str | None = None,
-        exposure: float | None = None,
-        tier_override: int | None = None,
-        override_reason: str | None = None,
-        review_days: int | None = None,
-        answers: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
-        """Declare what only the owner knows, and override the derived tier with a reason.
-        ``answers`` replaces the questionnaire answers; ``None`` leaves them as they were."""
+    PROFILE_FIELDS = (
+        "use",
+        "exposure",
+        "tier_override",
+        "override_reason",
+        "review_days",
+        "answers",
+    )
+
+    def _check_profile(self, changes: dict[str, Any]) -> None:
+        """Refuse a profile change that names an unknown answer, use, tier or interval."""
+        answers = changes.get("answers")
         if answers is not None:
             allowed = {q["id"]: q["answers"] for q in self.questionnaire()["questions"]}
             for qid, answer in answers.items():
@@ -479,28 +478,46 @@ class GovernanceService:
                     raise ValidationFailed(
                         f"'{answer}' is not an answer to '{qid}'", allowed=sorted(allowed[qid])
                     )
-        if use is not None and use not in USES:
+        if changes.get("use") is not None and changes["use"] not in USES:
             raise ValidationFailed(f"use is one of {', '.join(USES)}")
-        if exposure is not None and exposure < 0:
+        if changes.get("exposure") is not None and changes["exposure"] < 0:
             raise ValidationFailed("exposure is an amount, not negative")
-        if tier_override is not None and tier_override not in (1, 2, 3):
+        if changes.get("tier_override") is not None and changes["tier_override"] not in (1, 2, 3):
             raise ValidationFailed("a tier is 1, 2 or 3")
-        if tier_override is not None and not (override_reason or "").strip():
-            raise ValidationFailed("overriding the derived tier needs a written reason")
-        if review_days is not None and not 30 <= review_days <= 1825:
+        days = changes.get("review_days")
+        if days is not None and not 30 <= days <= 1825:
             raise ValidationFailed("a review interval is between 30 days and five years")
+
+    def set_profile(self, p: Principal, model: str, **changes: Any) -> dict[str, Any]:
+        """Declare what only the owner knows, and override the derived tier with a reason.
+
+        Only the fields given change: a field left out keeps its value, and a field given as
+        ``None`` is cleared. (An edit to one field used to blank the others.) ``answers``
+        replaces the questionnaire answers as a whole."""
+        unknown = set(changes) - set(self.PROFILE_FIELDS)
+        if unknown:
+            raise ValidationFailed(f"A profile has no field {sorted(unknown)}")
+        self._check_profile(changes)
         with self.p.uow(p.username) as uow:
             m, ns = self._model(uow, p, model, "update")
-            values: dict[str, Any] = {
-                "use": use,
-                "exposure": exposure,
-                "tier_override": tier_override,
-                "override_reason": (override_reason or "").strip() or None,
-                "review_days": review_days,
-            }
-            if answers is not None:
-                values["answers"] = dict(answers)
             prof = self._profile_row(uow, m["id"])
+            values: dict[str, Any] = {}
+            for field in self.PROFILE_FIELDS:
+                if field not in changes:
+                    continue
+                value = changes[field]
+                if field == "override_reason":
+                    value = (value or "").strip() or None
+                if field == "answers":
+                    if value is None:
+                        continue  # the answers are replaced by answers, never blanked by omission
+                    value = dict(value)
+                values[field] = value
+            merged = {**(prof or {}), **values}
+            if merged.get("tier_override") is not None and not merged.get("override_reason"):
+                raise ValidationFailed("overriding the derived tier needs a written reason")
+            if merged.get("tier_override") is None and "tier_override" in values:
+                values["override_reason"] = None  # no override, nothing to justify
             if prof:
                 uow.repo("model_governance").update(prof["id"], values)
             else:
@@ -516,7 +533,9 @@ class GovernanceService:
 
     # -- periodic review ------------------------------------------------------------
     def record_review(self, p: Principal, model: str, outcome: str, note: str) -> dict[str, Any]:
-        """The dated act of looking at a model again. Its owner does not review it."""
+        """The dated act of looking at a model again, by a model manager or a validator, and
+        never by its owner. A review lifts the suspensions the overdue sweep made, so it is
+        not something anyone who can read the model may do."""
         if outcome not in OUTCOMES:
             raise ValidationFailed(f"outcome is one of {', '.join(OUTCOMES)}")
         if not note.strip():
@@ -525,6 +544,11 @@ class GovernanceService:
             m, ns = self._model(uow, p, model)
             if p.username == self._owner(uow, m):
                 raise PermissionDenied("A model's owner does not review their own model")
+            if not set(REVIEWER_ROLES) & set(p.roles):
+                raise PermissionDenied(
+                    "A periodic review is recorded by a model manager or a model validator",
+                    roles=list(REVIEWER_ROLES),
+                )
             now = utcnow()
             prof = self._profile_row(uow, m["id"])
             values = {"last_reviewed_at": now, "last_reviewed_by": p.username}

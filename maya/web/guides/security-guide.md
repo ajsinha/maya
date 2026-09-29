@@ -177,7 +177,7 @@ MAYA's SSO was driven end to end in headless Chrome against Keycloak 26.4.7 in d
 - A **group membership** mapper, token claim name `groups`, **Full group path off** (with it on the claim carries `/maya-admins`, which `group_role_map` must then name), added to the ID token.
 - MAYA asks for the scopes `openid profile email groups`, and Keycloak refuses a scope it does not know (`invalid_scope`). Either create a client scope named `groups` holding the mapper and add it to the client (optional or default), or put the mapper on the client and set `auth.sso.scopes: "openid profile email"`. Both were tested.
 - `auth.sso.issuer` is the realm URL, `https://keycloak.example.com/realms/<realm>`, exactly as the discovery document's `issuer` says (the host name the browser uses).
-- For sign-out at Keycloak: **Valid post logout redirect URIs** (`post.logout.redirect.uris`) holds exactly `auth.sso.post_logout_redirect_uri`, e.g. `https://maya.example.com/login?signed_out=1`.
+- For sign-out at Keycloak: **Valid post logout redirect URIs** (`post.logout.redirect.uris`) holds exactly `auth.sso.post_logout_redirect_uri`, e.g. `https://maya.example.com/?signed_out=1`, which lands on MAYA's landing page saying you are signed out.
 - For back-channel logout: **Backchannel logout URL** (`backchannel.logout.url`) is `https://maya.example.com/api/v1/auth/sso/oidc/backchannel-logout`, and **Backchannel logout session required** (`backchannel.logout.session.required`) is on, so each token names the session (`sid`) and ends only that one.
 
 **SAML client** (Clients → Create, SAML):

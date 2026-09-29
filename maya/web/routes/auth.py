@@ -48,6 +48,10 @@ async def _sign_in_options(request: Request) -> dict[str, Any]:
 async def login_page(request: Request) -> Any:
     if request.session.get("token") and request.session.get("mfa", "ok") == "ok":
         return RedirectResponse("/", status_code=303)
+    if "signed_out" in request.query_params:
+        # somebody who has just signed out (an identity provider returning them here after
+        # its own sign-out) goes to the landing page, not back to a sign-in form
+        return RedirectResponse("/?signed_out=1", status_code=303)
     signin = await _sign_in_options(request)
     if "break-glass" in request.query_params and not signin.get("password_login"):
         # §13.3: under auth.mode: sso the password form is hidden because it is refused for
@@ -387,7 +391,7 @@ async def logout(request: Request) -> Any:
     request.session.clear()
     # Out to the landing page, not to a sign-in form: somebody who has just left is not
     # halfway through arriving, and the form implies they should try again.
-    return RedirectResponse(slo or "/", status_code=303)
+    return RedirectResponse(slo or "/?signed_out=1", status_code=303)
 
 
 @router.get("/account/password")

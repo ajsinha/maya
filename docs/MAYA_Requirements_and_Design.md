@@ -197,7 +197,7 @@ MAYA governs the definition, materialization, documentation and approval of feat
 
 ## 3. Personas and roles
 
-MAYA ships eight roles, stored in the database, assignable many-to-many to a user, and extensible: an administrator can define a custom role as a named set of permissions. Roles grant *capabilities*; access to a specific object is decided separately by its ACL (section 11).
+MAYA ships nine roles, stored in the database, assignable many-to-many to a user, and extensible: an administrator can define a custom role as a named set of permissions. Roles grant *capabilities*; access to a specific object is decided separately by its ACL (section 11).
 
 | Role | Owns | Typical day |
 | --- | --- | --- |
@@ -208,25 +208,28 @@ MAYA ships eight roles, stored in the database, assignable many-to-many to a use
 | `model_developer` | Training warrants, parameter upload, experiment iteration | Draws a warrant, trains offline, uploads parameters with metrics |
 | `model_manager` | Approval of models, warrants and parameter sets | Challenges a parameter set, approves promotion to `approved` |
 | `model_owner` | Access policy for a model and its lineage; accountable for its use | Grants read-write to a desk, restricts a model to three users |
+| `model_validator` | Independent validation: findings and periodic reviews; approves nothing | Re-runs the blind score, raises a finding, records the annual review |
 | `techops` | Runtime health, job queues, retries, storage compaction, backups | Drains a worker, replays a failed materialization, runs a restore drill |
 
 **Capability matrix.** C = create, R = read, U = update, A = approve, P = pin/seal, G = grant access. A blank cell means no capability from the role; object ACLs can still grant read.
 
-| Capability | admin | feat des | feat mgr | mdl des | mdl dev | mdl mgr | mdl owner | techops |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Feature definition | CRUG | CRU | RA | R | R | R | R | R |
-| Feature pin | P | request | AP | | request | | | R |
-| Feature set | CRUG | CRU | RAP | R | CRU | R | R | R |
-| Model definition | CRUG | R | R | CRU | R | RA | RAG | R |
-| Python artifact | CRU | | R | CRU | RU | RA | R | R |
-| LaTeX spec | CRU | | R | CRU | RU | RA | R | R |
-| Training warrant | CRUG | | R | R | CRU | RAP | RG | R |
-| Parameter set | CRU | | | R | CRU | RA | R | R |
-| Execution warrant | CRUG | | | R | R | CRUAP | RAG | R |
-| Users and roles | CRUG | | | | | | | R |
-| Namespaces | CRUG | | | | | | | |
-| Workflow policy | CRUAG | | | | | | | |
-| Jobs and queues | CRU | R own | R own | R own | R own | R own | R own | CRU |
+| Capability | admin | feat des | feat mgr | mdl des | mdl dev | mdl mgr | mdl owner | mdl val | techops |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Feature definition | CRUG | CRU | RA | R | R | R | R | R | R |
+| Feature pin | P | request | AP | | request | | | R | R |
+| Feature set | CRUG | CRU | RAP | R | CRU | R | R | R | R |
+| Model definition | CRUG | R | R | CRU | R | RA | RAG | R | R |
+| Python artifact | CRU | | R | CRU | RU | RA | R | R | R |
+| LaTeX spec | CRU | | R | CRU | RU | RA | R | R | R |
+| Training warrant | CRUG | | R | R | CRU | RAP | RG | R | R |
+| Parameter set | CRU | | | R | CRU | RA | R | R | R |
+| Execution warrant | CRUG | | | R | R | CRUAP | RAG | R | R |
+| Users and roles | CRUG | | | | | | | | R |
+| Namespaces | CRUG | | | | | | | | |
+| Workflow policy | CRUAG | | | | | | | | |
+| Jobs and queues | CRU | R own | R own | R own | R own | R own | R own | R own | CRU |
+
+*Revision 2.8:* a ninth role, **`model_validator`**, for independent validation: it reads everything a model rests on, raises findings and records periodic reviews, and approves nothing. Recording a periodic review — which lifts the suspensions an overdue review caused — now needs `model_manager` or `model_validator`, never the model's owner; reading the model is no longer enough.
 
 *Revision 2.6:* three cells and two rows, all of them the document catching up with
 `maya/security/roles.py`, which is the matrix the code actually reads. The **model owner
@@ -2248,8 +2251,8 @@ and **one startup script** (§24.5).
 
 Two questions remain genuinely open, and neither blocks code:
 
-- **SoD preset for the first namespaces** — *Small team* (3 roles), *Standard* (6) or
-  *Regulated* (all 8, strict) (§28.9). All three ship; the question is what the seeded
+- **SoD preset for the first namespaces** — *Small team* (4 roles), *Standard* (all, two-person) or
+  *Regulated* (all, strict) (§28.9). All three ship; the question is what the seeded
   namespaces get.
 - **Who seeds the first two namespaces** (§28.11). The platform cannot create its own
   critical mass of curated features. This is a sponsorship question, not an engineering
@@ -2378,7 +2381,7 @@ Sections 1–26 describe a coherent system. Read adversarially, it has eleven re
 
 **The problem.** §3 assumes a firm with separate feature designers, feature managers, model designers, developers, managers and owners. A ten-person desk has three people wearing all eight hats, and strict SoD then blocks every transition.
 
-**The change.** Roles stay as the permission vocabulary, but MAYA ships **presets** — *Small team* (three roles), *Standard* (six), *Regulated* (all eight, strict SoD) — chosen at namespace creation and changeable. SoD strictness is a namespace setting with `strict`, `two_person` and `none`, and the UI states which is active on every review screen.
+**The change.** Roles stay as the permission vocabulary, but MAYA ships **presets** — *Small team* (four roles), *Standard* (every role, two-person SoD), *Regulated* (every role, strict SoD) — chosen at namespace creation and changeable. SoD strictness is a namespace setting with `strict`, `two_person` and `none`, and the UI states which is active on every review screen.
 
 ### 28.10 The 1,500-line rule measures the wrong thing
 

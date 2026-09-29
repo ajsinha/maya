@@ -253,6 +253,7 @@ def test_matrix_inputs_are_complete():
             "model_developer",
             "model_manager",
             "model_owner",
+            "model_validator",
             "techops",
         ]
     )
@@ -279,7 +280,7 @@ def test_full_matrix_zero_unexpected_allows_or_denies():
             if got != want:
                 kind = "UNEXPECTED ALLOW" if got else "unexpected deny"
                 mismatches.append(f"{kind}: {role} {action} {otype} state={state} ctx={cname}")
-    assert total == 8 * 13 * 12 * 8 * N_CONTEXTS == 219648
+    assert total == 9 * 13 * 12 * 8 * N_CONTEXTS == 247104
     assert not mismatches, _report(mismatches, total)
     for role, (denies, allows) in tally.items():
         assert allows and denies, f"{role}: {allows} allows, {denies} denies"
@@ -320,7 +321,7 @@ def test_api_key_sub_matrix():
                     f"{kind}: key={kname} {role} {action} {otype} "
                     f"state={state} ctx={cname} ns={obj_ns}"
                 )
-    assert total == 8 * 13 * 12 * 3 * 5 * 5 * 2 == 187200
+    assert total == 9 * 13 * 12 * 3 * 5 * 5 * 2 == 210600
     assert not mismatches, _report(mismatches, total)
     for kname, (denies, allows) in tally.items():
         assert allows and denies, f"key {kname}: {allows} allows, {denies} denies"

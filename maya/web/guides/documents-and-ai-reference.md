@@ -46,7 +46,7 @@ curl -s -X POST https://maya.example.com/api/v1/models/credit/pd_logit/documents
 
 The request is checked when you make it, so a refusal comes back at once rather than as a failed job: an unknown kind, a template that does not exist, or a template of another kind ("The template '…' is a model_card, not a validation_report"), and read access to the model. On the model's page the **Documents** tab does the same, and the finished document appears there.
 
-Each stored document records its kind, the template's name and SHA-256, the facts' SHA-256, the provider and model, one record per drafted section (key, instruction, whether it was drafted, and why not if it was not, with token counts), the Markdown and its SHA-256, and its state. Generation is audited as `document.generated` with the number of sections drafted.
+Each stored document records its kind, the template's name and SHA-256, the facts' SHA-256, every provider and model that drafted a section (comma-separated when sections used different profiles), one record per drafted section (key, instruction, whether it was drafted, and why not if it was not, with token counts), the Markdown and its SHA-256, and its state. Generation is audited as `document.generated` with the number of sections drafted.
 
 ## Templates, and how a firm overrides them
 
