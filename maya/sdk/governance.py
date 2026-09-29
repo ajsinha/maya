@@ -281,6 +281,11 @@ class Documents(_Resource):
     def approve(self, doc_id: str) -> Any:
         return self._c("POST", f"/documents/{seg(doc_id)}/approve")
 
+    @endpoint("DELETE", "/documents/{doc_id}")
+    def delete(self, doc_id: str) -> Any:
+        """Delete a draft document; an approved one cannot be deleted."""
+        return self._c("DELETE", f"/documents/{seg(doc_id)}")
+
 
 class Ai(_Resource):
     """The AI gateway: model profiles, the default, and the providers on offer."""

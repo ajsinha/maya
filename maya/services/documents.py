@@ -533,6 +533,33 @@ class DocumentService:
             }
         raise ValidationFailed("format must be md, html or pdf")
 
+    def delete(self, p: Principal, doc_id: str) -> dict[str, Any]:
+        """Remove a draft: whoever generated it, or anyone who may update the model. An
+        approved document is part of the record and is never deleted."""
+        row = self.get(p, doc_id)
+        if row["state"] != "draft":
+            raise ValidationFailed(
+                "Only a draft document can be deleted; an approved one is part of the record"
+            )
+        with self.p.uow(p.username) as uow:
+            model = uow.repo("models").require(row["model_id"])
+            if row["created_by"] != p.username:
+                self.p.access.require(uow, p, "update", "model", model)
+            uow.repo("model_documents").delete(doc_id)
+            ns = uow.repo("namespaces").require(model["namespace_id"])["name"]
+            uow.audit(
+                "document.deleted",
+                object_type="model",
+                object_ref=f"maya://model/{ns}/{model['name']}",
+                detail={
+                    "document": doc_id,
+                    "kind": row["kind"],
+                    "generated_by": row["created_by"],
+                    "content_sha256": row["content_sha256"],
+                },
+            )
+        return {"deleted": doc_id}
+
     def approve(self, p: Principal, doc_id: str) -> dict[str, Any]:
         """A person other than the one who generated it approves it, drafted sections and all."""
         row = self.get(p, doc_id)

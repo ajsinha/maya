@@ -1002,6 +1002,7 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `GET` | `/models/{namespace}/{name}/documents` | The documents generated for a model. |
 | `GET` | `/documents/{doc_id}` | One document, with its template, facts hash, provider and model, and its text with drafted sections labelled. |
 | `GET` | `/documents/{doc_id}/render` | The document as Markdown, HTML or PDF, with each drafted section labelled. |
+| `DELETE` | `/documents/{doc_id}` | Delete a draft document (an approved one is part of the record and stays). |
 | `POST` | `/documents/{doc_id}/approve` | Approve a document, drafted sections and all: someone other than whoever generated it. |
 | `POST` | `/warrants/execution/{ew_id}/batches` | Score a pin under a live execution warrant, as a job: output sealed by hash, the run reported and covenants evaluated, the custody chain updated. |
 | `GET` | `/warrants/execution/{ew_id}/batches` | The batches scored under an execution warrant. |
