@@ -57,7 +57,7 @@ USES = {
 OUTCOMES = ("satisfactory", "needs_improvement", "unsatisfactory")
 REVIEW_DAYS = {1: 365, 2: 730, 3: 1095}
 REVIEW_REASON = "Periodic review overdue"
-REVIEWER_ROLES = ("model_manager", "model_validator")
+REVIEWER_ROLES = ("admin", "model_manager", "model_validator")
 
 
 def _date(value: Any) -> dt.date | None:
@@ -533,8 +533,8 @@ class GovernanceService:
 
     # -- periodic review ------------------------------------------------------------
     def record_review(self, p: Principal, model: str, outcome: str, note: str) -> dict[str, Any]:
-        """The dated act of looking at a model again, by a model manager or a validator, and
-        never by its owner. A review lifts the suspensions the overdue sweep made, so it is
+        """The dated act of looking at a model again, by a model manager, a validator or an
+        administrator, and never by its owner. A review lifts the suspensions the overdue sweep made, so it is
         not something anyone who can read the model may do."""
         if outcome not in OUTCOMES:
             raise ValidationFailed(f"outcome is one of {', '.join(OUTCOMES)}")
@@ -546,7 +546,7 @@ class GovernanceService:
                 raise PermissionDenied("A model's owner does not review their own model")
             if not set(REVIEWER_ROLES) & set(p.roles):
                 raise PermissionDenied(
-                    "A periodic review is recorded by a model manager or a model validator",
+                    "A periodic review is recorded by a model manager, a model validator or an administrator",
                     roles=list(REVIEWER_ROLES),
                 )
             now = utcnow()

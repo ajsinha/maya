@@ -125,7 +125,7 @@ print(out["next_review_due"], out["reinstated"])
 |---|---|
 | Outcome | `satisfactory`, `needs_improvement` or `unsatisfactory`. |
 | Note | Required: "A review records what was looked at and what was concluded". |
-| Who | A **model manager** or a **model validator** who can read the model, and never its owner: "A model's owner does not review their own model"; anyone else is refused with "A periodic review is recorded by a model manager or a model validator". A review lifts the sweep's suspensions, which is why reading the model is not enough. |
+| Who | A **model manager**, a **model validator** or an **administrator** who can read the model, and never its owner: "A model's owner does not review their own model"; anyone else is refused with "A periodic review is recorded by a model manager, a model validator or an administrator". A review lifts the sweep's suspensions, which is why reading the model is not enough. |
 | Record | A row in the review history with the tier and the next due date at the time; audit `governance.reviewed`. |
 
 The outcome is recorded, not acted on: an `unsatisfactory` review resets the clock like any other, and what follows from it is a separate, deliberate act.

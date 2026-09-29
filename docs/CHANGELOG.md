@@ -7,7 +7,7 @@
 - **`model_validator`**, a ninth shipped role for independent validation: it reads
   everything a model rests on, raises findings and records periodic reviews, and approves
   nothing. It is in the `standard` and `regulated` presets.
-- **Recording a periodic review needs `model_manager` or `model_validator`** (and is still
+- **Recording a periodic review needs `model_manager`, `model_validator` or `admin`** (and is still
   never done by the model's owner). A review lifts the suspensions an overdue review caused,
   so reading the model is no longer enough.
 - **Editing a governance profile changes only the fields sent.** Setting one field (the review

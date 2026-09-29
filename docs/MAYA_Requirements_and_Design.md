@@ -229,7 +229,7 @@ MAYA ships nine roles, stored in the database, assignable many-to-many to a user
 | Workflow policy | CRUAG | | | | | | | | |
 | Jobs and queues | CRU | R own | R own | R own | R own | R own | R own | R own | CRU |
 
-*Revision 2.8:* a ninth role, **`model_validator`**, for independent validation: it reads everything a model rests on, raises findings and records periodic reviews, and approves nothing. Recording a periodic review — which lifts the suspensions an overdue review caused — now needs `model_manager` or `model_validator`, never the model's owner; reading the model is no longer enough.
+*Revision 2.8:* a ninth role, **`model_validator`**, for independent validation: it reads everything a model rests on, raises findings and records periodic reviews, and approves nothing. Recording a periodic review — which lifts the suspensions an overdue review caused — now needs `model_manager`, `model_validator` or `admin`, never the model's owner; reading the model is no longer enough.
 
 *Revision 2.6:* three cells and two rows, all of them the document catching up with
 `maya/security/roles.py`, which is the matrix the code actually reads. The **model owner
