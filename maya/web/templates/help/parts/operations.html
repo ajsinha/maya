@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('One file, three overrides, no surprises at first use') %}
 <p>All configuration lives in <code>config/application.yaml</code>, a tracked file that carries no
 secret. Settings that change MAYA's behaviour — database dialect, environment, auth mode, sandbox tier —
@@ -39,7 +37,7 @@ from, with passwords, secrets and tokens redacted.</p>
 single node and a small team: one writer at a time. For the same reason SQLite refuses several web
 processes: <code>server.workers</code> above 1 needs PostgreSQL, because the lock that keeps linking the
 audit chain and numbering versions atomic lives inside one process. See the
-<a href="/help/guides/operations-guide">operations guide</a>.</p>
+<a href="/help/operations#reference">operations guide</a>.</p>
 {% endcall %}
 {% endcall %}
 
@@ -101,4 +99,3 @@ MAYA_TEST_PG_URL=postgresql+psycopg://maya:…@localhost/maya_test python -m pyt
   ('activity', 'Metrics and tracing', 'What to scrape and how to follow a request.'),
   ('journal-text', 'Audit and custody', 'The chain that verify-integrity walks, and its anchors.'),
 ]) }}
-{% endblock %}

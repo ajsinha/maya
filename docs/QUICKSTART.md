@@ -279,4 +279,4 @@ python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt -r require
 | Learn the product step by step in the browser | *Help → Guides* inside MAYA: four tutorials, from a first feature to a governed change |
 | See complete worked examples | [`case_studies/README.md`](../case_studies/README.md) |
 | Write a program that uses MAYA | [`API_GUIDE.md`](API_GUIDE.md) |
-| Run it for real (PostgreSQL, single sign-on, backups) | *Help → Guides → Operations guide* and [`runbooks/`](runbooks/README.md) |
+| Run it for real (PostgreSQL, single sign-on, backups) | *Help → Operations and monitoring* and [`runbooks/`](runbooks/README.md) |

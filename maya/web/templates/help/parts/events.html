@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Every event is backed by a committed audit entry') %}
 <p>An event is written by the same transaction as the audit entry that caused it. So an event can never
 describe something that did not commit, and nothing that committed goes unannounced. Events are
@@ -108,7 +106,6 @@ observability:
 {% call tip('Watch the backlog') %}
 <p>The gauge <code>maya_webhook_backlog{state="pending|dead"}</code> and the counter
 <code>maya_webhook_deliveries_total{outcome=…}</code> are on <code>/metrics</code>; see
-<a href="/help/observability">Metrics and tracing</a>.</p>
+<a href="/help/operations#observability">Metrics and tracing</a>.</p>
 {% endcall %}
 {% endcall %}
-{% endblock %}

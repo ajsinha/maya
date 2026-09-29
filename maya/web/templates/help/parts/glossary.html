@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Three words carry most of MAYA') %}
 <p>A <strong>definition</strong> says how a number is produced. A <strong>version</strong> freezes the
 definition — <em>how</em>. A <strong>pin</strong> freezes the resolved data — <em>what</em>. Almost
@@ -70,6 +68,21 @@ maya://model/eq/linear@v1           a model version
   ('execution warrant', 'a live licence to run a trained model; revocable, and suspended on a covenant breach'),
   ('covenant', 'a declared bound on inputs or outputs; breaching it suspends the execution warrant'),
   ('bundle', 'a signed reproducibility archive that verifies offline'),
+  ('restatement impact', 'what a correction to the data under a live model\'s training pin changed: rows, holdout metrics both ways, prediction shift; open until its owner acknowledges it'),
+  ('batch scoring', 'MAYA scoring a pin under a live execution warrant, attested by its output hash and reported like any run'),
+]) }}
+
+<h2>Model risk, documents and language models</h2>
+{{ fields([
+  ('tier', 'a model\'s materiality, derived from its questionnaire and measured drivers (or overridden with a reason); sets its periodic review interval'),
+  ('periodic review', 'the dated act of looking at a model again; when overdue, the governance sweep suspends its live execution warrants'),
+  ('finding', 'a validation issue recorded against a model, with a severity and a state, moved to closure with evidence'),
+  ('champion / challenger', 'two models scored on the same escrowed holdout, and the recorded decision between them'),
+  ('model document', 'a model card, validation report or model documentation generated from the record by a template; drafted sections stay labelled until a second person approves'),
+  ('AI gateway', 'the one place MAYA asks a language model anything; every call is audited'),
+  ('model profile', 'a named choice of provider, model and parameters that callers ask for instead of a provider; the default can be switched at runtime'),
+  ('LLM application', 'an application built on a language model, governed like a model: versioned prompts and parameters, evaluation sets, approval'),
+  ('evaluation set', 'test cases with checks that an LLM application version is scored against, by a recorded or a live run'),
 ]) }}
 
 <h2>Governance</h2>
@@ -100,4 +113,3 @@ maya://model/eq/linear@v1           a model version
   ('model_owner', 'access policy for a model and its lineage; accountable for its use'),
   ('techops', 'runtime health, job queues, retries, storage compaction, backups'),
 ]) }}
-{% endblock %}

@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('MAYA in sixty seconds') %}
 <p>MAYA is the system of record for quantitative <strong>features</strong>, <strong>feature sets</strong>,
 <strong>models</strong> and the <strong>warrants</strong> that license a model to be trained or run. A number
@@ -40,8 +38,9 @@ start MAYA.</p>
 {% call step(2, 'Sign in and change the bootstrap password') %}
 <p>Open <code>http://localhost:8600</code>. Signed out, that is the landing page, not a password
 box; take <strong>Sign in</strong> from it and sign in as <strong>admin</strong> with
-<code>maya-dev-admin</code>. MAYA makes you choose your own password before anything else, and shows a
-warning on every page until you do. Afterwards <code>/</code> is your dashboard, and signing out
+<code>maya-dev-admin</code>. Change it from <strong>Account</strong> straight away: MAYA shows a warning
+on every page until you do, but it only <em>makes</em> you change it at sign-in when
+<code>auth.password.force_change</code> is on (it is off by default, since with SSO it is rarely wanted). Afterwards <code>/</code> is your dashboard, and signing out
 returns you to the landing page.</p>
 {% call warn('The bootstrap password is public') %}
 <p>It is printed in this help and in the README. Outside a laptop, change it before creating any
@@ -107,4 +106,3 @@ a validator: they will all see exactly what you saw.</p>
   ('clock-history', 'Bitemporality', 'Why a restatement never overwrites, and how to ask what you knew when.'),
   ('mortarboard', 'Training warrants', 'Bind a model to a pin and get a signed leakage certificate.'),
 ]) }}
-{% endblock %}

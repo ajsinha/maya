@@ -244,7 +244,7 @@ by default. `my.workflow.request_access(kind, ref, level=…, reason=…)`,
 `my.workflow.decide_access_request(id, approve=…, note=…, days=…)`, and
 `my.workflow.access_check(kind, ref, action=…)` for the reason itself. The full rules,
 including who receives the item and what is audited, are in the
-[workflow reference](/help/guides/workflow-reference).
+[workflow reference](/help/workflow#reference).
 
 !!! note "Who can actually answer"
     An approving decision issues the grant under the decider's own principal, so it needs

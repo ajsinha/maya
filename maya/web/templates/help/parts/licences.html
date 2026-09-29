@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Terms that follow the data') %}
 <p>A feature built on licensed market data inherits that vendor's terms, and so does everything built from
 it. MAYA lets a source declare its terms in a <code>licence</code> block, and computes an object's
@@ -110,4 +108,3 @@ part of the definition — it is inside the versioned definition, so a change to
   ('diagram-3', 'The algebra', 'How derived features combine their operands, and their terms.'),
   ('box-seam', 'Bundles', 'The external exit, and why it needs external redistribution.'),
 ]) }}
-{% endblock %}

@@ -711,6 +711,16 @@ SETTINGS: tuple[Setting, ...] = (
         "The materiality questionnaire a model's owner answers; blank for measured drivers only.",
         "config/tiering.yaml",
     ),
+    *(
+        _s(
+            f"governance.review_days_tier{tier}",
+            "int",
+            f"Days between periodic reviews of a tier {tier} model, unless its profile sets its own.",
+            str(days),
+            minimum=1,
+        )
+        for tier, days in ((1, 365), (2, 730), (3, 1095))
+    ),
     # -- connectors -----------------------------------------------------------------
     _s(
         "integrations.mlflow.tracking_uri",

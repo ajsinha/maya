@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+**Help, consolidated and checked against the code**
+
+- **One page per subject.** The help index has 19 subject cards instead of about 44: each
+  subject page opens with its worked explanation and continues with its full reference, so
+  the overview and the detail are no longer two cards that half repeat each other. Every old
+  address redirects to where its content went, anchors included. Tutorials and the two
+  catalogues (REST API, configuration) stay in the library at `/help/guides`.
+- **New subjects** for what the help did not cover: *Model risk governance* (tiering, the
+  inventory, periodic review, findings, monitoring, champion/challenger, evidence, dispatch
+  and refit, batch scoring, restatement alerts), *Model documents and the AI gateway*,
+  *LLM applications* and *Events and integrations* (MLflow, SageMaker, OpenLineage).
+- **Corrected:** the first sign-in does not force a password change unless
+  `auth.password.force_change` is on; the password policy defaults are 8 characters and 2
+  character classes (two guides said 12 and 3); the assistant's `llm` provider, the AI
+  gateway's providers and what they send; the screen tour's menus; the `input_psi` covenant.
+  The configuration reference now lists every setting (40 were missing), and namespace purge
+  and nine glossary terms are documented.
+- **Kept honest by tests:** every setting, stated default, REST call, SDK call, CLI command,
+  repository path and metric the help names is checked against the code; the configuration
+  reference must cover every setting; every link between help pages must land on a page and
+  an anchor that exist.
+
+**Fixed while documenting**
+
+- A live evaluation of an `azure_openai` LLM application version now calls the deployment the
+  version declares as its model, rather than the one in `llm.azure_openai.deployment`.
+- A language-model call that fails is audited as `ai.completion_failed`, not only counted.
+- The per-tier periodic review intervals, which the code read but no setting declared, are now
+  settings: `governance.review_days_tier1`, `…tier2`, `…tier3` (365, 730, 1,095 days).
+- A warrant's batch list no longer hides older batches behind other warrants' newer ones.
+- The built-in validation report counts `remediating` findings as open.
+
 **Observability for model governance, with dashboards**
 
 - **Governance metrics** on `/metrics`: execution warrants by status and those expiring

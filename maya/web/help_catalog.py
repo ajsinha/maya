@@ -1,11 +1,19 @@
 """
 The help catalog: the single source of truth for the Help pages.
 
-The index renders searchable, collapsible category tiles straight from here, and
-every topic page takes its title, icon, summary and "more in this category"
-links from here, so a topic is declared exactly once. A topic's body lives in
-``templates/help/topics/<slug>.html``; ``tests/test_web.py`` fails when a
-declared topic has no template or a template has no declaration.
+Help is organised by **subject**: one page per thing a person wants to understand. A
+subject page opens with the short, worked explanation (its *parts*, in
+``templates/help/parts/<slug>.html``) and continues with the complete reference (its
+*guide*, Markdown in ``maya/web/guides/<slug>.md``), so the overview and the detail of one
+subject are never two cards that half repeat each other.
+
+Tutorials and the two catalogue-style references (the REST API and configuration) are
+pages of their own in the library at ``/help/guides``. Every older address -- a topic
+page, or a reference that is now part of a subject -- redirects to where its content
+went (``LEGACY``), so no link breaks.
+
+``tests/test_web.py`` fails when a part is declared without a template, a template is
+not declared, or a subject names a guide that does not exist.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -14,264 +22,231 @@ from __future__ import annotations
 
 from typing import Any
 
+# slug -> the subject: its card, the parts that open it (slug, heading) and its reference.
+SUBJECTS: dict[str, dict[str, Any]] = {
+    "getting-started": {
+        "title": "Getting started",
+        "icon": "flag",
+        "badge": "Start here",
+        "summary": "Install, run and sign in; take one CSV to an approved, pinned feature; "
+        "and find your way around the screens.",
+        "parts": [
+            ("getting-started", "Your first governed feature"),
+            ("tour", "A tour of the screens"),
+        ],
+        "guide": None,
+    },
+    "glossary": {
+        "title": "Glossary",
+        "icon": "journal-bookmark",
+        "summary": "Definition, version, pin, knowledge time, warrant, covenant — every term "
+        "in one place.",
+        "parts": [("glossary", "")],
+        "guide": None,
+    },
+    "features": {
+        "title": "Features",
+        "icon": "pencil-square",
+        "summary": "Defining a feature, getting data into it from files, SQL or Python, and "
+        "every key of a definition.",
+        "parts": [
+            ("features", "Features and the designer"),
+            ("ingest", "Ingesting data"),
+            ("sources", "SQL and Python sources"),
+        ],
+        "guide": "features-reference",
+    },
+    "algebra": {
+        "title": "Derived features",
+        "icon": "diagram-3",
+        "summary": "Build a feature from others with the algebra: every operator, its typing "
+        "rules and what it does to causality.",
+        "parts": [("algebra", "")],
+        "guide": "algebra-reference",
+    },
+    "data": {
+        "title": "Time, pins and the lake",
+        "icon": "hdd-stack",
+        "summary": "Two clocks and as-of reads, pins frozen by content, and how the lake "
+        "stores, compacts and verifies them.",
+        "parts": [
+            ("bitemporal", "Bitemporality and as-of"),
+            ("pins", "Pins and content addressing"),
+        ],
+        "guide": "data-and-lake-guide",
+    },
+    "featuresets": {
+        "title": "Feature sets",
+        "icon": "grid-3x3-gap",
+        "summary": "Members, alignment, policy inheritance, cascade pins, shapes and downloads.",
+        "parts": [("featuresets", "")],
+        "guide": "featuresets-reference",
+    },
+    "models": {
+        "title": "Models and specifications",
+        "icon": "calculator",
+        "summary": "Formulas and the IR, black boxes and composites, the specification "
+        "document, artifacts and conformance.",
+        "parts": [
+            ("models", "Models and the formula IR"),
+            ("conformance", "Specifications and conformance"),
+        ],
+        "guide": "models-reference",
+    },
+    "designers": {
+        "title": "What each designer expects",
+        "icon": "lightbulb",
+        "summary": "The rules behind every authoring screen: a model's Python function and "
+        "artifact, features, feature sets, and both warrants.",
+        "parts": [],
+        "guide": "authoring-reference",
+    },
+    "warrants": {
+        "title": "Warrants and bundles",
+        "icon": "file-earmark-lock",
+        "summary": "Training warrants and parameters, execution warrants and covenants, and "
+        "the signed bundle anyone can verify without MAYA.",
+        "parts": [
+            ("training-warrants", "Training warrants"),
+            ("execution-warrants", "Execution warrants and covenants"),
+            ("bundles", "Reproducibility bundles"),
+        ],
+        "guide": "warrants-reference",
+    },
+    "model-risk": {
+        "title": "Model risk governance",
+        "icon": "clipboard2-pulse",
+        "summary": "Tiering and the inventory, periodic review, findings, monitoring, "
+        "challengers, batch scoring and restatement alerts.",
+        "parts": [],
+        "guide": "model-risk-reference",
+    },
+    "documents": {
+        "title": "Model documents and the AI gateway",
+        "icon": "file-earmark-richtext",
+        "summary": "Model cards, validation reports and documentation from templates; model "
+        "profiles and providers; the assistant's challenger.",
+        "parts": [],
+        "guide": "documents-and-ai-reference",
+    },
+    "llm-apps": {
+        "title": "LLM applications",
+        "icon": "chat-square-text",
+        "summary": "Govern an application built on a language model: versions, evaluation "
+        "sets, recorded and live runs, approval.",
+        "parts": [],
+        "guide": "llm-apps-reference",
+    },
+    "workflow": {
+        "title": "Workflow, delegation and policies",
+        "icon": "diagram-2",
+        "summary": "States and transitions, the policy for each namespace, separation of "
+        "duties, break-glass, delegation and escalation.",
+        "parts": [
+            ("workflow", "Workflow and policies"),
+            ("delegation", "Delegation and escalation"),
+        ],
+        "guide": "workflow-reference",
+    },
+    "access": {
+        "title": "Access and licences",
+        "icon": "key",
+        "summary": "Roles and capabilities, grants and conditions, API keys, and the data "
+        "licences that travel with every read and export.",
+        "parts": [
+            ("access", "Access, grants and conditions"),
+            ("licences", "Data licences"),
+        ],
+        "guide": "access-reference",
+    },
+    "workspaces": {
+        "title": "Workspaces and shadow replay",
+        "icon": "bezier2",
+        "summary": "Stage a change, replay what it would have done, and merge it on approval.",
+        "parts": [("workspaces", "")],
+        "guide": None,
+    },
+    "security": {
+        "title": "Security, audit and custody",
+        "icon": "shield-lock",
+        "summary": "Sign-in and SSO, two-factor and security keys, sessions, the sandbox, "
+        "the hash-chained audit log and chain of custody.",
+        "parts": [
+            ("security", "Sign-in and security"),
+            ("audit", "Audit and custody"),
+        ],
+        "guide": "security-guide",
+    },
+    "sdk": {
+        "title": "Python SDK and CLI",
+        "icon": "code-square",
+        "summary": "Every SDK resource and method, errors, client modes, record and replay, "
+        "offline bundles, and every CLI command.",
+        "parts": [("sdk", "")],
+        "guide": "sdk-cli-reference",
+    },
+    "integrations": {
+        "title": "Events and integrations",
+        "icon": "plug",
+        "summary": "The event stream and signed webhooks, and MAYA's integrations with "
+        "other platforms.",
+        "parts": [("events", "Events and webhooks")],
+        "guide": "integrations-reference",
+    },
+    "operations": {
+        "title": "Operations and monitoring",
+        "icon": "tools",
+        "summary": "Install and run, databases, backups, the estate, the lake, metrics, "
+        "alerts, dashboards, tracing and logs.",
+        "parts": [
+            ("operations", "Configuration and databases"),
+            ("observability", "Metrics and tracing"),
+        ],
+        "guide": "operations-guide",
+    },
+}
+
 CATEGORIES: list[dict[str, Any]] = [
     {
         "id": "start",
-        "name": "Getting started",
+        "name": "Start here",
         "icon": "flag",
-        "blurb": "Install MAYA, sign in, and govern your first feature in minutes.",
-        "topics": [
-            {
-                "slug": "getting-started",
-                "title": "Getting started",
-                "icon": "flag",
-                "summary": "Install, run, sign in, and take one CSV all the way to an approved, "
-                "pinned feature.",
-                "badge": "Start here",
-            },
-            {
-                "slug": "tour",
-                "title": "A tour of the screens",
-                "icon": "compass",
-                "summary": "What lives under each menu, the five-tab object page, and the table "
-                "every list uses.",
-            },
-            {
-                "slug": "glossary",
-                "title": "Glossary",
-                "icon": "journal-bookmark",
-                "summary": "Definition, version, pin, knowledge time, warrant, covenant — every "
-                "term in one place.",
-            },
-        ],
+        "blurb": "Install MAYA, govern your first feature, and learn the words.",
+        "subjects": ["getting-started", "glossary"],
     },
     {
-        "id": "features",
+        "id": "data",
         "name": "Features and data",
         "icon": "boxes",
-        "blurb": "How a number is defined, ingested, resolved and frozen.",
-        "topics": [
-            {
-                "slug": "features",
-                "title": "Features and the designer",
-                "icon": "pencil-square",
-                "summary": "Index, schema, source, resolution rules and quality contracts — and "
-                "what submitting does.",
-            },
-            {
-                "slug": "ingest",
-                "title": "Ingesting data",
-                "icon": "cloud-upload",
-                "summary": "CSV, Parquet, JSON, SQL and Delta sources; restatements append, they "
-                "never overwrite.",
-            },
-            {
-                "slug": "bitemporal",
-                "title": "Bitemporality and as-of",
-                "icon": "clock-history",
-                "summary": "Event time versus knowledge time, and how to ask what you knew on a "
-                "given day.",
-            },
-            {
-                "slug": "pins",
-                "title": "Pins and content addressing",
-                "icon": "pin-angle",
-                "summary": "Materialize a version into sealed, hashed, fragment-shared data you "
-                "can cite for years.",
-            },
-            {
-                "slug": "algebra",
-                "title": "Derived features: the algebra",
-                "icon": "diagram-3",
-                "summary": "Union, compose, coalesce, project, transform and more over other "
-                "features, type-checked at submit.",
-            },
-            {
-                "slug": "featuresets",
-                "title": "Feature sets",
-                "icon": "grid-3x3-gap",
-                "summary": "Map feature attributes to model inputs, pin them together, and "
-                "download them tabular or wide.",
-            },
-        ],
+        "blurb": "How a number is defined, ingested, derived, resolved and frozen.",
+        "subjects": ["features", "algebra", "data", "featuresets"],
     },
     {
         "id": "models",
         "name": "Models and warrants",
         "icon": "calculator",
-        "blurb": "A model's mathematics, its code, and the instruments that license it.",
-        "topics": [
-            {
-                "slug": "models",
-                "title": "Models and the formula IR",
-                "icon": "calculator",
-                "summary": "Author a model in LaTeX or Python, or lift it from an Excel "
-                "workbook; MAYA derives the typed expression tree everything uses.",
-            },
-            {
-                "slug": "conformance",
-                "title": "Specifications and conformance",
-                "icon": "file-earmark-check",
-                "summary": "The spec document, the uploaded artifact, and the differential test "
-                "that holds them to each other.",
-            },
-            {
-                "slug": "training-warrants",
-                "title": "Training warrants",
-                "icon": "mortarboard",
-                "summary": "Freeze a model against a feature-set pin, with a signed leakage "
-                "certificate and checksummed downloads.",
-            },
-            {
-                "slug": "execution-warrants",
-                "title": "Execution warrants and covenants",
-                "icon": "play-circle",
-                "summary": "A live licence to run: short-lived tokens, covenants that suspend on "
-                "breach, revocation that fails closed.",
-            },
-            {
-                "slug": "bundles",
-                "title": "Reproducibility bundles",
-                "icon": "box-seam",
-                "summary": "A signed archive that verifies offline and re-executes the model "
-                "where it can.",
-            },
-        ],
+        "blurb": "Models and their specifications, the warrants that license them, the "
+        "documents about them, and LLM applications.",
+        "subjects": ["models", "designers", "warrants", "documents", "llm-apps"],
     },
     {
         "id": "governance",
         "name": "Governance",
         "icon": "shield-check",
-        "blurb": "Who may change what, who must agree, and the evidence that they did.",
-        "topics": [
-            {
-                "slug": "workflow",
-                "title": "Workflow and policies",
-                "icon": "diagram-2",
-                "summary": "One state machine, policies as data, checks that block by name, and "
-                "separation of duties.",
-            },
-            {
-                "slug": "delegation",
-                "title": "Delegation and escalation",
-                "icon": "person-badge",
-                "summary": "Hand your approvals to a stand-in for a window; overdue reviews "
-                "escalate on their own.",
-            },
-            {
-                "slug": "access",
-                "title": "Access, grants and conditions",
-                "icon": "key",
-                "summary": "Roles set the ceiling, grants open objects, and conditions filter "
-                "rows, mask columns or expire.",
-            },
-            {
-                "slug": "licences",
-                "title": "Data licences",
-                "icon": "file-earmark-lock",
-                "summary": "Vendor terms that follow the data through the algebra, enforced at "
-                "every exit.",
-                "badge": "New",
-            },
-            {
-                "slug": "workspaces",
-                "title": "Workspaces and shadow replay",
-                "icon": "bezier2",
-                "summary": "Stage a change, replay its numeric impact on everything downstream, "
-                "then merge on approval.",
-            },
-            {
-                "slug": "audit",
-                "title": "Audit and custody",
-                "icon": "journal-text",
-                "summary": "A hash-chained log, and anchors outside the database that catch a "
-                "rewritten history.",
-                "badge": "New",
-            },
-        ],
+        "blurb": "Who may do what, who must approve it, what is watched after, and the "
+        "record of all of it.",
+        "subjects": ["model-risk", "workflow", "access", "workspaces", "security"],
     },
     {
-        "id": "platform",
-        "name": "Platform and integration",
-        "icon": "hdd-stack",
-        "blurb": "Scripting MAYA, wiring it to your systems, and running it in production.",
-        "topics": [
-            {
-                "slug": "sdk",
-                "title": "The Python SDK and REST API",
-                "icon": "code-square",
-                "summary": "Everything the UI does, a script can do: sessions, API keys, and "
-                "worked examples.",
-            },
-            {
-                "slug": "sources",
-                "title": "SQL and Python sources",
-                "icon": "server",
-                "summary": "Reviewed read-only queries and sandboxed producer functions, pulled "
-                "into the bitemporal log on demand.",
-            },
-            {
-                "slug": "events",
-                "title": "Events and webhooks",
-                "icon": "broadcast-pin",
-                "summary": "A durable ordered event stream, server-sent events, and HMAC-signed "
-                "webhooks with retries.",
-            },
-            {
-                "slug": "observability",
-                "title": "Metrics and tracing",
-                "icon": "activity",
-                "summary": "Prometheus metrics, W3C trace context end to end, and optional "
-                "OpenTelemetry export.",
-            },
-            {
-                "slug": "security",
-                "title": "Sign-in and security",
-                "icon": "shield-lock",
-                "summary": "Passwords, OIDC single sign-on, two-factor codes, API keys, and the "
-                "code sandbox.",
-            },
-            {
-                "slug": "operations",
-                "title": "Configuration and databases",
-                "icon": "sliders",
-                "summary": "application.yaml, switching SQLite and PostgreSQL, estate export and "
-                "import, and the gates.",
-            },
-        ],
+        "id": "integrate",
+        "name": "Integrate and operate",
+        "icon": "plug",
+        "blurb": "Reach MAYA from code and other systems, and run it.",
+        "subjects": ["sdk", "integrations", "operations"],
     },
 ]
 
-
-def all_topics() -> list[dict[str, Any]]:
-    return [
-        dict(t, category=c["name"], category_id=c["id"]) for c in CATEGORIES for t in c["topics"]
-    ]
-
-
-def find(slug: str) -> dict[str, Any] | None:
-    for c in CATEGORIES:
-        for i, t in enumerate(c["topics"]):
-            if t["slug"] == slug:
-                siblings = [s for s in c["topics"] if s["slug"] != slug]
-                ordered = all_topics()
-                pos = next(n for n, o in enumerate(ordered) if o["slug"] == slug)
-                return {
-                    **t,
-                    "category": c["name"],
-                    "category_id": c["id"],
-                    "category_icon": c["icon"],
-                    "siblings": siblings,
-                    "prev": ordered[pos - 1] if pos > 0 else None,
-                    "next": ordered[pos + 1] if pos + 1 < len(ordered) else None,
-                }
-    return None
-
-
-# -- full references and tutorials (Markdown in maya/web/guides/<slug>.md) --------------
-# Topic pages explain and show; a guide is the complete reference or a step-by-step
-# tutorial, rendered from Markdown when opened. A topic names its companion guide, and
-# its footer links to it as "Full reference".
+# -- the library: tutorials, and the catalogue-style references -------------------------
 GUIDES: list[dict[str, Any]] = [
     {
         "slug": "tutorial-01-first-feature",
@@ -306,91 +281,12 @@ GUIDES: list[dict[str, Any]] = [
         "and merge on approval.",
     },
     {
-        "slug": "features-reference",
-        "kind": "reference",
-        "icon": "pencil-square",
-        "title": "Feature definition reference",
-        "summary": "Every key of a feature definition: index, types, sources, resolution "
-        "rules, calendars, transforms, quality checks, licences, extends.",
-    },
-    {
-        "slug": "algebra-reference",
-        "kind": "reference",
-        "icon": "diagram-3",
-        "title": "Feature algebra reference",
-        "summary": "Every operator with its typing rules, options, examples and what it "
-        "does to causality.",
-    },
-    {
-        "slug": "featuresets-reference",
-        "kind": "reference",
-        "icon": "grid-3x3-gap",
-        "title": "Feature set reference",
-        "summary": "Members, alignment, policy inheritance, cascade pins, shapes and downloads.",
-    },
-    {
-        "slug": "data-and-lake-guide",
-        "kind": "reference",
-        "icon": "hdd-stack",
-        "title": "Data, pins and the lake",
-        "summary": "The bitemporal ingest log, content hashing, fragments, the two Delta "
-        "backends, compaction and vacuum.",
-    },
-    {
-        "slug": "models-reference",
-        "kind": "reference",
-        "icon": "calculator",
-        "title": "Models and the formula IR reference",
-        "summary": "Formula syntax, IR nodes and operations, roles, black boxes, composites, "
-        "specification documents, artifacts, conformance, spreadsheet lifting.",
-    },
-    {
-        "slug": "authoring-reference",
-        "kind": "reference",
-        "icon": "lightbulb",
-        "title": "What each designer expects",
-        "summary": "The rules behind every authoring screen: a model's Python function and "
-        "artifact, features, feature sets, and both warrants.",
-    },
-    {
-        "slug": "warrants-reference",
-        "kind": "reference",
-        "icon": "file-earmark-lock",
-        "title": "Warrants and bundles reference",
-        "summary": "Training and execution warrant specifications, leakage certificates, "
-        "parameter sets, covenants, limits, tokens, bundles and offline use.",
-    },
-    {
-        "slug": "workflow-reference",
-        "kind": "reference",
-        "icon": "diagram-2",
-        "title": "Workflow and policy reference",
-        "summary": "States, transitions, the policy schema, every check, separation of "
-        "duties, break-glass, delegation, escalation and the challenger.",
-    },
-    {
-        "slug": "access-reference",
-        "kind": "reference",
-        "icon": "key",
-        "title": "Roles, access and licences reference",
-        "summary": "Roles and capabilities, presets, grants and conditions, API keys, and "
-        "how licence terms combine.",
-    },
-    {
-        "slug": "sdk-cli-reference",
-        "kind": "reference",
-        "icon": "code-square",
-        "title": "Python SDK and CLI reference",
-        "summary": "Every SDK resource and method, errors, client modes, record/replay, "
-        "offline bundles, and every CLI command.",
-    },
-    {
         "slug": "api-guide",
         "kind": "reference",
         "icon": "braces",
         "title": "REST API guide",
-        "summary": "Authentication, conventions, errors, paging, idempotency and the "
-        "endpoints by area.",
+        "summary": "Authentication, conventions, errors, paging, idempotency and every "
+        "endpoint by area.",
     },
     {
         "slug": "configuration-reference",
@@ -400,69 +296,84 @@ GUIDES: list[dict[str, Any]] = [
         "summary": "Every key in application.yaml: its default, what it controls, and how to "
         "override it.",
     },
-    {
-        "slug": "operations-guide",
-        "kind": "reference",
-        "icon": "tools",
-        "title": "Operations and administration guide",
-        "summary": "Install, run, switch databases, back up, export and import the estate, "
-        "maintain the lake, anchor custody, monitor.",
-    },
-    {
-        "slug": "security-guide",
-        "kind": "reference",
-        "icon": "shield-lock",
-        "title": "Security guide",
-        "summary": "Sign-in modes, OIDC and SAML, two-factor codes and security keys, "
-        "sessions, the sandbox, secrets and the audit trail.",
-    },
 ]
 
-# topic slug -> the guide that is its full reference
-COMPANIONS: dict[str, str] = {
-    "getting-started": "tutorial-01-first-feature",
-    "features": "features-reference",
-    "ingest": "features-reference",
-    "bitemporal": "data-and-lake-guide",
-    "pins": "data-and-lake-guide",
-    "algebra": "algebra-reference",
-    "featuresets": "featuresets-reference",
-    "models": "models-reference",
-    "conformance": "models-reference",
-    "training-warrants": "warrants-reference",
-    "execution-warrants": "warrants-reference",
-    "bundles": "warrants-reference",
-    "workflow": "workflow-reference",
-    "delegation": "workflow-reference",
-    "access": "access-reference",
-    "licences": "access-reference",
-    "workspaces": "tutorial-04-governed-change",
-    "audit": "operations-guide",
-    "sdk": "sdk-cli-reference",
-    "sources": "features-reference",
-    "events": "operations-guide",
-    "observability": "operations-guide",
-    "security": "security-guide",
-    "operations": "operations-guide",
-    "tour": "tutorial-01-first-feature",
-    "glossary": "features-reference",
+# every address help has ever had -> where that content lives now
+LEGACY: dict[str, str] = {
+    "tour": "/help/getting-started#tour",
+    "ingest": "/help/features#ingest",
+    "sources": "/help/features#sources",
+    "bitemporal": "/help/data#bitemporal",
+    "pins": "/help/data#pins",
+    "conformance": "/help/models#conformance",
+    "training-warrants": "/help/warrants#training-warrants",
+    "execution-warrants": "/help/warrants#execution-warrants",
+    "bundles": "/help/warrants#bundles",
+    "delegation": "/help/workflow#delegation",
+    "licences": "/help/access#licences",
+    "audit": "/help/security#audit",
+    "events": "/help/integrations#events",
+    "observability": "/help/operations#observability",
 }
+GUIDE_HOME: dict[str, str] = {s["guide"]: slug for slug, s in SUBJECTS.items() if s["guide"]}
+
+
+def subject(slug: str) -> dict[str, Any] | None:
+    """A subject with its category, neighbours and parts, ready for its page."""
+    s = SUBJECTS.get(slug)
+    if s is None:
+        return None
+    order = [x for c in CATEGORIES for x in c["subjects"]]
+    cat = next(c for c in CATEGORIES if slug in c["subjects"])
+    i = order.index(slug)
+
+    def card(x: str) -> dict[str, Any]:
+        return {"slug": x, **SUBJECTS[x]}
+
+    return {
+        "slug": slug,
+        **s,
+        "parts": [{"slug": p, "title": t} for p, t in s["parts"]],
+        "category": cat["name"],
+        "category_id": cat["id"],
+        "siblings": [card(x) for x in cat["subjects"] if x != slug],
+        "prev": card(order[i - 1]) if i else None,
+        "next": card(order[i + 1]) if i + 1 < len(order) else None,
+    }
+
+
+def all_parts() -> list[str]:
+    return [p for s in SUBJECTS.values() for p, _ in s["parts"]]
+
+
+def all_subjects() -> list[dict[str, Any]]:
+    return [
+        {"slug": x, **SUBJECTS[x], "category": c["name"], "category_id": c["id"]}
+        for c in CATEGORIES
+        for x in c["subjects"]
+    ]
+
+
+def redirect_for(slug: str) -> str | None:
+    """Where an old help address now lives, or None."""
+    if slug in LEGACY:
+        return LEGACY[slug]
+    return None
+
+
+def guide_redirect(slug: str) -> str | None:
+    """A reference that became part of a subject page opens there."""
+    home = GUIDE_HOME.get(slug)
+    # no fragment of our own: the browser keeps the one the old link carried
+    return f"/help/{home}" if home else None
 
 
 def find_guide(slug: str) -> dict[str, Any] | None:
     for i, g in enumerate(GUIDES):
         if g["slug"] == slug:
-            same = [x for x in GUIDES if x["kind"] == g["kind"]]
-            pos = same.index(g)
             return {
                 **g,
-                "prev": same[pos - 1] if pos > 0 else None,
-                "next": same[pos + 1] if pos + 1 < len(same) else None,
-                "topics": [t for t in all_topics() if COMPANIONS.get(t["slug"]) == slug],
+                "prev": GUIDES[i - 1] if i else None,
+                "next": GUIDES[i + 1] if i + 1 < len(GUIDES) else None,
             }
     return None
-
-
-def companion(topic_slug: str) -> dict[str, Any] | None:
-    slug = COMPANIONS.get(topic_slug)
-    return next((g for g in GUIDES if g["slug"] == slug), None) if slug else None

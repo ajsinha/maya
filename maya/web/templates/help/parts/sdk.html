@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('The SDK is the only client') %}
 <p>The web UI does not talk to MAYA's database or services directly: every screen calls the public Python
 SDK with your own session, and the SDK calls the REST API at <code>/api/v1</code>. So anything you can do
@@ -47,11 +45,7 @@ credentials:</p>
   ('MAYA_CONFIG', 'profile file path (default ~/.maya/config.toml)'),
   ('MAYA_DEBUG_AUTH', 'set to print where the credential came from'),
 ]) }}
-{% call example('~/.maya/config.toml', 'toml') %}
-[profiles.prod]
-base_url = "https://maya.example.com"
-api_key_env = "MAYA_PROD_KEY"      # the key itself stays in the environment
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> ~/.maya/config.toml: see <a href="#connecting">Connecting</a> in the full reference below.</p>
 {% call example('Use the profile', 'python') %}
 my = maya.connect("prod")
 {% endcall %}
@@ -106,12 +100,7 @@ print(out["bytes"], "bytes,", "resumed from", out["resumed_from"])
   ('WarrantExpired / WarrantSuspended', '410 / 423 — the execution warrant no longer licenses this'),
   ('LicenceBreach', '451 — a data licence forbids it, naming the clause and source'),
 ]) }}
-{% call example('Catch a licence refusal', 'python') %}
-try:
-    blob = my.features.download("maya://feature/eq/prices@v1")
-except maya.LicenceBreach as exc:
-    print("refused:", exc.message, exc.context["source"])
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Catch a licence refusal: see <a href="#conventions">Conventions</a> in the full reference below.</p>
 {% endcall %}
 
 {% call step(5, 'The same over REST') %}
@@ -128,7 +117,7 @@ curl https://maya.example.com/api/v1/features?namespace=eq \
  "detail": "…", "context": {}}
 {% endcall %}
 <p>Send a W3C <code>traceparent</code> header and the same trace id follows your call through the API,
-its audit entries and any job it starts. See <a href="/help/observability">Metrics and tracing</a>.</p>
+its audit entries and any job it starts. See <a href="/help/operations#observability">Metrics and tracing</a>.</p>
 {% endcall %}
 
 {% call step(6, 'The command line') %}
@@ -165,7 +154,7 @@ assert tape.features.preview("maya://feature/eq/prices@v1") == panel
 {% endcall %}
 
 {% call step(8, 'Offline: a bundle, with no MAYA at all') %}
-<p><code>maya.offline(bundle)</code> opens a <a href="/help/bundles">reproducibility bundle</a> and serves
+<p><code>maya.offline(bundle)</code> opens a <a href="/help/warrants#bundles">reproducibility bundle</a> and serves
 the same read calls from it. Every file hash and the signature are checked first; a tampered bundle is
 refused, not partly served.</p>
 {% call example('Read and evaluate a bundle on a laptop', 'python') %}
@@ -190,4 +179,3 @@ cannot answer — the catalog, workflow, other warrants — raise <code>NotInBun
 itself uses. Passing <code>app=</code> to either client runs against an in-process ASGI app, which is how
 MAYA's own tests exercise the full stack without a server.</p>
 {% endcall %}
-{% endblock %}

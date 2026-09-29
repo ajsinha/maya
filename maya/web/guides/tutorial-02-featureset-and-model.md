@@ -133,7 +133,7 @@ print(pv["manifest"]["plan"])
 ```
 
 No layer set a rule, so the system default applies: leave gaps null. The
-[Feature set reference](/help/guides/featuresets-reference) lists all six layers.
+[Feature set reference](/help/featuresets#reference) lists all six layers.
 
 In the UI: **Workbench → Feature set builder** (`/workbench/featuresets/new`).
 

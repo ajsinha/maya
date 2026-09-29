@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Useful with nothing installed') %}
 <p>MAYA publishes Prometheus metrics and W3C trace context without adding a dependency. Every request
 gets a trace id: taken from the caller's <code>traceparent</code> header, or created when it is absent.
@@ -103,4 +101,3 @@ why not when they are not.</p>
   ('journal-text', 'Audit and custody', 'Every audit entry records the trace id of the request that wrote it.'),
   ('sliders', 'Configuration', 'How settings, environment variables and flags combine.'),
 ]) }}
-{% endblock %}

@@ -1,13 +1,11 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('A pull is an ingest, not a live view') %}
 <p>A feature whose source is <code>sql</code> runs one reviewed query against a database you already
 have and <strong>appends</strong> the rows to its bitemporal ingest log, exactly like an uploaded file.
 Each pull lands with a knowledge time — the source's own publication column when the definition names
 one, otherwise the moment of the pull. MAYA never reads the source live at resolution time: that would
 absorb upstream restatements silently, which is the one thing
-<a href="/help/bitemporal">bitemporality</a> exists to prevent.</p>
+<a href="/help/data#bitemporal">bitemporality</a> exists to prevent.</p>
 {% endcall %}
 
 {{ cards([
@@ -122,4 +120,3 @@ carries a function <code>produce(params)</code>; each pull runs it in the
   ('clock-history', 'Bitemporality', 'Why a pull appends, and how to resolve as of a knowledge time.'),
   ('journal-text', 'Audit and custody', 'Where connection changes and pulls are recorded.'),
 ]) }}
-{% endblock %}

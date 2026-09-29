@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Three artefacts that must not drift apart') %}
 <p>A model usually lives in three places: its mathematics in a PDF, its code in a repository, its
 parameters in a spreadsheet, and the three quietly diverge. MAYA holds all three against one formula
@@ -128,4 +126,3 @@ with the reason given, because it has no closed form to test against.</p>
   ('diagram-2', 'Workflow and policies', 'How checks block a transition by name.'),
   ('box-seam', 'Reproducibility bundles', 'A bundle re-executes the model offline where it can.'),
 ]) }}
-{% endblock %}

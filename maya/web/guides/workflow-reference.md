@@ -352,7 +352,7 @@ When an object enters `in_review` and `assistant.enabled` is true, a job writes 
 | Property | Behaviour |
 |---|---|
 | Authority | None. It never approves, blocks or edits; no check reads it. |
-| Provider | `assistant.provider`: `rules` (deterministic, no network) or `claude` (also asks Claude; sends definitions, the specification and the formula, never data rows). Each memo names the provider and model that wrote it. |
+| Provider | `assistant.provider`: `rules` (deterministic, no network), `llm` (also asks the model profile `assistant.profile` names, or the default, through the AI gateway) or `claude` (also asks Claude directly). The last two send definitions, the specification and the formula, never data rows. Each memo names the provider and model that wrote it. |
 | Response | The reviewer records a stance: `agree`, `partly` or `disagree`. Anything but `agree` needs a reason of at least ten characters. Audited as `assistant.response_recorded`. |
 | On demand | `POST /assistant/memos` queues a fresh memo (202) for one of those three types. |
 

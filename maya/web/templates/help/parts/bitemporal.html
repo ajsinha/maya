@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Two clocks on every row') %}
 <p>Every row MAYA stores carries two times. The <strong>event time</strong> is what the value is
 <em>about</em> — the first index column, such as the trading day. The <strong>knowledge time</strong>
@@ -70,7 +68,7 @@ records its <code>as_of_known</code> too.</p>
 
 {% call step(3, 'Why it matters for models: leakage') %}
 <p>A model trained on a restated history learns from numbers nobody had at the time. A
-<a href="/help/training-warrants">training warrant</a> therefore issues a signed <strong>leakage
+<a href="/help/warrants#training-warrants">training warrant</a> therefore issues a signed <strong>leakage
 certificate</strong>: it checks every training row and flags any whose knowledge time is later than
 its event date plus the allowed lag (<code>leakage_lag_days</code>, one day by default). The
 certificate's status is <code>certified</code>, <code>certified_with_exceptions</code> (every
@@ -86,7 +84,7 @@ warrant's certificate is refused unless the warrant sets <code>allow_non_causal<
 {% call step(4, 'Load history honestly') %}
 <p>The knowledge time is only as good as what you give it. When you backfill, pass the real
 publication time per batch (<code>--knowledge-time</code>) or per row
-(<code>source.knowledge_time_column</code>); see <a href="/help/ingest">Ingesting data</a>.</p>
+(<code>source.knowledge_time_column</code>); see <a href="/help/features#ingest">Ingesting data</a>.</p>
 {% call example('Per-row knowledge times in the file', 'csv') %}
 date,symbol,close,published_at
 2026-01-05,AAA,102.1,2026-01-05T18:00:00Z
@@ -100,4 +98,3 @@ date,symbol,close,published_at
   ('mortarboard', 'Training warrants', 'The leakage certificate in full.'),
   ('cloud-upload', 'Ingesting data', 'Uploads, restatements and knowledge times.'),
 ]) }}
-{% endblock %}

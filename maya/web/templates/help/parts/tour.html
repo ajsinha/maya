@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('One bar, six areas, the same shape everywhere') %}
 <p>MAYA's screens hang off a single fixed bar across the top. Each area opens a panel of columns;
 every entry carries an icon and a one-line description, so you can find a screen by what it does.
@@ -20,12 +18,12 @@ it without an account.</p>
 
 <h2>The areas</h2>
 {{ cards([
-  ('boxes', 'Catalog', 'Browse Features and Feature sets, walk Lineage upstream and downstream, and Search every object.'),
+  ('boxes', 'Catalog', 'The faceted catalog, Features and Feature sets, Lineage upstream and downstream, Search, and My subscriptions — the objects you follow.'),
   ('tools', 'Workbench', 'Design: the Feature designer and Feature set builder. Bring data in: the Upload wizard and Quick feature. Change safely: Workspaces. Its front page lists the feature and feature-set drafts in flight that you can read — the 50 most recently changed of each, with the total when there are more.'),
-  ('calculator', 'Models', 'All models (formulas, specifications, artifacts, diffs) and New model. Two buttons on the list: New model, and Design your compute kernel, which translates mathematics into the typed tree and Python without creating anything.'),
+  ('calculator', 'Models', 'Registry: All models, New model, Import a model (MLflow, SageMaker; lineage out as OpenLineage) and LLM applications. Author: Design your compute kernel. Govern: Findings & reviews (the findings register, materiality tiers, periodic review), Monitoring of live models, and Champion & challenger.'),
   ('file-earmark-lock', 'Warrants', 'Issue training and execution warrants; inspect all warrants; verify a reproducibility bundle offline.'),
-  ('inbox', 'Workflow', 'My queue, Notifications and Delegations; Policies, Campaigns, SLA aging and the Break-glass report.'),
-  ('shield-lock', 'Admin', 'Users & roles, Namespaces, Grants, Sources, Webhooks, Events, System health, Jobs, Storage, Configuration, Audit and Custody.'),
+  ('inbox', 'Workflow', 'My queue, Notifications and Delegations; Policies, Campaigns, Access requests, SLA aging and the Break-glass report.'),
+  ('shield-lock', 'Admin', 'Users & roles, Namespaces, Grants, Sources, Webhooks, Events, System health, Jobs, Storage, Retention, Extensions, AI models (model profiles and the default), Configuration, Audit and Custody.'),
 ], cols=3) }}
 {% call tip('Admin is only there for administrators and techops') %}
 <p>If you do not hold the <code>admin</code> or <code>techops</code> role, the Admin area does not
@@ -60,7 +58,9 @@ review, and your recent jobs.</p>
   ('History', 'every transition with actor, time and rationale, plus the comment thread'),
 ]) }}
 <p>A model swaps Data and Pins for <strong>Specification</strong> (the LaTeX document),
-<strong>Code</strong> (the uploaded artifact and its validation) and <strong>Parameters</strong>.</p>
+<strong>Code</strong> (the uploaded artifact and its validation), <strong>Parameters</strong> and
+<strong>Documents</strong> (model cards, validation reports and model documentation generated from its
+record — see <a href="/help/documents">Model documents and the AI gateway</a>).</p>
 <p>Transition buttons (<em>submit</em>, <em>approve</em>, <em>request changes</em>…) appear only when
 the policy allows you to take them, each with a rationale box.</p>
 {% endcall %}
@@ -113,4 +113,3 @@ for f in my.features.list(namespace="eq"):
   ('pencil-square', 'Features and the designer', 'The full designer, field by field.'),
   ('diagram-2', 'Workflow and policies', 'What the transition buttons do and who may press them.'),
 ]) }}
-{% endblock %}

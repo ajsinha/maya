@@ -69,8 +69,9 @@ eq standard False
 ```
 
 !!! note "Passwords and keys"
-    A user created this way must change their password at their first browser
-    sign-in; the API accepts it meanwhile. An API key is shown once. In real use
+    With `auth.password.force_change` on, a user created this way must change their
+    password at their first browser sign-in (the API accepts it meanwhile); it is off
+    by default. An API key is shown once. In real use
     each person creates their own key and keeps it in `MAYA_API_KEY`.
 
 ## Step 3: Write the definition
@@ -99,7 +100,7 @@ definition = {
 }
 ```
 
-Every key is explained in the [Feature definition reference](/help/guides/features-reference).
+Every key is explained in the [Feature definition reference](/help/features#reference).
 
 ## Step 4: Create the feature
 

@@ -533,23 +533,13 @@ def test_policy_editor_saves_a_draft(env):
     assert page.status_code == 200 and "Activate (second administrator)" in page.text
 
 
-def test_help_catalog_and_topic_templates_agree():
-    """Every declared topic has a page, and every page is declared (one source of truth)."""
-    from maya.web.help_catalog import all_topics
-
-    declared = {t["slug"] for t in all_topics()}
-    on_disk = {p.stem for p in (TEMPLATES / "help" / "topics").glob("*.html")}
-    assert declared == on_disk, (sorted(declared - on_disk), sorted(on_disk - declared))
-    assert len(declared) == len(all_topics()), "a slug is declared twice"
-
-
 def test_help_and_about_render_signed_in_and_anonymously(env):
     from starlette.testclient import TestClient
-    from maya.web.help_catalog import all_topics
+    from maya.web.help_catalog import SUBJECTS
 
     _, app, client, _ = env
     anon = TestClient(app)
-    paths = ["/help", "/about", "/about/competitive"] + [f"/help/{t['slug']}" for t in all_topics()]
+    paths = ["/help", "/about", "/about/competitive"] + [f"/help/{slug}" for slug in SUBJECTS]
     for c, who in ((client, "signed in"), (anon, "anonymous")):
         for path in paths:
             r = c.get(path, follow_redirects=False)

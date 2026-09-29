@@ -147,7 +147,7 @@ print(ps["verified_data"], ps["flag"])  # True None
 | `name` | Defaults to `<warrant>-params-<timestamp>`. |
 | `notes`, `member_alias` | Free text; the composite member these values are for. |
 
-Uploading needs read access to the warrant and `C` on `parameter_set`, and is refused when the warrant is sealed, revoked or expired. Values are checked on upload: every declared parameter must be present and within its declared bounds, every **joint constraint** the model version declares over its own parameters must hold (see the [models reference](/help/guides/models-reference)), and every constant without a declared value must be supplied. A bound declared on a value that is not a number is refused rather than skipped, because a scalar bound on an array means one of the two is wrong. Any problem refuses the upload, listing each one.
+Uploading needs read access to the warrant and `C` on `parameter_set`, and is refused when the warrant is sealed, revoked or expired. Values are checked on upload: every declared parameter must be present and within its declared bounds, every **joint constraint** the model version declares over its own parameters must hold (see the [models reference](/help/models#reference)), and every constant without a declared value must be supplied. A bound declared on a value that is not a number is refused rather than skipped, because a scalar bound on an array means one of the two is wrong. Any problem refuses the upload, listing each one.
 
 ### Verified and unverified data
 
@@ -231,6 +231,7 @@ Each covenant has a `kind`, usually an `attr`, and bounds. They are evaluated ag
 |---|---|
 | `input_null_rate` | the reported `null_rate` of `attr` exceeds `max` |
 | `input_range` | the reported `min` of `attr` is below `min`, or its `max` is above `max` |
+| `input_psi` | the population stability index of `attr` — the reported `histogram` against the baseline, over the same bin edges — exceeds `max` (default 0.25). The baseline is declared, or taken from the training warrant's data when the execution warrant is created; the covenant keeps its bin edges, and the SDK's guard reports each input's histogram over them, so drift is judged exactly as the covenant was drawn. |
 | `output_range` | the same, against the output statistics |
 | `max_rows_per_day` | today's reported rows, including this report, exceed `max` |
 | `staleness_days` | the reported `age_days` of `attr` exceeds `max` |
