@@ -12,6 +12,7 @@ import pytest
 
 from maya.core.clock import utcnow
 from maya.core.errors import NotApproved, PermissionDenied, ValidationFailed, WarrantSuspended
+from tests.conftest import PASSWORD
 
 
 @pytest.fixture(scope="module")
@@ -103,7 +104,13 @@ def test_the_tier_is_derived_and_an_override_that_lowers_it_is_flagged(gov):
     assert low["tier"] == 3 and low["override_lowers"]
     with pytest.raises(PermissionDenied):
         w.p.governance.set_profile(w.devi, "eq/gov_lin", use="internal")
-    w.p.governance.set_profile(w.mona, "eq/gov_lin", use="regulatory", exposure=5e9)
+    # an edit to one field leaves the others alone ...
+    kept = w.p.governance.set_profile(w.mona, "eq/gov_lin", review_days=400)
+    assert kept["use"] == "regulatory" and kept["exposure"] == 5e9 and kept["tier"] == 3
+    assert kept["review_days"] == 400
+    # ... and a field given as None is cleared, with the reason it no longer needs
+    back = w.p.governance.set_profile(w.mona, "eq/gov_lin", tier_override=None, review_days=None)
+    assert back["tier"] == 1 and back["tier_override"] is None and back["override_reason"] is None
 
 
 def test_an_overdue_review_suspends_live_warrants_and_a_review_lifts_only_those(gov):
@@ -125,7 +132,15 @@ def test_an_overdue_review_suspends_live_warrants_and_a_review_lifts_only_those(
         w.p.execution.check(ew)
     with pytest.raises(PermissionDenied, match="owner"):
         w.p.governance.record_review(w.mona, "eq/gov_lin", "satisfactory", "all good")
-    rec = w.p.governance.record_review(w.devi, "eq/gov_lin", "satisfactory", "backtest reviewed")
+    with pytest.raises(PermissionDenied, match="model manager or a model validator"):
+        w.p.governance.record_review(w.devi, "eq/gov_lin", "satisfactory", "reading is not enough")
+    if "vera" not in {u["username"] for u in w.p.access.list_users(w.admin)}:
+        w.p.access.create_user(
+            w.admin, username="vera", password=PASSWORD, roles=["model_validator"]
+        )
+    rec = w.p.governance.record_review(
+        w.principal("vera"), "eq/gov_lin", "satisfactory", "backtest reviewed"
+    )
     assert rec["reinstated"] == [ew_id] and not rec["review_overdue"]
     assert rec["next_review_due"] == utcnow().date() + dt.timedelta(days=365)
     with w.p.uow() as uow:

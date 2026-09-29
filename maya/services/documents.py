@@ -412,7 +412,7 @@ class DocumentService:
     ) -> tuple[dict[str, str], builtins.list[dict[str, Any]], dict[str, Any]]:
         drafts: dict[str, str] = {}
         sections: builtins.list[dict[str, Any]] = []
-        used: dict[str, Any] = {}
+        pairs: builtins.list[tuple[str, str]] = []
         facts_json = djson.dumps(facts, indent=1)[:FACTS_LIMIT]
         for i, req in enumerate(requests, 1):
             record: dict[str, Any] = {
@@ -442,12 +442,21 @@ class DocumentService:
                     record.update(
                         drafted=True, **out.usage(), profile=req.profile or params.get("profile")
                     )
-                    used = {"provider": out.provider, "model": out.model}
+                    pairs.append((out.provider, out.model))
                 except LlmUnavailable as exc:
                     drafts[req.key] = f"*Not drafted: {exc.message}*"
                     record["reason"] = exc.message
             sections.append(record)
             ctx.progress(30 + int(60 * i / max(1, len(requests))), f"drafted {req.key}")
+        # every provider and model that drafted a section, not only the last one: sections
+        # may name different profiles (each section's own label says which drafted it)
+        providers = sorted({pv for pv, _ in pairs})
+        models = sorted({md for _, md in pairs})
+        used: dict[str, Any] = (
+            {"provider": ", ".join(providers)[:64], "model": ", ".join(models)[:128]}
+            if pairs
+            else {}
+        )
         return drafts, sections, used
 
     @staticmethod

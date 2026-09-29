@@ -311,6 +311,33 @@ class IntegrationService:
             description=facts["description"],
         )
 
+    def _mlflow_targets(self) -> dict[str, str | None]:
+        """Per registered model, the version the live alias should name, or None.
+
+        An MLflow alias names one version of a registered model, so the decision is per
+        registered model: point it at the live version, or remove it when none is live.
+        Deciding version by version let removing it from a retired version take it off the
+        live one. Several live versions of one registered model: the alias follows the newest."""
+        live_versions: dict[str, builtins.list[str]] = {}
+        with self.p.uow() as uow:
+            for v in uow.repo("model_versions").list():
+                prov = ((v.get("formula_ir") or {}).get("black_box") or {}).get("provenance") or {}
+                uri = str(prov.get("uri") or "")
+                if prov.get("source") != "mlflow" or not uri.startswith("models:/"):
+                    continue
+                name, _, version = uri[len("models:/") :].rpartition("/")
+                live = any(
+                    self.p.execution.status(w) == "live"
+                    for w in uow.repo("execution_warrants").list(model_version_id=v["id"])
+                )
+                live_versions.setdefault(name, [])
+                if live:
+                    live_versions[name].append(version)
+        return {
+            name: max(vs, key=lambda x: (len(x), x)) if vs else None
+            for name, vs in live_versions.items()
+        }
+
     # -- decisions back into the registry --------------------------------------------
     def sync_mlflow(self, p: Principal | None = None, http: Any = None) -> dict[str, Any]:
         """Point the ``integrations.mlflow.live_alias`` alias at every MLflow-imported model
@@ -326,19 +353,7 @@ class IntegrationService:
         if not base:
             return {"configured": False, "set": [], "removed": []}
         alias = self.p.settings.get("integrations.mlflow.live_alias") or "maya-live"
-        wanted: dict[tuple[str, str], bool] = {}
-        with self.p.uow() as uow:
-            for v in uow.repo("model_versions").list():
-                prov = ((v.get("formula_ir") or {}).get("black_box") or {}).get("provenance") or {}
-                uri = str(prov.get("uri") or "")
-                if prov.get("source") != "mlflow" or not uri.startswith("models:/"):
-                    continue
-                name, _, version = uri[len("models:/") :].rpartition("/")
-                live = any(
-                    self.p.execution.status(w) == "live"
-                    for w in uow.repo("execution_warrants").list(model_version_id=v["id"])
-                )
-                wanted[(name, version)] = live
+        wanted = self._mlflow_targets()
         state = getattr(self, "_mlflow_alias", {})
         headers = {}
         token_env = self.p.settings.get("integrations.mlflow.token_env")
@@ -349,14 +364,14 @@ class IntegrationService:
         client = http or httpx.Client(timeout=30)
         done: dict[str, builtins.list[str]] = {"set": [], "removed": [], "failed": []}
         try:
-            for (name, version), live in sorted(wanted.items()):
-                if state.get((name, version)) == live:
+            for name, target in sorted(wanted.items()):
+                if name in state and state[name] == target:
                     continue
                 try:
-                    if live:
+                    if target:
                         r = client.post(
                             f"{base}/api/2.0/mlflow/registered-models/alias",
-                            json={"name": name, "alias": alias, "version": version},
+                            json={"name": name, "alias": alias, "version": target},
                             headers=headers,
                         )
                     else:
@@ -365,12 +380,17 @@ class IntegrationService:
                             params={"name": name, "alias": alias},
                             headers=headers,
                         )
-                    r.raise_for_status()
+                    if not (r.status_code == 404 and not target):  # already absent: removed
+                        r.raise_for_status()
                 except httpx.HTTPError as exc:
-                    done["failed"].append(f"{name}/{version}: {str(exc)[:120]}")
+                    done["failed"].append(f"{name}/{target or '-'}: {str(exc)[:120]}")
                     continue
-                state[(name, version)] = live
-                done["set" if live else "removed"].append(f"{name}/{version}")
+                before = state.get(name)
+                state[name] = target
+                if target:
+                    done["set"].append(f"{name}/{target}")
+                else:
+                    done["removed"].append(f"{name}/{before}" if before else name)
         finally:
             if http is None:
                 client.close()

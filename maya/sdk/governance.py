@@ -79,26 +79,11 @@ class Governance(_Resource):
         return self._c("GET", f"/governance/models/{_nn(model, 'model')}")
 
     @endpoint("PUT", "/governance/models/{namespace}/{name}")
-    def set_profile(
-        self,
-        model: str,
-        *,
-        use: str | None = None,
-        exposure: float | None = None,
-        tier_override: int | None = None,
-        override_reason: str | None = None,
-        review_days: int | None = None,
-        answers: dict[str, str] | None = None,
-    ) -> Any:
-        body = {
-            "answers": answers,
-            "use": use,
-            "exposure": exposure,
-            "tier_override": tier_override,
-            "override_reason": override_reason,
-            "review_days": review_days,
-        }
-        return self._c("PUT", f"/governance/models/{_nn(model, 'model')}", json_body=body)
+    def set_profile(self, model: str, **changes: Any) -> Any:
+        """Change a model's governance profile: ``use``, ``exposure``, ``tier_override``,
+        ``override_reason``, ``review_days``, ``answers``. Only the fields given change; one
+        given as ``None`` is cleared."""
+        return self._c("PUT", f"/governance/models/{_nn(model, 'model')}", json_body=changes)
 
     @endpoint("POST", "/governance/models/{namespace}/{name}/reviews")
     def record_review(self, model: str, outcome: str, note: str) -> Any:

@@ -1,5 +1,5 @@
 """
-The eight shipped roles and their capability matrix (§3), as data.
+The nine shipped roles and their capability matrix (§3), as data.
 
 C create · R read · U update · A approve · P pin/seal · G grant · Q request a pin.
 Roles are stored in the database and seeded from this table; an administrator
@@ -112,6 +112,20 @@ MATRIX: dict[str, dict[str, str]] = {
         "execution_warrant": "RAG",
         "jobs": "R",
     },
+    # Independent validation: reads everything a model rests on, raises findings and records
+    # periodic reviews, and approves nothing -- the validator challenges; others decide.
+    "model_validator": {
+        "feature": _R,
+        "feature_pin": _R,
+        "featureset": _R,
+        "model": _R,
+        "artifact": _R,
+        "specdoc": _R,
+        "training_warrant": _R,
+        "parameter_set": _R,
+        "execution_warrant": _R,
+        "jobs": "R",
+    },
     "techops": {
         "feature": _R,
         "feature_pin": _R,
@@ -135,6 +149,7 @@ DESCRIPTIONS = {
     "model_developer": "Training warrants, parameter upload, experiment iteration",
     "model_manager": "Approval of models, warrants and parameter sets",
     "model_owner": "Access policy for a model and its lineage; accountable for its use",
+    "model_validator": "Independent validation: findings and periodic reviews; approves nothing",
     "techops": "Runtime health, job queues, retries, storage compaction, backups",
 }
 
@@ -158,6 +173,7 @@ PRESETS = {
             "model_developer",
             "model_manager",
             "model_owner",
+            "model_validator",
             "techops",
         ],
         "sod": "two_person",

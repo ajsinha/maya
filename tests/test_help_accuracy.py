@@ -215,3 +215,20 @@ def test_the_password_policy_defaults_are_stated_correctly(key):
     """The defaults once drifted in two guides at once; keep them pinned."""
     text = (GUIDES / "configuration-reference.md").read_text()
     assert f"| `{key}` | `{KEYS[key]}` |" in text
+
+
+def test_the_capability_matrix_in_the_access_reference_is_the_code():
+    """The table once said the model owner could not approve; the code said otherwise."""
+    from maya.security.roles import MATRIX, OBJECT_TYPES
+
+    text = (GUIDES / "access-reference.md").read_text()
+    roles = list(MATRIX)
+    header = "| Object type | " + " | ".join(f"`{r}`" for r in roles) + " |"
+    assert header in text, "the matrix's columns are not the shipped roles"
+    for o in OBJECT_TYPES:
+        row = f"| `{o}` | " + " | ".join(MATRIX[r].get(o) or "—" for r in roles) + " |"
+        assert row in text, f"the {o} row differs from maya/security/roles.py"
+    assert (
+        f"ships {['', '', '', '', '', '', '', '', 'eight', 'nine', 'ten'][len(roles)]} roles"
+        in text
+    )

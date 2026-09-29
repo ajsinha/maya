@@ -81,7 +81,9 @@ def profile(namespace: str, name: str, me: Principal = Me, plat: Any = Plat) -> 
 def set_profile(
     namespace: str, name: str, body: s.GovernanceProfileIn, me: Principal = Me, plat: Any = Plat
 ) -> Response:
-    return ok(plat.governance.set_profile(me, f"{namespace}/{name}", **body.model_dump()))
+    # only the fields sent change; a field sent as null is cleared
+    changes = body.model_dump(exclude_unset=True)
+    return ok(plat.governance.set_profile(me, f"{namespace}/{name}", **changes))
 
 
 @router.post("/governance/models/{namespace}/{name}/reviews", status_code=201)

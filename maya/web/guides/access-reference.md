@@ -39,7 +39,7 @@ Every authorization check names an **action**, and each action needs one letter:
 
 ## The shipped roles
 
-MAYA ships eight roles. Their capabilities are data, seeded at every start: a built-in role whose capabilities were changed in the database is restored to the table below. To change what a group of people can do, create a custom role.
+MAYA ships nine roles. Their capabilities are data, seeded at every start: a built-in role whose capabilities were changed in the database is restored to the table below. To change what a group of people can do, create a custom role.
 
 | Role | Purpose |
 |---|---|
@@ -50,25 +50,26 @@ MAYA ships eight roles. Their capabilities are data, seeded at every start: a bu
 | `model_developer` | Training warrants, parameter upload, experiment iteration |
 | `model_manager` | Approval of models, warrants and parameter sets |
 | `model_owner` | Access policy for a model and its lineage; accountable for its use |
+| `model_validator` | Independent validation: findings and periodic reviews; approves nothing |
 | `techops` | Runtime health, job queues, retries, storage compaction, backups |
 
 ### The capability matrix
 
-| Object type | `admin` | `feature_designer` | `feature_manager` | `model_designer` | `model_developer` | `model_manager` | `model_owner` | `techops` |
-|---|---|---|---|---|---|---|---|---|
-| `feature` | CRUG | CRU | RA | R | R | R | R | R |
-| `feature_pin` | P | Q | AP | — | Q | — | — | R |
-| `featureset` | CRUG | CRU | RAP | R | CRU | R | R | R |
-| `model` | CRUG | R | R | CRU | R | RA | RG | R |
-| `artifact` | CRU | — | R | CRU | RU | RA | R | R |
-| `specdoc` | CRU | — | R | CRU | RU | RA | R | R |
-| `training_warrant` | CRUG | — | R | R | CRU | RAP | RG | R |
-| `parameter_set` | CRU | — | — | R | CRU | RA | R | R |
-| `execution_warrant` | CRUG | — | — | R | R | CRUAP | RG | R |
-| `users` | CRUG | — | — | — | — | — | — | R |
-| `jobs` | CRU | R | R | R | R | R | R | CRU |
-| `namespace` | CRUG | — | — | — | — | — | — | — |
-| `workflow_policy` | CRUAG | — | — | — | — | — | — | — |
+| Object type | `admin` | `feature_designer` | `feature_manager` | `model_designer` | `model_developer` | `model_manager` | `model_owner` | `model_validator` | `techops` |
+|---|---|---|---|---|---|---|---|---|---|
+| `feature` | CRUG | CRU | RA | R | R | R | R | R | R |
+| `feature_pin` | P | Q | AP | — | Q | — | — | R | R |
+| `featureset` | CRUG | CRU | RAP | R | CRU | R | R | R | R |
+| `model` | CRUG | R | R | CRU | R | RA | RAG | R | R |
+| `artifact` | CRU | — | R | CRU | RU | RA | R | R | R |
+| `specdoc` | CRU | — | R | CRU | RU | RA | R | R | R |
+| `training_warrant` | CRUG | — | R | R | CRU | RAP | RG | R | R |
+| `parameter_set` | CRU | — | — | R | CRU | RA | R | R | R |
+| `execution_warrant` | CRUG | — | — | R | R | CRUAP | RAG | R | R |
+| `users` | CRUG | — | — | — | — | — | — | — | R |
+| `jobs` | CRU | R | R | R | R | R | R | R | CRU |
+| `namespace` | CRUG | — | — | — | — | — | — | — | — |
+| `workflow_policy` | CRUAG | — | — | — | — | — | — | — | — |
 
 A person holding several roles holds the union of their letters. Roles reach a person directly or through a group.
 
@@ -129,9 +130,9 @@ Every catalog object lives in a namespace. A namespace sets its default visibili
 
 | Preset | Roles it expects | SoD |
 |---|---|---|
-| `small_team` | `admin`, `feature_designer`, `model_manager` | `none` |
-| `standard` | `admin`, `feature_designer`, `feature_manager`, `model_designer`, `model_developer`, `model_manager` | `two_person` |
-| `regulated` | all eight | `strict` |
+| `small_team` | `admin`, `feature_designer`, `feature_manager`, `model_manager` | `none` |
+| `standard` | `admin`, `feature_designer`, `feature_manager`, `model_designer`, `model_developer`, `model_manager`, `model_owner`, `model_validator`, `techops` | `two_person` |
+| `regulated` | all nine | `strict` |
 
 | SoD | An approver may not be |
 |---|---|

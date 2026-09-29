@@ -439,3 +439,24 @@ def test_ai_calls_are_counted_by_purpose_provider_and_outcome(estate):
         r'maya_ai_completions_total\{[^}]*outcome="ok"[^}]*purpose="document:model_card"', text
     )
     assert "maya_ai_completion_seconds_bucket" in text
+
+
+def test_a_document_drafted_by_two_models_records_both(estate):
+    from maya.llm.base import Completion
+
+    p, w = estate
+    turn = []
+
+    class TwoModels:
+        def complete(self, system, messages, *, max_tokens, temperature=None):
+            turn.append(1)
+            model = "model-a" if len(turn) % 2 else "model-b"
+            return Completion("A drafted section.", "stub", model, 5, 5, "end_turn")
+
+    p.ai.override = TwoModels()
+    try:
+        doc = _generate(p, w, kind="model_documentation")
+    finally:
+        p.ai.override = None
+    assert len(turn) >= 2
+    assert doc["provider"] == "stub" and doc["llm_model"] == "model-a, model-b"
