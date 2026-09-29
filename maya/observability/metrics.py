@@ -177,6 +177,29 @@ for _name, _kind, _text in (
     ("maya_seam_backend", "gauge", "The resolved backend of each dependency seam (value 1)"),
     ("maya_sandbox_tier", "gauge", "The verified sandbox tier (value 1)"),
     ("maya_build_info", "gauge", "Version and build of the running MAYA (value 1)"),
+    # model governance (maya.observability.governance)
+    ("maya_execution_warrants", "gauge", "Execution warrants by status"),
+    (
+        "maya_execution_warrants_expiring",
+        "gauge",
+        "Live execution warrants whose validity ends within the window",
+    ),
+    ("maya_training_warrants", "gauge", "Training warrants by state"),
+    ("maya_versions", "gauge", "Feature, feature set and model versions by state"),
+    ("maya_models_review_overdue", "gauge", "Models past their periodic review, by tier"),
+    ("maya_findings_open", "gauge", "Open validation findings, by severity"),
+    ("maya_restatement_impacts", "gauge", "Restatements under live models, by state"),
+    (
+        "maya_restatement_oldest_open_seconds",
+        "gauge",
+        "Age of the oldest unacknowledged restatement impact (0 when none)",
+    ),
+    ("maya_documents", "gauge", "Generated model documents by state"),
+    ("maya_covenant_breaches_total", "counter", "Covenant breaches reported, by covenant kind"),
+    ("maya_restatement_impacts_total", "counter", "Restatement impacts found under live models"),
+    ("maya_ai_completions_total", "counter", "Language-model calls, by purpose, provider, outcome"),
+    ("maya_ai_tokens_total", "counter", "Language-model tokens, by purpose, provider, direction"),
+    ("maya_ai_completion_seconds", "histogram", "Language-model call time, by purpose, provider"),
 ):
     METRICS.describe(_name, _kind, _text)
 

@@ -193,3 +193,26 @@ def test_the_warrant_page_shows_impacts_and_takes_an_acknowledgement(live):
     )
     assert r.status_code == 200 and "Immaterial: three days" in r.text
     assert "to acknowledge" not in r.text
+
+
+def test_governance_gauges_count_warrants_restatements_and_documents(live):
+    from maya.observability import governance
+    from maya.observability.metrics import METRICS
+
+    w = live
+    samples = {
+        (name, tuple(sorted(labels.items()))): v for name, labels, v in governance.collect(w.p)
+    }
+    assert samples[("maya_execution_warrants", (("status", "live"),))] >= 1
+    assert samples[("maya_restatement_impacts", (("state", "acknowledged"),))] >= 1
+    assert samples[("maya_restatement_impacts", (("state", "open"),))] == 0
+    assert samples[("maya_restatement_oldest_open_seconds", ())] == 0
+    assert ("maya_models_review_overdue", (("tier", "1"),)) in samples
+    assert ("maya_findings_open", (("severity", "critical"),)) in samples
+    assert samples[("maya_versions", (("kind", "model"), ("state", "approved")))] >= 1
+    # no label names a model or a warrant: the series stay bounded
+    assert all(
+        set(dict(k[1])) <= {"status", "state", "kind", "tier", "severity", "within_days"}
+        for k in samples
+    )
+    assert "maya_restatement_impacts_total" in METRICS.render()

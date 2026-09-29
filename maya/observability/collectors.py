@@ -39,6 +39,7 @@ class Collectors:
         self._held: dict[str, tuple[float, list[Sample]]] = {}
         caches.register("metrics_lake")
         caches.register("metrics_namespaces")
+        caches.register("metrics_governance")
 
     def all(self) -> list[Sample]:
         out: list[Sample] = []
@@ -46,6 +47,7 @@ class Collectors:
         out += self.pool()
         out += self.posture()
         out += self._cached("metrics_lake", self.lake)
+        out += self._cached("metrics_governance", self.governance)
         if self.namespace_gauges:
             out += self._cached("metrics_namespaces", self.namespaces)
         return out
@@ -60,6 +62,11 @@ class Collectors:
         samples = fn()
         self._held[name] = (now, samples)
         return samples
+
+    def governance(self) -> list[Sample]:
+        from maya.observability import governance
+
+        return governance.collect(self.p)
 
     # -- the queue (§15.2, §20) -----------------------------------------------------
     def queue(self) -> list[Sample]:

@@ -1,0 +1,173 @@
+# MAYA model governance alerts: the state of the models, not of the machine.
+#
+# Load this beside maya-slo.rules.yml:
+#
+#   rule_files:
+#     - /etc/prometheus/maya-slo.rules.yml
+#     - /etc/prometheus/maya-governance.rules.yml
+#
+# maya-slo.rules.yml says whether MAYA is up and fast. This file says whether the models it
+# governs are in order: a covenant breached, a warrant about to lapse, a review overdue, a
+# correction to the data under a live model that nobody has looked at, a critical finding
+# left open, a language-model provider that has stopped answering. Each alert links a
+# runbook in docs/runbooks/, and tests/test_governance_rules.py fails if a link or a metric
+# name goes stale.
+#
+# The gauges are computed at scrape time and held for observability.metrics.cache_seconds
+# (60 s by default), so a `for:` shorter than that is meaningless. No label names a model or
+# a warrant -- the counts are by status, tier or severity -- so an alert says how many and
+# the runbook says where to look (the Governance and Monitoring pages list them by name).
+#
+# Thresholds are starting points. The review-queue size and the token budget in particular
+# are properties of your estate; set them from its own history.
+
+groups:
+  - name: maya-governance-alerts
+    rules:
+      # -- live models ------------------------------------------------------------------
+      - alert: MayaCovenantBreached
+        expr: sum(increase(maya_covenant_breaches_total[15m])) > 0
+        labels:
+          severity: critical
+          area: live-models
+        annotations:
+          summary: "A covenant was breached and its execution warrant suspended"
+          description: >-
+            {{ $value | printf "%.0f" }} covenant breach(es) in the last 15 minutes. Every
+            consumer of a suspended warrant is refused until someone reinstates or revokes it.
+          runbook_url: docs/runbooks/suspended-execution-warrant.md
+
+      - alert: MayaExecutionWarrantSuspended
+        expr: sum(maya_execution_warrants{status="suspended"}) > 0
+        for: 4h
+        labels:
+          severity: warning
+          area: live-models
+        annotations:
+          summary: "An execution warrant has been suspended for over four hours"
+          description: >-
+            {{ $value | printf "%.0f" }} warrant(s) suspended -- by a covenant breach or an
+            overdue periodic review. A suspension is meant to force a decision, not to last.
+          runbook_url: docs/runbooks/suspended-execution-warrant.md
+
+      - alert: MayaExecutionWarrantExpiring
+        expr: sum(maya_execution_warrants_expiring{within_days="7"}) > 0
+        for: 1h
+        labels:
+          severity: warning
+          area: live-models
+        annotations:
+          summary: "A live execution warrant expires within seven days"
+          description: >-
+            {{ $value | printf "%.0f" }} live warrant(s) end within a week. When one lapses,
+            every consumer of that model is refused.
+          runbook_url: docs/runbooks/periodic-review-and-expiry.md
+
+      - alert: MayaRestatementUnderLiveModel
+        expr: sum(maya_restatement_impacts{state="open"}) > 0
+        for: 5m
+        labels:
+          severity: warning
+          area: live-models
+        annotations:
+          summary: "Data under a live model's training pin was restated"
+          description: >-
+            {{ $value | printf "%.0f" }} unacknowledged restatement impact(s). The model was
+            fitted on values the source has since corrected.
+          runbook_url: docs/runbooks/restated-data-under-a-live-model.md
+
+      - alert: MayaRestatementUnacknowledged
+        expr: max(maya_restatement_oldest_open_seconds) > 7 * 86400
+        labels:
+          severity: critical
+          area: live-models
+        annotations:
+          summary: "A restatement under a live model has gone unacknowledged for a week"
+          description: >-
+            The oldest open impact is {{ $value | humanizeDuration }} old. Somebody has to
+            decide whether the model is refitted or the change is immaterial, and say so.
+          runbook_url: docs/runbooks/restated-data-under-a-live-model.md
+
+      # -- the inventory ------------------------------------------------------------------
+      - alert: MayaPeriodicReviewOverdue
+        expr: sum(maya_models_review_overdue) > 0
+        for: 1h
+        labels:
+          severity: warning
+          area: inventory
+        annotations:
+          summary: "A model is past its periodic review"
+          description: >-
+            {{ $value | printf "%.0f" }} model(s) overdue. The governance sweep suspends
+            their live execution warrants.
+          runbook_url: docs/runbooks/periodic-review-and-expiry.md
+
+      - alert: MayaTierOneReviewOverdue
+        expr: sum(maya_models_review_overdue{tier="1"}) > 0
+        for: 1h
+        labels:
+          severity: critical
+          area: inventory
+        annotations:
+          summary: "A tier 1 model is past its periodic review"
+          description: >-
+            {{ $value | printf "%.0f" }} tier 1 model(s) overdue -- the most material models
+            in the inventory.
+          runbook_url: docs/runbooks/periodic-review-and-expiry.md
+
+      - alert: MayaCriticalFindingOpen
+        expr: sum(maya_findings_open{severity="critical"}) > 0
+        for: 1d
+        labels:
+          severity: critical
+          area: inventory
+        annotations:
+          summary: "A critical validation finding has been open for over a day"
+          description: >-
+            {{ $value | printf "%.0f" }} critical finding(s) open, remediating or awaiting
+            verification.
+          runbook_url: docs/runbooks/governance-backlog.md
+
+      - alert: MayaReviewQueueBacklog
+        expr: sum(maya_versions{state="in_review"}) > 25
+        for: 2d
+        labels:
+          severity: warning
+          area: inventory
+        annotations:
+          summary: "The review queue has held over 25 versions for two days"
+          description: >-
+            {{ $value | printf "%.0f" }} feature, feature set and model versions waiting for a
+            reviewer. Set the threshold from your own team's throughput.
+          runbook_url: docs/runbooks/governance-backlog.md
+
+      # -- the AI gateway -------------------------------------------------------------------
+      - alert: MayaAiProviderFailing
+        expr: |
+          sum by (provider) (rate(maya_ai_completions_total{outcome="unavailable"}[15m]))
+          /
+          clamp_min(sum by (provider) (rate(maya_ai_completions_total[15m])), 1e-9)
+          > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          area: ai
+        annotations:
+          summary: "The {{ $labels.provider }} language-model provider is failing most calls"
+          description: >-
+            Over half of the calls to {{ $labels.provider }} failed in the last 15 minutes.
+            Documents are generated with undrafted sections and challenger memos hold the
+            deterministic findings only.
+          runbook_url: docs/runbooks/ai-gateway.md
+
+      - alert: MayaAiTokenBudget
+        expr: sum(increase(maya_ai_tokens_total[1d])) > 5e6
+        labels:
+          severity: warning
+          area: ai
+        annotations:
+          summary: "Language-model use passed five million tokens in a day"
+          description: >-
+            {{ $value | humanize }} tokens in 24 hours. Set the budget to what your estate
+            should spend.
+          runbook_url: docs/runbooks/ai-gateway.md

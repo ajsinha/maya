@@ -330,16 +330,30 @@ class AiGateway:
         max_tokens: int | None,
         temperature: float | None,
     ) -> Completion:
+        from maya.observability.metrics import METRICS
+
         view = prof.ProfileSettings(self.p.settings, chosen)
-        out = provider.complete(
-            system,
-            [Message("user", prompt)],
-            max_tokens=int(max_tokens or view.int("llm.max_tokens", 2048)),
-            # a declared pairing is run as declared: no temperature means the provider's own
-            temperature=temperature
-            if temperature is not None or chosen.source == "declared"
-            else float(view.get("llm.temperature", "0.2") or 0.2),
-        )
+        # a document's purpose names its section; the metric keeps the kind, so series stay few
+        labels = {"purpose": ":".join(purpose.split(":")[:2]), "provider": chosen.provider}
+        started = time.monotonic()
+        try:
+            out = provider.complete(
+                system,
+                [Message("user", prompt)],
+                max_tokens=int(max_tokens or view.int("llm.max_tokens", 2048)),
+                # a declared pairing is run as declared: no temperature means the provider's own
+                temperature=temperature
+                if temperature is not None or chosen.source == "declared"
+                else float(view.get("llm.temperature", "0.2") or 0.2),
+            )
+        except LlmUnavailable:
+            METRICS.inc("maya_ai_completions_total", {**labels, "outcome": "unavailable"})
+            raise
+        METRICS.inc("maya_ai_completions_total", {**labels, "outcome": "ok"})
+        METRICS.observe("maya_ai_completion_seconds", time.monotonic() - started, labels)
+        for direction, n in (("input", out.input_tokens), ("output", out.output_tokens)):
+            if n:
+                METRICS.inc("maya_ai_tokens_total", {**labels, "direction": direction}, float(n))
         with self.p.uow(p.username if p else "assistant") as uow:
             uow.audit(
                 "ai.completion",

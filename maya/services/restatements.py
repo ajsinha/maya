@@ -296,6 +296,9 @@ class RestatementService:
             )
             for user_id in sorted(u for u in users if u):
                 Subs._notify(uow, user_id, "restatement", uri, message)
+            from maya.observability.metrics import METRICS
+
+            METRICS.inc("maya_restatement_impacts_total")
             uow.audit(
                 "restatement.impact",
                 object_type="execution_warrant",
