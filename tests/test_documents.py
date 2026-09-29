@@ -13,6 +13,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 from __future__ import annotations
 
 import json
+import re
 from types import SimpleNamespace
 
 import httpx
@@ -422,3 +423,19 @@ def test_a_draft_can_be_deleted_and_an_approved_document_cannot(estate):
     with p.uow() as uow:
         event = uow.repo("audit_events").find_one(action="document.deleted")
     assert event["detail"]["document"] == draft["id"]
+
+
+def test_ai_calls_are_counted_by_purpose_provider_and_outcome(estate):
+    from maya.observability.metrics import METRICS
+
+    p, w = estate
+    p.ai.override = StubProvider()
+    try:
+        _generate(p, w, kind="model_card")
+    finally:
+        p.ai.override = None
+    text = METRICS.render()
+    assert re.search(
+        r'maya_ai_completions_total\{[^}]*outcome="ok"[^}]*purpose="document:model_card"', text
+    )
+    assert "maya_ai_completion_seconds_bucket" in text

@@ -1826,6 +1826,8 @@ the study's own namespace before running, a failed full pass purges its partial 
 
 **Metrics** (Prometheus): request rate, latency histograms and error rate per endpoint; job queue depth, wait time, run time and failure rate per job type; resolution rows and bytes per second; Delta file counts and small-file ratio per table; database pool utilization and slow-query count; cache hit rates; active sessions; authorization denials; pins created and bytes stored per namespace.
 
+*Revision 2.8:* **governance metrics**, alongside the platform's. Gauges for execution warrants by status and those expiring within 7 and 30 days, training warrants and versions by state, models past periodic review by tier, open findings by severity, restatement impacts by state and the age of the oldest unacknowledged one, and documents by state. Counters for covenant breaches by kind, restatement impacts, and every AI gateway call by purpose, provider and outcome, with its tokens and a latency histogram. No label names an object, so the number of series is bounded. `config/prometheus/maya-governance.rules.yml` alerts on them, each alert with a runbook. Two Grafana dashboards, one for the platform and one for model governance, ship in `config/grafana/`.
+
 **Traces** (OpenTelemetry): one trace from HTTP request through service, plan, resolution, storage read and job execution, so "why did this pin take 40 minutes" has an answer with spans rather than a guess.
 
 **Logs**: structured JSON, one event per line, always carrying request id, trace id, actor and object reference; secrets and data values never logged; log level configurable per module at runtime.

@@ -80,7 +80,9 @@ def test_the_exposition_stays_well_formed_with_every_new_family(scraped):
     """Labels now carry table paths and namespace names; the format must survive them."""
     _, body = scraped
     label = r'[a-zA-Z_][a-zA-Z0-9_]*="(?:[^"\\]|\\.)*"'
-    sample = re.compile(rf"^[a-z_:][a-z0-9_:]*(\{{{label}(?:,{label})*\}})? -?[0-9.e+]+$")
+    sample = re.compile(
+        rf"^[a-z_:][a-z0-9_:]*(\{{{label}(?:,{label})*\}})? -?[0-9.]+(?:e[+-]?[0-9]+)?$"
+    )
     for line in body.splitlines():
         if line and not line.startswith("#"):
             assert sample.match(line), line

@@ -58,7 +58,9 @@ def test_metrics_exposition_is_scrapeable(obs):
     assert re.search(r'^maya_jobs\{state="queued"\} \d', body, re.M)
     assert re.search(r'^maya_seam_backend\{backend="[a-z_]+",seam="lake"\} 1', body, re.M)
     label = r'[a-zA-Z_][a-zA-Z0-9_]*="(?:[^"\\]|\\.)*"'  # quoted values may hold braces
-    sample = re.compile(rf"^[a-z_:][a-z0-9_:]*(\{{{label}(?:,{label})*\}})? -?[0-9.e+]+$")
+    sample = re.compile(
+        rf"^[a-z_:][a-z0-9_:]*(\{{{label}(?:,{label})*\}})? -?[0-9.]+(?:e[+-]?[0-9]+)?$"
+    )
     for line in body.splitlines():  # every sample line is well-formed
         if line and not line.startswith("#"):
             assert sample.match(line), line

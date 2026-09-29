@@ -25,6 +25,10 @@ They are procedures, not explanations. The why of each subsystem is in the
 | [Delta small-file explosion](delta-small-files.md) | Reads slow down while row counts do not, or a lake table is thousands of tiny files |
 | [Database failover](database-failover.md) | PostgreSQL has gone away, or a standby has been promoted |
 | [A suspended execution warrant](suspended-execution-warrant.md) | A consumer is refused with `warrant_suspended` (HTTP 423) |
+| [Restated data under a live model](restated-data-under-a-live-model.md) | A `restatement` notification, or `MayaRestatementUnderLiveModel` fires |
+| [Periodic review overdue, or a warrant expiring](periodic-review-and-expiry.md) | A model is past its review, or a live warrant lapses within the week |
+| [A governance backlog](governance-backlog.md) | A critical finding stays open, or the review queue does not drain |
+| [The AI gateway](ai-gateway.md) | A language-model provider is failing calls, or token use passes its budget |
 | [SSO outage](sso-outage.md) | The identity provider is down or misbehaving, or sign-out does not behave as expected |
 | [Suspected sandbox escape](sandbox-escape.md) | User-supplied Python may have got out of its jail, or the sandbox tier has fallen |
 | [Storage quota exhaustion](quota-exhaustion.md) | The lake is filling up, one namespace is consuming it, or the job queue is shedding |

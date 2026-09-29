@@ -640,6 +640,10 @@ class ExecutionService:
                     detail={"limits": over, "environment": environment},
                 )
             if breaches:
+                from maya.observability.metrics import METRICS
+
+                for b in breaches:
+                    METRICS.inc("maya_covenant_breaches_total", {"kind": b.get("kind", "other")})
                 reason = "; ".join(b["detail"] for b in breaches)
                 uow.repo("execution_warrants").update(
                     ew_id, {"suspended_at": utcnow(), "suspend_reason": reason}
