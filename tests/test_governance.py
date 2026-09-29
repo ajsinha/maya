@@ -132,7 +132,9 @@ def test_an_overdue_review_suspends_live_warrants_and_a_review_lifts_only_those(
         w.p.execution.check(ew)
     with pytest.raises(PermissionDenied, match="owner"):
         w.p.governance.record_review(w.mona, "eq/gov_lin", "satisfactory", "all good")
-    with pytest.raises(PermissionDenied, match="model manager or a model validator"):
+    with pytest.raises(
+        PermissionDenied, match="model manager, a model validator or an administrator"
+    ):
         w.p.governance.record_review(w.devi, "eq/gov_lin", "satisfactory", "reading is not enough")
     if "vera" not in {u["username"] for u in w.p.access.list_users(w.admin)}:
         w.p.access.create_user(
@@ -147,6 +149,8 @@ def test_an_overdue_review_suspends_live_warrants_and_a_review_lifts_only_those(
         assert uow.repo("execution_warrants").require(ew_id)["suspended_at"] is None
         assert uow.repo("execution_warrants").require(other)["suspend_reason"] == "covenant breach"
     assert w.p.governance.sweep(w.admin)["suspended"] == []
+    by_admin = w.p.governance.record_review(w.admin, "eq/gov_lin", "satisfactory", "annual look")
+    assert by_admin["last_reviewed_by"] == w.admin.username
     row = next(r for r in w.p.governance.overview(w.mona)["models"] if r["name"] == "gov_lin")
     assert row["tier"] == 1 and not row["review_overdue"]
 
