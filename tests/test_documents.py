@@ -327,6 +327,7 @@ def test_the_documents_tab_generates_views_and_downloads(estate):
     )
     view = web.get(f"/models/docs/linear_price/documents/{doc['id']}")
     assert view.status_code == 200 and "Validation report" in view.text
+    assert "/static/vendor/katex/katex.min.js" in view.text and "maths.js" in view.text
     md = web.get(f"/models/docs/linear_price/documents/{doc['id']}/download?format=md")
     assert md.status_code == 200 and b"## Evidence checklist" in md.content
 
@@ -393,3 +394,14 @@ def test_the_admin_ai_page_switches_and_tests(estate):
     web.post("/admin/ai/default", data={"profile": "", "csrf_token": token})
     web.post("/admin/ai/profiles/demo/delete", data={"csrf_token": token})
     assert "demo" not in {r["name"] for r in p.ai.status()["profiles"]}
+
+
+def test_display_maths_survives_markdown_and_is_typeset_in_the_view():
+    from maya.documents.render import to_html
+
+    page = to_html("# T\n\n$$a &= \\frac{1}{2} \\\\ b &= c\\,d$$\n\nAfter <i>x</i>.", "T")
+    assert (
+        '<div class="maths maya-math display">a &amp;= \\frac{1}{2} \\\\ b &amp;= c\\,d</div>'
+        in page
+    )
+    assert "<i>" not in page and "MAYAMATH" not in page
