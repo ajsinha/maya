@@ -155,8 +155,15 @@
           msg.textContent = j.state + (j.message ? ' — ' + j.message : '') + (j.error_text ? ' — ' + j.error_text : '');
           if (['succeeded', 'failed', 'cancelled', 'dead_letter'].indexOf(j.state) < 0) {
             setTimeout(tick, 700);
-          } else if (el.hasAttribute('data-reload')) {
-            setTimeout(function () { location.reload(); }, 600);
+          } else {
+            // drop ?job= so the reloaded page does not show (and reload for) the same job again
+            var url = new URL(location.href);
+            url.searchParams.delete('job');
+            if (el.hasAttribute('data-reload') && j.state === 'succeeded') {
+              setTimeout(function () { location.replace(url.toString()); }, 600);
+            } else {
+              history.replaceState(null, '', url.toString());
+            }
           }
         })
         .catch(function () { setTimeout(tick, 2000); });
