@@ -14,6 +14,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import re
 import ast
 
 import numpy as np
@@ -201,8 +202,8 @@ def test_every_authoring_screen_says_what_it_needs(site):  # noqa: F811
     ):
         page = mona.get(path).text
         assert heading in page, path
-        assert "/help/guides/authoring-reference#" in page, path
-    guide = mona.get("/help/guides/authoring-reference").text
+        assert re.search(r"/help/designers#[a-z0-9-]+\"", page), path
+    guide = mona.get("/help/designers").text
     for anchor in (
         "the-python-artifact",
         "features",

@@ -157,6 +157,7 @@ MAYA connects to PostgreSQL through the `psycopg` driver (`postgresql+psycopg://
 
 | Key | Default | Meaning |
 |---|---|---|
+| `lake.root` | empty | Where the lake lives. Empty: `<storage.root>/lake`. A relative path is resolved against the project root, not the working directory, so the same configuration means the same lake whichever directory a script starts in. |
 | `lake.backend` | `auto` | The `maya_delta` backend: `native` (the `deltalake` package), `pure` (MAYA's pure-Python implementation of a declared subset of the Delta protocol) or `auto` (native when installed). |
 | `lake.maintenance.interval_seconds` | `86400` | How often the scheduler compacts and vacuums every lake table. |
 | `lake.maintenance.target_size_mb` | `128` | The file size compaction aims for. |
@@ -179,8 +180,9 @@ MAYA connects to PostgreSQL through the `psycopg` driver (`postgresql+psycopg://
 | `auth.session.absolute_timeout_hours` | `12` | A session ends this long after sign-in, however active. |
 | `auth.session.principal_cache_seconds` | `2` | How long a signed-in session's principal is reused, since one page makes several internal calls. `0` turns it off. A sign-out, revocation or access change made in another web process reaches the session at most this many seconds late; in the same process it applies at once. Sessions still owing a second factor are never reused. |
 | `auth.session.concurrent_sessions` | `3` | Live sessions one person may hold; a further sign-in ends their oldest. `0`: no cap. |
-| `auth.password.min_length` | `12` | The minimum password length. |
-| `auth.password.require_classes` | `3` | How many of lower case, upper case, digits and symbols a password must use (1–4). |
+| `auth.password.min_length` | `8` | The minimum password length (at least 4). |
+| `auth.password.force_change` | `false` | Make a person change a password an administrator set — the bootstrap admin's, a new account's, a reset — at their next sign-in. Off by default: with single sign-on it is rarely wanted. |
+| `auth.password.require_classes` | `2` | How many of lower case, upper case, digits and symbols a password must use (1–4). |
 | `auth.password.history` | `5` | How many previous passwords may not be chosen again. `0`: no history. |
 | `auth.password.max_age_days` | `90` | A password older than this must be changed before its owner can sign in. `0`: never. |
 | `auth.password.reset_token_minutes` | `60` | How long a reset token is valid. It is single use whatever its age. |
@@ -414,11 +416,77 @@ The recorded challenger writes a memo on every submission into review. It never 
 | Key | Default | Placeholder | Meaning |
 |---|---|---|---|
 | `assistant.enabled` | `true` | — | Queue a challenge memo when an object enters review. |
-| `assistant.provider` | `rules` | `MAYA_ASSISTANT_PROVIDER` | `rules`: deterministic findings, no network. `claude`: also asks Claude, sending definitions, the specification and the formula — never data rows — to Anthropic's API. |
+| `assistant.provider` | `rules` | `MAYA_ASSISTANT_PROVIDER` | `rules`: deterministic findings, no network. `llm`: also asks a language model through the AI gateway (see `assistant.profile`), so any provider an administrator set up serves. `claude`: asks Anthropic's API directly. Either sends definitions, the specification and the formula — never data rows — to the provider. |
+| `assistant.profile` | empty | — | With `llm`: the model profile asked. Empty: the gateway's default profile, so switching the default in **Admin → AI models** moves the challenger too. |
 | `assistant.claude.model` | `claude-opus-5` | — | The model asked when the provider is `claude`. |
 | `assistant.claude.effort` | `high` | — | The effort level passed to the model. |
 | `assistant.claude.api_key_env` | empty | — | The name of an environment variable holding the Anthropic key. Empty: the Anthropic SDK's own resolution (`ANTHROPIC_API_KEY`, or a saved login). |
 | `assistant.claude.timeout_seconds` | `300` | — | The request timeout. |
+
+## llm
+
+The AI gateway: the one place MAYA asks a language model anything — drafted sections of generated documents, the assistant's challenger under `assistant.provider: llm`, live evaluations of LLM applications. Callers name a **model profile**; without a profiles file there is one, `default`, made from these keys. Profiles can also be added in **Admin → AI models**, where the default can be switched at runtime. See *Model documents and the AI gateway* in Help.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `llm.provider` | `none` | `none` (drafts nothing), `stub`, `anthropic`, `openai`, `azure_openai`, `ollama`, `bedrock`, or an allowed `llm_provider` plugin. |
+| `llm.model` | empty | The model to ask. Empty: the provider's own default below. |
+| `llm.profiles_file` | `config/llm_profiles.yaml` | Named profiles (provider, model, parameters, options); `config/llm_profiles.example.yaml` shows the format. Missing: one profile from these keys. |
+| `llm.profile` | empty | The default profile. Empty: the file's own `default:`. An administrator's choice in Admin → AI models overrides both. |
+| `llm.max_tokens` | `2048` | The longest answer asked for, per call. |
+| `llm.temperature` | `0.2` | Sampling temperature where the provider takes one. |
+| `llm.timeout_seconds` | `120` | Per-call timeout. |
+| `llm.anthropic.model` | `claude-opus-5` | Anthropic's default model. |
+| `llm.anthropic.api_key_env` | `ANTHROPIC_API_KEY` | The environment variable holding the key. |
+| `llm.anthropic.base_url` | empty | A different Anthropic endpoint. Empty: the SDK's own. |
+| `llm.anthropic.thinking` | `adaptive` | `adaptive` lets the model think before answering; `off` does not. |
+| `llm.openai.base_url` | `https://api.openai.com/v1` | A Chat Completions endpoint: OpenAI, or any compatible server (vLLM, LM Studio, a gateway). |
+| `llm.openai.api_key_env` | `OPENAI_API_KEY` | The environment variable holding the key; empty for a local server. |
+| `llm.openai.model` | empty | The model to ask at that endpoint. |
+| `llm.azure_openai.endpoint` | empty | The Azure OpenAI resource endpoint. |
+| `llm.azure_openai.deployment` | empty | The deployment to call. |
+| `llm.azure_openai.api_version` | `2024-10-21` | The Azure OpenAI API version. |
+| `llm.azure_openai.api_key_env` | `AZURE_OPENAI_API_KEY` | The environment variable holding the key. |
+| `llm.ollama.base_url` | `http://localhost:11434` | Where Ollama serves. |
+| `llm.ollama.model` | `llama3.1` | The Ollama model to ask. |
+| `llm.bedrock.region` | `us-east-1` | The AWS region Bedrock is called in. |
+| `llm.bedrock.profile` | empty | An AWS profile name. Empty: boto3's own resolution. |
+| `llm.bedrock.model` | empty | The Bedrock model id. |
+
+!!! warning "Keys never go in a profile"
+    A profile, in the file or saved from the admin page, names the environment variable that holds a key (`api_key_env`); MAYA refuses one that holds a key itself.
+
+## documents
+
+| Key | Default | Meaning |
+|---|---|---|
+| `documents.template_dir` | `config/templates/documents` | Where a firm's own document templates live. A file named like a built-in (`model_card.md.j2`) replaces it; any other template there is offered for the kind its first line declares. |
+
+## governance
+
+| Key | Default | Meaning |
+|---|---|---|
+| `governance.tiering_questionnaire` | `config/tiering.yaml` | The materiality questionnaire a model's owner answers, from which its tier is derived. Blank: the tier comes from measured drivers only. |
+| `governance.review_days_tier1` | `365` | Days between periodic reviews of a tier 1 model, unless its governance profile sets `review_days`. |
+| `governance.review_days_tier2` | `730` | The same for tier 2. |
+| `governance.review_days_tier3` | `1095` | The same for tier 3. |
+
+## restatements
+
+| Key | Default | Meaning |
+|---|---|---|
+| `restatements.alerts` | `true` | After an ingest restates rows, check every live execution warrant's training pin against what is known now, and record and notify how far the result moves. **Check now** on a warrant works either way. |
+
+## integrations
+
+| Key | Default | Meaning |
+|---|---|---|
+| `integrations.mlflow.tracking_uri` | empty | The MLflow tracking server models may be fetched from. Empty: models are uploaded only. |
+| `integrations.mlflow.token_env` | empty | The environment variable holding a bearer token for that server, if it needs one. |
+| `integrations.mlflow.live_alias` | `maya-live` | The MLflow alias MAYA sets on each registered version while it has a live execution warrant, and removes when it has none. |
+| `integrations.openlineage.url` | empty | An OpenLineage endpoint (Marquez, for example) lineage is posted to. Empty: lineage can be downloaded, not posted. |
+| `integrations.openlineage.api_key_env` | empty | The environment variable holding that endpoint's bearer token, if any. |
+| `integrations.openlineage.namespace` | `maya` | The OpenLineage namespace MAYA's jobs and datasets are reported under. |
 
 ## custody
 

@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Evidence someone else can check') %}
 <p>A <strong>reproducibility bundle</strong> is a signed zip exported from a training warrant: the
 warrant, the model version and its formula IR, generated reference code, the parameters, the training
@@ -16,7 +14,7 @@ data, the leakage certificate, the environment — and a <code>verify.py</code> 
 
 {% call step(1, 'Export') %}
 <p>From the training warrant's page choose <strong>Export bundle</strong>, or use the SDK or CLI. The
-export is refused if the feature set's <a href="/help/licences">licence</a> does not allow it to leave
+export is refused if the feature set's <a href="/help/access#licences">licence</a> does not allow it to leave
 the firm.</p>
 {% call example('Export with the SDK', 'python') %}
 import maya.sdk as maya
@@ -53,10 +51,7 @@ python -m maya.cli export bundle <warrant-id> --out pd-2026q1.zip
 <p>The verifier needs Python, <code>pyarrow</code> and <code>numpy</code>; with
 <code>cryptography</code> installed it also checks the signature. It prints a JSON report and exits
 non-zero if anything fails.</p>
-{% call example('Verify with nothing but the bundle', 'bash') %}
-unzip -p pd-2026q1.zip verify.py > verify.py
-python verify.py pd-2026q1.zip
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Verify with nothing but the bundle: see <a href="#reproducibility-bundles">Reproducibility bundles</a> in the full reference below.</p>
 {% call example('Or with the MAYA CLI (still offline)', 'bash') %}
 python -m maya.cli export verify pd-2026q1.zip
 #   [ok] file hash data/training.parquet
@@ -91,4 +86,3 @@ digest, and an audit entry — so you can always say which bundle went to whom.<
   ('file-earmark-lock', 'Data licences', 'Why an export can be refused, and who imposed the term.'),
   ('journal-text', 'Audit and custody', 'The log that records every export.'),
 ]) }}
-{% endblock %}

@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('A version freezes how; a pin freezes what') %}
 <p>An approved <strong>version</strong> says <em>how</em> a number is produced. Resolving it tomorrow can
 still return different rows: a vendor restates, a late file lands. A <strong>pin</strong> removes that
@@ -127,4 +125,3 @@ print(out["filesRemoved"], "small files compacted into", out["filesAdded"], "—
   ('grid-3x3-gap', 'Feature sets', 'Pin a whole set at once with a cascade pin.'),
   ('mortarboard', 'Training warrants', 'Warrants bind a model to a feature-set pin or an approved version.'),
 ]) }}
-{% endblock %}

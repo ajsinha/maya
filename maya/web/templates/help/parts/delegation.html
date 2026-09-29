@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('A stand-in, not a loophole') %}
 <p>When an approver is away, reviews should not stall and nobody should borrow a password. A
 <strong>delegation</strong> names a stand-in for a date range, optionally for certain object types.
@@ -90,4 +88,3 @@ sla_days: {in_review: 3}
   ('key', 'Access and grants', 'The roles and grants a delegate borrows, and nothing beyond them.'),
   ('journal-text', 'Audit and custody', 'The record every delegated approval leaves.'),
 ]) }}
-{% endblock %}

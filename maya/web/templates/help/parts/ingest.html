@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Every batch is a knowledge-time layer') %}
 <p>Data reaches a feature as <strong>ingests</strong>: batches of rows, each stamped with one
 <strong>knowledge time</strong> — when MAYA could first have known them. Batches are appended to the
@@ -73,7 +71,7 @@ python -m maya.cli feature upload eq/prices fix.csv --knowledge-time 2026-01-09T
 {% endcall %}
 <p>If the original close was loaded with knowledge time <code>2026-01-05T18:00:00Z</code>, reading
 the data as of 8 January still gives 102.1; reading it as of now gives 102.4. See
-<a href="/help/bitemporal">Bitemporality and as-of</a>.</p>
+<a href="/help/data#bitemporal">Bitemporality and as-of</a>.</p>
 {% endcall %}
 
 {% call step(4, 'Pull from a SQL source') %}
@@ -86,7 +84,7 @@ row = my.features.pull("eq/prices_db")                 # knowledge time = now
 row = my.features.pull("eq/prices_db", knowledge_time="2026-01-06T18:00:00Z")
 {% endcall %}
 <p>The query is part of the definition, so changing it needs a new version and a review. See
-<a href="/help/sources">SQL sources</a>.</p>
+<a href="/help/features#sources">SQL sources</a>.</p>
 {% endcall %}
 
 {% call step(5, 'Where ingest does not apply') %}
@@ -109,4 +107,3 @@ blob hash, note and who loaded it, and each one is an audit entry (<code>feature
   ('cloud-upload', 'Upload wizard', 'Not sure of the schema? Let MAYA infer it from a file first.'),
   ('pin-angle', 'Pins', 'Freeze what you ingested into sealed, citable data.'),
 ]) }}
-{% endblock %}

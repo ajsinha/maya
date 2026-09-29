@@ -1,11 +1,9 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('A feature is a definition first, data second') %}
 <p>A <strong>feature</strong> is a governed recipe for a number: which rows identify it, what types
 its values have, where they come from, how gaps are filled, how the data is shaped, and what it must
 satisfy before anyone may rely on it. The data arrives separately (see
-<a href="/help/ingest">Ingesting data</a>) and is resolved through the definition every time it is
+<a href="/help/features#ingest">Ingesting data</a>) and is resolved through the definition every time it is
 read.</p>
 {% endcall %}
 
@@ -49,7 +47,7 @@ value attribute is required and names must be unique.</p>
 <code>sql</code>, <code>python</code>, <code>delta</code> or <code>derived</code>. For uploads you may
 name a <code>knowledge_time_column</code>, a column in the file that says when each row became known;
 otherwise the upload instant is used. A <code>python</code> source is a sandboxed producer function;
-see <a href="/help/sources">SQL and Python sources</a>.</p>
+see <a href="/help/features#sources">SQL and Python sources</a>.</p>
 {% call example('A CSV source with its own knowledge times', 'json') %}
 "source": {"type": "csv", "knowledge_time_column": "published_at"}
 {% endcall %}
@@ -104,13 +102,7 @@ and functions such as <code>abs</code>, <code>log</code>, <code>where</code>, <c
 blocks the pin. Checks: <code>not_null</code>, <code>unique_on_index</code>, <code>range</code>,
 <code>allowed_values</code>, <code>monotonic</code>, <code>max_daily_change</code>,
 <code>row_count_between</code>, <code>freshness_within</code>.</p>
-{% call example('A quality contract', 'json') %}
-"quality": [
-  {"check": "not_null", "attr": "close"},
-  {"check": "range", "attr": "close", "min": 0, "max": 100000},
-  {"check": "unique_on_index"}
-]
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> A quality contract: see <a href="#the-whole-definition-at-a-glance">The whole definition at a glance</a> in the full reference below.</p>
 {% endcall %}
 
 {% call step(6, 'Create, preview, submit') %}
@@ -147,4 +139,3 @@ version is never edited.</p>
   ('clock-history', 'Bitemporality and as-of', 'Ask what was known on a date.'),
   ('pin-angle', 'Pins', 'Freeze an approved version as sealed data.'),
 ]) }}
-{% endblock %}

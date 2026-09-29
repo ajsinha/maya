@@ -31,7 +31,7 @@
 | Challenger comparison | {{ (facts.challenges | length) ~ " comparison(s)" if facts.challenges else "none" }} |
 | Live covenants | {% set cov = [] %}{% for e in facts.execution %}{% for c in e.covenants %}{% set _ = cov.append(c) %}{% endfor %}{% endfor %}{{ (cov | length) ~ " on " ~ (facts.execution | length) ~ " warrant(s)" if facts.execution else "not licensed to run" }} |
 | Periodic review | {% if g.review_overdue %}**overdue**{% else %}due {{ g.next_review_due | dt }}{% endif %} |
-| Open findings | {{ g.findings | selectattr("state", "in", ["open", "remediated"]) | list | length }} |
+| Open findings | {{ g.findings | selectattr("state", "in", ["open", "remediating", "remediated"]) | list | length }} |
 
 ## The model
 

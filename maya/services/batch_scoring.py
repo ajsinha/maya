@@ -161,7 +161,9 @@ class BatchScoring:
         with self.p.uow() as uow:
             ew, _ = self.p.execution._load(uow, ew_id)
             self.p.access.require(uow, p, "read", "execution_warrant", ew)
-            jobs = uow.repo("jobs").list(job_type=JOB, order_by=["-created_at"], limit=200)
+            # every batch job, filtered by warrant below: a cap across all warrants would hide
+            # an older batch of a quiet warrant behind newer ones of busy warrants
+            jobs = uow.repo("jobs").list(job_type=JOB, order_by=["-created_at"])
         return [
             {
                 k: j[k]

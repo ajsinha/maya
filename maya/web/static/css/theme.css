@@ -265,10 +265,10 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .help-search input { width: 100%; padding: .65rem 1rem .65rem 2.4rem; font-size: 1rem; border-radius: 999px; outline: none;
   border: 2px solid var(--maya-border); background: var(--maya-surface); color: var(--maya-ink); box-shadow: 0 6px 18px -12px rgba(41,51,82,.4); }
 .help-search input:focus { border-color: var(--maya-crimson); }
-.cat-chips, .help-related .chips { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
-.cat-chips .chip, .help-related .chip { display: inline-flex; align-items: center; gap: .4rem; font-size: 12.5px; font-weight: 600; padding: .25rem .8rem;
+.cat-chips, .help-related .chips, .help-onpage { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
+.cat-chips .chip, .help-related .chip, .help-onpage .chip { display: inline-flex; align-items: center; gap: .4rem; font-size: 12.5px; font-weight: 600; padding: .25rem .8rem;
   border: 1px solid var(--maya-border); border-radius: 999px; text-decoration: none; color: var(--maya-ink); background: var(--maya-surface); }
-.cat-chips .chip:hover, .help-related .chip:hover { border-color: var(--maya-crimson); color: var(--maya-crimson); }
+.cat-chips .chip:hover, .help-related .chip:hover, .help-onpage .chip:hover { border-color: var(--maya-crimson); color: var(--maya-crimson); }
 .cat-chips .chip span { color: var(--maya-slate); font-variant-numeric: tabular-nums; }
 .help-cat { border: 1px solid var(--maya-border); border-radius: 16px; margin-bottom: 1rem; background: var(--maya-surface);
   box-shadow: 0 8px 24px -18px rgba(41,51,82,.35); scroll-margin-top: 170px; }
@@ -654,3 +654,12 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 
 /* a catalogue row's one-line description, under its name */
 .row-desc { font-size: 12.5px; color: var(--maya-slate); line-height: 1.35; margin-top: .1rem; max-width: 46ch; }
+
+/* a subject page: its parts, then its reference */
+.help-onpage { margin: 0 0 1.25rem; justify-content: flex-start; }
+.help-part, .help-reference { scroll-margin-top: 5rem; }
+.help-part + .help-part, .help-part + .help-reference { margin-top: 2rem; }
+.help-part-title { font-size: 1.35rem; padding-bottom: .4rem; margin: 0 0 1rem; border-bottom: 2px solid var(--maya-crimson); display: flex; gap: .5rem; align-items: center; }
+
+.help-see-ref { font-size: .9rem; color: var(--maya-muted, #6b6b6b); margin: .5rem 0 1rem; }
+.help-see-ref a { font-weight: 600; }

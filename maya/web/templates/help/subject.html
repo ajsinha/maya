@@ -11,19 +11,37 @@
   <div><h1>{{ topic.title }}{% if topic.badge %} <span class="badge">{{ topic.badge }}</span>{% endif %}</h1>
     <p>{{ topic.summary }}</p></div>
 </header>
-<article class="help-article">
-{% block body %}{% endblock %}
-</article>
+{% set many = topic.parts|length > 1 %}
+{% if many or (topic.parts and doc) %}
+<nav class="help-onpage" aria-label="On this page">
+  {% for part in topic.parts %}<a class="chip" href="#{{ part.slug }}">{{ part.title or topic.title }}</a>{% endfor %}
+  {% if doc %}<a class="chip" href="#reference"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Full reference</a>{% endif %}
+</nav>
+{% endif %}
+{% for part in topic.parts %}
+<section class="help-article help-part" id="{{ part.slug }}">
+  {% if many %}<h2 class="help-part-title">{{ part.title }}</h2>{% endif %}
+  {% include "help/parts/" ~ part.slug ~ ".html" %}
+</section>
+{% endfor %}
+{% if doc %}
+<section id="reference" class="help-reference">
+  {% if topic.parts %}<h2 class="help-part-title"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Full reference</h2>{% endif %}
+  <div class="guide-layout">
+    {% if doc.toc %}
+    <nav class="guide-toc" aria-label="In the reference">
+      <div class="head">In the reference</div>
+      <ol>{% for t in doc.toc %}<li><a href="#{{ t.id }}">{{ t.name }}</a>{% if t.children %}<ol>{% for c in t.children %}<li><a href="#{{ c.id }}">{{ c.name }}</a></li>{% endfor %}</ol>{% endif %}</li>{% endfor %}</ol>
+    </nav>
+    {% endif %}
+    <article class="help-article guide-body">{{ doc.html|safe }}</article>
+  </div>
+</section>
+{% endif %}
 <div class="help-pager">
   {% if topic.prev %}<a class="btn btn-outline-secondary" href="/help/{{ topic.prev.slug }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> {{ topic.prev.title }}</a>{% else %}<span></span>{% endif %}
   {% if topic.next %}<a class="btn btn-primary" href="/help/{{ topic.next.slug }}">{{ topic.next.title }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
 </div>
-{% if companion %}
-<a class="help-companion" href="/help/guides/{{ companion.slug }}">
-  <i class="bi bi-journal-richtext" aria-hidden="true"></i>
-  <span><strong>Full reference:</strong> {{ companion.title }} <span class="small-muted">— {{ companion.summary }}</span></span>
-  <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i></a>
-{% endif %}
 <div class="help-related">
   <div class="head"><i class="bi bi-signpost-2" aria-hidden="true"></i> More in {{ topic.category }}</div>
   <div class="chips">

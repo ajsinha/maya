@@ -134,14 +134,16 @@ async def competitive(request: Request) -> Any:
 
 @router.get("/help")
 async def help_index(request: Request) -> Any:
-    from maya.web.help_catalog import CATEGORIES, GUIDES
-
     from maya.web.case_studies import catalog as studies
+    from maya.web.help_catalog import CATEGORIES, GUIDES, SUBJECTS
 
+    catalog = [
+        {**c, "cards": [{"slug": s, **SUBJECTS[s]} for s in c["subjects"]]} for c in CATEGORIES
+    ]
     return await render(
         request,
         "help/index.html",
-        {"catalog": CATEGORIES, "guides": GUIDES, "studies": studies(), "public_nav": True},
+        {"catalog": catalog, "guides": GUIDES, "studies": studies(), "public_nav": True},
     )
 
 
@@ -155,8 +157,11 @@ async def help_guides(request: Request) -> Any:
 @router.get("/help/guides/{slug}")
 async def help_guide(request: Request, slug: str) -> Any:
     from maya.web.guide_render import render as render_guide
-    from maya.web.help_catalog import find_guide
+    from maya.web.help_catalog import find_guide, guide_redirect
 
+    moved = guide_redirect(slug)
+    if moved:
+        return RedirectResponse(moved, status_code=301)
     guide = find_guide(slug)
     if guide is None:
         return RedirectResponse("/help/guides", status_code=303)
@@ -202,15 +207,15 @@ async def help_case_study(request: Request, slug: str) -> Any:
 
 @router.get("/help/{slug}")
 async def help_topic(request: Request, slug: str) -> Any:
-    from maya.web.help_catalog import find
+    """One subject: its worked explanation, then its complete reference."""
+    from maya.web.guide_render import render as render_guide
+    from maya.web.help_catalog import redirect_for, subject
 
-    topic = find(slug)
-    if topic is None:
-        return RedirectResponse("/help", status_code=303)
-    from maya.web.help_catalog import companion
-
+    page = subject(slug)
+    if page is None:
+        moved = redirect_for(slug)
+        return RedirectResponse(moved or "/help", status_code=301 if moved else 303)
+    doc = render_guide(page["guide"]) if page["guide"] else None
     return await render(
-        request,
-        f"help/topics/{slug}.html",
-        {"topic": topic, "companion": companion(slug), "public_nav": True},
+        request, "help/subject.html", {"topic": page, "doc": doc, "public_nav": True}
     )

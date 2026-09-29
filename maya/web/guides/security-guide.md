@@ -60,7 +60,7 @@ break-glass account, which is why the runbook asks you to test it at every resto
 
 | Control | Behaviour |
 |---|---|
-| Policy | At least `auth.password.min_length` (12) characters, using `auth.password.require_classes` (3) of: lower case, upper case, digits, symbols. A new password must differ from the old one. |
+| Policy | At least `auth.password.min_length` (8) characters, using `auth.password.require_classes` (2) of: lower case, upper case, digits, symbols. A new password must differ from the old one. |
 | History | A new password may not repeat any of the last `auth.password.history` (5), the current one included. Only hashes are kept, and only that many; the refusal says how many MAYA remembers. `0` turns the history off. |
 | Maximum age | A password older than `auth.password.max_age_days` (90) must be changed: the sign-in is refused, naming the age and by how much it was passed, and the account is flagged `must_change_password`. An account whose last change MAYA never recorded does not expire — otherwise configuring a maximum age would lock everyone out at once. `0` turns the maximum off. |
 | Reset | Single use, time limited (`auth.password.reset_token_minutes`, 60). Anyone may ask at `/login/forgot`, which tells the administrators and says nothing about whether the account exists; an administrator issues the link on `/account/credentials`, and redeeming it ends every session the account has open. MAYA sends no email, so the link is handed over in person. An administrator's direct reset still forces a change at the next sign-in. |
@@ -70,7 +70,7 @@ break-glass account, which is why the runbook asks you to test it at every resto
 | Service accounts | Accounts created with `is_service` cannot sign in with a password; they use an API key or a client credential an administrator issues for them. |
 
 !!! warning "Change the bootstrap admin password"
-    A fresh database has an `admin` account with a known default password, flagged `must_change_password`. The startup banner and the health page warn while it is still in use. Outside dev, MAYA refuses to start until it is changed, unless `app.allow_default_admin_password` is set.
+    A fresh database has an `admin` account with a known default password. The startup banner and the health page warn while it is still in use, and with `auth.password.force_change` on (off by default) the first sign-in must change it. Outside dev, MAYA refuses to start until it is changed, unless `app.allow_default_admin_password` is set.
 
 ## Sessions
 
@@ -327,7 +327,8 @@ MAYA signs execution-warrant tokens, leakage certificates, reproducibility bundl
 |---|---|
 | Webhooks | HTTPS only. The host may not resolve to a private, loopback, link-local or reserved address, checked at creation and again at every delivery; redirects are not followed. Only dev with `observability.webhooks.allow_private` relaxes this. Each delivery is HMAC-SHA256-signed over `<timestamp>.<body>`. |
 | RFC 3161 timestamps | Off by default; enabling `rfc3161` sends the audit head hash to `custody.anchor.tsa_url`. Set `custody.anchor.tsa_ca_file` too, or the TSA's signature is not checked. |
-| The assistant | `rules` (default) makes no network call. `claude` sends definitions, specifications and formulas — never data rows — to Anthropic's API. |
+| The assistant | `rules` (default) makes no network call. `llm` (through the AI gateway, to whichever provider its profile names) and `claude` (to Anthropic directly) send definitions, specifications and formulas — never data rows — to that provider. |
+| The AI gateway | Drafted document sections send the model's recorded facts, gathered with the requester's own permissions, to the profile's provider; live LLM-application evaluations send the application's own prompts. Every call is audited as `ai.completion` with the prompt's hash, never the prompt. `llm.provider: none` (the default) sends nothing. |
 | `/metrics` | Open by default; name a token variable in `observability.metrics.token_env` to require a bearer token. A named but unset variable refuses every scrape rather than opening the endpoint. |
 
 ## Security events to watch

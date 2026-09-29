@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('A live instrument, not a document') %}
 <p>An <strong>execution warrant</strong> answers <em>what may be run, on what inputs, where, and until
 when</em>. It packages a model version, its approved parameter set and its input contract. Once
@@ -106,13 +104,7 @@ print(tok["claims"])   # warrant, env, model_ir_hash, params_hash, sub, exp (15 
 {% call step(5, 'Report every execution') %}
 <p>Reporting back is what makes the warrant a control: it links the run into lineage and evaluates the
 covenants. Send per-attribute statistics in the shape the covenants read.</p>
-{% call example('Report a run', 'python') %}
-out = my.execution.report(
-    ew["id"], environment="prod", rows=184_220,
-    input_stats={"ltv": {"null_rate": 0.002, "min": 0.1, "max": 1.9, "age_days": 1}},
-    output_stats={"pd": {"min": 0.0004, "max": 0.61}})
-print(out["status"], out["breaches"])           # live []
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Report a run: see <a href="#execution-warrants">Execution warrants</a> in the full reference below.</p>
 {% call warn('Offline copies are unattested') %}
 <p>A copy of the warrant for use without MAYA —
 <code>my.execution.bundle(ew["id"], "prod", offline=True)</code> — has no token, and nothing run from it
@@ -136,7 +128,7 @@ my.execution.revoke(ew["id"], reason="Model found wrong on backtest; stop all sc
 {% endcall %}
 {% call tip('Expiry is announced') %}
 <p>The scheduler checks hourly and notifies the owner once, thirty days before a warrant expires.
-Revoking the <a href="/help/training-warrants">training warrant</a> revokes every execution warrant
+Revoking the <a href="/help/warrants#training-warrants">training warrant</a> revokes every execution warrant
 drawn on it.</p>
 {% endcall %}
 
@@ -146,4 +138,3 @@ drawn on it.</p>
   ('box-seam', 'Reproducibility bundles', 'Hand a regulator something that verifies without MAYA.'),
   ('broadcast-pin', 'Events and webhooks', 'Get told the moment a warrant is suspended.'),
 ]) }}
-{% endblock %}

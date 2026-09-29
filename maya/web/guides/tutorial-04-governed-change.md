@@ -229,8 +229,9 @@ rules rules/1 ready - No findings. []
 ```
 
 Every submission gets a memo from the recorded challenger. With the default
-`rules` provider it holds deterministic findings; with `assistant.provider:
-claude` it adds Claude's challenge, attributed to the exact model. The memo can
+`rules` provider it holds deterministic findings; with `assistant.provider: llm`
+(any model profile, through the AI gateway) or `claude` it adds the model's
+challenge, attributed to the exact provider and model. The memo can
 never approve, block or edit anything: no check reads it. What is recorded is the
 reviewer's response to it:
 

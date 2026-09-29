@@ -133,7 +133,7 @@ the set's rows, so it fills only the gaps that alignment and the grid created.
 | 6 | nothing: leave it null | `default` |
 
 The rules are those of a feature (see the
-[Feature definition reference](/help/guides/features-reference)). A
+[Feature definition reference](/help/features#reference)). A
 `group_policies` entry is `{"name", "attrs", "rule"}`; the first entry listing
 an attribute wins.
 

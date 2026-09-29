@@ -19,8 +19,9 @@ governs what it can pin down:
   (e-mail addresses, card numbers that pass the Luhn check, phone numbers). A violation fails
   the case whatever its checks said.
 * **Two ways to run.** *Recorded*: the answers were produced elsewhere -- any provider,
-  any harness -- and are submitted for scoring. *Live*: MAYA calls the provider itself;
-  today that is Anthropic, through the assistant's client, and the run records it.
+  any harness -- and are submitted for scoring. *Live*: MAYA calls the provider itself,
+  through the AI gateway, with exactly the provider and model the version declares
+  (anthropic, openai, azure_openai, bedrock or ollama), and the run records it.
 * **Approval needs evidence.** A version is submitted only with an evaluation run on its
   own definition hash, against an evaluation set in its current state, that meets the
   version's pass-rate threshold (all cases, by default) with no guardrail violation. It is

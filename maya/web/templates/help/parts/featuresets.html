@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('A feature set is a view with a contract') %}
 <p>A model does not read features one by one; it reads a panel. A <strong>feature set</strong> maps
 attributes of member features onto the names a model expects, assembles them on a declared index by a
@@ -118,4 +116,3 @@ python -m maya.cli featureset download "maya://featureset/quant/panel#q1/2026-03
   ('mortarboard', 'Training warrants', 'Bind a model version to a feature-set pin.'),
   ('key', 'Access and conditions', 'Row filters and column masks apply to feature-set reads too.'),
 ]) }}
-{% endblock %}

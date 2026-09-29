@@ -346,8 +346,20 @@ class AiGateway:
                 if temperature is not None or chosen.source == "declared"
                 else float(view.get("llm.temperature", "0.2") or 0.2),
             )
-        except LlmUnavailable:
+        except LlmUnavailable as exc:
             METRICS.inc("maya_ai_completions_total", {**labels, "outcome": "unavailable"})
+            with self.p.uow(p.username if p else "assistant") as uow:
+                uow.audit(
+                    "ai.completion_failed",
+                    object_ref=object_ref,
+                    detail={
+                        "purpose": purpose,
+                        "profile": chosen.name,
+                        "provider": chosen.provider,
+                        "model": chosen.model,
+                        "reason": exc.message[:500],
+                    },
+                )
             raise
         METRICS.inc("maya_ai_completions_total", {**labels, "outcome": "ok"})
         METRICS.observe("maya_ai_completion_seconds", time.monotonic() - started, labels)

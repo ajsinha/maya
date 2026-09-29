@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Two credentials, one principal') %}
 <p>People sign in with a password or through single sign-on and get a server-side session. Scripts use
 an <strong>API key</strong>. Both resolve to the same principal, carrying roles and grants, so the
@@ -181,4 +179,3 @@ sandbox:
 {% endcall %}
 <p>{{ screen('/admin/health', 'Admin → System health') }} shows the tier this host delivers and why.</p>
 {% endcall %}
-{% endblock %}

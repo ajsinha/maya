@@ -20,7 +20,8 @@ python -m venv .venv
 | `python3-saml`, `xmlsec` | `auth.sso.protocol: saml2` refuses to start. |
 | `webauthn` | Security keys are unavailable. |
 | `openpyxl` | Spreadsheet import is refused. |
-| `anthropic` | `assistant.provider: claude` is refused. |
+| `anthropic` | `assistant.provider: claude` and model profiles with provider `anthropic` report the SDK missing; nothing else is affected. |
+| `boto3` | Model profiles with provider `bedrock` report the SDK missing. (`openai`, `azure_openai` and `ollama` need no extra package.) |
 | `deltalake` | The lake uses MAYA's pure-Python backend. |
 | `opentelemetry-sdk` and exporter | Trace ids still propagate; spans are not exported. |
 
@@ -363,6 +364,17 @@ MAYA also rebuilds it at startup when it is empty but the catalog is not.
 | Audit explorer | `my.admin.audit(action="licence.refused")` | administrators and techops |
 
 Any status other than `active` stops an account from signing in and from using its API keys.
+
+### Purging a namespace (development only)
+
+MAYA deletes nothing it governs, with one exception for development estates. With `app.environment: dev`, an administrator may remove a namespace and everything in it in one transaction: every row that belongs to it (found by foreign key, by object id and by reference) and its folders in the lake. Use **Admin → Namespaces → Purge**, typing the name again to confirm, or:
+
+```python
+my.namespaces.purge("scratch", confirm="scratch")
+# {"rows_removed": ..., "lake_folders_removed": ...}
+```
+
+Outside `dev` the purge is refused. A namespace with child namespaces is refused until they are purged. The audit log and the event stream are history and are kept, and the purge records itself in the audit log with what it removed. The case studies use it: `--reset` purges a study's own namespace before running, a failed full pass purges its partial work unless `--keep-on-failure` is given, and `--reset-all` rebuilds the whole estate.
 
 !!! tip "A weekly routine"
     Check the health page's `degraded` list and dead-letter count, run integrity verification, verify custody anchors, review the break-glass report and the aging list, and confirm backups include `storage.root/keys`.

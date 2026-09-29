@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Operators closed over features') %}
 <p>A derived feature is not a copy of data and not a script. Its source is a <strong>derivation</strong>:
 an operator applied to other features. Every operator takes features and yields a feature
@@ -75,16 +73,8 @@ print(my.features.preview("maya://feature/eq/px_best@v1")["plan"])
 {% endcall %}
 
 {% call step(3, 'More worked options') %}
-{% call example('Join prices with volumes, prefixing both sides', 'json') %}
-{"operator": "compose",
- "operands": ["maya://feature/eq/px@v2", "maya://feature/eq/vol@v1"],
- "options": {"prefixes": ["px_", "vol_"]}}
-{% endcall %}
-{% call example('Month-end aggregate of a daily feature', 'json') %}
-{"operator": "resample",
- "operands": ["maya://feature/eq/px@v2"],
- "options": {"freq": "M", "agg": {"close": "last"}}}
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Join prices with volumes, prefixing both sides: see <a href="#combining-operators">Combining operators</a> in the full reference below.</p>
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Month-end aggregate of a daily feature: see <a href="#single-operand-operators">Single-operand operators</a> in the full reference below.</p>
 {% call example("Yesterday's close, and a regime switch", 'json') %}
 {"operator": "lag", "operands": ["maya://feature/eq/px@v2"], "options": {"n": 1}}
 
@@ -100,13 +90,7 @@ than operators. Use them inside a feature's <code>transform</code> list, or wrap
 <code>transform</code> operator. Steps: <code>rename</code>, <code>cast</code>, <code>filter</code>,
 <code>derive</code>, <code>aggregate</code>, <code>pivot</code>, <code>unpivot</code>, <code>window</code>,
 <code>lag</code>, <code>resample</code>, <code>dedupe</code>, <code>clip</code>, <code>winsorize</code>.</p>
-{% call example('A 20-day rolling mean over a derived feature', 'json') %}
-{"operator": "transform",
- "operands": ["maya://feature/eq/px@v2"],
- "options": {"pipeline": [
-   {"op": "window", "attr": "close", "fn": "mean", "size": 20, "name": "close_ma20"}
- ]}}
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> A 20-day rolling mean over a derived feature: see <a href="#single-operand-operators">Single-operand operators</a> in the full reference below.</p>
 
 {% call warn('Look-ahead is refused, not warned about') %}
 <p>A negative <code>lag</code> reads the future and is rejected at submit. Resolution rules that look
@@ -120,4 +104,3 @@ derivation built on it, into feature sets and the leakage certificate of a train
   ('file-earmark-lock', 'Data licences', 'A vendor that forbids derived works stops a derivation at submit.'),
   ('diagram-3', 'Lineage', 'Every operand appears upstream of the derived feature.'),
 ]) }}
-{% endblock %}

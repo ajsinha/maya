@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Nobody writes the IR by hand') %}
 <p>A model's mathematics is held as a <strong>formula IR</strong>: a typed expression tree of inputs,
 intermediate <em>lets</em> and one output. You never author it directly. You write the formula the way
@@ -28,11 +26,7 @@ generator the registration path runs, and shows three things back: the mathemati
 parsed — not from your text, so a misreading is visible — the typed IR a version would store, and one
 self-contained Python function that computes it. It saves nothing; when the translation is right, one button
 carries the formula and the roles into the model designer.</p>
-{% call example('Black–Scholes call', 'latex') %}
-d_1 = \frac{\ln(S/K) + (r + \sigma^2/2) T}{\sigma \sqrt{T}}
-d_2 = d_1 - \sigma \sqrt{T}
-C = S N(d_1) - K e^{-rT} N(d_2)
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Black–Scholes call: see <a href="#writing-formulas">Writing formulas</a> in the full reference below.</p>
 <p>Then say which free names are not features. Every name defaults to <code>feature</code> (supplied by
 the bound feature set); mark the rest:</p>
 {% call example('Create it from Python', 'python') %}
@@ -78,19 +72,8 @@ by hash, and downloads from the model's Definition tab.</p>
   ('table', 'Simple lookups', 'VLOOKUP and HLOOKUP over a table of constants, exact or approximate; a miss is N/A, exactly as Excel.'),
   ('x-circle', 'Refused by cell', 'Text, dates, &, array formulas, INDEX/MATCH, INDIRECT, volatile and financial functions, circular references — named, never approximated.'),
 ]) }}
-{% call example('Lift, preview first', 'python') %}
-data = open("mortgage.xlsx", "rb").read()
-preview = my.models.lift_workbook(data, output="Model!B7", roles={"rate": "parameter"})
-print(preview["lifted_from"]["workbook"]["check"]["statement"])
-
-my.models.create("credit", "mortgage_payment")
-my.models.import_workbook("credit/mortgage_payment", data, output="Model!B7",
-                          roles={"rate": "parameter"}, filename="mortgage.xlsx")
-{% endcall %}
-{% call example('Command line', 'bash') %}
-python -m maya.cli model import-workbook credit/mortgage_payment mortgage.xlsx \
-    --output Model!B7 --role rate=parameter --preview
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Lift, preview first: see <a href="#lifting-from-a-spreadsheet">Lifting from a spreadsheet</a> in the full reference below.</p>
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Command line: see <a href="#lifting-from-a-spreadsheet">Lifting from a spreadsheet</a> in the full reference below.</p>
 {% call concept('Checked against the workbook itself') %}
 <p>Every time Excel recalculates it stores each formula's result in the file. MAYA evaluates the lifted
 formula at the workbook's own inputs and compares it with those results, cell by cell. <strong>Agreed</strong>:
@@ -114,17 +97,7 @@ operators are:</p>
 <code>max</code> <code>min</code> <code>where</code> <code>gt</code> <code>lt</code> <code>ge</code>
 <code>le</code> <code>eq</code> <code>and</code> <code>or</code> <code>na</code> (Excel's
 <code>#N/A</code>, from a spreadsheet lookup miss: evaluates to NaN)</p>
-{% call example('The IR of yhat = a*x + b (roles a, b: parameter)', 'json') %}
-{
-  "outputs": [{"name": "yhat", "type": "float64"}],
-  "inputs": [{"name": "a", "type": "float64", "role": "parameter"},
-             {"name": "b", "type": "float64", "role": "parameter"},
-             {"name": "x", "type": "float64", "role": "feature"}],
-  "lets": {},
-  "body": {"op": "add", "args": [{"op": "mul", "args": [{"ref": "a"}, {"ref": "x"}]},
-                                 {"ref": "b"}]}
-}
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> The IR of yhat = a*x + b (roles a, b: parameter): see <a href="#the-ir-document">The IR document</a> in the full reference below.</p>
 {% call tip('The hash ignores cosmetics') %}
 <p>The IR hash is taken over the canonical tree without its rendered <code>latex</code>, so reformatting
 an equation does not look like a change to the mathematics.</p>
@@ -151,12 +124,7 @@ print(my.models.reference_code("quant/bs_call", 1)["source"])
 kind <code>black_box</code> or <code>vendor</code>. A black box must state, in prose, what it estimates
 and describe its architecture; a vendor model records the vendor's details and lists what cannot be
 verified rather than omitting it.</p>
-{% call example('A declared black box', 'json') %}
-{"outputs": [{"name": "pd", "type": "float64"}],
- "inputs": [{"name": "leverage", "type": "float64", "role": "feature"}],
- "black_box": {"estimates": "12-month probability of default for a corporate obligor",
-               "architecture": "gradient-boosted trees, 400 estimators, depth 4"}}
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> A declared black box: see <a href="#black-boxes-and-vendor-models">Black boxes and vendor models</a> in the full reference below.</p>
 {% call warn('A black box cannot be conformance-tested') %}
 <p>With no documented closed form there is nothing to compare an implementation against. MAYA says
 so in the conformance report instead of implying a check it did not perform.</p>
@@ -174,4 +142,3 @@ can never claim more maturity than its least mature member.</p>
   ('mortarboard', 'Training warrants', 'Freeze a model version against a feature-set pin.'),
   ('diagram-2', 'Workflow', 'Checks such as the formula check block a submit by name.'),
 ]) }}
-{% endblock %}

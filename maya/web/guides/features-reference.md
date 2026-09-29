@@ -86,7 +86,7 @@ without a type is refused.
 
 MAYA adds `_knowledge_time` itself: never declare it. It records when each row
 became known, and it is what `as_of_known` cuts on. See
-[Data, pins and the lake](/help/guides/data-and-lake-guide).
+[Data, pins and the lake](/help/data#reference).
 
 ## Schema: attributes and logical types
 
@@ -229,7 +229,7 @@ A `delta` source reads the Delta table at `source.path` whenever the feature is
 resolved and stamps the rows with the current time as their knowledge time; it
 has no ingest log of its own. A `derived` source applies an operator to other
 features; it declares no `index` of its own because the operator's typing
-supplies one. See the [Feature algebra reference](/help/guides/algebra-reference).
+supplies one. See the [Feature algebra reference](/help/algebra#reference).
 
 ## Resolution: grid and rules
 
@@ -517,5 +517,5 @@ Most SDK and CLI calls also accept the short form `eq/prices`.
 | `Pin blocked by the quality contract` | a check failed during the pin | read the pin's `quality` results |
 
 Related: [Tutorial 1](/help/guides/tutorial-01-first-feature) walks through one
-definition end to end, and [Data, pins and the lake](/help/guides/data-and-lake-guide)
+definition end to end, and [Data, pins and the lake](/help/data#reference)
 explains what happens to the rows.

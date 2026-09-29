@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Three layers, each narrower than the last') %}
 <p>Whether you may do something is decided by one pure function, <code>can(principal, action, object)</code>,
 that every surface calls — the web UI, the REST API, the SDK and the CLI alike. It asks three questions in
@@ -114,6 +112,5 @@ roles, <code>two_person</code>) or <code>regulated</code> (all eight, <code>stri
 {% call warn('Licences can refuse a grant') %}
 <p>On a feature or feature set whose effective licence restricts its population, a grant to
 <code>everyone</code> or to a role is refused, and a grant to a user or group outside the population is
-refused too. See <a href="/help/licences">Data licences</a>.</p>
+refused too. See <a href="/help/access#licences">Data licences</a>.</p>
 {% endcall %}
-{% endblock %}

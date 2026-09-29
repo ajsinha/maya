@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('What a training warrant is') %}
 <p>A <strong>training warrant</strong> binds one <em>approved</em> model version to one feature set
 reference — ideally a sealed pin — and records the terms of the training run: the split, the seed,
@@ -98,12 +96,7 @@ python -m maya.cli warrant fetch <warrant-id> --out train.parquet
 <p>Train wherever you like, then upload the fitted values with the checksum you trained on. Values
 are checked against each parameter's declared bounds. If the checksum is one MAYA issued for this
 warrant the set is <code>verified_data</code>; otherwise it is flagged <code>unverified_data</code>.</p>
-{% call example('Upload a parameter set', 'python') %}
-ps = my.training.upload_parameters(
-    w["id"], {"beta0": -3.1, "beta_ltv": 2.4},
-    metrics={"auc": 0.81}, data_checksum=manifest["checksum"], notes="L2, C=1.0")
-print(ps["verified_data"], ps["flag"])           # True None
-{% endcall %}
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Upload a parameter set: see <a href="#parameter-sets">Parameter sets</a> in the full reference below.</p>
 {% call example('params.json for the CLI', 'json') %}
 {"values": {"beta0": -3.1, "beta_ltv": 2.4},
  "metrics": {"auc": 0.81},
@@ -146,4 +139,3 @@ owner is notified.</p>
   ('box-seam', 'Reproducibility bundles', 'Export the warrant as a signed archive that verifies offline.'),
   ('clock-history', 'Bitemporality', 'Why knowledge time makes the leakage certificate possible.'),
 ]) }}
-{% endblock %}

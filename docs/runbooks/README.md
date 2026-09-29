@@ -7,8 +7,8 @@ fix it, how to prove it is fixed, and what the procedure does **not** reach. Spe
 requires that runbooks ship with the product, not after it; these are those runbooks.
 
 They are procedures, not explanations. The why of each subsystem is in the
-[operations guide](../../maya/web/guides/operations-guide.md) (also in the product, under
-*Help → Guides*), the [security guide](../../maya/web/guides/security-guide.md) and the
+[operations guide](../../maya/web/guides/operations-guide.md) (also in the product, as
+*Help → Operations and monitoring*), the [security guide](../../maya/web/guides/security-guide.md) and the
 [architecture decision records](../adr/README.md).
 
 ## Index

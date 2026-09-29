@@ -53,7 +53,7 @@ up to a depth of 16.
 
 The change class of a new version of a derived feature is computed like any
 other feature's, by comparing its index and schema with the previous version
-(see the [Feature definition reference](/help/guides/features-reference)).
+(see the [Feature definition reference](/help/features#reference)).
 
 !!! tip "Reference versions, not the moving head"
     An operand written without `@v` or `#` means the latest approved version at
@@ -124,7 +124,7 @@ Errors: `rename cannot rename index columns`, `rename names unknown attribute(s)
 Runs a transformation pipeline over one feature. The steps are exactly those of
 a feature's `transform` list (`rename`, `cast`, `filter`, `derive`, `aggregate`,
 `pivot`, `unpivot`, `window`, `lag`, `resample`, `dedupe`, `clip`,
-`winsorize`); see the [Feature definition reference](/help/guides/features-reference).
+`winsorize`); see the [Feature definition reference](/help/features#reference).
 The output schema is computed from the steps without running them.
 
 | Option | Required | Rule |

@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('Rehearse a change before anyone approves it') %}
 <p>A <strong>workspace</strong> is a copy-on-write branch of the catalog. You stage a proposed definition
 for an existing feature or feature set; nothing else is copied. Inside the workspace every resolution —
@@ -122,4 +120,3 @@ and replay again.</p>
 <p class="small-muted">Every step is audited: <code>workspace.created</code>, <code>workspace.staged</code>,
 <code>workspace.replayed</code>, <code>workspace.submitted</code>, <code>workspace.merged</code> and
 <code>workspace.abandoned</code>.</p>
-{% endblock %}

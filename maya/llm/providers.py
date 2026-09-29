@@ -281,8 +281,9 @@ class AzureOpenAIProvider(OpenAIProvider):
     def __init__(self, settings: Any, transport: Any = None) -> None:
         _Http.__init__(self, settings, transport)
         self.endpoint = (settings.get("llm.azure_openai.endpoint", "") or "").rstrip("/")
-        self.deployment = (settings.get("llm.azure_openai.deployment", "") or "").strip()
+        # a profile's (or a declared LLM application version's) model names the deployment
         self.model = _model(settings, "llm.azure_openai.deployment", "")
+        self.deployment = self.model
         self.base = self.endpoint
 
     @classmethod

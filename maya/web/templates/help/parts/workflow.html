@@ -1,6 +1,4 @@
-{% extends "help/_topic.html" %}
 {% from "help/_macros.html" import step, concept, tip, warn, example, fields, screen, cards %}
-{% block body %}
 {% call concept('One engine, policies as data') %}
 <p>Every governed object — feature versions, feature set versions, model versions, parameter sets,
 training warrants and execution warrants — moves through the same workflow engine. What each type may
@@ -136,7 +134,8 @@ thin or missing limitations, and a document that no longer matches its formula.<
 ]) }}
 {{ fields([
   ('assistant.provider: rules', 'the default: deterministic findings only, no network'),
-  ('assistant.provider: claude', 'also asks Claude Opus 5; sends definitions, the specification and the formula — never data rows — to Anthropic, so it is opt-in'),
+  ('assistant.provider: llm', 'also asks a language model through the AI gateway — the profile assistant.profile names, or the default one — so any provider set up in Admin → AI models serves; opt-in, because definitions, the specification and the formula (never data rows) go to that provider'),
+  ('assistant.provider: claude', 'also asks Claude directly through Anthropic\'s API, with a schema-enforced reply; opt-in for the same reason'),
   ('assistant.claude.effort', 'low, medium, high (default), xhigh or max'),
 ]) }}
 {% call example('Read a memo and record your response', 'python') %}
@@ -153,4 +152,3 @@ my.assistant.respond(memo["id"], "partly", "Agree on the fill cap; the schema ch
   ('hourglass', 'SLA aging', 'Items waiting longer than their policy\'s sla_days; the scheduler escalates them.'),
   ('collection', 'Campaigns', 'One transition over many objects — a re-certification — with per-item results and one audit record.'),
 ]) }}
-{% endblock %}
