@@ -405,3 +405,20 @@ def test_display_maths_survives_markdown_and_is_typeset_in_the_view():
         in page
     )
     assert "<i>" not in page and "MAYAMATH" not in page
+
+
+def test_a_draft_can_be_deleted_and_an_approved_document_cannot(estate):
+    p, w = estate
+    draft = _generate(p, w, kind="model_card")
+    approved = _generate(p, w, kind="model_card")
+    p.documents.approve(w.mgr, approved["id"])
+    with pytest.raises(ValidationFailed, match="part of the record"):
+        p.documents.delete(w.admin, approved["id"])
+    with pytest.raises(PermissionDenied):
+        p.documents.delete(w.dana, draft["id"])  # neither its author nor able to edit the model
+    assert p.documents.delete(w.mona, draft["id"]) == {"deleted": draft["id"]}
+    ids = {d["id"] for d in p.documents.list(w.mona, "docs/linear_price")}
+    assert draft["id"] not in ids and approved["id"] in ids
+    with p.uow() as uow:
+        event = uow.repo("audit_events").find_one(action="document.deleted")
+    assert event["detail"]["document"] == draft["id"]

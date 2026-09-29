@@ -66,6 +66,12 @@ def render_document(
     return Response(out["data"], media_type=out["content_type"], headers=headers)
 
 
+@router.delete("/documents/{doc_id}")
+def delete_document(doc_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
+    """Delete a draft document (an approved one is part of the record and stays)."""
+    return ok(plat.documents.delete(me, doc_id))
+
+
 @router.post("/documents/{doc_id}/approve")
 def approve_document(doc_id: str, me: Principal = Me, plat: Any = Plat) -> Response:
     """Approve a document, drafted sections and all: someone other than whoever generated it."""

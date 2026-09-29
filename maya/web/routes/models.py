@@ -317,6 +317,15 @@ async def download_document(request: Request, ns: str, name: str, doc_id: str) -
     return download(out, f"document-{doc_id[:8]}.{fmt}")
 
 
+@router.post("/models/{ns}/{name}/documents/{doc_id}/delete")
+@action
+async def delete_document(request: Request, ns: str, name: str, doc_id: str) -> Any:
+    async with client(request) as sdk:
+        await sdk.documents.delete(doc_id)
+    flash(request, "Draft document deleted.", "success")
+    return RedirectResponse(f"/models/{ns}/{name}?tab=documents", status_code=303)
+
+
 @router.post("/models/{ns}/{name}/documents/{doc_id}/approve")
 @action
 async def approve_document(request: Request, ns: str, name: str, doc_id: str) -> Any:

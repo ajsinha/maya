@@ -203,7 +203,8 @@ class Model:
     <td class="text-nowrap"><a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}" target="_blank" rel="noopener">View</a>
       <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/download?format=pdf">PDF</a>
       <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/download?format=md">MD</a>
-      {% if d.state == 'draft' %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/approve" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit">Approve</button></form>{% endif %}</td>
+      {% if d.state == 'draft' %}<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/approve" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-primary" type="submit">Approve</button></form>
+      <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/documents/{{ d.id }}/delete" class="d-inline" data-confirm="Delete this draft document? This cannot be undone."><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-danger" type="submit" title="Delete this draft"><i class="bi bi-trash" aria-hidden="true"></i> Delete</button></form>{% endif %}</td>
   {% endcall %}
 </div>
 <div class="tab-pane {% if tab == 'history' %}show active{% endif %}" id="tab-history" role="tabpanel">

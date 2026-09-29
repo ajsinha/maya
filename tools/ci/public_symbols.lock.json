@@ -163,6 +163,7 @@
     "class": "Documents",
     "methods": {
      "approve": "(self, doc_id)",
+     "delete": "(self, doc_id)",
      "generate": "(self, ref, kind, version_no=None, template=None, use_ai=True, profile=None)",
      "get": "(self, doc_id)",
      "list": "(self, ref)",
@@ -601,6 +602,7 @@
     "class": "Documents",
     "methods": {
      "approve": "(self, doc_id)",
+     "delete": "(self, doc_id)",
      "generate": "(self, ref, kind, version_no=None, template=None, use_ai=True, profile=None)",
      "get": "(self, doc_id)",
      "list": "(self, ref)",

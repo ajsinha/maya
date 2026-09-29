@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Delete a draft document.** A generated document still in draft can be deleted from the
+  model's Documents tab (or `DELETE /documents/{id}`) by whoever generated it or anyone who may
+  edit the model. An approved document is part of the record and cannot be deleted. Each
+  deletion is audited with the document's content hash.
+
 **Restatement alerts: when data is corrected under a live model**
 
 - After an ingest restates rows, MAYA checks every live execution warrant. It resolves the
