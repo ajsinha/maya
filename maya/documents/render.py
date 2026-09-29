@@ -218,15 +218,29 @@ def _header(source: str) -> dict[str, str]:
 
 # -- output formats -----------------------------------------------------------------------
 def to_html(markdown_text: str, title: str) -> str:
-    """A standalone HTML page. Display maths stays as TeX in a styled block."""
+    """A standalone HTML page. Display maths is a ``maya-math display`` block holding its TeX,
+    which MAYA's own view typesets with KaTeX and a downloaded copy shows as source."""
     import markdown as md
 
+    # Display maths is taken out before Markdown sees it: Markdown would read TeX's "\\" line
+    # breaks and "\," spaces as escapes and eat the backslashes.
+    maths: list[str] = []
+
+    def hold(m: re.Match[str]) -> str:
+        maths.append(m.group(1).strip())
+        return f"\n\nMAYAMATH{len(maths) - 1}X\n\n"
+
+    text = re.sub(r"\$\$(.+?)\$\$", hold, markdown_text, flags=re.S)
     # Every "<" becomes text before conversion: a description or a drafted section can say
     # anything, and none of it may reach the page as markup. Markdown's own syntax needs no "<".
-    safe = markdown_text.replace("<", "&lt;")
+    safe = text.replace("<", "&lt;")
     body = md.markdown(safe, extensions=["tables", "fenced_code", "sane_lists"])
     body = re.sub(
-        r"\$\$(.+?)\$\$", lambda m: f'<div class="maths">{m.group(1)}</div>', body, flags=re.S
+        r"(?:<p>)?MAYAMATH(\d+)X(?:</p>)?",
+        lambda m: (
+            f'<div class="maths maya-math display">{html.escape(maths[int(m.group(1))])}</div>'
+        ),
+        body,
     )
     return (
         f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>{html.escape(title)}</title>"

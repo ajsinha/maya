@@ -291,7 +291,21 @@ async def view_document(request: Request, ns: str, name: str, doc_id: str) -> An
     async with client(request) as sdk:
         await sdk.documents.get(doc_id)  # read access, and it exists
         out = await sdk.documents.render(doc_id, "html")
-    return HTMLResponse(out["data"])
+    # typeset its maths with the KaTeX MAYA serves (a downloaded copy shows the TeX source)
+    data = out["data"]
+    page_html = (
+        (data.decode("utf-8") if isinstance(data, bytes) else data)
+        .replace(
+            "</head>", '<link rel="stylesheet" href="/static/vendor/katex/katex.min.css"></head>', 1
+        )
+        .replace(
+            "</body>",
+            '<script src="/static/vendor/katex/katex.min.js"></script>'
+            '<script src="/static/js/maths.js"></script></body>',
+            1,
+        )
+    )
+    return HTMLResponse(page_html)
 
 
 @router.get("/models/{ns}/{name}/documents/{doc_id}/download")
