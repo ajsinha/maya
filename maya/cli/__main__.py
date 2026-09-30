@@ -363,7 +363,7 @@ def warrant_create(args: argparse.Namespace) -> int:
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="maya", description="MAYA command line")
     p.add_argument("--json", action="store_true", help="machine-readable output")
-    p.add_argument("--profile", help="profile in ~/.maya/config.toml")
+    p.add_argument("--profile", help="profile in ~/.maya/config.yaml")
     p.add_argument("--local", action="store_true", help="in-process platform, not a server")
     p.add_argument("--config", default="config/application.yaml")
     groups = p.add_subparsers(dest="group", required=True)

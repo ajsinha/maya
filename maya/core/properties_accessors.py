@@ -355,3 +355,43 @@ class ContentResolutionMixin:
             )
         except Exception as e:
             raise IOError(f"Error reading file {file_path}: {e}")
+
+    def resolve_string_yaml_content(self, content: str) -> Any:
+        """
+        Resolve ${prop_name} patterns in a YAML string and return what it parses to.
+        The YAML sibling of resolve_string_json_content: the same prioritization
+        (commandline > env > file), so a structured configuration file -- model
+        profiles, a questionnaire, policies -- takes ${VAR:default} placeholders
+        exactly as the property files do. A placeholder whose value may contain
+        YAML syntax (a colon, a leading '[') should be quoted in the file.
+
+        Raises:
+            ConfigParseError: If the resolved content is not valid YAML
+        """
+        import yaml
+
+        from maya.core.config_parsers import ConfigParseError
+
+        resolved_content = self.resolve_string_content(content)
+        try:
+            return yaml.safe_load(resolved_content)
+        except yaml.YAMLError as e:
+            raise ConfigParseError(f"Error parsing resolved YAML content: {e}") from e
+
+    def load_and_resolve_yaml_file_content(self, filename: Union[str, Path]) -> Any:
+        """
+        Load a YAML file, resolve ${prop_name} patterns, and return what it parses to.
+
+        Raises:
+            FileNotFoundError: If the file does not exist
+            ConfigParseError: If the resolved content is not valid YAML (naming the file)
+        """
+        from maya.core.config_parsers import ConfigParseError
+
+        file_path = Path(filename) if not isinstance(filename, Path) else filename
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+        try:
+            return self.resolve_string_yaml_content(file_path.read_text(encoding="utf-8"))
+        except ConfigParseError as e:
+            raise ConfigParseError(f"{file_path}: {e}") from e

@@ -57,15 +57,16 @@ asyncio.run(main())
 |---|---|
 | The key | `api_key` argument → `MAYA_API_KEY` → the variable named by the profile's `api_key_env` |
 | The URL | `base_url` argument → `MAYA_URL` → the profile's `base_url` → `http://127.0.0.1:8600` |
-| The profile file | `MAYA_CONFIG`, else `~/.maya/config.toml`; a missing file is an error when a profile is named |
+| The profile file | `MAYA_CONFIG`, else `~/.maya/config.yaml`; a missing file, or a profile not in it, is an error when a profile is named. A `config.toml` from before is still read, with a warning to move it. |
 
 Set `MAYA_DEBUG_AUTH` to print where the credential came from.
 
-```toml
-# ~/.maya/config.toml
-[profiles.prod]
-base_url = "https://maya.example.com"
-api_key_env = "MAYA_PROD_KEY"   # the key itself stays in the environment
+```yaml
+# ~/.maya/config.yaml
+profiles:
+  prod:
+    base_url: "https://${MAYA_PROD_HOST:maya.example.com}"   # ${VAR:default} placeholders work
+    api_key_env: MAYA_PROD_KEY   # the key itself stays in the environment
 ```
 
 ## Conventions
@@ -446,7 +447,7 @@ python -m maya.cli [--json] [--profile NAME] [--local] [--config PATH] <group> <
 | Option | Meaning |
 |---|---|
 | `--json` | Machine-readable output instead of the human summary. |
-| `--profile NAME` | Connect with a profile from `~/.maya/config.toml`. Without it the CLI calls `connect()`: `MAYA_URL` and `MAYA_API_KEY`. |
+| `--profile NAME` | Connect with a profile from `~/.maya/config.yaml`. Without it the CLI calls `connect()`: `MAYA_URL` and `MAYA_API_KEY`. |
 | `--local` | Start an in-process platform from the configuration file instead of calling a server. Signs in as `MAYA_USER` (default `admin`) with `MAYA_PASSWORD`, which is required. |
 | `--config PATH` | The configuration file for `--local` and for the `admin` database commands (default `config/application.yaml`). |
 | `--section.key=value` | Overrides one setting for `--local` and the `admin` database commands, exactly as it does for `run_maya_web.py`; for example `--db.dialect=postgresql`. It may go anywhere on the line. Any other unrecognised flag is a usage error. |

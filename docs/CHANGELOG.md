@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**Every configuration file is YAML, read through the configurator**
+
+- The structured configuration files — model profiles, the tiering questionnaire and the
+  shipped workflow policies — are read through the DishtaYantra `PropertiesConfigurator`
+  (`Settings.load_yaml`, built on its new `load_and_resolve_yaml_file_content`, the YAML
+  sibling of its JSON loader), so `${VAR:default}` placeholders resolve in them exactly as in
+  `application.yaml`.
+- **The SDK's profile file is YAML:** `~/.maya/config.yaml`, with the same placeholders. The
+  SDK reads it itself, since end users have the SDK without the rest of MAYA. A
+  `config.toml` from before is still read, with a warning to move it.
+
 **A validator role, and four fixes**
 
 - **`model_validator`**, a ninth shipped role for independent validation: it reads

@@ -84,8 +84,14 @@ def when_applies(when: Any, namespace: dict[str, Any]) -> bool:
     return (env == m["value"]) if m["op"] == "==" else (env != m["value"])
 
 
-def default_policies() -> dict[str, dict[str, Any]]:
-    raw = yaml.safe_load(DEFAULTS_FILE.read_text(encoding="utf-8"))
+def default_policies(settings: Any = None) -> dict[str, dict[str, Any]]:
+    """The shipped policies. Given the settings, the file is read through the configurator
+    (``${...}`` placeholders resolved) like every other structured configuration file."""
+    raw = (
+        settings.load_yaml(DEFAULTS_FILE)
+        if settings is not None
+        else yaml.safe_load(DEFAULTS_FILE.read_text(encoding="utf-8"))
+    )
     return {k: v for k, v in raw.items() if not k.startswith("_")}
 
 

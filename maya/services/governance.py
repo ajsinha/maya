@@ -270,8 +270,6 @@ class GovernanceService:
             return {"rule": "max", "thresholds": {}, "questions": []}
         from pathlib import Path
 
-        import yaml
-
         from maya.config import project_root
 
         # A path from the configuration file is already anchored at the project root; the
@@ -288,7 +286,7 @@ class GovernanceService:
         cached = getattr(self, "_questionnaire", None)
         if cached and cached[0] == (path, stamp):
             return cached[1]
-        doc = yaml.safe_load(file.read_text(encoding="utf-8")) or {}
+        doc = self.p.settings.load_yaml(file) or {}
         rule = doc.get("rule", "max")
         if rule not in ("max", "points"):
             raise ValidationFailed(f"{path}: rule is 'max' or 'points'")

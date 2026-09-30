@@ -10,7 +10,7 @@ path, no shared key.
 
 Credential resolution, first match wins: explicit ``api_key=`` → the
 ``MAYA_API_KEY`` environment variable → the named profile in
-``~/.maya/config.toml`` → anonymous (health endpoints only).
+``~/.maya/config.yaml`` → anonymous (health endpoints only).
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import time
-import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -312,17 +312,61 @@ def _refuse_plain_http(base_url: str, credential: str | None, app: Any) -> None:
         )
 
 
+_PLACEHOLDER = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?\}")
+
+
+def _profile(name: str) -> dict[str, Any]:
+    """One profile from the SDK's profile file, in YAML like every MAYA configuration file.
+
+    The SDK stands on its own -- end users have it without the rest of MAYA -- so it reads
+    the file itself rather than through the server's configurator, but in the same dialect:
+    ``${VAR}`` and ``${VAR:default}`` placeholders are resolved from the environment.
+    ``MAYA_CONFIG`` names another file; a ``config.toml`` from before is still read, with a
+    warning to move it."""
+    home = Path.home() / ".maya"
+    named = os.environ.get("MAYA_CONFIG")
+    candidates = (
+        [Path(named)]
+        if named
+        else [home / "config.yaml", home / "config.yml", home / "config.toml"]
+    )
+    path = next((c for c in candidates if c.exists()), None)
+    if path is None:
+        raise ValidationFailed(f"No SDK profile file at {candidates[0]}")
+    if path.suffix == ".toml":
+        import tomllib
+        import warnings
+
+        warnings.warn(
+            f"{path}: SDK profiles are YAML now; move them to {home / 'config.yaml'} "
+            "(profiles: {name: {base_url: ..., api_key_env: ...}})",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return dict(tomllib.loads(path.read_text()).get("profiles", {}).get(name, {}))
+    import yaml
+
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise ValidationFailed(f"The SDK profile file {path} is not valid YAML: {exc}") from exc
+    found = (doc.get("profiles") or {}).get(name) if isinstance(doc, dict) else None
+    if not isinstance(found, dict):
+        raise ValidationFailed(f"No profile '{name}' in {path}")
+
+    def resolve(value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        return _PLACEHOLDER.sub(lambda m: os.environ.get(m.group(1), m.group(2) or ""), value)
+
+    return {str(k): resolve(v) for k, v in found.items()}
+
+
 def connect(
     profile: str | None = None, *, base_url: str | None = None, api_key: str | None = None
 ) -> Client:
-    """Build a client from arguments, the environment, or ``~/.maya/config.toml``."""
-    cfg: dict[str, Any] = {}
-    if profile:
-        path = Path(os.environ.get("MAYA_CONFIG", Path.home() / ".maya" / "config.toml"))
-        if path.exists():
-            cfg = tomllib.loads(path.read_text()).get("profiles", {}).get(profile, {})
-        else:
-            raise ValidationFailed(f"No SDK profile file at {path}")
+    """Build a client from arguments, the environment, or ``~/.maya/config.yaml``."""
+    cfg: dict[str, Any] = _profile(profile) if profile else {}
     key = (
         api_key
         or os.environ.get("MAYA_API_KEY")
