@@ -16,7 +16,7 @@ def main() -> int:
 
     pattern = re.compile(r"""["']""" + re.escape(VERSION) + r"""["']""")
     authority = ROOT / "maya" / "core" / "version.py"
-    allowed = {authority, ROOT / "maya" / "sdk" / "transport.py"}  # SDK versions independently
+    allowed = {authority, ROOT / "sdk" / "maya" / "sdk" / "_version.py"}  # its own release
     failures = [
         f"{p.relative_to(ROOT)} hard-codes the version string"
         for p in python_files()

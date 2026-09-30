@@ -30,7 +30,7 @@ def public_names(tree: ast.Module) -> set[str]:
 
 def main() -> int:
     problems = []
-    for pkg in ("maya", "maya_delta"):
+    for pkg in ("maya", "maya_delta", "sdk/maya"):
         for path in sorted(p for p in (ROOT / pkg).rglob("*.py") if visible(p)):
             if "__pycache__" in path.parts:
                 continue

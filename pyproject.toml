@@ -11,10 +11,12 @@ maya = "maya.cli.__main__:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "maya.core.version.VERSION" }
-dependencies = { file = ["requirements.txt"] }
+# The SDK is its own distribution (./sdk, maya-sdk); the server depends on it like any client
+dependencies = { file = ["requirements.txt", "requirements-sdk.txt"] }
 
 [tool.setuptools.packages.find]
 include = ["maya*", "maya_delta*"]
+exclude = ["maya.sdk*"]  # never bundled: the SDK ships only as maya-sdk
 
 [tool.setuptools.package-data]
 "maya.persistence" = ["schema/*.sql"]
@@ -46,7 +48,7 @@ strict = true
 # `maya` is a namespace package (the SDK ships as its own distribution, maya-sdk), so mypy
 # is told where package names start
 explicit_package_bases = true
-mypy_path = "."
+mypy_path = ".,sdk"  # the server, and the maya-sdk project beside it
 ignore_missing_imports = true      # pyarrow, deltalake, onelogin, ... ship no stubs
 follow_imports = "silent"          # check services; use, not re-report, what they import
 # One relaxation, deliberately: repositories are looked up by name through the unit of

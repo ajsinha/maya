@@ -366,7 +366,7 @@ SLIDES: list[dict[str, Any]] = [
                 ),
             ],
         },
-        "note": "maya/services/bundle.py, maya/sdk/offline.py; "
+        "note": "maya/services/bundle.py, sdk/maya/sdk/offline.py; "
         "tests/test_sdk_modes.py::test_a_tampered_bundle_is_refused_before_anything_is_read and "
         "tests/test_sc2_aged_warrant.py, which reproduces a warrant aged two years in the "
         "fixture.",

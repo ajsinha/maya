@@ -17,7 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-SOURCE_ROOTS = ("maya", "maya_delta", "tools", "run_maya_web.py")
+SOURCE_ROOTS = ("maya", "maya_delta", "sdk/maya", "tools", "run_maya_web.py")
+# The SDK is its own project (./sdk, distribution maya-sdk); its import root is ./sdk
+SDK_ROOT = ROOT / "sdk"
 
 
 def visible(path: Path) -> bool:
@@ -90,7 +92,8 @@ def imports_of(path: Path) -> list[tuple[str, int]]:
 
 
 def module_name(path: Path) -> str:
-    rel = path.relative_to(ROOT).with_suffix("")
+    base = SDK_ROOT if path.is_relative_to(SDK_ROOT) else ROOT
+    rel = path.relative_to(base).with_suffix("")
     return ".".join(rel.parts)
 
 

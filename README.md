@@ -246,7 +246,7 @@ promised and did not deliver is marked in
 | **M1** Sessions, API keys, lockout; the two-second principal cache | `maya/services/auth.py` | `tests/test_api_and_gates.py` (`test_lockout_after_repeated_failures`, `test_api_key_scope_environment_and_revocation`), `tests/test_principal_cache.py` |
 | **M1** OIDC and SAML 2.0 single sign-on, logout in both directions, TOTP and WebAuthn | `maya/security/oidc.py`, `maya/security/saml.py`, `maya/security/passkeys.py`, `maya/services/sso.py` | `tests/test_sso_mfa.py`, `tests/test_oidc_logout.py`, `tests/test_saml.py`, `tests/test_saml_slo.py`, `tests/test_webauthn.py`; against Keycloak 26.4, `tests/test_sso_keycloak.py` (opt-in) |
 | **M1** The table contract, every table from one macro | `maya/web/templates/`, `tools/ci/table_contract.py` | `tests/test_web.py` (`test_only_the_macro_emits_tables`), `tests/test_browser.py` (`test_a_server_paged_table_pages_searches_and_sorts`) |
-| **M1** The UI as an SDK client, with no private path | `maya/web/`, `maya/sdk/` | `tests/test_web.py` (`test_web_imports_only_the_sdk`, `test_every_page_renders`), `tests/test_web_journeys.py`, `tests/test_web_catalog_models.py`, `tests/test_web_workbench.py` |
+| **M1** The UI as an SDK client, with no private path | `maya/web/`, `sdk/maya/sdk/` | `tests/test_web.py` (`test_web_imports_only_the_sdk`, `test_every_page_renders`), `tests/test_web_journeys.py`, `tests/test_web_catalog_models.py`, `tests/test_web_workbench.py` |
 | **M2** `maya_delta`: one conformance suite on both backends, cross-backend reads, refusal by name (SC-16) | `maya_delta/` | `tests/test_maya_delta.py` |
 | **M2** Lake compaction and vacuum that change nothing anyone can read | `maya_delta/`, `maya/services/ops.py` | `tests/test_lake_maintenance.py` |
 | **M3** Byte-identical re-resolution, with the negative case (SC-1) | `maya/services/features.py`, `maya/storage/lake.py` | `tests/test_features.py` (`test_sc1_repin_is_byte_identical_and_changed_data_is_not`) |
@@ -270,8 +270,8 @@ promised and did not deliver is marked in
 | **M6** Specification documents: true Tectonic builds, labelled drafts without it | `maya/core/typeset.py`, `maya/formula/specdoc.py` | `tests/test_typeset.py`, `tests/test_warrants.py` (`test_model_submission_is_blocked_by_an_incomplete_spec`) |
 | **M6** Spreadsheets as models, checked against the workbook and against LibreOffice Calc | `maya/formula/xlsx.py` | `tests/test_spreadsheet.py`, `tests/test_spreadsheet_libreoffice.py` |
 | **M7** Warrants: the checksum cycle, the leakage certificate, blind scoring, covenants that suspend, unattested offline copies | `maya/services/warrants.py`, `maya/services/execution.py` | `tests/test_warrants.py` (`test_the_checksum_cycle_seal_score_execute_and_bundle`, `test_leakage_certificate_refuses_late_knowledge`), `tests/test_security_regressions.py` (`test_each_covenant`) |
-| **M7** Signed bundles that verify offline, re-execute composites and fail on one changed byte | `maya/services/bundle.py`, `maya/sdk/offline.py` | `tests/test_warrants.py`, `tests/test_sdk_modes.py` (`test_a_composite_model_is_re_executed_by_the_bundle_verifier`, `test_a_tampered_bundle_is_refused_before_anything_is_read`), `tests/test_cli.py` (`test_warrant_fetch_params_seal_bundle_and_offline_verify`) |
-| **M8** SDK record/replay, sync and async; `maya.offline(bundle)` | `maya/sdk/replay.py`, `maya/sdk/offline.py` | `tests/test_sdk_modes.py` |
+| **M7** Signed bundles that verify offline, re-execute composites and fail on one changed byte | `maya/services/bundle.py`, `sdk/maya/sdk/offline.py` | `tests/test_warrants.py`, `tests/test_sdk_modes.py` (`test_a_composite_model_is_re_executed_by_the_bundle_verifier`, `test_a_tampered_bundle_is_refused_before_anything_is_read`), `tests/test_cli.py` (`test_warrant_fetch_params_seal_bundle_and_offline_verify`) |
+| **M8** SDK record/replay, sync and async; `maya.offline(bundle)` | `sdk/maya/sdk/replay.py`, `sdk/maya/sdk/offline.py` | `tests/test_sdk_modes.py` |
 | **M8** Server-side cursor paging | `maya/services/paging.py`, `maya/web/routes/tables.py` | `tests/test_paging.py` |
 | **M8** The CLI end to end, integrity verification | `maya/cli/` | `tests/test_cli.py` (`test_verify_integrity`) |
 | **M8** Several web processes on one node over PostgreSQL | `maya/server.py`, `run_maya_web.py` | `tests/test_web_processes.py` |
@@ -576,7 +576,7 @@ nothing to MAYA running with demonstration data, in about fifteen minutes, with 
 should see at every step and what to do if you don't. The short version, for the impatient:
 
 ```bash
-python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+python3.13 -m venv .venv && .venv/bin/pip install -e ./sdk -r requirements.txt -r requirements-dev.txt
 python run_maya_web.py                 # http://127.0.0.1:8600 — the landing page, then
                                        #   Sign in as admin / maya-dev-admin
 ```

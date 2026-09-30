@@ -148,7 +148,9 @@ def test_every_sdk_call_and_cli_command_exists():
     from maya.cli.__main__ import _parser
 
     bound = dict(
-        re.findall(r"self\.(\w+) = (\w+)\(transport\)", (ROOT / "maya/sdk/client.py").read_text())
+        re.findall(
+            r"self\.(\w+) = (\w+)\(transport\)", (ROOT / "sdk/maya/sdk/client.py").read_text()
+        )
     )
     cli: dict[str, set[str]] = {}
     for action in _parser()._actions:
