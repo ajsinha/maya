@@ -66,7 +66,12 @@ class WarrantGuard:
         """Raise unless the warrant is live in this environment (cached briefly)."""
         if time.monotonic() - self._checked_at < self.recheck_seconds:
             return
-        from maya.core.errors import NotApproved, PermissionDenied, WarrantExpired, WarrantSuspended
+        from maya.sdk._shared.errors import (
+            NotApproved,
+            PermissionDenied,
+            WarrantExpired,
+            WarrantSuspended,
+        )
 
         ew = self.client.execution.get(self.warrant_id)
         spec, status = ew["spec"], ew["status"]

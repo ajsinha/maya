@@ -26,7 +26,7 @@ from typing import Any
 
 import httpx
 
-from maya.core.errors import MayaError, ValidationFailed
+from maya.sdk._shared.errors import MayaError, ValidationFailed
 from maya.sdk.cache import PinCache
 from maya.sdk.resources import (
     Access,

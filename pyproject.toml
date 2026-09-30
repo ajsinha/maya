@@ -43,6 +43,10 @@ omit = ["maya/security/sandbox_runner.py"]
 # The typed layer (plan gate 2): `mypy --strict` on maya/services, run by gates.py.
 python_version = "3.13"
 strict = true
+# `maya` is a namespace package (the SDK ships as its own distribution, maya-sdk), so mypy
+# is told where package names start
+explicit_package_bases = true
+mypy_path = "."
 ignore_missing_imports = true      # pyarrow, deltalake, onelogin, ... ship no stubs
 follow_imports = "silent"          # check services; use, not re-report, what they import
 # One relaxation, deliberately: repositories are looked up by name through the unit of

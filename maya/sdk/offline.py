@@ -25,8 +25,28 @@ import json
 from pathlib import Path
 from typing import Any
 
-from maya.core import archives
-from maya.core.errors import CapabilityRefused, MayaError, NotFound, ValidationFailed
+from maya.sdk._shared import archives
+from maya.sdk._shared.errors import CapabilityRefused, MayaError, NotFound, ValidationFailed
+
+
+def _ed25519_verifier() -> Any:
+    """Ed25519 verification with the ``cryptography`` package, which the SDK needs only for
+    this (``pip install maya-sdk[offline]``). Missing, the check is reported as not made --
+    never as passed."""
+    import base64
+
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    def verify(public_key_b64: str, payload: bytes, signature_b64: str) -> bool:
+        key = Ed25519PublicKey.from_public_bytes(base64.b64decode(public_key_b64))
+        try:
+            key.verify(base64.b64decode(signature_b64), payload)
+            return True
+        except InvalidSignature:
+            return False
+
+    return verify
 
 
 class NotInBundle(MayaError):
@@ -151,8 +171,7 @@ class Offline:
             self.manifest.get("files", {}), sort_keys=True, separators=(",", ":")
         ).encode()
         try:
-            from maya.core.crypto import verify
-
+            verify = _ed25519_verifier()
             try:
                 good = bool(sig) and verify(sig["public_key"], body, sig["signature"])
             except (ValueError, KeyError):  # malformed key or signature
@@ -176,7 +195,7 @@ class Offline:
 
     def verify(self) -> dict[str, Any]:
         """The checks made on opening, plus the canonical data content hash."""
-        from maya.core.canonical import table_content_hash
+        from maya.sdk._shared.canonical import table_content_hash
 
         table = self.table()
         content = table_content_hash(table)
@@ -233,7 +252,7 @@ class Offline:
     def predict(self, X: dict[str, Any], params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Evaluate the signed formula IR (never the bundle's Python) on ``X``; for a
         composite, the signed member IRs too."""
-        from maya.formula.evaluate import evaluate, evaluate_composite
+        from maya.sdk._shared.formula_evaluate import evaluate, evaluate_composite
 
         ir = self.json("model/formula_ir.json")
         values = self.parameters() if params is None else params

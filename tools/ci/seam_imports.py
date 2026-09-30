@@ -14,7 +14,7 @@ SEAMS = {
     "zstandard": ("maya.core.compress",),
     "psutil": ("maya.core.compress",),
     "argon2": ("maya.core.kdf",),
-    "cryptography": ("maya.core.crypto", "maya.services.bundle"),
+    "cryptography": ("maya.core.crypto", "maya.services.bundle", "maya.sdk.offline"),
     "deltalake": ("maya_delta",),
     "duckdb": ("maya.core.pushdown",),
     "uvloop": ("maya.core.backends",),

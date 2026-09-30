@@ -10,7 +10,7 @@ the CLI, notebooks and CI alike.
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """
 
-from maya.core.errors import (
+from maya.sdk._shared.errors import (
     ConflictError,
     ContractMismatch,
     LicenceBreach,

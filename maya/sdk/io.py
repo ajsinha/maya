@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from maya.core import canonical
+from maya.sdk._shared import canonical
 
 
 def table_checksum(table: Any) -> str:

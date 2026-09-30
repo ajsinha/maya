@@ -24,7 +24,7 @@ from urllib.parse import quote
 
 import httpx
 
-from maya.core.errors import ERRORS_BY_CODE, MayaError
+from maya.sdk._shared.errors import ERRORS_BY_CODE, MayaError
 
 CLIENT_VERSION = "1.0.0"
 RETRY_STATUS = {429, 502, 503, 504}
@@ -83,10 +83,12 @@ def decode(response: httpx.Response, call: Call) -> Any:
 
 def _headers(token: str | None, channel: str, extra: dict[str, str]) -> dict[str, str]:
     h = {"X-Maya-Client": f"python/{CLIENT_VERSION}", "X-Maya-Channel": channel, **extra}
-    from maya.observability.tracing import current
-
-    ctx = current()
-    if ctx is not None:  # one trace from the browser through the API and its jobs
+    try:  # inside MAYA: one trace from the browser through the API and its jobs
+        from maya.observability.tracing import current
+    except ImportError:  # the SDK on its own has no server trace to forward
+        current = None
+    ctx = current() if current else None
+    if ctx is not None:
         h["traceparent"] = ctx.header()
     if token:
         h["Authorization"] = f"Bearer {token}"

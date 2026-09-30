@@ -36,7 +36,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
-from maya.core.errors import ValidationFailed
+from maya.sdk._shared.errors import ValidationFailed
 
 DEFAULT_LIMIT_BYTES = 2 * 1024**3
 READS_HELD = 256

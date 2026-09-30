@@ -15,13 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from maya.core.errors import MayaError
-
-
-class LlmUnavailable(MayaError):
-    """The configured language model could not be asked; the reason says what to change."""
-
-    code, status = "llm_unavailable", 503
+from maya.core.errors import LlmUnavailable as LlmUnavailable  # shared with the SDK
 
 
 @dataclass(frozen=True)
