@@ -13,6 +13,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import re
 from types import SimpleNamespace
 
@@ -44,6 +45,11 @@ class FakeSettings(dict):
 
     def bool(self, key, default=False):
         return bool(super().get(key, default))
+
+    def load_yaml(self, path):
+        import yaml
+
+        return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
 
 def _capture(reply: dict):

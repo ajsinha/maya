@@ -1660,15 +1660,16 @@ The SDK authenticates with an **API key** by default. Keys are issued per princi
 | Session token | Short-lived (default 15 min), bound to a browser session and refreshed silently | The web UI, on behalf of the logged-in user |
 | OIDC device flow | Interactive login from a terminal or notebook, exchanged for a short-lived token | Humans who should not hold a long-lived key |
 
-Credential resolution order, first match wins, and the SDK states which one it used when `MAYA_DEBUG_AUTH` is set: explicit `api_key=` argument → `MAYA_API_KEY` environment variable → the named profile in `~/.maya/config.toml` → an active device-flow token in the local keyring → anonymous, which can only reach the health endpoints.
+Credential resolution order, first match wins, and the SDK states which one it used when `MAYA_DEBUG_AUTH` is set: explicit `api_key=` argument → `MAYA_API_KEY` environment variable → the named profile in `~/.maya/config.yaml` → an active device-flow token in the local keyring → anonymous, which can only reach the health endpoints.
 
-```toml
-# ~/.maya/config.toml
-[profiles.prod]
-base_url = "https://maya.example.com"
-api_key_env = "MAYA_API_KEY_PROD"   # never the secret itself, only where to find it
-default_namespace = "equity.pricing"
-cache_dir = "~/.maya/cache"
+```yaml
+# ~/.maya/config.yaml  (Revision 2.8: YAML, like every MAYA configuration file)
+profiles:
+  prod:
+    base_url: "https://maya.example.com"
+    api_key_env: MAYA_API_KEY_PROD   # never the secret itself, only where to find it
+    default_namespace: equity.pricing
+    cache_dir: ~/.maya/cache
 ```
 
 A key is a bearer credential and is treated as one: sent only over TLS, never logged, never written to a config file by the SDK, redacted from every exception and traceback, and refused with a clear error if the URL is plain HTTP outside `localhost`.

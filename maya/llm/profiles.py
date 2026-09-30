@@ -115,9 +115,8 @@ def load(settings: Any) -> tuple[dict[str, Profile], str]:
     default = IMPLICIT
     path = _path(settings)
     if path is not None and path.exists():
-        import yaml
-
-        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        # through the configurator, so a profile can say base_url: "${OLLAMA_URL:http://...}"
+        doc = settings.load_yaml(path) or {}
         for name, raw in (doc.get("profiles") or {}).items():
             profiles[str(name)] = _profile(str(name), raw or {}, path)
         default = str(doc.get("default") or default)

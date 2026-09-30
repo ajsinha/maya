@@ -42,10 +42,10 @@ credentials:</p>
 {{ fields([
   ('MAYA_URL', 'the base URL (default http://127.0.0.1:8600)'),
   ('MAYA_API_KEY', 'the key to use'),
-  ('MAYA_CONFIG', 'profile file path (default ~/.maya/config.toml)'),
+  ('MAYA_CONFIG', 'profile file path (default ~/.maya/config.yaml)'),
   ('MAYA_DEBUG_AUTH', 'set to print where the credential came from'),
 ]) }}
-<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> ~/.maya/config.toml: see <a href="#connecting">Connecting</a> in the full reference below.</p>
+<p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> ~/.maya/config.yaml: see <a href="#connecting">Connecting</a> in the full reference below.</p>
 {% call example('Use the profile', 'python') %}
 my = maya.connect("prod")
 {% endcall %}

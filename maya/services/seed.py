@@ -27,7 +27,7 @@ def seed(platform: Any) -> None:
     with platform.uow("system") as uow:
         _roles(uow)
         _admin(uow, platform.auth.rules.force_change)
-        _policies(uow)
+        _policies(uow, platform.settings)
     if platform.auth.default_admin_password_active():
         logger.warning(
             "The bootstrap admin still uses the default password 'maya-dev-admin'. Change it now."
@@ -74,8 +74,8 @@ def _admin(uow: Any, force_change: bool) -> None:
     )
 
 
-def _policies(uow: Any) -> None:
-    for object_type, policy in default_policies().items():
+def _policies(uow: Any, settings: Any = None) -> None:
+    for object_type, policy in default_policies(settings).items():
         if uow.repo("workflow_policies").find_one(object_type=object_type, scope="*"):
             continue
         uow.repo("workflow_policies").add(

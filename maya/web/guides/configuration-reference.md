@@ -30,6 +30,9 @@ A placeholder can refer to another key: `db.sqlite.path` is `${storage.root}/may
 
 Every value is a string until it is read. MAYA coerces it where it is used: `"false"` and `false` mean the same thing, and `port: "${MAYA_PORT:8600}"` becomes the integer 8600.
 
+
+The structured configuration files beside `application.yaml` — the model profiles (`llm.profiles_file`), the tiering questionnaire (`governance.tiering_questionnaire`) and the shipped workflow policies — are YAML read through the same configurator, so the same placeholders work in them: `base_url: "${LOCAL_LLM_URL:http://localhost:11434}"` in a profile resolves from the environment, with the same precedence as any setting. Quote a placeholder whose value could contain YAML syntax (a colon, a leading `[`).
+
 ### Three ways to change one setting
 
 ```bash

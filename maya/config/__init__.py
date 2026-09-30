@@ -152,6 +152,22 @@ class Settings:
         declared = schema.find(key)
         return default if declared is None else declared.default
 
+    def load_yaml(self, path: str | Path) -> Any:
+        """A structured YAML configuration file -- model profiles, the tiering
+        questionnaire, workflow policies -- read through the configurator, as DishtaYantra
+        reads its structured files: ``${VAR:default}`` placeholders are resolved with the
+        same precedence as every setting (command line, environment, files), then the text
+        is parsed. A relative path is resolved against the project root."""
+        from maya.core.config_parsers import ConfigParseError
+
+        file = Path(path).expanduser()
+        if not file.is_absolute():
+            file = project_root() / file
+        try:
+            return self.props.load_and_resolve_yaml_file_content(file)
+        except ConfigParseError as exc:
+            raise ConfigurationError(str(exc)) from exc
+
     def get(self, key: str, default: str | None = None) -> str | None:
         value = self.props.get(key)
         return self._declared(key, default) if value is None else value
