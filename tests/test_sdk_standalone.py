@@ -83,6 +83,30 @@ CHILD = textwrap.dedent(
 )
 
 
+def _wheel(project: Path, out: Path, stem: str) -> Path:
+    """Build one project's wheel exactly as a release would, from its own directory."""
+    import shutil
+
+    shutil.rmtree(project / "build", ignore_errors=True)  # nothing stale can ride along
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            "--no-deps",
+            "--no-build-isolation",
+            "-q",
+            "-w",
+            str(out),
+            str(project),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return sorted(out.glob(f"{stem}-*.whl"))[-1]
+
+
 def test_the_sdk_imports_and_works_with_the_rest_of_maya_blocked(bundle, tmp_path):  # noqa: F811
     _, _, raw = bundle
     path = tmp_path / "calib.zip"
@@ -104,13 +128,9 @@ def test_the_sdk_imports_and_works_with_the_rest_of_maya_blocked(bundle, tmp_pat
 def test_the_maya_sdk_wheel_carries_only_the_sdk_and_works_from_it_alone(bundle, tmp_path):  # noqa: F811
     """Built, unpacked where nothing else of MAYA exists, and used: the distribution end
     users install is exactly the SDK, and enough on its own."""
-    import importlib.util
     import zipfile
 
-    spec = importlib.util.spec_from_file_location("build_sdk", ROOT / "tools/ops/build_sdk.py")
-    builder = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(builder)
-    wheel = builder.build(tmp_path / "dist")
+    wheel = _wheel(ROOT / "sdk", tmp_path / "dist", "maya_sdk")
     names = zipfile.ZipFile(wheel).namelist()
     code = [n for n in names if not n.startswith("maya_sdk-")]
     assert code and all(n.startswith("maya/sdk/") for n in code), code
@@ -132,3 +152,16 @@ def test_the_maya_sdk_wheel_carries_only_the_sdk_and_works_from_it_alone(bundle,
     )
     assert out.returncode == 0, out.stderr[-3000:]
     assert "standalone ok" in out.stdout
+
+
+def test_the_server_wheel_never_bundles_the_sdk_and_depends_on_it(tmp_path):
+    """The SDK is released on its own; the server installs it as a dependency, like any
+    client, and carries no copy of it."""
+    import zipfile
+
+    wheel = _wheel(ROOT, tmp_path / "dist", "maya")
+    z = zipfile.ZipFile(wheel)
+    assert not [n for n in z.namelist() if n.startswith("maya/sdk/")]
+    assert "maya/core/errors.py" in z.namelist()  # the server's own code is there
+    meta = next(n for n in z.namelist() if n.endswith(".dist-info/METADATA"))
+    assert "Requires-Dist: maya-sdk" in z.read(meta).decode()

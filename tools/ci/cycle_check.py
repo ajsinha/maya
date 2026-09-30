@@ -13,9 +13,9 @@ import ast
 import sys
 from pathlib import Path
 
-from _common import ROOT, report, visible
+from _common import ROOT, module_name, report, visible
 
-PACKAGES = ("maya", "maya_delta")
+PACKAGES = ("maya", "maya_delta", "sdk/maya")  # sdk/maya: the maya-sdk project
 
 
 def modules() -> dict[str, Path]:
@@ -24,7 +24,7 @@ def modules() -> dict[str, Path]:
         for p in (ROOT / pkg).rglob("*.py"):
             if "__pycache__" in p.parts or not visible(p):
                 continue
-            name = ".".join(p.relative_to(ROOT).with_suffix("").parts)
+            name = module_name(p)
             out[name.removesuffix(".__init__")] = p
     return out
 

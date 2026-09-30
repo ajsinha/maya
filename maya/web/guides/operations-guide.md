@@ -9,7 +9,7 @@ MAYA needs Python 3.13 or later.
 ```bash
 # Create an environment and install MAYA's dependencies
 python -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -e ./sdk -r requirements.txt
 ```
 
 `requirements.txt` holds what a deployment needs. Several packages are *preferred backends* behind dependency seams: without them MAYA still runs, on a named fallback whose cost it reports. A few are capabilities that are refused, never substituted:

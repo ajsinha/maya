@@ -80,7 +80,7 @@ includes it.
 ## Step 3 — Install MAYA's packages
 
 ```bash
-.venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+.venv/bin/pip install -e ./sdk -r requirements.txt -r requirements-dev.txt
 ```
 
 This downloads about forty packages. It takes between thirty seconds and a few minutes,
@@ -238,7 +238,7 @@ interactive reference is at <http://127.0.0.1:8600/api/v1/docs>.
 | **Stop MAYA** | Click in the terminal running it and press **Ctrl+C** |
 | **Start it again** | `.venv/bin/python run_maya_web.py` — everything you did is still there (it is in `data/`) |
 | **Start over from nothing** | Stop MAYA, then `rm -rf data` inside the `maya` folder, then start it again. This deletes **everything**: users, data, models. The admin password goes back to `maya-dev-admin` |
-| **Update to a newer version** | Stop MAYA, `git pull`, `.venv/bin/pip install -r requirements.txt -r requirements-dev.txt`, start it again |
+| **Update to a newer version** | Stop MAYA, `git pull`, `.venv/bin/pip install -e ./sdk -r requirements.txt -r requirements-dev.txt`, start it again |
 
 ---
 
@@ -267,7 +267,7 @@ Still stuck? The log is at `data/logs/maya.log`; the last lines usually say what
 
 ```bash
 git clone https://github.com/ajsinha/maya.git && cd maya
-python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+python3.13 -m venv .venv && .venv/bin/pip install -e ./sdk -r requirements.txt -r requirements-dev.txt
 .venv/bin/python run_maya_web.py      # then open http://127.0.0.1:8600 — admin / maya-dev-admin
 ```
 

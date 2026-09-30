@@ -22,7 +22,7 @@ defaults. PostgreSQL is one setting away when you need it (see
 git clone https://github.com/ajsinha/maya.git
 cd maya
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ./sdk -r requirements.txt
 {% endcall %}
 {% call example('Start the server', 'bash') %}
 python run_maya_web.py

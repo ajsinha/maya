@@ -15,7 +15,7 @@ import sys
 
 from _common import ROOT, report
 
-TARGETS = ["maya", "maya_delta", "run_maya_web.py"]
+TARGETS = ["maya", "maya_delta", "sdk/maya", "run_maya_web.py"]
 
 
 def main() -> int:

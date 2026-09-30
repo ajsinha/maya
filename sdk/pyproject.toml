@@ -1,0 +1,39 @@
+# maya-sdk: the Python client for MAYA, built, versioned and installed on its own.
+#
+# End users talk to a MAYA server through this package and never install the server. It
+# imports nothing from MAYA outside maya.sdk; tests/test_sdk_standalone.py in the server
+# repository proves it, from the built wheel alone. The server depends on this package like
+# any other client does.
+#
+#     python -m pip wheel ./sdk --no-deps -w dist      # build the wheel
+#     pip install -e ./sdk                             # develop against it
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maya-sdk"
+dynamic = ["version"]
+description = "The Python SDK for MAYA: the client, record and replay, and offline bundles."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [{ name = "Ashutosh Sinha", email = "ajsinha@gmail.com" }]
+license = { file = "LICENSE" }
+dependencies = [
+    "httpx>=0.28.1",
+    "PyYAML>=6.0.3",
+    "pyarrow>=25.0.1",
+    "numpy>=2.5.3",
+]
+
+[project.optional-dependencies]
+offline = ["cryptography>=50.0.1"]   # to check an offline bundle's signature
+polars = ["polars>=1.44.2"]          # to_polars()
+
+[tool.setuptools.dynamic]
+version = { attr = "maya.sdk._version.VERSION" }
+
+[tool.setuptools.packages.find]
+include = ["maya.sdk*"]
+namespaces = true

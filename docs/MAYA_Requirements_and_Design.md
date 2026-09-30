@@ -1642,7 +1642,7 @@ Conventions: cursor pagination, `If-Match`/`ETag` optimistic concurrency on muta
 
 The SDK is not a convenience wrapper written after the fact. It is **the only client of MAYA**, used by the web UI, the CLI, notebooks, schedulers and CI alike. A capability that is not in the SDK does not exist for anyone, including our own UI, so API completeness and SDK completeness are the same problem and cannot drift apart.
 
-*Revision 2.8:* **the SDK stands alone.** End users install it without the rest of MAYA, as its own distribution, `maya-sdk` (built by `tools/ops/build_sdk.py`; dependencies httpx, PyYAML, pyarrow and numpy, extras `offline` and `polars`). It imports nothing from MAYA outside `maya.sdk`. What both sides must share exactly — the error classes, canonical content hashing, archive reading, and the formula IR, composites and evaluator that score a bundle offline — lives once, in `maya/sdk/_shared/`, and the server's old module names are aliases of those modules rather than copies. `maya` is a namespace package so the SDK wheel installs on its own. A test imports and uses the SDK with every other part of MAYA blocked, and again from the built wheel alone.
+*Revision 2.8:* **the SDK stands alone.** It is its own project (`sdk/` in the repository, with its own `pyproject.toml` and version) and its own distribution, `maya-sdk` (dependencies httpx, PyYAML, pyarrow and numpy; extras `offline` and `polars`). End users install only it. The server's package excludes it and declares `maya-sdk` as a dependency, like any client. It imports nothing from MAYA outside `maya.sdk`. What both sides must share exactly — the error classes, canonical content hashing, archive reading, and the formula IR, composites and evaluator that score a bundle offline — lives once, in `maya/sdk/_shared/`, and the server's old module names are aliases of those modules rather than copies. `maya` is a namespace package so the SDK wheel installs on its own. Tests import and use the SDK with every other part of MAYA blocked, and again from its built wheel alone; and check that the server's wheel contains no SDK code and requires `maya-sdk`.
 
 #### 18.2.1 Principles
 
@@ -1786,6 +1786,26 @@ maya/sdk/
 ```
 
 The SDK depends only on `httpx`, `pydantic` and `pyarrow`; `polars` and `pandas` are optional extras, so importing `maya` in a constrained environment pulls in almost nothing. It is published as a wheel with a lock file, is installable from a local mirror for air-gapped sites, and follows semantic versioning independently of the server, with a compatibility table in the help pages.
+
+*Revision 2.8:* the layout as built. The SDK is its own project beside the server:
+
+```
+sdk/                     # the maya-sdk project: built, versioned and released on its own
+  pyproject.toml         # name maya-sdk; httpx, PyYAML, pyarrow, numpy; extras offline, polars
+  README.md
+  maya/sdk/
+    _version.py          # the SDK's own version
+    client.py            # Client, AsyncClient, connect(), YAML profiles
+    transport.py         # http and inproc (ASGI) transports
+    base.py, resources.py, governance.py, llm.py, integrations.py   # the resources
+    handles.py, io.py, cache.py, guard.py, trainer.py
+    replay.py            # record and replay
+    offline.py           # maya.offline(bundle): verify and score with no server
+    _shared/             # what the server shares exactly: errors, canonical hashing,
+                         # archives, the formula IR, composites and evaluator
+```
+
+The dependencies are `httpx`, `PyYAML`, `pyarrow` and `numpy`, not `pydantic` as planned; `cryptography` (bundle signatures) and `polars` are extras.
 
 #### 18.2.7 Testing and support
 

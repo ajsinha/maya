@@ -2,19 +2,20 @@
 
 The Python SDK, `maya.sdk`, is the one client of MAYA. The web UI calls it with your session, the command line wraps it, and notebooks and CI jobs use it directly — so anything the browser can do, a script can do, with the same permissions and the same audit trail. Every SDK method is one call to the REST API under `/api/v1`; this reference names the endpoint beside each method.
 
-## Installing the SDK on its own
+## Installing the SDK
 
-End users who only talk to a MAYA server do not need MAYA itself. The SDK is its own distribution, `maya-sdk`: the client, record and replay, and offline bundles, with nothing of the server.
+The SDK is its own project and its own distribution, `maya-sdk`: the client, record and replay, and offline bundles, with nothing of the server. End users install only this. It lives in the MAYA repository under `sdk/`, is built and versioned there, and the MAYA server depends on it like any other client; the server's own package never contains it.
 
 ```bash
-# Build the wheel from a MAYA checkout (or take it from your internal package index)
-python tools/ops/build_sdk.py            # dist/maya_sdk-<version>-py3-none-any.whl
-pip install dist/maya_sdk-*.whl          # httpx, PyYAML, pyarrow, numpy
+pip install maya-sdk                     # from your package index: httpx, PyYAML, pyarrow, numpy
 pip install "maya-sdk[offline]"          # + cryptography, to check a bundle's signature
 pip install "maya-sdk[polars]"           # + polars, for to_polars()
+
+# building it from a MAYA checkout
+python -m pip wheel ./sdk --no-deps -w dist
 ```
 
-`import maya.sdk as maya` works the same either way. A MAYA server installation already includes the SDK, so install one or the other, not both. Without the `offline` extra an offline bundle still opens, its file hashes are checked, and its model scores; only the signature is reported as not checked.
+Without the `offline` extra an offline bundle still opens, its file hashes are checked, and its model scores; only the signature is reported as not checked.
 
 ## Connecting
 

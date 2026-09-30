@@ -26,7 +26,8 @@ import httpx
 
 from maya.sdk._shared.errors import ERRORS_BY_CODE, MayaError
 
-CLIENT_VERSION = "1.0.0"
+from maya.sdk._version import VERSION as CLIENT_VERSION  # noqa: E402
+
 RETRY_STATUS = {429, 502, 503, 504}
 CHUNK = 1 << 20
 

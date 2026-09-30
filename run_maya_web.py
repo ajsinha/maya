@@ -48,6 +48,11 @@ import signal  # noqa: E402
 import sys  # noqa: E402
 from datetime import datetime  # noqa: E402
 
+try:  # the SDK is its own package (./sdk, maya-sdk): the server uses it, never bundles it
+    import maya.sdk  # noqa: E402, F401
+except ImportError:  # pragma: no cover - an environment set up before the split
+    sys.exit("MAYA's SDK is not installed in this environment. Run:  pip install -e ./sdk")
+
 from maya.core.version import APP_SLOGAN, APP_TAGLINE, BUILD_DATE, VERSION  # noqa: E402
 
 logger = logging.getLogger("maya")

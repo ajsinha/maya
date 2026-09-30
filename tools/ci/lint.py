@@ -15,7 +15,7 @@ from _common import ROOT, report
 # read as examples of how to use the SDK, so they are held to the same lint and formatting
 # as the platform. They are not in _common.SOURCE_ROOTS, because the structural gates
 # (import boundaries, module symbols, seams) are about MAYA's own architecture.
-PATHS = ["maya", "maya_delta", "tools", "tests", "case_studies", "run_maya_web.py"]
+PATHS = ["maya", "maya_delta", "sdk", "tools", "tests", "case_studies", "run_maya_web.py"]
 
 
 def main() -> int:
