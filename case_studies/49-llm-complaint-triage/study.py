@@ -18,7 +18,7 @@ REF = f"{NS}/{APP}"
 EVAL_SET = "core"
 EXTRA_USERS: dict[str, list[str]] = {}
 
-PROVIDER = "azure_openai"  # the firm's own deployment; MAYA does not call it
+PROVIDER = "azure_openai"  # the firm's own deployment; this estate has no endpoint for it
 MODEL = "gpt-4o-2024-08-06"
 TEMPLATE = (
     "A customer wrote to us:\n\n{complaint}\n\n"

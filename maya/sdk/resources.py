@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from maya.core.errors import MayaError
+from maya.sdk._shared.errors import MayaError
 from maya.sdk.base import ENDPOINTS, PAGE_SIZE, _nn, _Resource, endpoint
 from maya.sdk.governance import Ai, Challenges, Documents, Evidence, Governance, Monitoring
 from maya.sdk.integrations import Integrations

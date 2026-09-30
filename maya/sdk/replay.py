@@ -29,7 +29,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from maya.core.errors import ERRORS_BY_CODE, MayaError
+from maya.sdk._shared.errors import ERRORS_BY_CODE, MayaError
 from maya.sdk.transport import Call
 
 FORMAT = "maya-cassette/1"

@@ -16,7 +16,7 @@ configures; this study is the `complaints` namespace).
 | Script | What it does | What it shows |
 |---|---|---|
 | `register.py` | Registers the application with its use, saves version 1 (provider, model, system prompt, template, parameters, guardrails), and saves a 24-case evaluation set. | A version is a **definition hash** over everything that changes behaviour; an evaluation set is hashed as content. |
-| `evaluate_v1.py` | Asks MAYA to run the application itself, and is refused; scores the answers version 1 gave, as recorded by the application's own harness; tries to submit. | **Recorded runs** for providers MAYA does not call; every category right and the version **still fails**, on three guardrail violations; submission refused. |
+| `evaluate_v1.py` | Asks MAYA to run the application itself, and is refused; scores the answers version 1 gave, as recorded by the application's own harness; tries to submit. | **Recorded runs** when MAYA cannot call the provider itself; every category right and the version **still fails**, on three guardrail violations; submission refused. |
 | `fix_and_approve.py` | Fixes the draft's system prompt, scores it; the validator adds a Welsh-language case; submission is refused until the new set is scored; the owner is refused approval; a model manager approves; a later parameter change opens version 2. | Evidence bound to the **definition** and to the **evaluation set as it stands**; a validator editing the set without the owner; independent approval; an approved definition that never changes. |
 | `inventory.py` | Reads the SS1/23 inventory export. | The application beside the models, with its evaluation evidence and without invented model-only fields. |
 
@@ -51,7 +51,7 @@ are the same every time:
 | Step | Result |
 |---|---|
 | Evaluation set | 24 cases, content hash `90f66c5ea9e1322d…` |
-| A live run on `azure_openai` | refused: *MAYA does not call azure_openai itself; … submit the answers as a recorded run* |
+| A live run on `azure_openai` | refused: *Azure OpenAI needs llm.azure_openai.endpoint and .deployment* — MAYA can call Azure, but this estate has no endpoint configured |
 | Version 1, recorded run | **21 of 24** pass. Every one of the 24 has the right category; three fail on guardrails: `c01` promises a refund (*blocked term 'guarantee'*), `c07` gives a phone number, `c08` repeats the customer's card number back |
 | Submitting version 1 | refused: no clean run on this definition |
 | The fixed draft | same version number, new definition hash (`fdc3a53b…` → `365ab7fa…`); **24 of 24**, no violations |
@@ -70,8 +70,9 @@ voiding a clean run, are both the platform refusing to let an old result stand f
 thing.
 
 What this study does not claim: the answers are recorded files, not calls to a model, so
-nothing here tests Azure OpenAI or any provider. MAYA's *live* runs call Anthropic's API
-through the assistant's client; that path is tested against a stub.
+nothing here tests Azure OpenAI or any provider. MAYA's *live* runs go through the AI gateway
+to exactly the provider and model a version declares (Anthropic, OpenAI, Azure OpenAI,
+Bedrock or Ollama); that path is tested against stub providers.
 
 ## The data
 
@@ -114,8 +115,8 @@ throwaway estate with `--storage.root=/tmp/demo --lake.root=/tmp/demo/lake`.
 
 ## What MAYA refused, on purpose
 
-- **A live run on a provider MAYA does not call** (`azure_openai`) — the answers are recorded
-  where the application runs instead.
+- **A live run the estate cannot make** (`azure_openai`, with no endpoint configured) — the
+  answers are recorded where the application runs instead.
 - **Submitting a version without a clean run** on its exact definition.
 - **Submitting on evidence from an evaluation set that has since changed.**
 - **The owner approving her own application.**

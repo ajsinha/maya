@@ -3,9 +3,10 @@ Step 2 — scoring version 1, and why it cannot be submitted.
 
     .venv/bin/python case_studies/49-llm-complaint-triage/evaluate_v1.py
 
-The application runs on the firm's own Azure OpenAI deployment, which MAYA does not call:
-asked for a live run it says so, and the answers are produced where the application runs
-and submitted as a *recorded* run. Every check is deterministic and so is every guardrail.
+The application runs on the firm's own Azure OpenAI deployment. MAYA can call Azure OpenAI
+itself, through the AI gateway, but this estate has no Azure endpoint configured: asked for a
+live run it says so, and the answers are produced where the application runs and submitted as
+a *recorded* run. Every check is deterministic and so is every guardrail.
 Version 1 gets every category right -- and still fails, because two answers repeat
 personal data back to the customer and one promises a refund.
 
@@ -29,13 +30,14 @@ TITLE = "Case study 49, step 2 — version 1 scored, and refused"
 
 def main(maya: Any, n: Narrator) -> None:
     from maya.core.errors import NotApproved, ValidationFailed
+    from maya.llm.base import LlmUnavailable
 
     cast = Cast(maya)
     n.step("Asking MAYA to call the provider itself")
     try:
         cast.devi.llm.run_eval(REF, 1, EVAL_SET)
-    except ValidationFailed as exc:
-        n.refused("a live run against a provider MAYA does not integrate", exc)
+    except (ValidationFailed, LlmUnavailable) as exc:
+        n.refused("a live run: this estate has no Azure OpenAI endpoint configured", exc)
 
     n.step("Scoring the answers version 1 gave, recorded by the application's harness")
     run = cast.devi.llm.run_eval(REF, 1, EVAL_SET, responses=load("answers_v1"))

@@ -1642,6 +1642,8 @@ Conventions: cursor pagination, `If-Match`/`ETag` optimistic concurrency on muta
 
 The SDK is not a convenience wrapper written after the fact. It is **the only client of MAYA**, used by the web UI, the CLI, notebooks, schedulers and CI alike. A capability that is not in the SDK does not exist for anyone, including our own UI, so API completeness and SDK completeness are the same problem and cannot drift apart.
 
+*Revision 2.8:* **the SDK stands alone.** End users install it without the rest of MAYA, as its own distribution, `maya-sdk` (built by `tools/ops/build_sdk.py`; dependencies httpx, PyYAML, pyarrow and numpy, extras `offline` and `polars`). It imports nothing from MAYA outside `maya.sdk`. What both sides must share exactly — the error classes, canonical content hashing, archive reading, and the formula IR, composites and evaluator that score a bundle offline — lives once, in `maya/sdk/_shared/`, and the server's old module names are aliases of those modules rather than copies. `maya` is a namespace package so the SDK wheel installs on its own. A test imports and uses the SDK with every other part of MAYA blocked, and again from the built wheel alone.
+
 #### 18.2.1 Principles
 
 1. **Parity or nothing.** Every public endpoint has an SDK method; every SDK method maps to one public endpoint. A generated conformance test fails the build when either side gains something the other lacks.

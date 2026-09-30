@@ -23,7 +23,7 @@ import io
 from pathlib import Path
 from typing import Any
 
-from maya.core.errors import MayaError, ValidationFailed
+from maya.sdk._shared.errors import MayaError, ValidationFailed
 
 
 class Record(dict):
@@ -146,9 +146,9 @@ class PinHandle(Handle):
         return self.to_arrow(**kw).to_pandas()
 
     def to_polars(self, **kw: Any) -> Any:
-        from maya.core.backends import has_module
+        import importlib.util
 
-        if not has_module("polars"):
+        if importlib.util.find_spec("polars") is None:
             raise MayaError("to_polars() needs polars (pip install polars)")
         import polars as pl
 

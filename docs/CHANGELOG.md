@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+**The SDK stands alone: `maya-sdk`**
+
+- End users can install the SDK without the rest of MAYA. `python tools/ops/build_sdk.py`
+  builds the `maya-sdk` wheel: only `maya/sdk`, needing httpx, PyYAML, pyarrow and numpy,
+  with extras `offline` (cryptography, for bundle signatures) and `polars`.
+- What the SDK and the server must share exactly — the error classes, canonical content
+  hashing, archive reading, and the formula IR, composites and evaluator that score a
+  bundle offline — moved into `maya/sdk/_shared/`. The server's old module names
+  (`maya.core.errors`, `maya.core.canonical`, `maya.core.archives`, `maya.formula.ir`,
+  `maya.formula.composite`, `maya.formula.evaluate`) are aliases of those modules, not
+  copies, so the two sides cannot drift.
+- `maya` is now a namespace package, so the SDK wheel installs on its own.
+- Proved by `tests/test_sdk_standalone.py`: the SDK imports and works (a client, a YAML
+  profile, error mapping, hashing, an offline bundle verified and scored) with every other
+  part of MAYA blocked, and again from the built wheel alone, with this repository absent.
+- `LlmUnavailable` joined the shared errors, so a client asking for a live evaluation that
+  cannot be made gets that class back rather than a generic error. Case study 49 now says
+  why its live Azure run is refused (no endpoint configured in the estate) instead of claiming
+  MAYA does not call Azure.
+
 **Every configuration file is YAML, read through the configurator**
 
 - The structured configuration files — model profiles, the tiering questionnaire and the
