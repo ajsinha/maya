@@ -4,9 +4,9 @@ Gate 26 — no benchmark regression over 10% without a note (plan §7).
 Runs scaled-down versions of the three benchmarks — resolution (100 symbols × 2
 years × 50 attributes, forward fill), catalog search (10k objects), and single-user
 page latency (300 features, 30 models) — three times each, and compares each
-metric's median with ``docs/benchmarks/regression-baseline.json``. A metric more than
+metric's median with ``docs/quality/benchmarks/regression-baseline.json``. A metric more than
 10% slower fails the gate unless the run carries a note, which is appended to
-``docs/benchmarks/regression-notes.md`` with the numbers:
+``docs/quality/benchmarks/regression-notes.md`` with the numbers:
 
     python tools/bench/regress.py                     # compare
     python tools/bench/regress.py --note "why"        # accept, on the record
@@ -30,8 +30,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = ROOT / "docs" / "benchmarks" / "regression-baseline.json"
-NOTES = ROOT / "docs" / "benchmarks" / "regression-notes.md"
+BASELINE = ROOT / "docs" / "quality" / "benchmarks" / "regression-baseline.json"
+NOTES = ROOT / "docs" / "quality" / "benchmarks" / "regression-notes.md"
 LIMIT = 0.10
 RUNS = {
     "resolution_warm_p95_s": (

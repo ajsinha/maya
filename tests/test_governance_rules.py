@@ -44,7 +44,7 @@ def test_every_metric_named_is_one_maya_exports(alerts):
 
 
 def test_the_runbooks_are_indexed():
-    index = (ROOT / "docs" / "runbooks" / "README.md").read_text(encoding="utf-8")
+    index = (ROOT / "docs" / "operations" / "runbooks" / "README.md").read_text(encoding="utf-8")
     for url in {
         r["annotations"]["runbook_url"]
         for r in yaml.safe_load(RULES.read_text())["groups"][0]["rules"]

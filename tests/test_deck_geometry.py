@@ -39,14 +39,14 @@ FORBIDDEN_IN_PROPERTIES = FORBIDDEN + ("generated", "claude")
 
 def _deck(name: str):
     pptx = pytest.importorskip("pptx")
-    return pptx.Presentation(str(ROOT / "docs" / f"{name}.pptx"))
+    return pptx.Presentation(str(ROOT / "docs" / "publications" / f"{name}.pptx"))
 
 
 @pytest.mark.parametrize("deck,slides", DECKS, ids=[d for d, _ in DECKS])
 def test_the_deck_has_no_geometry_issues(deck, slides):
     pytest.importorskip("pptx")
     result = subprocess.run(
-        [sys.executable, str(AUDIT), str(ROOT / "docs" / f"{deck}.pptx")],
+        [sys.executable, str(AUDIT), str(ROOT / "docs" / "publications" / f"{deck}.pptx")],
         capture_output=True,
         text=True,
         cwd=ROOT,

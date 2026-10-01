@@ -14,7 +14,7 @@
   <a href="#the-name">The name</a> ·
   <a href="#what-makes-it-different">What makes it different</a> ·
   <a href="#getting-started">Getting started</a> ·
-  <a href="docs/MAYA_Requirements_and_Design.md">Specification</a>
+  <a href="docs/design/MAYA_Requirements_and_Design.md">Specification</a>
 </p>
 
 ---
@@ -30,8 +30,8 @@ It exists because four things are true in almost every quantitative shop, and ea
 
 The **warrant** is MAYA's distinguishing primitive. A *training warrant* freezes a model version against a feature set version and receives the parameters that training produced. An *execution warrant* packages a model, its parameters and its input contract into a licence that can be handed to a downstream system or a regulator — and, because it is a live instrument rather than a document, withdrawn on a Friday afternoon when the model is found to be wrong. Warrants make *who was allowed to run what, on which data, with whose approval* a query rather than an archaeology project.
 
-[![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/MAYA_Requirements_and_Design.md)
-[![Implementation](https://img.shields.io/badge/implementation-v1.0.0-green.svg)](docs/IMPLEMENTATION_PLAN.md)
+[![Status](https://img.shields.io/badge/status-specification%20complete-blue.svg)](docs/design/MAYA_Requirements_and_Design.md)
+[![Implementation](https://img.shields.io/badge/implementation-v1.0.0-green.svg)](docs/design/IMPLEMENTATION_PLAN.md)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
@@ -92,13 +92,13 @@ version, `CLIENT_VERSION`, is 1.0.0 as well: it gained a method for each of thos
 
 | | |
 |---|---|
-| **Specification** | [`docs/MAYA_Requirements_and_Design.md`](docs/MAYA_Requirements_and_Design.md) — the authority |
-| **Plan** | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — each milestone marked with what it delivered and what it did not |
+| **Specification** | [`docs/design/MAYA_Requirements_and_Design.md`](docs/design/MAYA_Requirements_and_Design.md) — the authority |
+| **Plan** | [`docs/design/IMPLEMENTATION_PLAN.md`](docs/design/IMPLEMENTATION_PLAN.md) — each milestone marked with what it delivered and what it did not |
 | **Shipped** | [What's shipped](#whats-shipped), below — every capability with the tests that prove it |
-| **Measured** | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) — SC-4, SC-5, 100k-object search and the four §24.3 capacity targets pass; SC-3 is not met reliably |
+| **Measured** | [`docs/quality/BENCHMARKS.md`](docs/quality/BENCHMARKS.md) — SC-4, SC-5, 100k-object search and the four §24.3 capacity targets pass; SC-3 is not met reliably |
 | **Changes** | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) |
-| **Audited** | [`docs/audit/spec-audit-2026-09-19.md`](docs/audit/spec-audit-2026-09-19.md) — revision 2.3 read against the code, requirement by requirement: of about 540, some 195 were built and tested, 28 built but untested, 123 partly built and 84 not built. The gaps were ranked; every ranked gap has since been closed but for one clause of gap 14, and the header says which |
-| **Decisions and operations** | [`docs/adr/`](docs/adr/) — 28 architecture decision records; [`docs/runbooks/`](docs/runbooks/) — fifteen runbooks, the nine §20 asks for among them, the restore drill performed and recorded |
+| **Audited** | [`docs/quality/audit/spec-audit-2026-09-19.md`](docs/quality/audit/spec-audit-2026-09-19.md) — revision 2.3 read against the code, requirement by requirement: of about 540, some 195 were built and tested, 28 built but untested, 123 partly built and 84 not built. The gaps were ranked; every ranked gap has since been closed but for one clause of gap 14, and the header says which |
+| **Decisions and operations** | [`docs/design/adr/`](docs/design/adr/) — 28 architecture decision records; [`docs/operations/runbooks/`](docs/operations/runbooks/) — fifteen runbooks, the nine §20 asks for among them, the restore drill performed and recorded |
 | **Code** | `maya/` (the platform), `maya_delta/` (the lakehouse layer), `run_maya_web.py` |
 | **Tests** | 2,068 on Linux: 2,058 pass on SQLite and 10 are skipped (the eight Keycloak tests, `tests/test_sso_keycloak.py`, opt-in with `MAYA_TEST_KEYCLOAK_URL`, and the two multi-process server tests, which need PostgreSQL). The suite last ran green on PostgreSQL 16, 17 and 18 at 1,262 tests; the ones added since have run on SQLite only. With every Type A seam pinned to its fallback (`gates.py --fallback`) it passed at 1,150 tests and has not been rerun since. They include real-browser tests in headless Chrome, a multi-process server, a worker process, LibreOffice Calc as a judge of spreadsheet lifts, and a real `openssl` timestamp authority. Line coverage was 92.9% at 0.3.0, with a 90% floor in `gates.py --tests`. `python -m pytest -q` |
 | **Gates** | `python tools/ci/gates.py`: all green — lint, strict typing of `maya/services`, file size, both import boundaries, import cycles, public names per module, seam imports, SDK public symbols, version single source, no secrets, table contract, colour contrast, SDK↔API parity for 246 endpoints, UI↔SDK parity, the API contract snapshot, protocol literals, bandit, schema drift. `--tests`, `--fallback`, `--security` and `--bench` add the suite with coverage, the fallback matrix, pip-audit with the sandbox tests, and the benchmark regression check |
@@ -126,7 +126,7 @@ something that should be read plainly:
   hosted CI either: the gate ladder runs locally, in the pre-commit hook on every commit
   and as `python tools/ci/gates.py --tests`.
 - **There is no dedicated benchmark host.** Every figure in
-  [docs/BENCHMARKS.md](docs/BENCHMARKS.md) comes from one shared workstation. SC-3,
+  [docs/quality/BENCHMARKS.md](docs/quality/BENCHMARKS.md) comes from one shared workstation. SC-3,
   200 users on one node, is not met reliably there: on PostgreSQL with 8 web processes,
   three runs gave p95 0.34 s, 0.22 s and 0.43 s against 0.3 s, at 93–97 requests/s with
   no errors. Without a quiet host that verdict will not be settled either way.
@@ -183,7 +183,7 @@ something that should be read plainly:
 - **§24.3 is measured on SQLite, on one workstation.** Pin write throughput (59.7 MB/s,
   51.4 on a second run, against 50 — a narrow pass), job throughput, cold start,
   100k-object search, and 20k feature sets, 10k models and 100k pins without degradation
-  all pass ([BENCHMARKS](docs/BENCHMARKS.md#capacity-243)); none has been run on
+  all pass ([BENCHMARKS](docs/quality/BENCHMARKS.md#capacity-243)); none has been run on
   PostgreSQL. The per-pod figure and Delta table size (2 TB per
   feature) have not been measured. Several web processes need PostgreSQL; MAYA refuses
   them over SQLite.
@@ -231,7 +231,7 @@ The implementation plan's milestones, as delivered. Each row names where the cap
 lives and the tests that prove it; a capability without a test that exercises it is not
 listed, because on this platform an untested claim is an assertion. What a milestone
 promised and did not deliver is marked in
-[the plan](docs/IMPLEMENTATION_PLAN.md#6-milestones), milestone by milestone.
+[the plan](docs/design/IMPLEMENTATION_PLAN.md#6-milestones), milestone by milestone.
 
 | Capability | Where it lives | Proved by |
 |---|---|---|
@@ -281,8 +281,8 @@ promised and did not deliver is marked in
 | The gate ladder: typing, cycles, symbol and API snapshots, the fallback matrix, UI↔SDK parity, bandit, pip-audit, benchmark regression | `tools/ci/gates.py` | `tests/test_gate_ladder.py` (each rung caught planting a fault); `gates.py --fallback` ran the whole suite with every Type A seam on its fallback |
 | Read scoping of the review queue, SLA aging, break-glass report and lineage | `maya/services/workflow_service.py`, `maya/services/ops.py` | `tests/test_read_scoping.py` |
 | `maya.testing`: a throwaway platform for users' own tests, and a synthetic market dataset | `maya/testing/` | `tests/test_testing_kit.py`, `tests/test_market_dataset.py` |
-| The restore drill, on SQLite and PostgreSQL 17 | `docs/runbooks/restore-drill.md` | Performed and recorded in the runbook, §5 |
-| Measured against §3 and §24.3 | `tools/bench/` | Not tests: [docs/BENCHMARKS.md](docs/BENCHMARKS.md), from the result files in `docs/benchmarks/` |
+| The restore drill, on SQLite and PostgreSQL 17 | `docs/operations/runbooks/restore-drill.md` | Performed and recorded in the runbook, §5 |
+| Measured against §3 and §24.3 | `tools/bench/` | Not tests: [docs/quality/BENCHMARKS.md](docs/quality/BENCHMARKS.md), from the result files in `docs/quality/benchmarks/` |
 | **1.0.0** Findings register: severity, owner, due date, history; nobody closes their own fix | `maya/services/governance.py`, `/governance` | `tests/test_governance.py` (`test_a_finding_is_raised_remediated_and_closed_by_someone_independent`, `test_the_owner_does_not_accept_the_risk_in_their_own_model`) |
 | **1.0.0** Materiality tiers from measured drivers and the firm's questionnaire (`config/tiering.yaml`) | `maya/services/governance.py` | `tests/test_governance.py` (`test_the_tier_is_derived_and_an_override_that_lowers_it_is_flagged`, `test_the_questionnaire_drives_the_tier_and_refuses_answers_it_does_not_offer`, `test_the_points_rule_sums_answers_and_places_them_by_threshold`) |
 | **1.0.0** Periodic review: an overdue review suspends live warrants; a review lifts only those | `maya/services/governance.py` | `tests/test_governance.py` (`test_an_overdue_review_suspends_live_warrants_and_a_review_lifts_only_those`) |
@@ -299,7 +299,7 @@ promised and did not deliver is marked in
 model in under an hour, timed with a real person — has not been measured, and no
 external security review has been done: neither can be done by the project itself. The
 three-platform matrix is out of scope by decision (above). The plan marks each where it
-was promised; the [specification audit](docs/audit/spec-audit-2026-09-19.md) lists what
+was promised; the [specification audit](docs/quality/audit/spec-audit-2026-09-19.md) lists what
 the specification asks for beyond the plan's milestones and is not yet built.
 
 ---
@@ -445,7 +445,7 @@ maya/
 └── server.py              # the application factory each web process runs (server.workers)
 maya_delta/                # Delta Lake: native (delta-rs) and pure-Python backends
 tools/ci/                  # the gates, in Python so they run on every OS
-tools/bench/               # the benchmarks behind docs/BENCHMARKS.md
+tools/bench/               # the benchmarks behind docs/quality/BENCHMARKS.md
 case_studies/              # nine worked models, each a folder of runnable steps, out of a
                            #   numbered catalogue of fifty (see below)
 tools/docs/                # build_spec.py: the specification's .docx and .pdf from the Markdown
@@ -571,7 +571,7 @@ words, which is the weaker arrangement and is why the count is approximate.
 
 ## Getting started
 
-**New to MAYA? Follow [`docs/QUICKSTART.md`](docs/QUICKSTART.md)** — a step-by-step guide from
+**New to MAYA? Follow [`docs/getting-started/QUICKSTART.md`](docs/getting-started/QUICKSTART.md)** — a step-by-step guide from
 nothing to MAYA running with demonstration data, in about fifteen minutes, with what you
 should see at every step and what to do if you don't. The short version, for the impatient:
 
@@ -600,7 +600,7 @@ python tools/ci/gates.py --tests                   # the gate ladder
 git config core.hooksPath .githooks                # commit-msg and pre-commit hooks
 ```
 
-**Writing a client?** [`docs/API_GUIDE.md`](docs/API_GUIDE.md) walks the REST API end to end with examples that are run by the test suite; the live reference is at `/api/v1/docs`. SDK: `from maya.sdk import connect`.
+**Writing a client?** [`docs/reference/API_GUIDE.md`](docs/reference/API_GUIDE.md) walks the REST API end to end with examples that are run by the test suite; the live reference is at `/api/v1/docs`. SDK: `from maya.sdk import connect`.
 
 ---
 

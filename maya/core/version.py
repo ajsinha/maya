@@ -58,7 +58,7 @@ HIGHLIGHTS = {
         "maya_delta compaction and vacuum on both backends, run daily over every lake table",
         "Composite models re-executed in evidence bundles; offline execution labelled unattested",
         "Several web processes on one node over PostgreSQL, spread evenly by SO_REUSEPORT",
-        "Measured: SC-4, SC-5 and 100k-object search pass; SC-3 close (docs/BENCHMARKS.md)",
+        "Measured: SC-4, SC-5 and 100k-object search pass; SC-3 close (docs/quality/BENCHMARKS.md)",
     ],
     "0.1.0": [
         "First end-to-end build from specification revision 2.1",

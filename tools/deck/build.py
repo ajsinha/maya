@@ -28,7 +28,7 @@ import layouts  # noqa: E402
 import maya_deck  # noqa: E402
 import theme  # noqa: E402
 
-DOCS = HERE.parents[1] / "docs"
+DOCS = HERE.parents[1] / "docs" / "publications"
 # One deck. Four was four places to keep one story current, and the story is one: what a
 # model is, what follows from that, and what MAYA does about it.
 DECKS = {

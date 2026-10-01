@@ -295,7 +295,7 @@ SLIDES: list[dict[str, Any]] = [
             "Every example in the API guide and every step of the quick start was executed against "
             "a fresh install before it was written down.",
             "Benchmarks, the capacity targets and their measurement machine are in "
-            "docs/BENCHMARKS.md; the one target not met reliably on a shared workstation, 200 "
+            "docs/quality/BENCHMARKS.md; the one target not met reliably on a shared workstation, 200 "
             "users on one node, is stated there.",
         ],
     },
@@ -337,7 +337,7 @@ SLIDES: list[dict[str, Any]] = [
         "intro": "Three commands on a Linux machine with Python 3.13, then a case study to fill it.",
         "items": [
             (
-                "docs/QUICKSTART.md",
+                "docs/getting-started/QUICKSTART.md",
                 "Nine steps, each saying what you should see and what to do if you do not; followed "
                 "literally on a fresh clone.",
             ),
@@ -346,12 +346,12 @@ SLIDES: list[dict[str, Any]] = [
                 "Fifteen worked models; any one runs in well under a minute and fills the catalog.",
             ),
             (
-                "docs/API_GUIDE.md",
+                "docs/reference/API_GUIDE.md",
                 "The REST API from first curl to a sealed execution warrant, every example executed "
                 "by the tests.",
             ),
             (
-                "docs/research/",
+                "docs/publications/research/",
                 "The research paper: the formal account, with the proofs this deck points to.",
             ),
         ],

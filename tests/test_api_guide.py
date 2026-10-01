@@ -1,5 +1,5 @@
 """
-docs/API_GUIDE.md is executed, not just read.
+docs/reference/API_GUIDE.md is executed, not just read.
 
 A real MAYA is started on a socket with an empty estate; every ``python`` block of the guide
 runs in order in one namespace, as a reader following it would, and every ``bash`` block
@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-GUIDE = ROOT / "docs" / "API_GUIDE.md"
+GUIDE = ROOT / "docs" / "reference" / "API_GUIDE.md"
 BLOCK = re.compile(r"^```(python|bash)\n(.*?)^```", re.S | re.M)
 
 

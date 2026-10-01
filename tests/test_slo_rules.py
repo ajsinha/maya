@@ -116,4 +116,4 @@ def test_the_file_says_where_it_substitutes_for_an_objective_it_cannot_measure()
     rather than let a reader believe the objective is met."""
     text = RULES.read_text(encoding="utf-8")
     assert "NOT measurable as" in text and "estimate" in text
-    assert "docs/runbooks/" in text
+    assert "docs/operations/runbooks/" in text

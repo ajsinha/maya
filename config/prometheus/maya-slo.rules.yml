@@ -7,7 +7,7 @@
 #
 # §20 states four objectives and requires that "each SLO has an alert with a runbook
 # link". Every alert below therefore carries `runbook_url`, and every one of those
-# points at a runbook that ships in this repository under docs/runbooks/ — a test
+# points at a runbook that ships in this repository under docs/operations/runbooks/ — a test
 # (tests/test_slo_rules.py) fails if a link names a runbook that does not exist, and
 # fails if an expression names a metric MAYA does not export.
 #
@@ -90,7 +90,7 @@ groups:
           description: >-
             Over the last five minutes {{ printf "%.2f" $value }} of metadata requests
             succeeded. At this rate the monthly error budget is gone in under a day.
-          runbook_url: "docs/runbooks/database-failover.md"
+          runbook_url: "docs/operations/runbooks/database-failover.md"
 
       # SLO 2 — p95 under 300 ms for metadata reads.
       - alert: MayaMetadataLatencyHigh
@@ -105,7 +105,7 @@ groups:
             p95 is {{ printf "%.3f" $value }}s. Check the database pool
             (maya_db_pool_connections) and the slow-query rate
             (rate(maya_db_slow_queries_total[5m])) before blaming the application.
-          runbook_url: "docs/runbooks/database-failover.md"
+          runbook_url: "docs/operations/runbooks/database-failover.md"
 
       # SLO 3 — pin jobs finish in a predictable time (see the note at the top).
       - alert: MayaPinJobsSlow
@@ -124,7 +124,7 @@ groups:
             p99 pin duration is {{ printf "%.0f" $value }}s. Set this threshold from
             your own history; MAYA does not yet estimate a job's duration, so it
             cannot compare against "estimate x 2".
-          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+          runbook_url: "docs/operations/runbooks/stuck-or-failed-jobs-and-pins.md"
 
       - alert: MayaJobsWaitingTooLong
         expr: maya_job_oldest_queued_seconds > 1800
@@ -138,7 +138,7 @@ groups:
             The oldest queued job is {{ printf "%.0f" $value }}s old. Either no worker
             is draining the queue, or one owner's campaign is holding the concurrency
             cap (jobs.per_user.max_concurrent).
-          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+          runbook_url: "docs/operations/runbooks/stuck-or-failed-jobs-and-pins.md"
 
       - alert: MayaJobsDeadLettered
         expr: maya_jobs{state="dead_letter"} > 0
@@ -147,7 +147,7 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $value }} job(s) have exhausted their retries"
-          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+          runbook_url: "docs/operations/runbooks/stuck-or-failed-jobs-and-pins.md"
 
       - alert: MayaQueueShedding
         expr: sum(rate(maya_job_shed_total[10m])) > 0
@@ -159,7 +159,7 @@ groups:
           description: >-
             Submissions are being refused by {{ $labels.reason }}. Add job workers
             (run_maya_web.py --worker) or raise jobs.queue.max_depth deliberately.
-          runbook_url: "docs/runbooks/quota-exhaustion.md"
+          runbook_url: "docs/operations/runbooks/quota-exhaustion.md"
 
       # SLO 4 — zero unrecovered pin sagas.
       - alert: MayaPinStuckMaterializing
@@ -173,7 +173,7 @@ groups:
           description: >-
             {{ $value }} {{ $labels.kind }} pin(s) are stuck. The metadata commit of the
             pin saga never happened, and the partition it wrote is orphaned.
-          runbook_url: "docs/runbooks/orphaned-pin-partitions.md"
+          runbook_url: "docs/operations/runbooks/orphaned-pin-partitions.md"
 
       # Integrity, the lake, and the estate's security posture.
       - alert: MayaIntegrityDrift
@@ -182,7 +182,7 @@ groups:
           severity: critical
         annotations:
           summary: "A sealed pin no longer matches its seal"
-          runbook_url: "docs/runbooks/integrity-drift.md"
+          runbook_url: "docs/operations/runbooks/integrity-drift.md"
 
       - alert: MayaIntegrityVerificationStalled
         expr: increase(maya_integrity_verifications_total[36h]) == 0
@@ -194,7 +194,7 @@ groups:
           description: >-
             integrity.verify.interval_seconds defaults to a day. Either the scheduler is
             not running (is any process the primary?) or verification was turned off.
-          runbook_url: "docs/runbooks/integrity-drift.md"
+          runbook_url: "docs/operations/runbooks/integrity-drift.md"
 
       - alert: MayaDeltaSmallFileExplosion
         expr: maya_delta_small_file_ratio > 0.9 and maya_delta_files > 200
@@ -203,7 +203,7 @@ groups:
           severity: warning
         annotations:
           summary: "Lake table {{ $labels.table }} is almost all small files"
-          runbook_url: "docs/runbooks/delta-small-files.md"
+          runbook_url: "docs/operations/runbooks/delta-small-files.md"
 
       - alert: MayaDatabasePoolSaturated
         expr: |
@@ -214,7 +214,7 @@ groups:
           severity: warning
         annotations:
           summary: "The database pool is nearly exhausted"
-          runbook_url: "docs/runbooks/database-failover.md"
+          runbook_url: "docs/operations/runbooks/database-failover.md"
 
       - alert: MayaDefaultAdminPassword
         expr: maya_default_admin_password > 0
@@ -223,7 +223,7 @@ groups:
           severity: critical
         annotations:
           summary: "The bootstrap administrator still has the shipped password"
-          runbook_url: "docs/runbooks/default-password.md"
+          runbook_url: "docs/operations/runbooks/default-password.md"
 
       - alert: MayaRestoreDrillOverdue
         expr: maya_restore_drill_age_days > 92 or maya_restore_drill_age_days < 0
@@ -236,7 +236,7 @@ groups:
             §20 asks for a quarterly drill whose result is recorded. Record one with
             `python -m maya.cli admin record-drill`. A negative value means none has ever
             been recorded.
-          runbook_url: "docs/runbooks/restore-drill.md"
+          runbook_url: "docs/operations/runbooks/restore-drill.md"
 
       - alert: MayaWebhookBacklog
         expr: maya_webhook_backlog{state="pending"} > 500
@@ -245,7 +245,7 @@ groups:
           severity: warning
         annotations:
           summary: "Webhook deliveries are piling up"
-          runbook_url: "docs/runbooks/stuck-or-failed-jobs-and-pins.md"
+          runbook_url: "docs/operations/runbooks/stuck-or-failed-jobs-and-pins.md"
 
       - alert: MayaSandboxTierDegraded
         expr: maya_sandbox_tier{tier!="strong"} > 0
@@ -258,7 +258,7 @@ groups:
             Outside dev MAYA refuses to start below sandbox.min_tier, so seeing this
             means the minimum was lowered. Treat any anomaly in a sandboxed run as a
             possible escape.
-          runbook_url: "docs/runbooks/sandbox-escape.md"
+          runbook_url: "docs/operations/runbooks/sandbox-escape.md"
 
       - alert: MayaAuthorizationDenialSpike
         expr: sum(rate(maya_authz_denials_total[5m])) > 5
@@ -270,4 +270,4 @@ groups:
           description: >-
             Either a grant was removed that somebody still depends on, or something is
             probing. The audit log names the actor and the action.
-          runbook_url: "docs/runbooks/quota-exhaustion.md"
+          runbook_url: "docs/operations/runbooks/quota-exhaustion.md"
