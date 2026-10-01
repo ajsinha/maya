@@ -22,7 +22,7 @@ scripts needs to change, and running them from the project root has always worke
 
     .venv/bin/python case_studies/01-retail-credit-pd-scorecard/run.py
 
-New to MAYA? The [quick start](../docs/QUICKSTART.md) installs it and runs study 01 with you,
+New to MAYA? The [quick start](../docs/getting-started/QUICKSTART.md) installs it and runs study 01 with you,
 step by step.
 
 ## How a study is laid out
@@ -296,7 +296,7 @@ exercised the same six calls would demonstrate nothing one study could not.
 
 ## What a case study is not
 
-It is not a benchmark — `docs/BENCHMARKS.md` holds the measured throughput and capacity
+It is not a benchmark — `docs/quality/BENCHMARKS.md` holds the measured throughput and capacity
 figures. It is not a tutorial — the four in `maya/web/guides/tutorial-0*.md`, read in the
 product under *Help → Guides*, walk a newcomer through the platform step by step. And it is not a test — the suite under `tests/` is what holds MAYA's
 behaviour in place. A case study is the argument, made on a concrete problem, that the

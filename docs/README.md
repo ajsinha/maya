@@ -1,22 +1,69 @@
 # docs
 
 The specification is the source of truth for MAYA. Version 1.0.0 implements its spine and the model governance built on it; the README states exactly what is shipped, with the test that proves each capability ([*What's shipped*](../README.md#whats-shipped)), what is out of scope by decision, and what is not yet done ([*Status*](../README.md#status--read-this-first)).
-Read in this order.
+The documents are grouped by what you are doing. Each folder is below, with what is in it.
+
+```
+docs/
+  getting-started/   from nothing to MAYA running, with data of your own
+  reference/         the REST API, executed by its own tests
+  design/            the specification, the implementation plan, and the decision records
+  operations/        runbooks for when MAYA misbehaves
+  quality/           what has been measured, and the audit of the specification against the code
+  publications/      the research paper, the deck and the article
+  CHANGELOG.md       what each release changed
+```
+
+The full reference for each part of MAYA — features, models, warrants, governance, the SDK,
+operations — is in the product, under **Help**, and in [`maya/web/guides/`](../maya/web/guides/).
+
+## Getting started — [`getting-started/`](getting-started/)
 
 | Document | What it is |
 |---|---|
-| [`QUICKSTART.md`](QUICKSTART.md) | **Start here.** From nothing to MAYA running, signed in, with demonstration data and a feature of your own, in about fifteen minutes; every step says what you should see and what to do if you don't |
-| [`API_GUIDE.md`](API_GUIDE.md) | **Talking to MAYA over HTTP.** The REST API from first `curl` to a sealed execution warrant, with a small Python client, every convention (keys, paging, ETags, idempotency, jobs), every error and every endpoint. Each example is executed by `tests/test_api_guide.py` |
+| [`QUICKSTART.md`](getting-started/QUICKSTART.md) | **Start here.** From nothing to MAYA running, signed in, with demonstration data and a feature of your own, in about fifteen minutes; every step says what you should see and what to do if you don't |
+
+## Reference — [`reference/`](reference/)
+
+| Document | What it is |
+|---|---|
+| [`API_GUIDE.md`](reference/API_GUIDE.md) | **Talking to MAYA over HTTP.** The REST API from first `curl` to a sealed execution warrant, with a small Python client, every convention (keys, paging, ETags, idempotency, jobs), every error and every endpoint. Each example is executed by `tests/test_api_guide.py` |
 | [`authoring-reference.md`](../maya/web/guides/authoring-reference.md) | **What each designer expects.** The rules behind every authoring screen: a model's formula, its Python function (assignments and one `return`) and its Python artifact (a class `Model` with `fit(self, X, y, ctx)` and `predict(self, X, params, ctx)`, the import allowlist and the sandbox limits); features and their sources, rules and quality checks; feature sets; and both warrants, covenants included. The same page is in Help, and each screen's *What this needs* panel links to its section |
-| [`MAYA_Requirements_and_Design.md`](MAYA_Requirements_and_Design.md) | **The specification**, revision 2.8 (the notes for 2.2 to 2.8 are at its top, each marked where it lands). 30 sections: vision, personas, domain model, the four subsystems (features, feature sets, models, warrants), `maya_delta` and physical storage, authz, architecture, the UI, the API and SDK, engineering standards, the design read adversarially (§28), and the ten innovations (§29) |
-| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, each marked with what it delivered by 0.3.0 and what it did not; the 28-rung CI gate ladder and which rungs exist; the six one-way doors; and the decision register |
-| [`BENCHMARKS.md`](BENCHMARKS.md) | **What has been measured**, against §3 and §24.3: the machine, how to reproduce each run, every number from the unedited result files in [`benchmarks/`](benchmarks/), and what has not been measured |
+
+## Design — [`design/`](design/)
+
+| Document | What it is |
+|---|---|
+| [`MAYA_Requirements_and_Design.md`](design/MAYA_Requirements_and_Design.md) | **The specification**, revision 2.8 (the notes for 2.2 to 2.8 are at its top, each marked where it lands). 30 sections: vision, personas, domain model, the four subsystems (features, feature sets, models, warrants), `maya_delta` and physical storage, authz, architecture, the UI, the API and SDK, engineering standards, the design read adversarially (§28), and the ten innovations (§29) |
+| [`IMPLEMENTATION_PLAN.md`](design/IMPLEMENTATION_PLAN.md) | **How it gets built.** Milestones M0–M8 with executable exit criteria, each marked with what it delivered by 0.3.0 and what it did not; the 28-rung CI gate ladder and which rungs exist; the six one-way doors; and the decision register |
+| [`design/adr/`](design/adr/README.md) | **Why it is built this way.** Twenty-eight architecture decision records: the package layout and working practice, the eight decisions and six further calls of §26.3, and the later decisions of revisions 2.2 and 2.3 and version 0.3 — each with its context, its cost, and the code and tests that carry it |
+
+## Operations — [`operations/`](operations/)
+
+| Document | What it is |
+|---|---|
+| [`operations/runbooks/`](operations/runbooks/README.md) | **What to do when it misbehaves.** Twenty operational procedures, the nine §20 requires to ship with the product among them — schema rebuild, moving between SQLite and PostgreSQL, `maya_delta` fallback, integrity drift, audit chain and custody, stuck jobs and pins, orphaned pin partitions, Delta small files, database failover, a suspended warrant, an SSO outage, a suspected sandbox escape, quota exhaustion, default-password remediation, the restore drill, and the governance ones: restated data under a live model, periodic review and expiry, a governance backlog, the AI gateway — each with symptoms, diagnosis commands, steps, verification and limits |
+
+## Quality — [`quality/`](quality/)
+
+| Document | What it is |
+|---|---|
+| [`BENCHMARKS.md`](quality/BENCHMARKS.md) | **What has been measured**, against §3 and §24.3: the machine, how to reproduce each run, every number from the unedited result files in [`benchmarks/`](quality/benchmarks/), and what has not been measured |
+| [`quality/audit/`](quality/audit/spec-audit-2026-09-19.md) | **What was not built on 2026-09-19.** Revision 2.3 read against the code, requirement by requirement: counts by class, the gaps ranked by what they cost a user, and the places the specification contradicts itself (now marked *Revision 2.4*). Every ranked gap has since been closed but for one clause of gap 14, and the header at its top says which; the per-requirement tables below it are a snapshot of that day and have not been re-walked |
+
+## Publications — [`publications/`](publications/)
+
+| Document | What it is |
+|---|---|
+| [`publications/research/`](publications/research/) | **The research paper**, *Models as Parametric Kernels: An Order, an Operator and a Polynomial* — [PDF](publications/research/models-as-parametric-kernels.pdf), [LaTeX source](publications/research/models-as-parametric-kernels.tex), and an [article version](publications/research/models-as-parametric-kernels-article.md). The formal account MAYA came out of, rewritten against 1.0.0 with a new section on the governance judgements (materiality, review, monitoring, champion and challenger, fairness, black boxes and LLM applications): every claim is marked with the module and test that carry it, or as not in the system. CC BY-NC-ND 4.0 ([`research/LICENSE`](publications/research/LICENSE)); everything else here is proprietary |
+| [`MAYA-Model-Management-Formalism-and-System-Design.pptx`](publications/MAYA-Model-Management-Formalism-and-System-Design.pptx) | **The deck**, 72 slides in nine parts: why model governance fails and what SR 11-7 and SS1/23 ask; the vocabulary from nothing; the lifecycle end to end; the governance layer (findings, materiality, periodic review, monitoring, champion and challenger, fairness, the supervisory inventory); models beyond formulas (black boxes, MLflow and SageMaker imports, what MAYA does beside an ML platform, LLM applications); the formal core; how it runs; fifteen case studies with six in depth; and what is measured and not done. Generated by [`tools/deck/`](../tools/deck/GUIDE.md) and checked for layout by `tests/test_deck_geometry.py` |
+| [`articles/medium/`](publications/articles/medium/README.md) | **The Medium article** on MAYA's design, with its six diagrams (generated by `diagrams.py` beside it) |
+
+## Release notes
+
+| Document | What it is |
+|---|---|
 | [`CHANGELOG.md`](CHANGELOG.md) | **What each release changed**, as narrative; the version itself lives in `maya/core/version.py` |
-| [`adr/`](adr/README.md) | **Why it is built this way.** Twenty-eight architecture decision records: the package layout and working practice, the eight decisions and six further calls of §26.3, and the later decisions of revisions 2.2 and 2.3 and version 0.3 — each with its context, its cost, and the code and tests that carry it |
-| [`audit/`](audit/spec-audit-2026-09-19.md) | **What was not built on 2026-09-19.** Revision 2.3 read against the code, requirement by requirement: counts by class, the gaps ranked by what they cost a user, and the places the specification contradicts itself (now marked *Revision 2.4*). Every ranked gap has since been closed but for one clause of gap 14, and the header at its top says which; the per-requirement tables below it are a snapshot of that day and have not been re-walked |
-| [`research/`](research/) | **The research paper**, *Models as Parametric Kernels: An Order, an Operator and a Polynomial* — [PDF](research/models-as-parametric-kernels.pdf), [LaTeX source](research/models-as-parametric-kernels.tex), and an [article version](research/models-as-parametric-kernels-article.md). The formal account MAYA came out of, rewritten against 1.0.0 with a new section on the governance judgements (materiality, review, monitoring, champion and challenger, fairness, black boxes and LLM applications): every claim is marked with the module and test that carry it, or as not in the system. CC BY-NC-ND 4.0 ([`research/LICENSE`](research/LICENSE)); everything else here is proprietary |
-| [`MAYA-Model-Management-Formalism-and-System-Design.pptx`](MAYA-Model-Management-Formalism-and-System-Design.pptx) | **The deck**, 72 slides in nine parts: why model governance fails and what SR 11-7 and SS1/23 ask; the vocabulary from nothing; the lifecycle end to end; the governance layer (findings, materiality, periodic review, monitoring, champion and challenger, fairness, the supervisory inventory); models beyond formulas (black boxes, MLflow and SageMaker imports, what MAYA does beside an ML platform, LLM applications); the formal core; how it runs; fifteen case studies with six in depth; and what is measured and not done. Generated by [`tools/deck/`](../tools/deck/GUIDE.md) and checked for layout by `tests/test_deck_geometry.py` |
-| [`runbooks/`](runbooks/README.md) | **What to do when it misbehaves.** Fifteen operational procedures, the nine §20 requires to ship with the product among them — schema rebuild, moving between SQLite and PostgreSQL, `maya_delta` fallback, integrity drift, audit chain and custody, stuck jobs and pins, orphaned pin partitions, Delta small files, database failover, a suspended warrant, an SSO outage, a suspected sandbox escape, quota exhaustion, default-password remediation, the restore drill — each with symptoms, diagnosis commands, steps, verification and limits |
 
 ## Revision 2.1 — what changed, 2026-09-17
 
@@ -27,7 +74,7 @@ the sections that carry them:
 |---|---|
 | No database migrations — two generated `.sql` files, everything through SQLAlchemy | §14.3 |
 | `maya_delta`: native `deltalake` preferred, MAYA's own pure-Python Delta as fallback | §7.4 |
-| Windows, Linux and macOS as equal first-class platforms — *since amended by the owner's decision: only Linux is exercised* ([ADR-014](adr/ADR-014-platforms.md)) | §24.5 |
+| Windows, Linux and macOS as equal first-class platforms — *since amended by the owner's decision: only Linux is exercised* ([ADR-014](design/adr/ADR-014-platforms.md)) | §24.5 |
 | Bootstrap 5 + jQuery, vendored, on a Harvard Crimson visual system | §16.6 |
 | The universal table contract — every table paginated, searchable, sortable | §16.7 |
 | Workflow authored and managed in the UI; YAML as a projection, not a second authority | §10.6 |
@@ -40,17 +87,17 @@ the sections that carry them:
 
 ## What goes here next
 
-`adr/` and `runbooks/` are written (above). The decision records were due in M0 and arrived
+`design/adr/` and `operations/runbooks/` are written (above). The decision records were due in M0 and arrived
 after 0.3.0; specification §26.3 and plan §4 remain the registers they expand. All nine of
-the procedures §20 asks for are now written, and six more beside them;
-[their index](runbooks/README.md) names what those fifteen still do not reach.
-Still to come: `design/` for per-subsystem design notes.
+the procedures §20 asks for are now written, and eleven more beside them;
+[their index](operations/runbooks/README.md) names what they still do not reach.
+Still to come: per-subsystem design notes, beside the specification in `design/`.
 
-> The research paper (`research/`) and the three presentation decks were restored from the
-> previous build and rewritten against revision 2.3 and version 0.3.0; `NOTICE` and
-> `research/LICENSE` resolve again. The decks are regenerated with
+> The research paper (`publications/research/`) and the deck were restored from the
+> previous build and rewritten since; `NOTICE` and
+> `publications/research/LICENSE` resolve. The deck is regenerated with
 > `python tools/deck/build.py` (see [`tools/deck/GUIDE.md`](../tools/deck/GUIDE.md)) and the
-> PDF with `tectonic` from `research/models-as-parametric-kernels.tex`.
+> PDF with `tectonic` from `publications/research/models-as-parametric-kernels.tex`.
 
 ## The previous build
 

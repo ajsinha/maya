@@ -204,7 +204,7 @@ account, not a configuration change made at the worst possible moment: these acc
 sign in with a password even under `auth.mode: sso`, they are ordinary database accounts
 holding the administrator role, a second factor applies to them as to anyone, and every such
 sign-in is audited at warning level and notified to every administrator. The SSO outage
-runbook (`docs/runbooks/sso-outage.md`) is the procedure.
+runbook (`docs/operations/runbooks/sso-outage.md`) is the procedure.
 
 | Key | Default | Meaning |
 |---|---|---|

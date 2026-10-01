@@ -440,14 +440,14 @@ SLIDES: list[dict[str, Any]] = [
         "note": "tools/ci/table_contract.py, sdk_parity.py, contrast.py; "
         "tests/test_web.py::test_web_imports_only_the_sdk; "
         "tests/test_browser.py::test_a_server_paged_table_pages_searches_and_sorts; "
-        "docs/BENCHMARKS.md for the search figure.",
+        "docs/quality/BENCHMARKS.md for the search figure.",
     },
     {
         "kind": "split",
         "kicker": "The API",
         "title": "Everything the screen does is a documented HTTP call",
         "intro": "The web UI, the Python SDK and the CLI all use the same 246 endpoints under /api/v1. "
-        "docs/API_GUIDE.md walks them from a first curl to a sealed execution warrant, and the "
+        "docs/reference/API_GUIDE.md walks them from a first curl to a sealed execution warrant, and the "
         "test suite executes every example in it.",
         "left": {
             "head": "Conventions",

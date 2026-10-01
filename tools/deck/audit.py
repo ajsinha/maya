@@ -1,7 +1,7 @@
 """
 Geometry audit for the generated decks.
 
-    python tools/deck/audit.py docs/MAYA-Model-Management-Formalism-and-System-Design.pptx
+    python tools/deck/audit.py docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx
 
 It re-derives the geometry of every shape on every slide and reports:
 

@@ -50,7 +50,7 @@ Nothing else about those accounts is special, and everything about them is loud:
 - in the browser the password form stays hidden in `sso` mode; `/login?break-glass=1`
   shows it. Showing the form grants nothing — the server decides.
 
-The SSO outage runbook (`docs/runbooks/sso-outage.md`) has the drill. A break-glass account
+The SSO outage runbook (`docs/operations/runbooks/sso-outage.md`) has the drill. A break-glass account
 with no second factor enrolled, a forgotten password or no `admin` role is not a
 break-glass account, which is why the runbook asks you to test it at every restore drill.
 

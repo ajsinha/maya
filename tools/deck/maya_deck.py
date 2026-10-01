@@ -9,7 +9,7 @@ vocabulary it needs, the lifecycle end to end, the governance a model risk funct
 in, models that are not formulas, the formal core that makes the facts derivable, how it
 runs, fifteen worked models, and what is measured and what is not done.
 
-Every figure comes from the code, ``maya/core/version.py``, the README, ``docs/BENCHMARKS.md``
+Every figure comes from the code, ``maya/core/version.py``, the README, ``docs/quality/BENCHMARKS.md``
 or a case study's run against a MAYA built from nothing.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.

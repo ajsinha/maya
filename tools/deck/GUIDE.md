@@ -5,7 +5,7 @@ nobody can edit safely.
 
 ```bash
 .venv/bin/python tools/deck/build.py                     # the deck, into docs/
-.venv/bin/python tools/deck/audit.py docs/MAYA-Model-Management-Formalism-and-System-Design.pptx
+.venv/bin/python tools/deck/audit.py docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx
 .venv/bin/python -m pytest -q tests/test_deck_geometry.py            # the audit, as a test
 ```
 
@@ -13,7 +13,7 @@ nobody can edit safely.
 
 | Deck | Slides | Source |
 |---|---|---|
-| `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 72 | `maya_deck.py`, then `deck_part1.py` to `deck_part4.py` |
+| `docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 72 | `maya_deck.py`, then `deck_part1.py` to `deck_part4.py` |
 
 **Why one, where there were four.** The build previously carried an executive
 briefing, a system design, a capabilities deck and a formalism deck. Four decks
@@ -59,7 +59,7 @@ run won and the discrepancy is not quoted.
 
 A slide that cannot be made to fit **fails the build** naming the slide; the fix is
 to shorten the text or split the slide, never to lower the floor. Every number on a
-slide comes from the code, the README's "What's shipped", `docs/BENCHMARKS.md` or the
+slide comes from the code, the README's "What's shipped", `docs/quality/BENCHMARKS.md` or the
 specification, and the slide's note names its source.
 
 ## The audit

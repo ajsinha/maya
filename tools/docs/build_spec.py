@@ -1,5 +1,5 @@
 """
-Render the specification (docs/MAYA_Requirements_and_Design.md) to .docx and .pdf.
+Render the specification (docs/design/MAYA_Requirements_and_Design.md) to .docx and .pdf.
 
 The Markdown is the authority; these are renderings of it, rebuilt by this script
 whenever the Markdown changes so they never fall behind. Mermaid diagrams are drawn
@@ -25,7 +25,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = ROOT / "docs" / "MAYA_Requirements_and_Design.md"
+SPEC = ROOT / "docs" / "design" / "MAYA_Requirements_and_Design.md"
 MERMAID = re.compile(r"```mermaid\n(.*?)```", re.S)
 MERMAID_JS = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
 

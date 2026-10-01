@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**`docs/` grouped by purpose**
+
+- `getting-started/` (the quickstart and its sample file), `reference/` (the REST API guide),
+  `design/` (the specification with its Word and PDF renderings, the implementation plan, the
+  decision records), `operations/` (the runbooks), `quality/` (benchmarks and their result
+  files, the specification audit) and `publications/` (the research paper, the deck, the
+  Medium article). `README.md` and `CHANGELOG.md` stay at the top, and the index describes
+  each group.
+- Every link and path was rewritten: Markdown links into, out of and within the moved files,
+  the Prometheus rules' runbook links, the build tools (specification, deck, benchmarks) and
+  the tests. The deck, the paper's PDF and the specification's renderings were rebuilt.
+  `tests/test_docs_links.py` now fails on any relative Markdown link that does not resolve,
+  and on a document left loose in `docs/`.
+
 **The SDK stands alone: `maya-sdk`, its own project**
 
 - The SDK is its own project under `sdk/` — its own `pyproject.toml`, version
@@ -362,7 +376,7 @@
 
 **The deck, rethought for 1.0.0**
 
-- `docs/MAYA-Model-Management-Formalism-and-System-Design.pptx`, rebuilt as 70 slides in
+- `docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx`, rebuilt as 70 slides in
   nine parts, in the order a head of model risk, a validator or a supervisor asks their
   questions: why governance fails and what SR 11-7 and SS1/23 expect; the vocabulary; the
   lifecycle end to end; the governance layer 1.0.0 added; black boxes, vendor imports and
@@ -395,12 +409,12 @@
 
 **The quick start, followed literally**
 
-- [`docs/QUICKSTART.md`](QUICKSTART.md): from nothing to MAYA running, signed in, with a case
+- [`docs/getting-started/QUICKSTART.md`](getting-started/QUICKSTART.md): from nothing to MAYA running, signed in, with a case
   study's data to look at and a feature of your own, in nine steps. Each says what to type,
   what you should see and what to do if you don't; a troubleshooting table covers the
   failures a newcomer actually meets (the wrong Python, a busy port, a locked account, a
   lost administrator password). Every step was carried out on a fresh clone, and a sample
-  file to upload ships at `docs/quickstart/prices.csv`.
+  file to upload ships at `docs/getting-started/prices.csv`.
 - **Case studies keep working after the administrator's password is changed.** The quick
   start tells a new user to change the published password at first sign-in; every case
   study signed in as `admin` with it, and so failed with *Invalid username or password*.
@@ -468,7 +482,7 @@
   registry, and the code that scores asks MAYA before it runs.
 
 
-- [`docs/API_GUIDE.md`](API_GUIDE.md): the API from first `curl` to a sealed execution
+- [`docs/reference/API_GUIDE.md`](reference/API_GUIDE.md): the API from first `curl` to a sealed execution
   warrant, with a thirty-line Python client, every convention a client needs (API keys,
   paging, ETags, `If-Match`, idempotency, jobs, limits, second factor), every error type
   with what to do about it, troubleshooting, and every endpoint. `tests/test_api_guide.py`
@@ -1114,7 +1128,7 @@ evidence, regulatory inventory exports, LLM application governance and connector
 **Capacity (§24.3)**
 
 - `tools/bench/bench_capacity.py` measures the rest of §24.3, and all four targets pass on
-  SQLite ([BENCHMARKS](BENCHMARKS.md#capacity-243)):
+  SQLite ([BENCHMARKS](quality/BENCHMARKS.md#capacity-243)):
   - pin write throughput, 59.7 MB/s (51.4 MB/s on a second run) against 50;
   - 20k feature sets, 10k models and 100k pins, every page p95 under 30 ms;
   - job throughput, 134,962 an hour against 1,000;
@@ -1151,9 +1165,9 @@ evidence, regulatory inventory exports, LLM application governance and connector
   sandbox tests, and a benchmark regression check. Each rung is proven to catch a
   planted fault. Also new: `maya.testing` and a synthetic market dataset.
 - **Added:**
-  - 28 architecture decision records (`docs/adr/`);
-  - fifteen runbooks (`docs/runbooks/`), the nine §20 asks for among them;
-  - the specification audit of 2026-09-19 (`docs/audit/`), with what has been fixed
+  - 28 architecture decision records (`docs/design/adr/`);
+  - fifteen runbooks (`docs/operations/runbooks/`), the nine §20 asks for among them;
+  - the specification audit of 2026-09-19 (`docs/quality/audit/`), with what has been fixed
     since.
 - **The research paper and its article are restored and rewritten** against 0.3.0.
   Every claim about the system carries a mark: runs, in part, implemented but
@@ -1274,7 +1288,7 @@ Built from specification revision 2.3. The SDK's own version (`CLIENT_VERSION`) 
 - maya_delta compaction and vacuum on both backends, run daily over every lake table.
 - The estate export reads the database as it is, so it works across a schema change.
 - Measured: SC-5, SC-4 and 100k-object search pass. SC-3 is close but not met.
-  See `docs/BENCHMARKS.md`.
+  See `docs/quality/BENCHMARKS.md`.
 - The suite runs on SQLite and on PostgreSQL 16, 17 and 18.
 
 **Fixed**
