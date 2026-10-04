@@ -410,7 +410,7 @@ def source_text(source: dict[str, Any] | None) -> str:
     if kind == "sql":
         return f"sql on connection '{src.get('connection', '?')}': {src.get('query', '')}"
     if kind == "python":
-        return f"python source, entry '{src.get('entrypoint') or 'build'}'"
+        return f"python source, entry '{src.get('entry') or 'produce'}'"
     if kind == "delta":
         return f"delta table at {src.get('path', '?')}"
     extra = [f"{k}={_text(v)}" for k, v in sorted(src.items()) if k not in ("type", "freshness")]

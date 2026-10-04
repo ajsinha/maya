@@ -241,11 +241,13 @@ class FeatureHandle(CatalogHandle):
 
     def clone(self, name: str, *, namespace: str | None = None) -> FeatureHandle:
         """A new feature that inherits this one (§5.8's `extends`, binding `pinned`)."""
-        ns, _, own = self.ref.partition("/")
-        del own
+        from maya.sdk.transport import split_ref
+
+        # the handle may hold ns/name or a full maya://feature/ns/name@v2 reference
+        ns, parent = split_ref(self.ref, "feature")
         definition = {
             "extends": {
-                "parent": f"{self.ref}@v{self.get('latest_version') or 1}",
+                "parent": f"{ns}/{parent}@v{self.get('latest_version') or 1}",
                 "binding": "pinned",
             }
         }

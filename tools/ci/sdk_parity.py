@@ -1,7 +1,7 @@
 """Gate 15 — every public endpoint has an SDK method and every method an endpoint (SC-13).
 
 The server's side is read from its generated OpenAPI document; the SDK's side
-from the ``@endpoint`` registry in ``sdk/maya/sdk/resources.py``.
+from the ``@endpoint`` registry in ``sdk/maya/sdk/base.py``.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """

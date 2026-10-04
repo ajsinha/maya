@@ -6,6 +6,7 @@ hypothesis==6.168.0
 ruff==0.16.6
 playwright==1.63.0     # tests/test_browser.py drives the installed Chrome; skipped without it
 pytest-cov==7.1.0
+pytest-xdist==3.8.0      # -n for the suite and the case studies (tools/ci/quick.py)
 mypy==2.3.1           # gate 2, tools/ci/typecheck.py
 bandit==1.9.4         # gate 25, static analysis (tools/ci/sast.py)
 pip-audit==2.10.1     # gate 25, dependency scan (gates.py --security)

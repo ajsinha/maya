@@ -158,6 +158,8 @@ class WarrantService:
     def status(w: dict[str, Any]) -> str:
         if w.get("revoked_at"):
             return "revoked"
+        if w.get("state") in ("retired", "withdrawn"):
+            return w["state"]  # retired through the workflow, whatever was sealed
         if w.get("expires_at") and w["expires_at"] < utcnow():
             return "expired"
         if w.get("sealed_at"):

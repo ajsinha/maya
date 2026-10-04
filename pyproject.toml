@@ -22,6 +22,7 @@ exclude = ["maya.sdk*"]  # never bundled: the SDK ships only as maya-sdk
 "maya.persistence" = ["schema/*.sql"]
 "maya.workflow" = ["*.yaml"]
 "maya.web" = ["templates/**/*", "static/**/*", "guides/*.md"]
+"maya.documents" = ["templates/*.md.j2"]  # the built-in model card, report and documentation
 
 [tool.ruff]
 line-length = 100

@@ -115,11 +115,14 @@ class Library:
     def render(self, template: Template, facts: dict[str, Any]) -> Rendered:
         """The first pass: the template over the facts, ``ai()`` calls left as markers."""
         import jinja2
+        from jinja2.sandbox import SandboxedEnvironment
 
         # The output is Markdown, not HTML, so HTML escaping here would corrupt it. Raw HTML is
         # neutralised where Markdown becomes HTML instead (to_html), so nothing a model's
-        # description or a drafted section contains can reach a page as markup.
-        env = jinja2.Environment(  # nosec B701
+        # description or a drafted section contains can reach a page as markup. Sandboxed: a
+        # template is a file a firm places on the server, and it must not be a way to run code
+        # there (no attribute walks to __class__, __globals__ and the like).
+        env = SandboxedEnvironment(  # nosec B701
             loader=jinja2.FileSystemLoader([str(p) for p in (self.custom, BUILT_IN_DIR) if p]),
             undefined=jinja2.ChainableUndefined,
             autoescape=False,

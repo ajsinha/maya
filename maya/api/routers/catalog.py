@@ -353,7 +353,7 @@ async def ingest_feature(
 async def pull_feature(
     namespace: str, name: str, body: s.PullIn, me: Principal = Me, plat: Any = Plat
 ) -> Response:
-    """Snapshot an sql-sourced feature's reviewed query into its ingest log."""
+    """Pull an sql- or python-sourced feature's reviewed source into its ingest log."""
     kt = parse_instant(body.knowledge_time, "knowledge_time")
     return ok(
         await asyncio.to_thread(

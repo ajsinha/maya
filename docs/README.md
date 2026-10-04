@@ -6,6 +6,8 @@ The documents are grouped by what you are doing. Each folder is below, with what
 ```
 docs/
   getting-started/   from nothing to MAYA running, with data of your own
+  architecture/      how every component fits together: diagrams, code and screenshots
+  developer/         how to extend and change each component: plugins, connectors, endpoints, tests
   reference/         the REST API, executed by its own tests
   design/            the specification, the implementation plan, and the decision records
   operations/        runbooks for when MAYA misbehaves
@@ -22,6 +24,24 @@ operations — is in the product, under **Help**, and in [`maya/web/guides/`](..
 | Document | What it is |
 |---|---|
 | [`QUICKSTART.md`](getting-started/QUICKSTART.md) | **Start here.** From nothing to MAYA running, signed in, with demonstration data and a feature of your own, in about fifteen minutes; every step says what you should see and what to do if you don't |
+
+## Architecture — [`architecture/`](architecture/README.md)
+
+**How MAYA fits together.** The system map and the governed chain end to end, then one page per
+component — web UI, REST API, SDK, services, persistence, the lake and storage, resolution, the
+formula engine, workflow, warrants and custody, jobs and the scheduler, security,
+observability, the AI gateway and documents, model risk governance, integrations and plugins —
+each with its diagrams, the code that carries it, examples and screenshots taken from a running
+MAYA. These pages explain how the parts are built and connect; the rules a user follows are in
+the Help references they link to. Also in MAYA under **Help → Inside MAYA**.
+
+## Developer guide — [`developer/`](developer/README.md)
+
+**Extending and changing MAYA.** Setting up, the change workflow and its gates, and a guide per
+extension: the plugin registry, source connectors, LLM providers, workflow checks, document
+templates, model artifacts, REST endpoints, settings and YAML configuration, tables and the
+schema, jobs, tests and gates, case studies, and the standalone SDK. Also in MAYA under
+**Help → Inside MAYA**.
 
 ## Reference — [`reference/`](reference/)
 

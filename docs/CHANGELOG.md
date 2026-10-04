@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+**Inside MAYA: how it fits together, and how to extend it**
+
+- **`docs/architecture/`**: how every component fits together — the system map, the governed
+  chain end to end, one request's life, then a page per component (web UI, REST API, SDK,
+  services, persistence, the lake, resolution, the formula engine, workflow, warrants and
+  custody, jobs, security, observability, the AI gateway and documents, model risk,
+  integrations, plugins). 36 diagrams, code quoted from the source, examples, and screenshots
+  of a running MAYA.
+- **`docs/developer/`**: how to extend and change each component — setting up and the gates,
+  the plugin registry, source connectors (the connector developer guide), LLM providers,
+  workflow checks, document templates, model artifacts, REST endpoints, settings and YAML
+  configuration, tables and the schema, jobs, tests, case studies and the standalone SDK.
+  15 diagrams; the examples were run against the code.
+- Neither repeats the user references, the specification or the runbooks; they link to them.
+- **In Help:** an *Inside MAYA* section serves both from the repository, with the diagrams
+  drawn and the links resolved inside Help; every subject page links to the architecture page
+  that explains how it is built (*How it works inside*).
+- **Kept true by tests:** every quoted code excerpt must be verbatim in its file, every
+  diagram must have its current rendering, and every page, link and image must resolve in
+  Help. `tools/docs/screenshots.py` retakes the screenshots from a scratch estate and
+  `tools/docs/diagrams.py` redraws the diagrams.
+
+**Fixed while documenting**
+
+- A sealed execution or training warrant retired or withdrawn through the workflow no longer
+  reads as live; `check()` refuses it.
+- Document templates render in Jinja2's sandbox, so a template cannot reach Python internals.
+- A restatement now means a changed value: re-reading unchanged data is not flagged and does
+  not queue the restatement check.
+- An installed plugin can no longer replace a built-in of the same name, and `plugins.allow`
+  accepts `point:name` to allow a plugin at one extension point only.
+- The built-in document templates are packaged in the server wheel.
+- An SDK too old for the server gets a typed `ClientTooOld` problem (and the right package to
+  upgrade, `maya-sdk`).
+- `retention.cold_after_days` is a declared setting; `FeatureHandle.clone` works from a full
+  `maya://` reference; a Python source is described correctly in diffs; the Delta-source help
+  text, two missing workflow checks in the reference, `pytest-xdist` in the dev requirements
+  and several stale docstrings are corrected.
+
 **`docs/` grouped by purpose**
 
 - `getting-started/` (the quickstart and its sample file), `reference/` (the REST API guide),

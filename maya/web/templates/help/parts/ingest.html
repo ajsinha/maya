@@ -89,7 +89,7 @@ row = my.features.pull("eq/prices_db", knowledge_time="2026-01-06T18:00:00Z")
 
 {% call step(5, 'Where ingest does not apply') %}
 {{ fields([
-  ('delta', 'read from source.path whenever the feature is resolved, stamped with the time of reading; there is no upload and no knowledge-time history'),
+  ('delta', 'read from source.path (inside sources.delta.roots) whenever the feature is resolved; there is no upload. A resolution as of a past instant reads the version committed by then, and each row is known from the source&#39;s own knowledge-time column, else from its version&#39;s commit time'),
   ('derived', 'has no rows of its own; it is computed from its operands'),
   ('extends', 'reads its parent\'s rows; ingest into the parent instead'),
 ]) }}

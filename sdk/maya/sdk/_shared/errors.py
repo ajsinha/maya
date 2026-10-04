@@ -115,6 +115,12 @@ class LlmUnavailable(MayaError):
     code, status = "llm_unavailable", 503
 
 
+class ClientTooOld(MayaError):
+    """The SDK is older than the server accepts; upgrading ``maya-sdk`` is the remedy."""
+
+    code, status = "client_too_old", 426
+
+
 ERRORS_BY_CODE: dict[str, type[MayaError]] = {
     cls.code: cls
     for cls in (
@@ -136,5 +142,6 @@ ERRORS_BY_CODE: dict[str, type[MayaError]] = {
         InvalidCursor,
         IntegrityError,
         LlmUnavailable,
+        ClientTooOld,
     )
 }

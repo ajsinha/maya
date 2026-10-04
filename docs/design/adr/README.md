@@ -28,7 +28,7 @@ do), then ADR-014 (what is not exercised). The rest can be read when their subje
 
 | ADR | Decision | Status |
 |---|---|---|
-| [001](ADR-001-package-layout.md) | Everything under `maya/`, not at the repository root | Accepted; separate SDK distribution not built |
+| [001](ADR-001-package-layout.md) | Everything under `maya/`, not at the repository root | Accepted; the SDK has since become its own project, `sdk/` (`maya-sdk`) |
 | [002](ADR-002-branch-and-release-workflow.md) | `develop` → `main`; the gate ladder runs locally and in the pre-commit hook | Accepted; no hosted CI |
 | [003](ADR-003-maya-delta-beside-maya.md) | `maya_delta` beside `maya`, reached only through `LakeStore` | Accepted; independence not gated |
 

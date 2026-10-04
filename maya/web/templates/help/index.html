@@ -23,6 +23,7 @@
     {% for c in catalog %}<a class="chip" href="#cat-{{ c.id }}"><i class="bi bi-{{ c.icon }}" aria-hidden="true"></i> {{ c.name }} <span>{{ c.cards|length }}</span></a>{% endfor %}
     <a class="chip" href="#cat-guides"><i class="bi bi-journal-richtext" aria-hidden="true"></i> Tutorials and catalogues <span>{{ guides|length }}</span></a>
     <a class="chip" href="/help/case-studies"><i class="bi bi-journal-code" aria-hidden="true"></i> Case studies <span>{{ studies|length }}</span></a>
+    {% if inside %}<a class="chip" href="#cat-inside"><i class="bi bi-diagram-3" aria-hidden="true"></i> Inside MAYA <span>2</span></a>{% endif %}
   </div>
 </div>
 
@@ -61,6 +62,27 @@
     {% endfor %}
   </div>
 </details>
+{% if inside %}
+<details class="help-cat" id="cat-inside" open>
+  <summary><span class="cat-name"><span class="cat-ico"><i class="bi bi-diagram-3" aria-hidden="true"></i></span> Inside MAYA</span>
+    <span class="cat-count">2</span></summary>
+  <p class="cat-blurb">How the components fit together, with diagrams, code and screenshots; and how to extend each one. The same pages are in the repository under <code>docs/</code>.</p>
+  <div class="row g-3 cat-body">
+    <div class="col-md-6 col-xl-4 help-item" data-search="architecture components how maya fits together diagrams internals">
+      <a class="card help-card h-100" href="/help/docs/architecture"><div class="card-body">
+        <div class="hc-title"><span class="hc-ico"><i class="bi bi-diagram-3" aria-hidden="true"></i></span><span>How MAYA fits together</span></div>
+        <p>Every component — web UI, API, SDK, services, persistence, the lake, resolution, the formula engine, workflow, warrants, jobs, security, observability, AI — with diagrams, code and screenshots.</p>
+        <span class="more">Open <i class="bi bi-arrow-right" aria-hidden="true"></i></span></div></a>
+    </div>
+    <div class="col-md-6 col-xl-4 help-item" data-search="developer guide extend plugin connector provider check template endpoint setting schema job test">
+      <a class="card help-card h-100" href="/help/docs/developer"><div class="card-body">
+        <div class="hc-title"><span class="hc-ico"><i class="bi bi-tools" aria-hidden="true"></i></span><span>Developer guide</span></div>
+        <p>Extending MAYA: plugins, source connectors, LLM providers, workflow checks, document templates, model artifacts, endpoints, settings, tables, jobs, tests and case studies.</p>
+        <span class="more">Open <i class="bi bi-arrow-right" aria-hidden="true"></i></span></div></a>
+    </div>
+  </div>
+</details>
+{% endif %}
 <details class="help-cat" id="cat-studies" open>
   <summary><span class="cat-name"><span class="cat-ico"><i class="bi bi-journal-code" aria-hidden="true"></i></span> Case studies</span>
     <span class="cat-count">{{ studies|length }}</span></summary>

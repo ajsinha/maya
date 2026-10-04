@@ -871,7 +871,7 @@ HTTP clients see the same distinctions.
 
 ## 10. Appendix: every endpoint
 
-Generated from the OpenAPI document; `tests/test_api_guide.py` fails if an endpoint is
+Kept by hand and checked against the OpenAPI document: `tests/test_api_guide.py` fails if an endpoint is
 added without appearing here. Paths are relative to `/api/v1`.
 
 ### auth

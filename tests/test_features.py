@@ -365,3 +365,13 @@ def test_quality_failure_raised_directly_by_materialize(world):
     )
     with pytest.raises(QualityCheckFailed):
         world.p.feature_data.materialize(out["pin"]["id"], "mick")
+
+
+def test_ingesting_the_same_values_again_is_not_a_restatement(world):
+    """A re-read of unchanged data appends knowledge but restates nothing, so it does not
+    set off the restatement check under live models."""
+    ref = approved_feature(world, "same_again", price_csv(5))
+    again = world.p.features.ingest(world.dana, ref, price_csv(5), fmt="csv")
+    assert again["restatement"] is False
+    changed = world.p.features.ingest(world.dana, ref, price_csv(5, bump=1.0), fmt="csv")
+    assert changed["restatement"] is True

@@ -144,10 +144,19 @@ async def help_index(request: Request) -> Any:
     catalog = [
         {**c, "cards": [{"slug": s, **SUBJECTS[s]} for s in c["subjects"]]} for c in CATEGORIES
     ]
+    from maya.web import docs_render
+
+    inside = docs_render.available()
     return await render(
         request,
         "help/index.html",
-        {"catalog": catalog, "guides": GUIDES, "studies": studies(), "public_nav": True},
+        {
+            "catalog": catalog,
+            "guides": GUIDES,
+            "studies": studies(),
+            "inside": inside,
+            "public_nav": True,
+        },
     )
 
 
@@ -175,6 +184,49 @@ async def help_guide(request: Request, slug: str) -> Any:
         return RedirectResponse("/help/guides", status_code=303)
     return await render(
         request, "help/guide.html", {"guide": guide, "doc": doc, "public_nav": True}
+    )
+
+
+@router.get("/help/docs/{group}/img/{rel:path}")
+async def help_docs_asset(group: str, rel: str) -> Any:
+    """A diagram or screenshot from the architecture and developer docs, and nothing else."""
+    from fastapi.responses import FileResponse, Response
+
+    from maya.web import docs_render
+
+    path = docs_render.asset_path(group, rel)
+    if path is None:
+        return Response(status_code=404)
+    media = "image/svg+xml" if path.suffix == ".svg" else None
+    return FileResponse(path, media_type=media, headers={"Cache-Control": "public, max-age=3600"})
+
+
+@router.get("/help/docs/{group}")
+@router.get("/help/docs/{group}/{page_name}")
+async def help_docs(request: Request, group: str, page_name: str = "README") -> Any:
+    """How MAYA fits together, and the developer guide: the repository's docs, in Help."""
+    from maya.web import docs_render
+
+    if not docs_render.available():
+        return RedirectResponse("/help", status_code=303)
+    try:
+        doc = docs_render.render(group, page_name)
+    except FileNotFoundError:
+        return RedirectResponse(
+            f"/help/docs/{group}" if group in docs_render.GROUPS else "/help", status_code=303
+        )
+    return await render(
+        request,
+        "help/doc.html",
+        {
+            "group": group,
+            "group_title": docs_render.GROUPS[group],
+            "groups": docs_render.GROUPS,
+            "page_name": page_name,
+            "pages": docs_render.pages(group),
+            "doc": doc,
+            "public_nav": True,
+        },
     )
 
 
@@ -219,7 +271,17 @@ async def help_topic(request: Request, slug: str) -> Any:
     if page is None:
         moved = redirect_for(slug)
         return RedirectResponse(moved or "/help", status_code=301 if moved else 303)
+    from maya.web import docs_render
+    from maya.web.help_catalog import INSIDE
+
     doc = render_guide(page["guide"]) if page["guide"] else None
+    inside = None
+    if slug in INSIDE and docs_render.available():
+        group, _, name = INSIDE[slug].partition("/")
+        if docs_render.page_path(group, name or "README"):
+            inside = f"/help/docs/{group}" + (f"/{name}" if name else "")
     return await render(
-        request, "help/subject.html", {"topic": page, "doc": doc, "public_nav": True}
+        request,
+        "help/subject.html",
+        {"topic": page, "doc": doc, "inside": inside, "public_nav": True},
     )

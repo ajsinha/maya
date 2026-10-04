@@ -186,3 +186,31 @@ def test_the_built_in_registry_needs_no_platform_to_be_listed():
     registry = built_ins(Registry())
     assert registry.at("exporter") and registry.at("calendar")
     assert registry.at("workflow_check") == [], "checks come from a platform, and it says so"
+
+
+def test_a_plugin_can_never_replace_a_built_in_and_can_be_allowed_at_one_point(monkeypatch):
+    """An installed plugin named like a built-in (``openai``) is refused, and the built-in
+    stays; ``point:name`` in plugins.allow allows a plugin at that point only."""
+    from maya.plugins import built_ins
+
+    class _Entry:
+        def __init__(self, name: str) -> None:
+            self.name = name
+            self.dist = type("D", (), {"name": "some-package"})()
+
+        def load(self):
+            return type("P", (), {"maya_plugin": {"version": "9"}})
+
+    monkeypatch.setattr(
+        "importlib.metadata.entry_points",
+        lambda *, group: [_Entry("openai"), _Entry("acme")] if group == "maya.llm_provider" else [],
+    )
+    registry = built_ins(Registry())
+    registry.discover(_Settings(**{"plugins.allow": "openai, llm_provider:acme"}))
+    builtin = registry.get("llm_provider", "openai")
+    assert builtin is not None and builtin.origin == "built-in"  # still MAYA's own
+    shadow = next(
+        r for r in registry.rows() if r["name"] == "openai" and r["origin"] == "some-package"
+    )
+    assert shadow["status"] == "refused" and "built-in" in shadow["detail"]
+    assert registry.get("llm_provider", "acme").origin == "some-package"

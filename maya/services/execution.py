@@ -68,6 +68,8 @@ class ExecutionService:
         now = utcnow()
         if ew.get("revoked_at"):
             return "revoked"
+        if ew.get("state") in ("retired", "withdrawn"):
+            return ew["state"]  # retired through the workflow: no longer licensed, sealed or not
         if ew.get("suspended_at"):
             return "suspended"
         if ew.get("valid_to") and ew["valid_to"] < now:

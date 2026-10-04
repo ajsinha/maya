@@ -127,6 +127,7 @@ A policy is validated when it is saved, not when it bites. It is refused, with e
 | `formula_typechecks` | The model's formula IR is valid and typechecks. |
 | `spec_document_complete` | The specification document is complete. |
 | `code_artifact_validated` | The uploaded code artifact passed its validation. |
+| `code_matches_specification` | A closed-form model's code artifact agrees with its formula on every sampled input of the last conformance run, and that run was on *this* artifact (a changed artifact must be tested again). A version with no artifact, or a declared black box, passes. The detail names the domain sampled, which a reviewer should judge. |
 | `spec_true_build` | The specification PDF is a true Tectonic build. In dev, with `typeset.require_true_build` false, a draft render or no render passes with a note; elsewhere it fails. |
 | `composite_members_mature` | A composite model has no member still at maturity `experimental`; a non-composite passes. |
 | `contract_valid` | The training warrant's input-contract report is clean. |
@@ -135,6 +136,7 @@ A policy is validated when it is saved, not when it bites. It is refused, with e
 | `data_verified_or_justified` | The parameters were trained on data MAYA issued (the checksum matched), or an `unverified_data` override was justified. |
 | `parameters_approved` | The execution warrant's parameter set is approved, or the model has no parameters. |
 | `no_open_blocking_comments` | No reviewer comment marked blocking is unresolved. |
+| `no_live_execution_warrant` | No live or suspended execution warrant serves this model version, so it cannot be retired while production still runs it; revoke the warrant first. A training warrant does not block. |
 
 A check a policy names but nobody registered fails with "check is not registered". When checks fail, the transition is refused with `not_approved` (409), naming each failed check and its detail; the full results are in the problem's `context.checks`.
 
