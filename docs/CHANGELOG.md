@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **"About this page" redesigned** to match the rest of the UI: a gradient heading with the
+  page's one-line summary and a link to Help, and each point as a titled tile with an icon,
+  in the same card style as the panels above it. The ? in the top bar jumps to it from
+  anywhere on a long page. It still collapses, and stays collapsed for that browser.
+
 - **Python version, stated the same way everywhere.** The server needs exactly Python 3.13 —
   its pinned requirements are built for it — and its package metadata now says so
   (`>=3.13,<3.14`). The operations guide said "3.13 or later" and the API guide "3.11+"; both

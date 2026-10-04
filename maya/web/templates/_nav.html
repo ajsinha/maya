@@ -124,6 +124,7 @@
         <input id="global-search" name="q" type="search" placeholder="Search…  Ctrl-K" value="{{ q or '' }}">
       </form>
       <div class="maya-tools">
+        {% if page_help %}<a class="tool" href="#page-help" data-page-help aria-label="About this page" title="About this page"><i class="bi bi-question-circle" aria-hidden="true"></i></a>{% endif %}
         <a class="tool" href="/inbox" aria-label="Inbox, {{ unread }} unread"><i class="bi bi-bell" aria-hidden="true"></i>
           {% if unread %}<span class="dot">{{ unread }}</span>{% endif %}</a>
         {% include "_theme_menu.html" %}
