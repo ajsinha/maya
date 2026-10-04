@@ -180,6 +180,15 @@
     box.addEventListener('toggle', function () {
       try { window.localStorage.setItem('maya.pageHelp', box.open ? 'open' : 'closed'); } catch (e) { /* private window */ }
     });
+    // the ? in the top bar: open it, bring it into view and show where it is
+    document.querySelectorAll('[data-page-help]').forEach(function (link) {
+      link.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        box.open = true;
+        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        box.classList.remove('ph-flash'); void box.offsetWidth; box.classList.add('ph-flash');
+      });
+    });
   }());
 
   document.addEventListener('click', function (ev) {

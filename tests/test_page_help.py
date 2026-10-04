@@ -38,6 +38,12 @@ def test_every_page_has_its_help_and_every_entry_is_a_page(env):  # noqa: F811
     assert stale == [], f"help for pages that do not exist: {stale}"
     for template, (what, points, subject) in page_help.PAGES.items():
         assert what.strip(), template
+        for point in points:
+            heading, icon, text = point  # each point is a tile: a heading, an icon and the words
+            assert heading.strip() and text.strip() and icon.replace("-", "").isalnum(), (
+                template,
+                point,
+            )
         assert subject is None or subject.split("#")[0] in SUBJECTS, (template, subject)
 
 
@@ -48,3 +54,10 @@ def test_the_help_is_shown_at_the_foot_of_a_page(env):  # noqa: F811
     page = TestClient(app).get("/login").text  # public, so no sign-in is needed here
     assert 'id="page-help"' in page and "About this page" in page
     assert 'href="/help/security"' in page
+    assert 'class="ph-tile"' in page and "Single sign-on" in page  # its points, as tiles
+    from tests.test_web import _login
+
+    signed_in = TestClient(app)
+    _login(signed_in)
+    models = signed_in.get("/models").text
+    assert 'href="#page-help"' in models  # the ? in the top bar that jumps to it
