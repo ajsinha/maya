@@ -852,7 +852,7 @@
       label: 'Layered, top down',
       options: function () {
         return {
-          name: 'breadthfirst', directed: true, spacingFactor: 1.05, padding: 24,
+          name: 'breadthfirst', directed: true, spacingFactor: 1.6, padding: 24,
           nodeDimensionsIncludeLabels: true, avoidOverlap: true, grid: false
         };
       }

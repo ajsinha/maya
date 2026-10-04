@@ -207,3 +207,32 @@ def test_the_lineage_of_a_bare_object_is_drawn_through_its_versions(journey):  #
 
 
 from tests.test_warrants import journey  # noqa: E402, F401 - the fixture, reused
+
+
+def test_lineage_in_both_directions_never_draws_siblings_or_cousins():
+    """Two features in one feature set, whose pin trained a warrant that also took a model.
+    A feature's lineage is what built it and what it feeds; the other member feature and the
+    model are neither, and must not appear. The model's lineage is what uses it."""
+    from tests.conftest import build_platform
+
+    a, b = "maya://feature/ns/a@v1", "maya://feature/ns/b@v1"
+    fs, warrant = "maya://featureset/ns/panel@v1", "maya://warrant/train/ns/fit@v1"
+    model, live = "maya://model/ns/m@v1", "maya://warrant/exec/ns/run@v1"
+    p = build_platform()
+    try:
+        with p.uow("test") as uow:
+            repo = uow.repo("lineage_edges")
+            repo.link(a, fs, "member_of")
+            repo.link(b, fs, "member_of")
+            repo.link(fs, warrant, "trained_on")
+            repo.link(model, warrant, "trained_on")
+            repo.link(warrant, live, "executed_under")
+        nodes = lambda root: {n["id"] for n in p.ops.lineage(root, depth=3)["nodes"]}  # noqa: E731
+        assert nodes(a) == {a, fs, warrant, live}  # not b, not the model
+        assert nodes(model) == {model, warrant, live}  # not the features or the feature set
+        assert nodes(fs) == {a, b, fs, warrant, live}  # its members are what built it
+        assert nodes(a) != nodes(model)
+        up = {n["id"] for n in p.ops.lineage(warrant, direction="upstream", depth=3)["nodes"]}
+        assert up == {a, b, fs, model, warrant}
+    finally:
+        p.shutdown()

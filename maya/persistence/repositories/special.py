@@ -194,24 +194,34 @@ class LineageRepository(Repository[operations.LineageEdge]):
         return sorted(found)[:limit]
 
     def walk(self, root: str, *, direction: str = "both", depth: int = 3) -> list[dict[str, Any]]:
-        """Breadth-first edges around ``root``. Upstream follows edges into a node."""
+        """Breadth-first edges around ``root``: upstream follows edges into a node (what it
+        was built from), downstream edges out of it (what uses it).
+
+        ``both`` is the two walks joined, each keeping its own direction all the way. Turning
+        at every hop instead -- following any edge from any node reached -- climbs down to a
+        feature set and back up to its other members, or down to a warrant and back up to
+        its other inputs: siblings and cousins, which are neither what built the root nor
+        what it affects, until every object in a cluster drew the same picture."""
+        if direction == "both":
+            edges = {e["id"]: e for e in self._walk(root, upstream=True, depth=depth)}
+            edges.update({e["id"]: e for e in self._walk(root, upstream=False, depth=depth)})
+            return list(edges.values())
+        return self._walk(root, upstream=direction == "upstream", depth=depth)
+
+    def _walk(self, root: str, *, upstream: bool, depth: int) -> list[dict[str, Any]]:
         seen: set[str] = {root}
         frontier = [root]
         edges: dict[str, dict[str, Any]] = {}
         for _ in range(max(depth, 0)):
             nxt: list[str] = []
             for ref in frontier:
-                found: list[dict[str, Any]] = []
-                if direction in ("upstream", "both"):
-                    found += self.list(dst_ref=ref)
-                if direction in ("downstream", "both"):
-                    found += self.list(src_ref=ref)
+                found = self.list(dst_ref=ref) if upstream else self.list(src_ref=ref)
                 for e in found:
                     edges[e["id"]] = e
-                    for other in (e["src_ref"], e["dst_ref"]):
-                        if other not in seen:
-                            seen.add(other)
-                            nxt.append(other)
+                    other = e["src_ref"] if upstream else e["dst_ref"]
+                    if other not in seen:
+                        seen.add(other)
+                        nxt.append(other)
             frontier = nxt
         return list(edges.values())
 
