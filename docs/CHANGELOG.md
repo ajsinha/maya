@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Lineage drew relatives that are not lineage**
+
+- In both directions the walk followed any edge from any node it reached, so it went down to a
+  feature set and back up to the set's other members, or down to a training warrant and back
+  up to its other inputs. A feature's view showed features it has nothing to do with, a
+  model's view showed the training data's member pins, and objects in one cluster drew nearly
+  the same picture. Upstream (what built this) and downstream (what uses it) are now walked
+  separately and joined, each keeping its direction. The data a model was trained on is an
+  input of its training warrant, and appears in that warrant's lineage.
+- The top-down layout spaces each rank for its labels (they overlapped when a rank held
+  several wide ones).
+
 **Hardening, and lineage of a whole object**
 
 - **Webhooks connect to the address they vetted.** A delivery resolves the host once, refuses

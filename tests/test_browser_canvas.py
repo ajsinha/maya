@@ -349,7 +349,9 @@ def test_two_selected_features_open_the_designer_prefilled(site, browser):
     base, _ = site
     ctx, page = _page(browser)
     _login(page, base, "dana")
-    _canvas(page, base)
+    # px and px_alt are both upstream of the feature derived from them; from px alone,
+    # px_alt is a fellow operand -- a sibling, which lineage does not draw
+    _canvas(page, base, root=f"maya://feature/{NS}/px_both@v1")
     page.locator("#cy-nodes button", has_text=f"feature/{NS}/px@v1").first.click()
     page.locator("#cy-nodes button", has_text=f"feature/{NS}/px_alt@v1").first.click()
     open_link = page.locator("#cy-author-open")
