@@ -4,7 +4,7 @@ This guide is for whoever installs, runs and looks after a MAYA instance: starti
 
 ## Install
 
-MAYA needs Python 3.13 or later.
+MAYA needs **Python 3.13** — exactly: its pinned requirements are built for 3.13, and 3.12 or 3.14 will not install them. The standalone SDK (`maya-sdk`) needs Python 3.13 or later.
 
 ```bash
 # Create an environment and install MAYA's dependencies

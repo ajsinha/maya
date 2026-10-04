@@ -17,7 +17,7 @@ name = "maya-sdk"
 dynamic = ["version"]
 description = "The Python SDK for MAYA: the client, record and replay, and offline bundles."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13"  # tested on 3.13; its dependencies are ranges, not pins
 authors = [{ name = "Ashutosh Sinha", email = "ajsinha@gmail.com" }]
 license = { file = "LICENSE" }
 dependencies = [

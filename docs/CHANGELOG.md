@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Python version, stated the same way everywhere.** The server needs exactly Python 3.13 —
+  its pinned requirements are built for it — and its package metadata now says so
+  (`>=3.13,<3.14`). The operations guide said "3.13 or later" and the API guide "3.11+"; both
+  are corrected, and the standalone SDK's README states its own requirement, 3.13 or later.
+- **Running MAYA in PyCharm or IntelliJ IDEA** (`docs/getting-started/IDE.md`, linked from the
+  README): the interpreter and the SDK project, source roots, a run configuration for the
+  server and the web UI, debugging, what needs a restart when you change the UI, the test
+  runner, the case studies, the gates, and what to do when something goes wrong.
+
 **"About this page" on every page, and the concepts behind a model**
 
 - Every page now ends with a short **About this page**: what the page is for, what you can do
