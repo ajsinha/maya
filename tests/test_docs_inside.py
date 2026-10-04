@@ -113,3 +113,24 @@ def test_help_refuses_anything_outside_the_docs_images(env):  # noqa: F811
 
 
 from tests.test_web import env  # noqa: E402, F401 - the web fixture, reused
+
+
+def test_every_screenshot_help_shows_exists_and_is_served(env):  # noqa: F811
+    """The user help (subject pages and guides) and the docs show the same screenshots, kept
+    in maya/web/static/help/screens and retaken by tools/docs/screenshots.py."""
+    from starlette.testclient import TestClient
+
+    from maya.web.help_catalog import SUBJECTS
+
+    _, app, _, _ = env
+    anon = TestClient(app)
+    shown: set[str] = set()
+    for slug in SUBJECTS:
+        page = anon.get(f"/help/{slug}").text
+        shown |= set(re.findall(r'src="(/static/help/screens/[\w-]+\.png)"', page))
+    assert len(shown) >= 20, sorted(shown)  # the subjects show what they describe
+    for src in sorted(shown):
+        r = anon.get(src)
+        assert r.status_code == 200 and r.headers["content-type"] == "image/png", src
+    assert "/static/help/screens/lineage.png" in anon.get("/help/algebra").text
+    assert "../static/" not in "".join(anon.get(f"/help/{s}").text for s in SUBJECTS)

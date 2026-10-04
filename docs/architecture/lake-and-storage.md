@@ -155,7 +155,7 @@ A feature set pin is written the same way, into `fspins/`, unless its namespace'
 
 The native backend never calls delta-rs's own Arrow readers: in delta-rs 1.6.3 they leave a native thread that deadlocks interpreter shutdown, so the native backend reads the snapshot's add actions and decodes the files itself. `maya_delta/conformance/suite.py` runs one set of cases against each backend, and cross-backend round trips (written by one, read by the other) live in `tests/test_maya_delta.py`.
 
-![System health: the lake backend in use and why it was chosen, beside the database, sandbox and audit chain](img/screens/admin-health.png)
+![System health: the lake backend in use and why it was chosen, beside the database, sandbox and audit chain](../../maya/web/static/help/screens/admin-health.png)
 
 ### The blob store
 

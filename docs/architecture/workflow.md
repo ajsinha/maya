@@ -185,9 +185,9 @@ When the actor's own authorization fails and the transition takes approvals, `_a
 
 The queue and the review screen are reads over objects `in_review` that the caller may see. `aging` compares each item's age with its policy's `sla_days.in_review`, and the scheduler's `workflow.escalate_overdue` task, hourly, notifies the namespace owner (or every administrator, when the namespace has none) once per item, then audits how many it sent. Campaigns apply one transition to many objects through `dispatch_transition`, recording per-item outcomes and one audit record; each item still goes through the full engine.
 
-![My queue: everything in review; items you submitted are marked because separation of duties stops you approving them](img/screens/workflow-queue.png)
+![My queue: everything in review; items you submitted are marked because separation of duties stops you approving them](../../maya/web/static/help/screens/workflow-queue.png)
 
-![Workflow policies: the stored record per object type and scope; drafts are activated by another administrator](img/screens/workflow-policies.png)
+![Workflow policies: the stored record per object type and scope; drafts are activated by another administrator](../../maya/web/static/help/screens/workflow-policies.png)
 
 ## Example
 

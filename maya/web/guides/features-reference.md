@@ -12,6 +12,8 @@ same document from a form, or send it through the SDK, the CLI or the API.
 
 ## The whole definition at a glance
 
+
+![Workbench → Feature designer, where a definition is written](../static/help/screens/feature-designer.png)
 ```json
 # A complete feature definition
 {
@@ -140,6 +142,8 @@ or `malformed logical type 'fixed_vector<float64,0>'`.
 `source.type` says where rows come from. Every type except `derived` and
 `delta` lands rows in the feature's **bitemporal ingest log**, where a later
 upload for the same key appends rather than overwrites.
+
+![Admin → Sources: the named SQL connections a sql source refers to](../static/help/screens/admin-sources.png)
 
 | `source.type` | Rows arrive by | Extra keys |
 |---|---|---|
@@ -481,6 +485,8 @@ back with no blockers; changing any field disarms it again.
 
 Subscribe to be told when a new version is approved or a pin that depends on the feature
 is sealed (§5.7).
+
+![A feature's page: its versions and state, definition, data, pins, lineage and history](../static/help/screens/feature.png)
 
 ```python
 my.catalog.subscribe("maya://feature/eq/prices")

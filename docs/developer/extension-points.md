@@ -106,7 +106,7 @@ Each plugin ends in one of four states, and the distinction is the point of havi
 | `refused` | installed and not in `plugins.allow`; not imported |
 | `failed` | allowed, but importing it raised; the exception is the detail, and MAYA starts anyway |
 
-![Admin → Extensions: every point, its protocol, and what is registered at it](../architecture/img/screens/admin-extensions.png)
+![Admin → Extensions: every point, its protocol, and what is registered at it](../../maya/web/static/help/screens/admin-extensions.png)
 
 The same report is `GET /system/extensions` (administrators and techops), and the SDK's `admin.extensions()`.
 

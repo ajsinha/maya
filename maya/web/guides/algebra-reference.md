@@ -358,6 +358,8 @@ and the clause.
 pins are nodes, operators are diamonds, and edges are styled by type. It is also
 on the Lineage tab of every object page.
 
+![The lineage canvas, here rooted at a training warrant: everything above it built it, everything below it uses it](../static/help/screens/lineage.png)
+
 | Control | What it does |
 |---|---|
 | Direction | upstream (what built this), downstream (what breaks if I change this), or both — re-fetched in place |

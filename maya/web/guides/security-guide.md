@@ -312,6 +312,8 @@ MAYA signs execution-warrant tokens, leakage certificates, reproducibility bundl
 
 ## Audit and custody
 
+
+![Admin → Audit: the hash-chained audit log, searchable](../static/help/screens/admin-audit.png)
 - **Every change is audited** in the same transaction as the change, so a change without its entry cannot commit.
 - **Refusals are kept.** Denied approvals, pins, seals, grants and revocations (`authz.denied`), failed API keys, failed and refused sign-ins, SSO refusals and licence refusals on export are written as durable entries that survive the request's rollback.
 - **Hash-chained.** Each entry's hash covers its content and the previous hash; altering or deleting any entry breaks every link after it. `GET /api/v1/audit/verify` walks the chain.

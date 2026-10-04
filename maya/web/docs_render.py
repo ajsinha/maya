@@ -110,6 +110,9 @@ def _target(source: Path, href: str) -> str | None:
             if target.suffix == ".md":
                 return f"/help/docs/{group}" + ("" if rel.stem == "README" else f"/{rel.stem}")
             return f"/help/docs/{group}/{rel.as_posix()}"
+    static = (REPO / "maya" / "web" / "static").resolve()
+    if target.is_relative_to(static):  # the screenshots Help serves itself
+        return "/static/" + target.relative_to(static).as_posix()
     guides = (REPO / "maya" / "web" / "guides").resolve()
     if target.suffix == ".md" and target.parent == guides:
         if target.stem in GUIDE_HOME:
@@ -167,7 +170,7 @@ def render(group: str, page: str) -> dict[str, Any]:
     title_m = re.search(r"<h1[^>]*>(.*?)</h1>", body, re.S)
     title = re.sub(r"<[^>]+>", "", title_m.group(1)) if title_m else page
     body = re.sub(r"<h1[^>]*>.*?</h1>", "", body, count=1, flags=re.S)
-    body = _rewrite(path, body)
+    body = gr.captioned(_rewrite(path, body))
     toc = [
         {
             "id": t["id"],

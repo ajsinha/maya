@@ -229,6 +229,8 @@ my.features.transition(
 
 The rules of governance are governed too. A policy change is drafted, validated, previewed, and activated by a **second** administrator; the old version is kept.
 
+![Workflow → Policies: the policy in force for each namespace and object type](../static/help/screens/workflow-policies.png)
+
 ```python
 # Draft a stricter policy for one namespace, then have another administrator activate it
 current = next(
@@ -261,6 +263,8 @@ Every past workflow event records the id of the policy that governed it, so the 
 
 ## Queues, aging and escalation
 
+
+![Workflow → My queue: what waits for your review](../static/help/screens/workflow-queue.png)
 | View | What it lists |
 |---|---|
 | `GET /workflow/queue` | Every object in `in_review`, oldest first, with who submitted it, since when, its age in days and `mine` when you submitted it. |

@@ -122,7 +122,7 @@ The stored policy is the authority, not the YAML. `maya/workflow/default_policie
 - **For new estates**, add it to the transition's `checks` in `default_policies.yaml`.
 - **For an existing estate**, an administrator drafts a new policy version — on **Workflow → Policies**, by importing YAML there, or with `workflow_svc.draft_policy` — and a *different* administrator activates it. A policy may be scoped to one namespace, which is often the right first step.
 
-![Workflow → Policies: the stored record is the authority; a draft is activated by another administrator](../architecture/img/screens/workflow-policies.png)
+![Workflow → Policies: the stored record is the authority; a draft is activated by another administrator](../../maya/web/static/help/screens/workflow-policies.png)
 
 Validation happens when the policy is saved, not when it bites:
 

@@ -85,7 +85,7 @@ The tier sets the review interval (overridable per model). `next_review_due` is 
 
 So the live instrument fails closed and says why — the next scoring call receives `WarrantSuspended` naming the overdue review ([warrants-and-custody.md](warrants-and-custody.md)). Recording a review (by a model manager, validator or administrator, never the model's owner, with an outcome and a note) lifts exactly the suspensions whose reason carries that prefix and no others: a warrant suspended for a covenant breach stays suspended until somebody decides otherwise. Each suspension and reinstatement is a custody event and an audit entry.
 
-![Findings and reviews: the model inventory with derived tiers, next review dates and open findings, and the findings register](img/screens/governance.png)
+![Findings and reviews: the model inventory with derived tiers, next review dates and open findings, and the findings register](../../maya/web/static/help/screens/governance.png)
 
 ### Findings
 
@@ -99,7 +99,7 @@ A finding has a severity, a source, an owner and a due date (defaulted by severi
 
 Covenants are evaluated on each run report as it arrives, which catches a breach but not a drift: a null rate creeping up over fifty runs breaches nothing until the fifty-first. `MonitoringService` reads the reports as series — volume per day, each input's and output's null rate, mean and range per run with the covenant's bounds beside them, the population stability index against the baseline the covenant was drawn with, and breaches on the same axis — and grades each sealed warrant `breach` (suspended, or a breach in the last seven days), `watch` (PSI in the 0.10 to 0.25 band, an input's latest null rate at least double its median, or a live warrant silent for thirty days) or `ok`. It writes nothing, which is why it cannot drift from the evidence it reads.
 
-![Monitoring: every sealed execution warrant graded breach, watch or ok from the runs reported under it, with the reason](img/screens/monitoring.png)
+![Monitoring: every sealed execution warrant graded breach, watch or ok from the runs reported under it, with the reason](../../maya/web/static/help/screens/monitoring.png)
 
 ### Champion and challenger, and evidence
 

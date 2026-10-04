@@ -99,7 +99,7 @@ def ir_hash(ir: dict[str, Any]) -> str:
 
 `latex` is excluded because it is generated from the tree; two IRs that differ only in how their LaTeX was rendered are the same mathematics. A model version's definition hash is built from the IR hash, the artifact hash and the input contract, and an execution warrant's manifest and its short-lived tokens carry the IR hash, so a scoring service can prove which mathematics it was licensed to run.
 
-![A model version's Definition tab: the formula IR is the authority, and the page says the approved version is immutable](img/screens/model-definition.png)
+![A model version's Definition tab: the formula IR is the authority, and the page says the approved version is immutable](../../maya/web/static/help/screens/model-definition.png)
 
 ### Evaluation
 
@@ -153,7 +153,7 @@ A composite's IR declares members (each an approved model version under an alias
 
 The compute-kernel wizard is the same translation, on its own: `POST /formula/kernel` (`ModelService.kernel`) parses text or Python and returns the IR, its hash, the LaTeX MAYA renders it back as, and the generated function — creating nothing, so an author meets a refusal there rather than at `models.create`.
 
-![The compute-kernel wizard: mathematics written as LaTeX or near-Python, with symbol roles, translated without saving anything](img/screens/compute-kernel.png)
+![The compute-kernel wizard: mathematics written as LaTeX or near-Python, with symbol roles, translated without saving anything](../../maya/web/static/help/screens/compute-kernel.png)
 
 ### Back ends: generated from the IR
 
@@ -162,7 +162,7 @@ The compute-kernel wizard is the same translation, on its own: `POST /formula/ke
 - **Semantic diff** (`diff.semantic_diff`). What changed in the mathematics — an input added, a bound tightened, discounting moved from continuous to simple compounding — rather than a JSON diff.
 - **Conformance** (`conformance.conformance_test`). An uploaded implementation is run against the IR's reference semantics on sampled inputs (from the unit interval, or drawn from a feature set's own values), and the rows where they part company are reported. The report states that sampled agreement is not proof.
 
-![The Code tab: the reference implementation generated from the IR, marked do-not-edit](img/screens/model-code.png)
+![The Code tab: the reference implementation generated from the IR, marked do-not-edit](../../maya/web/static/help/screens/model-code.png)
 
 The workflow checks `formula_typechecks`, `spec_document_complete`, `code_artifact_validated`, `code_matches_specification`, `spec_true_build` and `composite_members_mature` are `ModelService` methods built on these modules; they are registered with the workflow engine in `registry._checks` (see [workflow.md](workflow.md)).
 

@@ -6,7 +6,7 @@ starts MAYA on a spare port over that estate, signs in, finds real objects throu
 and photographs each page with headless Chrome. Every screenshot in ``docs/`` comes from
 here, so they can be retaken whenever the UI changes:
 
-    python tools/docs/screenshots.py                 # into docs/architecture/img/screens
+    python tools/docs/screenshots.py                 # into maya/web/static/help/screens
     python tools/docs/screenshots.py --only model    # retake some
 
 The names are stable; documents refer to them by name.
@@ -27,7 +27,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "docs" / "architecture" / "img" / "screens"
+OUT = ROOT / "maya" / "web" / "static" / "help" / "screens"  # Help and docs/ share them
 STUDIES = (
     "01-retail-credit-pd-scorecard",
     "09-basel-irb-capital",

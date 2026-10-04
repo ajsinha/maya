@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**Screenshots in the user help**
+
+- Each Help subject now shows the screens it describes — 26 screenshots of a running MAYA, in
+  the features, algebra (the lineage canvas), feature sets, models, warrants, workflow, model
+  risk, documents and AI, LLM applications, integrations, operations and security references,
+  and in the getting-started and tour pages — each captioned with what it shows.
+- The screenshots live in the product (`maya/web/static/help/screens/`), served by Help and
+  shipped with MAYA; the architecture and developer docs show the same files, so there is one
+  copy. `tools/docs/screenshots.py` retakes them all.
+- A test fails if a screenshot a Help page shows is missing or not served.
+
 **Lineage drew relatives that are not lineage**
 
 - In both directions the walk followed any edge from any node it reached, so it went down to a

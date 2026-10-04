@@ -112,6 +112,8 @@ unless `output_type` is given to the parser.
 
 ## The IR document
 
+
+![A model's Definition tab: the formula IR, the authority everything else is generated from](../static/help/screens/model-definition.png)
 ```json
 # The IR of yhat = a*x + b, with a and b as parameters
 {
@@ -464,6 +466,8 @@ naming the line. The sandbox still has the last word.
 A model may carry a Python implementation: a class `Model` with
 `fit(self, X, y, ctx)` and `predict(self, X, params, ctx)`.
 
+![A model's Code tab: the uploaded artifact and the result of each rung of the validation ladder](../static/help/screens/model-code.png)
+
 ```python
 # model.py: an artifact for the linear model
 import numpy as np
@@ -564,6 +568,8 @@ wizard is that translation on its own, before anything is created:
 **Models → Design your compute kernel** (`/models/kernel`), or
 `my.models.kernel(text, roles=…, name="price")`.
 
+![Models → Design your compute kernel](../static/help/screens/compute-kernel.png)
+
 Mathematics goes in — the same notation the designer takes, one equation per
 line, intermediates allowed — and four things come back:
 
@@ -605,6 +611,8 @@ A failed check names itself: `Blocked by check(s): spec_document_complete — re
 
 ## In the UI
 
+
+![A model's page, with its tabs: Overview, Definition, Specification, Code, Parameters, Lineage, Documents, History](../static/help/screens/model.png)
 * **Models → Design your compute kernel** (`/models/kernel`): translate
   mathematics into the IR and a Python function without creating anything, then
   carry it into the designer.

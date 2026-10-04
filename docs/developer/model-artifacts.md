@@ -34,11 +34,11 @@ flowchart TB
 
 For a **formula** model, do not start from a blank file. MAYA generates a reference implementation from the formula IR — one `predict(X, params)` function — on the model's **Code** tab and from `my.models.reference_code(ref, version)`. It is a correct implementation of the approved mathematics by construction, so the fastest correct artifact is a `Model` class whose `predict` does what that function does, rewritten for speed or for the libraries your production code uses.
 
-![The Code tab: the reference implementation generated from the IR](../architecture/img/screens/model-code.png)
+![The Code tab: the reference implementation generated from the IR](../../maya/web/static/help/screens/model-code.png)
 
 The **compute-kernel wizard** (`/models/kernel`, `my.models.kernel(text, roles=…)`) does the same translation before any model exists: mathematics in, typed IR and one self-contained Python function out. Use it to check MAYA reads your formula the way you meant before you write code against it.
 
-![The compute-kernel wizard: mathematics in, IR and a Python function out](../architecture/img/screens/compute-kernel.png)
+![The compute-kernel wizard: mathematics in, IR and a Python function out](../../maya/web/static/help/screens/compute-kernel.png)
 
 For a **declared black box** there is no IR to compare against, which is exactly why the artifact matters more: once validated, it is the only thing MAYA can execute to score the model, and it is what the warrant's blind score will record by hash.
 

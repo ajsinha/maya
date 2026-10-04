@@ -273,7 +273,7 @@ Widen the gate to `("sql", "python", "landing")`, and add an `elif` before the p
 | REST API and SDK | nothing | `POST …/pull` and `features.pull()` already exist, so the API snapshot and SDK locks do not move |
 | user documentation | a section in the features reference | the definition keys are user-facing rules, and belong there, not here |
 
-![The feature designer: the source type and knowledge-time column are chosen here](../architecture/img/screens/feature-designer.png)
+![The feature designer: the source type and knowledge-time column are chosen here](../../maya/web/static/help/screens/feature-designer.png)
 
 ## The call sequence for a pull
 
@@ -356,7 +356,7 @@ DRIVERS = {"snowflake": "snowflake-sqlalchemy", "databricks": "databricks-sqlalc
 
 Add the backend name, the driver package (installed only where it is used), and a case in `_read_only_engine`. The text check — one `SELECT` or `WITH`, no forbidden keyword — applies to every backend already. The part that needs thought is the read-only guarantee: SQLite and PostgreSQL open a session the driver itself makes read-only, and Snowflake and Databricks have no such session, which is why a Snowflake URL must name a role. If your database has no read-only session either, say what stops a write — a role, a grant, a statement timeout — in `check_url`'s refusal and in the module's comment, as those two do. Connections are administered on **Admin → Sources**; the URL never holds a password, only the name of the environment variable that does.
 
-![Admin → Sources: connections name the environment variable holding the password](../architecture/img/screens/admin-sources.png)
+![Admin → Sources: connections name the environment variable holding the password](../../maya/web/static/help/screens/admin-sources.png)
 
 ## Common mistakes
 

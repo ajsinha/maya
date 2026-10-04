@@ -17,6 +17,8 @@ None of these has a CLI command. The SDK namespaces are `my.governance`, `my.mon
 
 ## The inventory and tiering
 
+
+![Models → Findings & reviews: every model with its tier, next review and open findings](../static/help/screens/governance.png)
 ### Tiers
 
 Every model has a tier from 1 (most material) to 3, **derived** from evidence and open to an **override** with a written reason. A model nobody has looked at still gets a tier from the drivers MAYA measures itself.
@@ -188,6 +190,8 @@ my.governance.move_finding(f["id"], "remediated", "Refitted with the vintage ter
 ## Monitoring live models
 
 Monitoring reads the execution reports live warrants already receive, and writes nothing, so it cannot disagree with the covenants. It exists because covenants judge each run alone: a null rate creeping up across fifty runs breaches nothing until the fifty-first.
+
+![Models → Monitoring: live models graded from what their executions report](../static/help/screens/monitoring.png)
 
 ### Covenants and their kinds
 

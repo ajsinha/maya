@@ -111,7 +111,7 @@ Every log line should carry the request id, trace id, actor and object reference
 
 `/healthz` answers alive and the version, with no authentication. `/readyz` answers `200` only when the database is reachable and the lake root exists, and includes the seam report; it is what a load balancer should poll. The health page (`OpsService.health`, also `GET /system/health`) is for a person: version, environment, database dialect, schema hash and the schema file it came from, the lake backend and why it was chosen, the measured sandbox tier, the typesetting backend, the job queue, every seam and every degraded mode in plain language, process statistics and role, whether the default administrator password is still active, tracing status, webhook backlog and the audit chain's verification. The web tier's page chrome reads a summary of it on every page ([web-ui.md](web-ui.md)).
 
-![System health: degraded modes in plain language, the database's schema identity, the lake backend and its reason, the sandbox tier, typesetting, the audit chain and the job queue](img/screens/admin-health.png)
+![System health: degraded modes in plain language, the database's schema identity, the lake backend and its reason, the sandbox tier, typesetting, the audit chain and the job queue](../../maya/web/static/help/screens/admin-health.png)
 
 ## Example
 

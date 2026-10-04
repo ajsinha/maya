@@ -177,7 +177,7 @@ The scheduler is a single thread in the process that launched MAYA; worker proce
 
 A job queued by the scheduler has the owner `system`, which is no user. The `integrity.verify` registration turns that into a principal with `_system_principal` in `maya/services/registry.py`, which runs it as techops rather than as whichever administrator happens to exist, so the audit entry says plainly that MAYA did it; a scheduled job of yours that needs a principal should do the same. Read a configurable interval through a declared setting ([settings-and-config.md](settings-and-config.md)), as `lake.maintenance.interval_seconds` is.
 
-![The jobs console: every job's type, owner, state, progress, attempts and trace](../architecture/img/screens/admin-jobs.png)
+![The jobs console: every job's type, owner, state, progress, attempts and trace](../../maya/web/static/help/screens/admin-jobs.png)
 
 ## Backpressure and fairness
 
