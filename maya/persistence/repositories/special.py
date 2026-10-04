@@ -179,6 +179,20 @@ class LineageRepository(Repository[operations.LineageEdge]):
         if self.find_one(src_ref=src, dst_ref=dst, edge_type=edge_type) is None:
             self.add({"src_ref": src, "dst_ref": dst, "edge_type": edge_type, "label": label})
 
+    def forms_of(self, obj_ref: str, limit: int = 200) -> list[str]:
+        """The version and pin references of one object that appear in any edge
+        (``obj@v2``, ``obj#eom/2026-03-31``): lineage is recorded between those, not between
+        bare objects."""
+        found: set[str] = set()
+        for column in (self.model.src_ref, self.model.dst_ref):
+            for mark in ("@", "#"):
+                prefix = obj_ref + mark
+                stmt = select(column).where(
+                    column.like(prefix.replace("%", r"\%") + "%", escape="\\")
+                )
+                found |= {r for r in self.session.scalars(stmt.distinct().limit(limit))}
+        return sorted(found)[:limit]
+
     def walk(self, root: str, *, direction: str = "both", depth: int = 3) -> list[dict[str, Any]]:
         """Breadth-first edges around ``root``. Upstream follows edges into a node."""
         seen: set[str] = {root}

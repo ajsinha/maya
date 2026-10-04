@@ -63,6 +63,17 @@ class Repository(Generic[M]):
         self.session = session
         self.actor = actor
 
+    # -- what callers may know about the table, without the ORM -----------------
+    @property
+    def primary_key(self) -> str:
+        """The name of the table's primary key column."""
+        return str(self.model.__mapper__.primary_key[0].key)
+
+    @property
+    def columns(self) -> frozenset[str]:
+        """The names of the table's columns."""
+        return frozenset(c.key for c in self.model.__mapper__.columns)
+
     # -- query construction ----------------------------------------------
     def _where(self, stmt: Select[Any], filters: dict[str, Any]) -> Select[Any]:
         clauses = []

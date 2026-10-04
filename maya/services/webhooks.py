@@ -73,18 +73,45 @@ class WebhookService:
             raise ValidationFailed("A webhook URL needs a host")
         if self.allow_private:
             return url
+        self._public_addresses(parsed.hostname)
+        return url
+
+    @staticmethod
+    def _public_addresses(host: str) -> list[str]:
+        """Every address ``host`` resolves to, refused if any is private, loopback,
+        link-local or reserved."""
         try:
-            addresses = {info[4][0] for info in socket.getaddrinfo(parsed.hostname, None)}
+            addresses = sorted({str(info[4][0]) for info in socket.getaddrinfo(host, None)})
         except socket.gaierror as exc:
-            raise ValidationFailed(f"Cannot resolve '{parsed.hostname}'") from exc
+            raise ValidationFailed(f"Cannot resolve '{host}'") from exc
         for addr in addresses:
             ip = ipaddress.ip_address(addr)
             if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
                 raise ValidationFailed(
-                    f"'{parsed.hostname}' resolves to {addr}, a private or "
-                    "local address; webhooks may not target it"
+                    f"'{host}' resolves to {addr}, a private or local address; webhooks may "
+                    "not target it"
                 )
-        return url
+        return addresses
+
+    def _pinned(self, url: str) -> tuple[str, dict[str, str], dict[str, Any]]:
+        """The URL to connect to, resolved once and vetted.
+
+        Checking the name and then letting the HTTP client look it up again leaves a window:
+        a DNS answer that changes in between (rebinding) would send the request to an
+        address nobody checked. So the request goes to the address that was vetted, with the
+        name kept where it matters -- the ``Host`` header, and the TLS server name, so the
+        certificate is still verified against the hostname."""
+        self.check_url(url)
+        parsed = urlparse(url)
+        if self.allow_private:
+            return url, {}, {}
+        name = parsed.hostname or ""
+        addr = self._public_addresses(name)[0]
+        host = f"[{addr}]" if ":" in addr else addr
+        netloc = host + (f":{parsed.port}" if parsed.port else "")
+        pinned = parsed._replace(netloc=netloc).geturl()
+        named = name + (f":{parsed.port}" if parsed.port else "")
+        return pinned, {"Host": named}, {"sni_hostname": name}
 
     def create(
         self,
@@ -261,11 +288,15 @@ class WebhookService:
             "X-Maya-Signature": signature(self._box().open(hook["secret_sealed"]), stamp, body),
         }
         try:
-            self.check_url(hook["url"])  # DNS may have changed since creation
+            # vetted again at delivery (DNS may have changed since creation), and the request
+            # goes to the address just vetted, not to a second lookup
+            target, named, extensions = self._pinned(hook["url"])
             with httpx.Client(
                 transport=self.transport, timeout=self.timeout, follow_redirects=False
             ) as client:
-                r = client.post(hook["url"], content=body, headers=headers)
+                r = client.post(
+                    target, content=body, headers={**headers, **named}, extensions=extensions
+                )
             ok, status, error = (
                 200 <= r.status_code < 300,
                 r.status_code,

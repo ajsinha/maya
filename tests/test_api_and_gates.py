@@ -335,3 +335,14 @@ def test_denials_are_audited_even_though_they_roll_back(api):
     after = w.p.access.audit_log(w.admin, action="authz.denied")
     assert len(after) == before + 1
     assert w.p.access.verify_audit()["ok"]
+
+
+def test_the_boundary_gate_refuses_reaching_into_the_orm_through_a_repository():
+    """A repository says what callers may know about a table (``primary_key``, ``columns``);
+    reading the ORM's own description of it outside maya/persistence is refused."""
+    path = ROOT / "maya" / "services" / "_planted.py"
+    path.write_text('def f(uow):\n    return uow.repo("features").model.__mapper__.columns\n')
+    try:
+        assert _gate("import_boundaries.py").returncode == 1
+    finally:
+        path.unlink()
