@@ -184,6 +184,7 @@ def test_a_training_warrant_from_draft_to_bundle_through_forms(site):
     tab = devi.get("/models/quant/linear?tab=params").text
     assert "a = 2.0" in tab and "b = 0.5" in tab and "rmse = 0.0" in tab
     assert "Fit metrics (reported)" in tab
+    assert "parameters</strong> — one value each" in tab and "<code>a</code>, <code>b</code>" in tab
     devi.post(f"/warrants/training/{wid}/transition", {"transition": "submit"}, expect="success")
     mgr.post(f"/warrants/training/{wid}/transition", {"transition": "approve"}, expect="success")
     mgr.post(f"/warrants/training/{wid}/seal", expect="success")
