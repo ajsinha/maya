@@ -4,6 +4,7 @@ The Python client for MAYA: every capability of a MAYA server, from a notebook, 
 scheduler or a CI job, plus record-and-replay fixtures and offline reproducibility bundles.
 
 This package stands alone. It is what end users install; they never need the MAYA server.
+It needs **Python 3.13 or later** (it is tested on 3.13).
 
 ```bash
 pip install maya-sdk                 # httpx, PyYAML, pyarrow, numpy

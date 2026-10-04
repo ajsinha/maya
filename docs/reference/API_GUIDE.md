@@ -32,7 +32,7 @@ You need:
 | A running MAYA | The API is served by the same process as the web UI | `python run_maya_web.py` in the checkout (see the [README](../../README.md#getting-started)) |
 | Its address | Every example reads it from `MAYA_URL` | `export MAYA_URL=http://127.0.0.1:8600` |
 | `curl` and `jq` | For the shell examples | `curl --version && jq --version` |
-| Python 3.11+ with `httpx`, `numpy`, `pandas`, `pyarrow` | For the Python examples | all four are already in MAYA's own environment |
+| Python 3.13 with `httpx`, `numpy`, `pandas`, `pyarrow` | For the Python examples | MAYA's own environment has Python 3.13 and all four |
 | A user who may do what you ask | Every call runs as a person or a key, with their roles | the bootstrap administrator is `admin` / `maya-dev-admin` on a fresh install |
 
 **Use a scratch MAYA to follow this guide.** Section 5 creates users, a namespace called

@@ -15,7 +15,7 @@ Each page here says when you would do the thing it describes and which files you
 
 ## Setting up
 
-MAYA needs **exactly Python 3.13**. The [quick start](../getting-started/QUICKSTART.md) has the per-platform detail for getting it; the development environment is the user's plus the test and gate tools:
+MAYA needs **exactly Python 3.13** (the server's pinned requirements are built for it; `pyproject.toml` says `>=3.13,<3.14`). The standalone SDK, `sdk/`, accepts 3.13 or later. Working in PyCharm or IntelliJ IDEA: [running MAYA in the IDE](../getting-started/IDE.md) covers the interpreter, the run configuration, debugging and the test runner. The [quick start](../getting-started/QUICKSTART.md) has the per-platform detail for getting it; the development environment is the user's plus the test and gate tools:
 
 ```bash
 python3.13 -m venv .venv

@@ -1,7 +1,7 @@
 [project]
 name = "maya"
 description = "MAYA — Model & AI Lifecycle Assurance. Evidence, not assertion."
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"  # exactly 3.13: the pinned requirements are built for it
 dynamic = ["version", "dependencies"]
 authors = [{ name = "Ashutosh Sinha", email = "ajsinha@gmail.com" }]
 license = { file = "LICENSE" }

@@ -24,6 +24,7 @@ operations — is in the product, under **Help**, and in [`maya/web/guides/`](..
 | Document | What it is |
 |---|---|
 | [`QUICKSTART.md`](getting-started/QUICKSTART.md) | **Start here.** From nothing to MAYA running, signed in, with demonstration data and a feature of your own, in about fifteen minutes; every step says what you should see and what to do if you don't |
+| [`IDE.md`](getting-started/IDE.md) | **Running MAYA in PyCharm or IntelliJ IDEA**: the interpreter, a run configuration for the server and the web UI, debugging, tests, case studies and the gates |
 
 ## Architecture — [`architecture/`](architecture/README.md)
 

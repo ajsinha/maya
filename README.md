@@ -575,6 +575,8 @@ words, which is the weaker arrangement and is why the count is approximate.
 nothing to MAYA running with demonstration data, in about fifteen minutes, with what you
 should see at every step and what to do if you don't. The short version, for the impatient:
 
+**Working in PyCharm or IntelliJ IDEA?** [`docs/getting-started/IDE.md`](docs/getting-started/IDE.md) sets up the interpreter, a run configuration that starts the server and the web UI, debugging, the tests, the case studies and the gates.
+
 ```bash
 python3.13 -m venv .venv && .venv/bin/pip install -e ./sdk -r requirements.txt -r requirements-dev.txt
 python run_maya_web.py                 # http://127.0.0.1:8600 — the landing page, then
