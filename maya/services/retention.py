@@ -16,8 +16,8 @@ a compressed bundle with its manifest. None of it was built. What is here, and w
   what was sealed, so an archive that rotted is caught rather than served.
 
 Archiving does **not** delete the pin's fragments. They are content-addressed and shared
-with every other pin that holds the same rows, and MAYA's lake layer has no delete, so
-removing them safely is the §29.3 collector — not built, and named in the runbook.
+with every other pin that holds the same rows; removing the ones no pin references is the
+§29.3 collector, ``collect`` below, which runs only when an administrator asks.
 
 Copyright (c) 2026 Ashutosh Sinha.  All rights reserved.
 """
@@ -125,7 +125,7 @@ class RetentionService:
             "rows": rows.num_rows if rows else 0,
             "content_hash": pin["content_hash"],
             "note": "the pin's fragments are shared with other pins and are not deleted; "
-            "collecting them is the §29.3 collector, which is not built",
+            "the collector (an administrator's action) removes fragments no pin references",
             "row_version": row["row_version"],
         }
 

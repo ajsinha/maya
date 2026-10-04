@@ -144,11 +144,13 @@ def test_quick_upload_and_restatement(run, tmp_path):
     assert code == 0 and "scratch.admin/rates@v1: 3 rows, ungoverned" in out
     code, out, _ = run("feature", "quick", str(csv), "--name", "rates2", json_out=True)
     assert code == 0 and json.loads(out)["rows"] == 3
+    corrected = tmp_path / "rates-corrected.csv"  # the same keys with changed values
+    corrected.write_bytes(price_csv(3, symbols=("ZZZ",), bump=2.0))
     code, out, _ = run(
         "feature",
         "upload",
         "scratch.admin/rates",
-        str(csv),
+        str(corrected),
         "--knowledge-time",
         "2026-06-01T00:00:00Z",
     )

@@ -298,6 +298,28 @@ GUIDES: list[dict[str, Any]] = [
     },
 ]
 
+# subject -> the page of docs/architecture (or docs/developer) that explains how it is built
+INSIDE: dict[str, str] = {
+    "getting-started": "architecture",
+    "features": "architecture/resolution",
+    "algebra": "architecture/resolution",
+    "data": "architecture/lake-and-storage",
+    "featuresets": "architecture/resolution",
+    "models": "architecture/formula",
+    "designers": "developer/model-artifacts",
+    "warrants": "architecture/warrants-and-custody",
+    "model-risk": "architecture/governance",
+    "documents": "architecture/ai-and-documents",
+    "llm-apps": "architecture/ai-and-documents",
+    "workflow": "architecture/workflow",
+    "access": "architecture/security",
+    "workspaces": "architecture/resolution",
+    "security": "architecture/security",
+    "sdk": "architecture/sdk",
+    "integrations": "architecture/integrations",
+    "operations": "architecture/observability",
+}
+
 # every address help has ever had -> where that content lives now
 LEGACY: dict[str, str] = {
     "tour": "/help/getting-started#tour",

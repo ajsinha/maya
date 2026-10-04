@@ -49,6 +49,8 @@ def test_the_docs_folder_is_grouped():
     groups = {p.name for p in (ROOT / "docs").iterdir() if p.is_dir()}
     assert groups == {
         "getting-started",
+        "architecture",
+        "developer",
         "reference",
         "design",
         "operations",

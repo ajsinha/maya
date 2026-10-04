@@ -134,7 +134,7 @@ def test_every_help_link_lands_on_a_page_and_an_anchor_that_exist(env):  # noqa:
         for href in re.findall(r'href="(/help/[^"]*)"', text):
             target, _, anchor = href.partition("#")
             if target in ("/help", "/help/guides", "/help/case-studies") or target.startswith(
-                "/help/case-studies/"
+                ("/help/case-studies/", "/help/docs/")  # docs pages: tests/test_docs_inside.py
             ):
                 continue
             if target not in ids:

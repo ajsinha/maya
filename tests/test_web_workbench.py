@@ -156,9 +156,18 @@ def test_ingest_through_the_form_reports_restatements_and_duplicates(dana):
         "/workbench/features/quant/wb_ing/ingest",
         {"fmt": "csv"},
         files={"file": ("a.csv", first, "text/csv")},
+    )
+    # the same file again: a duplicate upload, and no restatement, since no value changed
+    assert "uploaded before" in r.text and "RESTATEMENT" not in r.text
+    corrected = first.replace(b"2026-01-01,AAA,1.000,", b"2026-01-01,AAA,9.000,")
+    assert corrected != first
+    r = b.post(
+        "/workbench/features/quant/wb_ing/ingest",
+        {"fmt": "csv"},
+        files={"file": ("b.csv", corrected, "text/csv")},
         expect="warning",
     )
-    assert "RESTATEMENT" in r.text and "uploaded before" in r.text
+    assert "RESTATEMENT" in r.text
     r = b.post("/workbench/features/quant/wb_ing/ingest", {"fmt": "csv"}, expect="danger")
     assert "Choose a file to ingest" in r.text
 

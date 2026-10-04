@@ -267,9 +267,11 @@ SETTINGS: tuple[Setting, ...] = (
     _s(
         "plugins.allow",
         "string",
-        "Names of installed entry-point plugins MAYA may load, comma separated. A plugin "
-        "runs in this process with MAYA's privileges, so it is opt-in by name; anything "
-        "installed and not named here is listed as refused with that reason.",
+        "Names of installed entry-point plugins MAYA may load, comma separated: a bare name "
+        "for any extension point, or point:name (llm_provider:acme) for one. A plugin runs in "
+        "this process with MAYA's privileges, so it is opt-in by name; anything installed and "
+        "not named here is listed as refused with that reason. A plugin can never take a "
+        "built-in's name.",
         "",
     ),
     _s(
@@ -895,6 +897,13 @@ SETTINGS: tuple[Setting, ...] = (
         "",
     ),
     _s("assistant.claude.timeout_seconds", "int", "Per-call timeout.", "300", minimum=1),
+    _s(
+        "retention.cold_after_days",
+        "int",
+        "A pin unread for this many days is reported as cold (a statement, not a move).",
+        "180",
+        minimum=1,
+    ),
     _s(
         "custody.anchor.methods",
         "string",

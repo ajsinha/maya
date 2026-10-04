@@ -12,7 +12,8 @@ estate -- the one ``config/application.yaml`` configures, under ``data/`` -- rat
 temporary directory. The first script to ask for it builds it -- database, blob store,
 Delta lake, signer, every service, one user per built-in role -- each study adds its own
 namespace, and every script after that opens the same one (``maya.testing``, which is a supported part of the platform
-and not a test fixture smuggled into a demo). ``--reset`` starts again from nothing.
+and not a test fixture smuggled into a demo). ``--reset`` runs one study again from nothing;
+``--reset-all`` rebuilds the whole estate.
 
 Everything a study then does goes through ``maya.sdk.Client`` as a named user with that
 user's roles, because that is what a person integrating with MAYA would write, and
@@ -22,7 +23,8 @@ would run, and ``maya.platform``, which the studies do not use.
 
 Flags, on every script:
 
-``--reset``   delete the shared demonstration estate and build it again from nothing.
+``--reset``       remove this study's namespace and everything in it, and run it from nothing.
+``--reset-all``   delete the whole shared demonstration estate and build it again.
 ``--quiet``   print the headline results without the narration.
 
 Copyright (c) 2026 Ashutosh Sinha.  All rights reserved.
@@ -223,7 +225,7 @@ def _with(config_path: Path, overrides: dict[str, str]) -> Any:
 
 
 def _reset_everything() -> None:
-    """Delete the shared demonstration instance and build it again from nothing.
+    """Delete the shared demonstration instance and build it again from nothing (``--reset-all``).
 
     There is one instance, so there is no resetting one study out of it: MAYA does not
     delete governed objects, and a reset that removed a namespace's rows from underneath an
@@ -309,7 +311,7 @@ def step_script(
 ) -> int:
     """Run one step of a study as a standalone script: open MAYA, narrate, close.
 
-    ``work(maya, cast_or_none, narrator)`` is the step itself. Every step script ends with
+    ``work(maya, narrator)`` is the step itself. Every step script ends with
     ``sys.exit(step_script(...))``, so the steps can be run one at a time in front of an
     audience, and ``run.py`` can call the same functions in one process for a full pass.
     """

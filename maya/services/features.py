@@ -1110,11 +1110,29 @@ def diff_definitions(a: dict[str, Any], b: dict[str, Any]) -> list[dict[str, Any
 
 
 def _overlaps(prior: Any, table: Any, index: list[str]) -> bool:
+    """Whether this batch restates something: a row whose key was known before and whose
+    values now differ from the latest known ones. A re-read that brings the same values back
+    (an unchanged SQL or Python source pulled again) is not a restatement, so it neither says
+    so nor sets off the restatement check under live models."""
     if prior is None or prior.num_rows == 0:
         return False
-    old = prior.select(index).to_pandas().astype(str)
-    new = table.select(index).to_pandas().astype(str)
-    return bool(len(old.merge(new, on=index, how="inner")))
+    old = prior.to_pandas()
+    new = table.to_pandas()
+    if "_knowledge_time" in old.columns:  # the latest known value of each key
+        old = old.sort_values("_knowledge_time", kind="stable").drop_duplicates(index, keep="last")
+    values = [
+        c for c in new.columns if c in old.columns and c not in index and not c.startswith("_")
+    ]
+    both = (
+        old[index + values]
+        .astype(str)
+        .merge(new[index + values].astype(str), on=index, how="inner", suffixes=("_was", "_now"))
+    )
+    if both.empty:
+        return False
+    if not values:
+        return True
+    return bool(any((both[f"{c}_was"] != both[f"{c}_now"]).any() for c in values))
 
 
 def _records(df: pd.DataFrame) -> list[dict[str, Any]]:

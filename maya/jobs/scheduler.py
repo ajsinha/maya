@@ -1,7 +1,9 @@
 """
-A small interval scheduler for maintenance sweeps (§10.4, §9.4): SLA escalation
-and execution-warrant expiry notices. Each task is idempotent, so a restart or a
-second node running the same sweep sends nothing twice.
+A small interval scheduler for maintenance sweeps (§10.4, §9.4): SLA escalation,
+execution-warrant expiry notices, the notice sweep, the periodic-review sweep, the MLflow
+alias sync, lake maintenance, custody anchoring and the others ``maya.services.registry``
+registers. Each task is idempotent, so a restart or a second node running the same sweep
+sends nothing twice.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 """

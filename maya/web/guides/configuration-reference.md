@@ -164,6 +164,7 @@ MAYA connects to PostgreSQL through the `psycopg` driver (`postgresql+psycopg://
 | `lake.backend` | `auto` | The `maya_delta` backend: `native` (the `deltalake` package), `pure` (MAYA's pure-Python implementation of a declared subset of the Delta protocol) or `auto` (native when installed). |
 | `lake.maintenance.interval_seconds` | `86400` | How often the scheduler compacts and vacuums every lake table. |
 | `lake.maintenance.target_size_mb` | `128` | The file size compaction aims for. |
+| `retention.cold_after_days` | `180` | A pin unread this many days is reported as cold on **Admin → Retention**: a statement for an operator to act on, not a move to another storage class. |
 | `lake.maintenance.vacuum_retention_hours` | `168` | How long unreferenced files are kept before vacuum removes them, for time travel. |
 | `lake.fragment.target_rows` | `512` | Content-defined chunking of pinned data: the target fragment size in rows. |
 | `lake.fragment.min_rows` | `32` | The smallest fragment. |

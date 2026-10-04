@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} · {{ group_title }} · Help{% endblock %}
+{% block content %}
+<nav class="help-crumbs" aria-label="Breadcrumb">
+  <a href="/help"><i class="bi bi-book" aria-hidden="true"></i> Help</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  <a href="/help#cat-inside">Inside MAYA</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+  {% if page_name != 'README' %}<a href="/help/docs/{{ group }}">{{ group_title }}</a><i class="bi bi-chevron-right" aria-hidden="true"></i>{% endif %}
+  <span aria-current="page">{{ doc.title }}</span>
+</nav>
+<header class="help-topic-hero">
+  <span class="ico"><i class="bi bi-{{ 'diagram-3' if group == 'architecture' else 'tools' }}" aria-hidden="true"></i></span>
+  <div><h1>{{ doc.title }}</h1><p>{% if page_name != 'README' %}{{ group_title }} — {% endif %}the same pages are in the repository under <code>docs/{{ group }}/</code>.</p></div>
+</header>
+<div class="guide-layout">
+  <nav class="guide-toc" aria-label="{{ group_title }}">
+    <div class="head">{{ group_title }}</div>
+    <ol>{% for p in pages %}<li>{% if p.page == page_name %}<strong>{{ p.title }}</strong>
+      {% if doc.toc %}<ol>{% for t in doc.toc %}<li><a href="#{{ t.id }}">{{ t.name }}</a></li>{% endfor %}</ol>{% endif %}
+      {% else %}<a href="/help/docs/{{ group }}{{ '' if p.page == 'README' else '/' ~ p.page }}">{{ p.title }}</a>{% endif %}</li>{% endfor %}</ol>
+    <div class="head mt-3">Also</div>
+    <ol>{% for g, title in groups.items() if g != group %}<li><a href="/help/docs/{{ g }}">{{ title }}</a></li>{% endfor %}</ol>
+  </nav>
+  <article class="help-article guide-body">{{ doc.html|safe }}</article>
+</div>
+{% endblock %}

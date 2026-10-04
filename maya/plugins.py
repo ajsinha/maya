@@ -10,7 +10,7 @@ without editing MAYA.
 
 This is that registry, and it is deliberately modest:
 
-* **Ten extension points**, each with the protocol §25 names and the built-ins MAYA ships.
+* **Eleven extension points**, each with the protocol §25 names and the built-ins MAYA ships.
   What is registered here is what actually exists — nothing is listed to make the table
   look full.
 * **Discovery by entry point** (`maya.source_driver`, `maya.notifier`, …), read once at
@@ -49,7 +49,10 @@ POINTS: dict[str, tuple[str, str]] = {
     "lake_store": ("LakeStore / BlobStore", "Delta on the local filesystem, through maya_delta"),
     "exporter": ("Exporter.write(table, opts)", "arrow, parquet, csv, json, ndjson, xlsx"),
     "auth_provider": ("AuthProvider.authenticate()", "db, oidc, saml2"),
-    "workflow_check": ("Check.evaluate(object, ctx)", "the checks the workflow engine registers"),
+    "workflow_check": (
+        "check(uow, ctx) -> (passed, reason)",
+        "the checks the workflow engine registers",
+    ),
     "notifier": ("Notifier.send(event, recipients)", "inbox, webhook, email, slack, teams"),
     "model_runtime": (
         "ModelRuntime.predict(...)",
@@ -128,7 +131,12 @@ class Registry:
             config_schema=dict(config_schema or {}),
             factory=factory,
         )
-        self._plugins = [p for p in self._plugins if not (p.point == point and p.name == name)]
+        # one entry per (point, name, origin): an installed plugin never displaces a built-in
+        self._plugins = [
+            p
+            for p in self._plugins
+            if not (p.point == point and p.name == name and p.origin == origin)
+        ]
         self._plugins.append(plugin)
         return plugin
 
@@ -186,15 +194,31 @@ class Registry:
         for point in POINTS:
             for entry in entry_points(group=f"{GROUP}.{point}"):
                 origin = getattr(getattr(entry, "dist", None), "name", None) or "installed"
-                if entry.name not in allowed:
+                if any(
+                    p.point == point and p.name == entry.name and p.origin == "built-in"
+                    for p in self._plugins
+                ):
                     self.register(
                         point,
                         entry.name,
                         origin=origin,
                         status="refused",
                         detail=(
-                            f"installed by {origin} and not in plugins.allow. A plugin runs "
-                            "with MAYA's privileges, so it is opt-in by name."
+                            f"installed by {origin} under the name of a built-in {point}; a "
+                            "plugin never replaces what MAYA ships, so give it a name of its own"
+                        ),
+                    )
+                    continue
+                if entry.name not in allowed and f"{point}:{entry.name}" not in allowed:
+                    self.register(
+                        point,
+                        entry.name,
+                        origin=origin,
+                        status="refused",
+                        detail=(
+                            f"installed by {origin} and not in plugins.allow (as {entry.name} or "
+                            f"{point}:{entry.name}). A plugin runs with MAYA's privileges, so it "
+                            "is opt-in by name."
                         ),
                     )
                     continue

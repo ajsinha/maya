@@ -34,7 +34,7 @@ from maya.api.routers import (
     workflow,
     workspaces,
 )
-from maya.core.errors import MayaError
+from maya.core.errors import ClientTooOld, MayaError
 from maya.core.version import API_VERSION, APP_NAME, VERSION
 
 logger = logging.getLogger(__name__)
@@ -169,14 +169,11 @@ def install_handlers(app: FastAPI) -> None:
     async def _inner(request: Request, call_next: Any) -> Any:
         client = request.headers.get("x-maya-client", "")
         if client.startswith("python/") and _too_old(client[7:]):
-            return JSONResponse(
-                {
-                    "type": "client_too_old",
-                    "status": 426,
-                    "detail": "This SDK is older than the server supports. "
-                    "Upgrade with: pip install -U maya",
-                },
-                status_code=426,
+            return problem_response(
+                ClientTooOld(
+                    "This SDK is older than the server supports. "
+                    "Upgrade with: pip install -U maya-sdk"
+                )
             )
         response = await call_next(request)
         response.headers["X-Request-Id"] = request.state.request_id
