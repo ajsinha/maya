@@ -123,6 +123,8 @@ A rule's `non_causal` flag travels in the fill report of every attribute it fill
 
 A derived feature's source is an algebra expression over other features or pins. Each operator has two halves: `typecheck(op, options, metas)` runs at definition time with no data — index compatibility, type unification, unit and tag conflicts are errors there, never at run time — and `execute(op, options, frames, metas)` replays the operator over resolved operand frames. `FeatureData._derive` resolves each operand (a pin read exactly, a version resolved at the same `as_of_known`), type-checks, executes, and then runs the same grid-and-rules step over the result. Depth is capped (`catalog.MAX_DERIVATION_DEPTH`), so a cycle or a runaway chain is refused rather than recursed into.
 
+Lineage is recorded between versions and pins, never between bare objects: a training warrant links the feature set pin it was drawn on and the model version it trained, a pin links the version it sealed. `OpsService.lineage` walks those edges from a root. A bare object as the root (`maya://model/ns/name`) is drawn through its versions and pins that have lineage, each joined to it by a `version_of` or `pin_of` edge, so asking about an object shows what its versions were built from and feed.
+
 ![The lineage canvas rooted at a training warrant: the features and their pins, the feature set pin it was drawn on, the model version it trained, and the execution warrant that licenses it](img/screens/lineage.png)
 
 ### A feature set: assembled, aligned, filled under a recorded precedence

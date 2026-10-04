@@ -29,6 +29,8 @@ PERSISTENCE_API = (
 )
 LEAKS = re.compile(
     r"\buow\.session\b|\.db\.engine\b|\bBase\.metadata\b|"
+    # the ORM's own description of a table: a repository says what callers may know
+    r"\.__mapper__\b|\.__table__\b|"
     r"(?<!request)\.session\.(execute|scalars|query|get|add|flush|commit)\("
 )
 

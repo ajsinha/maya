@@ -429,7 +429,7 @@ class OpsService:
         internal node (an operation, a parameter set, an execution) that no object they can
         read connects to. A root they may not read does not exist, as far as they know."""
         with self.p.uow() as uow:
-            edges = uow.repo("lineage_edges").walk(root, direction=direction, depth=depth)
+            edges = self._lineage_edges(uow, root, direction, depth)
             nodes = {root} | {e["src_ref"] for e in edges} | {e["dst_ref"] for e in edges}
             hidden = 0
             if p is not None:
@@ -459,6 +459,34 @@ class OpsService:
             ],
             "hidden": hidden,
         }
+
+    @staticmethod
+    def _lineage_edges(uow: Any, root: str, direction: str, depth: int) -> list[dict[str, Any]]:
+        """Edges around ``root``. Lineage is recorded between versions and pins, so a bare
+        object (``maya://model/ns/name``) is drawn through its versions and pins: each that
+        has lineage is walked, and joined to the object by a ``version_of`` or ``pin_of``
+        edge, so asking about an object shows what its versions were built from and feed."""
+        repo = uow.repo("lineage_edges")
+        edges = repo.walk(root, direction=direction, depth=depth)
+        if "@" in root or "#" in root or not root.startswith("maya://"):
+            return edges
+        known = {e["id"] for e in edges}
+        for form in repo.forms_of(root):
+            kind = "pin_of" if "#" in form else "version_of"
+            edges.append(
+                {
+                    "id": f"{kind}:{form}",
+                    "src_ref": form,
+                    "dst_ref": root,
+                    "edge_type": kind,
+                    "label": None,
+                }
+            )
+            for e in repo.walk(form, direction=direction, depth=max(depth - 1, 0)):
+                if e["id"] not in known:
+                    known.add(e["id"])
+                    edges.append(e)
+        return edges
 
     SEARCH_KINDS = {
         "feature": "feature",

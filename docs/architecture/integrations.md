@@ -156,7 +156,7 @@ sequenceDiagram
         }
 ```
 
-Delivery is at-least-once; `X-Maya-Delivery` is the idempotency key a receiver deduplicates on. The signature is HMAC-SHA256 over `"<timestamp>.<body>"` with the webhook's secret, shown once at creation and sealed at rest with `SecretBox`. Redirects are not followed. A webhook URL must be HTTPS and, outside dev, must not resolve to a private, loopback, link-local or reserved address — checked at creation and again before every attempt, since DNS may have changed. A governance platform that can be told to POST into its own network is a pivot, not a feature. Backoff is exponential with jitter, capped at an hour; after the attempt cap a delivery is dead with its last error kept, and the backlog is a gauge with an alert.
+Delivery is at-least-once; `X-Maya-Delivery` is the idempotency key a receiver deduplicates on. The signature is HMAC-SHA256 over `"<timestamp>.<body>"` with the webhook's secret, shown once at creation and sealed at rest with `SecretBox`. Redirects are not followed. A webhook URL must be HTTPS and, outside dev, must not resolve to a private, loopback, link-local or reserved address — checked at creation and again before every attempt, since DNS may have changed. The attempt then connects to the address it just vetted, with the host name kept in the `Host` header and as the TLS server name (so the certificate is still checked against the name), rather than letting the HTTP client look the name up a second time; a DNS answer that changes between check and connection therefore cannot redirect a delivery. A governance platform that can be told to POST into its own network is a pivot, not a feature. Backoff is exponential with jitter, capped at an hour; after the attempt cap a delivery is dead with its last error kept, and the backlog is a gauge with an alert.
 
 ### Notifications
 
@@ -192,6 +192,6 @@ Gates that protect it: `tools/ci/no_secrets.py` (no secret in tracked configurat
 
 ## What it does not do
 
-It never reads a source at resolution time; data enters only by ingest or pull. It never stores a database password or a provider key. It does not serve or deploy an imported model — it registers a black box, and pushes an alias to say which versions are licensed. The connectors have been tested against published documents and recorded exchanges, not live accounts. Webhook delivery is at-least-once, not exactly-once. And the webhook address check resolves the host name before the HTTP client connects separately, so a DNS answer that changes between the two lookups is not caught by it.
+It never reads a source at resolution time; data enters only by ingest or pull. It never stores a database password or a provider key. It does not serve or deploy an imported model — it registers a black box, and pushes an alias to say which versions are licensed. The connectors have been tested against published documents and recorded exchanges, not live accounts. Webhook delivery is at-least-once, not exactly-once.
 
 Extending it: adding a source connector is in the developer guide, [source-connectors.md](../developer/source-connectors.md); the webhook and event contract a receiver relies on is in [extension-points.md](../developer/extension-points.md).

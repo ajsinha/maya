@@ -56,7 +56,7 @@ class Listing:
     def collect(self, uow: Any, sort: str | None = None) -> list[dict[str, Any]]:
         """Every kept row, enriched, in the sort's order: the unpaged list."""
         order = self.sorts[sort or self.default]
-        pk = uow.repo(self.table).model.__mapper__.primary_key[0].key
+        pk = uow.repo(self.table).primary_key
         tiebreak = ("-" if order.startswith("-") else "") + pk
         rows = uow.repo(self.table).list(
             order_by=[order, tiebreak], search=self.search, **self.filters
@@ -159,7 +159,7 @@ class Pager:
         shape = self.shape(listing, sort)
         after = self.decode(cursor, shape) if cursor else None
         repo = uow.repo(listing.table)
-        pk = repo.model.__mapper__.primary_key[0].key
+        pk = repo.primary_key
         kept: list[dict[str, Any]] = []
         last: tuple[Any, Any] | None = None
         more = False
@@ -201,7 +201,7 @@ class Pager:
 def _kept_all(uow: Any, listing: Listing) -> Any:
     repo = uow.repo(listing.table)
     columns = [
-        c for c in ("id", "namespace_id", "owner_id") if c in repo.model.__mapper__.columns
+        c for c in ("id", "namespace_id", "owner_id") if c in repo.columns
     ]  # all ``keep`` ever reads
     for row in repo.slim(columns, search=listing.search, **listing.filters):
         if listing.keep is None or listing.keep(uow, row):

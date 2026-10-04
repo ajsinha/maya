@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+**Hardening, and lineage of a whole object**
+
+- **Webhooks connect to the address they vetted.** A delivery resolves the host once, refuses
+  a private or local answer, and connects to that address with the host name kept in the
+  `Host` header and as the TLS server name, so a DNS answer that changes between the check
+  and the connection (rebinding) cannot redirect it.
+- **A web page and its in-process SDK calls take one request's place.** Inner calls used to
+  take a concurrency slot each while the page held its own, so under load a page could be
+  refused by its own calls, and they spent the caller's rate budget too. They now run inside
+  the page's slot, rate token and deadline; an outside caller cannot claim the same.
+- **The persistence boundary gate also refuses reaching into ORM models** (`__mapper__`,
+  `__table__`) outside `maya/persistence`; repositories say what a caller may know
+  (`primary_key`, `columns`), and paging uses them.
+- **Lineage of a bare object.** Lineage is recorded between versions and pins, so the canvas
+  rooted at `maya://model/ns/name` used to show the object alone. It is now drawn through its
+  versions and pins, joined to the object by `version_of` and `pin_of` edges.
+
 **Inside MAYA: how it fits together, and how to extend it**
 
 - **`docs/architecture/`**: how every component fits together — the system map, the governed

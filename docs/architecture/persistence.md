@@ -251,6 +251,6 @@ Gates that protect it: `tools/ci/gen_schema.py --check` (schema files match the 
 
 ## What it does not do
 
-It has no migrations and will not grow them (ADR-012). It does not mix dialects, and it does not let several SQLite processes write. It does not store pin data or uploaded files — only their hashes and manifests. Its purge refuses outside development, and nothing else in MAYA deletes a governed row. The boundary is enforced by an import gate, not by the language: `maya/services/paging.py` reads `uow.repo(table).model.__mapper__` to find a primary key, which the gate's patterns do not catch.
+It has no migrations and will not grow them (ADR-012). It does not mix dialects, and it does not let several SQLite processes write. It does not store pin data or uploaded files — only their hashes and manifests. Its purge refuses outside development, and nothing else in MAYA deletes a governed row. The boundary is enforced by a gate, not by the language: `tools/ci/import_boundaries.py` refuses SQLAlchemy imports outside `maya/persistence` and any reach past the unit of work — a session, the engine, the metadata, or an ORM model's `__mapper__` or `__table__`. What a caller may know about a table, a repository says: `primary_key` and `columns`.
 
 Extending it: adding a table, regenerating the schema files and what the estate export needs from it is in the developer guide, [persistence-and-schema.md](../developer/persistence-and-schema.md).

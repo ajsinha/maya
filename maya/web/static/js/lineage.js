@@ -516,6 +516,7 @@
       { selector: 'edge[type = "composite_member"]', style: { 'line-style': 'double', 'width': 4 } },
       { selector: 'edge[type = "pinned_as"]', style: { 'line-style': 'dotted', 'width': 2 } },
       { selector: 'edge[type = "withheld"]', style: { 'line-style': 'dotted', 'target-arrow-shape': 'none' } },
+      { selector: 'edge[type = "version_of"], edge[type = "pin_of"]', style: { 'line-style': 'dashed', 'width': 1, 'target-arrow-shape': 'none' } },
       { selector: 'edge[type = "trained_on"], edge[type = "executed_under"], edge[type = "parameterized_by"]',
         style: { 'width': 3.5, 'line-color': tok('--maya-indigo'), 'target-arrow-color': tok('--maya-indigo') } }
     ];
@@ -717,6 +718,14 @@
       into: function (n) { return 'takes ' + n + ' as operands'; },
       outof: function (n) { return 'is an operand of ' + n; }
     },
+    version_of: {
+      into: function (n) { return 'has the version ' + n; },
+      outof: function (n) { return 'is a version of ' + n; }
+    },
+    pin_of: {
+      into: function (n) { return 'has the pin ' + n; },
+      outof: function (n) { return 'is a pin of ' + n; }
+    },
     withheld: {
       into: function (n) { return 'has ' + n + ' you may not read'; },
       outof: function (n) { return 'is used by ' + n + ' you may not read'; }
@@ -736,6 +745,8 @@
     derived_from: 'the feature is computed by that algebra operation',
     operand_of: 'that feature is an operand of the operation',
     composite_member_alias: 'that model is a member of this composite',
+    version_of: 'that version belongs to the object you asked about (lineage is recorded between versions and pins)',
+    pin_of: 'that pin belongs to the object you asked about',
     withheld: 'something is there that you may not read'
   };
 

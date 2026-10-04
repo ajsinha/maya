@@ -27,10 +27,19 @@ from __future__ import annotations
 
 import asyncio
 import time
+from contextvars import ContextVar
 from typing import Any
 
 from starlette.datastructures import Headers
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+# How deep inside an admitted request this call is. A web page calls the SDK in process,
+# through this same application, from the task serving the page; those inner calls are part
+# of the request that made them. Counting them again took one concurrency slot per call while
+# the page held its own -- so under load a page could be refused by itself -- and spent one
+# rate token per call. A context variable is set by the task that admitted the request and
+# seen only by calls made from that task, so no outside caller can claim to be inside one.
+NESTING: ContextVar[int] = ContextVar("maya_request_nesting", default=0)
 
 # Generous on purpose: these bound a runaway or hostile caller, and a person clicking
 # through the UI, a busy SDK script or the benchmarks must never meet them. 0 turns one off.
@@ -155,7 +164,8 @@ class RateLimit:
         return 0.0
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or self.rate <= 0:
+        # NESTING > 1: an in-process call made by a request already counted
+        if scope["type"] != "http" or self.rate <= 0 or NESTING.get() > 1:
             await self.app(scope, receive, send)
             return
         wait = self.take(self.caller(scope), time.monotonic())
@@ -182,6 +192,14 @@ class Shed:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+        depth = NESTING.get()
+        if depth > 0:  # an inner call of an admitted request: its slot and deadline are the outer's
+            token = NESTING.set(depth + 1)
+            try:
+                await self.app(scope, receive, send)
+            finally:
+                NESTING.reset(token)
+            return
         if 0 < self.limit <= self.in_flight:
             await _problem(
                 send,
@@ -192,6 +210,7 @@ class Shed:
             )
             return
         self.in_flight += 1
+        token = NESTING.set(1)
         try:
             if self.timeout > 0:
                 await asyncio.wait_for(self.app(scope, receive, send), timeout=self.timeout)
@@ -206,6 +225,7 @@ class Shed:
                 "work already committed is not undone",
             )
         finally:
+            NESTING.reset(token)
             self.in_flight -= 1
 
 

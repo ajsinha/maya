@@ -222,7 +222,7 @@ The pin services add one step before that: a retried pin finds its own pin row a
 
 ### Limits
 
-`maya/api/limits.py` wraps the whole application, so it applies to the web pages as well as the API — including the web tier's in-process SDK calls, which pass through the same stack. Each limit is counted per process. A page that makes several SDK calls therefore costs several requests of the caller's rate budget and holds one concurrency slot for itself plus one per in-flight inner call; the defaults are generous enough that this does not bite, but under saturation an inner call can be shed with `503` while its page holds a slot.
+`maya/api/limits.py` wraps the whole application, so it applies to the web pages as well as the API. Each limit is counted per process. The web tier's in-process SDK calls pass through the same stack but are counted as part of the page that made them: the concurrency layer sets a context variable (`NESTING`) when it admits a request, and an inner call made from that request's task sees it, takes no slot of its own, spends no rate token and runs under the page's deadline. A context variable is seen only by calls made from the admitting task, so no outside caller can claim to be inside a request.
 
 ### The OpenAPI snapshot
 
