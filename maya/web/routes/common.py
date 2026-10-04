@@ -263,6 +263,10 @@ async def render(
         flashes=request.session.pop("flashes", []),
         path=request.url.path,
     )
+    if "page_help" not in ctx:
+        from maya.web.page_help import for_path
+
+        ctx["page_help"] = for_path(request.url.path)
     return TEMPLATES.TemplateResponse(request, template, ctx, status_code=status)
 
 

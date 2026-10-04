@@ -14,6 +14,31 @@ yardstick your implementation is tested against.</p>
   ('diagram-3', 'Composite', 'ensemble, pipeline, router, residual or hierarchical over other model versions.'),
 ]) }}
 
+<h3 id="features-parameters-constants">Features, parameters and constants</h3>
+<p>Every input of a model has a <strong>role</strong>, and the role says where its value comes from.</p>
+{{ fields([
+  ('feature', 'a fact about each case — one value per row: a loan&#39;s balance, an applicant&#39;s bureau score. It is read from data: a training or execution warrant maps the input to a column of a feature set.'),
+  ('parameter', 'a setting of the model itself — one value for every row: a regression weight, a servicing fee. It is fitted on training data (or taken from an agreement), uploaded as a parameter set against a training warrant, and approved before anything runs.'),
+  ('constant', 'a number written into the definition, like the 680 and 60 that scale a bureau score. It changes only with a new model version.'),
+]) }}
+{% call concept('Two models from the case studies') %}
+<p>The <strong>probability-of-default scorecard</strong> has four features — <code>bureau</code>,
+<code>delinquencies</code>, <code>dti</code>, <code>utilisation</code>, different for every applicant — and five
+parameters — <code>intercept</code> and four weights, fitted once on the training data, which say how much each
+feature matters. The <strong>mortgage cash-flow</strong> model has four features — <code>rate</code>,
+<code>term</code>, <code>age</code>, <code>balance</code>, different for every loan — and one parameter,
+<code>fee</code>: the servicing fee from the servicing agreement, the same for every loan, and nothing to fit.</p>
+<p>So a warrant&#39;s <em>mapping</em> lists the features (which column feeds which input), and a model&#39;s
+<strong>Parameters</strong> tab lists the parameters (one value each). Scoring a case plugs its features into
+the formula with the parameters fixed.</p>
+{% endcall %}
+{% call tip('Why MAYA keeps them apart') %}
+<p>They fail differently and are controlled differently. A wrong feature is bad data — caught by quality checks,
+bitemporal history and pins. A wrong parameter is a bad model — caught by fitting under a warrant, the checksum
+that ties a fit to its data, blind scoring on an escrowed holdout, and approval. Keeping them apart is also what
+lets one approved model run unchanged on new data: only the features change.</p>
+{% endcall %}
+
 {% call step(1, 'Write the mathematics in LaTeX') %}
 <p>Open {{ screen('/models/new', 'Models → New model') }} and paste the equations: lets first, the output
 last, one per line. Implicit multiplication, <code>\frac</code>, <code>\sqrt</code>, Greek letters,

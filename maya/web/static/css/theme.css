@@ -672,3 +672,10 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .help-shot { margin: 1rem 0 1.25rem; }
 .help-shot img, .guide-body p > img { display: block; max-width: 100%; height: auto; border: 1px solid var(--maya-border, #e3dcd4); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
 .help-shot figcaption { font-size: .85rem; color: var(--maya-muted, #6b6b6b); margin-top: .4rem; }
+
+/* "About this page" at the foot of every page */
+.page-help { margin: 2rem 0 1rem; padding: .75rem 1rem; border: 1px solid var(--maya-border, #e3dcd4); border-left: 4px solid var(--maya-crimson); border-radius: 6px; background: var(--maya-surface, rgba(255,255,255,.6)); font-size: .92rem; }
+.page-help summary { cursor: pointer; font-weight: 600; color: var(--maya-crimson); }
+.page-help p { margin: .5rem 0 .25rem; }
+.page-help ul { margin: .25rem 0 .5rem; padding-left: 1.2rem; }
+.page-help li { margin: .15rem 0; }
