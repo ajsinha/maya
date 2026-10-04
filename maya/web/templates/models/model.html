@@ -172,9 +172,13 @@ class Model:
   {% if reference %}<h3>Reference implementation, generated from the IR</h3><pre>{{ reference }}</pre>{% endif %}
 </div>
 <div class="tab-pane {% if tab == 'params' %}show active{% endif %}" id="tab-params" role="tabpanel">
-  {% call(p) table("params", ["Name", "State", "Verified data", "Values hash", "Metrics", "Warrant", "Created"], v.parameter_sets, empty="No parameter sets. They are uploaded against a training warrant.") %}
-    <td>{{ p.name }}</td><td>{{ pill(p.state) }}</td><td>{{ pill('ok' if p.verified_data else 'bad', 'verified' if p.verified_data else 'unverified_data') }}</td>
-    <td class="mono">{{ p.values_hash|short }}</td><td class="mono">{{ p.metrics|tojson }}</td>
+  <p class="small-muted">A parameter set holds the <strong>values</strong> of the formula's parameters — the names the generated code reads as <code>params['…']</code> — fitted under a training warrant. <strong>Fit metrics</strong> are what the trainer reported with the upload; MAYA records them as stated. MAYA's own measure of a set is its blind score on the warrant's escrowed holdout, shown on the training warrant.</p>
+  {% call(p) table("params", ["Name", "State", "Values", "Verified data", "Fit metrics (reported)", "Values hash", "Warrant", "Created"], v.parameter_sets, empty="No parameter sets. They are uploaded against a training warrant.") %}
+    <td>{{ p.name }}</td><td>{{ pill(p.state) }}</td>
+    <td class="mono small">{% for k, val in (p["values"] or {}).items() %}{{ k }} = {{ val }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+    <td>{{ pill('ok' if p.verified_data else 'bad', 'verified' if p.verified_data else 'unverified_data') }}</td>
+    <td class="mono small">{% for k, val in (p.metrics or {}).items() %}{{ k }} = {{ val }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+    <td class="mono">{{ p.values_hash|short }}</td>
     <td>{% if p.training_warrant_id %}<a href="/warrants/training/{{ p.training_warrant_id }}">warrant</a>{% endif %}</td><td>{{ p.created_at|dt }}</td>
   {% endcall %}
 </div>

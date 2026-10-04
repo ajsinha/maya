@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **A model's Parameters tab shows the fitted values.** It listed a hash of the values and the
+  metrics the trainer reported, so nothing on the page connected the generated code's
+  `params['wBureau']` to a number. Each parameter set now shows its values, the metrics are
+  labelled as reported by the trainer, and a note says where MAYA's own blind score is.
+
 **Screenshots in the user help**
 
 - Each Help subject now shows the screens it describes — 26 screenshots of a running MAYA, in
