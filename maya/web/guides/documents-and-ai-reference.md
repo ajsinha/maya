@@ -6,6 +6,8 @@ This reference is for model owners and validators who generate model cards, vali
 
 MAYA generates three kinds of document from one model version's record:
 
+![A model's Documents tab: generate a model card, validation report or documentation, and view, download or approve it](../static/help/screens/model-documents.png)
+
 | Kind | Built-in template | What it is |
 |---|---|---|
 | `model_card` | `model_card` | Intended use, what it computes, inputs and parameters, training data, performance, fairness, limitations, and where it runs. |
@@ -134,6 +136,8 @@ Approval covers the drafted sections too: the approver is putting their name to 
 ## The AI gateway
 
 The AI gateway (`maya/services/ai.py`) is the one place MAYA asks a language model anything: document sections, the recorded challenger with `assistant.provider: llm`, the **Test** button, and live evaluations of [LLM applications](/help/llm-apps). Callers name a **model profile**, never a provider or a model, so moving from one model to another is an edit to a profile — never to a template or to code.
+
+![Admin → AI models: the model profiles, which is the default, and the providers on offer](../static/help/screens/admin-ai.png)
 
 What comes back is a draft. Nothing in the gateway approves, blocks or edits anything.
 

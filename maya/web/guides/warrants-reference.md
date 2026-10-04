@@ -15,6 +15,8 @@ Every warrant keeps a **custody log**: an append-only list of events with the ac
 
 ## Training warrants
 
+
+![A training warrant's page](../static/help/screens/training-warrant.png)
 ### Creating one
 
 ```python
@@ -187,6 +189,8 @@ Every transition that moves writes a custody event named after it.
 
 ## Execution warrants
 
+
+![A live execution warrant: its terms, the execution manifest, and the restated-data section](../static/help/screens/execution-warrant.png)
 ### Creating one
 
 ```python

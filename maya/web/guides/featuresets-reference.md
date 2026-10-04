@@ -329,6 +329,8 @@ training data must never move; the warrant records which pin it drew.
 
 ## In the UI
 
+
+![A feature set's page: members, versions, pins and the effective licence](../static/help/screens/featureset.png)
 * **Workbench → Feature set builder** (`/workbench/featuresets/new`) builds the
   definition and previews it (`/workbench/featuresets/{ns}/{name}/preview`).
 * **Catalog → Feature sets** (`/catalog/featuresets`) lists sets; each set's

@@ -151,7 +151,7 @@ Some jobs promise something to the rest of the system. A pin row that is `materi
 
 `JobQueue.start` runs `jobs.workers` daemon threads, each looping `run_one` and waiting on the wake event (or one second) when the queue is empty; a worker never dies on one bad job. The primary process starts them; an extra web process does not; `run_maya_web.py --worker` builds a platform in the `worker` role, which runs the job queue and nothing else — no HTTP server, no scheduler, no webhook dispatcher — so a long pin cannot compete with interactive traffic for the same interpreter. Only the primary reaps: on startup it requeues every job left `running`, because a process that died cannot finish them; from a second process that would steal jobs the first is halfway through. `drain()` runs jobs inline until the queue is empty, which is what tests and `maya.testing` use.
 
-![The jobs console: type, owner, state, progress, attempts, the last message and the trace id of every job](img/screens/admin-jobs.png)
+![The jobs console: type, owner, state, progress, attempts, the last message and the trace id of every job](../../maya/web/static/help/screens/admin-jobs.png)
 
 ### The scheduler
 

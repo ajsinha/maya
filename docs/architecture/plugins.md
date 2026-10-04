@@ -112,7 +112,7 @@ There are eleven: `source_driver`, `resolution_rule`, `lake_store`, `exporter`, 
 
 Reading from the implementing code means nothing is listed to make the table look full, and nothing that exists can be missing from it.
 
-![Extension points and plugins: each point, its protocol, and what is registered there, built-ins included](img/screens/admin-extensions.png)
+![Extension points and plugins: each point, its protocol, and what is registered there, built-ins included](../../maya/web/static/help/screens/admin-extensions.png)
 
 ### Discovery and the allowlist
 

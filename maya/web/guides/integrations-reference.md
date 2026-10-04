@@ -4,6 +4,8 @@ This reference is for platform engineers and model owners connecting MAYA to the
 
 ## At a glance
 
+
+![Models → Import a model: MLflow and SageMaker in, OpenLineage out](../static/help/screens/integrations.png)
 | Integration | Direction | What moves | Settings |
 |---|---|---|---|
 | MLflow import | in | An `MLmodel` file, uploaded or fetched from the configured tracking server, becomes a black-box draft | `integrations.mlflow.tracking_uri`, `integrations.mlflow.token_env` |

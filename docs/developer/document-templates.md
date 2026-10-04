@@ -112,7 +112,7 @@ To exercise the whole path — job, drafting, storage, labels — use the determ
 
 The stub's answer contains the section's instruction and a hash of the prompt, so a test can tell which request produced which text. With `use_ai=False` no provider is consulted at all and every `ai()` section says so — the right setting for a test about layout.
 
-![A model's Documents tab: kind, template and profile, then Generate](../architecture/img/screens/model-documents.png)
+![A model's Documents tab: kind, template and profile, then Generate](../../maya/web/static/help/screens/model-documents.png)
 
 ## Adding a fact to the snapshot
 

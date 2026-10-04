@@ -69,7 +69,7 @@ The certificate proves that no row uses a value MAYA could not have known by its
 
 Two kinds of exception exist: rows whose knowledge time is later than their event date plus `leakage_lag_days`, and attributes filled by a non-causal rule (the flag set by [resolution](resolution.md)). Each needs a written justification in the spec, and non-causal fill also needs `allow_non_causal`; anything unjustified makes the certificate `refused`, and the `leakage_certified` workflow check then blocks submission. The certificate body — the rule, rows examined, violations, up to twenty example rows, exceptions, status, issue time — is canonicalised and signed with the platform's Ed25519 key. Without a crypto backend it is stored unsigned with the reason, and anything that needs a signature refuses (`CapabilityRefused`) rather than accepting an unsigned one.
 
-![A sealed training warrant: the contract satisfied, the leakage certificate certified with one justified exception, and the start of its chain of custody](img/screens/training-warrant.png)
+![A sealed training warrant: the contract satisfied, the leakage certificate certified with one justified exception, and the start of its chain of custody](../../maya/web/static/help/screens/training-warrant.png)
 
 ### The checksum cycle
 
@@ -128,7 +128,7 @@ An execution warrant is created against a training warrant and its approved para
 
 `check(ew, environment)` fails closed on anything but `live` in a listed environment, naming whom to contact; `check_allowance` refuses a run once the day's call or row allowance is spent (`QuotaExceeded` — limits throttle, where covenants suspend). `token` issues a short-lived token whose claims carry the warrant, environment, IR hash, parameters hash, subject and expiry, canonicalised and signed. `bundle` gives a scorer everything in one call — manifest, IR, member IRs, parameters, status and a token — and an offline copy is issued only as `unattested`, recorded in custody and audited, and marks the warrant as having been issued for offline use.
 
-![A live execution warrant: environments, contact and executions, the frozen manifest with its covenants, and the restated-data panel](img/screens/execution-warrant.png)
+![A live execution warrant: environments, contact and executions, the frozen manifest with its covenants, and the restated-data panel](../../maya/web/static/help/screens/execution-warrant.png)
 
 ### Reports, covenants and suspension
 

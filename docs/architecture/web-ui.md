@@ -145,13 +145,13 @@ async def browse(request: Request) -> Any:
     )
 ```
 
-![The catalog: one table macro, faceted by type, namespace, owner, status, tag and freshness](img/screens/catalog.png)
+![The catalog: one table macro, faceted by type, namespace, owner, status, tag and freshness](../../maya/web/static/help/screens/catalog.png)
 
 ### Rendering and the page chrome
 
 `render` merges the route's context with the *chrome* every page shows: the unread notification count and a health summary (environment, database dialect, lake backend, sandbox tier, whether the bootstrap administrator still has the default password). The chrome is itself fetched through the SDK (`access.inbox`, `admin.health`), and the health half is cached in-process for 30 seconds (`HEALTH_TTL`) because every page would otherwise ask for it. The banners at the top of each screenshot on these pages come from there.
 
-![The dashboard, with the chrome's two banners: the default-password warning and the backend summary](img/screens/dashboard.png)
+![The dashboard, with the chrome's two banners: the default-password warning and the backend summary](../../maya/web/static/help/screens/dashboard.png)
 
 `asset_version()` appends a token, computed once at import from the newest non-vendored CSS or JS file under `static/`, to every stylesheet and script URL, so a browser holding yesterday's `theme.css` cannot lay out today's markup with it.
 
@@ -177,13 +177,13 @@ class Table:
 
 The content security policy is `script-src 'self'` (set in `maya/api/app.py`), so there is no inline script anywhere. Pages declare behaviour with `data-*` attributes and the scripts under `static/js/` attach it: `app.js` (job polling, JSON validation, confirmations), `table.js`, `editors.js` (CodeMirror 5, [ADR-020](../design/adr/ADR-020-codemirror-5.md)), `expr.js` (a mirror of the expression grammar for autocomplete and inline checking — the server re-parses everything on save), `lineage.js` (Cytoscape), `kernel.js`, `pin_preview.js`, `policy.js` and `webauthn.js`. None of them decides anything; each is a convenience over a server call that would refuse the same thing.
 
-![The feature designer: structured fields for index, source, attributes and rules; the expression box is checked as you type and again by the server](img/screens/feature-designer.png)
+![The feature designer: structured fields for index, source, attributes and rules; the expression box is checked as you type and again by the server](../../maya/web/static/help/screens/feature-designer.png)
 
 ### The help system
 
 Help is organised by subject (`help_catalog.SUBJECTS`): each subject opens with short worked *parts* (`templates/help/parts/<slug>.html`) and continues with a full reference guide in Markdown (`maya/web/guides/<slug>.md`). `guide_render.render` converts a guide with Python-Markdown, turns code blocks into captioned, copyable examples and admonitions into the help boxes, and caches the result keyed by the file's modification time.
 
-![Help: subjects grouped by category, with search across them](img/screens/help.png)
+![Help: subjects grouped by category, with search across them](../../maya/web/static/help/screens/help.png)
 
 `docs_render.py` serves the pages you are reading under `/help/docs/<group>/<page>`. It renders the same Markdown files a reader sees on GitHub, with three changes: each Mermaid block is replaced by the SVG `tools/docs/diagrams.py` drew from it, named by a hash of the block's source so a page can never show a stale picture; links between these pages stay inside Help, and links to the guides go to the Help subject that carries them; and a link to any other repository file keeps its text and loses its target. An installed package has no `docs/` folder, so these pages are offered only from a checkout.
 

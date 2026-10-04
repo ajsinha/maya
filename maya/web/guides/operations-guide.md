@@ -218,6 +218,8 @@ MAYA refuses to anchor a chain that does not verify. Administrators and techops 
 
 ## Health and readiness
 
+
+![Admin → System health](../static/help/screens/admin-health.png)
 | Endpoint | Authentication | Answers |
 |---|---|---|
 | `GET /healthz` | none | `{"alive": true, "version": …}` while the process serves |
@@ -283,6 +285,8 @@ Logs go to the console and to `logging.file` (rotating at 20 MB, five files kept
 ## Jobs
 
 Slow work runs in a queue held in the database, claimed by `jobs.workers` worker threads.
+
+![Admin → Jobs](../static/help/screens/admin-jobs.png)
 
 | Job type | Started by |
 |---|---|

@@ -125,7 +125,7 @@ A derived feature's source is an algebra expression over other features or pins.
 
 Lineage is recorded between versions and pins, never between bare objects: a training warrant links the feature set pin it was drawn on and the model version it trained, a pin links the version it sealed. `OpsService.lineage` walks those edges from a root: upstream follows edges into a node (what built it), downstream edges out of it (what uses it), and *both* is the two walks joined, each keeping its direction all the way — it never turns at a node, which would draw a feature's fellow members of a feature set, or a model's fellow inputs to a warrant, as if they were its lineage. A bare object as the root (`maya://model/ns/name`) is drawn through its versions and pins that have lineage, each joined to it by a `version_of` or `pin_of` edge, so asking about an object shows what its versions were built from and feed.
 
-![The lineage canvas rooted at a training warrant: the features and their pins, the feature set pin it was drawn on, the model version it trained, and the execution warrant that licenses it](img/screens/lineage.png)
+![The lineage canvas rooted at a training warrant: the features and their pins, the feature set pin it was drawn on, the model version it trained, and the execution warrant that licenses it](../../maya/web/static/help/screens/lineage.png)
 
 ### A feature set: assembled, aligned, filled under a recorded precedence
 
@@ -154,7 +154,7 @@ The precedence — attribute override, member group, the set's global policy, th
 
 The as-of join is `pandas.merge_asof` on the event date, `by` the remaining index columns, with the tolerance and direction the alignment declares (only `backward` and `forward` are accepted).
 
-![A feature set's overview: versions and the effective attribute mapping onto member features](img/screens/featureset.png)
+![A feature set's overview: versions and the effective attribute mapping onto member features](../../maya/web/static/help/screens/featureset.png)
 
 ### Cascade pins
 

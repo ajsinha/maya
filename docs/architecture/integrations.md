@@ -87,7 +87,7 @@ the text check (one statement, `SELECT` or `WITH`, no forbidden keyword outside 
 
 **Delta.** A `delta` source reads an external Delta table through `maya_delta`, at the version committed at or before the resolution's knowledge cut-off (or a pinned version), with each row's knowledge time taken from a declared column or the commit time of the version it came from. The path must lie inside `sources.delta.roots`, so a definition cannot name an arbitrary directory on the server.
 
-![SQL source connections: a URL with no password and the name of the environment variable that holds it](img/screens/admin-sources.png)
+![SQL source connections: a URL with no password and the name of the environment variable that holds it](../../maya/web/static/help/screens/admin-sources.png)
 
 ### Models in: MLflow and SageMaker
 
@@ -115,7 +115,7 @@ From MLflow, the `MLmodel` file is uploaded or fetched from `integrations.mlflow
 
 MAYA does not serve models; the platform that does reads MAYA's decisions from the registry. `sync_mlflow` points the `integrations.mlflow.live_alias` alias (default `maya-live`) at every MLflow-imported version that has a live execution warrant, and removes it from every version that does not. It is a reconciler rather than a hook in every warrant transition: each pass compares what should be true with what it last made true, so a suspension, a revocation, an expiry and an overdue review all reach the registry the same way, within one interval (`integrations.mlflow_sync`, every five minutes).
 
-![Connectors: MLflow and SageMaker import, and the MLflow registry sync](img/screens/integrations.png)
+![Connectors: MLflow and SageMaker import, and the MLflow registry sync](../../maya/web/static/help/screens/integrations.png)
 
 ### Lineage out: OpenLineage
 

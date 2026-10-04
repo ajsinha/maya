@@ -233,7 +233,7 @@ profiles:
 
 The profiles file is read through the configurator, so the `${VAR:default}` placeholder resolves exactly as a setting would ([settings-and-config.md](settings-and-config.md)). The same profile can be saved from **Admin → AI models**, where the provider must already be on offer — `save_profile` refuses a provider the registry does not hold.
 
-![Admin → AI models: profiles, the default, and the providers on offer](../architecture/img/screens/admin-ai.png)
+![Admin → AI models: profiles, the default, and the providers on offer](../../maya/web/static/help/screens/admin-ai.png)
 
 ## How to test it
 

@@ -65,7 +65,7 @@ A profile names a provider, a model, sampling parameters and any provider option
 
 Because the choice is read from the database on each resolution, switching the default takes effect at once in every process without a restart. A template asks `ai("intended_use", "...", profile="local")`, or leaves the profile out; moving a deployment from one provider to another, or giving one kind of section a cheaper model, is a profile edit, never a template or code change. A profile's secrets are never stored: a saved profile's options naming a key, secret, password or token are refused unless the name ends in `_env` (naming the environment variable that holds it), and providers read keys from the environment at the moment of use.
 
-![Admin, AI models: the profiles, where the default was chosen, whether each is ready, and the providers on offer](img/screens/admin-ai.png)
+![Admin, AI models: the profiles, where the default was chosen, whether each is ready, and the providers on offer](../../maya/web/static/help/screens/admin-ai.png)
 
 ### Providers are plugins
 
@@ -122,7 +122,7 @@ Templates are Jinja2 files producing Markdown (`<name>.md.j2`), looked up in `do
 
 Rendering produces Markdown, HTML (raw HTML in drafted text neutralised) or PDF: the Markdown subset becomes a LaTeX article (`documents/latex.py`) built under the deployment's typesetting caps (`services/typesetting.py`), falling back to the draft renderer when the host cannot build it and saying so.
 
-![A model's Documents tab: the kind, template and profile, and whether drafting is on; with no provider configured, sections are marked not drafted](img/screens/model-documents.png)
+![A model's Documents tab: the kind, template and profile, and whether drafting is on; with no provider configured, sections are marked not drafted](../../maya/web/static/help/screens/model-documents.png)
 
 ### The assistant: a recorded challenger and a drafter
 
@@ -134,7 +134,7 @@ The boundaries are structural rather than promised: memos live in their own tabl
 
 An LLM application is governed like a model whose "formula" is a provider, a model name, a system prompt, a prompt template, sampling parameters and guardrails. Every field that changes behaviour is sealed into a version's definition hash; editing is allowed only in draft, and any later change is a new version. An evaluation set is named cases — template variables and the checks the answer must pass — hashed as content. A run scores a version on a set, either *recorded* (answers produced elsewhere and submitted) or *live* (MAYA calls exactly the declared provider and model through `complete_declared`); checks are deterministic (`contains`, `regex`, `max_chars`, `json` and the like — no model grades another model), and guardrails (blocked terms, a length cap, personal-data patterns) run on every answer and fail the case whatever its checks said. A version can be submitted only with a run on its own definition hash, against its evaluation set in its current state, that meets its pass-rate threshold with no guardrail violation, and it is decided by someone who neither owns the application nor submitted it.
 
-![An LLM application: versions with their provider, model and definition hash; the draft's system prompt, template and guardrails](img/screens/llm-app.png)
+![An LLM application: versions with their provider, model and definition hash; the draft's system prompt, template and guardrails](../../maya/web/static/help/screens/llm-app.png)
 
 ## Example
 

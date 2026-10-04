@@ -667,3 +667,8 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 /* architecture and developer docs in Help */
 .help-diagram { display: block; max-width: 100%; height: auto; margin: 1rem auto; padding: .75rem; background: #fff; border: 1px solid var(--maya-border, #e3dcd4); border-radius: 8px; }
 .guide-body img:not(.help-diagram) { max-width: 100%; height: auto; border: 1px solid var(--maya-border, #e3dcd4); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+
+/* screenshots in Help */
+.help-shot { margin: 1rem 0 1.25rem; }
+.help-shot img, .guide-body p > img { display: block; max-width: 100%; height: auto; border: 1px solid var(--maya-border, #e3dcd4); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.help-shot figcaption { font-size: .85rem; color: var(--maya-muted, #6b6b6b); margin-top: .4rem; }

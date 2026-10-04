@@ -21,6 +21,8 @@ Applications use the same grants as models: creating one needs `create` on model
 
 ## Applications
 
+
+![Models → LLM applications](../static/help/screens/llm-apps.png)
 ```python
 # Create an application, saying what it is for
 import maya.sdk as maya
@@ -239,6 +241,8 @@ These rules are MAYA's own for LLM applications, not a workflow policy: the poli
 ## In the UI
 
 On `/llm/<ns>/<name>`, the version form takes the provider, model, parameters as JSON, system prompt, prompt template, blocked terms (comma-separated), a character cap, the pass rate needed and **Fail on personal data**. Unticking that box saves `pii: false` — the API's default is `true`, so the form is the one place personal-data checking is switched off by leaving something out. The evaluation-set form takes the cases as JSON; the run form chooses **recorded** (with the answers as JSON, case id to answer) or **live**, listing the live providers. **Submit**, **Approve** and **Reject** appear on each version as they apply.
+
+![An LLM application's page: its versions, evaluation sets and runs](../static/help/screens/llm-app.png)
 
 ## What this does not do
 

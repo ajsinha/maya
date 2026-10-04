@@ -58,6 +58,19 @@ def _admonitions(text: str) -> str:
     return text
 
 
+_SHOT = re.compile(r'<p>\s*<img alt="([^"]*)" src="([^"]+/help/screens/[^"]+)"\s*/?>\s*</p>')
+
+
+def captioned(body: str) -> str:
+    """A screenshot standing alone in a paragraph becomes a figure whose caption is its alt
+    text, so the reader sees what the picture shows."""
+    return _SHOT.sub(
+        r'<figure class="help-shot"><img alt="\1" src="\2" loading="lazy">'
+        r"<figcaption>\1</figcaption></figure>",
+        body,
+    )
+
+
 def render(slug: str) -> dict[str, Any]:
     """{"html", "toc", "title"} for a guide; raises FileNotFoundError when absent."""
     import markdown
@@ -78,6 +91,9 @@ def render(slug: str) -> dict[str, Any]:
         "<table>", '<div class="mt-scroll help-table-wrap"><table class="maya-table">'
     ).replace("</table>", "</table></div>")
     body = re.sub(r"<h1[^>]*>.*?</h1>", "", body, count=1, flags=re.S)  # the page header has it
+    # a guide names a screenshot relative to itself (../static/help/screens/x.png), which reads
+    # on GitHub; in Help that is the static file MAYA serves
+    body = captioned(body.replace('src="../static/', 'src="/static/'))
     toc = [
         {
             "id": t["id"],
