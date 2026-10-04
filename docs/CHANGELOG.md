@@ -6,6 +6,9 @@
   metrics the trainer reported, so nothing on the page connected the generated code's
   `params['wBureau']` to a number. Each parameter set now shows its values, the metrics are
   labelled as reported by the trainer, and a note says where MAYA's own blind score is.
+  The tab also names the version's parameters and, separately, the inputs that are
+  features — read from data through a warrant's mapping — so a model with one parameter
+  (`fee`) and four mapped features no longer looks as if parameters were missing.
 
 **Screenshots in the user help**
 

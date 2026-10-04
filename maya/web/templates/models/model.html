@@ -172,6 +172,14 @@ class Model:
   {% if reference %}<h3>Reference implementation, generated from the IR</h3><pre>{{ reference }}</pre>{% endif %}
 </div>
 <div class="tab-pane {% if tab == 'params' %}show active{% endif %}" id="tab-params" role="tabpanel">
+  {# parameters are declared in the formula's inputs (a composite's in its computed contract);
+     the contract lists the inputs read from data #}
+  {% set contract = v.input_contract or [] %}
+  {% set ir_inputs = (v.formula_ir or {}).get('inputs') or [] %}
+  {% set prm = ((ir_inputs + contract)|selectattr('role', 'equalto', 'parameter')|map(attribute='name')|unique|list) %}
+  {% set feats = contract|rejectattr('role', 'equalto', 'parameter')|map(attribute='name')|list %}
+  <div class="alert alert-light border small mb-2">This version's <strong>parameters</strong> — one value each, set by a parameter set: {% if prm %}<code>{{ prm|join('</code>, <code>')|safe }}</code>{% else %}none{% endif %}.
+    Its other inputs — {% if feats %}<code>{{ feats|join('</code>, <code>')|safe }}</code>{% else %}none{% endif %} — are <strong>features</strong>: read from data, row by row, through a warrant's mapping.</div>
   <p class="small-muted">A parameter set holds the <strong>values</strong> of the formula's parameters — the names the generated code reads as <code>params['…']</code> — fitted under a training warrant. <strong>Fit metrics</strong> are what the trainer reported with the upload; MAYA records them as stated. MAYA's own measure of a set is its blind score on the warrant's escrowed holdout, shown on the training warrant.</p>
   {% call(p) table("params", ["Name", "State", "Values", "Verified data", "Fit metrics (reported)", "Values hash", "Warrant", "Created"], v.parameter_sets, empty="No parameter sets. They are uploaded against a training warrant.") %}
     <td>{{ p.name }}</td><td>{{ pill(p.state) }}</td>
