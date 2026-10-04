@@ -39,6 +39,14 @@
     {% endfor %}
     </div>
     {% block content %}{% endblock %}
+    {% if page_help %}
+    <details class="page-help" id="page-help" open>
+      <summary><i class="bi bi-info-circle" aria-hidden="true"></i> About this page</summary>
+      <p>{{ page_help.what|safe }}</p>
+      {% if page_help.points %}<ul>{% for pt in page_help.points %}<li>{{ pt|safe }}</li>{% endfor %}</ul>{% endif %}
+      {% if page_help.subject %}<p class="mb-0"><a href="/help/{{ page_help.subject }}"><i class="bi bi-book" aria-hidden="true"></i> More in Help</a></p>{% endif %}
+    </details>
+    {% endif %}
   </main>
   {# The slogan closes every page, not only the sign-in and the dashboard: it is what the
      platform claims about itself, and a claim belongs where the work is, not on the way in. #}

@@ -172,6 +172,16 @@
   }
   document.querySelectorAll('[data-job-id]').forEach(pollJob);
 
+  // "About this page": collapsed once, it stays collapsed for this browser
+  (function () {
+    var box = document.getElementById('page-help');
+    if (!box) { return; }
+    try { if (window.localStorage.getItem('maya.pageHelp') === 'closed') { box.open = false; } } catch (e) { /* private window */ }
+    box.addEventListener('toggle', function () {
+      try { window.localStorage.setItem('maya.pageHelp', box.open ? 'open' : 'closed'); } catch (e) { /* private window */ }
+    });
+  }());
+
   document.addEventListener('click', function (ev) {
     var add = ev.target.closest('[data-add-row]');
     if (add) {

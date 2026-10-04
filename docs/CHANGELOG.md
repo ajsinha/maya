@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**"About this page" on every page, and the concepts behind a model**
+
+- Every page now ends with a short **About this page**: what the page is for, what you can do
+  there, the idea that makes sense of it, and a link to the Help subject that covers it in
+  full. It can be collapsed, and stays collapsed for that browser. A test fails if any page
+  has none, so a new screen cannot be added without saying what it is.
+- The Models subject in Help explains **features, parameters and constants** — what each is,
+  where its value comes from, and why MAYA keeps them apart — with the two case-study models
+  as examples; the glossary points to it, and the model pages' help links straight to it.
+- The help screenshots were retaken to show the current screens.
+
 - **A model's Parameters tab shows the fitted values.** It listed a hash of the values and the
   metrics the trainer reported, so nothing on the page connected the generated code's
   `params['wBureau']` to a number. Each parameter set now shows its values, the metrics are
