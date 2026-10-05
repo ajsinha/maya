@@ -41,7 +41,21 @@
     {% block content %}{% endblock %}
     {# "About this page" (maya/web/page_help.py): what this page is for, as tiles in the
        cards' own language, collapsible, and reachable from the ? in the top bar #}
-    {% if page_help %}
+    {% if page_help and not (user or public_nav) %}
+    {# signed out (sign in, password reset, second factor): a quiet note under the card, in its
+       column, not the full-width panel the signed-in pages end with #}
+    <div class="row justify-content-center">
+      <div class="col-md-5 col-lg-4">
+        <aside class="page-help-note" id="page-help" aria-label="About this page">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <div>
+            <p>{{ page_help.what|safe }}{% for heading, icon, text in page_help.points %} {{ text|safe }}{% endfor %}</p>
+            {% if page_help.subject %}<a href="/help/{{ page_help.subject }}">More in Help <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+          </div>
+        </aside>
+      </div>
+    </div>
+    {% elif page_help %}
     <details class="page-help" id="page-help" open>
       <summary>
         <span class="ph-title"><i class="bi bi-compass" aria-hidden="true"></i> About this page</span>
