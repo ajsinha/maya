@@ -54,10 +54,13 @@ def test_the_help_is_shown_at_the_foot_of_a_page(env):  # noqa: F811
     page = TestClient(app).get("/login").text  # public, so no sign-in is needed here
     assert 'id="page-help"' in page and "About this page" in page
     assert 'href="/help/security"' in page
-    assert 'class="ph-tile"' in page and "Single sign-on" in page  # its points, as tiles
+    # signed out, it is a quiet note under the card, not the panel of tiles
+    assert 'class="page-help-note"' in page and "single sign-on configured" in page
+    assert 'class="ph-tile"' not in page
     from tests.test_web import _login
 
     signed_in = TestClient(app)
     _login(signed_in)
     models = signed_in.get("/models").text
     assert 'href="#page-help"' in models  # the ? in the top bar that jumps to it
+    assert 'class="ph-tile"' in models  # signed in, its points are tiles

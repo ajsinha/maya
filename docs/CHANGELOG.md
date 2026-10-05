@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Signed-out pages:** on the sign-in, forgotten-password, reset and second-factor pages,
+  "About this page" is a frosted note centred under the card, instead of the signed-in
+  panel of tiles stranded at the left with its heading lost on the gradient. The page footer
+  there is set in light text, so its slogan and links can be read.
+
 - **"About this page" redesigned** to match the rest of the UI: a gradient heading with the
   page's one-line summary and a link to Help, and each point as a titled tile with an icon,
   in the same card style as the panels above it. The ? in the top bar jumps to it from
