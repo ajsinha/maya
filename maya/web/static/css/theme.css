@@ -95,6 +95,7 @@ pre { background: var(--maya-surface); border: 1px solid var(--maya-border); bor
 .maya-tools .tool { position: relative; display: inline-flex; align-items: center; gap: .45rem; border: 0; background: transparent;
   color: var(--maya-on-nav); padding: .45rem .55rem; border-radius: 10px; text-decoration: none; font-weight: 600; }
 .maya-tools .tool:hover { background: rgba(255,255,255,.14); color: var(--maya-on-nav); }
+.maya-tools .tool.active { background: rgba(255,255,255,.18); }
 .maya-tools .dot { position: absolute; top: 1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
   font-size: 10.5px; line-height: 17px; text-align: center; background: var(--maya-on-nav); color: var(--maya-crimson-deep); font-weight: 800; }
 .maya-tools .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800;

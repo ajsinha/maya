@@ -866,7 +866,7 @@ PAGES: dict[str, tuple[str, list[tuple[str, str, str]], str | None]] = {
 
 # routes that are not pages (downloads, JSON, redirects, standalone documents) or are Help
 EXEMPT = (
-    re.compile(r"^/(help|about|static|ui|auth|api)(/|$)"),
+    re.compile(r"^/(help|about|static|ui|auth|api|welcome)(/|$)"),  # the landing explains itself
     re.compile(
         r"\.(pdf|xml|json|yaml|xlsx)$|/download$|/data$|/output$|/bundle\.json$"
         r"|/documents/\{doc_id\}$|/bundles/\{digest\}$"

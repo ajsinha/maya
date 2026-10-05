@@ -28,16 +28,26 @@ async def front(request: Request) -> Any:
     a sign-in form answers "who are you" to somebody who has not yet been told why they
     would want an account here."""
     if not request.session.get("token"):
-        from maya.web.case_studies import catalog
-
         if "signed_out" in request.query_params:
             flash(request, "You are signed out.", "info")
             return RedirectResponse("/", status_code=303)  # the message once, a clean address
 
-        return await render(
-            request, "landing.html", {"public_nav": True, "study_count": len(catalog())}
-        )
+        return await landing(request)
     return await dashboard(request)
+
+
+@router.get("/welcome")
+async def landing(request: Request) -> Any:
+    """The landing page, signed in or not: MAYA's logo leads here from every page. Signed in,
+    its calls to action lead back to the dashboard instead of to the sign-in form. It is its
+    own explanation, so it ends with no "About this page"."""
+    from maya.web.case_studies import catalog
+
+    return await render(
+        request,
+        "landing.html",
+        {"public_nav": True, "study_count": len(catalog()), "page_help": None},
+    )
 
 
 @page

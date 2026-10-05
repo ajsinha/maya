@@ -64,3 +64,23 @@ def test_the_help_is_shown_at_the_foot_of_a_page(env):  # noqa: F811
     models = signed_in.get("/models").text
     assert 'href="#page-help"' in models  # the ? in the top bar that jumps to it
     assert 'class="ph-tile"' in models  # signed in, its points are tiles
+
+
+def test_the_logo_leads_to_the_landing_page_and_the_house_leads_back(env):  # noqa: F811
+    from starlette.testclient import TestClient
+
+    from tests.test_web import _login
+
+    _, app, _, _ = env
+    visitor = TestClient(app)
+    assert 'href="/welcome"' in visitor.get("/help").text  # the public bar's logo
+    landing = visitor.get("/welcome").text
+    assert 'href="/login"' in landing and "Go to your dashboard" not in landing
+    member = TestClient(app)
+    _login(member)
+    page = member.get("/welcome")
+    assert page.status_code == 200 and "Go to your dashboard" in page.text
+    assert 'class="navbar-brand maya-brand" href="/welcome"' in page.text
+    assert 'aria-label="Your dashboard"' in page.text  # the house in the top bar
+    assert 'id="page-help"' not in page.text  # the landing page is its own explanation
+    assert 'id="page-help"' not in visitor.get("/").text  # signed out, / is the landing too

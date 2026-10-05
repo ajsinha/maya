@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The MAYA logo opens the landing page**, signed in or not (at `/welcome`). Signed in, the
+  landing page's calls to action read "Go to your dashboard", and a house in the top bar
+  leads back to the dashboard from every page; until now the logo was the only way there.
+  The landing page no longer ends with the dashboard's "About this page".
+
 - **Signed-out pages:** on the sign-in, forgotten-password, reset and second-factor pages,
   "About this page" is a frosted note centred under the card, instead of the signed-in
   panel of tiles stranded at the left with its heading lost on the gradient. The page footer
