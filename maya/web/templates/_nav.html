@@ -83,7 +83,7 @@
 
 <nav class="navbar navbar-expand-lg maya-nav fixed-top" aria-label="Main">
   <div class="container-fluid">
-    <a class="navbar-brand maya-brand" href="/"><img src="/static/img/maya-mark-white.svg" alt="">
+    <a class="navbar-brand maya-brand" href="/welcome" title="About MAYA"><img src="/static/img/maya-mark-white.svg" alt="">
       {# Three lines, in the order a reviewer needs them: the name, what MAYA is, and what
          it undertakes to do. The claim sits with the brand rather than out in the bar,
          where it would read as one more control competing for a click. #}
@@ -124,6 +124,7 @@
         <input id="global-search" name="q" type="search" placeholder="Search…  Ctrl-K" value="{{ q or '' }}">
       </form>
       <div class="maya-tools">
+        <a class="tool {% if path == '/' %}active{% endif %}" href="/" aria-label="Your dashboard" title="Your dashboard"><i class="bi bi-house-door" aria-hidden="true"></i></a>
         {% if page_help %}<a class="tool" href="#page-help" data-page-help aria-label="About this page" title="About this page"><i class="bi bi-question-circle" aria-hidden="true"></i></a>{% endif %}
         <a class="tool" href="/inbox" aria-label="Inbox, {{ unread }} unread"><i class="bi bi-bell" aria-hidden="true"></i>
           {% if unread %}<span class="dot">{{ unread }}</span>{% endif %}</a>

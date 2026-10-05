@@ -17,7 +17,8 @@
       remember — features that keep two clocks, a formula the platform evaluates itself, and a warrant that
       has to exist before a model may be fitted or run.</p>
     <div class="lp2-actions">
-      <a class="lp2-btn lp2-btn-primary" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>
+      {% if user %}<a class="lp2-btn lp2-btn-primary" href="/"><i class="bi bi-house-door" aria-hidden="true"></i> Go to your dashboard</a>
+      {% else %}<a class="lp2-btn lp2-btn-primary" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>{% endif %}
       <a class="lp2-btn lp2-btn-outline" href="/help"><i class="bi bi-book" aria-hidden="true"></i> Read the documentation</a>
     </div>
     <figure class="lp2-fig lp2-fig-hero">
@@ -230,9 +231,11 @@ w.<span class="f">submit</span>()               <span class="c"># and a second p
 
 <section class="lp2-cta">
   <h2>{{ APP_SLOGAN }}</h2>
-  <p>Sign in to the catalog, or start with the help centre if you have not seen MAYA before.</p>
+  {% if user %}<p>Back to your work, or to the help centre.</p>
+  {% else %}<p>Sign in to the catalog, or start with the help centre if you have not seen MAYA before.</p>{% endif %}
   <div class="lp2-actions">
-    <a class="lp2-btn lp2-btn-light" href="/login">Sign in</a>
+    {% if user %}<a class="lp2-btn lp2-btn-light" href="/">Go to your dashboard</a>
+    {% else %}<a class="lp2-btn lp2-btn-light" href="/login">Sign in</a>{% endif %}
     <a class="lp2-btn lp2-btn-ghost" href="/help">Help centre</a>
     <a class="lp2-btn lp2-btn-ghost" href="/about">About {{ APP_NAME }}</a>
   </div>
