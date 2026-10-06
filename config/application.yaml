@@ -27,7 +27,9 @@ app:
   allow_default_admin_password: "false"
 
 server:
-  host: "${MAYA_HOST:127.0.0.1}"
+  # 0.0.0.0 listens on every network interface, so other machines on the network (a phone on
+  # the same Wi-Fi, a colleague) can open MAYA; 127.0.0.1 accepts this machine only.
+  host: "${MAYA_HOST:0.0.0.0}"
   port: "${MAYA_PORT:8600}"
   # Web processes. 1 serves everything from one process. Above 1 (PostgreSQL only:
   # SQLite admits one writing process, and MAYA refuses the combination), this many

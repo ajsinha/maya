@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **MAYA listens on every network interface by default** (`server.host: 0.0.0.0`, was
+  `127.0.0.1`), so a phone or another computer on the same network can open the UI. The
+  start-up banner prints the addresses a browser can actually use — this machine's and its
+  network address — instead of `0.0.0.0`. `--server.host=127.0.0.1` keeps it to this machine.
+  The quick start and the IDE guide say how to reach it from a phone and what to do when the
+  firewall blocks the port. The quick start also no longer says there is no "forgot password"
+  link: there is one.
+
 **Phones**
 
 - Every page was opened at 390px (a current phone) and measured; none scrolls sideways now.

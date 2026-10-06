@@ -115,7 +115,7 @@ The same list is `GET /api/v1/system/config`.
 
 | Key | Default | Placeholder | Meaning |
 |---|---|---|---|
-| `server.host` | `127.0.0.1` | `MAYA_HOST` | The address the server listens on. The default accepts local connections only; use `0.0.0.0` behind a reverse proxy. |
+| `server.host` | `0.0.0.0` | `MAYA_HOST` | The address the server listens on. The default, every interface, lets other machines on the network (a phone on the same Wi-Fi) open MAYA; `127.0.0.1` accepts this machine only. |
 | `server.port` | `8600` | `MAYA_PORT` | The listening port. |
 | `server.workers` | `1` | `MAYA_WEB_WORKERS` | Web processes. Above 1 — PostgreSQL only; with SQLite, which admits one writing process, MAYA refuses to start — this many web processes serve the one port (on Linux each on its own `SO_REUSEPORT` socket, so connections spread evenly); the launching process alone keeps the job workers, webhooks and scheduler (jobs submitted from any process are rows its workers poll every second). One Python process serves roughly 40 page requests a second; size this to cores and load. Prometheus metrics are per process. |
 

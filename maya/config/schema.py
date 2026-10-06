@@ -115,7 +115,12 @@ SETTINGS: tuple[Setting, ...] = (
         "false",
     ),
     # -- the server -----------------------------------------------------------
-    _s("server.host", "string", "The address the web server binds.", "127.0.0.1"),
+    _s(
+        "server.host",
+        "string",
+        "The address the web server binds: 0.0.0.0 is every interface, 127.0.0.1 this machine only.",
+        "0.0.0.0",  # nosec B104 - every interface by design (--server.host=127.0.0.1 for local only)
+    ),
     _s("server.port", "int", "The port the web server binds.", "8600", minimum=1, maximum=65535),
     _s(
         "server.workers",

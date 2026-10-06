@@ -182,6 +182,26 @@ def _serve_jobs(platform: object) -> None:
         idle.wait(0.5)
 
 
+def _addresses(host: str, port: int) -> list[str]:
+    """The addresses a browser can open. 0.0.0.0 is not one: it means every interface, so
+    name this machine and its network address (the one another machine on the network would
+    use), found by asking which local address routes outward -- nothing is sent."""
+    if host not in ("0.0.0.0", "::"):  # nosec B104 - recognises the wildcard, binds nothing
+        return [f"http://{host}:{port}"]
+    import socket
+
+    found = [f"http://127.0.0.1:{port}"]
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 9))  # TEST-NET-1: a UDP connect only picks a route
+            lan = probe.getsockname()[0]
+        if not lan.startswith("127."):
+            found.append(f"http://{lan}:{port}")
+    except OSError:
+        pass  # no network: this machine only
+    return found
+
+
 def main(argv: list[str]) -> int:
     global _platform
     if any(a in ("-h", "--help") for a in argv[1:]):
@@ -221,14 +241,14 @@ def main(argv: list[str]) -> int:
         return 0
     import uvicorn
 
-    host = settings.get("server.host", "127.0.0.1") or "127.0.0.1"
+    host = settings.get("server.host", "0.0.0.0") or "0.0.0.0"  # nosec B104 - every interface by design: phones on the LAN reach the UI
     port = settings.int("server.port", 8600)
     workers = settings.int("server.workers", 1)
     from maya.core.backends import Backends
 
     loop = "uvloop" if Backends.selected("event_loop") == "uvloop" else "asyncio"
     print(
-        f"\n  Serving on http://{host}:{port}   (API docs: /api/v1/docs)"
+        f"\n  Serving on {', '.join(_addresses(host, port))}   (API docs: /api/v1/docs)"
         + (f"   ·   {workers} web processes" if workers > 1 else "")
         + "\n"
     )
