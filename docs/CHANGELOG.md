@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Phones**
+
+- Every page was opened at 390px (a current phone) and measured; none scrolls sideways now.
+  Header buttons wrap under the page title instead of running off the screen; object names
+  and references with no spaces break rather than widening the page; tab strips are one row
+  that swipes sideways; equations scroll inside their box; the default-password and SQLite
+  banners are shorter; the public top bar shows icons for Help and About and keeps "Sign in"
+  on one line; the landing page's full-bleed sections follow the narrower gutter. A browser
+  test fails if a page becomes wider than a phone.
+- "About this page" on the training- and execution-warrant forms described an existing
+  warrant: the path `/warrants/training/new` was matched by the pattern for a warrant's own
+  page. A literal path now wins over a pattern. The inventory workbook and the estate export
+  are downloads, not pages, and no longer have entries.
+
 - **The MAYA logo opens the landing page**, signed in or not (at `/welcome`). Signed in, the
   landing page's calls to action read "Go to your dashboard", and a house in the top bar
   leads back to the dashboard from every page; until now the logo was the only way there.
