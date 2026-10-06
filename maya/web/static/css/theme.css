@@ -720,3 +720,34 @@ h1 small, h1 span, h1 a, h1 code { color: var(--maya-slate); }
 .maya-public .maya-foot .maya-foot-slogan { color: var(--maya-on-nav); }
 .maya-public .maya-foot a { color: rgba(255,255,255,.85); }
 .maya-public .maya-foot a:hover { color: var(--maya-on-nav); }
+
+/* -- phones and narrow windows ------------------------------------------------------------
+   Pages are built from Bootstrap's grid, which already stacks; these rules handle what it
+   cannot: object names and references with no spaces to break at, header rows of buttons
+   beside a title, tab strips longer than the screen, equations, and the banners. */
+.katex-display { overflow-x: auto; overflow-y: hidden; padding-bottom: .2rem; }
+@media (max-width: 767.98px) {
+  .maya-content { padding-left: 1rem; padding-right: 1rem; }
+  /* the landing page's full-bleed sections cancel the content gutter, so they follow it */
+  .lp2-hero, .lp2-cta { margin-left: -1rem; margin-right: -1rem; padding-left: 1rem; padding-right: 1rem; }
+  .lp2-hero { min-height: 0; padding-top: 2.5rem; }
+  h1, .h1 { font-size: 1.4rem; overflow-wrap: anywhere; }
+  h2, h3, .mono, code { overflow-wrap: anywhere; }
+  /* a header row: the title takes the first line, its buttons wrap underneath */
+  .maya-content .d-flex { flex-wrap: wrap; }
+  .maya-content .d-flex > .me-auto:first-child { flex: 1 1 100%; min-width: 0; }
+  .maya-content .d-flex > h1.me-auto { flex: 1 1 100%; }
+  /* tabs: one row that swipes sideways, rather than three ragged rows */
+  .nav-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tabs .nav-link { white-space: nowrap; }
+  pre, .formula-box, .table-responsive { max-width: 100%; }
+  img, svg, canvas, video { max-width: 100%; }
+  .maya-banner { padding: .3rem 1rem; font-size: 12px; }
+  .maya-foot { padding-left: 1rem; padding-right: 1rem; }
+  .maya-nav .btn { white-space: nowrap; }
+}
+/* signed out on a phone, the public bar keeps the name and drops the two small lines */
+@media (max-width: 575.98px) {
+  .maya-public-nav .maya-brand small { display: none; }
+}

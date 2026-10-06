@@ -1,12 +1,12 @@
 {# The top bar for the public pages (Help, About) when nobody is signed in. #}
-<nav class="navbar navbar-expand maya-nav fixed-top" aria-label="Main">
+<nav class="navbar navbar-expand maya-nav maya-public-nav fixed-top" aria-label="Main">
   <div class="container-fluid">
     <a class="navbar-brand maya-brand" href="/welcome"><img src="/static/img/maya-mark-white.svg" alt="">
       <span><span class="name">MAYA</span><small>{{ APP_TAGLINE }}</small>
         <small class="creed">{{ APP_SLOGAN|trim('.') }}</small></span></a>
     <ul class="navbar-nav me-auto">
-      <li class="nav-item"><a class="nav-link {% if path.startswith('/help') %}active{% endif %}" href="/help"><i class="bi bi-book" aria-hidden="true"></i> Help</a></li>
-      <li class="nav-item"><a class="nav-link {% if path == '/about' %}active{% endif %}" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i> About</a></li>
+      <li class="nav-item"><a class="nav-link {% if path.startswith('/help') %}active{% endif %}" href="/help"><i class="bi bi-book" aria-hidden="true"></i><span class="d-none d-sm-inline"> Help</span><span class="visually-hidden d-sm-none">Help</span></a></li>
+      <li class="nav-item"><a class="nav-link {% if path == '/about' %}active{% endif %}" href="/about"><i class="bi bi-info-circle" aria-hidden="true"></i><span class="d-none d-sm-inline"> About</span><span class="visually-hidden d-sm-none">About</span></a></li>
     </ul>
     <div class="d-flex align-items-center gap-2">{% include "_theme_menu.html" %}
     <a class="btn btn-light btn-sm fw-bold" href="/login"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a></div>

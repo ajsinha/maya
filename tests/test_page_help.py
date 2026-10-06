@@ -84,3 +84,10 @@ def test_the_logo_leads_to_the_landing_page_and_the_house_leads_back(env):  # no
     assert 'aria-label="Your dashboard"' in page.text  # the house in the top bar
     assert 'id="page-help"' not in page.text  # the landing page is its own explanation
     assert 'id="page-help"' not in visitor.get("/").text  # signed out, / is the landing too
+
+
+def test_a_literal_page_is_not_mistaken_for_a_pattern():
+    assert page_help.for_path("/warrants/training/new")["what"].startswith("Draw up a training")
+    assert page_help.for_path("/warrants/execution/new")["what"].startswith("Issue an execution")
+    assert page_help.for_path("/warrants/training/abc123")["what"].startswith("One training")
+    assert page_help.for_path("/models/new")["what"].startswith("Define a model")

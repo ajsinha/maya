@@ -24,8 +24,8 @@
     {% endif %}
     {% if health.dialect == 'sqlite' %}
     <div class="maya-banner info"><i class="bi bi-server" aria-hidden="true"></i>
-      Running on <strong>SQLite</strong> — single-node, small-team; one writer at a time. PostgreSQL is the production backend.
-      · Environment <strong>{{ health.environment }}</strong> · Lake <strong>{{ health.lake }}</strong> · Sandbox tier <strong>{{ health.sandbox }}</strong></div>
+      Running on <strong>SQLite</strong><span class="d-none d-md-inline"> — single-node, small-team; one writer at a time. PostgreSQL is the production backend.</span>
+      · Environment <strong>{{ health.environment }}</strong><span class="d-none d-md-inline"> · Lake <strong>{{ health.lake }}</strong> · Sandbox tier <strong>{{ health.sandbox }}</strong></span></div>
     {% else %}
     <div class="maya-banner info">Environment <strong>{{ health.environment }}</strong> · Database <strong>{{ health.dialect }}</strong> · Lake <strong>{{ health.lake }}</strong> · Sandbox tier <strong>{{ health.sandbox }}</strong></div>
     {% endif %}

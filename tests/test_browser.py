@@ -318,3 +318,45 @@ def test_the_main_journeys_render_and_are_captured(site, browser, viewport, tmp_
         assert shot.stat().st_size > 5_000 and spread > 5, (path, "blank render")
     assert page.errors == [], page.errors
     ctx.close()
+
+
+def test_no_page_scrolls_sideways_on_a_phone(site, browser):
+    """At 390px (a current phone) every page fits its width: header buttons wrap under the
+    title, long names break, tabs swipe within their own strip and tables scroll in theirs.
+    Only the page itself is measured -- a table or an equation may scroll inside its box."""
+    base, _ = site
+    phone = {"viewport": {"width": 390, "height": 844}, "is_mobile": True, "has_touch": True}
+
+    def width(page, path):
+        page.goto(base + path, wait_until="networkidle")
+        return page.evaluate(
+            "[document.documentElement.scrollWidth, document.documentElement.clientWidth]"
+        )
+
+    ctx, page = _page(browser, **phone)
+    wide = {
+        p: w for p in ("/welcome", "/login", "/login/forgot") if (w := width(page, p))[0] > w[1]
+    }
+    _login(page, base)
+    for path in (
+        "/",
+        "/welcome",
+        "/catalog",
+        "/catalog/features/eq/feat_00",
+        "/models",
+        "/models/new",
+        "/models/kernel",
+        "/warrants",
+        "/workflow",
+        "/governance",
+        "/lineage",
+        "/workbench/features/new",
+        "/admin/health",
+        "/admin/users",
+        "/help",
+    ):
+        scroll, client = width(page, path)
+        if scroll > client:
+            wide[path] = (scroll, client)
+    assert wide == {}, f"pages wider than a phone (scrollWidth, clientWidth): {wide}"
+    ctx.close()

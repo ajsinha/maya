@@ -673,11 +673,6 @@ PAGES: dict[str, tuple[str, list[tuple[str, str, str]], str | None]] = {
         ],
         "model-risk",
     ),
-    "/governance/inventory": (
-        "The model inventory in a supervisory layout (SR 11-7, SS1/23).",
-        [],
-        "model-risk",
-    ),
     "/governance/models/{namespace}/{name}": (
         "One model's governance: its profile and tier, reviews and findings.",
         [
@@ -851,7 +846,6 @@ PAGES: dict[str, tuple[str, list[tuple[str, str, str]], str | None]] = {
         [],
         "operations",
     ),
-    "/admin/estate": ("Export or import the whole estate.", [], "operations"),
     "/admin/audit": (
         "The audit log: every recorded act, hash-chained so a rewrite is caught.",
         [],
@@ -870,6 +864,7 @@ EXEMPT = (
     re.compile(
         r"\.(pdf|xml|json|yaml|xlsx)$|/download$|/data$|/output$|/bundle\.json$"
         r"|/documents/\{doc_id\}$|/bundles/\{digest\}$"
+        r"|^/governance/inventory$|^/admin/estate$"  # the inventory workbook, the estate export
     ),
 )
 
@@ -878,7 +873,9 @@ def _rx(template: str) -> re.Pattern[str]:
     return re.compile("^" + re.sub(r"\\\{[^}]+\\\}", "[^/]+", re.escape(template)) + "$")
 
 
-_COMPILED = [(_rx(t), t) for t in sorted(PAGES, key=len, reverse=True)]
+# a literal path beats a pattern that also matches it: /warrants/training/new is the form, not
+# a warrant whose id is "new"
+_COMPILED = [(_rx(t), t) for t in sorted(PAGES, key=lambda t: (t.count("{"), -len(t)))]
 
 
 def for_path(path: str) -> dict[str, Any] | None:
