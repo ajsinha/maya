@@ -39,7 +39,7 @@ python run_maya_web.py --config=/etc/maya/application.yaml
 python run_maya_web.py --db.dialect=postgresql --server.port=9000
 ```
 
-`run_maya_web.py` is the only supported entry point. It sets the `spawn` multiprocessing start method, loads and validates the configuration, configures logging, builds the platform, prints a banner and serves the web UI and the API on `server.host:server.port` (default `127.0.0.1:8600`) — from one process unless `server.workers` asks for more. The API explorer is at `/api/v1/docs`.
+`run_maya_web.py` is the only supported entry point. It sets the `spawn` multiprocessing start method, loads and validates the configuration, configures logging, builds the platform, prints a banner and serves the web UI and the API on `server.host:server.port` (default `0.0.0.0:8600`: every network interface, so other machines on the network can reach it; the banner prints this machine's address and its network address) — from one process unless `server.workers` asks for more. The API explorer is at `/api/v1/docs`.
 
 At startup MAYA, in order:
 
@@ -66,7 +66,7 @@ server.workers is 4, but the database is SQLite, which admits one writing proces
 `SIGINT` and `SIGTERM` shut MAYA down cleanly: job workers drain, the webhook dispatcher and scheduler stop, and the database pool closes.
 
 !!! tip "Behind a reverse proxy"
-    MAYA serves plain HTTP and honours forwarded headers from its proxy. Terminate TLS at the proxy, set `server.host: 0.0.0.0` (or the proxy-facing address), and set `auth.webauthn.origins` and the SSO redirect and ACS URLs to the public `https://` addresses.
+    MAYA serves plain HTTP and honours forwarded headers from its proxy. Terminate TLS at the proxy, keep `server.host` at `0.0.0.0` or set the proxy-facing address, and set `auth.webauthn.origins` and the SSO redirect and ACS URLs to the public `https://` addresses.
 
 ## Choosing the database
 

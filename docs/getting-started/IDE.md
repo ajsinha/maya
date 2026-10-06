@@ -70,8 +70,10 @@ IDE needs to be told about the second half.)
 | Python interpreter | the project's `.venv` |
 | Environment variables | none needed; see below for a separate estate |
 
-Run it. The console shows the startup lines and the address; open
-[http://127.0.0.1:8600](http://127.0.0.1:8600). Signed out you see the landing page; **Sign in**
+Run it. The console shows the startup lines and the addresses; open
+[http://127.0.0.1:8600](http://127.0.0.1:8600). MAYA listens on every network interface
+(`server.host: 0.0.0.0`), so the console also prints this machine's network address — open that
+one from a phone or another computer on the same Wi-Fi (see [from your phone](#from-your-phone)). Signed out you see the landing page; **Sign in**
 as `admin` with `maya-dev-admin` on a fresh estate. Stop it with the red square — the server
 shuts its workers down cleanly.
 
@@ -84,6 +86,19 @@ second, throwaway estate for experiments, set **both** variables in the run conf
 MAYA_HOME=/tmp/maya-scratch/home
 MAYA_LAKE=/tmp/maya-scratch/lake
 ```
+
+### From your phone
+
+1. Start the run configuration and read the second address in the console, for example
+   `http://192.168.1.20:8600`.
+2. On the phone, on the same Wi-Fi, open it.
+3. Nothing loads? The firewall is blocking the port. On Ubuntu: `sudo ufw status`, and if it is
+   active, `sudo ufw allow 8600/tcp`. On Windows, allow Python through Windows Defender Firewall
+   for private networks when it asks.
+
+Change the bootstrap administrator's password before you do this: anyone on the network can reach
+the sign-in page. Security-key sign-in works only on `localhost` or over HTTPS, so use a password
+on the phone. To keep MAYA to this machine, add `--server.host=127.0.0.1` to the parameters.
 
 ### 5. Debugging
 
@@ -158,6 +173,7 @@ described for PyCharm; the menus are the same once the Python plugin is installe
 |---|---|---|
 | *MAYA's SDK is not installed in this environment* | the environment lacks the `sdk/` project | `pip install -e ./sdk` into `.venv` (step 2) |
 | `import maya.sdk` underlined as unresolved, but it runs | the editor does not know about `sdk/` | mark `sdk` as a Sources Root (step 3) |
+| The phone cannot open MAYA | the firewall blocks port 8600, or the phone is on another network | `sudo ufw allow 8600/tcp`; check both are on the same Wi-Fi ([from your phone](#from-your-phone)) |
 | *address already in use* on start (from the server binding its port) | something else holds port 8600, often another MAYA | stop it, or add `--server.port=8601` to the parameters |
 | pip cannot find a version of a requirement | the environment is not Python 3.13 | delete `.venv`, recreate it from Python 3.13, reinstall |
 | MAYA refuses to start over the database schema | the database was made by an older MAYA (there are no migrations) | rebuild it: [schema rebuild runbook](../operations/runbooks/schema-rebuild.md) |

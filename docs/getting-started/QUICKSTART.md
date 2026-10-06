@@ -115,7 +115,7 @@ wrong Python: delete it (`rm -rf .venv`) and repeat step 2 with Python 3.13.
   !! The bootstrap admin still uses the default password 'maya-dev-admin'. Change it now.
 ================================================================================
 
-  Serving on http://127.0.0.1:8600   (API docs: /api/v1/docs)
+  Serving on http://127.0.0.1:8600, http://192.168.1.20:8600   (API docs: /api/v1/docs)
 ```
 
 The warning about the password is expected on a new install; you will change it in the
@@ -147,11 +147,16 @@ another port instead, and use that number in the browser:
 5. You arrive on the **dashboard**. You are signed in as the administrator.
 
 **Write the new password down.** On a fresh install there is only one administrator, and
-MAYA has no "forgot password" link: see [troubleshooting](#troubleshooting) if you lose it.
+If you forget a password, **Forgot password?** on the sign-in page asks your administrators for a single-use reset link (MAYA sends no email). If the only administrator loses theirs, see [troubleshooting](#troubleshooting).
 
 **If the page does not load**: check the terminal from step 4 is still running and says
-`Serving on http://127.0.0.1:8600`. Use exactly `127.0.0.1`, not your machine's
-network name.
+`Serving on http://127.0.0.1:8600, …`. On this machine use `http://127.0.0.1:8600`.
+
+**From your phone or another computer**: MAYA listens on every network interface, so on the
+same Wi-Fi open the second address the banner prints (`http://192.168.1.20:8600` above; yours
+differs). If it does not load, the firewall may be blocking the port: on Ubuntu,
+`sudo ufw allow 8600/tcp`. Change the admin password first: anyone on the network can reach
+the sign-in page. To accept this machine only, start with `--server.host=127.0.0.1`.
 
 ## Step 6 — Load demonstration data
 
@@ -254,7 +259,7 @@ interactive reference is at <http://127.0.0.1:8600/api/v1/docs>.
 | `Password must be at least 8 characters and use 2 of: …` | The new password is too simple | Make it longer, and mix upper and lower case with digits or symbols |
 | `That password was used before` | MAYA remembers the last five passwords of each account | Choose a different one |
 | *Account locked* after several wrong passwords | Five failures in fifteen minutes lock an account for thirty minutes | Wait thirty minutes, or have an administrator reset the password in **Admin → Users**, which also lifts the lock |
-| Lost the only administrator's password | There is no recovery link, on purpose | On a scratch install: stop MAYA, `rm -rf data`, start again (this deletes everything). With another administrator: they set a new one in **Admin → Users** |
+| Lost the only administrator's password | **Forgot password?** asks the administrators, and there is no other one | On a scratch install: stop MAYA, `rm -rf data`, start again (this deletes everything). With another administrator: they set a new one in **Admin → Users** |
 | A case study stops with `the 'retail_credit' namespace is already in this estate` | You ran the same study twice | Run it with `--reset`, which removes that study's namespace and runs it again (the other studies stay), or just look at what is already there |
 | Warnings about `duckdb`, `uvloop` or other packages | Optional accelerators are not installed | Nothing: MAYA says what it uses instead and works without them |
 | The **System health** page says the sandbox tier is `minimal` | The strong sandbox (bubblewrap) is not available on this machine | Fine for trying MAYA. For real use, install `bubblewrap` (`sudo apt install bubblewrap`) and restart |
