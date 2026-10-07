@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The favicon is the MAYA mark.** The browser tab shows the logo's own SVG — the square
+  inscribed in a circle, on crimson — with PNG sizes, an Apple touch icon and a multi-size
+  `favicon.ico` rendered from it by `tools/brand/favicons.py`, and `/favicon.ico` now
+  answers. The old 64-pixel raster, drawn before the logo settled, is replaced.
+
 **The deck, retold as a briefing**
 
 - The deck (`docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx`, 69

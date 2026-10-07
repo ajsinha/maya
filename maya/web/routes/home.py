@@ -36,6 +36,16 @@ async def front(request: Request) -> Any:
     return await dashboard(request)
 
 
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> Any:
+    """Browsers ask for /favicon.ico whatever the page links; answer with the mark."""
+    from fastapi.responses import FileResponse
+
+    from maya.web.app import STATIC
+
+    return FileResponse(STATIC / "img" / "favicon.ico", media_type="image/x-icon")
+
+
 @router.get("/welcome")
 async def landing(request: Request) -> Any:
     """The landing page, signed in or not: MAYA's logo leads here from every page. Signed in,
