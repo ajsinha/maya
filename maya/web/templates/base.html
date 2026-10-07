@@ -4,7 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ APP_NAME }}{% endblock %} · {{ APP_NAME }}</title>
-  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  {# the MAYA mark itself; the PNGs and the ICO are rendered from it by tools/brand/favicons.py #}
+  <link rel="icon" type="image/svg+xml" href="/static/img/maya-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
   <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/static/vendor/katex/katex.min.css">

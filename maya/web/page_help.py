@@ -862,7 +862,7 @@ PAGES: dict[str, tuple[str, list[tuple[str, str, str]], str | None]] = {
 EXEMPT = (
     re.compile(r"^/(help|about|static|ui|auth|api|welcome)(/|$)"),  # the landing explains itself
     re.compile(
-        r"\.(pdf|xml|json|yaml|xlsx)$|/download$|/data$|/output$|/bundle\.json$"
+        r"\.(pdf|xml|json|yaml|xlsx|ico)$|/download$|/data$|/output$|/bundle\.json$"
         r"|/documents/\{doc_id\}$|/bundles/\{digest\}$"
         r"|^/governance/inventory$|^/admin/estate$"  # the inventory workbook, the estate export
     ),

@@ -105,3 +105,18 @@ def test_the_landing_page_counts_what_it_claims(env):  # noqa: F811
     assert f'<span class="lp2-num">{len(ENDPOINTS)}</span>' in page
     assert f'<span class="lp2-num">{len(for_ui())}</span>' in page
     assert "252" not in page
+
+
+def test_the_favicon_is_the_logo(env):  # noqa: F811
+    """The tab shows the MAYA mark: the SVG itself, PNGs rendered from it, and /favicon.ico."""
+    from starlette.testclient import TestClient
+
+    _, app, _, _ = env
+    client = TestClient(app)
+    page = client.get("/login").text
+    assert 'rel="icon" type="image/svg+xml" href="/static/img/maya-mark.svg"' in page
+    assert 'rel="apple-touch-icon"' in page
+    ico = client.get("/favicon.ico")
+    assert ico.status_code == 200 and ico.headers["content-type"] == "image/x-icon"
+    for name in ("maya-mark.svg", "favicon-16.png", "favicon-32.png", "apple-touch-icon.png"):
+        assert client.get(f"/static/img/{name}").status_code == 200, name
