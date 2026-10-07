@@ -30,8 +30,8 @@
 
 <section class="lp2-stats" aria-label="MAYA in numbers">
   <div><span class="lp2-num">2</span><span class="lp2-label">clocks on every value</span></div>
-  <div><span class="lp2-num">252</span><span class="lp2-label">API operations, one SDK</span></div>
-  <div><span class="lp2-num">106</span><span class="lp2-label">formula templates</span></div>
+  <div><span class="lp2-num">{{ api_operations }}</span><span class="lp2-label">API operations, one SDK</span></div>
+  <div><span class="lp2-num">{{ template_count }}</span><span class="lp2-label">formula templates</span></div>
   <div><span class="lp2-num">{{ study_count or 15 }}</span><span class="lp2-label">case studies, end to end</span></div>
   <div><span class="lp2-num">2,000+</span><span class="lp2-label">tests on every change</span></div>
   <div><span class="lp2-num">0</span><span class="lp2-label">runs without a warrant</span></div>
@@ -200,7 +200,7 @@
       <div class="lp2-way"><i class="bi bi-terminal" aria-hidden="true"></i><div><strong>CLI</strong>
         <span>The same verbs from a shell, for pipelines and operators</span></div></div>
       <div class="lp2-way"><i class="bi bi-hdd-network" aria-hidden="true"></i><div><strong>REST</strong>
-        <span>252 operations under a locked API snapshot</span></div></div>
+        <span>{{ api_operations }} operations under a locked API snapshot</span></div></div>
     </div>
     <div class="lp2-code" aria-label="An example of the SDK">
       <div class="lp2-code-bar"><span></span><span></span><span></span><em>fit.py</em></div>

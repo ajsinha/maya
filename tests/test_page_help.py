@@ -91,3 +91,17 @@ def test_a_literal_page_is_not_mistaken_for_a_pattern():
     assert page_help.for_path("/warrants/execution/new")["what"].startswith("Issue an execution")
     assert page_help.for_path("/warrants/training/abc123")["what"].startswith("One training")
     assert page_help.for_path("/models/new")["what"].startswith("Define a model")
+
+
+def test_the_landing_page_counts_what_it_claims(env):  # noqa: F811
+    """The number strip is counted from the code, so it cannot drift as the API grows."""
+    from starlette.testclient import TestClient
+
+    from maya.sdk.resources import ENDPOINTS
+    from maya.web.kernel_templates import for_ui
+
+    _, app, _, _ = env
+    page = TestClient(app).get("/welcome").text
+    assert f'<span class="lp2-num">{len(ENDPOINTS)}</span>' in page
+    assert f'<span class="lp2-num">{len(for_ui())}</span>' in page
+    assert "252" not in page

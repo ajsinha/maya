@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+**The deck, retold as a briefing**
+
+- The deck (`docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx`, 69
+  slides) is rewritten in a briefing's storytelling: the answer first — a TL;DR as
+  questions and answers, the question every model must answer, ten principles, what
+  supervisors say, the objects MAYA keeps, its architecture, one model's journey and what
+  it buys — then eight numbered parts, most slides a title, a few short lines and one key
+  insight. New slide kinds in `tools/deck/story.py`: question-and-answer rows, numbered
+  principles and steps, quotes, layered architecture, two teams meeting at one contract,
+  deployment columns, a capability comparison graded by colour (including where MAYA
+  loses), and real screenshots of MAYA. The look stays crimson: a header bar with the MAYA
+  mark, a footer bar with the slogan, numbered part dividers.
+- The landing page's numbers are counted from the code — the SDK's endpoint registry (268,
+  held equal to the server's by the parity gate) and the formula templates — instead of
+  being typed into the page, where the endpoint count had gone stale at 252.
+
 - **MAYA listens on every network interface by default** (`server.host: 0.0.0.0`, was
   `127.0.0.1`), so a phone or another computer on the same network can open the UI. The
   start-up banner prints the addresses a browser can actually use — this machine's and its
