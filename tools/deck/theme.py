@@ -45,6 +45,7 @@ BODY_BOTTOM = FOOTER_Y - 0.12
 GREEN = RGBColor(0x1E, 0x7B, 0x4F)
 AMBER = RGBColor(0xB0, 0x6A, 0x10)
 ROSE = RGBColor(0xC2, 0x3B, 0x52)
+WATERMARK = RGBColor(0x8E, 0x1B, 0x2C)  # a shade lighter than CRIMSON_D: the divider's number
 HEADER_H = 0.56
 TAGLINE = "Model & AI Lifecycle Assurance"
 BYLINE = "MAYA  •  Ashutosh Sinha"
@@ -267,38 +268,44 @@ def content(title: str, kicker: str | None = None) -> tuple[Any, float]:
 
 
 def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
-    """A part divider: a numbered disc and the part's name, centred on crimson."""
+    """A part divider: dark crimson, the part's name on the left under a short bar, and its
+    number set huge in the top-right corner a shade lighter than the ground -- a watermark,
+    read before the title and never competing with it."""
     _state["chapter"] = f"{num} · {title}"
     _state["n"] += 1
     sl = blank()
-    rect(sl, 0, 0, SW, SH, fill=CRIMSON)
-    rect(sl, 0, 0, SW, HEADER_H, fill=CRIMSON_D)
-    mark(sl, 0.38, 0.11, 0.34)
-    tf = txt(sl, 0.86, 0.13, 2.4, 0.3)
-    para(tf, "M A Y A", size=14, color=WHITE, bold=True, first=True, space_after=0)
-    d = 1.5
-    disc = rect(
-        sl, (SW - d) / 2, 1.25, d, d, fill=CRIMSON_D, line=PINK, lw=2.0, shape=MSO_SHAPE.OVAL
+    rect(sl, 0, 0, SW, SH, fill=CRIMSON_D)
+    rect(sl, 0, 0, SW, 0.09, fill=INK)
+    mark(sl, ML, 0.42, 0.34, color=PINK)
+    tf = txt(sl, ML + 0.48, 0.45, 2.4, 0.3)
+    para(tf, "M A Y A", size=13, color=PINK, bold=True, first=True, space_after=0)
+    tf = txt(sl, SW - 6.1, 0.55, 5.6, 4.1, align=PP_ALIGN.RIGHT)
+    para(
+        tf,
+        f"{int(num):02d}" if str(num).isdigit() else str(num),
+        size=210,
+        color=WATERMARK,
+        bold=True,
+        first=True,
+        space_after=0,
+        line=1.0,
     )
-    disc.shadow.inherit = False
-    tf = txt(sl, (SW - d) / 2, 1.25, d, d, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    para(tf, num, size=54, color=WHITE, bold=True, first=True, space_after=0, line=1.0)
-    tw = CW * 0.8
-    size = 36.0
-    while size > 24 and est_lines(title, tw * SAFETY, size, True, SANS) > 1:
+    tw = CW * 0.6
+    rect(sl, ML, 3.05, 2.4, 0.07, fill=CRIMSON)
+    size = 40.0
+    while size > 26 and est_lines(title, tw * SAFETY, size, True, SANS) > 2:
         size -= 2
-    tf = txt(sl, (SW - tw) / 2, 3.05, tw, 0.75, align=PP_ALIGN.CENTER)
-    para(tf, title, size=size, color=WHITE, bold=True, first=True, space_after=0)
-    tf_w = CW * 0.72
+    th = text_h(title, tw * SAFETY, size, True, SANS, 1.05)
+    tf = txt(sl, ML, 3.3, tw, th + 0.05)
+    para(tf, title, size=size, color=WHITE, bold=True, first=True, space_after=0, line=1.05)
 
     def write(tf: Any, s: float) -> None:
-        tf.paragraphs[0].alignment = PP_ALIGN.CENTER
-        para(tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=10, line=1.25)
+        para(tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=12, line=1.25)
         if points:
-            p = para(tf, "   ·   ".join(points), size=s - 2, color=PINK, space_after=0, line=1.25)
-            p.alignment = PP_ALIGN.CENTER
+            para(tf, "   ·   ".join(points), size=s - 2.5, color=PINK, space_after=0, line=1.3)
 
-    fitted(sl, (SW - tf_w) / 2, 3.95, tf_w, 2.75, write, 15, 10)
+    top = 3.3 + th + 0.35
+    fitted(sl, ML, top, CW * 0.72, FOOTER_Y - 0.25 - top, write, 16, 10)
     return sl
 
 

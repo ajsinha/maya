@@ -42,7 +42,8 @@ where to start.
 **The look.** Harvard Crimson throughout: a crimson header bar with the MAYA mark on
 every content slide, a crimson footer bar with the slogan and the byline, bold sans
 titles over a crimson rule, numbered discs for principles and steps, and part dividers
-that are a numbered disc centred on crimson. The mark is drawn from shapes, because
+in dark crimson with the part's number — 01, 02 … — set huge in the top-right corner a
+shade lighter than the ground, as a watermark, and the title on the left under a short bar. The mark is drawn from shapes, because
 `python-pptx` cannot place the SVG.
 
 **What it deliberately is not.** It carries no implementation-status register and
