@@ -13,7 +13,8 @@
   principles and steps, quotes, layered architecture, two teams meeting at one contract,
   deployment columns, a capability comparison graded by colour (including where MAYA
   loses), and real screenshots of MAYA. The look stays crimson: a header bar with the MAYA
-  mark, a footer bar with the slogan, numbered part dividers.
+  mark, a footer bar with the slogan, and part dividers whose number (01, 02 …) is set huge
+  in the corner as a watermark.
 - The landing page's numbers are counted from the code — the SDK's endpoint registry (268,
   held equal to the server's by the parity gate) and the formula templates — instead of
   being typed into the page, where the endpoint count had gone stale at 252.
