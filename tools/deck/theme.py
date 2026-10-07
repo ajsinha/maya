@@ -1,7 +1,8 @@
 """
-The deck design system: Harvard Crimson (#A51C30, spec §16.6) over parchment,
-Georgia for headings and Calibri for text, and the layout primitives every deck
-is drawn with.
+The deck design system: Harvard Crimson (#A51C30, spec §16.6), a crimson header
+bar with the MAYA mark and a crimson footer bar on every content slide, bold
+Calibri titles over a crimson rule, and the layout primitives every slide is
+drawn with.
 
 Every primitive that places text measures it with ``metrics`` — the same
 estimator the geometry audit uses — and the fitting helpers shrink the type or
@@ -22,7 +23,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Pt
 from pptx.util import Inches as In
 
-from metrics import FOOTER_Y, SAFETY, SANS, SERIF, SH, SW, est_lines, text_extent, text_h
+from metrics import FOOTER_Y, SAFETY, SANS, SH, SW, est_lines, text_extent, text_h
 
 CRIMSON = RGBColor(0xA5, 0x1C, 0x30)
 CRIMSON_D = RGBColor(0x76, 0x14, 0x22)
@@ -40,6 +41,13 @@ NAVY = RGBColor(0x2E, 0x40, 0x57)
 ML = 0.85
 CW = SW - 2 * ML
 BODY_BOTTOM = FOOTER_Y - 0.12
+
+GREEN = RGBColor(0x1E, 0x7B, 0x4F)
+AMBER = RGBColor(0xB0, 0x6A, 0x10)
+ROSE = RGBColor(0xC2, 0x3B, 0x52)
+HEADER_H = 0.56
+TAGLINE = "Model & AI Lifecycle Assurance"
+BYLINE = "MAYA  •  Ashutosh Sinha"
 
 _state: dict[str, Any] = {"prs": None, "chapter": "", "n": 0}
 
@@ -192,74 +200,105 @@ def fitted(
     raise DoesNotFit(f"text block does not fit {w:.2f}x{h:.2f} at {floor}pt")
 
 
+def mark(sl: Any, x: float, y: float, d: float, color: Any = WHITE) -> None:
+    """The MAYA mark, drawn: a diamond inside a ring (python-pptx cannot place the SVG)."""
+    ring = rect(sl, x, y, d, d, line=color, lw=1.6, shape=MSO_SHAPE.OVAL)
+    ring.fill.background()
+    inset = d * 0.24
+    rect(
+        sl,
+        x + inset,
+        y + inset,
+        d - 2 * inset,
+        d - 2 * inset,
+        line=color,
+        lw=1.6,
+        shape=MSO_SHAPE.DIAMOND,
+    )
+
+
+def header(sl: Any, right: str = TAGLINE) -> None:
+    """The crimson bar across the top: the mark and the name left, the tagline right."""
+    rect(sl, 0, 0, SW, HEADER_H, fill=CRIMSON)
+    rect(sl, 0, HEADER_H, SW, 0.03, fill=CRIMSON_D)
+    mark(sl, 0.38, 0.11, 0.34)
+    tf = txt(sl, 0.86, 0.13, 2.4, 0.3)
+    para(tf, "M A Y A", size=14, color=WHITE, bold=True, first=True, space_after=0)
+    tf = txt(sl, SW - 4.6, 0.16, 4.2, 0.26, align=PP_ALIGN.RIGHT)
+    para(tf, right, size=10.5, color=PINK_L, bold=True, first=True, space_after=0)
+
+
 def footer(sl: Any) -> None:
-    rect(sl, ML, FOOTER_Y, CW, 0.008, fill=RULE)
-    tf = txt(sl, ML, SH - 0.46, CW * 0.7, 0.24)
-    para(tf, _state["chapter"], size=8.5, color=MUTED, first=True, space_after=0)
-    tf = txt(sl, ML + CW * 0.7, SH - 0.46, CW * 0.3, 0.24, align=PP_ALIGN.RIGHT)
-    para(tf, str(_state["n"]), size=8.5, color=MUTED, first=True, space_after=0, bold=True)
+    """The crimson bar across the bottom; its gold top edge is the footer rule the audit reads."""
+    rect(sl, 0, FOOTER_Y, SW, 0.03, fill=GOLD)
+    rect(sl, 0, FOOTER_Y + 0.03, SW, SH - FOOTER_Y - 0.03, fill=CRIMSON)
+    tf = txt(sl, ML, FOOTER_Y + 0.17, CW * 0.6, 0.24)
+    para(
+        tf, "Evidence, not assertion.", size=9, color=PINK_L, italic=True, first=True, space_after=0
+    )
+    tf = txt(sl, ML + CW * 0.6, FOOTER_Y + 0.17, CW * 0.4, 0.24, align=PP_ALIGN.RIGHT)
+    runs(
+        tf,
+        [(BYLINE + "     ", WHITE, False), (str(_state["n"]), WHITE, True)],
+        size=9,
+        first=True,
+        space_after=0,
+    )
 
 
 def content(title: str, kicker: str | None = None) -> tuple[Any, float]:
-    """A content slide's chrome. Returns ``(slide, body_top)``."""
+    """A content slide's chrome. Returns ``(slide, body_top)``. ``kicker`` is accepted for
+    old specs and not drawn: the title carries the slide."""
     _state["n"] += 1
     sl = blank()
     rect(sl, 0, 0, SW, SH, fill=WHITE)
-    rect(sl, 0, 0.62, 0.30, 0.055, fill=CRIMSON)
-    y = 0.52
-    if kicker:
-        tf = txt(sl, ML, y, CW, 0.24)
-        para(tf, kicker.upper(), size=10.5, color=CRIMSON, bold=True, first=True, space_after=0)
-        y += 0.30
-    size = 26.0
-    while size > 20 and est_lines(title, CW * SAFETY, size, False, SERIF) > 1:
-        size -= 1
-    th = text_h(title, CW * SAFETY, size, False, SERIF, 1.15)
-    tf = txt(sl, ML, y, CW, th + 0.04)
-    para(tf, title, size=size, color=INK, font=SERIF, first=True, space_after=0, line=1.15)
-    body_top = y + th + 0.24
-    rect(sl, ML, body_top - 0.14, CW, 0.012, fill=RULE)
+    header(sl)
     footer(sl)
+    y = HEADER_H + 0.28
+    size = 26.0
+    while size > 19 and est_lines(title, CW * SAFETY, size, True, SANS) > 1:
+        size -= 1
+    th = text_h(title, CW * SAFETY, size, True, SANS, 1.1)
+    tf = txt(sl, ML, y, CW, th + 0.04)
+    para(tf, title, size=size, color=CRIMSON_D, bold=True, first=True, space_after=0, line=1.1)
+    body_top = y + th + 0.30
+    rect(sl, ML, body_top - 0.16, CW, 0.022, fill=CRIMSON)
     return sl, body_top
 
 
 def divider(num: str, title: str, sub: str, points: list[str]) -> Any:
-    """A crimson part divider with its contents on the right."""
+    """A part divider: a numbered disc and the part's name, centred on crimson."""
     _state["chapter"] = f"{num} · {title}"
     _state["n"] += 1
     sl = blank()
     rect(sl, 0, 0, SW, SH, fill=CRIMSON)
-    rect(sl, 0, 0, 0.18, SH, fill=CRIMSON_D)
-    tf = txt(sl, ML + 0.25, 2.0, CW * 0.58, 0.4)
-    para(tf, f"PART {num}", size=12, color=PINK, bold=True, first=True, space_after=0)
-    tw = CW * 0.58
-    size = 42.0
-    while size > 26 and est_lines(title, tw * SAFETY, size, False, SERIF) > 1:
-        size -= 2
-    tf = txt(sl, ML + 0.25, 2.5, tw, 1.0)
-    para(tf, title, size=size, color=WHITE, font=SERIF, first=True, space_after=0)
-    rect(sl, ML + 0.25, 3.7, 1.5, 0.035, fill=PINK)
-    fitted(
-        sl,
-        ML + 0.25,
-        3.95,
-        tw,
-        1.9,
-        lambda tf, s: para(
-            tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=0, line=1.3
-        ),
-        15,
-        11,
+    rect(sl, 0, 0, SW, HEADER_H, fill=CRIMSON_D)
+    mark(sl, 0.38, 0.11, 0.34)
+    tf = txt(sl, 0.86, 0.13, 2.4, 0.3)
+    para(tf, "M A Y A", size=14, color=WHITE, bold=True, first=True, space_after=0)
+    d = 1.5
+    disc = rect(
+        sl, (SW - d) / 2, 1.25, d, d, fill=CRIMSON_D, line=PINK, lw=2.0, shape=MSO_SHAPE.OVAL
     )
-    x = ML + CW * 0.66
-    tf = txt(sl, x, 2.0, CW * 0.34, 0.3)
-    para(tf, "IN THIS PART", size=9.5, color=PINK, bold=True, first=True, space_after=0)
+    disc.shadow.inherit = False
+    tf = txt(sl, (SW - d) / 2, 1.25, d, d, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    para(tf, num, size=54, color=WHITE, bold=True, first=True, space_after=0, line=1.0)
+    tw = CW * 0.8
+    size = 36.0
+    while size > 24 and est_lines(title, tw * SAFETY, size, True, SANS) > 1:
+        size -= 2
+    tf = txt(sl, (SW - tw) / 2, 3.05, tw, 0.75, align=PP_ALIGN.CENTER)
+    para(tf, title, size=size, color=WHITE, bold=True, first=True, space_after=0)
+    tf_w = CW * 0.72
 
     def write(tf: Any, s: float) -> None:
-        for i, pnt in enumerate(points):
-            para(tf, pnt, size=s, color=PINK_L, space_after=6, line=1.15, first=i == 0)
+        tf.paragraphs[0].alignment = PP_ALIGN.CENTER
+        para(tf, sub, size=s, color=PINK_L, italic=True, first=True, space_after=10, line=1.25)
+        if points:
+            p = para(tf, "   ·   ".join(points), size=s - 2, color=PINK, space_after=0, line=1.25)
+            p.alignment = PP_ALIGN.CENTER
 
-    fitted(sl, x, 2.4, CW * 0.34, 4.0, write, 12, 9)
+    fitted(sl, (SW - tf_w) / 2, 3.95, tf_w, 2.75, write, 15, 10)
     return sl
 
 
@@ -369,9 +408,9 @@ def card(sl: Any, x: float, y: float, w: float, h: float, num: str, title: str, 
             tf,
             title,
             size=s,
-            color=INK,
+            color=CRIMSON_D,
             bold=True,
-            font=SERIF,
+            font=SANS,
             first=True,
             space_after=0,
             line=1.12,
@@ -411,7 +450,7 @@ def statbar(sl: Any, y: float, stats: list[tuple[str, str]], h: float = 1.25) ->
                 size=s,
                 color=CRIMSON,
                 bold=True,
-                font=SERIF,
+                font=SANS,
                 first=True,
                 space_after=0,
                 line=1.0,

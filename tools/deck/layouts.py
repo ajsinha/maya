@@ -195,7 +195,8 @@ def table(s: dict[str, Any]) -> None:
         T.CW,
         bottom - y,
         s.get("col_w"),
-        start=s.get("size", 14),
+        # a short table is set larger rather than left small at the top of an empty slide
+        start=max(s.get("size", 14), 16 if len(s["rows"]) <= 7 else 0),
         bold_col0=s.get("bold_col0", True),
     )
 
@@ -209,6 +210,8 @@ def cards(s: dict[str, Any]) -> None:
     rows = (len(items) + cols - 1) // cols
     cw = (T.CW - GAP * (cols - 1)) / cols
     ch = (bottom - y - GAP * (rows - 1)) / rows
+    # A card holds a head and a few lines: past this height it is an empty box.
+    ch = min(ch, s.get("card_h", 2.4))
     for i, (num, head, body) in enumerate(items):
         r, c = divmod(i, cols)
         T.card(sl, T.ML + c * (cw + GAP), y + r * (ch + GAP), cw, ch, num, head, body)
@@ -386,9 +389,15 @@ KINDS = {
 }
 
 
+def _kinds() -> dict[str, Any]:
+    import story
+
+    return {**KINDS, **story.KINDS}
+
+
 def render(slides: list[dict[str, Any]]) -> None:
     for i, spec in enumerate(slides, 1):
         try:
-            KINDS[spec["kind"]](spec)
+            _kinds()[spec["kind"]](spec)
         except T.DoesNotFit as exc:
             raise T.DoesNotFit(f"slide {i} ({spec.get('title')!r}): {exc}") from exc

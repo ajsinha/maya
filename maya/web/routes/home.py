@@ -41,12 +41,17 @@ async def landing(request: Request) -> Any:
     """The landing page, signed in or not: MAYA's logo leads here from every page. Signed in,
     its calls to action lead back to the dashboard instead of to the sign-in form. It is its
     own explanation, so it ends with no "About this page"."""
+    from maya.sdk.resources import ENDPOINTS
     from maya.web.case_studies import catalog
+    from maya.web.kernel_templates import for_ui
 
+    # Counted, not typed: the SDK's endpoint registry is what the parity gate holds equal
+    # to the server's, so this number cannot drift the way a literal in the page did.
+    counts = {"api_operations": len(ENDPOINTS), "template_count": len(for_ui())}
     return await render(
         request,
         "landing.html",
-        {"public_nav": True, "study_count": len(catalog()), "page_help": None},
+        {"public_nav": True, "study_count": len(catalog()), "page_help": None, **counts},
     )
 
 
