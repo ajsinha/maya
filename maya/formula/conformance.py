@@ -72,14 +72,33 @@ def conformance_test(
         row.update({"_expected": float(expected[idx]), "_actual": float(actual[idx])})
         counter.append(row)
     agreed, total = int(close.sum()), int(close.size)
+    degenerate = _degenerate(expected)
+    statement = STATEMENT.format(agreed=agreed, total=total, rtol=rtol)
+    if degenerate:
+        statement += (
+            " The comparison was degenerate: the specification's output barely varied over "
+            "the sampled inputs (saturated or constant), so agreement here cannot tell a "
+            "right implementation from a wrong one. Run it over a feature set's own values."
+        )
     return {
         "agreed": agreed,
         "total": total,
         "counterexamples": counter,
         "skipped": False,
         "rtol": rtol,
-        "statement": STATEMENT.format(agreed=agreed, total=total, rtol=rtol),
+        "degenerate": degenerate,
+        "statement": statement,
     }
+
+
+def _degenerate(expected: np.ndarray) -> bool:
+    """Whether the reference output is too flat for agreement to mean anything: almost every
+    finite value is the same number (a saturated logistic returns 1.0 to the last bit)."""
+    finite = expected[np.isfinite(expected)]
+    if finite.size < 10:
+        return True
+    values, counts = np.unique(np.round(finite, 12), return_counts=True)
+    return bool(counts.max() / finite.size > 0.9 or values.size < 5)
 
 
 def sample_inputs(

@@ -1025,6 +1025,36 @@ class Models(_Resource):
         path = f"/models/{_nn(ref, 'model')}"
         return self._c("PUT", f"{path}/draft", json_body=kw, guard=path)
 
+    @endpoint("PUT", "/models/{namespace}/{name}/declarations")
+    def declare(
+        self,
+        ref: str,
+        *,
+        values: dict[str, float] | None = None,
+        bounds: dict[str, Any] | None = None,
+        units: dict[str, str] | None = None,
+    ) -> Any:
+        """Declare constants' values, parameters' bounds (``None`` removes one) and units."""
+        body = {"values": values, "bounds": bounds, "units": units}
+        return self._c(
+            "PUT",
+            f"/models/{_nn(ref, 'model')}/declarations",
+            json_body={k: v for k, v in body.items() if v is not None},
+        )
+
+    @endpoint("POST", "/models/{namespace}/{name}/constraints")
+    def add_constraint(self, ref: str, expression: str, op: str, rhs: float, why: str) -> Any:
+        """A joint condition over parameters, e.g. ``("alpha + beta", "<", 1, "stationary")``."""
+        return self._c(
+            "POST",
+            f"/models/{_nn(ref, 'model')}/constraints",
+            json_body={"expression": expression, "op": op, "rhs": rhs, "why": why},
+        )
+
+    @endpoint("DELETE", "/models/{namespace}/{name}/constraints/{index}")
+    def remove_constraint(self, ref: str, index: int) -> Any:
+        return self._c("DELETE", f"/models/{_nn(ref, 'model')}/constraints/{int(index)}")
+
     @endpoint("POST", "/models/{namespace}/{name}/drafts")
     def new_draft(self, ref: str) -> Any:
         return self._c("POST", f"/models/{_nn(ref, 'model')}/drafts")

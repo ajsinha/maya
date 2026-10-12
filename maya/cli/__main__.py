@@ -48,6 +48,38 @@ def feature_show(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def feature_create(args: argparse.Namespace) -> int:
+    """A governed feature from a definition file (JSON or YAML); it starts as a draft."""
+    import yaml
+
+    namespace, _, name = args.ref.partition("/")
+    text = Path(args.definition).read_text(encoding="utf-8")
+    definition = json.loads(text) if args.definition.endswith(".json") else yaml.safe_load(text)
+    out = common.client(args).features.create(
+        namespace, name, definition, description=args.description or ""
+    )
+    emit(args, out, lambda r: f"created {namespace}/{r['name']} ({r['status']})")
+    return EXIT_OK
+
+
+def feature_transition(args: argparse.Namespace) -> int:
+    """submit, approve, request_changes, withdraw … a feature version, as yourself."""
+    out = common.client(args).features.transition(
+        args.ref, args.version, args.action, rationale=args.rationale or ""
+    )
+    emit(
+        args,
+        out,
+        lambda r: (
+            f"{args.ref} v{args.version}: {r['state']}"
+            + "".join(
+                f"\n  [{'ok' if c['passed'] else 'FAIL'}] {c['check']}" for c in r.get("checks", [])
+            )
+        ),
+    )
+    return EXIT_OK
+
+
 def feature_quick(args: argparse.Namespace) -> int:
     path = Path(args.file)
     result = common.client(args).features.quick(
@@ -384,6 +416,23 @@ def _parser() -> argparse.ArgumentParser:
     cmd(f, "list", feature_list, (("--namespace",), {}), (("-q",), {"dest": "q"}))
     cmd(f, "show", feature_show, (("ref",), {}))
     cmd(f, "quick", feature_quick, (("file",), {}), (("--name",), {}))
+    cmd(
+        f,
+        "create",
+        feature_create,
+        (("ref",), {"help": "namespace/name"}),
+        (("definition",), {"help": "a JSON or YAML definition file"}),
+        (("--description",), {}),
+    )
+    cmd(
+        f,
+        "transition",
+        feature_transition,
+        (("ref",), {}),
+        (("action",), {"help": "submit, approve, request_changes, withdraw, ..."}),
+        (("--version",), {"type": int, "required": True}),
+        (("--rationale",), {}),
+    )
     cmd(
         f,
         "upload",

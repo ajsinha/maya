@@ -17,7 +17,7 @@ from maya.core.errors import NotFound, PermissionDenied, ValidationFailed
 from maya.sdk import Client, offline
 from maya.sdk.offline import NotInBundle
 from maya.sdk.replay import ReplayMiss
-from tests.conftest import PASSWORD, approved_feature, price_csv
+from tests.conftest import sealed, PASSWORD, approved_feature, price_csv
 from tests.test_warrants import complete_spec, journey  # noqa: F401 - the fixture, reused
 
 
@@ -181,6 +181,7 @@ def bundle(journey):  # noqa: F811
     )
     w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
     w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
+    sealed(w, tw["id"])  # a bundle carries the holdout, so it waits for the seal
     exported = w.p.bundles.export(w.devi, tw["id"])
     return w, tw, w.p.blobs.get(exported["blob"])
 
@@ -237,6 +238,7 @@ def test_a_composite_model_is_re_executed_by_the_bundle_verifier(bundle):
         values={"lin.a": 2.0, "lin.b": 0.5, "lift.c": 0.1, "w": 0.3},
         data_checksum=data["manifest"]["checksum"],
     )
+    sealed(w, tw["id"])  # a bundle carries the holdout, so it waits for the seal
     exported = w.p.bundles.export(w.devi, tw["id"])
     manifest = exported["manifest"]
     assert manifest["reexecutable"] and manifest["model_inputs"] == ["x"], manifest

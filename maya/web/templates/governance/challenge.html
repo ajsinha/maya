@@ -4,6 +4,7 @@
 {% block content %}
 {% set r = c.result %}
 <h1>{{ c.challenger.model }} challenges {{ c.champion.model }} {{ pill(r.verdict) }} {{ pill(c.state) }}</h1>
+{% if r.holdout_disclosed %}<div class="alert alert-warning py-2" role="alert"><i class="bi bi-eye" aria-hidden="true"></i> <strong>Unblinded.</strong> {{ r.disclosure }}</div>{% endif %}
 <div class="small-muted mb-2">Holdout <span class="mono">{{ c.holdout_hash|short(16) }}</span> · {{ r.rows }} rows · raised by {{ c.raised_by }} {{ c.created_at|dt }}</div>
 <div class="row g-3"><div class="col-lg-6">
 {{ kv([('Champion', c.champion.warrant), ('Challenger', c.challenger.warrant), ('Metric', r.metric), ('Champion ' ~ r.metric, '%.6g'|format(r.champion)), ('Challenger ' ~ r.metric, '%.6g'|format(r.challenger)), ('Difference (challenger − champion)', '%+.6g'|format(r.difference)), ('95% interval', '[%.6g, %.6g]'|format(r.interval[0], r.interval[1])), ('Rows the challenger wins', '%.1f%%'|format(100 * r.challenger_wins)), ('Bootstrap', r.bootstrap.draws ~ ' paired draws, seed ' ~ r.bootstrap.seed)]) }}

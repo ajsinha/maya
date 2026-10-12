@@ -191,3 +191,19 @@ def pytest_configure(config: Any) -> None:
     because xdist is optional and an unknown option would break a plain ``pytest`` run."""
     if getattr(config.option, "dist", None) == "load":
         config.option.dist = "loadfile"
+
+
+def sealed(w: World, warrant_id: str) -> None:
+    """Take a training warrant to sealed, as a reader would before exporting its bundle:
+    draft parameter sets submitted and approved, the warrant submitted and approved, sealed."""
+    tw = w.p.warrants.get(w.devi, warrant_id)
+    for ps in tw["parameter_sets"]:
+        if ps["state"] == "draft":
+            w.p.warrants.parameter_transition(w.devi, ps["id"], "submit")
+        if ps["state"] in ("draft", "in_review"):
+            w.p.warrants.parameter_transition(w.mgr, ps["id"], "approve")
+    if w.p.warrants.get(w.devi, warrant_id)["state"] == "draft":
+        w.p.warrants.transition(w.devi, warrant_id, "submit")
+    if w.p.warrants.get(w.devi, warrant_id)["state"] == "in_review":
+        w.p.warrants.transition(w.mgr, warrant_id, "approve")
+    w.p.warrants.seal(w.mgr, warrant_id)

@@ -297,20 +297,62 @@ GUIDES: list[dict[str, Any]] = [
         "an implementation tested against the mathematics; approval and a diff.",
     },
     {
-        "slug": "legacy-tutorial-03-warrants-and-bundles",
-        "kind": "reference",
+        "slug": "tutorial-07-training-warrant",
+        "kind": "tutorial",
         "icon": "mortarboard",
-        "title": "Tutorial 3 — Warrants, parameters and a bundle",
-        "summary": "Train under a warrant, upload parameters, issue an execution warrant, "
-        "export a bundle and verify it offline.",
+        "title": "Tutorial 7 · The training warrant and blind scoring",
+        "summary": "Draw a warrant on a pinned panel, justify a late target, fit on issued data, and score blind on the escrowed holdout.",
     },
     {
-        "slug": "legacy-tutorial-04-governed-change",
-        "kind": "reference",
+        "slug": "tutorial-08-execution-and-monitoring",
+        "kind": "tutorial",
+        "icon": "shield-check",
+        "title": "Tutorial 8 · Execution warrants, covenants and monitoring",
+        "summary": "Put the scorecard live under covenants, watch the population drift, suspend on a breach, reinstate, and assess a restatement.",
+    },
+    {
+        "slug": "tutorial-09-evidence-bundles",
+        "kind": "tutorial",
+        "icon": "patch-check",
+        "title": "Tutorial 9 · Evidence bundles, verified offline",
+        "summary": "Export a signed bundle, verify it with the issuer's key, catch a tampered bundle and a re-signed forgery, and open it offline.",
+    },
+    {
+        "slug": "tutorial-10-governed-change",
+        "kind": "tutorial",
         "icon": "bezier2",
-        "title": "Tutorial 4 — A governed change",
-        "summary": "Stage a change in a workspace, replay its impact, answer the challenger "
-        "and merge on approval.",
+        "title": "Tutorial 10 · A governed change",
+        "summary": "Rehearse a change in a workspace, replay its impact on the live model, answer the challenger, and approve on evidence.",
+    },
+    {
+        "slug": "tutorial-11-findings-tiers-reviews",
+        "kind": "tutorial",
+        "icon": "clipboard-check",
+        "title": "Tutorial 11 · Findings, tiers and periodic review",
+        "summary": "Derive a model's tier, raise and independently close a finding, accept a risk "
+        "with a reason, and record the periodic review that keeps it running.",
+    },
+    {
+        "slug": "tutorial-12-challenger-and-fairness",
+        "kind": "tutorial",
+        "icon": "trophy",
+        "title": "Tutorial 12 · Champion, challenger and fairness evidence",
+        "summary": "Compare a challenger with the champion on the same escrowed holdout, decide on "
+        "the evidence, and cut the errors by segment with permutation importance.",
+    },
+    {
+        "slug": "tutorial-13-black-boxes-and-imports",
+        "kind": "tutorial",
+        "icon": "box-seam",
+        "title": "Tutorial 13 · Black boxes and models from MLflow",
+        "summary": "Declare a vendor black box, validate its code in the sandbox, score it blind, import from MLflow, and control it with covenants.",
+    },
+    {
+        "slug": "tutorial-14-llm-applications",
+        "kind": "tutorial",
+        "icon": "chat-square-text",
+        "title": "Tutorial 14 · LLM applications: evaluation sets and guardrails",
+        "summary": "Seal an LLM application's version, catch a guardrail violation on an evaluation set, fix the draft, and approve it on evidence.",
     },
     {
         "slug": "api-guide",
@@ -373,8 +415,10 @@ LEGACY: dict[str, str] = {
 MOVED_GUIDES: dict[str, str] = {
     "tutorial-01-first-feature": "tutorial-02-a-governed-feature",
     "tutorial-02-featureset-and-model": "tutorial-04-feature-sets-and-pins",
-    "tutorial-03-warrants-and-bundles": "legacy-tutorial-03-warrants-and-bundles",
-    "tutorial-04-governed-change": "legacy-tutorial-04-governed-change",
+    "tutorial-03-warrants-and-bundles": "tutorial-07-training-warrant",
+    "tutorial-04-governed-change": "tutorial-10-governed-change",
+    "legacy-tutorial-03-warrants-and-bundles": "tutorial-07-training-warrant",
+    "legacy-tutorial-04-governed-change": "tutorial-10-governed-change",
 }
 GUIDE_HOME: dict[str, str] = {s["guide"]: slug for slug, s in SUBJECTS.items() if s["guide"]}
 

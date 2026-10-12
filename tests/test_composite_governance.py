@@ -13,7 +13,7 @@ import pytest
 
 from maya.core.errors import NotApproved, PermissionDenied, ValidationFailed
 from maya.formula import composite as comp
-from tests.conftest import PASSWORD
+from tests.conftest import sealed, PASSWORD
 from tests.test_warrants import complete_spec, journey  # noqa: F401 - the fixture, reused
 
 
@@ -206,6 +206,7 @@ def test_a_bundle_carries_the_artifact_the_set_definition_and_the_member_pins(jo
         featureset="maya://featureset/quant/panel#q1/2026-02-28",
         spec={"target": "y"},
     )
+    sealed(w, tw["id"])  # a bundle carries the holdout, so it waits for the seal
     exported = w.p.bundles.export(w.devi, tw["id"])
     data = w.p.blobs.get(exported["blob"])
     with zipfile.ZipFile(io.BytesIO(data)) as z:

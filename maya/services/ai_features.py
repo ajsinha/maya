@@ -111,6 +111,7 @@ DRAFT_SYSTEM = (
     "Write the model as one LaTeX formula and declare each symbol's role. Reply with JSON only: "
     '{"formula": <latex>, "roles": {<symbol>: "feature" | "parameter" | "constant"}}.'
 )
+FREE_TEXT = ("description", "use_case", "note", "notes", "comment", "comments")
 NUMBER = re.compile(r"(?<![\w.])-?\d+(?:[.,]\d+)*(?:\.\d+)?%?")
 
 
@@ -372,7 +373,11 @@ class AiFeatures:
             object_ref=ref,
             max_tokens=600,
         )
-        known = set(_words_number(blob))
+        # Only structured fields vouch for a figure: a description is free text anyone with
+        # edit rights typed, and a number planted there ("the score is 99") must not turn a
+        # model repeating it into a verified answer.
+        structured = {k: v for k, v in facts.items() if k not in FREE_TEXT}
+        known = set(_words_number(json.dumps(structured, default=str, sort_keys=True)))
         unverified = sorted({n for n in _words_number(out.text) if n not in known})
         return {
             "text": out.text,

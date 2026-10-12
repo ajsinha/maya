@@ -72,6 +72,29 @@ TEMPLATES.env.filters["short"] = lambda v, n=12: (
 TEMPLATES.env.filters["dt"] = lambda v: str(v)[:19].replace("T", " ") if v else ""
 TEMPLATES.env.filters["urlq"] = lambda v: quote(str(v or ""), safe="")
 
+
+def expr_text(node: Any) -> str:
+    """An IR expression node as plain text, for a constraint shown beside its form."""
+    if not isinstance(node, dict):
+        return str(node)
+    for leaf in ("param", "ref", "let"):
+        if leaf in node:
+            return str(node[leaf])
+    if "const" in node:
+        return (
+            f"{node['const']:g}" if isinstance(node["const"], (int, float)) else str(node["const"])
+        )
+    op, args = node.get("op"), [expr_text(a) for a in node.get("args") or []]
+    infix = {"add": " + ", "sub": " − ", "mul": "·", "div": " / ", "pow": "^"}
+    if op in infix:
+        return "(" + infix[op].join(args) + ")"
+    if op == "neg" and args:
+        return f"−{args[0]}"
+    return f"{op}({', '.join(args)})"
+
+
+TEMPLATES.env.filters["expr_text"] = expr_text
+
 _HEALTH: dict[str, Any] = {"at": 0.0, "data": None}
 HEALTH_TTL = 30.0
 UNSAFE = ("POST", "PUT", "PATCH", "DELETE")

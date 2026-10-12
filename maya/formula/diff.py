@@ -10,6 +10,8 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import json
+
 from typing import Any, Callable
 
 from maya.formula.ir import canonical_json, iter_nodes, refs_of
@@ -100,10 +102,31 @@ def _io_diff(old: dict[str, Any], new: dict[str, Any], key: str) -> list[str]:
     for name in sorted(o.keys() & n.keys()):
         a, b = o[name], n[name]
         label = f"{b.get('role') or noun} '{name}'"
-        for field in ("type", "unit", "role", "bounds"):
+        # a constant's value changes the result as surely as an equation does, and the IR's
+        # hash with it -- so a diff that skipped it would report "no change" for a change
+        for field in ("type", "unit", "role", "bounds", "value"):
             if a.get(field) != b.get(field):
                 msgs.append(f"{label} {field} changed from {a.get(field)} to {b.get(field)}")
     return msgs
+
+
+def _constraints_diff(old: dict[str, Any], new: dict[str, Any]) -> list[str]:
+    """Joint parameter constraints added, removed or changed, by what they say."""
+
+    def said(c: dict[str, Any]) -> str:
+        return f"${node_latex(c.get('expr'))} {c.get('op')} {c.get('rhs')}$"
+
+    def key(c: dict[str, Any]) -> str:
+        return json.dumps({k: c.get(k) for k in ("expr", "op", "rhs")}, sort_keys=True)
+
+    o = {key(c): c for c in old.get("constraints") or []}
+    n = {key(c): c for c in new.get("constraints") or []}
+    msgs = [f"constraint added: {said(n[k])} ({n[k].get('why', '')})" for k in n.keys() - o.keys()]
+    msgs += [f"constraint removed: {said(o[k])}" for k in o.keys() - n.keys()]
+    for k in o.keys() & n.keys():
+        if o[k].get("why") != n[k].get("why"):
+            msgs.append(f"constraint {said(n[k])}: its reason changed")
+    return sorted(msgs)
 
 
 def _tree_msgs(where: str, a: Any, b: Any) -> list[str]:
@@ -182,6 +205,7 @@ def semantic_diff(old_ir: dict[str, Any], new_ir: dict[str, Any]) -> list[str]:
         msgs += rule(old_ir, new_ir)
     msgs += _io_diff(old_ir, new_ir, "inputs")
     msgs += _io_diff(old_ir, new_ir, "outputs")
+    msgs += _constraints_diff(old_ir, new_ir)
     msgs += _lets_diff(old_ir, new_ir)
     if "body" in old_ir and "body" in new_ir:
         msgs += _tree_msgs("output equation", old_ir["body"], new_ir["body"])

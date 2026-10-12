@@ -348,6 +348,55 @@ async def save_formula(request: Request, ns: str, name: str) -> Any:
     return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
 
 
+@router.post("/models/{ns}/{name}/declarations")
+@action
+async def save_declarations(request: Request, ns: str, name: str) -> Any:
+    """Constants' values, parameters' bounds and inputs' units, from the Definition tab."""
+    data = await form(request)
+    values: dict[str, float] = {}
+    bounds: dict[str, Any] = {}
+    units: dict[str, str] = {}
+    for key, raw in data.items():
+        kind, _, input_name = key.partition(":")
+        text = str(raw).strip()
+        if kind == "value" and text:
+            values[input_name] = float(text)
+        elif kind == "lo":
+            hi = str(data.get(f"hi:{input_name}", "")).strip()
+            bounds[input_name] = [float(text), float(hi)] if text and hi else None
+        elif kind == "unit" and text:
+            units[input_name] = text
+    async with client(request) as sdk:
+        await sdk.models.declare(f"{ns}/{name}", values=values, bounds=bounds, units=units)
+    flash(request, "Declarations saved on the draft.", "success")
+    return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
+
+
+@router.post("/models/{ns}/{name}/constraints")
+@action
+async def add_constraint(request: Request, ns: str, name: str) -> Any:
+    data = await form(request)
+    async with client(request) as sdk:
+        await sdk.models.add_constraint(
+            f"{ns}/{name}",
+            data.get("expression", ""),
+            data.get("op", "lt"),
+            float(data.get("rhs") or 0),
+            data.get("why", ""),
+        )
+    flash(request, "Constraint added: every parameter set is checked against it.", "success")
+    return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
+
+
+@router.post("/models/{ns}/{name}/constraints/{index}/delete")
+@action
+async def remove_constraint(request: Request, ns: str, name: str, index: int) -> Any:
+    async with client(request) as sdk:
+        await sdk.models.remove_constraint(f"{ns}/{name}", index)
+    flash(request, "Constraint removed.", "success")
+    return RedirectResponse(f"/models/{ns}/{name}?tab=definition", status_code=303)
+
+
 @router.post("/models/{ns}/{name}/spec")
 @action
 async def save_spec(request: Request, ns: str, name: str) -> Any:

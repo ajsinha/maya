@@ -13,7 +13,7 @@ nobody can edit safely.
 
 | Deck | Slides | Source |
 |---|---|---|
-| `docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 69 | `maya_deck.py`, then `story_part1.py` to `story_part4.py` |
+| `docs/publications/MAYA-Model-Management-Formalism-and-System-Design.pptx` | 71 | `maya_deck.py`, then `story_part1.py` to `story_part4.py` |
 
 **Why one, where there were four.** The build previously carried an executive
 briefing, a system design, a capabilities deck and a formalism deck. Four decks

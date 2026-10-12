@@ -282,7 +282,7 @@ python3.13 -m venv .venv && .venv/bin/pip install -e ./sdk -r requirements.txt -
 |---|---|
 | Understand what MAYA is for | [`README.md`](../../README.md) |
 | Run and debug MAYA in PyCharm or IntelliJ IDEA | [IDE.md](IDE.md): interpreter, run configuration, debugging, tests |
-| Learn the product step by step in the browser | *Help → Guides* inside MAYA: four tutorials, from a first feature to a governed change |
+| Learn the product step by step in the browser | *Help → Tutorials* inside MAYA: a series that starts with your first 15 minutes and builds, tutorial by tutorial, to governed AI; every example in it is run by the test suite |
 | See complete worked examples | [`case_studies/README.md`](../../case_studies/README.md) |
 | Write a program that uses MAYA | [`API_GUIDE.md`](../reference/API_GUIDE.md) |
 | Run it for real (PostgreSQL, single sign-on, backups) | *Help → Operations and monitoring* and [`runbooks/`](../operations/runbooks/README.md) |
