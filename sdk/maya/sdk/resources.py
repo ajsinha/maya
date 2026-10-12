@@ -1753,6 +1753,11 @@ class Custody(_Resource):
     def anchor(self) -> Any:
         return self._c("POST", "/custody/anchor")
 
+    @endpoint("GET", "/custody/signing-key")
+    def signing_key(self) -> Any:
+        """The public key this MAYA signs bundles with; pass it to ``maya.offline(..., key=)``."""
+        return self._c("GET", "/custody/signing-key")
+
     @endpoint("GET", "/custody/verify")
     def verify(self) -> Any:
         return self._c("GET", "/custody/verify")

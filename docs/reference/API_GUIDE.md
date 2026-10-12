@@ -979,6 +979,7 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `POST` | `/custody/anchor` | Anchor |
 | `GET` | `/custody/anchors` | Anchors |
 | `GET` | `/custody/verify` | Verify |
+| `GET` | `/custody/signing-key` | The public key bundles are signed with, for a verifier's `--key` |
 | `GET` | `/licences` | The effective licence of a feature or feature set, and who imposed each term. |
 
 ### events

@@ -8,7 +8,17 @@
   <div><strong>Methods:</strong> <span class="mono">{{ methods|join(', ') }}</span></div>
   <div><strong>Anchor file:</strong> <span class="mono">{{ file }}</span> <span class="text-muted">(put it on WORM or off-host storage)</span></div>
   {% if tsa_url %}<div><strong>Timestamp authority:</strong> <span class="mono">{{ tsa_url }}</span></div>{% endif %}
-  {% if public_key %}<div><strong>Signing key:</strong> <span class="mono">{{ key_id }}</span> <span class="mono text-muted">{{ public_key }}</span></div>{% endif %}
+</div></div>
+<div class="card mb-3" id="signing-key"><div class="card-body small">
+  <h2 class="h6 mb-2"><i class="bi bi-key" aria-hidden="true"></i> The key bundles are signed with</h2>
+  {% if signing.available %}
+  <div><strong>Key id:</strong> <span class="mono">{{ signing.key_id }}</span> · {{ signing.algorithm }}</div>
+  <div class="mono text-muted text-break">{{ signing.public_key }}</div>
+  <p class="mt-2 mb-1">Give this key to anyone who verifies a bundle from this MAYA. A signature alone shows a bundle is unchanged since it was signed, not <em>who</em> signed it: anyone can re-sign a changed bundle with a key of their own. Checked against this key, a re-signed bundle is caught.</p>
+  <pre class="mb-0">python verify.py bundle.zip --key {{ signing.key_id }}
+maya export verify bundle.zip --key {{ signing.key_id }}
+maya.offline("bundle.zip", key="{{ signing.key_id }}")</pre>
+  {% else %}<p class="mb-0">{{ signing.detail }}</p>{% endif %}
 </div></div>
 <div class="d-flex gap-2 mb-3">
   <form method="post" action="/admin/custody/anchor"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-primary" type="submit"><i class="bi bi-pin-angle"></i> Anchor now</button></form>

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**Security: who signed a bundle**
+
+- A bundle's signature was checked against the public key the bundle itself carries, so a
+  bundle changed and re-signed with somebody else's key still verified. MAYA now publishes its
+  signing key (Admin → Custody, `GET /api/v1/custody/signing-key`, SDK
+  `custody.signing_key()`), and every verifier takes it: `verify.py --key`,
+  `maya export verify --key`, `maya.offline(bundle, key=)`. With it, a bundle signed by any
+  other key fails; without it, the report says plainly that the signer was not checked
+  (`authentic: null`).
+- `maya export verify` no longer runs the `verify.py` inside the bundle, which a changed bundle
+  could change too. It uses the installed verifier, runs the bundle's own code only when the
+  signature is from the trusted key, and otherwise hashes the data with MAYA's own encoder.
+
 - **The favicon is the MAYA mark.** The browser tab shows the logo's own SVG — the square
   inscribed in a circle, on crimson — with PNG sizes, an Apple touch icon and a multi-size
   `favicon.ico` rendered from it by `tools/brand/favicons.py`, and `/favicon.ico` now

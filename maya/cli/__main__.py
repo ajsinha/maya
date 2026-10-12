@@ -276,10 +276,12 @@ def export_bundle(args: argparse.Namespace) -> int:
 
 
 def export_verify(args: argparse.Namespace) -> int:
-    """Offline: runs the bundle's own verify.py, needing no MAYA at all."""
+    """Offline, with this installation's verifier. ``--key`` names the issuer's public key or
+    key id; without it the report says the bundle is intact but not who signed it, and none of
+    the bundle's own code is run."""
     from maya.services.bundle import BundleService
 
-    report = BundleService.verify_offline(Path(args.file).read_bytes())
+    report = BundleService.verify_offline(Path(args.file).read_bytes(), key=args.key)
     emit(
         args,
         report,
@@ -488,7 +490,13 @@ def _parser() -> argparse.ArgumentParser:
 
     e = groups.add_parser("export").add_subparsers(dest="cmd", required=True)
     cmd(e, "bundle", export_bundle, (("id",), {}), (("--out",), {"required": True}))
-    cmd(e, "verify", export_verify, (("file",), {}))
+    cmd(
+        e,
+        "verify",
+        export_verify,
+        (("file",), {}),
+        (("--key",), {"help": "the issuer's public key or key id, obtained from the issuer"}),
+    )
     return p
 
 

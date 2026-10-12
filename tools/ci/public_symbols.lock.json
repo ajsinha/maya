@@ -156,6 +156,7 @@
      "anchor": "(self)",
      "anchors": "(self)",
      "licence": "(self, kind, ref)",
+     "signing_key": "(self)",
      "verify": "(self)"
     }
    },
@@ -595,6 +596,7 @@
      "anchor": "(self)",
      "anchors": "(self)",
      "licence": "(self, kind, ref)",
+     "signing_key": "(self)",
      "verify": "(self)"
     }
    },

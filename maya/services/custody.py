@@ -247,6 +247,25 @@ class CustodyService:
         self._admin(p)
         return self.anchor()
 
+    def signing_key(self, p: Principal | None = None) -> dict[str, Any]:
+        """The public half of the key this MAYA signs bundles and anchors with. A reviewer
+        takes it from here (or from the firm, out of band) and gives it to the verifier, so
+        that a bundle re-signed with somebody else's key is caught. Public by nature: any
+        signed-in reader may see it."""
+        signer = self.p.signer_or_none()
+        if signer is None:
+            return {
+                "available": False,
+                "algorithm": "Ed25519",
+                "detail": "no signing key is configured, so bundles are unsigned",
+            }
+        return {
+            "available": True,
+            "algorithm": "Ed25519",
+            "key_id": signer.key_id,
+            "public_key": signer.public_key_b64,
+        }
+
     def verify(self, p: Principal | None = None) -> dict[str, Any]:
         """Check every anchor against the live chain and its own evidence."""
         if p is not None:

@@ -250,7 +250,8 @@ async def custody_page(request: Request) -> Any:
     async with client(request) as sdk:
         data = await sdk.custody.anchors()
         report = await sdk.custody.verify() if verify else None
-    return await render(request, "admin/custody.html", {**data, "report": report})
+        key = await sdk.custody.signing_key()
+    return await render(request, "admin/custody.html", {**data, "report": report, "signing": key})
 
 
 @router.post("/admin/custody/anchor")

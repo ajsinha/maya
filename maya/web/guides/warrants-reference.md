@@ -357,25 +357,26 @@ The manifest's signature is Ed25519 over the canonical JSON of the file-hash lis
 | Check | What it proves |
 |---|---|
 | `file hash <name>` | Each listed file matches its SHA-256. |
-| `Ed25519 signature over the file list` | The file list is unchanged since it was signed by the key in the manifest (`not checked` without `cryptography`). |
+| `Ed25519 signature over the file list` | The file list is unchanged since it was signed by the key in the manifest (`not checked` without `cryptography`). It does **not** say who signed it. |
+| `signed by the key you trust` | With `--key`, the signing key is the issuer's — the one MAYA shows on **Admin → Custody** and serves at `GET /api/v1/custody/signing-key`. Without `--key`, reported as not checked. A mismatch fails the bundle. |
 | `data content hash (canonical, value-based)` | The data's values re-hash, with the shipped canonical encoder, to the recorded content hash. |
 | `re-execution output hash` | The reference model, run on the data with the parameters, reproduces the recorded output hash (values rounded to 10 decimal places). Reported as not performed when the bundle is not re-executable. |
 
 ```bash
 # Verify with nothing from MAYA installed
 unzip -p pd-2026q1.zip verify.py > verify.py
-python verify.py pd-2026q1.zip
+python verify.py pd-2026q1.zip --key 3f9a1c0e5b7d2a46   # the issuer's key id
 ```
 
-!!! note "Whose key signed it"
-    The signature is checked against the public key the manifest carries. To know the bundle came from your MAYA, compare the manifest's `signature.public_key` or `key_id` with your instance's, which `GET /api/v1/custody/anchors` reports as `public_key` and `key_id`.
+!!! warning "A signature proves integrity, not origin"
+    Anyone can change a bundle, re-hash it and sign it again with a key of their own: every file hash and the signature then check out. Only the key gives the forgery away, so a verifier must be told which key to trust, and told by the issuer — not by the bundle. Take the key id or public key from **Admin → Custody** (or `GET /api/v1/custody/signing-key`, SDK `custody.signing_key()`) and pass it as `--key` or `key=`. The `verify.py` inside a bundle travels with the bundle, so a changed bundle can carry a changed verifier: where it matters, use MAYA's CLI or the SDK, whose verifier is the one you installed.
 
 | Where | How it verifies |
 |---|---|
-| `python verify.py bundle.zip` | The bundle's own verifier, on your machine. |
-| `python -m maya.cli export verify bundle.zip` | The same: runs the bundle's own `verify.py` in a clean interpreter. It executes code from the bundle — use it only on bundles you chose. |
+| `python verify.py bundle.zip --key K` | The bundle's own verifier, on your machine, for a reader with nothing from MAYA installed. |
+| `python -m maya.cli export verify bundle.zip --key K` | This installation's verifier, never the one in the file. The bundle's own code (its hasher and reference model) runs only when the signature is from `K`; otherwise the data is hashed with MAYA's own encoder and re-execution is reported as not run. |
 | `POST /api/v1/bundles/verify` (`training.verify_bundle`) | Executes only for a bundle signed by this instance's key whose every file matches its signed hash and which has no unlisted files — and then with MAYA's own verifier, never the uploaded one. Any other bundle is reported with `"executed": false` and the reason. |
-| `maya.sdk.offline(bundle)` | Checks every file hash and the signature before serving anything, never runs code from the bundle, and serves the read calls: `training.get`, `training.data`, `training_data`, `models.get`, `parameters`, `certificate`, `predict`. |
+| `maya.sdk.offline(bundle, key=K)` | Checks every file hash, the signature and, with `key`, that the signer is `K` before serving anything, never runs code from the bundle, and serves the read calls: `training.get`, `training.data`, `training_data`, `models.get`, `parameters`, `certificate`, `predict`. |
 
 ```python
 # Read a bundle offline and evaluate the signed formula

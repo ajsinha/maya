@@ -165,6 +165,8 @@ The next call against the warrant is refused with `WarrantSuspended`. `WarrantGu
 
 `verify.py` needs Python, `pyarrow` and `numpy` and nothing from MAYA: it recomputes every file hash, the data's content hash and — where the model is re-executable — the output hash. Where re-execution is impossible (a declared black box) the bundle says so instead of implying a verification it cannot perform. `maya.offline(bundle)` in the SDK opens the same file ([sdk.md](sdk.md)).
 
+**Who signed it.** The signature proves the file list is unchanged since signing; it does not say who signed. `CustodyService.signing_key` publishes this MAYA's public key (`GET /custody/signing-key`, Admin → Custody), and every verifier takes it as `--key` / `key=`: `verify.py` and the SDK's `Offline` report `authentic` and fail a bundle signed by any other key. `BundleService.verify_offline` (the CLI) uses the installed `VERIFY_PY`, never the bundle's own, runs the bundle's hasher and reference model only when the signature is from the trusted key, and otherwise hashes the data with `maya.core.canonical` itself. `tests/test_sdk_modes.py::test_a_bundle_re_signed_by_a_stranger_is_caught_by_the_trusted_key` forges one.
+
 ### Custody
 
 Each warrant's `custody_events` are an append-only list — created, downloaded (with checksum), parameters uploaded, every workflow transition, sealed, suspended, offline issued, bundle exported (with the blob digest) — written by `WarrantService._custody` in the transaction of the change they record.

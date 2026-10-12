@@ -162,7 +162,9 @@ def reproduce(platform, principal, warrant_id: str) -> tuple[dict, dict, bytes, 
     started = time.perf_counter()
     exported = platform.bundles.export(principal, warrant_id)
     raw = platform.blobs.get(exported["blob"])
-    report = platform.bundles.verify_offline(raw)  # the bundle's own verify.py
+    # verified as a reviewer would: the issuer's published key, so the bundle's own code runs
+    key = platform.custody.signing_key(principal)["key_id"]
+    report = platform.bundles.verify_offline(raw, key=key)
     return exported["manifest"], report, raw, time.perf_counter() - started
 
 
