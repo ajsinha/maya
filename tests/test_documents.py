@@ -172,6 +172,11 @@ def test_a_provider_that_cannot_answer_says_what_to_change(monkeypatch):
         NoProvider().complete("", [Message("user", "q")])
     with pytest.raises(LlmUnavailable, match="endpoint"):
         AzureOpenAIProvider(FakeSettings(), None).complete("", [Message("user", "q")], max_tokens=5)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(LlmUnavailable, match="needs a key in the environment variable"):
+        # refused here, never sent across the internet to be refused there
+        OpenAIProvider(FakeSettings(), None).complete("", [Message("user", "q")], max_tokens=5)
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
     with pytest.raises(LlmUnavailable, match="No model named"):
         OpenAIProvider(FakeSettings(), None).complete("", [Message("user", "q")], max_tokens=5)
     out = StubProvider().complete("", [Message("user", "Task: say hello.\nfacts")], max_tokens=5)

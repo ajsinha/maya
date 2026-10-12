@@ -351,9 +351,11 @@ class RestatementService:
 
     @staticmethod
     def _may_act(p: Principal, ew: dict[str, Any]) -> None:
-        if not (p.is_admin or p.user_id == ew["owner_id"] or "model_manager" in p.roles):
+        allowed = ("model_manager", "model_owner")  # the owner reinstates, so may answer too
+        if not (p.is_admin or p.user_id == ew["owner_id"] or any(r in p.roles for r in allowed)):
             raise PermissionDenied(
-                "Only the warrant's owner, a model manager or an administrator may do this"
+                "Only the warrant's owner, a model owner or manager, or an administrator may do "
+                "this"
             )
 
 

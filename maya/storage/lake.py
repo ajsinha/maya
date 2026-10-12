@@ -133,12 +133,33 @@ class LakeStore:
             total += table.slice(start, end - start).nbytes
         return total
 
+    def pin_path(self, kind: str, namespace: str, name: str, table: pa.Table) -> Path:
+        """Where ``table``'s fragments live: the object's pin table, or -- when a later
+        version's schema differs from the one that table was made with (an attribute added
+        to a feature, a column to a feature set) -- a sibling table for that schema. Every
+        pin already sealed stays exactly where it is."""
+        base = self.table_path(kind, namespace, name)
+        if not self.delta.exists(base):
+            return base
+        held = self.delta.schema(base)
+        held = pa.schema([f for f in held if f.name not in (ROW_COL, FRAGMENT_COL)])
+        if held.equals(table.schema, check_metadata=False):
+            return base
+        schema_hex, _ = self.plan_fragments(table.slice(0, 0))
+        return base.parent / f"{name}@{schema_hex[:16]}"
+
     def write_pin(
-        self, kind: str, namespace: str, name: str, table: pa.Table, known: set[str]
+        self,
+        kind: str,
+        namespace: str,
+        name: str,
+        table: pa.Table,
+        known: set[str],
+        path: Path | None = None,
     ) -> FragmentWrite:
         """Write the fragments of ``table`` that ``known`` does not already hold."""
         schema_hex, runs = self.plan_fragments(table)
-        path = self.table_path(kind, namespace, name)
+        path = path or self.pin_path(kind, namespace, name, table)
         new: list[tuple[str, int, int]] = []
         batches = []
         seen_now: set[str] = set()
@@ -194,11 +215,23 @@ class LakeStore:
         path = self.table_path(kind, namespace, name)
         if not fragments:
             raise ValueError("empty fragment manifest")
+        wanted = sorted(set(fragments))
         with span(
             "lake read pin",
             attributes={"maya.table": self.rel(path), "maya.fragments": len(fragments)},
         ):
-            data = self.delta.read(path, partitions={FRAGMENT_COL: sorted(set(fragments))})
+            # the object's table first, then the tables later schemas were written to
+            candidates = [path] + sorted(path.parent.glob(f"{name}@*"))
+            data = None
+            for candidate in candidates:
+                if not self.delta.exists(candidate):
+                    continue
+                part = self.delta.read(candidate, partitions={FRAGMENT_COL: wanted})
+                if part.num_rows:
+                    data = part
+                    break
+            if data is None:
+                data = self.delta.read(path, partitions={FRAGMENT_COL: wanted})
         # one sort by (fragment, row), then each fragment is a contiguous slice
         data = data.take(
             pa.compute.sort_indices(

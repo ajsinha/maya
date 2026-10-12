@@ -62,6 +62,8 @@ class _Backend(Protocol):
     name: str
 
     def exists(self, path: Path) -> bool: ...
+
+    def schema(self, path: Path, version: int | None = None) -> pa.Schema: ...
     def version(self, path: Path) -> int: ...
     def read(
         self,
@@ -212,6 +214,10 @@ class DeltaLake:
 
     def exists(self, path: str | Path) -> bool:
         return self._b.exists(Path(path))
+
+    def schema(self, path: str | Path) -> pa.Schema:
+        """The table's current schema."""
+        return self._b.schema(Path(path))
 
     def history(self, path: str | Path) -> list[dict[str, Any]]:
         return self._b.history(Path(path))

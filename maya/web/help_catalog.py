@@ -355,6 +355,22 @@ GUIDES: list[dict[str, Any]] = [
         "summary": "Seal an LLM application's version, catch a guardrail violation on an evaluation set, fix the draft, and approve it on evidence.",
     },
     {
+        "slug": "tutorial-15-ai-in-maya",
+        "kind": "tutorial",
+        "icon": "stars",
+        "title": "Tutorial 15 · AI in MAYA: ask, explain and draft",
+        "summary": "Switch on a repeatable mock model, ask the estate in words, have records "
+        "and changes explained with every figure checked, and draft a formula.",
+    },
+    {
+        "slug": "tutorial-16-ai-providers-policy-audit",
+        "kind": "tutorial",
+        "icon": "sliders2",
+        "title": "Tutorial 16 · AI providers, policy and audit",
+        "summary": "Set up providers without keys in profiles, read the policy, watch it refuse "
+        "and mask, read the usage, and approve MAYA's own AI as an application.",
+    },
+    {
         "slug": "api-guide",
         "kind": "reference",
         "icon": "braces",

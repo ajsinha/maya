@@ -415,3 +415,71 @@ def test_the_holdout_is_not_exported_before_the_warrant_is_sealed(journey):  # n
         last = uow.repo("audit_events").list(action="bundle.exported")[-1]
     # recorded, so a challenger on the same holdout is told its rows were disclosed
     assert last["detail"]["holdout_hash"] and last["detail"]["warrant_id"] == tw["id"]
+
+
+def test_a_later_version_with_a_wider_schema_can_be_pinned_beside_the_first():
+    """Every version of an object shares its pin table; a version that adds an attribute was
+    refused at the lake ('Append schema does not match'). It now pins to a sibling table for
+    its schema, and the first version's pin reads back exactly as before."""
+    import copy
+
+    from tests.conftest import PX_DEF, World, approved_feature, build_platform, price_csv
+
+    p = build_platform()
+    try:
+        w = World(p)
+        p.access.create_namespace(w.admin, name="eq", preset="standard")
+        ref = approved_feature(w, "px", price_csv())
+        first = p.features.pin(w.mick, ref, version_no=1, pin_name="v1", as_of=dt.date(2026, 1, 20))
+        w.drain()
+        p.features.new_draft(w.dana, ref)
+        wider = copy.deepcopy(PX_DEF)
+        wider["schema"].append({"name": "volume", "type": "float64"})
+        p.features.update_draft(w.dana, ref, wider)
+        csv = price_csv().decode().splitlines()
+        rows = [csv[0] + ",volume"] + [line + ",100" for line in csv[1:]]
+        p.features.ingest(w.dana, ref, ("\n".join(rows) + "\n").encode(), fmt="csv")
+        p.features.transition(w.dana, ref, 2, "submit")
+        p.features.transition(w.mick, ref, 2, "approve")
+        p.features.pin(w.mick, ref, version_no=2, pin_name="v2", as_of=dt.date(2026, 1, 20))
+        w.drain()
+        pins = {x["pin_name"]: x for x in p.features.get(w.mick, ref)["pins"]}
+        assert pins["v2"]["state"] == "sealed", pins["v2"].get("failure")
+        old = p.features.preview(w.mick, "maya://feature/eq/px#v1/2026-01-20")
+        new = p.features.preview(w.mick, "maya://feature/eq/px#v2/2026-01-20")
+        assert "volume" not in old["columns"] and "volume" in new["columns"]
+        assert old["total_rows"] == new["total_rows"] > 0
+        assert first is not None
+    finally:
+        p.shutdown()
+
+
+def test_smaller_defects_found_while_writing_the_tutorials():
+    from maya.llm.profiles import Profile
+    from maya.llm.providers import _local
+    from maya.services.llm import pii_found
+
+    # a card number is a card number, not also a phone number
+    assert pii_found("card 4111 1111 1111 1111") == ["card number"]
+    # a profile shows the variable its key lives in, never a key
+    row = Profile("p", "openai", options={"api_key_env": "OPENAI_API_KEY", "api_key": "x"}).as_row()
+    assert row["options"] == {"api_key_env": "OPENAI_API_KEY"}
+    # only a server on this machine or network may be called without a key
+    assert _local("http://localhost:8000/v1") and _local("http://10.1.2.3:1234")
+    assert _local("http://gpu-box:11434") and not _local("https://api.openai.com/v1")
+
+
+def test_a_yaml_no_in_the_questionnaire_is_the_word_no(tmp_path):
+    from tests.conftest import build_platform
+
+    path = tmp_path / "tiering.yaml"
+    path.write_text(
+        "questions:\n  - id: impact\n    text: Customers?\n    answers:\n      no: 1\n"
+        "      yes: 3\n"
+    )
+    p = build_platform([f"--governance.tiering_questionnaire={path}"])
+    try:
+        answers = p.governance.questionnaire()["questions"][0]["answers"]
+        assert answers == {"no": 1, "yes": 3}
+    finally:
+        p.shutdown()

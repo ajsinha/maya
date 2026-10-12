@@ -437,7 +437,9 @@ class FeatureData:
                 "ingested, or none known at as_of_known)"
             )
         table = self.to_table(res)
-        lake_table = self.p.lake.rel(self.p.lake.table_path("pins", ns["name"], feature["name"]))
+        lake_table = self.p.lake.rel(
+            self.p.lake.pin_path("pins", ns["name"], feature["name"], table)
+        )
         with self.p.uow() as uow:
             known = {f["hash"] for f in uow.repo("fragments").list(lake_table=lake_table)}
             # the real figure, before anything is stored: a queue of pins cannot slip past
@@ -478,10 +480,11 @@ class FeatureData:
     def _write_fragments(
         self, ns: str, name: str, table: pa.Table, kind: str = "pins"
     ) -> tuple[Any, str]:
-        lake_table = self.p.lake.rel(self.p.lake.table_path(kind, ns, name))
+        target = self.p.lake.pin_path(kind, ns, name, table)
+        lake_table = self.p.lake.rel(target)
         with self.p.uow() as uow:
             known = {f["hash"] for f in uow.repo("fragments").list(lake_table=lake_table)}
-        write = self.p.lake.write_pin(kind, ns, name, table, known)
+        write = self.p.lake.write_pin(kind, ns, name, table, known, path=target)
         with self.p.uow() as uow:
             for digest, rows, size in write.new_fragments:
                 if uow.repo("fragments").find_one(hash=digest, lake_table=lake_table) is None:

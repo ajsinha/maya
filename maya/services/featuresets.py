@@ -1128,7 +1128,7 @@ class FeatureSetService:
         table = self.p.feature_data.to_table(res)
         policy = ns.get("materialize_policy") or "always"
         if policy == "always":
-            rel = self.p.lake.rel(self.p.lake.table_path("fspins", ns["name"], fs["name"]))
+            rel = self.p.lake.rel(self.p.lake.pin_path("fspins", ns["name"], fs["name"], table))
             with self.p.uow() as uow:
                 known = {f["hash"] for f in uow.repo("fragments").list(lake_table=rel)}
                 quota.check(uow, ns, self.p.lake.new_bytes(table, known), what="feature set pin")

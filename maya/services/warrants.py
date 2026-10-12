@@ -811,6 +811,15 @@ class WarrantService:
             mv = uow.repo("model_versions").require(w["model_version_id"])
             if parameter_set_id:
                 values = uow.repo("parameter_sets").require(parameter_set_id)["values"]
+            elif values is None:
+                # none named: the warrant's approved set, as a reviewer would mean
+                approved = uow.repo("parameter_sets").list(
+                    training_warrant_id=warrant_id,
+                    state__in=["approved", "published"],
+                    order_by=["-created_at"],
+                )
+                if approved:
+                    values = approved[0]["values"]
         target = w["spec"].get("target")
         if not target:
             raise ValidationFailed("The warrant declares no target attribute to score against")

@@ -292,7 +292,11 @@ class GovernanceService:
             raise ValidationFailed(f"{path}: rule is 'max' or 'points'")
         questions = []
         for q in doc.get("questions") or []:
-            answers = {str(k): int(v) for k, v in (q.get("answers") or {}).items()}
+            # YAML reads a bare no: or yes: as a boolean; the answer meant is the word
+            answers = {
+                ({True: "yes", False: "no"}[k] if isinstance(k, bool) else str(k)): int(v)
+                for k, v in (q.get("answers") or {}).items()
+            }
             if not q.get("id") or not answers or not all(1 <= v <= 3 for v in answers.values()):
                 raise ValidationFailed(
                     f"{path}: each question has an id and answers scored 1 to 3", question=q

@@ -230,6 +230,8 @@ print(
 print("95% interval:", [round(x, 4) for x in r["interval"]], "|", r["bootstrap"])
 print("challenger closer on", f"{r['challenger_wins']:.0%}", "of rows")
 print("verdict:", r["verdict"], "| state:", c["state"])
+print("holdout disclosed:", r["holdout_disclosed"])
+print(r.get("disclosure", "-"))
 print(
     "attempts:",
     devi.training.get(champion["id"])["holdout_attempts"],
@@ -247,6 +249,8 @@ RMSE: 0.3959 vs 0.3974 | difference 0.0015
 95% interval: [-0.0019, 0.0051] | {'draws': 2000, 'seed': 20260926, 'level': 0.95}
 challenger closer on 49% of rows
 verdict: no_clear_difference | state: scored
+holdout disclosed: True
+This holdout was disclosed in an exported bundle before the comparison, so the challenger may have been fitted with its rows in view: treat the verdict as unblinded.
 attempts: 3 1
 ```
 
@@ -257,6 +261,18 @@ difference each time. The verdict is `challenger_better` only when the whole
 interval lies below zero, `champion_better` only when it lies above, and
 `no_clear_difference` otherwise. A challenger better on average whose interval
 straddles zero has not shown it.
+
+Then the line a reviewer must not skip: **holdout disclosed**. In tutorial 9
+devi exported the champion's bundle, and a bundle carries every row of the
+pin, the escrowed holdout included. MAYA records the holdout's hash with each
+export. The challenger's warrant uses the same pin and seed, so the same
+holdout, and devi had that bundle before she fitted the challenger. MAYA cannot
+know whether she looked; it can know she could have. So the challenge is marked
+*unblinded* (the challenge page says so), and the verdict is evidence of how
+the two models score, not of how they would score on rows nobody had seen. A
+blind challenge needs a holdout no bundle has disclosed: a new pin, or a new
+seed on the same pin for both champion and challenger, drawn before anyone
+exports.
 
 ## Step 5 · Two refusals, and the decision
 
@@ -463,7 +479,7 @@ predictions, so it works the same for a black box, scored in the sandbox
 | What you see | Why | What to do |
 |---|---|---|
 | `not drawn on the same escrowed holdout` | The warrants differ in pin, split or seed | Draw the challenger on the champion's pin, with the same split and seed |
-| `no value supplied for 'beta0'` from a challenge or evidence run | No parameter set was named, and MAYA does not pick the approved one for you | Pass `champion_parameter_set_id`, `challenger_parameter_set_id` or `parameter_set_id` |
+| `no value supplied for 'beta0'` from a challenge or evidence run | No parameter set was named and the warrant has no approved one, so MAYA has no values to score with | Approve a parameter set, or pass `champion_parameter_set_id`, `challenger_parameter_set_id` or `parameter_set_id` |
 | `Whoever owns the challenger does not decide` | The challenger's owner tried to decide | Another manager decides |
 | `This challenge was already decided` | A challenge is decided once | Raise a new challenge |
 | A segment shows no figures | It has fewer rows than `min_segment` | Use a coarser segment; lowering the threshold below 5 is not allowed |

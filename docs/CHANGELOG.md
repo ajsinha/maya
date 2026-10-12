@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+**Tutorials complete, and the defects they found, fixed**
+
+- **Sixteen tutorials**, every one run in order against a fresh MAYA by the suite: from your
+  first 15 minutes through features, two clocks, feature sets, models and their inputs,
+  training and execution warrants, evidence bundles, governed change, findings and reviews,
+  champion and challenger, black boxes and MLflow, LLM applications, to AI in MAYA (ask,
+  explain, draft) and AI providers, policy and audit.
+- A later version of a feature or feature set whose schema differs could not be pinned
+  (`Append schema does not match`): every version shared one pin table. A pin of a new
+  schema now goes to a sibling table for that schema; every pin already sealed stays where it
+  is and reads back unchanged.
+- `maya export verify` could hang at exit after printing its report; it now reads the
+  bundle's data single-threaded.
+- Ask MAYA: the `owner` filter matched nothing (listings carried only an id); the number of
+  model attempts was always reported as 1; a model answer that was not JSON showed the
+  parser's own error.
+- A profile's display hid `api_key_env`, which names a variable rather than holding a key; an
+  OpenAI-compatible profile with no key reported ready, and testing it sent a request across
+  the internet to be refused — it is now refused locally, unless the server is on this machine
+  or network.
+- A bare `no:` answer in `config/tiering.yaml` read as a boolean; the file quotes it and the
+  loader reads either as the word.
+- A challenge or evidence run with no parameter set named uses the warrant's approved one.
+- The personal-data guardrail reported a card number as a phone number as well.
+- An MLflow import with no description says where the model came from.
+- A model owner may acknowledge restated data, as they may reinstate a warrant.
+- An execution bundle carries the formula's constants beside its parameters.
+
 **Security: the escrowed holdout could be read before blind scoring**
 
 - A bundle carries every row of the training frame, the escrowed holdout included, and could
