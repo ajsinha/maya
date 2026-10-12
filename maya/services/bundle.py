@@ -519,8 +519,11 @@ class BundleService:
         if report.get("authentic") is not True and "data/training.parquet" in z.namelist():
             # The bundle's hasher did not run, so hash the data with this installation's own
             # canonical encoder: the same definition, from code the reader already trusts.
+            # Single-threaded: a CLI process that reads Parquet on pyarrow's thread pool and
+            # then exits can hang in interpreter shutdown while that pool is torn down.
             table = pq.read_table(
-                io.BytesIO(archives.read(z, "data/training.parquet", what="bundle"))
+                io.BytesIO(archives.read(z, "data/training.parquet", what="bundle")),
+                use_threads=False,
             )
             content = canonical.table_content_hash(table)
             good = content == manifest.get("data_content_hash")

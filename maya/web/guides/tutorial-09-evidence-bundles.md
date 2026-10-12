@@ -32,7 +32,10 @@ read-only, offline MAYA.
 
 ## Step 1 · Reconnect, and export the bundle
 
-A bundle is exported from a sealed training warrant:
+A bundle is exported from a sealed training warrant, and only from one: a
+bundle carries every row of the pin, the escrowed holdout included, so MAYA
+refuses to export one while parameters could still be uploaded under the
+warrant.
 
 ```python
 # reconnect, export the bundle, and save it
@@ -68,10 +71,17 @@ for name in sorted(manifest["files"]):
 print(
     "signature:", manifest["signature"]["algorithm"], "| re-executable:", manifest["reexecutable"]
 )
+
+# the naive warrant from tutorial 7 was never sealed
+naive = next(w for w in devi.training.list() if w["name"] == "pd_fit_naive")
+try:
+    devi.training.export_bundle(naive["id"])
+except maya.MayaError as exc:
+    print(type(exc).__name__, exc)
 ```
 
-You should see the warrant and the pin it was drawn on, the eighteen files, and
-the signature:
+You should see the warrant and the pin it was drawn on, the eighteen files, the
+signature, and the unsealed warrant's export refused:
 
 ```text
 maya://warrant/train/credit/pd_fit_2024@v1 | sealed pin: maya://featureset/credit/training_panel#fit/2024-06-30
@@ -94,6 +104,7 @@ maya://warrant/train/credit/pd_fit_2024@v1 | sealed pin: maya://featureset/credi
   verify.py
   warrant.json
 signature: Ed25519 | re-executable: True
+NotApproved A bundle is exported only once its training warrant is sealed: it carries the escrowed holdout, which must stay unseen until the parameters are approved
 ```
 
 The manifest lists every file with its SHA-256 hash, and the hash list is
@@ -319,8 +330,9 @@ NotInBundle execution.bundle() needs a live MAYA; this offline bundle holds warr
 imports `reference_model.py` or `artifact.py` from the bundle: opening a bundle
 must not run code it carries. The bundle holds every row of the pin, the
 escrowed holdout included, because a reviewer must be able to recompute
-everything. Export it once the warrant is sealed, when no more parameters can
-be uploaded under it.
+everything. That is why MAYA exports only sealed warrants, and records the
+holdout's hash with every export: a later challenge on the same holdout is
+marked as unblinded (tutorial 12 shows one).
 
 ## Step 6 · The bundled verifier
 

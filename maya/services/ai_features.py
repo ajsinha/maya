@@ -230,6 +230,11 @@ class AiFeatures:
             "execution_warrant": self.p.execution,
         }[kind]
         rows: list[dict[str, Any]] = service.list(p)
+        if rows and "owner" not in rows[0] and any(r.get("owner_id") for r in rows):
+            # the vocabulary offers owner; a listing that carries only owner_id gets the name
+            with self.p.uow() as uow:
+                names = {u["id"]: u["username"] for u in uow.repo("users").list()}
+            rows = [{**r, "owner": names.get(r.get("owner_id"))} for r in rows]
         return rows
 
     @staticmethod
@@ -278,7 +283,7 @@ class AiFeatures:
         parsed = self.parse_phrase(p, question)
         how, attempts = "phrase", 0
         if parsed is None:
-            parsed, attempts = self._ask_model(p, question), 1
+            parsed, attempts = self._ask_model(p, question)
             how = "model"
         query = {k: v for k, v in parsed.items() if k != "read_as"}
         rows = self.run(p, query)
@@ -296,7 +301,7 @@ class AiFeatures:
             "model_attempts": attempts,
         }
 
-    def _ask_model(self, p: Principal, question: str) -> dict[str, Any]:
+    def _ask_model(self, p: Principal, question: str) -> tuple[dict[str, Any], int]:
         vocab = self.vocabulary(p)
         prompt = f"TASK: ask-query\nVOCABULARY: {json.dumps(vocab)}\nQUESTION: {question}"
         last_error = ""
@@ -311,9 +316,11 @@ class AiFeatures:
             ).text
             try:
                 raw = json.loads(text[text.find("{") : text.rfind("}") + 1])
-                return {**self.validate(p, raw), "read_as": None}
-            except (ValueError, ValidationFailed) as exc:
-                last_error = getattr(exc, "message", str(exc))
+                return {**self.validate(p, raw), "read_as": None}, attempt + 1
+            except ValidationFailed as exc:
+                last_error = exc.message
+            except ValueError:
+                last_error = "the answer was not a JSON query"
         raise ValidationFailed(
             "MAYA could not turn that question into a query it can check. Try naming what "
             f"you want (features, models, warrants) and a state or a namespace. ({last_error})"

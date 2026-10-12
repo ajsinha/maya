@@ -98,12 +98,21 @@ def pii_found(text: str) -> builtins.list[str]:
     kinds = []
     if _EMAIL.search(text):
         kinds.append("email address")
+    cards = []
     for m in _CARD.finditer(text):
         digits = re.sub(r"\D", "", m.group())
         if 13 <= len(digits) <= 19 and _luhn(digits):
-            kinds.append("card number")
-            break
-    if any(len(re.sub(r"\D", "", m.group())) >= 10 for m in _PHONE.finditer(text)):
+            cards.append((m.start(), m.end()))
+    if cards:
+        kinds.append("card number")
+    # a card number is not also a phone number: digits inside one are not counted again
+    phones = [
+        m
+        for m in _PHONE.finditer(text)
+        if not any(a <= m.start() and m.end() <= b for a, b in cards)
+        and len(re.sub(r"\D", "", m.group())) >= 10
+    ]
+    if phones:
         kinds.append("phone number")
     return kinds
 

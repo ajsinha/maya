@@ -343,6 +343,8 @@ in the model inventory beside the models, with their evaluation evidence.
 
 ## Next steps
 
+- [Tutorial 15 · AI in MAYA: ask, explain and draft](/help/guides/tutorial-15-ai-in-maya)
+  turns to MAYA's own AI features.
 - [LLM applications](/help/llm-apps) covers every check, guardrail and
   provider, and how MAYA registers its own AI features as applications.
 - [Workflow](/help/workflow) explains who decides what, across every kind of

@@ -563,6 +563,12 @@ class ExecutionService:
             "formula_ir": mv["formula_ir"],
             "member_irs": members,
             "parameters": ps["values"] if ps else {},
+            # the constants too, so a runtime has every number the formula reads in one place
+            "constants": {
+                i["name"]: i["value"]
+                for i in (mv["formula_ir"] or {}).get("inputs") or []
+                if i.get("role") == "constant" and "value" in i
+            },
             "status": self.status(ew),
         }
         if not offline:

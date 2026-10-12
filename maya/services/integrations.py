@@ -205,7 +205,9 @@ class IntegrationService:
             estimates=estimates,
             architecture=f"MLflow model; flavours {', '.join(facts['flavors'])}",
             provenance={"source": "mlflow", "uri": uri, **facts},
-            description=description,
+            # an MLmodel file carries no description, so say where the model came from
+            description=description.strip()
+            or f"Imported from MLflow ({', '.join(facts['flavors'])}): {estimates}",
         )
 
     def fetch_mlflow(

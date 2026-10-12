@@ -22,13 +22,13 @@ questions:
   - id: customer_impact
     text: Does the output affect customers directly?
     answers:
-      no: 1
+      "no": 1
       indirectly: 2
       directly: 3
   - id: reporting
     text: Does the output feed financial or regulatory reporting?
     answers:
-      no: 1
+      "no": 1
       management_reporting: 2
       external_reporting: 3
   - id: complexity

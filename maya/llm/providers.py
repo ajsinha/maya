@@ -45,6 +45,22 @@ def _key(settings: Any, setting: str, default_env: str, provider: str) -> str:
     return value
 
 
+def _local(url: str) -> bool:
+    """Whether ``url`` is a server on this machine or a private network, which may take no
+    key; anything else is a public service and needs one."""
+    import ipaddress
+    from urllib.parse import urlparse
+
+    host = (urlparse(url).hostname or "").lower()
+    if host in ("localhost", "") or host.endswith(".local") or host.endswith(".internal"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return "." not in host  # a bare name on the local network, such as gpu-box
+    return ip.is_loopback or ip.is_private or ip.is_link_local
+
+
 def _require_model(model: str, provider: str, setting: str) -> str:
     if not model:
         raise LlmUnavailable(f"No model named for {provider}: set llm.model or {setting}")
@@ -231,6 +247,13 @@ class OpenAIProvider(_Http):
     def _url_and_headers(self) -> tuple[str, dict[str, str]]:
         env = (self.settings.get("llm.openai.api_key_env", "OPENAI_API_KEY") or "").strip()
         key = os.environ.get(env, "") if env else ""
+        if not key and not _local(self.base):
+            # refused here, rather than sent across the internet to be refused there
+            raise LlmUnavailable(
+                f"The {self.name} provider at {self.base} needs a key in the environment "
+                f"variable {env or '(none named)'}, which is not set. Only a server on this "
+                "machine or this network may be called without one."
+            )
         headers = {"Authorization": f"Bearer {key}"} if key else {}  # a local server needs none
         return f"{self.base}/chat/completions", headers
 
@@ -264,11 +287,16 @@ class OpenAIProvider(_Http):
         )
 
     def describe(self) -> dict[str, Any]:
+        try:
+            self._url_and_headers()
+            keyed = True
+        except LlmUnavailable:
+            keyed = False
         return {
             "provider": self.name,
             "model": self.model,
-            "ready": bool(self.model),
-            "detail": self.base,
+            "ready": bool(self.model) and keyed,
+            "detail": self.base if keyed else f"{self.base}: the key variable is not set",
         }
 
 

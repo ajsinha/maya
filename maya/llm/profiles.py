@@ -63,7 +63,12 @@ class Profile:
             "model": self.model,
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
-            "options": {k: v for k, v in self.options.items() if "key" not in k.lower()},
+            # an option ending _env names a variable, not a secret, so it is shown
+            "options": {
+                k: v
+                for k, v in self.options.items()
+                if "key" not in k.lower() or k.lower().endswith("_env")
+            },
             "description": self.description,
             "source": self.source,
         }
