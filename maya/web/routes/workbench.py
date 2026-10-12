@@ -215,6 +215,11 @@ def _prefill(qp: Any) -> dict[str, Any]:
     """A definition the designer opens with. The lineage canvas (§16.3) sends two or
     more selected features and an operator here, so choosing an algebra on the graph
     lands in the editor already written down rather than needing retyping."""
+    from maya.web.examples import feature as example
+
+    chosen = example((qp.get("example") or "").strip())
+    if chosen is not None:  # opened from the examples gallery: the whole definition, a draft
+        return dict(chosen["definition"])
     operator = (qp.get("operator") or "").strip()
     operands = [o.strip() for o in (qp.get("operands") or "").split(",") if o.strip()]
     if operator not in OPERATORS or len(operands) < 1:

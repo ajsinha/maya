@@ -1,0 +1,10 @@
+# A MAYA model profile, one per file (copy to openrouter.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: openrouter
+model: ""  # the model to ask: see the provider's list
+max_tokens: 2048
+description: "OpenRouter (OpenAI-compatible)"
+options:
+  base_url: "https://openrouter.ai/api/v1"
+  api_key_env: "OPENROUTER_API_KEY"

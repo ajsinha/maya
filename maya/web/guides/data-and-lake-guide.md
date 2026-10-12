@@ -349,5 +349,5 @@ lake, logs and pins apply; only the review is skipped. To govern it, create the
 feature in a real namespace.
 
 Related: [Feature definition reference](/help/features#reference) for
-sources and rules, and [Tutorial 1](/help/guides/tutorial-01-first-feature) for
+sources and rules, and [Tutorial 3](/help/guides/tutorial-03-two-clocks) for
 a pin and a restatement end to end.

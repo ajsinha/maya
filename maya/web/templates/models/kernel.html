@@ -11,8 +11,17 @@
   correctly, and generates one self-contained Python function that computes it. Nothing here is saved: this is the
   translation step on its own.</p>
 
+<form method="post" action="/models/kernel/draft" class="card card-body mb-3" id="kernel-describe">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <label class="form-label mb-1" for="kdescribe"><i class="bi bi-chat-square-text" aria-hidden="true"></i> <strong>Describe it in words</strong> <span class="small-muted">— a language model drafts the formula and the roles; MAYA's parser checks them before you see them</span></label>
+  <div class="input-group"><input class="form-control" id="kdescribe" name="description" value="{{ description or '' }}" placeholder="e.g. a logistic probability of default from bureau score and utilisation">
+  <button class="btn btn-outline-primary" type="submit">Draft it</button></div>
+  {% if draft_error %}<div class="alert alert-warning py-2 small mt-2 mb-0" role="alert">{{ draft_error.message }}</div>{% endif %}
+  {% if draft %}<div class="small mt-2">Drafted in {{ draft.attempts }} {{ 'try' if draft.attempts == 1 else 'tries' }} and parsed by MAYA. Read it below before you take it anywhere: it is a draft, and nothing is saved.</div>{% endif %}
+</form>
+
 <div class="kernel-split">
-  <form class="card card-body" id="kernel-form">
+  <form class="card card-body" id="kernel-form"{% if draft %} data-autorun="1"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <div class="btn-group btn-group-sm mb-2" role="group" aria-label="Write it as">
       <input type="radio" class="btn-check" name="kmode" id="kmode-formula" value="formula" checked>
@@ -40,14 +49,14 @@
     <textarea class="form-control mono" id="kformula" name="formula" rows="7" spellcheck="false"
       placeholder="d_1 = (\log(S/K) + (r + \sigma^2/2)T) / (\sigma\sqrt{T})
 d_2 = d_1 - \sigma\sqrt{T}
-price = S\,ncdf(d_1) - K e^{-rT} ncdf(d_2)"></textarea>
+price = S\,ncdf(d_1) - K e^{-rT} ncdf(d_2)">{{ draft.formula if draft else '' }}</textarea>
     <p class="small-muted mt-1 mb-2">One assignment per line. The last line names the output. Available functions:
       <code>exp log sqrt abs ncdf npdf max min where</code> and the comparisons.</p>
 
     <label class="form-label" for="kroles">Symbol roles — one <code>name: feature|parameter|constant</code> per line</label>
     <textarea class="form-control mono" id="kroles" name="roles" rows="4" spellcheck="false"
       placeholder="sigma: parameter
-r: parameter"></textarea>
+r: parameter">{{ draft.roles_text if draft else '' }}</textarea>
     <p class="small-muted mt-1 mb-2">Anything you do not name here is a feature. Declare every multi-letter symbol:
       an undeclared <code>tau</code> reads the way LaTeX means it, as <em>t·a·u</em>.</p>
     </div>

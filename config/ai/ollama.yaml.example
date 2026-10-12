@@ -1,0 +1,9 @@
+# A MAYA model profile, one per file (copy to ollama.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: ollama
+model: "llama3.1"
+max_tokens: 2048
+description: "Ollama on this machine: nothing leaves it"
+options:
+  base_url: "http://localhost:11434"

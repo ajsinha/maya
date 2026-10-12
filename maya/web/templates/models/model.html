@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros/needs.html" import needs %}
 {% from "_macros/table.html" import table %}
+{% from "_macros/ai.html" import explain_button %}
 {% from "_macros/ui.html" import pill, kv, tabs, json_block, impact_panel %}
 {% block title %}{{ m.name }}{% endblock %}
 {% block content %}
@@ -12,6 +13,7 @@
     <input type="hidden" name="object_ref" value="{{ m.ref }}">
     <button class="btn btn-sm btn-outline-secondary" type="submit" title="Be told when a new version is approved"><i class="bi bi-bell" aria-hidden="true"></i> Follow</button></form>
   <a class="btn btn-sm btn-outline-secondary" href="/models/{{ m.namespace }}/{{ m.name }}/diff">Diff versions</a>
+  {{ explain_button('model', m.namespace ~ '/' ~ m.name, 'Model ' ~ m.name ~ ', in plain words', '/models/' ~ m.namespace ~ '/' ~ m.name) }}
 </div>
 {% if v and v.needs_reapproval %}<div class="alert alert-warning py-2">{{ v.needs_reapproval }}</div>{% endif %}
 {% include "_job.html" %}

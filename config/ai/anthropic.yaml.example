@@ -1,0 +1,9 @@
+# A MAYA model profile, one per file (copy to anthropic.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: anthropic
+model: "claude-opus-5"
+max_tokens: 2048
+description: "Anthropic's Claude"
+options:
+  api_key_env: "ANTHROPIC_API_KEY"

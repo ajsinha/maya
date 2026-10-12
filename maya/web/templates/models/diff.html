@@ -9,6 +9,7 @@
   <div><label class="form-label" for="v2">To</label><select class="form-select" id="v2" name="v2">{% for v in m.versions %}<option {% if v.version_no|string == v2 %}selected{% endif %}>{{ v.version_no }}</option>{% endfor %}</select></div>
   <button class="btn btn-primary" type="submit">Diff</button></form>
 {% if result %}
+<form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/narrate" class="mb-2"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="a" value="{{ v1 }}"><input type="hidden" name="b" value="{{ v2 }}"><button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-chat-square-text" aria-hidden="true"></i> Explain the change</button></form>
 <h2>What changed, mathematically</h2>
 {% call(s) table("stmts", ["Statement"], result.statements, empty="No mathematical change between these versions.") %}<td>{{ s }}</td>{% endcall %}
 <p>Code artifact changed: <strong>{{ 'yes' if result.artifact_changed else 'no' }}</strong> · specification document changed: <strong>{{ 'yes' if result.spec_changed else 'no' }}</strong></p>

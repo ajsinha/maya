@@ -1,0 +1,10 @@
+# A MAYA model profile, one per file (copy to openai.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: openai
+model: "gpt-4.1"
+max_tokens: 2048
+description: "OpenAI"
+options:
+  api_key_env: "OPENAI_API_KEY"
+  base_url: "https://api.openai.com/v1"

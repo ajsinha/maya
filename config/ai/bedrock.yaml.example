@@ -1,0 +1,9 @@
+# A MAYA model profile, one per file (copy to bedrock.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: bedrock
+model: "anthropic.claude-sonnet-4-20250514-v1:0"
+max_tokens: 2048
+description: "Amazon Bedrock: credentials from boto3's usual chain"
+options:
+  region: "us-east-1"

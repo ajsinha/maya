@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="/static/css/theme.css?v={{ ASSET_V }}">
   {% block head %}{% endblock %}
 </head>
-<body data-csrf="{{ csrf }}" class="{{ 'maya-app' if (user or public_nav) else 'maya-public' }}">
+<body data-csrf="{{ csrf }}" data-help="{{ '/help/' ~ page_help.subject if page_help and page_help.subject else '/help' }}" class="{{ 'maya-app' if (user or public_nav) else 'maya-public' }}">
 <a class="visually-hidden-focusable maya-skip" href="#main">Skip to content</a>
 {% if user %}{% include "_nav.html" %}{% elif public_nav %}{% include "_nav_public.html" %}{% endif %}
 <div class="maya-shell">

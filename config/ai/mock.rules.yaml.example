@@ -1,0 +1,8 @@
+# Rules for the mock provider: the first pattern that matches the prompt gives the reply.
+# Copy to mock.rules.yaml (and mock.yaml.example to mock.yaml) to use it.
+default: "The mock model has no rule for this prompt."
+rules:
+  - match: "Reply with the single word: ready"
+    reply: "ready"
+  - match: "Task: explain"
+    reply: "This is a deterministic explanation from the mock model."

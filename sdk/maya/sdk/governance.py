@@ -279,6 +279,52 @@ class Ai(_Resource):
     def status(self) -> Any:
         return self._c("GET", "/ai/status")
 
+    @endpoint("GET", "/ai/policy")
+    def policy(self) -> Any:
+        """Who may use each AI feature, the limits and budgets, and today's use."""
+        return self._c("GET", "/ai/policy")
+
+    @endpoint("GET", "/ai/usage")
+    def usage(self, days: int = 7) -> Any:
+        """AI use over the last ``days`` days, by feature, person and profile (administrators)."""
+        return self._c("GET", "/ai/usage", params={"days": days})
+
+    @endpoint("POST", "/ai/ask")
+    def ask(self, question: str) -> Any:
+        """A question in words: the rows and the structured query MAYA ran, as you."""
+        return self._c("POST", "/ai/ask", json_body={"question": question})
+
+    @endpoint("GET", "/ai/vocabulary")
+    def vocabulary(self) -> Any:
+        """The kinds, fields, operators, states and namespaces a query may name."""
+        return self._c("GET", "/ai/vocabulary")
+
+    @endpoint("POST", "/ai/query")
+    def query(self, query: dict[str, Any]) -> Any:
+        """Run a structured query (the shape ``ask`` returns) with no model involved."""
+        return self._c("POST", "/ai/query", json_body=query)
+
+    @endpoint("POST", "/ai/explain")
+    def explain(self, kind: str, key: str) -> Any:
+        """An object's record in plain words; ``unverified_numbers`` names any figure the
+        model added that is not in the record."""
+        return self._c("POST", "/ai/explain", json_body={"kind": kind, "key": key})
+
+    @endpoint("POST", "/ai/narrate/diff")
+    def narrate_diff(self, ref: str, a: int, b: int) -> Any:
+        """What changed between two versions of a model, in words."""
+        return self._c("POST", "/ai/narrate/diff", json_body={"ref": ref, "a": a, "b": b})
+
+    @endpoint("POST", "/ai/draft/formula")
+    def draft_formula(self, description: str) -> Any:
+        """LaTeX and roles from a description, checked by MAYA's parser; nothing is saved."""
+        return self._c("POST", "/ai/draft/formula", json_body={"description": description})
+
+    @endpoint("POST", "/ai/register-self")
+    def register_self(self, namespace: str) -> Any:
+        """Register MAYA's own AI features as LLM applications in ``namespace``."""
+        return self._c("POST", "/ai/register-self", json_body={"namespace": namespace})
+
     @endpoint("POST", "/ai/default")
     def set_default(self, profile: str | None) -> Any:
         """Make ``profile`` the default now; ``None`` returns the choice to the configuration."""

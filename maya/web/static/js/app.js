@@ -102,6 +102,13 @@
   })();
 
   document.addEventListener('keydown', function (ev) {
+    // F1, as in any desktop application: the guide for the page you are on, from the page's
+    // own "About this page" subject, or the Help home where a page has none.
+    if (ev.key === 'F1' && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+      ev.preventDefault();
+      window.location.href = document.body.getAttribute('data-help') || '/help';
+      return;
+    }
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') {
       var s = document.getElementById('global-search');
       if (s) { ev.preventDefault(); s.focus(); s.select(); }

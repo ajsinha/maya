@@ -622,5 +622,6 @@ A failed check names itself: `Blocked by check(s): spec_document_complete — re
   contract, the IR, the specification, the artifact report, conformance and
   transitions; **Diff** at `/models/{ns}/{name}/diff`.
 
-[Tutorial 2](/help/guides/tutorial-02-featureset-and-model) takes a model from
+[Tutorial 5](/help/guides/tutorial-05-write-a-model) and
+[Tutorial 6](/help/guides/tutorial-06-inputs-and-specification) take a model from
 LaTeX to approval.

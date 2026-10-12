@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
 {% from "_macros/ui.html" import pill, kv, tabs, json_block %}
+{% from "_macros/ai.html" import explain_button %}
 {% block title %}{{ w.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1"><div class="me-auto"><h1 class="mb-0">{{ w.name }}@v{{ w.version_no }} {{ pill(w.status) }}</h1><div class="small-muted mono">{{ w.uri }}</div></div>
 <a class="btn btn-sm btn-outline-primary" href="/warrants/training/{{ w.id }}/data"><i class="bi bi-download" aria-hidden="true"></i> Download training data</a>
-<form method="post" action="/warrants/training/{{ w.id }}/bundle"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Export bundle</button></form></div>
+<form method="post" action="/warrants/training/{{ w.id }}/bundle"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Export bundle</button></form>
+{{ explain_button('training_warrant', w.id, 'Training warrant ' ~ w.name ~ ', in plain words', '/warrants/training/' ~ w.id) }}</div>
 {% if bundle %}<div class="alert alert-success">Bundle ready ({{ bundle.size }} bytes): <a href="/warrants/bundles/{{ bundle.blob }}">download maya-bundle-{{ bundle.blob[:12] }}.zip</a>. {% if bundle.reexecutable %}Its verify.py re-executes the model and compares outputs.{% else %}Re-execution is not possible: {{ bundle.reason }}{% endif %}</div>{% endif %}
 {% if w.revoked_at %}<div class="alert alert-danger">Revoked: {{ w.revoke_reason }}</div>{% endif %}
 {{ tabs([('overview','Overview'),('definition','Definition'),('params','Parameters'),('holdout','Holdout'),('evidence','Fairness & drivers'),('lineage','Lineage'),('history','History & Comments')], tab) }}

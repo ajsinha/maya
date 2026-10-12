@@ -522,6 +522,6 @@ Most SDK and CLI calls also accept the short form `eq/prices`.
 | `v1 is 'draft'; only an approved version can be pinned` | pinning too early | submit and have it approved |
 | `Pin blocked by the quality contract` | a check failed during the pin | read the pin's `quality` results |
 
-Related: [Tutorial 1](/help/guides/tutorial-01-first-feature) walks through one
+Related: [Tutorial 2](/help/guides/tutorial-02-a-governed-feature) walks through one
 definition end to end, and [Data, pins and the lake](/help/data#reference)
 explains what happens to the rows.

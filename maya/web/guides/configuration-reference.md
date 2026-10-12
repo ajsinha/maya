@@ -437,6 +437,28 @@ The AI gateway: the one place MAYA asks a language model anything — drafted se
 | `llm.model` | empty | The model to ask. Empty: the provider's own default below. |
 | `llm.profiles_file` | `config/llm_profiles.yaml` | Named profiles (provider, model, parameters, options); `config/llm_profiles.example.yaml` shows the format. Missing: one profile from these keys. |
 | `llm.profile` | empty | The default profile. Empty: the file's own `default:`. An administrator's choice in Admin → AI models overrides both. |
+| `llm.profiles_dir` | `config/ai` | Model profiles one to a file (`<name>.yaml`), as drishti keeps them. A `<provider>.yaml.example` ships for every provider; copy one in to switch it on. Files ending `.rules.yaml` are a mock's rules, not profiles. |
+| `llm.mock.rules_file` | empty | The mock provider's rules: `rules: [{match: <regex>, reply: <text>}]` and an optional `default:`. |
+| `llm.gemini.model` | empty | The Gemini model to ask. |
+| `llm.gemini.api_key_env` | `GEMINI_API_KEY` | The environment variable holding the Gemini key. |
+| `llm.gemini.base_url` | `https://generativelanguage.googleapis.com/v1beta` | The Gemini API's address. |
+| `llm.cohere.model` | empty | The Cohere model to ask. |
+| `llm.cohere.api_key_env` | `COHERE_API_KEY` | The environment variable holding the Cohere key. |
+| `llm.cohere.base_url` | `https://api.cohere.com/v2` | The Cohere API's address. |
+| `ai.roles.draft` | `feature_designer,model_designer,model_developer,admin` | Roles that may ask for AI drafts. `*` is anyone signed in. |
+| `ai.roles.documents` | `model_designer,model_developer,model_manager,model_validator,model_owner,admin` | Roles that may have documents written with AI. |
+| `ai.roles.challenger` | `*` | The challenger's memo; MAYA asks it itself, so no person's role is checked. |
+| `ai.roles.llm_eval` | `model_designer,model_developer,model_manager,model_validator,admin` | Roles that may run live LLM evaluations. |
+| `ai.roles.ask` | `*` | Roles that may ask questions about the estate in plain words. |
+| `ai.roles.explain` | `*` | Roles that may ask for explanations. |
+| `ai.roles.narrate` | `*` | Roles that may ask for narrations. |
+| `ai.roles.admin` | `admin` | Roles that may test a model connection. |
+| `ai.rate.per_user_per_minute` | `20` | AI calls one person may make in a minute; `0` is no limit. |
+| `ai.rate.per_feature_per_minute` | `120` | AI calls one feature may make in a minute, across everyone; `0` is no limit. |
+| `ai.daily_token_cap` | `2000000` | Tokens MAYA may spend on AI in a UTC day; `0` is no cap. |
+| `ai.daily_cost_cap_usd` | `25` | Money MAYA may spend on AI in a UTC day, counted for profiles that declare `options.price_in_per_mtok` and `price_out_per_mtok`; `0` is no cap. MAYA ships no price table. |
+| `ai.mask.fields` | empty | Field names whose values are masked in every prompt (`name: value`, `name=value`), comma separated. |
+| `ai.mask.patterns` | `true` | Mask e-mail addresses, Luhn-valid card numbers, phone numbers and long digit runs in every prompt. |
 | `llm.max_tokens` | `2048` | The longest answer asked for, per call. |
 | `llm.temperature` | `0.2` | Sampling temperature where the provider takes one. |
 | `llm.timeout_seconds` | `120` | Per-call timeout. |

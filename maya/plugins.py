@@ -65,7 +65,9 @@ POINTS: dict[str, tuple[str, str]] = {
     "search_index": ("SearchIndex", "MAYA's own inverted index (ADR-019)"),
     "llm_provider": (
         "LlmProvider.complete(system, messages, max_tokens, temperature)",
-        "anthropic, openai (and compatible servers), azure_openai, ollama, bedrock, stub, none",
+        "anthropic, openai, azure_openai, gemini, cohere, bedrock, ollama, the named "
+        "OpenAI-compatible services (groq, together, fireworks, deepseek, xai, openrouter, "
+        "perplexity, huggingface, vllm, lmstudio, mistral), mock, stub, none",
     ),
 }
 
@@ -277,9 +279,9 @@ def built_ins(registry: Registry, platform: Any = None) -> Registry:
     for name in sorted(CALENDARS):
         registry.register("calendar", name)
     registry.register("search_index", "inverted_index", detail="ADR-019")
-    from maya.llm.providers import BUILT_IN
+    from maya.llm.providers_extra import ALL
 
-    for name, provider in BUILT_IN.items():
+    for name, provider in ALL.items():
         registry.register("llm_provider", name, factory=provider.from_settings)
     if platform is not None:
         for name in sorted(platform.workflow.checks):

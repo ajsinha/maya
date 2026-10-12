@@ -5,6 +5,13 @@
 {% block content %}
 <h1>LLM applications</h1>
 <p class="small-muted">An LLM application is governed like a model. A version seals the provider, model, system prompt, prompt template, parameters and guardrails in one definition hash. It is judged on evaluation sets with deterministic checks, and approved only on a clean run of that exact definition, by someone who neither owns it nor submitted it.</p>
+<details class="mb-3"><summary class="small"><i class="bi bi-cpu" aria-hidden="true"></i> Govern MAYA's own AI the same way</summary>
+  <form method="post" action="/llm/register-self" class="d-flex flex-wrap gap-2 align-items-end mt-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div><label class="form-label small" for="self-ns">Namespace</label><select class="form-select form-select-sm" id="self-ns" name="namespace">{% for n in namespaces %}<option>{{ n.name }}</option>{% endfor %}</select></div>
+    <button class="btn btn-sm btn-outline-primary" type="submit">Register MAYA's own AI</button>
+    <span class="small-muted">Registers <span class="mono">maya-ask</span>, <span class="mono">maya-explain</span> and <span class="mono">maya-draft-formula</span> with their real prompts, the default AI profile's provider and model, and starter evaluation sets. Needs a model designer's rights in that namespace.</span>
+  </form></details>
 {% call(a) table("llm-apps", ["Application", "Use", "Approved version", "Latest version"], apps, empty="No LLM applications yet.") %}
   <td><a href="/llm/{{ a.namespace }}/{{ a.name }}">{{ a.ref }}</a></td><td>{{ a.use_case }}</td>
   <td>{% if a.approved %}v{{ a.approved.version_no }} · {{ a.approved.model }}{% else %}—{% endif %}</td>

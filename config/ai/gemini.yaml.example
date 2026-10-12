@@ -1,0 +1,9 @@
+# A MAYA model profile, one per file (copy to gemini.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: gemini
+model: "gemini-2.5-pro"
+max_tokens: 2048
+description: "Google Gemini"
+options:
+  api_key_env: "GEMINI_API_KEY"

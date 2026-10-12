@@ -8,7 +8,7 @@ it, list everything downstream, and replay every dependent model on the old and
 new data to see how far it moves. The reviewer then gets the replay report and a
 challenger's memo alongside the diff.
 
-This tutorial continues from [Tutorial 3](/help/guides/tutorial-03-warrants-and-bundles):
+This tutorial continues from [Tutorial 3](/help/guides/legacy-tutorial-03-warrants-and-bundles):
 `eq/signals@v1` feeds `eq/panel`, which a sealed training warrant and a live
 execution warrant depend on. It takes about twenty minutes.
 

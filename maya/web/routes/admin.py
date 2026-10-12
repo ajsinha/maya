@@ -525,9 +525,15 @@ async def ai_models(request: Request) -> Any:
     """The model profiles, the default and who chose it, and the providers on offer (§21.6)."""
     async with client(request) as sdk:
         status = await sdk.ai.status()
+        policy = await sdk.ai.policy()
+        usage = await sdk.ai.usage(days=7)
     edit = request.query_params.get("edit")
     editing = next((r for r in status["profiles"] if r["name"] == edit), None) if edit else None
-    return await render(request, "admin/ai.html", {"s": status, "editing": editing})
+    return await render(
+        request,
+        "admin/ai.html",
+        {"s": status, "editing": editing, "policy": policy, "usage": usage},
+    )
 
 
 @router.post("/admin/ai/default")

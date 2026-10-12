@@ -1060,6 +1060,15 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `POST` | `/warrants/training/{warrant_id}/dispatch` | A job definition for your own compute (Kubernetes, SageMaker), a signed manifest and a one-day key. MAYA runs nothing. |
 | `POST` | `/warrants/training/{warrant_id}/evidence` | Segment metrics and permutation importance on the holdout; counts as one attempt. |
 | `POST` | `/warrants/training/{warrant_id}/refit` | MAYA's own least-squares fit on the training split, compared with a parameter set. |
+| `POST` | `/ai/ask` | A question in words, answered with rows and the structured query that found them, run with the asker's own permissions. Common phrasings are read without a model. |
+| `GET` | `/ai/vocabulary` | What a query may name: kinds, fields, operators, states and namespaces. |
+| `POST` | `/ai/query` | Run a structured query (the shape /ai/ask returns) as the caller, with no model. |
+| `POST` | `/ai/explain` | An object's record in plain words; any figure in the answer that is not in the record is named. |
+| `POST` | `/ai/narrate/diff` | What changed between two versions of a model, in words, from the semantic diff. |
+| `POST` | `/ai/draft/formula` | LaTeX and each symbol's role from a description, checked by MAYA's parser. Nothing is registered. |
+| `POST` | `/ai/register-self` | Register MAYA's own AI features as LLM applications in a namespace, with their real prompts and starter evaluation sets. |
+| `GET` | `/ai/policy` | Who may use each AI feature, the rate limits, the daily budgets and today's use, and what is masked from prompts. |
+| `GET` | `/ai/usage` | AI use over the last days, by feature, person and profile, and how many calls the policy refused (administrators). |
 | `GET` | `/ai/status` | Every model profile — where it came from, where it points, whether it looks usable — which one is the default and who chose it, and every provider on offer. Nothing is called. |
 | `POST` | `/ai/default` | Make a profile the default, at once and for every process; null returns the choice to the configuration. Administrators only; audited. |
 | `POST` | `/ai/profiles/{name}/test` | Ask the profile's model one short question: the reply, the time, the tokens, or why not. Administrators only. |

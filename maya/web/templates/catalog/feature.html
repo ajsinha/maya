@@ -2,6 +2,7 @@
 {% from "_rows.html" import pin_row %}
 {% from "_macros/table.html" import table %}
 {% from "_macros/ui.html" import pill, kv, licence_panel, transitions, tabs, json_block, gated, impact_panel %}
+{% from "_macros/ai.html" import explain_button %}
 {% block title %}{{ f.name }}{% endblock %}
 {% block content %}
 <div class="d-flex align-items-start gap-2 mb-1">
@@ -13,6 +14,7 @@
     <input type="hidden" name="object_ref" value="{{ f.ref }}">
     <button class="btn btn-sm btn-outline-secondary" type="submit" title="Be told when a new version is approved or a dependent pin is sealed"><i class="bi bi-bell" aria-hidden="true"></i> Follow</button></form>
   <a class="btn btn-sm btn-outline-secondary" href="/catalog/features/{{ f.namespace }}/{{ f.name }}/compare">Compare versions</a>
+  {{ explain_button('feature', f.namespace ~ '/' ~ f.name, 'Feature ' ~ f.name ~ ', in plain words', '/catalog/features/' ~ f.namespace ~ '/' ~ f.name) }}
 </div>
 {{ gated('Edit draft', edit_gate, 'feature', f.ref, csrf, 'read_write', 'pencil') }}
 {% if f.ungoverned %}<div class="alert alert-warning py-2">Ungoverned: this lives in a scratch namespace — no review, no approval, no SoD. Promote it by cloning into a governed namespace.</div>{% endif %}

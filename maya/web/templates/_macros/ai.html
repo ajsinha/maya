@@ -1,0 +1,10 @@
+{# "Explain this": the object's own record put into plain words by the AI gateway. A POST,
+   because it asks a model and so passes the policy and costs tokens. #}
+{% macro explain_button(kind, key, title, back, label='Explain this') -%}
+<form method="post" action="/ai/explain" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="key" value="{{ key }}">
+  <input type="hidden" name="title" value="{{ title }}"><input type="hidden" name="back" value="{{ back }}">
+  <button class="btn btn-sm btn-outline-secondary" type="submit" title="A plain-words reading of this record, checked against it"><i class="bi bi-chat-square-text" aria-hidden="true"></i> {{ label }}</button>
+</form>
+{%- endmacro %}

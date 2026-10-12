@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros/table.html" import table %}
+{% block title %}Ask MAYA{% endblock %}
+{% block content %}
+<h1>Ask MAYA</h1>
+<p class="lead-slate">Ask about the estate in plain words. MAYA turns the question into a query over a fixed set of fields, runs it as you — so you see only what you may read — and shows you the rows and the query it ran. Common phrasings are read without any model; anything else goes to the language model your administrator chose, and its answer is checked before it runs.</p>
+<form method="get" action="/ask" class="mb-3" role="search">
+  <div class="input-group">
+    <label class="visually-hidden" for="ask-q">Your question</label>
+    <input class="form-control" id="ask-q" name="q" value="{{ q }}" placeholder="e.g. approved models in credit, newest first" autofocus>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-chat-square-text" aria-hidden="true"></i> Ask</button>
+  </div>
+  <div class="small-muted mt-1">Try: {% for e in examples %}<a href="/ask?q={{ e|urlencode }}">{{ e }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div>
+</form>
+<details class="mb-3"><summary class="small">What you can ask about</summary>
+  <div class="small mt-2">
+    {% for kind, fields in vocabulary.kinds.items() %}<div><strong>{{ kind.replace('_', ' ') }}s</strong>: <span class="mono">{{ fields|join(', ') }}</span></div>{% endfor %}
+    <div class="mt-1">States: <span class="mono">{{ vocabulary.states|join(', ') }}</span>; warrant statuses: <span class="mono">{{ vocabulary.statuses|join(', ') }}</span>.</div>
+    <div>Namespaces: <span class="mono">{{ vocabulary.namespaces|join(', ') or 'none yet' }}</span>.</div>
+  </div></details>
+{% if error %}
+<div class="alert alert-warning" role="alert">{{ error.message }}</div>
+{% elif answer %}
+<div class="card mb-3"><div class="card-body">
+  <p class="mb-1"><strong>{{ answer.summary }}.</strong>
+    {% if answer.how == 'phrase' %}<span class="small-muted">Read without a model as: {{ answer.read_as|join(' · ') }}.</span>
+    {% else %}<span class="small-muted">Read by the language model{% if answer.model_attempts > 1 %} after {{ answer.model_attempts }} tries{% endif %}, then checked against the vocabulary.</span>{% endif %}</p>
+  <details{% if answer.how == 'edited' %} open{% endif %}><summary class="small">The query MAYA ran — edit it and run it again, with no model</summary>
+    <form method="post" action="/ask/query" class="mt-2"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label class="visually-hidden" for="ask-query">The query</label>
+      <textarea class="form-control mono small" id="ask-query" name="query" rows="8" data-json>{{ answer.query|tojson_pretty }}</textarea>
+      <button class="btn btn-sm btn-outline-primary mt-2" type="submit">Run this query</button></form></details>
+</div></div>
+{% set cols = (answer.query.kind and answer.rows and answer.rows[0].keys()|list) or [] %}
+{% call(r) table("ask-rows", cols, answer.rows, empty="Nothing matches.") %}
+  {% for c in cols %}<td class="{{ 'mono' if c in ('ref', 'uri') else '' }}">{% if c in ('ref', 'uri') and r[c] %}<span class="text-break">{{ r[c] }}</span>{% else %}{{ r[c] if r[c] is not none else '—' }}{% endif %}</td>{% endfor %}
+{% endcall %}
+{% endif %}
+{% endblock %}

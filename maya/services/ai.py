@@ -29,7 +29,9 @@ import re
 import time
 from typing import Any
 
-from maya.core.errors import PermissionDenied, ValidationFailed
+from maya.core.clock import utcnow
+from maya.core.errors import PermissionDenied, QuotaExceeded, ValidationFailed
+from maya.llm import policy as pol
 from maya.llm import profiles as prof
 from maya.llm.base import Completion, LlmUnavailable, Message
 from maya.security.authz import Principal
@@ -45,6 +47,145 @@ class AiGateway:
         self.p = platform
         self.override: Any = None  # a provider object set directly (tests, embedding)
         self._cache: dict[str, Any] = {}
+        self.limiter = pol.RateLimiter()
+        self._spent: tuple[float, dict[str, Any]] | None = None  # (when read, today's totals)
+
+    # -- policy (maya.llm.policy) -------------------------------------------------------
+    def today(self, fresh: bool = False) -> dict[str, Any]:
+        """Today's AI use across MAYA (UTC day), read from the audit log's completions."""
+        now = time.monotonic()
+        if not fresh and self._spent and now - self._spent[0] < 10:
+            return self._spent[1]
+        start = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        with self.p.uow() as uow:
+            rows = uow.repo("audit_events").list(action="ai.completion", at__ge=start)
+        tokens = sum(
+            int(r["detail"].get("input_tokens") or 0) + int(r["detail"].get("output_tokens") or 0)
+            for r in rows
+        )
+        cost = sum(float(r["detail"].get("cost_usd") or 0) for r in rows)
+        totals = {
+            "calls": len(rows),
+            "tokens": tokens,
+            "cost_usd": round(cost, 4),
+            "since": start.isoformat(),
+        }
+        self._spent = (now, totals)
+        return totals
+
+    def _refuse(self, p: Principal | None, feature: str, purpose: str, why: str, exc: Any) -> None:
+        with self.p.uow(p.username if p else "assistant") as uow:
+            uow.audit("ai.denied", detail={"feature": feature, "purpose": purpose, "reason": why})
+        raise exc(why, feature=feature)
+
+    def police(self, p: Principal | None, purpose: str) -> str:
+        """The feature a call belongs to, or a refusal: role, rate, then the daily budget."""
+        s, feature = self.p.settings, pol.feature_of(purpose)
+        if p is not None and not pol.allowed(s, feature, p.roles):
+            self._refuse(
+                p,
+                feature,
+                purpose,
+                f"Your roles may not use the AI feature "
+                f"'{feature}' (ai.roles.{feature}: "
+                f"{', '.join(sorted(pol.roles_for(s, feature)))})",
+                PermissionDenied,
+            )
+        who = p.username if p else "assistant"
+        if not self.limiter.take(f"user:{who}", s.int("ai.rate.per_user_per_minute", 20)):
+            self._refuse(
+                p,
+                feature,
+                purpose,
+                "Too many AI requests from you in the last "
+                "minute (ai.rate.per_user_per_minute); try again shortly",
+                QuotaExceeded,
+            )
+        if not self.limiter.take(
+            f"feature:{feature}", s.int("ai.rate.per_feature_per_minute", 120)
+        ):
+            self._refuse(
+                p,
+                feature,
+                purpose,
+                f"The AI feature '{feature}' is busy "
+                "(ai.rate.per_feature_per_minute); try again shortly",
+                QuotaExceeded,
+            )
+        spent = self.today()
+        cap = s.int("ai.daily_token_cap", 2_000_000)
+        if cap and spent["tokens"] >= cap:
+            self._refuse(
+                p,
+                feature,
+                purpose,
+                f"Today's AI token budget ({cap:,}, "
+                "ai.daily_token_cap) is spent; it resets at midnight UTC",
+                QuotaExceeded,
+            )
+        money = float(s.get("ai.daily_cost_cap_usd", "25") or 0)
+        if money and spent["cost_usd"] >= money:
+            self._refuse(
+                p,
+                feature,
+                purpose,
+                f"Today's AI spending cap (${money:,.2f}, "
+                "ai.daily_cost_cap_usd) is reached; it resets at midnight UTC",
+                QuotaExceeded,
+            )
+        return feature
+
+    def policy(self) -> dict[str, Any]:
+        """The policy as Admin → AI models shows it."""
+        s = self.p.settings
+        return {
+            "features": [
+                {"feature": f, "what": what, "roles": sorted(pol.roles_for(s, f))}
+                for f, (what, _) in pol.FEATURES.items()
+            ],
+            "per_user_per_minute": s.int("ai.rate.per_user_per_minute", 20),
+            "per_feature_per_minute": s.int("ai.rate.per_feature_per_minute", 120),
+            "daily_token_cap": s.int("ai.daily_token_cap", 2_000_000),
+            "daily_cost_cap_usd": float(s.get("ai.daily_cost_cap_usd", "25") or 0),
+            "mask_fields": [f for f in (s.get("ai.mask.fields", "") or "").split(",") if f.strip()],
+            "mask_patterns": s.bool("ai.mask.patterns", True),
+            "today": self.today(fresh=True),
+        }
+
+    def usage(self, p: Principal, days: int = 7) -> dict[str, Any]:
+        """AI use over the last ``days`` days, by feature, person and profile (admins)."""
+        self._admin(p)
+        import datetime as dt
+
+        since = utcnow() - dt.timedelta(days=max(1, min(int(days), 90)))
+        with self.p.uow() as uow:
+            done = uow.repo("audit_events").list(action="ai.completion", at__ge=since)
+            refused = uow.repo("audit_events").list(action="ai.denied", at__ge=since)
+        groups: dict[str, dict[tuple[str, ...], dict[str, Any]]] = {}
+        for key in ("feature", "actor", "profile"):
+            agg: dict[tuple[str, ...], dict[str, Any]] = {}
+            for r in done:
+                name = r["actor"] if key == "actor" else str(r["detail"].get(key) or "?")
+                row = agg.setdefault(
+                    (name,), {key: name, "calls": 0, "tokens": 0, "cost_usd": 0.0, "masked": 0}
+                )
+                row["calls"] += 1
+                row["tokens"] += int(r["detail"].get("input_tokens") or 0) + int(
+                    r["detail"].get("output_tokens") or 0
+                )
+                row["cost_usd"] = round(
+                    row["cost_usd"] + float(r["detail"].get("cost_usd") or 0), 4
+                )
+                row["masked"] += int(r["detail"].get("masked") or 0)
+            groups[key] = agg
+        return {
+            "days": days,
+            "calls": len(done),
+            "refused": len(refused),
+            "by_feature": sorted(groups["feature"].values(), key=lambda r: -r["calls"]),
+            "by_person": sorted(groups["actor"].values(), key=lambda r: -r["calls"]),
+            "by_profile": sorted(groups["profile"].values(), key=lambda r: -r["calls"]),
+        }
 
     # -- profiles -----------------------------------------------------------------------
     def _runtime_default(self) -> str | None:
@@ -332,6 +473,12 @@ class AiGateway:
     ) -> Completion:
         from maya.observability.metrics import METRICS
 
+        feature = self.police(p, purpose)
+        fields = [f.strip() for f in (self.p.settings.get("ai.mask.fields", "") or "").split(",")]
+        masked = pol.mask(
+            prompt, [f for f in fields if f], self.p.settings.bool("ai.mask.patterns", True)
+        )
+        prompt = masked.text
         view = prof.ProfileSettings(self.p.settings, chosen)
         # a document's purpose names its section; the metric keeps the kind, so series stay few
         labels = {"purpose": ":".join(purpose.split(":")[:2]), "provider": chosen.provider}
@@ -372,9 +519,13 @@ class AiGateway:
                 object_ref=object_ref,
                 detail={
                     "purpose": purpose,
+                    "feature": feature,
                     "profile": chosen.name,
                     **out.usage(),
+                    "masked": masked.count,
+                    "cost_usd": pol.cost_usd(chosen.options, out.input_tokens, out.output_tokens),
                     "prompt_sha256": hashlib.sha256((system + "\n" + prompt).encode()).hexdigest(),
                 },
             )
+        self._spent = None  # the next call reads today's spend afresh, this one included
         return out

@@ -51,4 +51,25 @@
   <td class="mono">{{ pr.name }}</td><td>{{ pr.origin }}</td><td>{{ pr.version }}</td><td>{{ pill('ok' if pr.status == 'active' else 'warn', pr.status) }}</td><td class="small">{{ pr.detail }}</td>
 {% endcall %}
 <p class="small-muted mt-2">A third-party provider installs as a package with an entry point in the <code>maya.llm_provider</code> group and loads only when <code>plugins.allow</code> names it. See Help → guides → <em>What each designer expects</em> → <em>Model profiles and providers</em>.</p>
+<p class="small-muted">Every provider has a ready profile in <code>config/ai/&lt;provider&gt;.yaml.example</code>: copy one to <code>&lt;name&gt;.yaml</code> in the same folder, set the key variable it names, and it appears above. Nothing is switched on until a file is copied in.</p>
+
+<h3 class="mt-4" id="policy">Policy</h3>
+<p class="small-muted">Every call passes the policy before anything leaves MAYA: who may use the feature, how often, the day's budget, and what is masked. Set in <code>application.yaml</code> under <code>ai.*</code>.</p>
+{% call(f) table("ai-policy", ["Feature", "What it is", "Roles allowed"], policy.features, empty="None.") %}
+  <td class="mono">{{ f.feature }}</td><td class="small">{{ f.what }}</td><td class="small">{{ 'anyone signed in' if '*' in f.roles else f.roles|join(', ') }}</td>
+{% endcall %}
+<div class="row g-3 mt-1">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body small"><div class="text-uppercase small-muted">Rate limits</div><strong>{{ policy.per_user_per_minute or '∞' }}</strong> a minute per person<br><strong>{{ policy.per_feature_per_minute or '∞' }}</strong> a minute per feature</div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body small"><div class="text-uppercase small-muted">Tokens today</div><strong>{{ '{:,}'.format(policy.today.tokens) }}</strong> of {{ '{:,}'.format(policy.daily_token_cap) if policy.daily_token_cap else 'no cap' }}<br>{{ policy.today.calls }} call(s)</div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body small"><div class="text-uppercase small-muted">Spent today</div><strong>${{ '%.2f'|format(policy.today.cost_usd) }}</strong> of {{ ('$%.2f'|format(policy.daily_cost_cap_usd)) if policy.daily_cost_cap_usd else 'no cap' }}<br><span class="small-muted">priced profiles only (options.price_in_per_mtok, price_out_per_mtok)</span></div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body small"><div class="text-uppercase small-muted">Masked from prompts</div>{{ 'E-mail, card and phone numbers, long digit runs' if policy.mask_patterns else 'No patterns' }}{% if policy.mask_fields %}; fields <span class="mono">{{ policy.mask_fields|join(', ') }}</span>{% endif %}</div></div></div>
+</div>
+
+<h3 class="mt-4" id="usage">Use in the last {{ usage.days }} days</h3>
+<p class="small-muted">{{ usage.calls }} call(s); {{ usage.refused }} refused by the policy. From the audit log, which records every call's purpose, profile, tokens and cost, and never the prompt.</p>
+<div class="row g-3">
+  <div class="col-lg-4">{% call(r) table("ai-use-feature", ["Feature", "Calls", "Tokens", "Cost", "Masked"], usage.by_feature, empty="No AI use yet.") %}<td class="mono">{{ r.feature }}</td><td>{{ r.calls }}</td><td>{{ '{:,}'.format(r.tokens) }}</td><td>${{ '%.2f'|format(r.cost_usd) }}</td><td>{{ r.masked }}</td>{% endcall %}</div>
+  <div class="col-lg-4">{% call(r) table("ai-use-person", ["Person", "Calls", "Tokens", "Cost"], usage.by_person, empty="No AI use yet.") %}<td>{{ r.actor }}</td><td>{{ r.calls }}</td><td>{{ '{:,}'.format(r.tokens) }}</td><td>${{ '%.2f'|format(r.cost_usd) }}</td>{% endcall %}</div>
+  <div class="col-lg-4">{% call(r) table("ai-use-profile", ["Profile", "Calls", "Tokens", "Cost"], usage.by_profile, empty="No AI use yet.") %}<td class="mono">{{ r.profile }}</td><td>{{ r.calls }}</td><td>{{ '{:,}'.format(r.tokens) }}</td><td>${{ '%.2f'|format(r.cost_usd) }}</td>{% endcall %}</div>
+</div>
 {% endblock %}

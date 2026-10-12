@@ -1,0 +1,9 @@
+# A MAYA model profile, one per file (copy to cohere.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: cohere
+model: "command-a-03-2025"
+max_tokens: 2048
+description: "Cohere"
+options:
+  api_key_env: "COHERE_API_KEY"
