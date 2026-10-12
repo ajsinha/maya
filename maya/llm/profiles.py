@@ -22,7 +22,12 @@ A document template asks ``ai("intended_use", "...", profile="local")`` or leave
 out for the default; moving from Claude to a local model, or giving one kind of section a
 cheaper one, is an edit to this file and never to a template or to code.
 
-Without the file there is one profile, ``default``, made from the ``llm.*`` settings, so a
+Profiles can also live one to a file, as drishti keeps them: ``config/ai/<name>.yaml`` holds
+one profile (the same keys as an entry above), and MAYA ships a ``<provider>.yaml.example``
+there for every provider -- copy one to ``<name>.yaml``, set the key variable, and the profile
+appears under Admin → AI models. Nothing is on until a file is copied in.
+
+Without either there is one profile, ``default``, made from the ``llm.*`` settings, so a
 deployment that wants one model configures it exactly as before.
 
 Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
@@ -95,6 +100,10 @@ class ProfileSettings:
         value = self._override(key)
         return int(value) if value is not None else int(self._s.int(key, default))
 
+    def load_yaml(self, path: str) -> Any:
+        """YAML through the configurator, as every MAYA configuration file is read."""
+        return self._s.load_yaml(path)
+
     def bool(self, key: str, default: bool = False) -> bool:
         value = self._override(key)
         if value is not None:
@@ -120,6 +129,14 @@ def load(settings: Any) -> tuple[dict[str, Profile], str]:
         for name, raw in (doc.get("profiles") or {}).items():
             profiles[str(name)] = _profile(str(name), raw or {}, path)
         default = str(doc.get("default") or default)
+    # One file per profile, as drishti does it: config/ai/<name>.yaml (the shipped
+    # <provider>.yaml.example files are copied in to switch a provider on).
+    folder = _folder(settings)
+    if folder is not None and folder.is_dir():
+        for file in sorted(folder.glob("*.yaml")):
+            if file.name.endswith(".rules.yaml"):  # a mock's rules, not a profile
+                continue
+            profiles[file.stem] = _profile(file.stem, settings.load_yaml(file) or {}, file)
     chosen = (settings.get("llm.profile", "") or "").strip() or default
     if chosen not in profiles:
         raise ValidationFailed(
@@ -145,6 +162,18 @@ def from_row(row: dict[str, Any]) -> Profile:
 
 def _path(settings: Any) -> Path | None:
     raw = (settings.get("llm.profiles_file", "config/llm_profiles.yaml") or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    if not path.is_absolute():
+        from maya.config import project_root
+
+        path = project_root() / path
+    return path
+
+
+def _folder(settings: Any) -> Path | None:
+    raw = (settings.get("llm.profiles_dir", "config/ai") or "").strip()
     if not raw:
         return None
     path = Path(raw)

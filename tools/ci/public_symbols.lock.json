@@ -61,11 +61,20 @@
    "ai": {
     "class": "Ai",
     "methods": {
+     "ask": "(self, question)",
      "delete_profile": "(self, name)",
+     "draft_formula": "(self, description)",
+     "explain": "(self, kind, key)",
+     "narrate_diff": "(self, ref, a, b)",
+     "policy": "(self)",
+     "query": "(self, query)",
+     "register_self": "(self, namespace)",
      "save_profile": "(self, name, **fields)",
      "set_default": "(self, profile)",
      "status": "(self)",
-     "test": "(self, name)"
+     "test": "(self, name)",
+     "usage": "(self, days=7)",
+     "vocabulary": "(self)"
     }
    },
    "assistant": {
@@ -156,6 +165,7 @@
      "anchor": "(self)",
      "anchors": "(self)",
      "licence": "(self, kind, ref)",
+     "signing_key": "(self)",
      "verify": "(self)"
     }
    },
@@ -500,11 +510,20 @@
    "ai": {
     "class": "Ai",
     "methods": {
+     "ask": "(self, question)",
      "delete_profile": "(self, name)",
+     "draft_formula": "(self, description)",
+     "explain": "(self, kind, key)",
+     "narrate_diff": "(self, ref, a, b)",
+     "policy": "(self)",
+     "query": "(self, query)",
+     "register_self": "(self, namespace)",
      "save_profile": "(self, name, **fields)",
      "set_default": "(self, profile)",
      "status": "(self)",
-     "test": "(self, name)"
+     "test": "(self, name)",
+     "usage": "(self, days=7)",
+     "vocabulary": "(self)"
     }
    },
    "assistant": {
@@ -595,6 +614,7 @@
      "anchor": "(self)",
      "anchors": "(self)",
      "licence": "(self, kind, ref)",
+     "signing_key": "(self)",
      "verify": "(self)"
     }
    },

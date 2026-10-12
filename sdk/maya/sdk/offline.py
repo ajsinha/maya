@@ -19,6 +19,7 @@ Copyright (c) 2026 Ashutosh Sinha. All rights reserved.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import io
 import json
@@ -118,8 +119,12 @@ class Offline:
 
     mode = "offline"
 
-    def __init__(self, bundle: str | Path | bytes) -> None:
+    def __init__(self, bundle: str | Path | bytes, key: str | None = None) -> None:
         raw = bundle if isinstance(bundle, bytes) else Path(bundle).read_bytes()
+        # The issuer's public key (base64) or key id, obtained from the issuer. Without it the
+        # signature proves the files are unchanged since signing -- not who signed them.
+        self.key = key
+        self.authentic: bool | None = None
         z = archives.opened(raw, what="bundle")
         self.files = {n: archives.read(z, n, what="bundle") for n in z.namelist()}
         if "manifest.json" not in self.files:
@@ -183,6 +188,7 @@ class Offline:
                     "key_id": sig.get("key_id"),
                 }
             )
+            checks.append(self._trust(sig, good))
         except (ImportError, CapabilityRefused):
             checks.append(
                 {
@@ -192,6 +198,28 @@ class Offline:
                 }
             )
         return checks
+
+    def _trust(self, sig: dict[str, Any], signed: bool) -> dict[str, Any]:
+        """Whether the bundle was signed by the key the reader trusts, not merely by a key."""
+        if not self.key:
+            return {
+                "check": "signed by a key you trust",
+                "ok": None,
+                "detail": "not checked: pass key= with the issuer's public key or key id, "
+                "obtained from the issuer; the signature alone shows the files are unchanged "
+                "since signing, not who signed them",
+            }
+        public = str(sig.get("public_key", ""))
+        try:
+            key_id = hashlib.sha256(base64.b64decode(public)).hexdigest()[:16]
+        except ValueError:
+            key_id = ""
+        self.authentic = signed and self.key in (public, key_id)
+        return {
+            "check": "signed by the key you trust",
+            "ok": self.authentic,
+            "detail": f"the bundle's key is {key_id or 'unreadable'}",
+        }
 
     def verify(self) -> dict[str, Any]:
         """The checks made on opening, plus the canonical data content hash."""
@@ -209,6 +237,7 @@ class Offline:
             "verified": all(c["ok"] is not False for c in checks),
             "checks": checks,
             "warrant": self.manifest["warrant"],
+            "authentic": self.authentic,
             "offline": True,
         }
 
@@ -278,6 +307,10 @@ class Offline:
         self.close()
 
 
-def offline(bundle: str | Path | bytes) -> Offline:
-    """Open a reproducibility bundle as a read-only, network-free MAYA."""
-    return Offline(bundle)
+def offline(bundle: str | Path | bytes, key: str | None = None) -> Offline:
+    """Open a reproducibility bundle as a read-only, network-free MAYA.
+
+    ``key`` is the issuer's public key or key id, obtained from the issuer (MAYA shows it on
+    Admin, Custody, and serves it at ``/api/v1/custody/signing-key``). Given, a bundle signed
+    by any other key is refused; omitted, ``authentic`` stays ``None``."""
+    return Offline(bundle, key)

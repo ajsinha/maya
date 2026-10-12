@@ -185,6 +185,26 @@ async def help_index(request: Request) -> Any:
     )
 
 
+@router.get("/help/examples")
+async def help_examples(request: Request) -> Any:
+    """The examples gallery: definitions to read, copy, or open as a draft."""
+    import json
+
+    from maya.web import examples
+    from maya.web.kernel_templates import GROUPS, for_ui
+
+    shown = {
+        "features": [
+            {**e, "json": json.dumps(e["definition"], indent=2)} for e in examples.FEATURES
+        ],
+        "others": [{**e, "json": json.dumps(e["body"], indent=2)} for e in examples.OTHERS],
+        "templates": for_ui(),
+        "groups": GROUPS,
+        "public_nav": True,
+    }
+    return await render(request, "help/examples.html", shown)
+
+
 @router.get("/help/guides")
 async def help_guides(request: Request) -> Any:
     from maya.web.help_catalog import GUIDES

@@ -52,9 +52,17 @@ def output_hash(values):
     arr = np.round(np.asarray(values, dtype="float64"), 10)
     return hashlib.sha256(arr.astype(">f8").tobytes()).hexdigest()
 
-def main(bundle):
+def _key_id(public_key_b64):
+    import base64
+    return hashlib.sha256(base64.b64decode(public_key_b64)).hexdigest()[:16]
+
+def main(bundle, key=None, require_trust=False):
+    """``key``: the issuer's public key (base64) or its 16-character key id, obtained from the
+    issuer rather than from the bundle. Without it the signature shows the files are as they
+    were signed, not who signed them -- anyone can re-sign a changed bundle with a key of their
+    own. ``require_trust``: run none of the bundle's code unless its key is the trusted one."""
     import pyarrow.parquet as pq
-    report = {"bundle": str(bundle), "checks": []}
+    report = {"bundle": str(bundle), "checks": [], "authentic": None}
     ok = True
     with zipfile.ZipFile(bundle) as z, tempfile.TemporaryDirectory() as tmp:
         infos = z.infolist()
@@ -82,13 +90,31 @@ def main(bundle):
             pub = Ed25519PublicKey.from_public_bytes(base64.b64decode(sig["public_key"]))
             body = json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
             pub.verify(base64.b64decode(sig["signature"]), body)
-            report["checks"].append({"check": "Ed25519 signature over the file list", "ok": True})
+            report["checks"].append({"check": "Ed25519 signature over the file list", "ok": True,
+                                     "key_id": _key_id(sig["public_key"])})
+            if key:
+                trusted = key in (sig["public_key"], _key_id(sig["public_key"]))
+                report["authentic"] = trusted; ok &= trusted
+                report["checks"].append({"check": "signed by the key you trust", "ok": trusted,
+                                         "detail": "the bundle's key is " + _key_id(sig["public_key"])})
+            else:
+                report["checks"].append({"check": "signed by a key you trust", "ok": None,
+                    "detail": "not checked: the signature proves the files are unchanged since "
+                    "signing, not who signed them. Pass --key with the issuer's public key or "
+                    "key id, obtained from the issuer, to check that too"})
         except ImportError:
             report["checks"].append({"check": "signature", "ok": None,
                                      "detail": "not checked: install 'cryptography'"})
         except Exception as exc:
             ok = False
             report["checks"].append({"check": "signature", "ok": False, "detail": str(exc)})
+        if require_trust and report["authentic"] is not True:
+            report["checks"].append({"check": "re-execution", "ok": None,
+                "detail": "not run: the bundle's own code runs only when its signature is from a "
+                "key you trust (--key)"})
+            report["verified"] = bool(ok)
+            print(json.dumps(report, indent=2))
+            return 0 if ok else 1
         canon = _load("canonical", root / "lib" / "canonical.py")
         table = pq.read_table(root / "data" / "training.parquet")
         content = canon.table_content_hash(table)
@@ -115,7 +141,14 @@ def main(bundle):
     return 0 if ok else 1
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "bundle.zip"))
+    import argparse
+    ap = argparse.ArgumentParser(description="Verify a MAYA reproducibility bundle offline.")
+    ap.add_argument("bundle", nargs="?", default="bundle.zip")
+    ap.add_argument("--key", help="the issuer's public key (base64) or key id, from the issuer")
+    ap.add_argument("--require-trust", action="store_true",
+                    help="run none of the bundle's code unless --key matches its signature")
+    a = ap.parse_args()
+    sys.exit(main(a.bundle, a.key, a.require_trust))
 '''
 
 
@@ -135,7 +168,9 @@ def bounded(data: bytes, settings: Any = None) -> Any:
         raise
 
 
-def run_verifier(data: bytes, script: str) -> dict[str, Any]:
+def run_verifier(
+    data: bytes, script: str, key: str | None = None, require_trust: bool = False
+) -> dict[str, Any]:
     """Run a verifier script over a bundle in a clean interpreter; its JSON report."""
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "bundle.zip"
@@ -153,7 +188,9 @@ def run_verifier(data: bytes, script: str) -> dict[str, Any]:
             % (_library_paths(),)
         )
         proc = subprocess.run(
-            [_python(), "-I", "-c", boot, str(Path(tmp) / "verify.py"), str(path)],
+            [_python(), "-I", "-c", boot, str(Path(tmp) / "verify.py"), str(path)]
+            + (["--key", key] if key else [])
+            + (["--require-trust"] if require_trust else []),
             capture_output=True,
             text=True,
             timeout=300,
@@ -446,18 +483,41 @@ class BundleService:
         refusal = self._untrusted(data)
         if refusal is not None:
             return {"verified": False, "checks": [refusal], "executed": False}
-        return {**run_verifier(data, VERIFY_PY), "executed": True}
+        signer = self.p.signer_or_none()
+        key = signer.public_key_b64 if signer else None
+        return {**run_verifier(data, VERIFY_PY, key=key), "executed": True}
 
     @staticmethod
-    def verify_offline(data: bytes) -> dict[str, Any]:
-        """``maya export verify`` on your own machine: the bundle's own ``verify.py``, run
-        by you on a bundle you chose — exactly what ``python verify.py`` would do."""
+    def verify_offline(data: bytes, key: str | None = None) -> dict[str, Any]:
+        """``maya export verify`` on your own machine, with *this installation's* verifier --
+        never the ``verify.py`` inside the bundle, which a changed bundle could change too.
+        The bundle's own code (its hasher and reference model) runs only when its signature
+        is from ``key``, the issuer's public key or key id obtained from the issuer."""
         z = bounded(data)
         try:
-            script = archives.read(z, "verify.py", what="bundle").decode("utf-8")
-        except KeyError as exc:
+            manifest = json.loads(archives.read(z, "manifest.json", what="bundle"))
+            if not isinstance(manifest.get("files"), dict) or "warrant" not in manifest:
+                raise KeyError("its manifest names no files or no warrant")
+        except (KeyError, ValueError) as exc:
             raise ValidationFailed(f"Not a MAYA bundle: {exc}") from exc
-        return run_verifier(data, script)
+        report = run_verifier(data, VERIFY_PY, key=key, require_trust=True)
+        if report.get("authentic") is not True and "data/training.parquet" in z.namelist():
+            # The bundle's hasher did not run, so hash the data with this installation's own
+            # canonical encoder: the same definition, from code the reader already trusts.
+            table = pq.read_table(
+                io.BytesIO(archives.read(z, "data/training.parquet", what="bundle"))
+            )
+            content = canonical.table_content_hash(table)
+            good = content == manifest.get("data_content_hash")
+            report.setdefault("checks", []).append(
+                {
+                    "check": "data content hash (canonical, value-based)",
+                    "ok": good,
+                    "detail": content,
+                }
+            )
+            report["verified"] = bool(report.get("verified")) and good
+        return report
 
     def _untrusted(self, data: bytes) -> dict[str, Any] | None:
         """Why the server will not execute this bundle's code, or None when it may."""

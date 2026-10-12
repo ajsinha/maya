@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from maya.web.routes import (
+    ai,
     admin,
     auth,
     catalog,
@@ -50,6 +51,7 @@ def mount_web(app: FastAPI, *, secret_key: str, secure_cookies: bool) -> None:
     )
     app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
     for module in (
+        ai,
         auth,
         home,
         catalog,

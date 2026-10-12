@@ -2,6 +2,54 @@
 
 ## Unreleased
 
+**Tutorials, examples and AI, after drishti's model**
+
+- **Tutorials, rewritten in one tested format.** Six tutorials so far — your first 15
+  minutes; a governed feature; two clocks and restatements; feature sets and pins; write a
+  model; features, parameters, constants and the specification — each with the time it
+  takes, what it needs, what you will learn, numbered steps that each say what you should
+  see, next steps, and what to do when something goes wrong. `tests/test_tutorials.py`
+  enforces the shape and *runs* every tutorial in order against a fresh MAYA, every python
+  and bash block, so an example that stops working fails the build. Old tutorial addresses
+  redirect to their replacements.
+- **An examples gallery** (`/help/examples`, Help → Examples): feature definitions that open
+  in the feature designer already filled in, the 106 formula templates opening in the kernel
+  designer, and a feature set, warrant terms, covenants and a workflow policy to copy. Every
+  feature example is held to MAYA's own validator by a test.
+- **F1** opens the guide for the page you are on.
+- **An AI policy**, as drishti's: each AI feature (drafts, documents, the challenger,
+  evaluation runs, ask, explain, narrate, the connection test) allowed only to the roles
+  named for it (`ai.roles.*`); per-person and per-feature rate limits; a daily token cap and,
+  for profiles that declare a price, a daily spending cap; masking of e-mail addresses, card
+  numbers, phone numbers, long digit runs and named fields before a prompt leaves. Refusals
+  are audited (`ai.denied`). Admin → AI models shows the policy, today's spend and seven
+  days' use by feature, person and profile.
+- **More providers**: Gemini, Cohere, and Groq, Together, Fireworks, DeepSeek, xAI,
+  OpenRouter, Perplexity, Hugging Face, vLLM, LM Studio and Mistral by name, plus a mock that
+  answers from rules. Every provider ships a profile as `config/ai/<provider>.yaml.example`:
+  copy one in to switch it on. Nothing is on by default.
+- **Ask MAYA** (Catalog → Ask MAYA): a question in words becomes a structured query — never
+  SQL — over a fixed vocabulary, run with the asker's own permissions; common phrasings are
+  read without any model, and the query can be edited and run again with none. **Explain
+  this** on feature, model and warrant pages, and **Explain the change** on the model diff,
+  put a record into words and name any figure that is not in the record. **Describe it in
+  words** on the kernel designer drafts a formula that MAYA's parser checks before you see it.
+- **MAYA governs its own AI**: one action registers its AI features as LLM applications, with
+  their real prompts and starter evaluation sets, to be evaluated and approved like any other.
+
+**Security: who signed a bundle**
+
+- A bundle's signature was checked against the public key the bundle itself carries, so a
+  bundle changed and re-signed with somebody else's key still verified. MAYA now publishes its
+  signing key (Admin → Custody, `GET /api/v1/custody/signing-key`, SDK
+  `custody.signing_key()`), and every verifier takes it: `verify.py --key`,
+  `maya export verify --key`, `maya.offline(bundle, key=)`. With it, a bundle signed by any
+  other key fails; without it, the report says plainly that the signer was not checked
+  (`authentic: null`).
+- `maya export verify` no longer runs the `verify.py` inside the bundle, which a changed bundle
+  could change too. It uses the installed verifier, runs the bundle's own code only when the
+  signature is from the trusted key, and otherwise hashes the data with MAYA's own encoder.
+
 - **The favicon is the MAYA mark.** The browser tab shows the logo's own SVG — the square
   inscribed in a circle, on crimson — with PNG sizes, an Apple touch icon and a multi-size
   `favicon.ico` rendered from it by `tools/brand/favicons.py`, and `/favicon.ico` now

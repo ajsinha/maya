@@ -796,8 +796,9 @@ SETTINGS: tuple[Setting, ...] = (
     _s(
         "llm.provider",
         "string",
-        "The language model MAYA drafts documents with: none, stub, anthropic, openai, "
-        "azure_openai, ollama, bedrock, or an allowed llm_provider plugin (none drafts nothing).",
+        "The language model MAYA drafts documents with: none, stub, mock, anthropic, openai, "
+        "azure_openai, gemini, cohere, bedrock, ollama, a named OpenAI-compatible service, or "
+        "an allowed llm_provider plugin (none drafts nothing).",
         "none",
     ),
     _s("llm.model", "string", "The model to ask. Empty: the provider's own default setting.", ""),
@@ -809,6 +810,99 @@ SETTINGS: tuple[Setting, ...] = (
         "config/llm_profiles.yaml",
     ),
     _s("llm.profile", "string", "The default profile. Empty: the file's own default.", ""),
+    _s(
+        "llm.profiles_dir",
+        "path",
+        "A folder of model profiles, one per file (<name>.yaml), as drishti keeps them. MAYA "
+        "ships a <provider>.yaml.example there for every provider; copy one in to switch it on.",
+        "config/ai",
+    ),
+    _s("llm.mock.rules_file", "path", "The mock provider's rules: patterns and replies.", ""),
+    _s("llm.gemini.model", "string", "The Gemini model to ask.", ""),
+    _s(
+        "llm.gemini.api_key_env", "string", "The variable holding the Gemini key.", "GEMINI_API_KEY"
+    ),
+    _s(
+        "llm.gemini.base_url",
+        "string",
+        "The Gemini API's address.",
+        "https://generativelanguage.googleapis.com/v1beta",
+    ),
+    _s("llm.cohere.model", "string", "The Cohere model to ask.", ""),
+    _s(
+        "llm.cohere.api_key_env", "string", "The variable holding the Cohere key.", "COHERE_API_KEY"
+    ),
+    _s("llm.cohere.base_url", "string", "The Cohere API's address.", "https://api.cohere.com/v2"),
+    # -- the AI policy (maya/llm/policy.py) -----------------------------------
+    _s(
+        "ai.roles.draft",
+        "string",
+        "Roles that may ask for AI drafts; * is anyone signed in.",
+        "feature_designer,model_designer,model_developer,admin",
+    ),
+    _s(
+        "ai.roles.documents",
+        "string",
+        "Roles that may have documents written with AI.",
+        "model_designer,model_developer,model_manager,model_validator,model_owner,admin",
+    ),
+    _s(
+        "ai.roles.challenger",
+        "string",
+        "Roles for the challenger's memo (MAYA asks it itself).",
+        "*",
+    ),
+    _s(
+        "ai.roles.llm_eval",
+        "string",
+        "Roles that may run live LLM evaluations.",
+        "model_designer,model_developer,model_manager,model_validator,admin",
+    ),
+    _s("ai.roles.ask", "string", "Roles that may ask questions about the estate in words.", "*"),
+    _s("ai.roles.explain", "string", "Roles that may ask for explanations.", "*"),
+    _s("ai.roles.narrate", "string", "Roles that may ask for narrations.", "*"),
+    _s("ai.roles.admin", "string", "Roles that may test a model connection.", "admin"),
+    _s(
+        "ai.rate.per_user_per_minute",
+        "int",
+        "AI calls one person may make in a minute; 0 is no limit.",
+        "20",
+        minimum=0,
+    ),
+    _s(
+        "ai.rate.per_feature_per_minute",
+        "int",
+        "AI calls one feature may make in a minute, across everyone; 0 is no limit.",
+        "120",
+        minimum=0,
+    ),
+    _s(
+        "ai.daily_token_cap",
+        "int",
+        "Tokens MAYA may spend on AI in a UTC day; 0 is no cap.",
+        "2000000",
+        minimum=0,
+    ),
+    _s(
+        "ai.daily_cost_cap_usd",
+        "float",
+        "Money MAYA may spend on AI in a UTC day, counted for "
+        "profiles that declare their price; 0 is no cap.",
+        "25",
+    ),
+    _s(
+        "ai.mask.fields",
+        "string",
+        "Field names whose values are masked in any prompt "
+        "(name: value, name=value), comma separated.",
+        "",
+    ),
+    _s(
+        "ai.mask.patterns",
+        "bool",
+        "Mask e-mail addresses, card numbers, phone numbers and long digit runs in prompts.",
+        "true",
+    ),
     _s(
         "llm.max_tokens",
         "int",

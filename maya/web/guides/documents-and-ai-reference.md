@@ -152,6 +152,11 @@ What comes back is a draft. Nothing in the gateway approves, blocks or edits any
 | `azure_openai` | A deployment at an Azure OpenAI resource endpoint. | `llm.azure_openai.endpoint`, `llm.azure_openai.deployment`, `llm.azure_openai.api_version`, `llm.azure_openai.api_key_env` |
 | `ollama` | A model served by Ollama. | `llm.ollama.base_url`, `llm.ollama.model` |
 | `bedrock` | A model on Amazon Bedrock through the Converse API (needs `boto3`). | `llm.bedrock.region`, `llm.bedrock.profile`, `llm.bedrock.model` |
+| `gemini` | Google's Gemini API (`generateContent`). | `llm.gemini.model`, `llm.gemini.api_key_env` (`GEMINI_API_KEY`), `llm.gemini.base_url` |
+| `cohere` | Cohere's Chat API (v2). | `llm.cohere.model`, `llm.cohere.api_key_env` (`COHERE_API_KEY`), `llm.cohere.base_url` |
+| `groq`, `together`, `fireworks`, `deepseek`, `xai`, `openrouter`, `perplexity`, `huggingface`, `mistral` | Each service's OpenAI-compatible endpoint, under its own name, so the audit log and the usage report say which service answered. | `llm.<name>.model`, `llm.<name>.base_url` (the service's public address by default), `llm.<name>.api_key_env` (its usual variable, such as `GROQ_API_KEY`) — usually set in the profile's `options` |
+| `vllm`, `lmstudio` | A self-hosted vLLM server, or LM Studio on this machine; no key. | `llm.<name>.model`, `llm.<name>.base_url` |
+| `mock` | Nothing: answers from rules, the first pattern that matches the prompt giving the reply. For tutorials, demonstrations and tests that need a model to say something specific every time. | `llm.mock.rules_file` |
 
 Shared settings: `llm.provider`, `llm.model` (overrides the provider's own model setting when set), `llm.max_tokens` (default 2048), `llm.temperature` (0.2) and `llm.timeout_seconds` (120). API keys are **never** configuration: each provider reads its key from the environment variable a setting names, and a missing key is refused with a sentence saying which variable to set.
 
@@ -167,6 +172,7 @@ Profiles come from three places; a later one wins a name clash:
 |---|---|---|
 | settings | the `llm.*` settings | Always exactly one profile, `default`. |
 | file | `llm.profiles_file`, by default `config/llm_profiles.yaml` | Not shipped; copy `config/llm_profiles.example.yaml` to start. An unknown key or a profile without a provider is refused when the file is read. |
+| folder | `llm.profiles_dir`, by default `config/ai`: one profile per `<name>.yaml` | MAYA ships `<provider>.yaml.example` for **every** provider: copy one to `<name>.yaml`, set the key variable it names, and the profile appears. Nothing is on until a file is copied in. Your copies are ignored by git. |
 | database | saved on **Admin → AI models** | Replaces a file profile of the same name. |
 
 ```yaml
@@ -227,9 +233,22 @@ All three are for administrators.
 
 ### Every call is recorded
 
-Every completed call writes the audit entry `ai.completion`: its purpose (for a document, `document:<kind>:<section>`), the profile, the provider and model, input and output tokens, the stop reason, the object it was about, and the SHA-256 of the system prompt and prompt. **The prompt itself is not logged**: it carries a model's facts, which the audit log's readers may not be allowed to see. The hash lets anyone holding the prompt prove it was the one sent.
+Every completed call writes the audit entry `ai.completion`: its purpose (for a document, `document:<kind>:<section>`), the feature it belongs to, the profile, the provider and model, input and output tokens, the stop reason, the object it was about, how many values were masked, what it cost where the profile declares a price, and the SHA-256 of the system prompt and prompt. **The prompt itself is not logged**: it carries a model's facts, which the audit log's readers may not be allowed to see. The hash lets anyone holding the prompt prove it was the one sent.
 
 A call the provider could not answer is audited as `ai.completion_failed`, with its purpose, profile, provider, model and the reason, and counted in `maya_ai_completions_total` with `outcome="unavailable"`. Completed calls are counted there with `outcome="ok"`, their tokens in `maya_ai_tokens_total` and their time in `maya_ai_completion_seconds`, each labelled by purpose and provider.
+
+### The policy: who, how often, how much
+
+Every call passes the policy (`maya/llm/policy.py`) before anything leaves MAYA, as drishti's `LlmPolicy` does. A refusal is a `PermissionDenied` or `QuotaExceeded` with a sentence naming the setting, and is audited as `ai.denied`.
+
+| Control | What it does | Settings |
+|---|---|---|
+| Features and roles | Each call's purpose belongs to a feature — `draft`, `documents`, `challenger`, `llm_eval`, `ask`, `explain`, `narrate`, `admin` — and only the roles named for that feature may use it. MAYA asking for itself (the challenger) is not a person and is not role-checked. | `ai.roles.<feature>`; `*` is anyone signed in |
+| Rate limits | Calls per person per minute and per feature per minute, counted in each process, so a runaway script stops before it costs anything. | `ai.rate.per_user_per_minute` (20), `ai.rate.per_feature_per_minute` (120) |
+| Daily budget | Tokens per UTC day across MAYA, always measured; and money per day for profiles that declare their price. MAYA ships no price table, because a built-in price would be a guess that goes stale. | `ai.daily_token_cap` (2000000), `ai.daily_cost_cap_usd` (25); a profile's `options.price_in_per_mtok`, `price_out_per_mtok` |
+| Masking | E-mail addresses, Luhn-valid card numbers, phone numbers and long digit runs are replaced in every prompt, as are the values of named fields. The count is recorded on the call. | `ai.mask.patterns` (true), `ai.mask.fields` |
+
+**Admin → AI models** shows the policy, today's tokens and spend against the caps, and the last seven days' use by feature, person and profile, with the number of calls refused (`GET /ai/policy`, `GET /ai/usage`).
 
 ### What is sent, and what is not
 
@@ -239,6 +258,19 @@ A call the provider could not answer is audited as `ai.completion_failed`, with 
 | For the recorded challenger with `llm`: the review dossier — definitions, the specification and the formula — and the deterministic findings. | API keys, except in the request header to the provider they belong to. |
 
 Choosing a provider is therefore a decision about where a model's record may go. A firm that may not send it outside can use `ollama`, or `openai` pointed at a server inside the firm.
+
+## Plain-English features
+
+Four features put the estate into words and words into the estate. Each goes through the gateway, so the policy and the audit apply; none approves, blocks or edits anything.
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Ask MAYA** | **Catalog → Ask MAYA** (`/ask`), `ai.ask(question)` | Turns a question into a *structured query* — a kind (features, feature sets, models, training or execution warrants), filters over a fixed set of fields, an order and a limit; never SQL. Common phrasings ("approved models in credit, newest first", "suspended execution warrants", "black box models") are read by a rule-based parser with no model at all. Anything else goes to the model, whose answer must be the same JSON shape and is checked against the vocabulary; a refused answer goes back once with the reasons. The query runs with the asker's permissions, through the listings the screens use. The answer is the rows and the query MAYA ran, which you can edit and run again with no model (`ai.query(query)`). |
+| **Explain this** | a button on feature, model and warrant pages; `ai.explain(kind, key)` | The object's record, as the reader may see it, put into plain words. The model is told to add nothing; every number in its answer is then checked against the record, and any that is not there is named on the page as a figure to treat as wrong. |
+| **Explain the change** | the model diff page; `ai.narrate_diff(ref, a, b)` | The semantic diff between two versions, in words, with the same check. |
+| **Describe it in words** | the kernel designer; `ai.draft_formula(description)` | A formula and each symbol's role from a description. MAYA's own parser checks it, and its errors go back for up to three tries. What comes out is a draft in the designer; nothing is registered. |
+
+**MAYA governs its own AI.** On **LLM applications**, *Govern MAYA's own AI the same way* (`ai.register_self(namespace)`, model designers) registers `maya-ask`, `maya-explain` and `maya-draft-formula` as LLM applications: their real system prompts, the provider and model of the default profile, and starter evaluation sets. From there they are evaluated, submitted and approved exactly as a firm's own applications are.
 
 ## The assistant's recorded challenger
 

@@ -317,3 +317,68 @@ def test_a_tampered_bundle_is_refused_before_anything_is_read(bundle):
         offline(_tamper(raw, "manifest.json", json.dumps(manifest).encode()))
     with pytest.raises(ValidationFailed, match="not a zip"):
         offline(b"not a bundle")
+
+
+def _forge(raw: bytes, name: str, content: bytes) -> bytes:
+    """A tampered bundle, re-hashed and re-signed with a stranger's key: every file hash and
+    the signature check out. Only the key gives it away."""
+    import base64
+    import hashlib
+
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+    src = zipfile.ZipFile(io.BytesIO(raw))
+    files = {n: src.read(n) for n in src.namelist()}
+    files[name] = content
+    manifest = json.loads(files["manifest.json"])
+    manifest["files"][name] = hashlib.sha256(content).hexdigest()
+    key = Ed25519PrivateKey.generate()
+    body = json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
+    pub = key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    manifest["signature"] = {
+        "algorithm": "Ed25519",
+        "key_id": hashlib.sha256(pub).hexdigest()[:16],
+        "public_key": base64.b64encode(pub).decode(),
+        "signature": base64.b64encode(key.sign(body)).decode(),
+    }
+    files["manifest.json"] = json.dumps(manifest).encode()
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as z:
+        for n, b in files.items():
+            z.writestr(n, b)
+    return out.getvalue()
+
+
+def test_a_bundle_re_signed_by_a_stranger_is_caught_by_the_trusted_key(bundle):
+    """The signature proves integrity, not origin: anyone can change a bundle and sign it
+    again. Checked against the issuer's published key, the forgery is refused."""
+    from maya.services.bundle import BundleService
+
+    w, tw, raw = bundle
+    mine = w.p.custody.signing_key(w.devi)
+    assert mine["available"] and len(mine["key_id"]) == 16
+    forged = _forge(raw, "model/parameters.json", b'{"a": 9.0, "b": 0.5}')
+    # without a trusted key it opens -- and says plainly that origin was not checked
+    opened = offline(forged).verify()
+    assert opened["authentic"] is None
+    assert any(
+        c["check"] == "signed by a key you trust" and c["ok"] is None for c in opened["checks"]
+    )
+    with pytest.raises(ValidationFailed, match="signed by the key you trust"):
+        offline(forged, key=mine["key_id"])
+    assert offline(raw, key=mine["key_id"]).verify()["authentic"] is True
+    assert offline(raw, key=mine["public_key"]).verify()["authentic"] is True
+    # the CLI path uses this installation's verifier, and runs none of a stranger's code
+    report = BundleService.verify_offline(forged, key=mine["key_id"])
+    assert report["verified"] is False and report["authentic"] is False
+    untrusted = BundleService.verify_offline(forged)
+    assert untrusted["authentic"] is None
+    assert any(
+        c["check"] == "re-execution" and "not run" in (c.get("detail") or "")
+        for c in untrusted["checks"]
+    )
+    good = BundleService.verify_offline(raw, key=mine["key_id"])
+    assert good["verified"] is True and good["authentic"] is True
+    # and the server, which knows its own key, reports the bundle authentic
+    assert w.p.bundles.verify(raw)["authentic"] is True

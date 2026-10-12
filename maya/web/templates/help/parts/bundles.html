@@ -53,9 +53,10 @@ python -m maya.cli export bundle <warrant-id> --out pd-2026q1.zip
 non-zero if anything fails.</p>
 <p class="help-see-ref"><i class="bi bi-arrow-down-short" aria-hidden="true"></i> Verify with nothing but the bundle: see <a href="#reproducibility-bundles">Reproducibility bundles</a> in the full reference below.</p>
 {% call example('Or with the MAYA CLI (still offline)', 'bash') %}
-python -m maya.cli export verify pd-2026q1.zip
+python -m maya.cli export verify pd-2026q1.zip --key 3f9a1c0e5b7d2a46
 #   [ok] file hash data/training.parquet
 #   [ok] Ed25519 signature over the file list
+#   [ok] signed by the key you trust
 #   [ok] data content hash (canonical, value-based)
 #   [ok] re-execution output hash
 # verified: True
@@ -65,6 +66,10 @@ the bundle carries, so the server does it only for a bundle <em>this</em> MAYA s
 still matches its signed hash, and then with MAYA's own verifier, never the uploaded
 <code>verify.py</code>. Any other bundle is reported, not executed: verify a stranger's bundle with
 <code>python verify.py</code> on your own machine.</p>
+<p><strong>A signature proves a bundle is unchanged, not who signed it</strong>: anyone can alter a bundle and
+sign it again with a key of their own. Give the verifier the issuer's key — the key id shown on
+{{ screen('/admin/custody', 'Admin → Custody') }} — with <code>--key</code> (or <code>key=</code> in
+<code>maya.offline</code>), and a re-signed bundle is caught.</p>
 {% endcall %}
 
 {% call warn('When re-execution is impossible, the bundle says so') %}

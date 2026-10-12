@@ -28,6 +28,7 @@ def _governance(platform: Any) -> None:
     from maya.services.training_ops import TrainingOps
     from maya.services.batch_scoring import BatchScoring
     from maya.services.ai import AiGateway
+    from maya.services.ai_features import AiFeatures
     from maya.services.documents import DocumentService
     from maya.services.monitoring import MonitoringService
     from maya.services.restatements import RestatementService
@@ -43,6 +44,7 @@ def _governance(platform: Any) -> None:
         ("training_ops", TrainingOps),
         ("batches", BatchScoring),
         ("ai", AiGateway),
+        ("ai_features", AiFeatures),
         ("documents", DocumentService),
         ("restatements", RestatementService),
     ):

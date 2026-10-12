@@ -27,6 +27,12 @@ def anchor(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.custody.anchor_now(me), 201)
 
 
+@router.get("/custody/signing-key")
+def signing_key(me: Principal = Me, plat: Any = Plat) -> Response:
+    """The public key bundles are signed with: give it to a verifier to check who signed."""
+    return ok(plat.custody.signing_key(me))
+
+
 @router.get("/custody/verify")
 def verify(me: Principal = Me, plat: Any = Plat) -> Response:
     return ok(plat.custody.verify(me))

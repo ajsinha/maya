@@ -337,5 +337,5 @@ training data must never move; the warrant records which pin it drew.
   page carries its versions, transitions, pins and the pin form (with the
   cascade box).
 
-[Tutorial 2](/help/guides/tutorial-02-featureset-and-model) builds, approves and
+[Tutorial 4](/help/guides/tutorial-04-feature-sets-and-pins) builds, approves and
 cascade-pins a set end to end.

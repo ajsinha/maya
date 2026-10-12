@@ -159,6 +159,17 @@
     }
   }
 
+  // A formula drafted from words arrives filled in: translate it at once, so its tree and
+  // code are on screen beside it.
+  if (form.getAttribute('data-autorun') === '1' && $('kformula').value.trim()) { translate(); }
+
+  // Opened from the examples gallery as /models/kernel#template=<key>: load that formula.
+  var wanted = (window.location.hash.match(/^#template=([\w.-]+)$/) || [])[1];
+  if (wanted) {
+    var hit = items.filter(function (b) { return b.getAttribute('data-example') === wanted; })[0];
+    if (hit) { hit.scrollIntoView({ block: 'nearest' }); hit.click(); }
+  }
+
   var search = $('ktsearch');
   if (search) {
     search.addEventListener('input', filterTemplates);

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="{{ back }}">Back</a></li><li class="breadcrumb-item active" aria-current="page">{{ title }}</li></ol></nav>
+<h1>{{ title }}</h1>
+{% if out.verified %}
+<div class="alert alert-success py-2 small" role="status"><i class="bi bi-check2-circle" aria-hidden="true"></i> Every figure below is in MAYA's record.</div>
+{% else %}
+<div class="alert alert-warning py-2 small" role="status"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> The model wrote figures that are not in MAYA's record: <span class="mono">{{ out.unverified_numbers|join(', ') }}</span>. Treat them as wrong until you check them.</div>
+{% endif %}
+<div class="card mb-3"><div class="card-body"><p class="mb-0" style="white-space: pre-wrap">{{ out.text }}</p></div></div>
+<details><summary class="small">The facts the model was given</summary><pre class="mt-2">{{ out.facts|tojson_pretty }}</pre></details>
+<p class="small-muted mt-2">Written by a language model from MAYA's record, and recorded in the audit log without the text. It is a reading aid: nothing here approves, blocks or changes anything.</p>
+{% endblock %}

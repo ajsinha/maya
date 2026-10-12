@@ -158,3 +158,6 @@ my-warrant.json
 
 # The Java SDK's build output. `mvn` writes it; nothing reads it from here.
 sdk/java/target/
+
+# model profiles switched on locally (copied from the shipped config/ai/*.yaml.example)
+config/ai/*.yaml

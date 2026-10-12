@@ -353,6 +353,7 @@ curl -N https://maya.example.com/api/v1/jobs/$JOB/events -H "Authorization: Bear
 | `GET /events/stream?after=` | Server-sent events: `id` is the sequence, `event` the type; reconnect with the last id. |
 | `GET /webhooks`, `POST /webhooks`, `DELETE /webhooks/{id}`, `GET /webhooks/{id}/deliveries`, `POST /webhooks/{id}/ping` | Webhooks. |
 | `GET /custody/anchors`, `POST /custody/anchor`, `GET /custody/verify` | Audit anchors (administrators and techops). |
+| `GET /custody/signing-key` | The public key bundles are signed with, for a verifier's `--key` (any signed-in reader). |
 | `GET /system/health`, `GET /system/config`, `GET /system/storage` | Health, effective configuration (administrators), storage report. |
 | `POST /system/integrity`, `POST /system/lake/maintain` | Integrity verification; lake compaction (administrators and techops). |
 | `GET /system/estate` | The estate export (administrators). |

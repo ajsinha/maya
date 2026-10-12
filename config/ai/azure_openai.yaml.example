@@ -1,0 +1,11 @@
+# A MAYA model profile, one per file (copy to azure_openai.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: azure_openai
+model: "my-deployment"
+max_tokens: 2048
+description: "Azure OpenAI: model names the deployment"
+options:
+  endpoint: "https://my-resource.openai.azure.com"
+  api_key_env: "AZURE_OPENAI_API_KEY"
+  api_version: "2024-10-21"

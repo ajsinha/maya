@@ -249,32 +249,64 @@ CATEGORIES: list[dict[str, Any]] = [
 # -- the library: tutorials, and the catalogue-style references -------------------------
 GUIDES: list[dict[str, Any]] = [
     {
-        "slug": "tutorial-01-first-feature",
+        "slug": "tutorial-01-first-15-minutes",
+        "kind": "tutorial",
+        "icon": "play-circle",
+        "title": "Tutorial 1 · Your first 15 minutes",
+        "summary": "Start MAYA, create the people and a namespace, and turn a CSV into a "
+        "feature you can find and preview.",
+    },
+    {
+        "slug": "tutorial-02-a-governed-feature",
         "kind": "tutorial",
         "icon": "flag",
-        "title": "Tutorial 1 — Your first governed feature",
-        "summary": "From one CSV to an approved, pinned, downloadable feature, with every "
-        "command and screen.",
+        "title": "Tutorial 2 · A governed feature",
+        "summary": "Write a full definition, ingest with a real knowledge time, review, "
+        "approve, pin and download.",
     },
     {
-        "slug": "tutorial-02-featureset-and-model",
+        "slug": "tutorial-03-two-clocks",
+        "kind": "tutorial",
+        "icon": "clock-history",
+        "title": "Tutorial 3 · Two clocks and restatements",
+        "summary": "Restate a price, read the feature as known on a date, keep a pin "
+        "sealed, and catch a fill rule that reads the future.",
+    },
+    {
+        "slug": "tutorial-04-feature-sets-and-pins",
         "kind": "tutorial",
         "icon": "grid-3x3-gap",
-        "title": "Tutorial 2 — A feature set and a model",
-        "summary": "Map features into a panel, write a model in LaTeX, complete its "
-        "specification and take it through review.",
+        "title": "Tutorial 4 · Feature sets and pins",
+        "summary": "Map two credit features into a panel, fill its gap, approve it and "
+        "cascade-pin it with its members.",
     },
     {
-        "slug": "tutorial-03-warrants-and-bundles",
+        "slug": "tutorial-05-write-a-model",
         "kind": "tutorial",
+        "icon": "calculator",
+        "title": "Tutorial 5 · Write a model",
+        "summary": "Try a scorecard in the compute-kernel designer, register it from LaTeX, "
+        "read its reference code, and lift one from Python.",
+    },
+    {
+        "slug": "tutorial-06-inputs-and-specification",
+        "kind": "tutorial",
+        "icon": "file-earmark-check",
+        "title": "Tutorial 6 · Features, parameters, constants and the specification",
+        "summary": "Constants, bounds and a joint constraint; a complete specification; "
+        "an implementation tested against the mathematics; approval and a diff.",
+    },
+    {
+        "slug": "legacy-tutorial-03-warrants-and-bundles",
+        "kind": "reference",
         "icon": "mortarboard",
         "title": "Tutorial 3 — Warrants, parameters and a bundle",
         "summary": "Train under a warrant, upload parameters, issue an execution warrant, "
         "export a bundle and verify it offline.",
     },
     {
-        "slug": "tutorial-04-governed-change",
-        "kind": "tutorial",
+        "slug": "legacy-tutorial-04-governed-change",
+        "kind": "reference",
         "icon": "bezier2",
         "title": "Tutorial 4 — A governed change",
         "summary": "Stage a change in a workspace, replay its impact, answer the challenger "
@@ -337,6 +369,13 @@ LEGACY: dict[str, str] = {
     "events": "/help/integrations#events",
     "observability": "/help/operations#observability",
 }
+# every address a library guide has had -> the guide that replaced it, under /help/guides/
+MOVED_GUIDES: dict[str, str] = {
+    "tutorial-01-first-feature": "tutorial-02-a-governed-feature",
+    "tutorial-02-featureset-and-model": "tutorial-04-feature-sets-and-pins",
+    "tutorial-03-warrants-and-bundles": "legacy-tutorial-03-warrants-and-bundles",
+    "tutorial-04-governed-change": "legacy-tutorial-04-governed-change",
+}
 GUIDE_HOME: dict[str, str] = {s["guide"]: slug for slug, s in SUBJECTS.items() if s["guide"]}
 
 
@@ -384,10 +423,14 @@ def redirect_for(slug: str) -> str | None:
 
 
 def guide_redirect(slug: str) -> str | None:
-    """A reference that became part of a subject page opens there."""
+    """A reference that became part of a subject page opens there; a guide that was
+    replaced opens its replacement."""
     home = GUIDE_HOME.get(slug)
     # no fragment of our own: the browser keeps the one the old link carried
-    return f"/help/{home}" if home else None
+    if home:
+        return f"/help/{home}"
+    moved = MOVED_GUIDES.get(slug)
+    return f"/help/guides/{moved}" if moved else None
 
 
 def find_guide(slug: str) -> dict[str, Any] | None:

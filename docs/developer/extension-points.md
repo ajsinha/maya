@@ -54,13 +54,13 @@ Two consequences follow. Discovery happens once per process, at startup: install
 
 ### The points
 
-`POINTS` maps each point to the protocol it declares and what MAYA ships there. The table is meant to be the truth rather than an aspiration, so `built_ins` fills it from the code's own tables — `SUPPORTED_SOURCES`, the resolution rules' `PARAMS`, `CALENDARS`, the workflow engine's registered checks, `CHANNELS`, the LLM providers' `BUILT_IN`:
+`POINTS` maps each point to the protocol it declares and what MAYA ships there. The table is meant to be the truth rather than an aspiration, so `built_ins` fills it from the code's own tables — `SUPPORTED_SOURCES`, the resolution rules' `PARAMS`, `CALENDARS`, the workflow engine's registered checks, `CHANNELS`, the LLM providers' `ALL`:
 
 ```python
 # maya/plugins.py
-    from maya.llm.providers import BUILT_IN
+    from maya.llm.providers_extra import ALL
 
-    for name, provider in BUILT_IN.items():
+    for name, provider in ALL.items():
         registry.register("llm_provider", name, factory=provider.from_settings)
     if platform is not None:
         for name in sorted(platform.workflow.checks):

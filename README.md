@@ -597,7 +597,7 @@ python -m maya.cli feature quick prices.csv        # a scratch feature in one co
 python -m maya.cli admin export-estate --out e.mayabundle   # the upgrade path, with
 python -m maya.cli admin init-db --force                    #   no migrations (§14.3)
 python -m maya.cli admin import-estate --in e.mayabundle
-python -m maya.cli export verify bundle.zip        # offline; needs no MAYA
+python -m maya.cli export verify bundle.zip --key KEY_ID   # offline; KEY_ID from Admin → Custody
 python tools/ci/gates.py --tests                   # the gate ladder
 git config core.hooksPath .githooks                # commit-msg and pre-commit hooks
 ```

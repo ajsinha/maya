@@ -8,7 +8,8 @@
       ('/catalog/features', 'boxes', 'Features', 'Every governed feature, its versions, pins and data', '/catalog/features'),
       ('/catalog/featuresets', 'grid-3x3-gap', 'Feature sets', 'Bundles of features mapped to model inputs', '/catalog/featuresets'),
       ('/lineage', 'diagram-3', 'Lineage', 'What feeds what, upstream and downstream', '/lineage'),
-      ('/search', 'search', 'Search', 'Find features, sets, models and warrants', '/search')]),
+      ('/search', 'search', 'Search', 'Find features, sets, models and warrants', '/search'),
+      ('/ask', 'chat-square-text', 'Ask MAYA', 'A question in plain words, answered as a checked query', '/ask')]),
     ('Follow', [
       ('/catalog/subscriptions', 'bell', 'My subscriptions', 'Objects you follow, and what you are told about', '/catalog/subscriptions')])]),
   ('Workbench', 'tools', [
@@ -77,6 +78,8 @@
   ('Help', 'question-circle', [
     ('Learn', [
       ('/help', 'question-circle', 'Concepts', 'Features, pins, warrants, and why', '/help'),
+      ('/help/guides', 'mortarboard', 'Tutorials', 'Step by step, every example run', '/help/guides'),
+      ('/help/examples', 'collection', 'Examples', 'Definitions and formulae to open as drafts', '/help/examples'),
       ('/about', 'info-circle', 'About MAYA', 'Version, licence and credits', None)])])] %}
 
 {% macro _on(href, match) -%}{{ 'yes' if (path == href) or (match and path.startswith(match)) else '' }}{%- endmacro %}

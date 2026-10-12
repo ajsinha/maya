@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Examples{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="/help">Help</a></li><li class="breadcrumb-item active" aria-current="page">Examples</li></ol></nav>
+<h1>Examples</h1>
+<p class="lead-slate">Complete, valid definitions to read, copy, or open as a draft. Each says what it shows and why each choice is made. Opening one creates nothing: it fills the designer, and you decide what to change and whether to save.</p>
+<div class="cat-chips mb-3">
+  <a class="chip" href="#ex-features"><i class="bi bi-table" aria-hidden="true"></i> Feature definitions <span>{{ features|length }}</span></a>
+  <a class="chip" href="#ex-formulae"><i class="bi bi-calculator" aria-hidden="true"></i> Formula templates <span>{{ templates|length }}</span></a>
+  <a class="chip" href="#ex-others"><i class="bi bi-file-earmark-code" aria-hidden="true"></i> Feature sets, warrants, policies <span>{{ others|length }}</span></a>
+</div>
+
+<h2 id="ex-features">Feature definitions</h2>
+<div class="row g-3 mb-4">
+  {% for e in features %}
+  <div class="col-lg-6" id="feature-{{ e.slug }}">
+    <div class="card h-100"><div class="card-body">
+      <h3 class="h6 mb-1">{{ e.title }}</h3>
+      <p class="small mb-2">{{ e.summary }}</p>
+      <p class="small-muted small mb-2">{{ e.note }}</p>
+      <details><summary class="small">The definition</summary><pre class="mt-2 mb-0">{{ e.json }}</pre></details>
+      <a class="btn btn-sm btn-primary mt-2" href="/workbench/features/new?example={{ e.slug }}"><i class="bi bi-pencil-square" aria-hidden="true"></i> Open in the feature designer</a>
+    </div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2 id="ex-formulae">Formula templates</h2>
+<p class="small-muted">{{ templates|length }} formulae from banking and insurance, in the notation practitioners write them in, each with every symbol's role declared. Each opens in the <a href="/models/kernel">kernel designer</a>, which shows the typed tree and the Python it generates; and each is checked by the suite to parse and generate code.</p>
+{% for g in groups %}
+<details class="mb-2"{% if loop.first %} open{% endif %}><summary><strong>{{ g }}</strong> <span class="small-muted">({{ templates|selectattr('group', 'equalto', g)|list|length }})</span></summary>
+  <ul class="list-unstyled ms-3 mt-2">
+    {% for t in templates if t.group == g %}
+    <li class="mb-2"><a href="/models/kernel#template={{ t.key }}"><strong>{{ t.title }}</strong></a>
+      <div class="mono small text-break">{{ t.formula }}</div>{% if t.note %}<div class="small-muted small">{{ t.note }}</div>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</details>
+{% endfor %}
+
+<h2 id="ex-others" class="mt-4">Feature sets, warrants and policies</h2>
+<div class="row g-3">
+  {% for e in others %}
+  <div class="col-lg-6" id="other-{{ e.slug }}">
+    <div class="card h-100"><div class="card-body">
+      <div class="small-muted small text-uppercase">{{ e.kind }}</div>
+      <h3 class="h6 mb-1">{{ e.title }}</h3>
+      <p class="small-muted small mb-2">{{ e.note }}</p>
+      <pre class="mb-2">{{ e.json }}</pre>
+      <a class="small" href="{{ e.help }}">More in Help <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div></div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

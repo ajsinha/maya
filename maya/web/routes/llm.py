@@ -42,6 +42,23 @@ async def llm_create(request: Request) -> Any:
     return RedirectResponse(f"/llm/{data.get('namespace')}/{app['name']}", status_code=303)
 
 
+@router.post("/llm/register-self")
+@action
+async def llm_register_self(request: Request) -> Any:
+    """Register MAYA's own AI features as applications in a namespace, to govern them."""
+    data = await form(request)
+    async with client(request) as sdk:
+        out = await sdk.ai.register_self(data.get("namespace", ""))
+    names = ", ".join(r["ref"] for r in out["registered"])
+    flash(
+        request,
+        f"Registered MAYA's own AI as {names}, on {out['provider']}. Run each "
+        "one's evaluation set, then submit it for approval like any application.",
+        "success",
+    )
+    return RedirectResponse("/llm", status_code=303)
+
+
 @router.get("/llm/{ns}/{name}")
 @page
 async def llm_app(request: Request, ns: str, name: str) -> Any:

@@ -1,0 +1,10 @@
+# A MAYA model profile, one per file (copy to fireworks.yaml to switch it on).
+# The key is read from the environment variable named in options.api_key_env, never from here.
+
+provider: fireworks
+model: ""  # the model to ask: see the provider's list
+max_tokens: 2048
+description: "Fireworks AI (OpenAI-compatible)"
+options:
+  base_url: "https://api.fireworks.ai/inference/v1"
+  api_key_env: "FIREWORKS_API_KEY"

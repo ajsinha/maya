@@ -167,7 +167,7 @@ assert tape.features.preview("maya://feature/eq/prices@v1") == panel
 
 ### Offline bundles
 
-`maya.sdk.offline(bundle)` opens a reproducibility bundle (a path or bytes) and returns an `Offline` object. Opening checks every file against the manifest's hash and the Ed25519 signature over the file list (when `cryptography` is installed; otherwise the report says the signature was not checked). A bundle that fails is refused, not partly served.
+`maya.sdk.offline(bundle, key=None)` opens a reproducibility bundle (a path or bytes) and returns an `Offline` object. Opening checks every file against the manifest's hash and the Ed25519 signature over the file list (when `cryptography` is installed; otherwise the report says the signature was not checked). `key` is the issuer's key id or public key, from `client.custody.signing_key()` or Admin → Custody: given, a bundle signed by any other key is refused and `verify()["authentic"]` is `True`; omitted, `authentic` is `None`, because a signature alone shows a bundle is unchanged, not who signed it. A bundle that fails is refused, not partly served.
 
 | Member | What it does |
 |---|---|
@@ -524,10 +524,10 @@ These commands open the database directly, beside the server rather than through
 | `job watch ID` | Follows a job to its end, printing progress. |
 | `job cancel ID` | Cancels a job. |
 | `export bundle ID --out FILE` | Exports a training warrant's reproducibility bundle and saves it. |
-| `export verify FILE` | Verifies a bundle offline by running the bundle's own `verify.py` in a clean interpreter on this machine. Exits 1 unless verified. |
+| `export verify FILE [--key K]` | Verifies a bundle offline with this installation's verifier. `--key` is the issuer's key id or public key (Admin → Custody); with it, a bundle signed by any other key fails. Exits 1 unless verified. |
 
-!!! warning "export verify runs the bundle's code"
-    `export verify` executes the `verify.py` inside the file, exactly as `python verify.py` would. Run it only on bundles you chose to trust. To inspect a bundle without running anything it carries, open it with `maya.sdk.offline()`.
+!!! note "export verify and the bundle's own code"
+    `export verify` never runs the `verify.py` inside the file. It runs the bundle's hasher and reference model only when the signature is from `--key`; without a trusted key it hashes the data with MAYA's own encoder, reports re-execution as not run, and says the signer was not checked.
 
 ```bash
 # A nightly pin in CI

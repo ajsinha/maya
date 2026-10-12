@@ -7,9 +7,12 @@ step in a chain of custody. It is run under an **execution warrant** with
 covenants that suspend it when they are breached. At the end, everything is
 exported as a **bundle** that a regulator can verify without MAYA.
 
-This tutorial continues from [Tutorial 2](/help/guides/tutorial-02-featureset-and-model):
-`eq/linear@v1` is approved and `maya://featureset/eq/panel#q1/2026-02-28` is
-sealed. It takes about thirty minutes.
+This guide predates the current tutorial series and is being rewritten. It
+assumes `eq/linear@v1` is approved and `maya://featureset/eq/panel#q1/2026-02-28`
+is sealed, objects the current series does not create; the nearest current
+guides are [Tutorial 4](/help/guides/tutorial-04-feature-sets-and-pins) and
+[Tutorial 6](/help/guides/tutorial-06-inputs-and-specification). It takes about
+thirty minutes.
 
 ## Who does what
 
@@ -430,4 +433,4 @@ shipped in the bundle. Every call that would need a server is refused.
 * An execution warrant throttles on limits and suspends on covenants.
 * A bundle proves itself, anywhere, without MAYA.
 
-Next: [Tutorial 4 — A governed change](/help/guides/tutorial-04-governed-change).
+Next: [Tutorial 4 — A governed change](/help/guides/legacy-tutorial-04-governed-change).

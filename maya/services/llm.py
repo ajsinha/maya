@@ -50,19 +50,30 @@ from maya.core.errors import (
 )
 from maya.security.authz import Principal
 
-PROVIDERS = (
+# the providers the AI gateway can call for a live evaluation, always with exactly the
+# provider and model the version declares -- never the switchable default profile
+LIVE_PROVIDERS = (
     "anthropic",
     "openai",
     "azure_openai",
     "bedrock",
     "ollama",
-    "vertex",
-    "self_hosted",
-    "other",
+    "gemini",
+    "cohere",
+    "groq",
+    "together",
+    "fireworks",
+    "deepseek",
+    "xai",
+    "openrouter",
+    "perplexity",
+    "huggingface",
+    "vllm",
+    "lmstudio",
+    "mistral",
+    "mock",
 )
-# the providers the AI gateway can call for a live evaluation, always with exactly the
-# provider and model the version declares -- never the switchable default profile
-LIVE_PROVIDERS = ("anthropic", "openai", "azure_openai", "bedrock", "ollama")
+PROVIDERS = (*LIVE_PROVIDERS, "vertex", "self_hosted", "other")
 CHECKS = ("contains", "not_contains", "equals", "regex", "max_chars", "json")
 DECIDERS = ("admin", "model_manager")
 MAX_CASES = 500

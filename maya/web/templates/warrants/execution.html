@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% from "_macros/table.html" import table %}
 {% from "_macros/ui.html" import pill, kv, json_block %}
+{% from "_macros/ai.html" import explain_button %}
 {% block title %}{{ ew.name }}{% endblock %}
 {% block content %}
 <h1>{{ ew.name }}@v{{ ew.version_no }} {{ pill(ew.status) }}{% if ew.offline_use and ew.offline_use.label %} {{ pill('unattested') }}{% endif %}</h1>
+<div class="mb-2">{{ explain_button('execution_warrant', ew.id, 'Execution warrant ' ~ ew.name ~ ', in plain words', '/warrants/execution/' ~ ew.id) }}</div>
 <div class="small-muted mono mb-2">{{ ew.uri }}</div>
 {% if ew.suspended_at %}<div class="alert alert-danger">SUSPENDED: {{ ew.suspend_reason }}</div>{% endif %}
 {% if ew.revoked_at %}<div class="alert alert-danger">Revoked: {{ ew.revoke_reason }}</div>{% endif %}

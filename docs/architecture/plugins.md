@@ -8,7 +8,7 @@ The `plugins.allow` setting is documented in the [configuration reference](../..
 |---|---|
 | `maya/plugins.py` | `POINTS` (each extension point, its protocol and what ships), `Plugin`, `Registry` (register, look up, report, discover), `built_ins` |
 | `maya/services/platform.py` | `Platform.wire`: builds the registry after the services, registers the built-ins, runs discovery once |
-| `maya/llm/providers.py` | `BUILT_IN`: the language-model providers registered at `llm_provider`, with their factories |
+| `maya/llm/providers.py`, `maya/llm/providers_extra.py` | `BUILT_IN` and `ALL`: the language-model providers registered at `llm_provider`, with their factories |
 | `maya/notifiers.py` | `CHANNELS`: the notification channels registered at `notifier` |
 | `maya/core/backends.py` | The seam resolver — a different mechanism, for optional *dependencies* rather than alternative implementations |
 | `maya/services/ops.py` | `extensions()`: the registry's report plus each channel's readiness, for the Admin → Extensions screen |
@@ -85,7 +85,9 @@ POINTS: dict[str, tuple[str, str]] = {
 # ...
     "llm_provider": (
         "LlmProvider.complete(system, messages, max_tokens, temperature)",
-        "anthropic, openai (and compatible servers), azure_openai, ollama, bedrock, stub, none",
+        "anthropic, openai, azure_openai, gemini, cohere, bedrock, ollama, the named "
+        "OpenAI-compatible services (groq, together, fireworks, deepseek, xai, openrouter, "
+        "perplexity, huggingface, vllm, lmstudio, mistral), mock, stub, none",
     ),
 }
 ```

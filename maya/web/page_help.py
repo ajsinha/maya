@@ -144,6 +144,30 @@ PAGES: dict[str, tuple[str, list[tuple[str, str, str]], str | None]] = {
     "/login/reset": ("Choose a new password with the reset link you were given.", [], "security"),
     "/mfa": ("Enter your second factor to finish signing in.", [], "security"),
     # -- catalog --------------------------------------------------------------------------
+    "/ask": (
+        "Ask about the estate in plain words, and see the query that answered.",
+        [
+            (
+                "A query, not prose",
+                "search",
+                "MAYA turns the question into a query over a fixed set of fields and shows it: "
+                "the answer is the rows, never a paragraph with figures in it.",
+            ),
+            (
+                "As you",
+                "person-check",
+                "The query runs with your permissions, through the same listings as the "
+                "screens, so it finds only what you may read.",
+            ),
+            (
+                "Words first, model second",
+                "cpu",
+                "Common phrasings are read without any model. Anything else goes to the "
+                "language model, passes the AI policy, and is checked before it runs.",
+            ),
+        ],
+        "documents",
+    ),
     "/catalog": (
         "The faceted catalog: every governed object you may read.",
         [

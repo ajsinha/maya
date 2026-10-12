@@ -13,7 +13,7 @@ import re
 import pytest
 
 from maya.web.guide_render import GUIDES_DIR, render
-from maya.web.help_catalog import GUIDE_HOME, GUIDES, LEGACY, SUBJECTS, all_parts
+from maya.web.help_catalog import GUIDE_HOME, GUIDES, LEGACY, MOVED_GUIDES, SUBJECTS, all_parts
 from tests.test_web import env  # noqa: F401 - the web fixture, reused
 
 TEMPLATES = GUIDES_DIR.parent / "templates"
@@ -62,6 +62,11 @@ def test_subjects_library_and_old_addresses_are_served_to_anyone(env):  # noqa: 
     for guide, home in GUIDE_HOME.items():
         r = anon.get(f"/help/guides/{guide}", follow_redirects=False)
         assert r.status_code == 301 and r.headers["location"] == f"/help/{home}", guide
+    # a guide that was replaced opens its replacement, which exists
+    for old, new in MOVED_GUIDES.items():
+        assert new in {g["slug"] for g in GUIDES}, new
+        r = anon.get(f"/help/guides/{old}", follow_redirects=False)
+        assert r.status_code == 301 and r.headers["location"] == f"/help/guides/{new}", old
     # every old topic address lands where its content went
     for old, target in LEGACY.items():
         r = anon.get(f"/help/{old}", follow_redirects=False)
@@ -125,6 +130,7 @@ def test_every_help_link_lands_on_a_page_and_an_anchor_that_exist(env):  # noqa:
     pages |= {
         f"/help/guides/{g['slug']}": anon.get(f"/help/guides/{g['slug']}").text for g in GUIDES
     }
+    pages["/help/examples"] = anon.get("/help/examples").text
     ids = {path: set(re.findall(r'\bid="([^"]+)"', text)) for path, text in pages.items()}
     sources = dict(pages)
     for path in ("/models/kernel", "/models/new", "/workbench/features/new", "/help"):
