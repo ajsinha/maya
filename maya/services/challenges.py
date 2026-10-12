@@ -147,6 +147,24 @@ class ChallengeService:
         if errors["champion"].shape != errors["challenger"].shape:
             raise ValidationFailed("The two scorings returned different numbers of rows")
         result = compare(errors["champion"], errors["challenger"], metric)
+        # A sealed warrant's bundle carries its holdout. If one on this holdout has been
+        # exported, the challenger's developer could have seen the rows it is scored on, and
+        # the verdict says so rather than pretending the comparison is still blind.
+        with self.p.uow() as uow:
+            exports = uow.repo("audit_events").list(action="bundle.exported")
+        disclosed = [
+            e["detail"].get("warrant_id")
+            for e in exports
+            if e["detail"].get("holdout_hash") == hashes["champion"]
+            and e["detail"].get("warrant_id") != challenger
+        ]
+        result["holdout_disclosed"] = bool(disclosed)
+        if disclosed:
+            result["disclosure"] = (
+                "This holdout was disclosed in an exported bundle before the comparison, so "
+                "the challenger may have been fitted with its rows in view: treat the verdict "
+                "as unblinded."
+            )
         with self.p.uow(p.username) as uow:
             row = uow.repo("challenges").add(
                 {

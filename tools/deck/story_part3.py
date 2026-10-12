@@ -339,4 +339,72 @@ BEYOND: list[dict[str, Any]] = [
     },
 ]
 
+BEYOND += [
+    {
+        "kind": "table",
+        "title": "MAYA's own AI, under a policy",
+        "intro": "Every call MAYA makes to a language model passes one gateway and one policy "
+        "before anything leaves, and is audited without its prompt.",
+        "rows": [
+            ["Control", "What it does"],
+            [
+                "Features and roles",
+                "Drafts, documents, the challenger, evaluations, ask, explain, "
+                "narrate — each allowed only to the roles named for it",
+            ],
+            ["Rate limits", "Calls per person and per feature per minute"],
+            [
+                "Daily budget",
+                "A token cap always; a spending cap for profiles that declare a price",
+            ],
+            [
+                "Masking",
+                "E-mail, card and phone numbers, long digit runs and named fields, out of "
+                "every prompt",
+            ],
+            [
+                "Providers",
+                "21, from OpenAI, Azure, Gemini, Cohere and Bedrock to Ollama, vLLM "
+                "and a rule-driven mock; a profile file each, none on by default",
+            ],
+            [
+                "Governed like any model",
+                "MAYA registers its own AI features as LLM applications, "
+                "evaluated and approved on evidence",
+            ],
+        ],
+        "col_w": [2.8, 8.8],
+        "size": 14,
+    },
+    {
+        "kind": "numbered",
+        "title": "Ask MAYA: a checked query, never prose",
+        "question": "“Which live models read data that was restated since August?”",
+        "items": [
+            ("Words first", "Common phrasings are read by a rule-based parser — no model at all."),
+            (
+                "Then the model",
+                "Anything else becomes JSON over a fixed vocabulary of kinds, fields "
+                "and operators — never SQL.",
+            ),
+            (
+                "Checked",
+                "An answer outside the vocabulary is refused, sent back once with the "
+                "reasons, then turned away.",
+            ),
+            (
+                "Run as you",
+                "Through the screens' own listings: it cannot find what you may not read.",
+            ),
+            (
+                "Shown, editable",
+                "The rows and the query MAYA ran, which you can edit and run again with no model.",
+            ),
+        ],
+        "head_w": 0.2,
+        "insight": "Explanations get the same discipline: every figure a model writes is checked "
+        "against the record's structured fields, and any it added is named on the page.",
+    },
+]
+
 SLIDES = GOVERNANCE + BEYOND

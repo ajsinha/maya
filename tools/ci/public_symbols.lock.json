@@ -327,8 +327,10 @@
    "models": {
     "class": "Models",
     "methods": {
+     "add_constraint": "(self, ref, expression, op, rhs, why)",
      "conformance": "(self, ref, version_no, n=500, featureset=None)",
      "create": "(self, namespace, name, **kw)",
+     "declare": "(self, ref, *, values=None, bounds=None, units=None)",
      "diff": "(self, ref, v1, v2)",
      "get": "(self, ref)",
      "import_workbook": "(self, ref, data, output=None, roles=None, filename='workbook.xlsx')",
@@ -339,6 +341,7 @@
      "new_draft": "(self, ref)",
      "page": "(self, namespace=None, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "reference_code": "(self, ref, version_no)",
+     "remove_constraint": "(self, ref, index)",
      "render_spec": "(self, ref, version_no)",
      "spec_pdf": "(self, ref, version_no)",
      "transition": "(self, ref, version_no, transition, **kw)",
@@ -776,8 +779,10 @@
    "models": {
     "class": "Models",
     "methods": {
+     "add_constraint": "(self, ref, expression, op, rhs, why)",
      "conformance": "(self, ref, version_no, n=500, featureset=None)",
      "create": "(self, namespace, name, **kw)",
+     "declare": "(self, ref, *, values=None, bounds=None, units=None)",
      "diff": "(self, ref, v1, v2)",
      "get": "(self, ref)",
      "import_workbook": "(self, ref, data, output=None, roles=None, filename='workbook.xlsx')",
@@ -788,6 +793,7 @@
      "new_draft": "(self, ref)",
      "page": "(self, namespace=None, q=None, page_size=100, cursor=None, sort=None, total=False)",
      "reference_code": "(self, ref, version_no)",
+     "remove_constraint": "(self, ref, index)",
      "render_spec": "(self, ref, version_no)",
      "spec_pdf": "(self, ref, version_no)",
      "transition": "(self, ref, version_no, transition, **kw)",

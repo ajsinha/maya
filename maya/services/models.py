@@ -316,6 +316,11 @@ class ModelService:
             draft = catalog.require_latest(uow, "model_versions", "model_id", model["id"])
             if draft["state"] not in EDITABLE:
                 raise NotApproved("There is no editable draft; start a new draft first")
+            if new_ir is not None and ir is None and draft.get("formula_ir"):
+                # re-entering the mathematics keeps what was declared about it: a constant's
+                # value, a parameter's bounds and units, and the constraints over parameters
+                # that still exist -- rather than silently dropping them
+                new_ir = carry_declarations(draft["formula_ir"], new_ir)
             changes: dict[str, Any] = {}
             if new_ir is not None:
                 errors = (
@@ -584,9 +589,13 @@ class ModelService:
         report = validate_artifact(source, params["sample"], params["params"])
         with self.p.uow(ctx.actor) as uow:
             v = uow.repo("model_versions").require(params["version_id"])
+            earlier = self._runs_for(dict(v["artifact_report"] or {}), params["blob"])
             if report["passed"] and not irmod.is_opaque(v["formula_ir"] or {}):
                 ctx.progress(70, "comparing the code with the documented mathematics")
                 report["conformance"] = self._differential(v, source, params["params"], ctx.actor)
+                report["conformance_runs"] = earlier + [report["conformance"]]
+            elif earlier:
+                report["conformance_runs"] = earlier
             if v["artifact_hash"] == params["blob"]:
                 uow.repo("model_versions").update(v["id"], {"artifact_report": report})
             uow.audit(
@@ -831,11 +840,25 @@ class ModelService:
         ir = row["formula_ir"] or {}
         if irmod.is_opaque(ir):
             return True, "declared black box: there is no closed form to compare against"
-        got = (row["artifact_report"] or {}).get("conformance") or {}
+        report = row["artifact_report"] or {}
+        got = report.get("conformance") or {}
+        failed = [
+            r for r in self._runs_for(report, row["artifact_hash"]) if r["agreed"] != r["total"]
+        ]
+        if failed and got.get("agreed") == got.get("total"):
+            # A later agreement does not undo an earlier disagreement about the same code: it
+            # usually means the second run looked somewhere the bug does not show.
+            got = failed[-1]
         if got.get("artifact_hash") != row["artifact_hash"]:
             return False, (
                 "the code has not been tested against the specification since it changed: "
                 "run conformance on this version"
+            )
+        if got.get("degenerate"):
+            return False, (
+                "the comparison was degenerate: the specification's output barely varied over "
+                f"its inputs ({got.get('domain', 'domain not recorded')}), so agreement there "
+                "cannot tell right code from wrong; run conformance over a feature set"
             )
         if got["agreed"] != got["total"]:
             examples = got.get("counterexamples") or []
@@ -855,6 +878,90 @@ class ModelService:
             f"agreed with the specification on all {got['total']} sampled inputs, "
             f"{got.get('domain', 'domain not recorded')}"
         )
+
+    # -- declarations ---------------------------------------------------------------------
+    def _draft_ir(self, p: Principal, ref: str) -> dict[str, Any]:
+        with self.p.uow() as uow:
+            model, _ = catalog.find_object(uow, "models", "model", refs.parse(ref, "model"))
+            self.p.access.require(uow, p, "update", "model", model)
+            draft = catalog.require_latest(uow, "model_versions", "model_id", model["id"])
+        if draft["state"] not in EDITABLE:
+            raise NotApproved("There is no editable draft; start a new draft first")
+        ir = dict(draft.get("formula_ir") or {})
+        if not ir or "composite" in ir:
+            raise ValidationFailed("Declarations are made on a formula model's inputs")
+        return ir
+
+    def declare(
+        self,
+        p: Principal,
+        ref: str,
+        *,
+        values: dict[str, float] | None = None,
+        bounds: "dict[str, builtins.list[float] | None] | None" = None,
+        units: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Declare constants' values, parameters' bounds and inputs' units on the draft --
+        what used to need the IR edited by hand. ``None`` for a bound removes it."""
+        ir = self._draft_ir(p, ref)
+        names = {i["name"]: i for i in ir.get("inputs") or []}
+        unknown = sorted((set(values or {}) | set(bounds or {}) | set(units or {})) - set(names))
+        if unknown:
+            raise ValidationFailed(
+                f"No input named {', '.join(unknown)}; the inputs are {', '.join(sorted(names))}"
+            )
+        inputs = []
+        for item in ir.get("inputs") or []:
+            item = dict(item)
+            n = item["name"]
+            if values and n in values:
+                item["value"] = float(values[n])
+            if bounds and n in bounds:
+                if bounds[n] is None:
+                    item.pop("bounds", None)
+                else:
+                    item["bounds"] = [float(b) for b in bounds[n]]  # type: ignore[union-attr]
+            if units and n in units:
+                item["unit"] = str(units[n])
+            inputs.append(item)
+        return self.update_draft(p, ref, ir={**ir, "inputs": inputs})
+
+    def add_constraint(
+        self, p: Principal, ref: str, *, expression: str, op: str, rhs: float, why: str
+    ) -> dict[str, Any]:
+        """A joint condition over parameters, written as an expression (``alpha + beta``),
+        an operator and a number, with the reason it holds. Checked on every upload."""
+        from maya.formula.parse import parse_formula
+
+        ir = self._draft_ir(p, ref)
+        params = [i["name"] for i in ir.get("inputs") or [] if i.get("role") == "parameter"]
+        node = parse_formula(expression, inputs=params)
+
+        def as_params(n: Any) -> Any:
+            if isinstance(n, dict):
+                if "ref" in n and n["ref"] in params:
+                    return {"param": n["ref"]}
+                return {k: as_params(v) for k, v in n.items()}
+            if isinstance(n, list):
+                return [as_params(v) for v in n]
+            return n
+
+        constraint = {"expr": as_params(node), "op": op, "rhs": float(rhs), "why": why}
+        constraints = list(ir.get("constraints") or []) + [constraint]
+        return self.update_draft(p, ref, ir={**ir, "constraints": constraints})
+
+    def remove_constraint(self, p: Principal, ref: str, index: int) -> dict[str, Any]:
+        ir = self._draft_ir(p, ref)
+        constraints = list(ir.get("constraints") or [])
+        if not 0 <= index < len(constraints):
+            raise NotFound(f"No constraint number {index}; the draft has {len(constraints)}")
+        del constraints[index]
+        new = (
+            {**ir, "constraints": constraints}
+            if constraints
+            else {k: v for k, v in ir.items() if k != "constraints"}
+        )
+        return self.update_draft(p, ref, ir=new)
 
     def check_no_live_warrant(self, uow: Any, ctx: dict[str, Any]) -> tuple[bool, str]:
         """A version still serving production cannot be retired (§8.6, §9.4).
@@ -1070,6 +1177,7 @@ class ModelService:
             "domain": result["domain"],
             "params": result.get("params") or {},
             "statement": result["statement"],
+            "degenerate": bool(result.get("degenerate")),
             "run_by": actor,
             "run_at": utcnow().isoformat(),
         }
@@ -1080,8 +1188,22 @@ class ModelService:
         # Recorded against the artifact hash it tested, so attaching different code
         # invalidates it rather than inheriting somebody else's clean run.
         report = dict(uow.repo("model_versions").require(v["id"])["artifact_report"] or {})
-        report["conformance"] = self._conformance_record(v, result, actor)
+        record = self._conformance_record(v, result, actor)
+        report["conformance"] = record
+        report["conformance_runs"] = self._runs_for(report, v["artifact_hash"]) + [record]
         uow.repo("model_versions").update(v["id"], {"artifact_report": report})
+
+    @staticmethod
+    def _runs_for(
+        report: dict[str, Any], artifact_hash: str | None
+    ) -> "builtins.list[dict[str, Any]]":
+        """Earlier differential runs against this exact code, the last 19 of them. Every run
+        is kept rather than the latest replacing the last: a run over the feature set's own
+        values that disagreed is not undone by a later one over a domain where they agree."""
+        runs = report.get("conformance_runs")
+        if runs is None and report.get("conformance"):
+            runs = [report["conformance"]]
+        return [r for r in runs or [] if r.get("artifact_hash") == artifact_hash][-19:]
 
     def _conformance_domain(
         self, p: Principal | None, v: dict[str, Any], featureset: str | None
@@ -1107,3 +1229,31 @@ class ModelService:
             "drawn from the unit interval: no feature set was named, so agreement here says "
             "nothing about the values the model will really be given",
         )
+
+
+# -- declarations: values, bounds, units and constraints, without writing the IR ----------------
+_CARRIED = ("value", "bounds", "unit", "description")
+
+
+def carry_declarations(old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
+    """``new`` with the declarations ``old`` made about inputs that keep their name and role,
+    and the constraints whose parameters all still exist."""
+    if "composite" in new or "composite" in old:
+        return new
+    before = {i["name"]: i for i in old.get("inputs") or []}
+    out = dict(new)
+    inputs = []
+    for item in new.get("inputs") or []:
+        was = before.get(item["name"])
+        if was and was.get("role", "feature") == item.get("role", "feature"):
+            item = {**{k: was[k] for k in _CARRIED if k in was}, **item}
+            if item.get("role") != "constant":
+                item.pop("value", None)
+        inputs.append(item)
+    out["inputs"] = inputs
+    params = {i["name"] for i in inputs if i.get("role") == "parameter"}
+    if not new.get("constraints") and old.get("constraints"):
+        kept = [c for c in old["constraints"] if irmod.params_of(c.get("expr")) <= params]
+        if kept:
+            out["constraints"] = kept
+    return out

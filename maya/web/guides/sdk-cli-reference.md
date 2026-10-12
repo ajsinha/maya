@@ -493,6 +493,8 @@ These commands open the database directly, beside the server rather than through
 |---|---|
 | `feature list [--namespace NS] [-q TEXT]` | Lists features. |
 | `feature show REF` | Prints a feature as JSON. |
+| `feature create NS/NAME DEFINITION [--description TEXT]` | A governed feature from a JSON or YAML definition file; it starts as a draft. |
+| `feature transition REF ACTION --version N [--rationale TEXT]` | Move a feature version: `submit`, `approve`, `request_changes`, `withdraw`, … as yourself, with the checks shown. |
 | `feature quick FILE [--name NAME]` | An ungoverned scratch feature from a CSV, Parquet or JSON file; the name defaults to the file's stem. |
 | `feature upload REF FILE [--knowledge-time ISO]` | Ingests a file into a feature; the format comes from the extension. |
 | `feature pin REF --version N --name PIN --as-of DATE [--as-of-known ISO]` | Pins a version, waiting for the pin job and printing progress; when your role can only request a pin, says it awaits approval. |

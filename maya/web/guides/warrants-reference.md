@@ -311,6 +311,9 @@ A report is always recorded — it happened. It counts toward today's usage, inc
 
 A bundle is a signed zip exported from a training warrant: what a validator or a regulator needs to check the warrant without MAYA.
 
+!!! warning "Only once the warrant is sealed"
+    A bundle carries every row of the training frame, the escrowed holdout included, so that the model can be re-executed on all of them. Before the warrant is sealed those rows are the one thing the modeller must not see, so export is refused until then. Each export is recorded with the holdout's hash: a later challenger warrant drawn on the same pin and seed shares that holdout, and its challenge is marked **unblinded**, because its developer could have fitted with the test rows in view.
+
 ```python
 # Export a bundle and save it
 out = my.training.export_bundle(w["id"])

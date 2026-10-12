@@ -154,6 +154,7 @@ def lift_python(source: str, function_name: str | None = None) -> dict[str, Any]
     params: set[str] = set()
     lifter = _Lifter(params)
     lets: dict[str, Any] = {}
+    output = "y"
     body: dict[str, Any] | None = None
     stmts = [
         s for s in fn.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))
@@ -169,6 +170,10 @@ def lift_python(source: str, function_name: str | None = None) -> dict[str, Any]
             lets[stmt.targets[0].id] = lifter.expr(stmt.value)
         elif isinstance(stmt, ast.Return) and stmt.value is not None:
             body = lifter.expr(stmt.value)
+            # ``return pd`` after ``pd = ...`` names the output pd, as the code reads
+            if isinstance(stmt.value, ast.Name) and stmt.value.id in lets:
+                output = stmt.value.id
+                body = lets.pop(output)
         else:
             raise ValidationFailed(
                 f"line {stmt.lineno}: {type(stmt).__name__} cannot be lifted into the IR",
@@ -187,7 +192,7 @@ def lift_python(source: str, function_name: str | None = None) -> dict[str, Any]
         for n in sorted(free)
     ]
     ir: dict[str, Any] = {
-        "outputs": [{"name": "y", "type": "float64"}],
+        "outputs": [{"name": output, "type": "float64"}],
         "inputs": inputs,
         "lets": lets,
         "body": body,

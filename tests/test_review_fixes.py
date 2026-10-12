@@ -236,3 +236,182 @@ def test_lineage_in_both_directions_never_draws_siblings_or_cousins():
         assert up == {a, b, fs, model, warrant}
     finally:
         p.shutdown()
+
+
+# -- defects found while writing the tutorials ---------------------------------------------------
+def test_the_semantic_diff_names_a_changed_constant_and_a_changed_constraint():
+    import copy
+
+    from maya.formula.diff import semantic_diff
+
+    a = {
+        "inputs": [
+            {"name": "k", "role": "constant", "value": 680, "type": "float64"},
+            {"name": "alpha", "role": "parameter", "type": "float64"},
+            {"name": "beta", "role": "parameter", "type": "float64"},
+        ],
+        "outputs": [{"name": "y", "type": "float64"}],
+        "body": {"ref": "k"},
+    }
+    b = copy.deepcopy(a)
+    b["inputs"][0]["value"] = 700
+    b["constraints"] = [
+        {
+            "expr": {"op": "add", "args": [{"param": "alpha"}, {"param": "beta"}]},
+            "op": "lt",
+            "rhs": 1,
+            "why": "stationary",
+        }
+    ]
+    said = semantic_diff(a, b)
+    assert "constant 'k' value changed from 680 to 700" in said
+    assert any(s.startswith("constraint added") for s in said)
+    assert any(s.startswith("constraint removed") for s in semantic_diff(b, a))
+
+
+def test_lifted_python_names_its_output_after_the_returned_variable():
+    from maya.formula.pylift import lift_python
+
+    ir = lift_python(
+        "def m(X, params):\n"
+        "    z = params['a'] + params['b'] * X['x']\n"
+        "    pd = 1 / (1 + exp(-z))\n"
+        "    return pd\n"
+    )
+    assert ir["outputs"][0]["name"] == "pd" and "pd" not in ir["lets"]
+
+
+def test_mayas_own_latex_reads_back_and_greek_subscripts_render():
+    from maya.formula.latex import latex_name
+    from maya.formula.parse import parse_formula
+
+    node = parse_formula(r"\mathit{rate} \cdot \text{balance}", inputs=["rate", "balance"])
+    assert node == {"op": "mul", "args": [{"ref": "rate"}, {"ref": "balance"}]}
+    assert latex_name("sigmaatm") == r"\sigma_{atm}"
+    assert latex_name("number") == r"\mathit{number}"  # an ordinary word is not mangled
+
+
+def test_declarations_are_made_without_the_ir_and_survive_re_entering_the_formula(journey):  # noqa: F811
+    w = journey
+    w.p.models.create(
+        w.mona,
+        namespace="quant",
+        name="declared",
+        formula="y = a + b*x",
+        roles={"a": "parameter", "b": "parameter"},
+    )
+    ref = "quant/declared"
+    w.p.models.declare(w.mona, ref, bounds={"a": [-1, 1]}, units={"x": "GBP"})
+    w.p.models.add_constraint(w.mona, ref, expression="a + b", op="lt", rhs=2, why="a cap")
+    ir = w.p.models.get(w.mona, ref)["versions"][-1]["formula_ir"]
+    assert next(i for i in ir["inputs"] if i["name"] == "a")["bounds"] == [-1.0, 1.0]
+    assert ir["constraints"][0]["expr"]["args"][0] == {"param": "a"}
+    # re-entering the mathematics keeps what was declared about it
+    w.p.models.update_draft(
+        w.mona, ref, formula="y = a + b*x*2", roles={"a": "parameter", "b": "parameter"}
+    )
+    ir = w.p.models.get(w.mona, ref)["versions"][-1]["formula_ir"]
+    assert next(i for i in ir["inputs"] if i["name"] == "a")["bounds"] == [-1.0, 1.0]
+    assert next(i for i in ir["inputs"] if i["name"] == "x")["unit"] == "GBP"
+    assert len(ir["constraints"]) == 1
+    w.p.models.remove_constraint(w.mona, ref, 0)
+    assert "constraints" not in w.p.models.get(w.mona, ref)["versions"][-1]["formula_ir"]
+
+
+def test_a_failed_conformance_run_is_not_undone_by_a_later_run_over_easier_ground():
+    from maya.services.models import ModelService
+
+    service = ModelService.__new__(ModelService)
+    bad = {
+        "artifact_hash": "h",
+        "agreed": 1900,
+        "total": 2000,
+        "counterexamples": [],
+        "domain": "resampled from the feature set",
+    }
+    good = {
+        "artifact_hash": "h",
+        "agreed": 2000,
+        "total": 2000,
+        "counterexamples": [],
+        "domain": "drawn from 0.5 to 150,000",
+    }
+    row = {
+        "artifact_hash": "h",
+        "formula_ir": {"body": {"ref": "x"}},
+        "artifact_report": {"conformance": good, "conformance_runs": [bad, good]},
+    }
+    ok, why = service.check_conformance(None, {"row": row})
+    assert ok is False and "disagrees" in why
+    row["artifact_hash"] = "new-code"  # different code: its own record starts afresh
+    row["artifact_report"]["conformance"] = {**good, "artifact_hash": "new-code"}
+    assert service.check_conformance(None, {"row": row})[0] is True
+
+
+def test_a_saturated_comparison_is_degenerate_and_cannot_pass_the_gate():
+    """The tutorials' case: a logistic saturated at 1 on every sampled row agrees with a
+    wrongly centred implementation everywhere -- which proves nothing, and now says so."""
+    import numpy as np
+
+    from maya.formula.conformance import conformance_test
+    from maya.formula.parse import parse_model
+    from maya.services.models import ModelService
+
+    ir = parse_model("p = 1/(1 + e^{-(w (x - 680))})", roles={"w": "parameter"})
+    x = np.random.default_rng(0).uniform(0.5, 1.5, 200)
+
+    def wrong(X, params):  # centred at 700, not 680
+        return 1 / (1 + np.exp(-(params["w"] * (np.asarray(X["x"]) - 700))))
+
+    got = conformance_test(ir, wrong, {"x": x}, {"w": -3.0})
+    assert got["agreed"] == got["total"] and got["degenerate"] is True
+    row = {
+        "artifact_hash": "h",
+        "formula_ir": ir,
+        "artifact_report": {
+            "conformance": {**got, "artifact_hash": "h", "domain": "unit interval"}
+        },
+    }
+    ok, why = ModelService.__new__(ModelService).check_conformance(None, {"row": row})
+    assert ok is False and "degenerate" in why
+
+
+def test_the_holdout_is_not_exported_before_the_warrant_is_sealed(journey):  # noqa: F811
+    """A bundle carries the escrowed holdout. Exported before the parameters are approved, it
+    would let the modeller read the rows they are scored on blind."""
+    from maya.core.errors import NotApproved
+    from tests.conftest import sealed
+
+    w = journey
+    w.p.models.create(
+        w.mona,
+        namespace="quant",
+        name="escrow_lin",
+        formula="yhat = a*x + b",
+        roles={"a": "parameter", "b": "parameter"},
+    )
+    from tests.test_sdk_modes import complete_spec
+
+    w.p.models.update_draft(w.mona, "quant/escrow_lin", spec_latex=complete_spec("escrow_lin"))
+    w.p.models.transition(w.mona, "quant/escrow_lin", 1, "submit")
+    w.p.models.transition(w.mgr, "quant/escrow_lin", 1, "approve")
+    tw = w.p.warrants.create(
+        w.devi,
+        namespace="quant",
+        name="escrow_tw",
+        model="quant/escrow_lin@v1",
+        featureset="maya://featureset/quant/panel#q1/2026-02-28",
+        spec={"target": "y", "seed": 5},
+    )
+    with pytest.raises(NotApproved, match="only once its training warrant is sealed"):
+        w.p.bundles.export(w.devi, tw["id"])
+    data = w.p.warrants.data(w.devi, tw["id"])
+    w.p.warrants.upload_parameters(
+        w.devi, tw["id"], values={"a": 2.0, "b": 0.5}, data_checksum=data["manifest"]["checksum"]
+    )
+    sealed(w, tw["id"])
+    w.p.bundles.export(w.devi, tw["id"])
+    with w.p.uow() as uow:
+        last = uow.repo("audit_events").list(action="bundle.exported")[-1]
+    # recorded, so a challenger on the same holdout is told its rows were disclosed
+    assert last["detail"]["holdout_hash"] and last["detail"]["warrant_id"] == tw["id"]

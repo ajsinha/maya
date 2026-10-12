@@ -101,6 +101,11 @@ class Tok:
     atomic: bool = False
 
 
+_NAMED = re.compile(
+    r"\\(?:mathit|text|textit|textrm|operatorname|mathrm)\{([A-Za-z][A-Za-z0-9_]*)\}"
+)
+
+
 def _normalise_name(raw: str) -> str:
     return raw.replace("_{", "").replace("}", "").replace("_", "")
 
@@ -111,6 +116,16 @@ def tokenize(text: str) -> list[Tok]:
     pos = 0
     text = text.rstrip()
     while pos < len(text):
+        # \mathit{rate}, \text{rate}: one symbol, as MAYA itself renders a multi-letter name,
+        # so its own LaTeX can be pasted back in and read the same way
+        start = pos
+        while start < len(text) and text[start].isspace():
+            start += 1
+        named = _NAMED.match(text, start)
+        if named:
+            toks.append(Tok("name", _normalise_name(named.group(1)), named.start(1), True))
+            pos = named.end()
+            continue
         m = _TOKEN.match(text, pos)
         if not m or m.end() == pos:
             raise ValidationFailed(

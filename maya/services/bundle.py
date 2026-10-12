@@ -33,7 +33,7 @@ import pyarrow.parquet as pq
 
 from maya.core import canonical, chunker, djson
 from maya.core import archives
-from maya.core.errors import MayaError, ValidationFailed
+from maya.core.errors import MayaError, NotApproved, ValidationFailed
 from maya.core.version import VERSION
 from maya.formula import ir as irmod
 from maya.formula.codegen import to_python, to_python_composite
@@ -217,6 +217,14 @@ class BundleService:
     def export(self, p: Principal, warrant_id: str) -> dict[str, Any]:
         """Build a signed bundle for a training warrant and store it as a blob."""
         w = self.p.warrants.get(p, warrant_id)
+        if not w.get("sealed_at"):
+            # The bundle carries the escrowed holdout so that anyone can re-execute the model
+            # on every row. Before the warrant is sealed those rows are the one thing the
+            # modeller must not see: blind scoring is worth nothing if they can be read.
+            raise NotApproved(
+                "A bundle is exported only once its training warrant is sealed: it carries the "
+                "escrowed holdout, which must stay unseen until the parameters are approved"
+            )
         self.p.licences.export(p, "featureset", w["featureset_ref"], "external")
         with self.p.uow() as uow:
             mv = uow.repo("model_versions").require(w["model_version_id"])
@@ -292,7 +300,14 @@ class BundleService:
                 "bundle.exported",
                 object_type="training_warrant",
                 object_ref=w["uri"],
-                detail={"blob": digest, "reexecutable": reexec},
+                detail={
+                    "blob": digest,
+                    "reexecutable": reexec,
+                    # recorded so that a later warrant on the same holdout knows its test
+                    # rows have been disclosed (see ChallengeService)
+                    "holdout_hash": w.get("holdout_hash"),
+                    "warrant_id": warrant_id,
+                },
             )
         return {"blob": digest, "size": len(zbuf.getvalue()), "manifest": manifest}
 

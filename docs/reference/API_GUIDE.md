@@ -1144,6 +1144,9 @@ added without appearing here. Paths are relative to `/api/v1`.
 | `POST` | `/models/{namespace}/{name}/artifact` | Upload Artifact |
 | `GET` | `/models/{namespace}/{name}/diff` | Model Diff |
 | `PUT` | `/models/{namespace}/{name}/draft` | Update Model Draft |
+| `PUT` | `/models/{namespace}/{name}/declarations` | Declare constants' values, parameters' bounds and inputs' units on the draft. |
+| `POST` | `/models/{namespace}/{name}/constraints` | A joint condition over parameters, from an expression, an operator, a number and its reason. |
+| `DELETE` | `/models/{namespace}/{name}/constraints/{index}` | Remove a constraint from the draft. |
 | `POST` | `/models/{namespace}/{name}/drafts` | New Model Draft |
 | `POST` | `/models/{namespace}/{name}/versions/{version_no}/conformance` | Conformance |
 | `GET` | `/models/{namespace}/{name}/versions/{version_no}/reference` | Reference Code |

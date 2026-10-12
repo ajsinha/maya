@@ -523,11 +523,8 @@ Version 2 stays a draft: it needs its own review, and its Change Log entry.
 
 ## Next steps
 
-- The next tutorials train this model under a warrant, upload its parameters,
-  and issue an execution warrant. Until they are rewritten, the earlier guides
-  [Warrants, parameters and a bundle](/help/guides/legacy-tutorial-03-warrants-and-bundles)
-  and [A governed change](/help/guides/legacy-tutorial-04-governed-change) cover
-  the same ground with a simpler model.
+- [Tutorial 7 · The training warrant and blind scoring](/help/guides/tutorial-07-training-warrant)
+  fits this model under a warrant and scores it blind.
 - [Models](/help/models#features-parameters-constants) explains the three roles
   with two worked models.
 - [Warrants](/help/warrants) explains how bounds and constraints are enforced

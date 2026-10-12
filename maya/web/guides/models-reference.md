@@ -65,7 +65,7 @@ C = S*ncdf(d1) - K*exp(-r*T)*ncdf(d2)
 | Construct | Text form | LaTeX form | IR |
 |---|---|---|---|
 | Numbers | `2`, `0.5`, `1e-3` | same | `const` |
-| Names | `sigma`, `d1`, `base.y` | `\sigma`, `d_1`, `d_{12}` | `ref` |
+| Names | `sigma`, `d1`, `base.y` | `\sigma`, `d_1`, `d_{12}`, and one multi-letter symbol as `\mathit{rate}`, `\text{rate}` or `\operatorname{rate}` — the way MAYA renders it, so its own LaTeX reads back | `ref` |
 | Add, subtract | `a + b`, `a - b` | same | `add`, `sub` |
 | Multiply | `a*b` | `a \cdot b`, `a \times b`, `a b` (adjacent) | `mul` |
 | Divide | `a/b` | `\frac{a}{b}` | `div` |
@@ -140,6 +140,27 @@ unless `output_type` is given to the parser.
 | `black_box` | replaces `lets` and `body` for an opaque model |
 | `composite` | replaces `lets` and `body` for a composite |
 | `constraints` | joint conditions over the model's own parameters (below) |
+
+### Declaring values, bounds, units and constraints
+
+Nobody writes the IR by hand for these either. On the model's **Definition** tab,
+*Declarations* takes each constant's value, each parameter's bounds and each
+input's unit, lists the constraints and adds one from an expression, an
+operator, a number and the reason it holds. From the SDK:
+
+```python
+# declare on the draft, without editing the IR
+my.models.declare(
+    "credit/pd_scorecard", values={"k": 680}, bounds={"a": [-10, 10]}, units={"balance": "GBP"}
+)
+my.models.add_constraint(
+    "credit/garch", "alpha + beta", "lt", 1, "the conditional variance is stationary"
+)
+my.models.remove_constraint("credit/garch", 0)
+```
+
+Re-entering the formula keeps them: an input that keeps its name and role keeps
+its value, bounds and unit, and a constraint stays while its parameters exist.
 
 ### Joint parameter constraints
 
@@ -253,7 +274,9 @@ can be lifted. Names read from `params["…"]` become parameters; names from
 `maximum`/`max`, `minimum`/`min`, `where`, `norm.cdf`/`cdf`/`ncdf`/`norm_cdf`,
 and `pdf`/`npdf` (from `math`, `numpy` or `scipy.stats.norm`) map onto IR
 operations. Loops, branches, attribute access and unknown calls are refused
-with the line named. The output is named `y`.
+with the line named. The output takes the name of the variable returned —
+`pd = 1 / (1 + exp(-z))` then `return pd` gives an output `pd` — and is `y`
+when an expression is returned directly.
 
 ```python
 # A liftable function
@@ -516,6 +539,15 @@ tolerance of 1e-9 (absolute 1e-12); both NaN counts as agreement. The report
 gives `agreed`, `total`, up to ten `counterexamples` with expected and actual
 values, and a statement that begins "Sampled agreement is not proof". A black
 box is skipped with that said.
+
+Name a feature set (`featureset=`) and the inputs are resampled from its own
+values — the domain the model will really be asked about. Without one they are
+drawn from the unit interval, and the report says so. A comparison whose
+reference output barely varies — a logistic saturated at 1 on every row — is
+marked **degenerate** and does not count: agreement there cannot tell right code
+from wrong, so the version cannot move on until conformance runs over a feature
+set. Every run against the same code is kept: a run that disagreed is not undone
+by a later one that agreed somewhere easier.
 
 ## Semantic diff and reference code
 

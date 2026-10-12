@@ -14,6 +14,7 @@ from fastapi.responses import Response
 
 from maya.api import schemas as s
 from maya.api.deps import Me, Plat, ok, ok_if_changed, ref_of, require_match
+from maya.core.errors import ValidationFailed
 from maya.security.authz import Principal
 
 router = APIRouter()
@@ -62,6 +63,53 @@ def get_model(
     if_none_match: str | None = Header(default=None),
 ) -> Response:
     return ok_if_changed(plat.models.get(me, ref_of("model", namespace, name)), if_none_match)
+
+
+@router.put("/models/{namespace}/{name}/declarations", tags=["models"])
+def declare_model_inputs(
+    namespace: str, name: str, body: dict[str, Any], me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """Declare constants' values, parameters' bounds and inputs' units on the draft:
+    {"values": {...}, "bounds": {name: [lo, hi] | null}, "units": {...}}."""
+    return ok(
+        plat.models.declare(
+            me,
+            ref_of("model", namespace, name),
+            values=body.get("values"),
+            bounds=body.get("bounds"),
+            units=body.get("units"),
+        )
+    )
+
+
+@router.post("/models/{namespace}/{name}/constraints", tags=["models"], status_code=201)
+def add_model_constraint(
+    namespace: str, name: str, body: dict[str, Any], me: Principal = Me, plat: Any = Plat
+) -> Response:
+    """A joint condition over parameters: {"expression": "alpha + beta", "op": "<", "rhs": 1,
+    "why": "the variance is stationary"}."""
+    try:
+        rhs = float(body["rhs"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValidationFailed("rhs must be a number") from exc
+    return ok(
+        plat.models.add_constraint(
+            me,
+            ref_of("model", namespace, name),
+            expression=str(body.get("expression") or ""),
+            op=str(body.get("op") or ""),
+            rhs=rhs,
+            why=str(body.get("why") or ""),
+        ),
+        201,
+    )
+
+
+@router.delete("/models/{namespace}/{name}/constraints/{index}", tags=["models"])
+def remove_model_constraint(
+    namespace: str, name: str, index: int, me: Principal = Me, plat: Any = Plat
+) -> Response:
+    return ok(plat.models.remove_constraint(me, ref_of("model", namespace, name), index))
 
 
 @router.put("/models/{namespace}/{name}/draft", tags=["models"])

@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+**Security: the escrowed holdout could be read before blind scoring**
+
+- A bundle carries every row of the training frame, the escrowed holdout included, and could
+  be exported from a warrant that was not yet sealed — so a modeller could read the rows
+  they were about to be scored on blind. Export now waits for the seal. Each export records
+  the holdout's hash, and a champion-and-challenger comparison on a holdout that an exported
+  bundle has disclosed is marked unblinded, on the challenge and its page.
+
+**Fixes found while writing the tutorials**
+
+- The semantic diff now names a changed constant's value and constraints added, removed or
+  re-reasoned; it reported no change for either, although both change the model.
+- Conformance marks a comparison **degenerate** when the specification's output barely varies
+  over the sampled inputs — a logistic saturated at 1, where a wrongly centred implementation
+  agreed on every row — and a degenerate comparison no longer lets a version move on; and
+  every run against the same code is kept, so a later agreement over easier ground no longer
+  undoes an earlier disagreement.
+- Re-entering a model's formula keeps the values, bounds, units and constraints already
+  declared, instead of silently dropping them; and they can be declared on the Definition
+  tab or with `models.declare`, `add_constraint` and `remove_constraint`, without editing the
+  IR.
+- `\mathit{rate}` and `\text{rate}` read as one symbol, so MAYA's own LaTeX pastes back in;
+  a Greek name with a short suffix renders with its subscript (`\sigma_{atm}`).
+- A model lifted from Python names its output after the variable returned.
+- The CLI can create a feature from a definition file and move its versions
+  (`feature create`, `feature transition`).
+
 **Tutorials, examples and AI, after drishti's model**
 
 - **Tutorials, rewritten in one tested format.** Six tutorials so far — your first 15
@@ -34,6 +61,12 @@
   this** on feature, model and warrant pages, and **Explain the change** on the model diff,
   put a record into words and name any figure that is not in the record. **Describe it in
   words** on the kernel designer drafts a formula that MAYA's parser checks before you see it.
+- **Adversarial tests of the AI features** (`tests/test_ai_adversarial.py`): a model answer
+  reaching past the asker's permissions, SQL or forbidden fields in an answer, a figure
+  planted in a description, personal data in a record, code smuggled into a drafted
+  formula, one person spreading calls across features, and a caller choosing a purpose.
+  The planted-figure case found a weakness, fixed: an explanation's figures are now
+  verified against structured fields only, never against free text somebody typed.
 - **MAYA governs its own AI**: one action registers its AI features as LLM applications, with
   their real prompts and starter evaluation sets, to be evaluated and approved like any other.
 

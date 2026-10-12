@@ -48,6 +48,35 @@
     <div class="row g-2 mt-1"><div class="col-md-3"><label class="form-label" for="mat">Maturity</label><select class="form-select" id="mat" name="maturity">{% for x in maturities %}<option {% if x == v.maturity %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div></div>
     <div class="mt-2"><button class="btn btn-primary" type="submit">Save draft</button></div>
   </form>{% else %}<div class="alert alert-info py-2">v{{ v.version_no }} is {{ v.state }} and immutable. Open a new draft to change it.</div>{% endif %}
+  {% set dir = v.formula_ir or {} %}
+  {% if editable and dir.get('inputs') and 'composite' not in dir %}
+  <section class="card mb-3" id="declarations"><div class="card-header">Declarations: values, bounds, units and constraints</div><div class="card-body">
+    <p class="small-muted">What the mathematics alone does not say. A constant's value is part of the definition; a parameter's bounds and the constraints are checked whenever a parameter set is uploaded. They survive re-entering the formula.</p>
+    <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/declarations">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <div class="row g-2 small fw-semibold d-none d-md-flex"><div class="col-md-3">Input</div><div class="col-md-2">Role</div><div class="col-md-2">Value (constants)</div><div class="col-md-3">Bounds (parameters)</div><div class="col-md-2">Unit</div></div>
+      {% for i in dir.inputs %}<div class="row g-2 align-items-center mb-1 border-bottom pb-1">
+        <div class="col-md-3 mono">{{ i.name }}</div><div class="col-md-2">{{ i.role or 'feature' }}</div>
+        <div class="col-md-2">{% if i.role == 'constant' %}<input class="form-control form-control-sm" name="value:{{ i.name }}" value="{{ i.value if i.value is not none else '' }}" aria-label="Value of {{ i.name }}">{% endif %}</div>
+        <div class="col-md-3">{% if i.role == 'parameter' %}<div class="input-group input-group-sm"><input class="form-control" name="lo:{{ i.name }}" value="{{ i.bounds[0] if i.bounds else '' }}" aria-label="Lower bound of {{ i.name }}"><input class="form-control" name="hi:{{ i.name }}" value="{{ i.bounds[1] if i.bounds else '' }}" aria-label="Upper bound of {{ i.name }}"></div>{% endif %}</div>
+        <div class="col-md-2"><input class="form-control form-control-sm" name="unit:{{ i.name }}" value="{{ i.unit or '' }}" aria-label="Unit of {{ i.name }}"></div></div>{% endfor %}
+      <button class="btn btn-sm btn-primary" type="submit">Save declarations</button>
+    </form>
+    <h3 class="h6 mt-3">Constraints over parameters</h3>
+    {% for c in dir.get('constraints') or [] %}
+    <div class="d-flex align-items-center gap-2 small mb-1"><span class="mono">{{ c.expr|expr_text }} {{ {'lt': '<', 'le': '≤', 'gt': '>', 'ge': '≥'}.get(c.op, c.op) }} {{ c.rhs }}</span> <span class="small-muted">— {{ c.why }}</span>
+      <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/constraints/{{ loop.index0 }}/delete" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-sm btn-link p-0" type="submit">remove</button></form></div>
+    {% else %}<p class="small-muted mb-1">None declared.</p>{% endfor %}
+    <form method="post" action="/models/{{ m.namespace }}/{{ m.name }}/constraints" class="row g-2 align-items-end mt-1">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <div class="col-md-4"><label class="form-label small" for="c-expr">Expression over parameters</label><input class="form-control form-control-sm mono" id="c-expr" name="expression" placeholder="alpha + beta"></div>
+      <div class="col-md-2"><label class="form-label small" for="c-op">Must be</label><select class="form-select form-select-sm" id="c-op" name="op"><option value="lt">&lt;</option><option value="le">≤</option><option value="gt">&gt;</option><option value="ge">≥</option></select></div>
+      <div class="col-md-2"><label class="form-label small" for="c-rhs">Than</label><input class="form-control form-control-sm" id="c-rhs" name="rhs" placeholder="1"></div>
+      <div class="col-md-3"><label class="form-label small" for="c-why">Why it must hold</label><input class="form-control form-control-sm" id="c-why" name="why" placeholder="the variance is stationary"></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-outline-primary" type="submit">Add</button></div>
+    </form>
+  </div></section>
+  {% endif %}
   {% set wb = ((v.formula_ir or {}).get('lifted_from') or {}).get('workbook') %}
   {% if wb %}
   <section class="card mb-3"><div class="card-header"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Lifted from {{ wb.filename }}</div>

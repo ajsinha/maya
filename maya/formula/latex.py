@@ -41,6 +41,17 @@ def latex_name(name: str) -> str:
         return rf"\mathrm{{{alias}}}.{latex_name(rest)}"
     m = re.match(r"^([A-Za-z]+?)(\d+)$", name)
     stem, sub = (m.group(1), m.group(2)) if m else (name, "")
+    greek = next(
+        (
+            g
+            for g in sorted(GREEK, key=len, reverse=True)
+            if len(g) >= 3 and stem.startswith(g) and 0 < len(stem) - len(g) <= 3
+        ),
+        None,
+    )
+    if greek and not sub:
+        # sigma_{atm} is stored as sigmaatm; render the subscript it was written with
+        return rf"\{greek}_{{{stem[len(greek) :]}}}"
     if stem in GREEK:
         stem = "\\" + stem
     elif len(stem) > 1:
